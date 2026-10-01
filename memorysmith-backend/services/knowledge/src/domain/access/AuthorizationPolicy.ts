@@ -28,6 +28,12 @@ export interface RequestContext {
    * the only thing that can narrow this is the ceiling of a given notebook.
    */
   readonly role: Role;
+  /**
+   * Present when this session reaches the notebook through a share accepted
+   * from another subscription (RN-ACC-027): the e-mail of its owner, which a
+   * refused write names. The role is VIEWER then, so nothing here widens.
+   */
+  readonly sharedBy?: string;
 }
 
 export const AuthorizationPolicy = {
@@ -55,6 +61,17 @@ export const AuthorizationPolicy = {
     if (action === 'administer' && !role.equals(Role.OWNER)) {
       return err(
         DomainError.forbiddenVisible('Only the subscription owner can administer this notebook'),
+      );
+    }
+    if (!role.canWrite() && ctx.sharedBy) {
+      // Shared with read access from another subscription: the notebook is on
+      // the grantee's screen, so this is the visible refusal, and it says why
+      // and whose it is (RN-ACC-027).
+      return err(
+        DomainError.forbiddenVisible(
+          `This notebook is shared with you by ${ctx.sharedBy} with read access, and cannot be written`,
+          { shared: true, owner: ctx.sharedBy, access: 'read' },
+        ),
       );
     }
     if (!role.canWrite()) {

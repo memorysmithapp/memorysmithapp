@@ -84,7 +84,19 @@ export interface AppDependencies {
   readonly fileKeeperFor: (request: KnowledgeRequest) => FileKeeper;
   /** Where the connector proxy records the connector of a token (section 13.3). */
   readonly connectorBindings: ConnectorBindingDependencies;
+  /**
+   * The door through the boundary (RN-ACC-026): the request on a notebook of
+   * another subscription that an accepted share opens to this session, or
+   * null, and the request goes on in the session's own subscription.
+   */
+  readonly openSharedNotebook: (
+    request: KnowledgeRequest,
+    notebookId: string,
+  ) => Promise<KnowledgeRequest | null>;
 }
+
+/** The notebook a Knowledge, Discovery or Audit path addresses, when it addresses one. */
+const NOTEBOOK_PATH = /^\/(?:knowledge|discovery|audit)\/notebooks\/([^/]+)/;
 
 type Variables = {
   access: AccessRequest;
@@ -169,19 +181,27 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
 
       const resolved = await deps.resolveContext(session.value);
       if (!resolved.ok) return fail(c, resolved.error);
-      c.set('knowledge', resolved.value);
+      // A notebook shared with this session reads under the subscription that
+      // owns it, as this person, read-only (RN-ACC-026, RN-ACC-027). Portability
+      // is not among the paths: an export of a shared notebook is kept where
+      // the person asking is, and its use case reads the share itself.
+      const addressed = NOTEBOOK_PATH.exec(c.req.path)?.[1];
+      const request =
+        (addressed ? await deps.openSharedNotebook(resolved.value, addressed) : null) ??
+        resolved.value;
+      c.set('knowledge', request);
       const canRead = (notebookId: string): Promise<boolean> =>
-        deps.canReadNotebook(resolved.value, notebookId);
+        deps.canReadNotebook(request, notebookId);
       c.set('audit', {
-        subscription: resolved.value.subscription,
+        subscription: request.subscription,
         // The whole chain in one question: the notebook the caller addressed,
         // and the note that notebook holds at this instant.
         holdsNote: async (notebookId: string, noteId: string) =>
           (await canRead(notebookId)) &&
-          (await deps.notebookHoldsNote(resolved.value, notebookId, noteId)),
+          (await deps.notebookHoldsNote(request, notebookId, noteId)),
       });
       c.set('discovery', {
-        subscription: resolved.value.subscription,
+        subscription: request.subscription,
         // Discovery holds no notebook, so whether the caller may read one is
         // answered by the context that owns it.
         canRead,
@@ -191,10 +211,18 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
       // write of it is attributed to (rule 7).
       c.set('portability', {
         subscription: resolved.value.subscription,
-        canRead,
+        // A notebook shared with this person reads too, for an export: the
+        // use case reads it through the share, and keeps the archive here
+        // (RN-ACC-027). Every write of Portability stays in this subscription.
+        canRead: async (notebookId: string) =>
+          (await canRead(notebookId)) ||
+          (await deps.openSharedNotebook(resolved.value, notebookId)) !== null,
         authorship: resolved.value.authorship,
         write: deps.notebookWriterFor(resolved.value),
         files: deps.fileKeeperFor(resolved.value),
+        // A print is drawn as the person who asked (RN-PRT-031): the renderer
+        // opens the page with the very token this request was authenticated by.
+        accessToken: (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, ''),
       });
       await next();
     },

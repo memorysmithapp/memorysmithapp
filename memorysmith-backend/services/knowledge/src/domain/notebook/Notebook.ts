@@ -41,6 +41,7 @@ import {
 import { FolderTreePlacement } from '../services/FolderTreePlacement.js';
 import {
   type FolderDescription,
+  type FolderNoteOrder,
   type FolderName,
   type RemovalPolicy,
   type ShortText,
@@ -300,6 +301,7 @@ export class Notebook {
     description: FolderDescription,
     afterFolderId: FolderId | null,
     by: Authorship,
+    noteOrder: FolderNoteOrder = 'manual',
   ): Result<Folder, DomainError> {
     if (this._folders.size >= NOTEBOOK_LIMITS.maxFolders) {
       return err(
@@ -329,6 +331,7 @@ export class Notebook {
       slug: slug.value,
       description,
       position: placement.value.position,
+      noteOrder,
       createdBy: by,
     });
     this._folders = this._folders.withFolder(folder);
@@ -342,6 +345,15 @@ export class Notebook {
       description: description.value,
       position: folder.position.value,
     });
+    // A folder born ordered by name says so in the trail, as a change of its
+    // order would: the default is the one thing that goes without saying.
+    if (noteOrder !== 'manual') {
+      this.record('FolderNotesOrdered', 'FOLDER', folder.id.value, by, {
+        notebookId: this.id.value,
+        folderId: folder.id.value,
+        noteOrder,
+      });
+    }
     return ok(folder);
   }
 
@@ -380,6 +392,29 @@ export class Notebook {
       notebookId: this.id.value,
       folderId: id.value,
       description: description.value,
+    });
+    return ok();
+  }
+
+  /**
+   * How a folder orders its notes (RN-KNW-056). The positions of its notes are
+   * left as they are, so a folder turned back to `manual` shows the order it
+   * had. Setting the order it already has changes nothing and records nothing.
+   */
+  orderFolderNotes(
+    id: FolderId,
+    noteOrder: FolderNoteOrder,
+    by: Authorship,
+  ): Result<void, DomainError> {
+    const folder = this._folders.get(id);
+    if (!folder) return err(DomainError.notFound('Folder not found in this notebook'));
+    if (folder.noteOrder === noteOrder) return ok();
+    folder.orderNotes(noteOrder, by.at);
+    this.touch(by.at);
+    this.record('FolderNotesOrdered', 'FOLDER', id.value, by, {
+      notebookId: this.id.value,
+      folderId: id.value,
+      noteOrder,
     });
     return ok();
   }

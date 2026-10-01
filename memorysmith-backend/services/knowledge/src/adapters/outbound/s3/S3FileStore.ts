@@ -34,6 +34,13 @@ export class S3FileStore implements FileStore {
     private readonly sub: SubscriptionContext,
     private readonly s3: S3Client,
     private readonly bucket: string,
+    /**
+     * The host a link is answered on, `https://files.{zone}` (#255), or
+     * nothing to answer it on the bucket's own. The link is signed for the
+     * bucket exactly as before, and the distribution on that host hands S3
+     * the very request it signed: only the name the browser shows changes.
+     */
+    private readonly publicOrigin: string | null = null,
   ) {}
 
   async put(bytes: Uint8Array, mimeType: string): Promise<ContentRef> {
@@ -82,7 +89,9 @@ export class S3FileStore implements FileStore {
    * A link a browser can follow on its own, which is what an `<img>` needs:
    * it carries its own authorisation in the query string, and it points at
    * the object store and not at the API — so a file somebody uploaded is
-   * served from an origin that is not the one the product runs in.
+   * served from an origin that is not the one the product runs in. That
+   * origin is `files.{zone}`, a host of the product that is still not the
+   * product's own, rather than the name of the bucket (#255).
    */
   async signedUrl(
     ref: ContentRef,
@@ -90,7 +99,7 @@ export class S3FileStore implements FileStore {
     mimeType: string,
     disposition: FileDisposition,
   ): Promise<SignedFile> {
-    const url = await getSignedUrl(
+    const signed = await getSignedUrl(
       this.s3,
       new GetObjectCommand({
         Bucket: this.bucket,
@@ -108,6 +117,7 @@ export class S3FileStore implements FileStore {
       }),
       { expiresIn: LINK_SECONDS },
     );
+    const url = answeredOn(signed, this.publicOrigin);
     const expiresAt = Instant.fromEpochMillis(Date.now() + LINK_SECONDS * 1000);
     if (!expiresAt.ok) throw new Error(expiresAt.error.message);
     return { url, expiresAt: expiresAt.value };
@@ -198,6 +208,16 @@ export class S3FileStore implements FileStore {
   private keyOf(contentId: ContentId): string {
     return `s/${this.sub.subscriptionId.value}/f/${contentId.value}`;
   }
+}
+
+/** A URL signed for the bucket, with the host a browser is shown swapped in. */
+function answeredOn(signed: string, publicOrigin: string | null): string {
+  if (!publicOrigin) return signed;
+  const url = new URL(signed);
+  const origin = new URL(publicOrigin);
+  url.protocol = origin.protocol;
+  url.host = origin.host;
+  return url.toString();
 }
 
 function missing(error: unknown): boolean {

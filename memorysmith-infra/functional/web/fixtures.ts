@@ -113,6 +113,10 @@ export interface Words {
   readonly historyHeading: string;
   /** The button of the bar that opens the history (#226). */
   readonly historyButton: string;
+  /** The action of the bar of a note that opens it on paper (#258). */
+  readonly printNote: string;
+  /** The button of the print tab that downloads the PDF the server makes (#263). */
+  readonly downloadPdf: string;
   readonly conflict: string;
 }
 
@@ -183,6 +187,8 @@ export const WORDS: Record<AppLocale, Words> = {
     writeIt: 'Write it',
     historyHeading: 'History of this note',
     historyButton: 'History',
+    printNote: 'Print',
+    downloadPdf: 'Download PDF',
     conflict: 'Somebody else wrote this note',
   },
   pt_BR: {
@@ -251,6 +257,8 @@ export const WORDS: Record<AppLocale, Words> = {
     writeIt: 'Gravar',
     historyHeading: 'Histórico desta nota',
     historyButton: 'Histórico',
+    printNote: 'Imprimir',
+    downloadPdf: 'Baixar PDF',
     conflict: 'Outra pessoa gravou esta nota',
   },
 };
@@ -295,7 +303,12 @@ interface WebFixtures {
 
 type Scope = {
   location: { origin: string };
-  localStorage: { setItem(key: string, value: string): void; removeItem(key: string): void };
+  localStorage: {
+    readonly length: number;
+    key(index: number): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
+  };
 };
 
 /** Sets the locale of the interface before its first page loads, which is when it is read. */
@@ -306,7 +319,11 @@ export async function speak(page: Page, state: RunState, locale: AppLocale): Pro
       if (scope.location.origin !== site) return;
       scope.localStorage.setItem('memorysmith.locale', locale);
       // A remembered note would turn the page of a notebook into a redirect.
-      scope.localStorage.removeItem('memorysmith.lastNote');
+      // It is kept per person, under a key of its own for each.
+      for (let index = scope.localStorage.length - 1; index >= 0; index--) {
+        const key = scope.localStorage.key(index);
+        if (key?.startsWith('memorysmith.lastNote')) scope.localStorage.removeItem(key);
+      }
     },
     { site: state.surfaces.site, locale },
   );

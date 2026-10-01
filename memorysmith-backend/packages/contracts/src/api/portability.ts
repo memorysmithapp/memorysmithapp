@@ -92,6 +92,45 @@ export const transferUploadSchema = z.object({
   received: z.array(z.number().int().positive()),
   /** When the last part arrived, or `null` while none has. */
   lastPartAt: instantSchema.nullable(),
+  /** The request of the person this upload fulfils, when it does (RN-PRT-030). */
+  fulfils: ulidSchema.nullable().optional(),
+});
+
+/**
+ * A file an agent asked the person for instead of sending it (#253,
+ * RN-PRT-030). Its name is the `fileName` of the transfer. The size and hash
+ * are what the agent knows of the file, shown as a reference and never
+ * enforced: what an agent knows may be a copy its client reduced.
+ */
+export const transferRequestSchema = z.object({
+  mimeType: z.string(),
+  description: z.string(),
+  purpose: z.string(),
+  tags: z.array(z.string()),
+  path: z.string(),
+  /** The connector that asked. */
+  platform: z.string().nullable(),
+  expectedSize: z.number().int().nonnegative().nullable(),
+  expectedSha256: z.string().nullable(),
+});
+
+/**
+ * Asking the person for a file (RN-PRT-030), from nothing — the notebook, the
+ * name, the type and what it is for — or from an upload the agent could not
+ * finish, which the request replaces: its parts are thrown away and the room it
+ * reserved given back.
+ */
+export const requestFileRequestSchema = z.object({
+  notebookId: ulidSchema.optional(),
+  name: z.string().min(1).max(512).optional(),
+  description: z.string().max(500).optional(),
+  mimeType: z.string().min(1).optional(),
+  tags: z.array(z.string()).optional(),
+  path: z.string().optional(),
+  purpose: z.string().min(1).max(500).optional(),
+  size: z.number().int().positive().optional(),
+  sha256: sha256Schema.optional(),
+  fromUpload: ulidSchema.optional(),
 });
 
 /**
@@ -102,7 +141,7 @@ export const transferUploadSchema = z.object({
  */
 export const transferSchema = z.object({
   transferId: ulidSchema,
-  kind: z.enum(['export', 'import', 'agent']),
+  kind: z.enum(['export', 'import', 'agent', 'request']),
   status: z.enum(['running', 'ready', 'failed', 'cancelled']),
   notebookId: ulidSchema.nullable(),
   /** The name of the notebook AS IT WAS: an export survives its notebook. */
@@ -121,8 +160,10 @@ export const transferSchema = z.object({
    * `null` on an import recorded before a file name was kept (#155).
    */
   fileName: z.string().nullable(),
-  /** What an upload of an agent is and how far it got; absent on the other two kinds. */
+  /** What an upload of an agent is and how far it got; absent on the other kinds. */
   upload: transferUploadSchema.optional(),
+  /** The file an agent asked the person for; only on a request (RN-PRT-030). */
+  request: transferRequestSchema.optional(),
 });
 
 export const transferListSchema = z.object({
@@ -151,6 +192,11 @@ export const beginUploadRequestSchema = z.object({
   transport: uploadTransportSchema,
   /** Inline only: the bytes of every part but the last. */
   partSize: z.number().int().positive().optional(),
+  /**
+   * The request of the person this upload fulfils (RN-PRT-030): the file is
+   * kept under the name and in the notebook the request names.
+   */
+  request: ulidSchema.optional(),
 });
 
 /** Where the parts that are missing go, on an upload by URL. */
@@ -208,6 +254,28 @@ export const importUploadSchema = z.object({
   uploadKey: z.string().min(1),
 });
 
+/**
+ * A note downloaded as a PDF made by the server (#263, RN-PRT-031): the
+ * choices of the print tab, and the language the page is drawn in. The answer
+ * is the print, which is polled until its file is ready.
+ */
+export const printRequestSchema = z.object({
+  placement: z.enum(['cover', 'end', 'none']).default('cover'),
+  tables: z.enum(['wrap', 'shrink']).default('wrap'),
+  orientation: z.enum(['portrait', 'landscape']).default('portrait'),
+  locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
+});
+
+export const printSchema = z.object({
+  printId: ulidSchema,
+  status: z.enum(['running', 'ready', 'failed']),
+  /** Issued when it is ready, at the moment it is asked for, and never stored. */
+  downloadUrl: z.string().url().optional(),
+  expiresAt: instantSchema.optional(),
+  /** Why there is no file: NOT_FOUND, SESSION, TIMED_OUT or FAILED. */
+  failure: z.string().optional(),
+});
+
 export type ExportRequest = z.infer<typeof exportRequestSchema>;
 export type ImportFromExportRequest = z.infer<typeof importFromExportRequestSchema>;
 export type ImportUploadDto = z.infer<typeof importUploadSchema>;
@@ -221,3 +289,7 @@ export type UploadStatusDto = z.infer<typeof uploadStatusSchema>;
 export type UploadPartRequest = z.infer<typeof uploadPartRequestSchema>;
 export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
 export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;
+export type TransferRequestDto = z.infer<typeof transferRequestSchema>;
+export type RequestFileRequest = z.infer<typeof requestFileRequestSchema>;
+export type PrintRequest = z.infer<typeof printRequestSchema>;
+export type PrintDto = z.infer<typeof printSchema>;

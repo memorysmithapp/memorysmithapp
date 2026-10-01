@@ -16,6 +16,9 @@
  *   PUT    /uploads/:t/parts/:n        ->  one inline part, with its hash
  *   POST   /uploads/:t/finish          ->  the whole becomes a file, or is refused
  *   POST   /uploads/:t/link            ->  points it at another notebook (RN-PRT-029)
+ *   POST   /requests                   ->  asks the person for a file (RN-PRT-030)
+ *   POST   /notebooks/:v/notes/:n/pdf  ->  starts a print, answers it (RN-PRT-031)
+ *   GET    /prints/:p                  ->  the print, with a link once its file is made
  *
  * **An export is a job and not a request** (RN-PRT-019). Building the archive
  * means reading every note of the notebook, and the function behind this API
@@ -39,6 +42,8 @@ import {
   importFromExportRequestSchema,
   importUploadSchema,
   linkUploadRequestSchema,
+  printRequestSchema,
+  requestFileRequestSchema,
   uploadPartRequestSchema,
 } from '@memorysmith/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
@@ -60,6 +65,7 @@ import type {
   StartImport,
 } from '../application/Transfers.js';
 import type { ImportSelection } from '../application/ImportNotebook.js';
+import type { GetPrint, StartPrint } from '../application/Prints.js';
 import type { Transfer } from '../domain/Transfer.js';
 import {
   receivedOf,
@@ -68,6 +74,7 @@ import {
   type FinishUpload,
   type GetUploadStatus,
   type LinkUpload,
+  type RequestFile,
   type ListUploads,
   type PutUploadPart,
   type UploadStatus,
@@ -96,6 +103,12 @@ export interface PortabilityRequest {
   readonly write: NotebookWriter;
   /** What an upload in parts becomes a file with, built the same way (RN-PRT-027). */
   readonly files: FileKeeper;
+  /**
+   * The token the session was authenticated with, which a print is drawn
+   * under (RN-PRT-031): the page the renderer opens reads as the person who
+   * asked, and nothing more.
+   */
+  readonly accessToken: string;
 }
 
 export interface PortabilityUseCases {
@@ -114,6 +127,9 @@ export interface PortabilityUseCases {
   readonly putUploadPart: (request: PortabilityRequest) => PutUploadPart;
   readonly finishUpload: (request: PortabilityRequest) => FinishUpload;
   readonly linkUpload: (request: PortabilityRequest) => LinkUpload;
+  readonly requestFile: (request: PortabilityRequest) => RequestFile;
+  readonly startPrint: (request: PortabilityRequest) => StartPrint;
+  readonly getPrint: (request: PortabilityRequest) => GetPrint;
 }
 
 /** What a transfer looks like on the wire, which is what it is (§16). */
@@ -148,8 +164,12 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             partCount: transfer.upload.partCount,
             received: receivedOf(transfer.upload),
             lastPartAt: transfer.upload.lastPartAt,
+            fulfils: transfer.upload.fulfils ?? null,
           },
         }
+      : {}),
+    ...(transfer.request
+      ? { request: { ...transfer.request, tags: [...transfer.request.tags] } }
       : {}),
   };
 }
@@ -203,6 +223,42 @@ export function createPortabilityRoutes(
       .startExport(request)
       .execute({ notebookId, selection: body.selection ?? null });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
+  });
+
+  /**
+   * A note as a PDF made by the server (RN-PRT-031). A job, as an export is:
+   * the answer is the print, and the screen asks for it until its file is made.
+   */
+  app.post('/notebooks/:v/notes/:n/pdf', async (c) => {
+    const request = c.get('portability');
+    const notebookId = c.req.param('v') ?? '';
+    if (!(await request.canRead(notebookId))) {
+      return fail(c, DomainError.forbidden('Notebook not found'));
+    }
+    const body = printRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) {
+      return fail(
+        c,
+        DomainError.validation('That is not a print this page makes', body.error.issues),
+      );
+    }
+    const { locale, ...choices } = body.data;
+    const started = await useCases.startPrint(request).execute({
+      notebookId,
+      noteId: c.req.param('n') ?? '',
+      accessToken: request.accessToken,
+      choices,
+      locale,
+    });
+    return started.ok
+      ? c.json({ printId: started.value.printId, status: 'running' }, 202)
+      : fail(c, started.error);
+  });
+
+  app.get('/prints/:p', async (c) => {
+    const request = c.get('portability');
+    const found = await useCases.getPrint(request).execute(c.req.param('p') ?? '');
+    return present(c, found, (value) => value);
   });
 
   /** Every transfer of whoever is asking, and what the kept ones occupy. */
@@ -385,6 +441,30 @@ export function createPortabilityRoutes(
       .linkUpload(request)
       .execute(c.req.param('t') ?? '', parsed.data.notebookId);
     return present(c, linked, transferToDto);
+  });
+
+  /**
+   * An agent asks the person for a file instead of sending it (RN-PRT-030),
+   * from nothing or from an upload it could not finish. It is a write, of a
+   * record the person acts on, so an unbound connector is refused (rule 7).
+   */
+  app.post('/requests', async (c) => {
+    const request = c.get('portability');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const parsed = requestFileRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return fail(
+        c,
+        DomainError.validation(
+          parsed.error.issues
+            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+            .join('; '),
+        ),
+      );
+    }
+    const asked = await useCases.requestFile(request).execute({ ...parsed.data, by: author.value });
+    return asked.ok ? c.json(transferToDto(asked.value), 201) : fail(c, asked.error);
   });
 
   return app;

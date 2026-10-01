@@ -47,12 +47,20 @@ const HANDLERS: ReadonlyArray<{ entry: string; description: string }> = [
     description: 'Drains the transactional outbox into the event bus.',
   },
   {
+    entry: 'memorysmith-backend/apps/core-monolith/src/access-relay.handler.ts',
+    description: 'Drains the transactional outbox of Access into the event bus.',
+  },
+  {
     entry: 'memorysmith-backend/apps/core-monolith/src/purge.handler.ts',
     description: 'Destroys the content and the items a deletion invalidated.',
   },
   {
     entry: 'memorysmith-backend/apps/core-monolith/src/transfer.handler.ts',
     description: 'Builds the archive of an export, and records how far it got.',
+  },
+  {
+    entry: 'memorysmith-backend/apps/core-monolith/src/print.handler.ts',
+    description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
   },
   {
     entry: 'memorysmith-backend/services/audit/src/main/handler.ts',
@@ -120,6 +128,8 @@ function deployed(): Map<string, Record<string, string>> {
     apiDomainName: network.apiDomainName,
     uploadsDomainName: network.uploadsDomainName,
     uploadsCertificate: network.uploadsCertificate,
+    filesDomainName: network.filesDomainName,
+    filesCertificate: network.filesCertificate,
     userPool: identity.userPool,
     cognitoIssuer: identity.issuer,
     connectorClientId: identity.proxyClient.userPoolClientId,

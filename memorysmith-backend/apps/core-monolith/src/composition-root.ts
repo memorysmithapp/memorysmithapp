@@ -36,6 +36,7 @@ import {
   DynamoPlatformAdmin,
   DynamoSubscriptionRepository,
   DynamoUserLinkRepository,
+  DynamoShareRepository,
 } from '@memorysmith/svc-access/adapters/dynamodb';
 import { NULL_OUTBOX_SINK } from '@memorysmith/svc-access/adapters/items';
 import {
@@ -67,6 +68,7 @@ import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynam
 import type { SubscriptionUsageQuery } from '@memorysmith/svc-access/adapters/http';
 import { ReadStorageUsage } from '@memorysmith/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
+import { KnowledgeSharedNotebooks } from './shares.js';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -78,6 +80,12 @@ export interface Infrastructure {
   /** Where the transfers of each person live (RN-PRT-019, RN-PRT-020). */
   readonly portabilityTable: string;
   readonly contentBucket: string;
+  /**
+   * The host a link to a kept file or an export is answered on,
+   * `https://files.{zone}` (#255). Only the API signs one; a worker that
+   * signs nothing leaves it out.
+   */
+  readonly filesOrigin?: string;
 }
 
 /** Everything the Access routes need, for one request. */
@@ -174,7 +182,7 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     // key is opaque like the key of a note, and carries no extension, because
     // the extension of a name decides nothing anywhere here.
     files: new DynamoFileRepository(context, infra.db, infra.knowledgeTable),
-    fileStore: new S3FileStore(context, infra.s3, infra.contentBucket),
+    fileStore: new S3FileStore(context, infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
     fileTypes: FILE_TYPE_CATALOGUE,
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the
@@ -309,4 +317,21 @@ export function buildConnectorBindings(
 /** The role the session holds in the subscription, owner above every member. */
 export function roleOf(resolved: ResolvedContext): Role {
   return resolved.isOwner ? Role.OWNER : resolved.role;
+}
+
+/**
+ * The shares of notebooks between subscriptions (RN-ACC-024), and what Access
+ * asks about the notebooks they open, answered from Knowledge. Built from no
+ * context: the owner's side is reached with the owner's own context, and the
+ * grantee's side by the person of the token (architecture-guide.md §8.3).
+ */
+export function buildShares(infra: Infrastructure) {
+  const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);
+  return {
+    shares: new DynamoShareRepository(infra.db, infra.accessTable, NULL_OUTBOX_SINK),
+    notebooks: new KnowledgeSharedNotebooks(
+      (context) => buildKnowledge(infra, context).notebooks,
+      async (id) => (await platform.findById(id))?.status.name ?? null,
+    ),
+  };
 }

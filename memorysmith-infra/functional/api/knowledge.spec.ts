@@ -26,6 +26,7 @@ interface Folder {
   parentFolderId: string | null;
   name: string;
   position: string;
+  noteOrder?: string;
 }
 
 const notebookPath = (notebook: NotebookFixture) => `/knowledge/notebooks/${notebook.notebookId}`;
@@ -183,6 +184,60 @@ test.describe('folders', () => {
       .filter((folder) => folder.parentFolderId === null)
       .sort((a, b) => (String(a.position) < String(b.position) ? -1 : 1));
     expect(roots.map((folder) => folder.name)).toEqual(['Open questions', 'Findings']);
+  });
+
+  test('[route:PATCH /knowledge/notebooks/:v/folders/:f] orders the notes of a folder by name, refuses to move one there, and gives the order back (#262)', async ({
+    owner,
+    notebook,
+  }) => {
+    const records = await createFolder(owner, notebook, 'Minutes');
+    for (const name of ['Ata 10', 'Ata 2', 'Ata 1']) {
+      await owner.ok('POST', notesPath(notebook), {
+        folderId: records.folderId,
+        content: `---\nname: ${name}\n---\n\nWhat was decided.\n`,
+      });
+    }
+    const names = async () =>
+      (
+        await owner.ok<Array<{ name: string | null }>>(
+          'GET',
+          `${notesPath(notebook)}?folderId=${records.folderId}`,
+        )
+      ).map((note) => note.name);
+    // By hand, the order they were written in. The listing of a folder is an
+    // index that converges after a write, so it is asked until it shows them.
+    await expect.poll(names).toEqual(['Ata 10', 'Ata 2', 'Ata 1']);
+
+    const ordered = await owner.call('PATCH', `${foldersPath(notebook)}/${records.folderId}`, {
+      noteOrder: 'alphabetical',
+    });
+    expect(ordered.status).toBe(204);
+    await expect.poll(names).toEqual(['Ata 1', 'Ata 2', 'Ata 10']);
+    const folder = (
+      await owner.ok<{ folders: Folder[] }>('GET', notebookPath(notebook))
+    ).folders.find((each) => each.folderId === records.folderId);
+    expect(folder?.noteOrder).toBe('alphabetical');
+
+    const listed = await owner.ok<Array<{ noteId: string }>>(
+      'GET',
+      `${notesPath(notebook)}?folderId=${records.folderId}`,
+    );
+    const moved = await owner.call(
+      'POST',
+      `${notesPath(notebook)}/${listed[2]?.noteId ?? ''}/reorder`,
+      { afterNoteId: null },
+    );
+    expect(moved.status).toBe(412);
+
+    // Back by hand, the places they had.
+    await owner.call('PATCH', `${foldersPath(notebook)}/${records.folderId}`, {
+      noteOrder: 'manual',
+    });
+    await expect.poll(names).toEqual(['Ata 10', 'Ata 2', 'Ata 1']);
+    const refused = await owner.call('PATCH', `${foldersPath(notebook)}/${records.folderId}`, {
+      noteOrder: 'by-date',
+    });
+    expect(refused.status).toBe(400);
   });
 
   test('[route:DELETE /knowledge/notebooks/:v/folders/:f] deletes a folder only under the policy it was given', async ({
@@ -386,11 +441,15 @@ test.describe('notes', () => {
 
     expect((await owner.call('DELETE', path)).status).toBe(204);
     expect((await owner.call('GET', path)).status).toBe(404);
-    const listed = await owner.ok<Note[]>(
-      'GET',
-      `${notesPath(notebook)}?folderId=${notebook.folderId}`,
-    );
-    expect(listed.map((note) => note.noteId)).not.toContain(notebook.noteId);
+    // The listing of a folder is an index that converges after a write, so
+    // it is asked until the deletion reaches it, which takes a moment.
+    await expect
+      .poll(async () =>
+        (await owner.ok<Note[]>('GET', `${notesPath(notebook)}?folderId=${notebook.folderId}`)).map(
+          (note) => note.noteId,
+        ),
+      )
+      .not.toContain(notebook.noteId);
 
     // Deleting a note twice is deleting one that is not there (RN-KNW-029),
     // and the route that brought one back is gone.
@@ -483,6 +542,7 @@ test.describe('the files of a notebook', () => {
   test('[route:GET /knowledge/notebooks/:v/files/:f/link] [route:DELETE /knowledge/notebooks/:v/files/:f] answers a link a browser follows, and deleting is definitive', async ({
     owner,
     notebook,
+    state,
   }) => {
     const name = unique('relatorio');
     const kept = await owner.ok<NotebookFile>('POST', `${notebookPath(notebook)}/files`, {
@@ -491,19 +551,37 @@ test.describe('the files of a notebook', () => {
       contentBase64: PDF,
     });
 
-    const link = await owner.ok<{ url: string; expiresAt: string }>(
+    const link = await owner.ok<{ url: string; downloadUrl: string; expiresAt: string }>(
       'GET',
       `${notebookPath(notebook)}/files/${kept.fileId}/link`,
     );
-    // It points at the object store and not at the API, which is what lets an
-    // <img> follow it and what keeps a file somebody uploaded out of the
-    // origin the product runs in.
-    expect(link.url).toContain('http');
+    // It points at a host of the product that is not the product's own
+    // origin, which is what lets an <img> follow it and what keeps a file
+    // somebody uploaded out of the origin the product runs in (#255).
+    const filesHost = `files.${new URL(state.surfaces.site).host}`;
+    expect(new URL(link.url).host).toBe(filesHost);
+    expect(new URL(link.downloadUrl).host).toBe(filesHost);
     expect(Date.parse(link.expiresAt)).toBeGreaterThan(Date.now());
 
+    // A PDF opens where it is opened, and the second address saves it.
     const fetched = await fetch(link.url);
     expect(fetched.status).toBe(200);
     expect(fetched.headers.get('content-type')).toContain('application/pdf');
+    expect(fetched.headers.get('content-disposition')).toBe('inline');
+    expect(fetched.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(fetched.headers.get('content-security-policy')).toMatch(/(^|; )sandbox($|;)/);
+    const saved = await fetch(link.downloadUrl);
+    expect(saved.status).toBe(200);
+    expect(saved.headers.get('content-disposition')).toBe(`attachment; filename="${name}"`);
+
+    // S3 still checks the signature it made: an altered one is refused.
+    const altered = new URL(link.url);
+    const signature = altered.searchParams.get('X-Amz-Signature') ?? '';
+    altered.searchParams.set(
+      'X-Amz-Signature',
+      `${signature.startsWith('0') ? '1' : '0'}${signature.slice(1)}`,
+    );
+    expect((await fetch(altered)).status).toBe(403);
 
     const deleted = await owner.call('DELETE', `${notebookPath(notebook)}/files/${kept.fileId}`);
     expect(deleted.status).toBe(204);

@@ -59,6 +59,31 @@ export class SubscriptionContext {
   }
 
   /**
+   * The second constructor, and the only door through the boundary: a share
+   * of a notebook its grantee ACCEPTED (RN-ACC-026, architecture-guide.md
+   * section 8.3). The person is the one of the token; the subscription is the
+   * one the stored share names, which an authenticated act of its owner wrote
+   * and which the grantee's session reached by a key taken from its own token.
+   * Nothing of it comes from the request (RN-SUB-002).
+   *
+   * Only the core reaches for it, after reading the accepted share, and what it
+   * builds reaches that one notebook, read-only: the request it goes into
+   * carries the VIEWER role, so every write is refused by the notebook's own
+   * policy (RN-ACC-027).
+   */
+  static fromAcceptedShare(share: {
+    readonly granteeUserId: string;
+    readonly ownerSubscriptionId: string;
+    readonly ownerStatus: string;
+  }): Result<SubscriptionContext, DomainError> {
+    return SubscriptionContext.fromClaims({
+      sub: share.granteeUserId,
+      subscription_id: share.ownerSubscriptionId,
+      subscription_status: share.ownerStatus,
+    });
+  }
+
+  /**
    * Whether the subscription grants operational access at all (RN-SUB-007).
    * Checked by the authorizer, never by a repository: status governs access,
    * never address (RN-SUB-005).

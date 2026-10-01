@@ -25,6 +25,8 @@ export function serverInstructions(deployment: Deployment): string {
     '',
     'Call `whoami` before any other tool. It says who you act as, which notebooks you',
     'reach, and the order in which a notebook is read before anything is written in it.',
+    'It also lists every tool this server serves, with its arguments: when your own list',
+    'differs, it is older than the server, and `whoami` says how the person refreshes it.',
     '',
     'Some tasks have a written method. Read its skill with `get_skill` BEFORE you start',
     'the task, not after it went wrong:',

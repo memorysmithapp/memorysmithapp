@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/svc-access",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "description": "Access bounded context: subscriptions and their lifecycle, members, roles, notebook ceilings, links and authorization.",
@@ -33,6 +33,8 @@
     "./application/members": "./src/application/members.ts",
     "./domain/values": "./src/domain/values.ts",
     "./domain/ports": "./src/domain/ports/index.ts",
-    "./domain/subscription": "./src/domain/subscription/Subscription.ts"
+    "./domain/subscription": "./src/domain/subscription/Subscription.ts",
+    "./application/shares": "./src/application/shares.ts",
+    "./domain/share": "./src/domain/share/Share.ts"
   }
 }

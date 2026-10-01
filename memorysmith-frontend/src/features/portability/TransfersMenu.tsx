@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { notebookAddress } from '../../shared/api/note-address';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmith/contracts';
-import { isWorking, progressOf, saveArchive, useTransfers } from './transfers';
+import { isWaitingRequest, isWorking, progressOf, saveArchive, useTransfers } from './transfers';
 import { Menu } from '../../shared/components/Menu';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -64,6 +64,12 @@ export function TransfersMenu() {
   const finished = transfers.filter(
     (transfer) => transfer.finishedAt !== null && transfer.finishedAt > seen,
   );
+  /**
+   * What waits on the person is counted on the button itself (#253,
+   * RN-PRT-030): a file an agent asked for is not news that fades once seen,
+   * but something still to do, and it stays counted until it is done.
+   */
+  const waiting = transfers.filter(isWaitingRequest).length;
 
   function toggle(): void {
     setOpen((current) => {
@@ -97,9 +103,18 @@ export function TransfersMenu() {
         onClick={toggle}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={t('transfers.heading')}
+        aria-label={
+          waiting > 0
+            ? `${t('transfers.heading')} · ${t('transfers.waitingCount', { count: waiting })}`
+            : t('transfers.heading')
+        }
       >
         <span aria-hidden="true">⇅</span>
+        {waiting > 0 && (
+          <span className="transfers-count" aria-hidden="true">
+            {waiting}
+          </span>
+        )}
         {running.length > 0 && (
           <span
             className="transfers-ring"
@@ -193,6 +208,13 @@ function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: (
             {t('transfers.open')}
           </Link>
         )}
+      {/* A file waiting for the person is given on the page, where there is
+          room to choose, drag or paste it (#253). */}
+      {isWaitingRequest(transfer) && (
+        <Link className="button is-primary is-small" to="/transfers" onClick={onClose}>
+          {t('transfers.fulfil')}
+        </Link>
+      )}
     </div>
   );
 }

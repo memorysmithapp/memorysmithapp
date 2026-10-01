@@ -26,6 +26,7 @@
  */
 
 import { z } from 'zod';
+import { NOTE_ORDERS } from '../note-order.js';
 import {
   authorshipSchema,
   contentRefSchema,
@@ -67,6 +68,12 @@ export const documentFolderSchema = z.object({
    * issues a number its notes already carry (RN-PRT-016).
    */
   lastNumber: z.number().int().positive().optional(),
+  /**
+   * How the folder orders its notes (RN-KNW-056), absent for one ordered by
+   * hand, which is every folder of a document written before folders declared
+   * it. An import restores it.
+   */
+  noteOrder: z.enum(NOTE_ORDERS).optional(),
 });
 
 export const documentNoteSchema = z.object({

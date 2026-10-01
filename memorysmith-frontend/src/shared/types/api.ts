@@ -29,6 +29,8 @@ export interface FolderNode {
   slug: string;
   description: string;
   position: number;
+  /** How its notes are ordered: by hand, or by name (RN-KNW-056). */
+  noteOrder: 'manual' | 'alphabetical';
   hasTemplate: boolean;
   noteCount: number;
   notes: NoteSummary[];

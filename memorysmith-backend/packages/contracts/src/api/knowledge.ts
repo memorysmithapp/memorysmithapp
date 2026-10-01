@@ -11,6 +11,7 @@
  */
 
 import { z } from 'zod';
+import { NOTE_ORDERS } from '../note-order.js';
 import {
   contentRefSchema,
   authorshipSchema,
@@ -43,6 +44,8 @@ export const folderSchema = z.object({
   /** Mandatory, 1 to 500 characters: it is what steers the agent (RN-KNW-006). */
   description: z.string().min(1).max(500),
   position: positionSchema,
+  /** How the folder orders its notes: by hand, or by name (RN-KNW-056). */
+  noteOrder: z.enum(NOTE_ORDERS),
   hasTemplate: z.boolean(),
   noteCount: z.number().int().nonnegative(),
 });
@@ -83,12 +86,14 @@ export const createFolderRequestSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().min(1).max(500),
   afterFolderId: ulidSchema.nullable().default(null),
+  noteOrder: z.enum(NOTE_ORDERS).default('manual'),
 });
 
 export const patchFolderRequestSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   description: z.string().min(1).max(500).optional(),
   parentFolderId: ulidSchema.nullable().optional(),
+  noteOrder: z.enum(NOTE_ORDERS).optional(),
 });
 
 export const reorderFolderRequestSchema = z.object({

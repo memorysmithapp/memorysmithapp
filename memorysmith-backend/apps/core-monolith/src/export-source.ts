@@ -113,6 +113,7 @@ export class KnowledgeExportSource implements ExportSource {
         name: folder.name.value,
         description: folder.description.value,
         position: folder.position.value,
+        noteOrder: folder.noteOrder,
         templateContent: templates[index] ?? null,
         ...(lastNumbers.get(folder.id.value)
           ? { lastNumber: lastNumbers.get(folder.id.value) as number }

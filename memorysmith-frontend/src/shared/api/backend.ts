@@ -10,6 +10,10 @@
 import type {
   AccountLocaleDto,
   AvatarSourceDto,
+  IncomingShareDto,
+  NotificationDto,
+  NotificationListDto,
+  OutgoingShareDto,
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
@@ -17,6 +21,8 @@ import type {
   TransferDto,
   TransferListDto,
   DownloadLinkDto,
+  PrintDto,
+  PrintRequest,
   FolderDto,
   ContentDto,
   NoteDto,
@@ -144,6 +150,9 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
       slug: folder.slug,
       description: folder.description,
       position: index,
+      // An API older than the order answers none, and that is every folder
+      // ordered by hand.
+      noteOrder: folder.noteOrder === 'alphabetical' ? 'alphabetical' : 'manual',
       hasTemplate: folder.hasTemplate,
       noteCount: folder.noteCount,
       notes: notes
@@ -357,6 +366,25 @@ export async function downloadTransfer(transferId: string): Promise<DownloadLink
 }
 
 /**
+ * A note as a PDF made by the server (#263): the print starts, and is asked
+ * for until its file is made.
+ */
+export async function startPrint(
+  notebookId: string,
+  noteId: string,
+  body: PrintRequest,
+): Promise<PrintDto> {
+  return request<PrintDto>(`/portability/notebooks/${notebookId}/notes/${noteId}/pdf`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function getPrint(printId: string): Promise<PrintDto> {
+  return request<PrintDto>(`/portability/prints/${printId}`);
+}
+
+/**
  * An upload key made from a kept export, copied server-side (#207): the same
  * key the upload of a file ends in, which `applyImport` takes unchanged.
  */
@@ -382,6 +410,20 @@ export async function deleteTransfer(transferId: string): Promise<void> {
  */
 export async function beginUpload(input: BeginUploadRequest): Promise<UploadStatusDto> {
   return request<UploadStatusDto>('/portability/uploads', { method: 'POST', body: input });
+}
+
+/**
+ * The open uploads of the person, and the files requested of them (RN-PRT-030):
+ * where an interrupted upload is found again by the hash of its file (#253).
+ */
+export async function listUploads(): Promise<TransferDto[]> {
+  const listed = await request<{ transfers: TransferDto[] }>('/portability/uploads');
+  return listed.transfers;
+}
+
+/** What an upload is missing, with a fresh address for every missing part. */
+export async function uploadStatus(transferId: string): Promise<UploadStatusDto> {
+  return request<UploadStatusDto>(`/portability/uploads/${transferId}`);
 }
 
 /** Joins the parts and keeps the file, or answers why not. */
@@ -420,6 +462,22 @@ export async function createFolder(
   return request<FolderDto>(`/knowledge/notebooks/${notebookId}/folders`, {
     method: 'POST',
     body: input,
+  });
+}
+
+/**
+ * How a folder orders its notes (RN-KNW-056). The notes the structure already
+ * holds come back in the new order with the next read of it, which the caller
+ * asks for: the order is the server's, so the screen and the agent agree.
+ */
+export async function setNoteOrder(
+  notebookId: string,
+  folderId: string,
+  noteOrder: 'manual' | 'alphabetical',
+): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}/folders/${folderId}`, {
+    method: 'PATCH',
+    body: { noteOrder },
   });
 }
 
@@ -533,4 +591,62 @@ export async function noteHistory(notebookId: string, noteId: string): Promise<H
     `/audit/notebooks/${notebookId}/notes/${noteId}/history`,
   );
   return history.entries;
+}
+
+// ---- Shares (#256, RN-ACC-024 to RN-ACC-030) ---------------------------------
+
+/** Every share the owner made, for the cards that say a notebook is shared. */
+export async function listOwnShares(): Promise<OutgoingShareDto[]> {
+  return request<OutgoingShareDto[]>('/access/shares');
+}
+
+/** The people one notebook is shared with, and where each one stands. */
+export async function listNotebookShares(notebookId: string): Promise<OutgoingShareDto[]> {
+  return request<OutgoingShareDto[]>(`/access/notebooks/${notebookId}/shares`);
+}
+
+/** The answer is the same whatever the e-mail is (RN-ACC-025). */
+export async function shareNotebook(notebookId: string, email: string): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares`, {
+    method: 'POST',
+    body: { email, access: 'read' },
+  });
+}
+
+export async function revokeShare(notebookId: string, granteeUserId: string): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function dismissShareAnswer(notebookId: string, granteeUserId: string): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}/seen`, {
+    method: 'POST',
+  });
+}
+
+/** The notebooks shared with the person, pending and accepted. */
+export async function listIncomingShares(): Promise<IncomingShareDto[]> {
+  return request<IncomingShareDto[]>('/access/shared');
+}
+
+export async function answerShare(notebookId: string, accept: boolean): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}/${accept ? 'accept' : 'reject'}`, {
+    method: 'POST',
+  });
+}
+
+export async function leaveShare(notebookId: string, notifyOwner: boolean): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}/leave`, {
+    method: 'POST',
+    body: { notifyOwner },
+  });
+}
+
+export async function dismissRevokedShare(notebookId: string): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}`, { method: 'DELETE' });
+}
+
+export async function listNotifications(): Promise<NotificationDto[]> {
+  return (await request<NotificationListDto>('/access/notifications')).notifications;
 }

@@ -71,6 +71,7 @@ export function TransferDialogs({
   starting,
   onClose,
   notebookId: preset,
+  notebookName: presetName,
   exportId,
 }: {
   starting: Starting;
@@ -80,6 +81,12 @@ export function TransferDialogs({
    * — the card of Home (#199). The picker still offers the others.
    */
   notebookId?: string;
+  /**
+   * The name of that notebook when it is not among the person's own: one
+   * shared with them, which is exported from its card and from nowhere else
+   * (#256, RN-ACC-030).
+   */
+  notebookName?: string | undefined;
   /** The kept export an import opens on, when started from its row (#207). */
   exportId?: string | undefined;
 }) {
@@ -96,10 +103,14 @@ export function TransferDialogs({
     enabled: starting === 'export',
   });
 
-  const choices = (notebooks.data ?? []).map((notebook) => ({
+  const own = (notebooks.data ?? []).map((notebook) => ({
     id: notebook.id,
     name: notebook.name,
   }));
+  const choices =
+    preset && presetName && !own.some((notebook) => notebook.id === preset)
+      ? [{ id: preset, name: presetName }, ...own]
+      : own;
 
   // The first of the list unless another was chosen, so the dialog always has
   // an answer and the common case is one click.

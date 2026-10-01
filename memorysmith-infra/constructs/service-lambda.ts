@@ -10,13 +10,23 @@
  * behind, and without retention it never expires and is billed forever.
  */
 
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, type Size } from 'aws-cdk-lib';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
-import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Architecture, Runtime, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { deploymentOf, deploymentVariables } from './deployment.js';
+
+/**
+ * What every bundle opens with: a `require` for the CommonJS a dependency
+ * still calls, in an ES module. The import is renamed because esbuild cannot
+ * see the banner — a dependency that imports `createRequire` itself at the top
+ * of the bundle (puppeteer does) declared it twice, and the function never
+ * started (#263).
+ */
+export const LAMBDA_BANNER =
+  "import{createRequire as __bannerCreateRequire}from'module';const require=__bannerCreateRequire(import.meta.url);";
 
 export interface ServiceLambdaProps {
   readonly entry: string;
@@ -27,6 +37,14 @@ export interface ServiceLambdaProps {
   /** Alarms are on by default; a projector may opt out of the p99 one. */
   readonly latencyAlarm?: boolean;
   readonly bundling?: NodejsFunctionProps['bundling'];
+  /**
+   * ARM by default. A function that carries a binary built for one
+   * architecture only — the browser of the renderer of prints — says which.
+   */
+  readonly architecture?: Architecture;
+  readonly layers?: ILayerVersion[];
+  /** What `/tmp` holds, for a function that unpacks something there. */
+  readonly ephemeralStorageSize?: Size;
 }
 
 export class ServiceLambda extends Construct {
@@ -50,7 +68,9 @@ export class ServiceLambda extends Construct {
       entry: props.entry,
       handler: 'handler',
       runtime: Runtime.NODEJS_22_X,
-      architecture: Architecture.ARM_64,
+      architecture: props.architecture ?? Architecture.ARM_64,
+      ...(props.layers ? { layers: props.layers } : {}),
+      ...(props.ephemeralStorageSize ? { ephemeralStorageSize: props.ephemeralStorageSize } : {}),
       memorySize: props.memorySize ?? 512,
       timeout: props.timeout ?? Duration.seconds(15),
       description: props.description,
@@ -75,7 +95,7 @@ export class ServiceLambda extends Construct {
         // The SDK is bundled rather than taken from the runtime, so the
         // version the tests exercise is the version that runs.
         externalModules: [],
-        banner: "import{createRequire}from'module';const require=createRequire(import.meta.url);",
+        banner: LAMBDA_BANNER,
         ...props.bundling,
       },
     });

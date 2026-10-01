@@ -44,6 +44,13 @@ export interface TransferWork {
   readonly uploadKey?: string | undefined;
   readonly name?: string | undefined;
   /**
+   * The subscription that holds the notebook an export reads, when it is not
+   * the one the transfer belongs to: a notebook shared with the person who
+   * asked (RN-ACC-027). The API took it from the accepted share, never from
+   * the request; the archive is kept, and counted, where the transfer is.
+   */
+  readonly sourceSubscriptionId?: string | undefined;
+  /**
    * Who every write of an import is attributed to, carried in the message
    * because the worker serves no request and has no token to read it from
    * (rule 7). The connector travels with it, so an import asked for through a
@@ -59,7 +66,13 @@ export interface TransferQueue {
 
 /** What the notebook is called and how many notes it holds, before any work. */
 export interface NotebookBrief {
-  brief(notebookId: string): Promise<{ name: string; noteCount: number } | null>;
+  /**
+   * `sourceSubscriptionId` names the subscription that holds the notebook when
+   * it is a notebook shared with the person asking (RN-ACC-027).
+   */
+  brief(
+    notebookId: string,
+  ): Promise<{ name: string; noteCount: number; sourceSubscriptionId?: string } | null>;
 }
 
 /** How much the plan still allows, joined where the two halves meet. */
@@ -123,6 +136,7 @@ export class StartExport {
       kind: 'export',
       notebookId: input.notebookId,
       selection: input.selection ?? null,
+      ...(brief.sourceSubscriptionId ? { sourceSubscriptionId: brief.sourceSubscriptionId } : {}),
     });
     return ok(transfer);
   }
@@ -220,8 +234,12 @@ export class CancelTransfer {
      * notebook it had started back down. An export writes nothing anybody can
      * see until it ends, so there is nothing to undo and nothing to stop.
      */
-    if (found.kind === 'agent') {
-      return err(DomainError.conflict('An upload is not cancelled: deleting it throws it away'));
+    if (found.kind === 'agent' || found.kind === 'request') {
+      return err(
+        DomainError.conflict(
+          `${found.kind === 'agent' ? 'An upload' : 'A request'} is not cancelled: deleting it throws it away`,
+        ),
+      );
     }
     if (found.kind !== 'import') {
       return err(
@@ -327,6 +345,13 @@ export class DeleteTransfer {
   async execute(transferId: string): Promise<Result<void, DomainError>> {
     const found = await this.transfers.get(this.userId, transferId);
     if (!found) return err(DomainError.notFound('Transfer not found'));
+    // A request holds no bytes and no room: dismissing it is its record going
+    // (RN-PRT-030). An upload already fulfilling it stays, and still keeps the
+    // file it names.
+    if (found.kind === 'request') {
+      await this.transfers.remove(this.userId, transferId);
+      return ok(undefined);
+    }
     if (found.kind === 'agent') {
       await this.discard(found);
       await this.transfers.remove(this.userId, transferId);

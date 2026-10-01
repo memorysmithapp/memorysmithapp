@@ -304,6 +304,47 @@ a:hover {
 .carousel-dots {
   display: none;
 }
+.carousel-glyph {
+  display: inline-block;
+}
+
+/* Expanded, on the desktop (#257): the notebooks fill the page, which stops
+   growing with what it holds and is exactly the row it scrolls in, so the
+   cards wrap into rows that scroll inside the track and the arrows page them
+   up and down. The space of the subscription is not drawn meanwhile. Only the
+   desktop ever gets the class, so the phone needs nothing here. */
+.app-main > .page.home.is-expanded {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.card-carousel.is-expanded {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.card-carousel.is-expanded .notebook-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* A row is as tall as its tallest card: the card declares no minimum height,
+     and in a track of fixed height the rows would otherwise squeeze it. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  padding: 4px;
+  margin: -4px;
+  scroll-padding: 4px;
+}
+/* The same ‹ › turned a quarter, so they point up and down. */
+.card-carousel.is-expanded .carousel-glyph {
+  transform: rotate(90deg);
+}
 
 /* The card. The link of its footer is stretched over all of it, so the whole
    card opens the notebook and the ⋯ in its corner stays a control of its own. */
@@ -334,12 +375,68 @@ a:hover {
   --strip: var(--danger);
   --strip-height: 3px;
 }
-/* The actions of the card (#199), over the link stretched across it. */
+/* The actions of the card (#199), over the link stretched across it, and
+   beside them the mark of whose the notebook is (#256). */
 .notebook-card-corner {
   position: absolute;
   z-index: 2;
   top: 12px;
   right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+/* Whose a notebook is: an icon in the soft text, never a colour of its own,
+   because blue is for an action and this is a fact (#256). */
+.ownership-mark {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+}
+.ownership-mark[data-ownership='sharedWithMe'],
+.ownership-mark[data-ownership='sharedByMe'] {
+  color: var(--text);
+}
+.notebook-card-text .notebook-card-byline {
+  margin-top: 6px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text);
+  -webkit-line-clamp: 1;
+}
+/* A notebook shared with me that waits for my answer: its body dimmed and
+   nothing opens it, the answer in its footer (RN-ACC-026). */
+.notebook-card.is-pending {
+  border-style: dashed;
+}
+.notebook-card-pending-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  opacity: 0.55;
+}
+.notebook-card-answer {
+  display: inline-flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.share-notify {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+.share-notify input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--text);
 }
 .notebook-card-more {
   color: var(--text);
@@ -395,7 +492,8 @@ a:hover {
 }
 .notebook-card h2 {
   margin: 0 0 7px;
-  padding-right: 36px;
+  /* Clear of the corner: the mark of whose it is and the ⋯ (#256). */
+  padding-right: 76px;
   font-size: 1.1875rem;
   line-height: 1.2;
   letter-spacing: -0.015em;
@@ -740,6 +838,7 @@ a:hover {
   }
   .notebook-card h2 {
     margin-bottom: 6px;
+    padding-right: 84px;
     font-size: 1.0625rem;
   }
   .notebook-card-text p {
@@ -1298,6 +1397,20 @@ a:hover {
   gap: 8px;
   margin-bottom: 14px;
 }
+/* How the notes of the folder are ordered (RN-KNW-056), at the end of the
+   heading of the group it orders. */
+.folder-note-order {
+  margin-left: auto;
+}
+.folder-note-order.is-said {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+.folder-note-order-error {
+  margin: -6px 0 12px;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
 .folder-page .folder-group-head h2 {
   margin: 0;
   font-family: var(--display);
@@ -1693,6 +1806,19 @@ a:hover {
 }
 .markdown tbody tr:hover {
   background: var(--code-bg);
+}
+/* Inside a callout the rules are drawn in the colour of the callout (#259).
+   The neutral border is visible on the paper and almost the colour of the 10%
+   tint a callout lays under it, in both themes, so a table there lost its
+   rules and read as loose words. It is still a table: only the rules change. */
+.markdown .callout :is(th, td) {
+  border-color: rgba(var(--callout-color), 0.35);
+}
+.markdown .callout th {
+  border-bottom-color: rgba(var(--callout-color), 0.7);
+}
+.markdown .callout tbody tr:hover {
+  background: rgba(var(--callout-color), 0.08);
 }
 
 .markdown hr {
@@ -4366,6 +4492,86 @@ body.has-sheet .app-main {
   flex: 1 1 16rem;
 }
 
+/* A file an agent asked for waits on the person (#253, RN-PRT-030). Its mark,
+   its chip and the count on the button wear the orange of capture: the one
+   colour here that asks for a hand, and never the red of something wrong. */
+.transfer-kind[data-kind='request'] {
+  background: var(--signal);
+  color: #0e1526;
+}
+.state-chip[data-state='waiting']::before {
+  background: var(--signal);
+}
+.transfers-count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--signal);
+  color: #0e1526;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
+/* Giving the file asks in place, as linking does, in the colour of an action. */
+.request-fulfil {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: 10px;
+}
+.request-fulfil-lead,
+.request-fulfil-status {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}
+.request-fulfil-status.is-failure {
+  color: var(--danger);
+}
+
+/* Where a file is given: chosen, dragged onto it, or pasted while it has the
+   focus (RN-KNW-055). */
+.file-drop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 18px;
+  border: 1.5px dashed var(--box-edge);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.file-drop:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.file-drop.is-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.file-drop.is-disabled {
+  opacity: 0.6;
+}
+.file-drop-hint {
+  flex: 1 1 14rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}
+
 /* A phone: the columns stack, and the actions come last, a thumb high. */
 @media (max-width: 40rem) {
   .transfers-page-heading {
@@ -6167,4 +6373,419 @@ body.has-sheet .app-main {
 .notebook-content,
 .app-main:has(> .notebook-layout) {
   overflow-x: hidden;
+}
+
+/* ---- Sharing a notebook (#256) ------------------------------------------- */
+
+.share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.share-form .field {
+  margin: 0;
+}
+.share-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.share-sent,
+.share-failure {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.share-failure {
+  color: var(--danger);
+}
+.share-people {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.share-people h3 {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 0.84rem;
+}
+.share-people ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.share-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.share-person-email {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+}
+
+/* The notifications of the top bar: the button of the Controles, and a panel
+   of the width and placement of Transfers (#205, #256). */
+.notifications-menu {
+  position: relative;
+}
+.notifications-trigger {
+  position: relative;
+  color: var(--text-soft);
+}
+.notifications-trigger:hover {
+  color: var(--text);
+}
+.notifications-trigger[aria-expanded='true'] {
+  box-shadow: var(--focus-ring);
+}
+.menu.notifications-panel {
+  top: calc(100% + 8px);
+  right: 0;
+  width: 380px;
+  padding: 0 0 6px;
+}
+@media (max-width: 860px) {
+  .menu.notifications-panel {
+    position: fixed;
+    top: calc(var(--header-h) + 0.4rem);
+    left: auto;
+    right: 1rem;
+    width: min(380px, calc(100vw - 2rem));
+  }
+}
+.notifications-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.notification {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--track);
+}
+.notification-what {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.notification-what strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.notification-failure {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--danger);
+}
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* A phone: a card waiting for an answer gives its footer to the answer. */
+@media (max-width: 40rem) {
+  .notebook-card.is-pending .notebook-card-meta {
+    display: none;
+  }
+  .notebook-card.is-pending .notebook-card-answer {
+    flex: 1;
+  }
+  .notebook-card.is-pending .notebook-card-answer .button {
+    flex: 1;
+  }
+}
+
+/* ── Paper (#258) ─────────────────────────────────────────────────────────────
+   A note alone, previewed as the pages it prints on and printed by the
+   browser, which also saves it as a PDF. The note is drawn off screen, at the
+   width of the paper less its margins (`.print-source`), and laid into A4
+   pages by the page (features/note/paginate.ts): those pages are what the tab
+   shows and what the printer gets. The sheet turns (`data-orientation`), and
+   on a screen narrower than a page the pages are scaled down, never reflowed.
+
+   Colour is spent where it carries meaning and nowhere else: a callout says
+   what kind of thing it is by its hue, and a picture is its colours. Every
+   other colour of the reading surface — a link, a token of code, a pending
+   link, the fill of a code block — is taken back to ink and paper, by the
+   tokens it is drawn with rather than by chasing each element, so a new one
+   inherits the rule. The preview draws it as the paper will, so the screen
+   and the print never differ. */
+.print-page {
+  --sheet-width: 210mm;
+  --sheet-height: 297mm;
+  /* It scrolls inside the first row of the window, as the shell does, so the
+     banner of the environment keeps the last row and the pages never run
+     under it. */
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 1rem 3rem;
+  background: var(--bg);
+}
+.print-page[data-orientation='landscape'] {
+  --sheet-width: 297mm;
+  --sheet-height: 210mm;
+}
+
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.5rem 0.75rem;
+  max-width: var(--sheet-width);
+  margin: 0 auto;
+  padding: 0.75rem 0;
+  background: var(--bg);
+}
+.print-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.print-choice-label {
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+.print-hint {
+  flex: 1 1 100%;
+  order: 1;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.875rem;
+}
+.print-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.print-actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* A phone keeps every choice, as icons: each still has its name, for the
+   tooltip and for a screen reader. */
+@media (max-width: 720px) {
+  .print-page {
+    padding: 0 0.5rem 2rem;
+  }
+  .print-toolbar {
+    justify-content: center;
+    align-items: center;
+  }
+  .print-choice-label,
+  .print-hint {
+    display: none;
+  }
+  .print-toolbar :is(.segmented-label, .print-action-label) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* The note as drawn, off screen: what the pages are laid from, and where a
+   table is measured. It keeps its layout, so pictures load and tables have a
+   width, and nobody sees it. */
+.print-source {
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: calc(var(--sheet-width) - 32mm);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The pages, one under the other, each a sheet of paper. */
+.print-preview .pagedjs_pages {
+  zoom: var(--preview-scale, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+.print-preview .pagedjs_page {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(14, 21, 38, 0.12);
+}
+.print-waiting {
+  max-width: var(--sheet-width);
+  min-height: 60vh;
+  margin: 0 auto;
+  padding: 18mm 16mm;
+  background: #ffffff;
+}
+
+/* A part of the note on paper: the cover, the body, the properties at the end. */
+.print-part.content-pane {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.print-part {
+  font-size: 11pt;
+  --accent: var(--text);
+  --pending: var(--text-soft);
+  --code-color: var(--text);
+  --token-keyword: var(--text);
+  --token-string: var(--text);
+  --token-number: var(--text);
+  --token-comment: var(--text-soft);
+  --token-punctuation: var(--text);
+}
+.print-part a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.print-part .properties-box {
+  background: none;
+  border: 1px solid var(--border);
+}
+/* A block of code keeps its frame and loses its fill: the frame is drawn by
+   the box around the block, which is where the fill was too. */
+.print-part .markdown :is(.code-block, pre) {
+  background: none;
+}
+/* What is there for the screen and says nothing on paper. */
+.print-part :is(.remote-notice, .copy-action, .attachment-card-actions) {
+  display: none;
+}
+/* A block is read whole, never half on one page and half on the next, and a
+   heading is never the last line of a page. A table longer than a page is the
+   exception: it breaks between rows. */
+.print-part
+  :is(
+    pre,
+    tr,
+    figure,
+    img,
+    blockquote,
+    .callout,
+    .embed,
+    .mermaid-diagram,
+    .katex-display,
+    .properties-box,
+    .attachment-card
+  ) {
+  break-inside: avoid;
+}
+.print-part :is(h1, h2, h3, h4, h5, h6) {
+  break-after: avoid;
+}
+.print-part :is(p, li) {
+  orphans: 3;
+  widows: 3;
+}
+
+/* The properties on a page of their own: the cover opens with them and the
+   name of the note stands in the middle of what is left of the page; at the
+   end, the name heads them. */
+.print-properties {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+.print-cover {
+  min-height: calc(var(--sheet-height) - 38mm - 6mm);
+}
+.print-cover h1 {
+  margin-block: auto;
+  text-align: center;
+}
+.print-properties .properties-box {
+  margin: 0;
+}
+
+/* A wide table is never cut at the margin. It is a table again rather than
+   the scrolling block of the screen, and it fits in one of two ways, measured
+   on the drawn note (PrintNotePage, fitTables):
+
+   - wrapping: the text of a cell wraps between words, and only what has no
+     place to break — a code span, a link — breaks inside itself, so a short
+     word such as "Kind" is never split to narrow its column;
+   - shrinking: the lines of the cells are kept and the type is reduced until
+     the table fits; at the smallest type it allows, it wraps as above.
+
+   Breaking every word anywhere (`is-broken`) is the last resort, for a table
+   still wider than the page after both. */
+.print-part .markdown table {
+  display: table;
+  overflow: visible;
+}
+.print-part[data-tables='wrap'] :is(th, td),
+.print-part .markdown table.is-wrapped :is(th, td) {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.print-part[data-tables='wrap'] :is(th, td) :is(code, a),
+.print-part .markdown table.is-wrapped :is(th, td) :is(code, a) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.print-part .markdown table.is-broken :is(th, td) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.print-part[data-tables='shrink'] .markdown table:not(.is-wrapped, .is-broken) :is(th, td) {
+  white-space: nowrap;
+}
+
+/* The pages print as they are previewed, one per sheet; the paginator sets the
+   paper and its margins (paginate.ts) and prints colour exactly, which is why
+   every colour that is not meant for paper is taken back above. */
+@media print {
+  body,
+  .print-page {
+    background: #ffffff;
+  }
+  /* On paper the window has no rows: the pages run from sheet to sheet. */
+  #root {
+    height: auto;
+    display: block;
+  }
+  .print-page {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+  .print-toolbar,
+  .print-source,
+  .print-waiting,
+  .environment-banner {
+    display: none !important;
+  }
+  .print-preview .pagedjs_pages {
+    zoom: 1;
+    display: block;
+    padding: 0;
+  }
+  .print-preview .pagedjs_page {
+    box-shadow: none;
+  }
 }

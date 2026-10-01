@@ -1,11 +1,21 @@
-import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CollapseIcon, ExpandIcon } from './icons';
 
 interface CardCarouselProps {
   /** The title of the row, drawn on the same line as the rule and the arrows. */
   heading: ReactNode;
   prevLabel: string;
   nextLabel: string;
+  /**
+   * The cards spread over the page instead of one row (#257). Only the desktop
+   * draws it: the caller passes false on a phone, whatever it remembers.
+   */
+  expanded?: boolean;
+  /** Offers the button that spreads and gathers the cards, when given. */
+  onExpandedChange?: (expanded: boolean) => void;
+  expandLabel?: string;
+  collapseLabel?: string;
   children: ReactNode;
 }
 
@@ -19,9 +29,22 @@ interface CardCarouselProps {
  *
  * The row stays scrollable by wheel, trackpad, touch and keyboard whatever
  * the arrows say.
+ *
+ * Expanded, on the desktop, the cards wrap into rows that fill the page and
+ * scroll vertically, and the same arrows turn to page up and down (#257).
  */
-export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCarouselProps) {
+export function CardCarousel({
+  heading,
+  prevLabel,
+  nextLabel,
+  expanded = false,
+  onExpandedChange,
+  expandLabel,
+  collapseLabel,
+  children,
+}: CardCarouselProps) {
   const { t } = useTranslation();
+  const trackId = useId();
   const trackRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -31,6 +54,11 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
   function update() {
     const el = trackRef.current;
     if (!el) return;
+    if (expanded) {
+      setCanPrev(el.scrollTop > 4);
+      setCanNext(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+      return;
+    }
     setCanPrev(el.scrollLeft > 4);
     setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
     // The card nearest the centre of the row is the one in focus (#204), except
@@ -60,6 +88,8 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
     update();
   });
 
+  // Re-bound when the cards spread or gather, so the listener reads the axis
+  // the track scrolls on now.
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -70,11 +100,15 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
       el.removeEventListener('scroll', update);
       observer.disconnect();
     };
-  }, []);
+  }, [expanded]);
 
   function page(direction: 1 | -1) {
     const el = trackRef.current;
     if (!el) return;
+    if (expanded) {
+      el.scrollBy({ top: direction * Math.max(el.clientHeight - 120, 240), behavior: 'smooth' });
+      return;
+    }
     el.scrollBy({ left: direction * Math.max(el.clientWidth - 120, 240), behavior: 'smooth' });
   }
 
@@ -94,7 +128,7 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
   }
 
   return (
-    <div className="card-carousel">
+    <div className={expanded ? 'card-carousel is-expanded' : 'card-carousel'}>
       <div className="carousel-head">
         {heading}
         <span className="carousel-rule" aria-hidden="true" />
@@ -106,7 +140,9 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
             disabled={!canPrev}
             onClick={() => page(-1)}
           >
-            ‹
+            <span className="carousel-glyph" aria-hidden="true">
+              ‹
+            </span>
           </button>
           <button
             type="button"
@@ -115,11 +151,26 @@ export function CardCarousel({ heading, prevLabel, nextLabel, children }: CardCa
             disabled={!canNext}
             onClick={() => page(1)}
           >
-            ›
+            <span className="carousel-glyph" aria-hidden="true">
+              ›
+            </span>
           </button>
+          {onExpandedChange ? (
+            <button
+              type="button"
+              className="icon-button carousel-expand"
+              aria-label={expanded ? collapseLabel : expandLabel}
+              title={expanded ? collapseLabel : expandLabel}
+              aria-expanded={expanded}
+              aria-controls={trackId}
+              onClick={() => onExpandedChange(!expanded)}
+            >
+              {expanded ? <CollapseIcon /> : <ExpandIcon />}
+            </button>
+          ) : null}
         </div>
       </div>
-      <div className="notebook-grid" ref={trackRef}>
+      <div className="notebook-grid" id={trackId} ref={trackRef}>
         {children}
       </div>
       {count > 1 ? (

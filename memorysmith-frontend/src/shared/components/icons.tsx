@@ -50,6 +50,16 @@ export function CopyIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function PrinterIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 9V2h12v7" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
+    </svg>
+  );
+}
+
 export function CheckIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
@@ -216,6 +226,126 @@ export function SearchIcon(props: SVGProps<SVGSVGElement>) {
     <svg {...base(props)}>
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+/** Spreads a list over the whole page (#257). */
+export function ExpandIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+    </svg>
+  );
+}
+
+/** Brings a list spread over the page back to its row (#257). */
+export function CollapseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />
+    </svg>
+  );
+}
+
+/** The notifications of the top bar (#256): what changed in a share, for the other side. */
+export function BellIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+/** A notebook of mine that I shared with somebody (#256). */
+export function SharedByMeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+/** A notebook somebody of another subscription shared with me (#256). */
+export function SharedWithMeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+      <path d="M12 2v7M9 6l3 3 3-3" />
+    </svg>
+  );
+}
+
+/* The choices of the page drawn for paper (#258), drawn small enough to stand
+   alone in the bar of a phone. */
+
+export function CoverPageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M8 7h8" />
+      <path d="M8 11h5" />
+    </svg>
+  );
+}
+
+export function EndPageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M8 13h8" />
+      <path d="M8 17h5" />
+    </svg>
+  );
+}
+
+export function NoPropertiesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="m3 3 18 18" />
+    </svg>
+  );
+}
+
+export function WrapTextIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 6h18" />
+      <path d="M3 12h15a3 3 0 1 1 0 6h-4" />
+      <path d="m16 16-2 2 2 2" />
+      <path d="M3 18h7" />
+    </svg>
+  );
+}
+
+export function ShrinkIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 14h6v6" />
+      <path d="M20 10h-6V4" />
+      <path d="m14 10 7-7" />
+      <path d="m3 21 7-7" />
+    </svg>
+  );
+}
+
+export function PortraitIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="6" y="2" width="12" height="20" rx="2" />
+    </svg>
+  );
+}
+
+export function LandscapeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
     </svg>
   );
 }

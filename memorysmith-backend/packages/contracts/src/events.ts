@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { NOTE_ORDERS } from './note-order.js';
 import {
   authorshipSchema,
   contentRefSchema,
@@ -55,6 +56,13 @@ export const domainEventTypeSchema = z.enum([
   'MemberRemoved',
   'NotebookRoleLimitSet',
   'NotebookRoleLimitCleared',
+  // The life of a share of a notebook with a person of another subscription
+  // (RN-ACC-024 to RN-ACC-028).
+  'NotebookShared',
+  'NotebookShareAccepted',
+  'NotebookShareRejected',
+  'NotebookShareRevoked',
+  'NotebookShareLeft',
   // Knowledge
   'NotebookCreated',
   'NotebookRenamed',
@@ -72,6 +80,8 @@ export const domainEventTypeSchema = z.enum([
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
+  // How a folder orders its notes, by hand or by name (#262).
+  'FolderNotesOrdered',
   'FolderMoved',
   'FolderReordered',
   'FolderRemoved',
@@ -188,6 +198,20 @@ export const notebookRoleLimitPayload = z.object({
   limit: notebookRoleLimitSchema.optional(),
 });
 
+/**
+ * A share of a notebook with a person who holds another subscription
+ * (RN-ACC-024). The grantee is named by identifier and e-mail, because the
+ * trail is read by the owner, who shared with an e-mail.
+ */
+export const notebookSharePayload = z.object({
+  notebookId: ulidSchema,
+  granteeUserId: userIdSchema,
+  granteeEmail: z.string(),
+  access: z.enum(['read', 'read-write']),
+  /** On a departure only: whether the grantee chose to tell the owner (RN-ACC-028). */
+  notifyOwner: z.boolean().optional(),
+});
+
 export const notebookCreatedPayload = z.object({
   notebookId: ulidSchema,
   name: z.string().min(1),
@@ -260,6 +284,12 @@ export const folderDescribedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
   description: z.string().min(1).max(500),
+});
+
+export const folderNotesOrderedPayload = z.object({
+  notebookId: ulidSchema,
+  folderId: ulidSchema,
+  noteOrder: z.enum(NOTE_ORDERS),
 });
 
 export const folderMovedPayload = z.object({
@@ -466,6 +496,11 @@ export const eventPayloadSchemas = {
   MemberRemoved: memberRemovedPayload,
   NotebookRoleLimitSet: notebookRoleLimitPayload,
   NotebookRoleLimitCleared: notebookRoleLimitPayload,
+  NotebookShared: notebookSharePayload,
+  NotebookShareAccepted: notebookSharePayload,
+  NotebookShareRejected: notebookSharePayload,
+  NotebookShareRevoked: notebookSharePayload,
+  NotebookShareLeft: notebookSharePayload,
   NotebookCreated: notebookCreatedPayload,
   NotebookRenamed: notebookRenamedPayload,
   NotebookDeleted: notebookDeletedPayload,
@@ -475,6 +510,7 @@ export const eventPayloadSchemas = {
   FolderAdded: folderAddedPayload,
   FolderRenamed: folderRenamedPayload,
   FolderDescribed: folderDescribedPayload,
+  FolderNotesOrdered: folderNotesOrderedPayload,
   FolderMoved: folderMovedPayload,
   FolderReordered: folderReorderedPayload,
   FolderRemoved: folderRemovedPayload,

@@ -61,6 +61,15 @@ export function noteAddress(notebookId: string, noteId: string): string {
   return `${notebookAddress(notebookId)}/notes/${written(noteId)}`;
 }
 
+/**
+ * The note alone, drawn for paper (#258). It is an address of the application
+ * and not a file: the browser prints the page and saves it as a PDF, so no
+ * host but the one the person is on ever appears.
+ */
+export function printAddress(notebookId: string, noteId: string): string {
+  return `${noteAddress(notebookId, noteId)}/print`;
+}
+
 export function foldersAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/folders`;
 }

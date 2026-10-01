@@ -178,6 +178,12 @@ export interface LinkGraph {
   /** Every note and every edge of the notebook, for the graph view. */
   wholeGraph(notebookId: string): Promise<NotebookGraph>;
   orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;
+  /**
+   * The files the notebook keeps that no note names (#253, RN-DSC-064): kept,
+   * and shown nowhere. Some are kept on purpose — a source, a raw figure — so
+   * it is a list to read, never a list of mistakes.
+   */
+  unshownAttachments(notebookId: string): Promise<string[]>;
 }
 
 /**

@@ -20,11 +20,14 @@ import type {
   ConcurrencyError,
   DomainError,
   Instant,
+  NotebookId,
   Result,
+  SubscriptionContext,
   SubscriptionId,
   SubscriptionStatus,
   UserId,
 } from '@memorysmith/kernel';
+import type { Share } from '../share/Share.js';
 import type { Subscription } from '../subscription/Subscription.js';
 import type { AccountLocale, AvatarSource, Email, PersonName } from '../values.js';
 
@@ -184,4 +187,84 @@ export interface PictureTypes {
   readonly accepted: readonly string[];
   /** Whether these bytes support the type they were declared under. */
   supports(mime: string, bytes: Uint8Array): boolean;
+}
+
+/**
+ * Where a share of a notebook is kept (RN-ACC-024), and exception 1 widened
+ * (architecture-guide.md, section 8.3).
+ *
+ * A share is written twice in ONE transaction: under the subscription that
+ * owns the notebook, an ordinary key, and under the grantee, beside their links
+ * to subscriptions. The second is how a grantee's session finds a notebook of
+ * another subscription without that subscription coming from a request: the
+ * key is taken from its own token. It answers "which notebooks were shared
+ * with me?" and nothing else.
+ *
+ * The owner's side is reached only with the owner's own context, which is the
+ * claim of the request that shares or revokes. The grantee's side holds the
+ * subscription of the owner, read from the stored item and never from a
+ * request.
+ */
+export interface ShareRepository {
+  /** Both items, written together with the events of the transition. */
+  save(share: Share): Promise<void>;
+  /**
+   * The owner revoked: their item goes, and the grantee's stays as the notice
+   * of it until they dismiss it (RN-ACC-029).
+   */
+  saveRevoked(share: Share): Promise<void>;
+  /** The grantee answered no or left: their item goes, the owner's says so. */
+  saveClosedByGrantee(share: Share): Promise<void>;
+  /** Only the owner's item, for what the grantee never sees: a notice dismissed. */
+  saveOwnerSide(share: Share): Promise<void>;
+  /** A rejected or departed line taken off the owner's list; the grantee holds nothing. */
+  removeOutgoing(share: Share): Promise<void>;
+  /** The share of one notebook with one person, from the owner's side. */
+  findOutgoing(
+    owner: SubscriptionContext,
+    notebookId: NotebookId,
+    grantee: UserId,
+  ): Promise<Share | null>;
+  /** Every share of one notebook, or of every notebook, from the owner's side. */
+  listOutgoing(owner: SubscriptionContext, notebookId: NotebookId | null): Promise<Share[]>;
+  /** The share of one notebook with this person, from their own side. */
+  findIncoming(grantee: UserId, notebookId: NotebookId): Promise<Share | null>;
+  /** Every notebook shared with this person, from their own side. */
+  listIncoming(grantee: UserId): Promise<Share[]>;
+  /** The grantee dismissed the notice of a revocation: their item goes. */
+  dismissIncoming(grantee: UserId, notebookId: NotebookId): Promise<void>;
+  /** A notebook was deleted: both items of every share of it go (RN-ACC-028). */
+  removeAllOf(owner: SubscriptionContext, notebookId: NotebookId): Promise<void>;
+}
+
+/**
+ * Who an e-mail belongs to, where identity lives (RN-ACC-025). It answers null
+ * for an e-mail with no account, and the use case that asks says nothing
+ * different either way.
+ */
+export interface AccountLookup {
+  userIdOf(email: Email): Promise<UserId | null>;
+}
+
+/** What a share shows of its notebook, read through the context that owns it. */
+export interface SharedNotebookView {
+  readonly name: string;
+  readonly description: string;
+  readonly noteCount: number;
+  readonly updatedAt: string;
+}
+
+/**
+ * The notebooks Access shares and does not hold (RN-ACC-026). The composition
+ * root answers it from Knowledge, which Access may not import: the owner's
+ * notebooks under the owner's context, and a notebook shared with somebody
+ * under the subscription the stored share names.
+ */
+export interface SharedNotebooks {
+  /** A notebook of the session's own subscription, or null when it holds none such. */
+  own(owner: SubscriptionContext, notebookId: NotebookId): Promise<SharedNotebookView | null>;
+  /** A notebook of the subscription a share names, or null when it is gone. */
+  through(share: Share): Promise<SharedNotebookView | null>;
+  /** Whether the subscription a share names grants operational access (RN-SUB-007). */
+  ownerGrantsAccess(share: Share): Promise<boolean>;
 }

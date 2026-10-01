@@ -58,6 +58,7 @@ import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmith/contracts';
 import {
   fileToDto,
   folderToDto,
+  inFolderOrder,
   noteToDto,
   noteToSummary,
   notebookToDetail,
@@ -297,6 +298,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       name?: string;
       description?: string;
       afterFolderId?: string | null;
+      noteOrder?: string;
     };
 
     const parent = body.parentFolderId ? FolderId.create(body.parentFolderId) : null;
@@ -311,6 +313,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       name: String(body.name ?? ''),
       description: String(body.description ?? ''),
       afterFolderId: after?.ok ? after.value : null,
+      noteOrder: body.noteOrder,
       by: author.value,
     });
     return present(
@@ -323,6 +326,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         slug: folder.slug.value,
         description: folder.description.value,
         position: folder.position.value,
+        noteOrder: folder.noteOrder,
         // A folder is born with no template: it is a unit of its own, and
         // nothing wrote one yet (RN-KNW-044).
         hasTemplate: false,
@@ -346,6 +350,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       description?: string;
       parentFolderId?: string | null;
       afterFolderId?: string | null;
+      noteOrder?: string;
     };
     const parent =
       body.parentFolderId === undefined
@@ -373,6 +378,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
                 ? parent.value
                 : null,
         afterFolderId: after?.ok ? after.value : null,
+        noteOrder: body.noteOrder,
         by: author.value,
       }),
     );
@@ -524,7 +530,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       notebookId: notebookId.value,
       ...(folderId?.ok ? { folderId: folderId.value } : {}),
     });
-    return present(c, listed, (notes) => notes.map(noteToSummary));
+    return present(c, listed, (listing) => inFolderOrder(listing).map(noteToSummary));
   });
 
   app.post('/notebooks/:v/notes', async (c) => {

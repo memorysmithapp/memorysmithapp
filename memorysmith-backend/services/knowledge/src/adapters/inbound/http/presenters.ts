@@ -17,6 +17,8 @@ import type { Note } from '../../../domain/note/Note.js';
 import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
 import type { Notebook } from '../../../domain/notebook/Notebook.js';
 import type { Folder } from '../../../domain/notebook/Folder.js';
+import type { NoteListing } from '../../../application/notes.js';
+import { compareByName } from '@memorysmith/contracts';
 
 export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
   return {
@@ -26,6 +28,7 @@ export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
     slug: folder.slug.value,
     description: folder.description.value,
     position: folder.position.value,
+    noteOrder: folder.noteOrder,
     hasTemplate: notebook.hasTemplate(folder.id),
     noteCount: notebook.noteCountOf(folder.id),
   };
@@ -104,4 +107,30 @@ export function fileToDto(file: NotebookFile): NotebookFileDto {
     updatedAt: file.updatedBy.at.toISOString(),
     authorship: file.updatedBy.toJSON(),
   };
+}
+
+/**
+ * The notes of a listing in the order each folder declares (RN-KNW-056): a
+ * folder ordered by hand keeps the order the service answered, and one ordered
+ * by name is sorted with the comparison of the published language, the same
+ * the connector and the screen sort with. The notes of a folder stay together,
+ * in the order their folders first appear.
+ */
+export function inFolderOrder(listing: NoteListing): Note[] {
+  const byFolder = new Map<string, Note[]>();
+  for (const note of listing.notes) {
+    const group = byFolder.get(note.folderId.value);
+    if (group) group.push(note);
+    else byFolder.set(note.folderId.value, [note]);
+  }
+  return [...byFolder.values()].flatMap((notes) => {
+    const folderId = notes[0]?.folderId;
+    if (!folderId || listing.noteOrderOf(folderId) !== 'alphabetical') return notes;
+    return [...notes].sort((left, right) =>
+      compareByName(
+        { name: left.name, noteId: left.id.value },
+        { name: right.name, noteId: right.id.value },
+      ),
+    );
+  });
 }

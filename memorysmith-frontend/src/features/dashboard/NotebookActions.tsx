@@ -8,6 +8,8 @@ import { Menu, MenuDivider, MenuItem } from '../../shared/components/Menu';
 import { MoreIcon } from '../../shared/components/icons';
 import type { NotebookSummary } from '../../shared/types/api';
 import { NotebookCard } from './NotebookCard';
+import { OwnershipMark } from '../sharing/OwnershipMark';
+import { ShareDialog } from '../sharing/ShareDialog';
 import { isOpenUpload, useTransfers } from '../portability/transfers';
 
 type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
@@ -27,10 +29,13 @@ export function NotebookActions({
   notebook,
   strip,
   onExport,
+  sharedByMe = false,
 }: {
   notebook: NotebookSummary;
   strip: 'blue' | 'orange';
   onExport: (notebookId: string) => void;
+  /** Whether its owner shared it with somebody, which its mark says (#256). */
+  sharedByMe?: boolean;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -38,6 +43,7 @@ export function NotebookActions({
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [messageKey, setMessageKey] = useState('errors.unexpected');
+  const [sharing, setSharing] = useState(false);
   const owner = notebook.effectiveRole === 'OWNER';
   /**
    * The uploads an agent has open for this notebook outlive it, and the
@@ -77,6 +83,7 @@ export function NotebookActions({
       corner={
         asking ? null : (
           <div className="notebook-card-corner">
+            <OwnershipMark ownership={sharedByMe ? 'sharedByMe' : 'own'} />
             <button
               ref={trigger}
               type="button"
@@ -97,6 +104,17 @@ export function NotebookActions({
               className="notebook-card-menu"
             >
               <MenuItem onSelect={exportIt}>{t('dashboard.card.export')}</MenuItem>
+              {/* Only the owner of the subscription shares (RN-ACC-024). */}
+              {owner ? (
+                <MenuItem
+                  onSelect={() => {
+                    setOpen(false);
+                    setSharing(true);
+                  }}
+                >
+                  {t('sharing.card.share')}
+                </MenuItem>
+              ) : null}
               {owner ? (
                 <>
                   <MenuDivider />
@@ -112,6 +130,13 @@ export function NotebookActions({
                 </>
               ) : null}
             </Menu>
+            {owner ? (
+              <ShareDialog
+                notebook={{ id: notebook.id, name: notebook.name }}
+                open={sharing}
+                onClose={() => setSharing(false)}
+              />
+            ) : null}
           </div>
         )
       }

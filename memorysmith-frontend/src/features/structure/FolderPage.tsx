@@ -1,8 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
+import {
+  canWrite,
+  deleteTemplate,
+  getTemplate,
+  putTemplate,
+  setNoteOrder,
+} from '../../shared/api/source';
+import { Segmented } from '../../shared/components/Segmented';
 import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { identifierOf, noteAddress } from '../../shared/api/note-address';
 import { ChevronRightIcon } from '../../shared/components/icons';
@@ -32,6 +39,19 @@ export function FolderPage() {
   const folder = chain[chain.length - 1] ?? null;
 
   useDocumentTitle(folder?.name, structure.notebook.name);
+
+  /**
+   * How the notes of this folder are ordered (RN-KNW-056). The order is the
+   * server's, so after a change the structure is read again rather than the
+   * notes sorted here: the tree, this page and the agent see one order.
+   */
+  const client = useQueryClient();
+  const ordering = useMutation({
+    mutationFn: (noteOrder: 'manual' | 'alphabetical') =>
+      setNoteOrder(notebookId, folder?.id ?? '', noteOrder),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) }),
+  });
 
   const { data: template } = useQuery({
     queryKey: queryKeys.template(notebookId, folder?.id),
@@ -113,7 +133,33 @@ export function FolderPage() {
             <div className="folder-group-head">
               <h2 id="folder-notes">{t('folder.notesHeading')}</h2>
               <span>{folder.notes.length}</span>
+              {writable ? (
+                <span className="folder-note-order">
+                  <Segmented
+                    label={t('folder.noteOrder')}
+                    value={
+                      ordering.isPending
+                        ? (ordering.variables ?? folder.noteOrder)
+                        : folder.noteOrder
+                    }
+                    onChange={(next) => {
+                      if (next !== folder.noteOrder) ordering.mutate(next);
+                    }}
+                    options={[
+                      { value: 'manual', label: t('folder.noteOrderManual') },
+                      { value: 'alphabetical', label: t('folder.noteOrderAlphabetical') },
+                    ]}
+                  />
+                </span>
+              ) : folder.noteOrder === 'alphabetical' ? (
+                <span className="folder-note-order is-said">{t('folder.notesByName')}</span>
+              ) : null}
             </div>
+            {ordering.isError && (
+              <p className="folder-note-order-error" role="alert">
+                {t('folder.noteOrderFailed')}
+              </p>
+            )}
             <ul className="row-card">
               {folder.notes.map((note) => (
                 <li key={note.id}>

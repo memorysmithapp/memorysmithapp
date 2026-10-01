@@ -1003,6 +1003,100 @@ describe('Portability answers over the API', () => {
     ).toBe(43);
   });
 
+  it('starts a print as the person who asked, and answers its file once the renderer made it (#263)', async () => {
+    // RN-PRT-031.
+    const { notebookId, notes } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/notes/${notes['lei']}/pdf`, {
+      method: 'POST',
+      body: { placement: 'end', tables: 'shrink', orientation: 'landscape', locale: 'pt_BR' },
+    });
+    expect(started.status).toBe(202);
+    const { printId } = (await started.json()) as { printId: string };
+    const job = harness.prints.queue.sent.at(-1);
+    expect(job).toMatchObject({
+      printId,
+      notebookId,
+      accessToken: TOKEN,
+      choices: { placement: 'end', tables: 'shrink', orientation: 'landscape' },
+      locale: 'pt_BR',
+    });
+
+    const polled = async () =>
+      (await (await call(`/portability/prints/${printId}`)).json()) as {
+        status: string;
+        downloadUrl?: string;
+      };
+    expect((await polled()).status).toBe('running');
+    harness.prints.store.set(job?.subscriptionId ?? '', printId, {
+      status: 'ready',
+      name: 'Lei 14.133',
+    });
+    const ready = await polled();
+    expect(ready.status).toBe('ready');
+    expect(ready.downloadUrl).toContain('Lei%2014.133.pdf');
+
+    // A notebook the caller cannot read starts nothing, and says nothing of itself.
+    const refused = await call(
+      `/portability/notebooks/01JBQ2X0000000000000000ZZZ/notes/${notes['lei']}/pdf`,
+      { method: 'POST', body: {} },
+    );
+    expect(refused.status).toBe(404);
+    const refusedChoice = await call(
+      `/portability/notebooks/${notebookId}/notes/${notes['lei']}/pdf`,
+      {
+        method: 'POST',
+        body: { orientation: 'diagonal' },
+      },
+    );
+    expect(refusedChoice.status).toBe(400);
+  });
+
+  it('lists the notes of a folder ordered by name, refuses to move one, and carries the order through an export', async () => {
+    // RN-KNW-056: Achado 12 was written first, so by hand it comes first.
+    const { notebookId, folderId, notes } = await seed();
+    const listed = async (id = notebookId, folder = folderId) =>
+      (
+        (await (
+          await call(`/knowledge/notebooks/${id}/notes?folderId=${folder}`)
+        ).json()) as Array<{
+          name: string | null;
+        }>
+      ).map((note) => note.name);
+    const before = await listed();
+    expect(before.indexOf('Achado 12')).toBeLessThan(before.indexOf('Lei 14.133'));
+
+    const patched = await call(`/knowledge/notebooks/${notebookId}/folders/${folderId}`, {
+      method: 'PATCH',
+      body: { noteOrder: 'alphabetical' },
+    });
+    expect(patched.status).toBe(204);
+    const byName = await listed();
+    expect(byName).toEqual(
+      [...byName].sort((a, b) =>
+        (a ?? '\uffff').localeCompare(b ?? '\uffff', 'und', { numeric: true }),
+      ),
+    );
+
+    const moved = await call(`/knowledge/notebooks/${notebookId}/notes/${notes['lei']}/reorder`, {
+      method: 'POST',
+      body: { afterNoteId: null },
+    });
+    expect(moved.status).toBe(412);
+
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exportKey = [...harness.archives.keys()].pop() ?? '';
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(prepared.uploadKey, harness.archives.get(exportKey) as Buffer);
+    const job = await imported_(prepared.uploadKey, 'Normas e Legislacao (por nome)');
+    const imported = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+      folders: Array<{ folderId: string; noteOrder: string }>;
+    };
+    expect(imported.folders[0]?.noteOrder).toBe('alphabetical');
+    expect(await listed(job.notebookId, imported.folders[0]?.folderId)).toEqual(byName);
+  });
+
   /**
    * An import is a job, so a refusal reaches the person as the END of that job
    * and not as the status of a request — and it reaches them as a CODE, because

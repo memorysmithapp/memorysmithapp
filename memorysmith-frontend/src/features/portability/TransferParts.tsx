@@ -2,6 +2,7 @@ import type { TransferDto } from '@memorysmith/contracts';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import { formatBytes } from '../../shared/components/StorageBar';
+import { fileKind } from '../../shared/components/file-kind';
 import { isStalled, progressOf } from './transfers';
 
 /**
@@ -10,13 +11,13 @@ import { isStalled, progressOf } from './transfers';
  */
 
 /**
- * A square with ↑ for an export, ↓ for an import, and ⇣ for what an agent is
- * sending: it arrives too, and in parts.
+ * A square with ↑ for an export, ↓ for an import, ⇣ for what an agent is
+ * sending — it arrives too, and in parts — and ? for a file it asked for.
  */
 export function KindMark({ kind }: { kind: TransferDto['kind'] }) {
   return (
     <span className="transfer-kind" data-kind={kind} aria-hidden="true">
-      {kind === 'export' ? '↑' : kind === 'import' ? '↓' : '⇣'}
+      {kind === 'export' ? '↑' : kind === 'import' ? '↓' : kind === 'request' ? '?' : '⇣'}
     </span>
   );
 }
@@ -52,11 +53,12 @@ export function TransferFile({ transfer }: { transfer: TransferDto }) {
       : transfer.fileName
     : null;
   // A connector names itself; an upload with none was started from the
-  // interface, by the note editor (#242).
-  const platform = !transfer.upload
+  // interface, by the note editor (#242). A request names who asked (#253).
+  const by = transfer.upload ?? transfer.request;
+  const platform = !by
     ? null
-    : transfer.upload.platform
-      ? t('transfers.platform', { platform: transfer.upload.platform })
+    : by.platform
+      ? t('transfers.platform', { platform: by.platform })
       : t('transfers.platformInterface');
   return (
     <span className="transfer-file">
@@ -72,6 +74,24 @@ export function TransferFile({ transfer }: { transfer: TransferDto }) {
 export function UploadPurpose({ transfer }: { transfer: TransferDto }) {
   const { t, i18n } = useTranslation();
   const upload = transfer.upload;
+  const request = transfer.request;
+  if (request) {
+    // What the file is for, of what kind, and the size the agent knows of it —
+    // a reference to recognise the file by, never a condition (RN-PRT-030).
+    const known =
+      request.expectedSize !== null
+        ? t('transfers.requestKnown', {
+            size: formatBytes(request.expectedSize, intlLocale(i18n.language)),
+          })
+        : null;
+    return (
+      <span className="transfer-purpose">
+        {[request.purpose, fileKind(t, request.mimeType), known]
+          .filter((part): part is string => Boolean(part))
+          .join(' · ')}
+      </span>
+    );
+  }
   if (!upload) return null;
   const last = upload.lastPartAt
     ? t('transfers.lastPart', {
@@ -114,6 +134,16 @@ export function TransferState({ transfer }: { transfer: TransferDto }) {
   const progress = progressOf(transfer);
 
   if (transfer.status === 'running') {
+    // A request waits for the person, which is no progress to draw.
+    if (transfer.kind === 'request') {
+      return (
+        <span className="transfer-state is-waiting">
+          <span className="state-chip" data-state="waiting">
+            {t('transfers.running.request')}
+          </span>
+        </span>
+      );
+    }
     // An upload that stopped says so, and still shows how far it got.
     const stalled = isStalled(transfer, Date.now());
     return (

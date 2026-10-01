@@ -122,6 +122,18 @@ function formattingTable(): string {
   ].join('\n');
 }
 
+/**
+ * What every skill that writes says of a notebook shared from another
+ * subscription (RN-AGT-046), once, so the four cannot disagree.
+ */
+const SHARED_NOTEBOOKS = `**Check whose notebook it is before writing in it.** whoami and
+list_notebooks say of each notebook whether it is \`own\` — of this
+subscription — or \`shared\` with this person from another one, and for a
+shared one who owns it and the access the share grants. A notebook shared with
+\`read\` access is read whole and written not at all: every write is refused.
+When the person asks you to write in one, say whose notebook it is and that the
+share is read-only, instead of trying.`;
+
 const DESIGN_NOTEBOOK = `# Designing a notebook
 
 A notebook is a guidance, a tree of folders that each say what they hold, a
@@ -131,10 +143,16 @@ can read and curate.
 
 **Start from what the notebook is for.** Material the person already has — a
 note they keep, a document, the record of a piece of work — shapes a notebook
-best, so use it when it is in the conversation. When there is none, propose a
-small structure from what they said they need, built with the practices below,
-and confirm it before creating anything. One proposal the person can accept or
-adjust is worth more than a questionnaire.
+best. **When it is in the conversation, build the notebook from it without
+asking first**, and when you are done say what you created and offer to adjust
+it: the material already answers what a proposal would ask. **When there is
+none**, propose a small structure from what they said they need, built with the
+practices below, and confirm it before creating anything. One proposal the
+person can accept or adjust is worth more than a questionnaire.
+
+${SHARED_NOTEBOOKS} A new notebook is always created in this subscription, so
+designing one never needs a shared notebook's permission; changing the guidance,
+folders or templates of a shared one does.
 
 ## The order of the work
 
@@ -217,8 +235,14 @@ reader, and state each convention once.
 - **The order of folders is content**, and it is kept as data: the Notebook
   Context numbers the folders by it, so a folder name needs no number. Create the
   folders in reading order, or place one with \`after\`, and change the order
-  later with \`reorder_folder\`. Notes are ordered the same way, with
-  \`reorder_note\`.
+  later with \`reorder_folder\`.
+- **Each folder says how its notes are ordered.** A folder read in sequence —
+  the chapters of a guide, the steps of a process — keeps the order its notes
+  are written in, placed with \`after\` and \`reorder_note\`. A folder of
+  records looked up by name — minutes, decisions, articles — orders them by
+  name: pass \`noteOrder: alphabetical\` to \`create_folder\`, or set it later
+  with \`set_note_order\`. Choose it when you create the folder, and the
+  numbering of a record then decides where it appears.
 - **A folder is where a note lives, and not part of what identifies it**:
   moving a note keeps every link to it.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
@@ -311,9 +335,11 @@ ${formattingTable()}
 
 ## When to stop asking
 
-When you can propose the whole structure in one message — the guidance in a
-paragraph, the folders with their descriptions, the properties, the maps and the
-templates — and the person can accept it or adjust it. Then build it.
+With material in the conversation, there is nothing to ask: build from it, and
+say what you built. Without it, when you can propose the whole structure in one
+message — the guidance in a paragraph, the folders with their descriptions, the
+properties, the maps and the templates — and the person can accept it or adjust
+it. Then build it.
 `;
 
 /**
@@ -436,6 +462,9 @@ looks the same and answers nothing.
 That is the declared cost of a decision, and it is paid at the door by whoever
 is arriving. This is how you offer to pay it for them.
 
+${SHARED_NOTEBOOKS} Converting rewrites notes, so a notebook shared with
+\`read\` access is one you can only propose the conversion for, to its owner.
+
 ## Why the product does not do this itself
 
 You are reading a method and not calling a tool, and that is deliberate.
@@ -520,6 +549,8 @@ There are exactly two places where the product DOES read your content, and
 this is the whole list: **the frontmatter and the links**. The name of a note is
 one key of the frontmatter. Everything else you write is text, and nothing more.
 
+${SHARED_NOTEBOOKS}
+
 ## A note, from top to bottom
 
 **Write the name of the note in \`name:\`, in the frontmatter that opens it.** It
@@ -577,6 +608,25 @@ ${silence()}
 - **No key is special.** \`maturity\` and \`reviewed\` are attributes like any
   other: the vocabulary belongs to the guidance of the notebook you are writing in.
   Read it before inventing a field.
+
+## Putting one form inside another
+
+Every form has one job: a table compares, a callout makes a rule or a warning
+impossible to miss, a code block shows code. The notation lets you nest one in
+another, and the page draws what you nest — but nesting pays only when the inner
+form serves the job of the outer one. It is your call, and these are the costs
+to weigh.
+
+- **A table inside a callout.** The callout is the one thing a reader must not
+  miss, and a whole table inside it dilutes that. What usually reads better is
+  the callout stating the rule in a sentence or two, and the table right after
+  it. A table belongs inside when the table *is* the warning, such as a short
+  table of limits.
+- **Code inside a table cell.** A short code span — the name of a field, a short
+  command — sits well in a cell. A long one widens its column until the table
+  scrolls sideways. A block of several lines does not fit at all: a cell of a
+  table holds one line, so the block goes after the table, and the row refers to
+  it.
 
 ## What is read, and what is only drawn
 
@@ -689,6 +739,8 @@ resolution and its format are what they chose to keep, and a photo of a
 whiteboard is kept to be read later, at the size it was taken. Reduce, crop or
 convert it when the person asks for that.
 
+${SHARED_NOTEBOOKS} A file is kept in a notebook like a note is written there.
+
 ## Which way the bytes go
 
 The bytes of a file reach the notebook in one of three ways, and the first one
@@ -707,19 +759,56 @@ that fits your situation is the one to use.
 3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
    takes it in one call.
 
-Anything larger that you cannot send by URL is kept by the person: in the
-note, **Editar** and then **Anexar arquivo** keeps the file whole and writes its
-reference where the cursor is. Say so, and write the note with the reference
-already in it: it draws the file the moment it is kept.
+Anything larger that you cannot send by URL, **ask the person for**: see *When
+you cannot send it* below.
+
+## When you cannot send it
+
+You often learn you cannot send a file only by trying, so try, and look:
+
+1. **Try.** Start the upload by URL and send the first part.
+2. **Look.** Call \`file_upload_status\`: when the part you sent is not in
+   \`received\`, your code has no way to the parts host, and more attempts will
+   not change that. Stop there — typing megabytes inline is not a way around
+   it.
+3. **Hand it to the person.** Call \`request_file\` with that \`upload\`: the
+   upload becomes a request, with its name, type, description, tags and purpose,
+   and its parts and the room it held are thrown away. Without an upload, call
+   \`request_file\` with the notebook, the name, the type and the purpose.
+4. **Write the reference** \`![[name]]\` where the file belongs, with the name
+   of the request, and tell the person the file waits for them in Transfers,
+   **Aguardando você**: they keep it there, under that name, and the note draws
+   it the moment it is kept. \`list_files\` says when it is.
+
+The request is also the way when what you hold is a copy the client reduced and
+the person wants the original kept. Give it a size or SHA-256 only when you know
+it of the file the person has, not of your copy.
+
+An attempt you give up on is thrown away with \`discard_file_upload\`, so none is
+left open in Transfers reserving room.
 
 ## Keep what the person gave you, or say what you have
 
 When you see a picture in the conversation but have no file of it, you have its
 appearance and not its bytes: ask the person for the file itself. And a chat
 often hands an agent a **copy** of an attachment, recompressed on the way in —
-a photo of 1.9 MB arriving as 280 KB. Compare what you hold with what the person
-sent; when it is less, tell them both sizes before keeping anything, and let
-them choose between that copy and attaching the original themselves.
+a photo of 1.9 MB arriving as 280 KB, or reduced to 2048 pixels on its longest
+side. Compare what you hold with what the person sent; when it is less, tell
+them both sizes before keeping anything, and let them choose between that copy
+and attaching the original themselves. What you hold is **the file you
+received**: call it that, and not *the original*, because a client may have
+reduced it without saying so.
+
+**A file the notebook already keeps is the one the person sent only when its
+size matches** — and its SHA-256, when you can compute it. \`list_files\`
+answers the bytes of every file, which is what tells a file apart from another
+of a similar name, and the check costs one call. When they do not match, say
+so with both sizes, and point the note at the file the person is going to
+keep rather than at the one that is there.
+
+**Keep a file under the name the person gave it**, spaces and accents
+included: a name is found by the person who gave it. Change it only when the
+guidance of the notebook declares a pattern for the names of its files.
 
 ## Sending a file by URL
 
@@ -779,8 +868,9 @@ Three things of the client an agent runs in decide whether the bytes can go at
 all, and none of them announces itself:
 
 - **A tool \`whoami\` lists and your client does not show**: the client kept
-  the list it read when the connector was added. Ask the person to reconnect
-  the connector, and continue in the same conversation.
+  the list it read before. \`whoami\` says how the person refreshes it in the
+  client you run in; the refreshed list reaches a new conversation, where the
+  upload is found again as below.
 - **A PUT refused by your own environment** — a proxy answering
   \`host_not_allowed\`, a connection refused — means your code has no network,
   or not to that host. The answer of \`begin_file_upload\` names the host the
@@ -814,6 +904,16 @@ Write the reference the finish answered where the note needs the file,
 everything else is a card with a download. \`list_files\` says what the notebook
 keeps already, so a note points at the file that is there instead of a second
 copy of it.
+
+## Before you say it is done
+
+Run \`check_notebook\`. Besides the links, it lists \`openUploads\` — uploads not
+finished and requests the person has not fulfilled — and \`unshownFiles\`, the
+files kept that no note names. Finish an upload, hand it to the person with
+\`request_file\`, or throw it away with \`discard_file_upload\`: leave none open
+without telling the person why. A file no note shows may be kept on purpose,
+such as the source of a figure: say which ones to the person. A pending link
+with \`waitingFor: "person"\` is a file they were asked for.
 `;
 /**
  * The skill a text names outside the registry, as a constant of it: a

@@ -14,7 +14,14 @@
  * which `catalogIsWellFormed` checks against the catalog itself.
  */
 
-import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
+import {
+  CATALOG_VERSION,
+  READING_PATH,
+  TOOL_CATALOG,
+  toolSignature,
+  type ToolDefinition,
+} from './catalog.js';
+import { refreshSteps } from './refresh.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex } from './skills.js';
 import type { Deployment } from '@memorysmith/contracts';
 import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
@@ -62,6 +69,33 @@ function identity(caller: AgentCaller, connector: ConnectorIdentity | null): str
   ].join('\n');
 }
 
+/**
+ * Whether the list the client holds is the one this server serves (RN-AGT-047).
+ *
+ * A client keeps the list of tools it read and asks again only when the person
+ * refreshes it, so a tool added, removed or given other arguments may be
+ * missing from what the agent sees, and only the agent can notice a tool it
+ * was never shown. Comparing is a step here and not a suggestion: a model
+ * rarely notices what is absent unless it is sent to look. The way to refresh
+ * is said by the server, chosen by the connector, because everything this text
+ * says is current even when the list is not.
+ */
+function list(connector: ConnectorIdentity | null): string {
+  return [
+    '## Your list of tools',
+    '',
+    `This server serves the catalogue \`${CATALOG_VERSION}\`: every tool, with its arguments,`,
+    'is under **Every tool** below. Compare it with the tools your client gave you. A tool',
+    'listed there that you do not have, one you have that is not listed, or arguments that',
+    'differ mean your client kept an older list. Tell the person, and ask them to refresh it:',
+    '',
+    ...refreshSteps(connector).map((step) => `- ${step}`),
+    '',
+    'Everything a tool answers is current — this text, every skill, every refusal — so the',
+    'list your client holds is the only thing that can be old.',
+  ].join('\n');
+}
+
 /** Outside production, where this is comes before anything else (RN-AGT-026). */
 function where(deployment: Deployment): string {
   const notice = environmentNotice(deployment);
@@ -74,20 +108,37 @@ function reach(notebooks: readonly NotebookListing[]): string {
       '## What you can reach',
       '',
       'No notebook yet. When the person asks for one, you can create it with',
-      `\`create_notebook\`: read the skill \`${DESIGN_NOTEBOOK_SKILL}\` first, and confirm with`,
-      'them the structure you propose. Creating a notebook takes the EDITOR role, and a',
+      `\`create_notebook\`: read the skill \`${DESIGN_NOTEBOOK_SKILL}\` first, which says when`,
+      'to build from what they brought and when to propose first. Creating a notebook takes the EDITOR role, and a',
       'connection without it is refused and told so.',
     ].join('\n');
   }
 
+  const line = (notebook: NotebookListing): string =>
+    `- **${notebook.name}** (\`${notebook.notebookId}\`), ${notebook.noteCount} note(s)` +
+    (notebook.description ? `: ${notebook.description}` : '');
+  const own = notebooks.filter((notebook) => notebook.ownership === 'own');
+  const shared = notebooks.filter((notebook) => notebook.ownership === 'shared');
+
   return [
     '## What you can reach',
     '',
-    ...notebooks.map(
-      (notebook) =>
-        `- **${notebook.name}** (\`${notebook.notebookId}\`), ${notebook.noteCount} note(s)` +
-        (notebook.description ? `: ${notebook.description}` : ''),
-    ),
+    ...own.map(line),
+    ...(shared.length > 0
+      ? [
+          ...(own.length > 0 ? [''] : []),
+          '**Shared with this person from another subscription.** Each is read whole, as a',
+          'reader, and written only when its access says `read-write`; with',
+          '`read`, every write is refused. When the person asks you to write in one, say whose',
+          'notebook it is and that the share is read-only, instead of trying:',
+          '',
+          ...shared.map(
+            (notebook) =>
+              `${line(notebook)} — shared by ${notebook.owner ?? 'its owner'}, access ` +
+              `\`${notebook.access ?? 'read'}\``,
+          ),
+        ]
+      : []),
   ].join('\n');
 }
 
@@ -146,10 +197,12 @@ function skills(): string {
 function surface(): string {
   const reading = TOOL_CATALOG.filter((tool) => !writes(tool));
   const writing = TOOL_CATALOG.filter(writes);
-  const line = (tool: ToolDefinition): string => `- \`${tool.name}\` — ${tool.title}`;
+  const line = (tool: ToolDefinition): string => `- \`${toolSignature(tool)}\` — ${tool.title}`;
 
   return [
     '## Every tool',
+    '',
+    `Catalogue \`${CATALOG_VERSION}\`. An argument marked \`?\` may be left out.`,
     '',
     '**Reading**',
     ...reading.map(line),
@@ -171,6 +224,7 @@ export function whoAmI(
   return [
     where(deployment),
     identity(caller, connector),
+    list(connector),
     reach(notebooks),
     path(),
     skills(),

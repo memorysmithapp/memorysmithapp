@@ -18,6 +18,7 @@ import type {
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
+  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
   FileListDto,
@@ -34,7 +35,7 @@ import type {
   NotebookNamesDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
-import { likelyMeant } from '@memorysmith/contracts';
+import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmith/contracts';
 import {
   GatewayError,
   type AccessGateway,
@@ -88,6 +89,7 @@ function folderListingOf(folder: FolderDto): FolderListing {
     slug: folder.slug,
     description: folder.description,
     position: folder.position,
+    noteOrder: noteOrderOf(folder.noteOrder),
   };
 }
 
@@ -161,16 +163,50 @@ export class HttpAccessGateway implements AccessGateway {
 export class HttpKnowledgeGateway implements KnowledgeGateway {
   constructor(private readonly origin: string) {}
 
+  /**
+   * The notebooks of this subscription, then the ones shared with its person
+   * and accepted (RN-AGT-046). A share still waiting for an answer is not
+   * listed: accepting is the person's, on their Home (RN-ACC-026).
+   */
   async listNotebooks(caller: AgentCaller): Promise<NotebookListing[]> {
-    const notebooks = await callApi<
-      Array<{ notebookId: string; name: string; description: string; noteCount: number }>
-    >(this.origin, caller, '/knowledge/notebooks');
-    return notebooks.map((notebook) => ({
-      notebookId: notebook.notebookId,
-      name: notebook.name,
-      description: notebook.description,
-      noteCount: notebook.noteCount,
-    }));
+    const [notebooks, shared] = await Promise.all([
+      callApi<Array<{ notebookId: string; name: string; description: string; noteCount: number }>>(
+        this.origin,
+        caller,
+        '/knowledge/notebooks',
+      ),
+      callApi<
+        Array<{
+          notebookId: string;
+          name: string;
+          description: string;
+          ownerEmail: string;
+          access: 'read' | 'read-write';
+          state: string;
+          noteCount: number | null;
+        }>
+      >(this.origin, caller, '/access/shared'),
+    ]);
+    return [
+      ...notebooks.map((notebook) => ({
+        notebookId: notebook.notebookId,
+        name: notebook.name,
+        description: notebook.description,
+        noteCount: notebook.noteCount,
+        ownership: 'own' as const,
+      })),
+      ...shared
+        .filter((notebook) => notebook.state === 'accepted')
+        .map((notebook) => ({
+          notebookId: notebook.notebookId,
+          name: notebook.name,
+          description: notebook.description,
+          noteCount: notebook.noteCount ?? 0,
+          ownership: 'shared' as const,
+          owner: notebook.ownerEmail,
+          access: notebook.access,
+        })),
+    ];
   }
 
   async createNotebook(
@@ -188,6 +224,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       name: created.name,
       description: created.description,
       noteCount: 0,
+      ownership: 'own',
     };
   }
 
@@ -260,6 +297,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       description: string;
       parentFolderId?: string;
       afterFolderId?: string;
+      noteOrder?: NoteOrder;
     },
   ): Promise<FolderListing> {
     const created = await callApi<FolderDto>(
@@ -273,10 +311,31 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           description: input.description,
           parentFolderId: input.parentFolderId ?? null,
           afterFolderId: input.afterFolderId ?? null,
+          ...(input.noteOrder ? { noteOrder: input.noteOrder } : {}),
         },
       },
     );
     return folderListingOf(created);
+  }
+
+  async setNoteOrder(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId: string; noteOrder: NoteOrder },
+  ): Promise<FolderListing> {
+    await callApi<void>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}`,
+      { method: 'PATCH', body: { noteOrder: input.noteOrder } },
+    );
+    const detail = await callApi<NotebookDetailDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}`,
+    );
+    const folder = detail.folders.find((each) => each.folderId === input.folderId);
+    if (!folder) throw new GatewayError('NOT_FOUND', 'Folder not found in this notebook');
+    return folderListingOf(folder);
   }
 
   async reorderFolder(
@@ -410,6 +469,19 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return listed.transfers;
   }
 
+  async requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto> {
+    return callApi<TransferDto>(this.origin, caller, '/portability/requests', {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void> {
+    await callApi<unknown>(this.origin, caller, `/portability/transfers/${uploadId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]> {
     const listed = await callApi<FileListDto>(
       this.origin,
@@ -484,17 +556,21 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         caller,
         `/knowledge/notebooks/${input.notebookId}/notes${query}`,
       ),
-      input.folderId
-        ? Promise.resolve({ folders: [{ folderId: input.folderId }] })
-        : callApi<{ folders: Array<{ folderId: string }> }>(
-            this.origin,
-            caller,
-            `/knowledge/notebooks/${input.notebookId}`,
-          ),
+      // The notebook, for the order of its folders and how each orders its
+      // notes (RN-KNW-056), which a page of one folder needs as much as a page
+      // of all of them.
+      callApi<{ folders: Array<{ folderId: string; noteOrder?: string }> }>(
+        this.origin,
+        caller,
+        `/knowledge/notebooks/${input.notebookId}`,
+      ),
     ]);
     return pageOf(
       notes,
-      detail.folders.map((folder) => folder.folderId),
+      detail.folders.map((folder) => ({
+        folderId: folder.folderId,
+        noteOrder: noteOrderOf(folder.noteOrder),
+      })),
       { limit: input.limit, cursor: input.cursor },
     );
   }
@@ -722,6 +798,7 @@ export class HttpDiscoveryGateway implements DiscoveryGateway {
         };
       }),
       orphans: health.orphans.map(referenceOf),
+      unshownFiles: health.unshownFiles ?? [],
     };
   }
 }

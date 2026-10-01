@@ -123,7 +123,9 @@ import {
   StartExport,
   StartImport,
 } from '@memorysmith/svc-portability/application/transfers';
-import { SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
+import { SqsPrintQueue, SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
+import { S3PrintStore } from '@memorysmith/svc-portability/adapters/prints';
+import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
 import { SQSClient } from '@aws-sdk/client-sqs';
 import {
   ImportFromExport,
@@ -143,6 +145,7 @@ import {
   FinishUpload,
   GetUploadStatus,
   LinkUpload,
+  RequestFile,
   ListUploads,
   ObserveUpload,
   PutUploadPart,
@@ -155,6 +158,7 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
+  buildShares,
   buildSubscriptionUsage,
   buildTransfers,
   PICTURE_CATALOGUE,
@@ -163,6 +167,13 @@ import {
   type Infrastructure,
 } from './composition-root.js';
 import { KnowledgeNoteCatalog } from './note-catalog.js';
+import {
+  contextThrough,
+  DeleteNotebookAndShares,
+  openShared,
+  openShareOf,
+  shareUseCasesOf,
+} from './shares.js';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -181,6 +192,9 @@ const infra: Infrastructure = {
   discoveryTable: required('DISCOVERY_TABLE'),
   portabilityTable: required('PORTABILITY_TABLE'),
   contentBucket: required('CONTENT_BUCKET'),
+  // Where a link to a kept file or an export is answered: a host of the
+  // product, not the bucket's name (#255).
+  filesOrigin: required('FILES_ORIGIN'),
 };
 
 /**
@@ -200,6 +214,8 @@ function partsOf(): S3PartStore {
 
 const sqs = new SQSClient({});
 const transferQueueUrl = required('TRANSFER_QUEUE_URL');
+// Where a print is handed to the renderer, a function of its own (RN-PRT-031).
+const printQueueUrl = required('PRINT_QUEUE_URL');
 
 const verifier = new CognitoTokenVerifier(required('COGNITO_ISSUER'));
 
@@ -222,6 +238,14 @@ const accountDirectory = new CognitoAccountDirectory(
   required('USER_POOL_ID'),
   required('WEB_CLIENT_ID'),
 );
+
+/** The shares of notebooks between subscriptions, and what they open (RN-ACC-024). */
+const sharing = buildShares(infra);
+
+function notebookIdOf(raw: string): NotebookId | null {
+  const parsed = NotebookId.create(raw);
+  return parsed.ok ? parsed.value : null;
+}
 
 /** The Access use cases, each built from the subscription of this request. */
 const accessUseCases: AccessUseCases = {
@@ -291,6 +315,12 @@ const accessUseCases: AccessUseCases = {
     ),
   // Knowledge, Portability and Access joined where the budget is (#197).
   subscriptionUsage: (request) => buildSubscriptionUsage(infra, request.context),
+  ...shareUseCasesOf({
+    shares: sharing.shares,
+    notebooks: sharing.notebooks,
+    accounts: accountDirectory,
+    subscriptionsOf: (request) => buildAccess(infra, request.context).scoped?.subscriptions ?? null,
+  }),
 };
 
 function scopedOrThrow(request: AccessRequest) {
@@ -308,7 +338,13 @@ const knowledgeUseCases: KnowledgeUseCases = {
   listNotebooks: (request) => new ListNotebooks(buildKnowledge(infra, request.subscription)),
   getNotebook: (request) => new GetNotebook(buildKnowledge(infra, request.subscription)),
   renameNotebook: (request) => new RenameNotebook(buildKnowledge(infra, request.subscription)),
-  deleteNotebook: (request) => new DeleteNotebook(buildKnowledge(infra, request.subscription)),
+  // Deleting a notebook takes its shares, both sides (RN-ACC-028).
+  deleteNotebook: (request) =>
+    new DeleteNotebookAndShares(
+      buildKnowledge(infra, request.subscription),
+      request.subscription,
+      sharing.shares,
+    ),
   putGuidance: (request) => new PutGuidance(buildKnowledge(infra, request.subscription)),
   deleteGuidance: (request) => new DeleteGuidance(buildKnowledge(infra, request.subscription)),
   getNotebookContext: (request) =>
@@ -410,11 +446,25 @@ const portabilityUseCases: PortabilityUseCases = {
         brief: async (notebookId: string) => {
           const parsed = NotebookId.create(notebookId);
           if (!parsed.ok) return null;
-          const knowledge = buildKnowledge(infra, request.subscription);
-          const notebook = await knowledge.notebooks.findById(parsed.value);
+          const own = buildKnowledge(infra, request.subscription);
+          const mine = await own.notebooks.findById(parsed.value);
+          // A notebook of this subscription, or one shared with this person and
+          // accepted: the export is kept here either way, and the share names
+          // where the notebook is read from (RN-ACC-027).
+          const share =
+            mine && !mine.isDeleted
+              ? null
+              : await openShareOf(request.subscription.userId, parsed.value, sharing);
+          if (!share && (!mine || mine.isDeleted)) return null;
+          const knowledge = share ? buildKnowledge(infra, contextThrough(share)) : own;
+          const notebook = share ? await knowledge.notebooks.findById(parsed.value) : mine;
           if (!notebook || notebook.isDeleted) return null;
           const notes = await knowledge.notes.listByNotebook(parsed.value);
-          return { name: notebook.name.value, noteCount: notes.length };
+          return {
+            name: notebook.name.value,
+            noteCount: notes.length,
+            ...(share ? { sourceSubscriptionId: share.ownerSubscriptionId.value } : {}),
+          };
         },
       },
       { current: () => readStorageBudget(infra, request.subscription) },
@@ -433,13 +483,13 @@ const portabilityUseCases: PortabilityUseCases = {
   downloadTransfer: (request) =>
     new DownloadTransfer(
       buildTransfers(infra, request.subscription),
-      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      new S3ArchiveStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
       request.subscription.userId.value,
     ),
   deleteTransfer: (request) =>
     new DeleteTransfer(
       buildTransfers(infra, request.subscription),
-      new S3ArchiveStore(infra.s3, infra.contentBucket),
+      new S3ArchiveStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
       request.subscription.userId.value,
       (transfer) => discardUpload(partsOf(), request.subscription.subscriptionId.value, transfer),
     ),
@@ -515,6 +565,25 @@ const portabilityUseCases: PortabilityUseCases = {
       request.files,
       request.subscription.userId.value,
     ),
+  // A file the agent asks the person for (#253, RN-PRT-030).
+  requestFile: (request) =>
+    new RequestFile(
+      buildTransfers(infra, request.subscription),
+      partsOf(),
+      request.files,
+      request.subscription.subscriptionId.value,
+      request.subscription.userId.value,
+    ),
+  startPrint: (request) =>
+    new StartPrint(
+      new SqsPrintQueue(sqs, printQueueUrl),
+      request.subscription.subscriptionId.value,
+    ),
+  getPrint: (request) =>
+    new GetPrint(
+      new S3PrintStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
+      request.subscription.subscriptionId.value,
+    ),
 };
 
 function discoveryFor(context: SubscriptionContext) {
@@ -558,6 +627,8 @@ const app = createApp({
   },
   notebookWriterFor,
   fileKeeperFor,
+  openSharedNotebook: (request, notebookId) =>
+    openShared(request, notebookId, { ...sharing, parse: notebookIdOf }),
   accessUseCases,
   knowledgeUseCases,
   auditUseCases,

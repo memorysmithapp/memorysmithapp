@@ -15,6 +15,7 @@
  *    stays that way as the surface grows.
  */
 
+import { createHash } from 'node:crypto';
 import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL } from './skills.js';
 
 export interface ToolDefinition {
@@ -73,6 +74,15 @@ const afterNoteArgument = {
     'notes of this one.',
 };
 
+/** How a folder orders its notes (RN-KNW-056). */
+const noteOrderArgument = {
+  type: 'string',
+  enum: ['manual', 'alphabetical'],
+  description:
+    'Optional: how the folder orders its notes. manual, the default, keeps the order they are ' +
+    'written in; alphabetical orders them by name.',
+};
+
 function object(
   properties: Record<string, unknown>,
   required: string[] = [],
@@ -80,7 +90,7 @@ function object(
   return { type: 'object', properties, required, additionalProperties: false };
 }
 
-export const TOOL_CATALOG: readonly ToolDefinition[] = [
+const DEFINITIONS: readonly ToolDefinition[] = [
   {
     name: 'whoami',
     title: 'Who you are, and how to write here',
@@ -119,7 +129,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'List notebooks',
     description:
       'Lists the notebooks this connector can reach, with their description and note count, ' +
-      'and every notebook tool takes its identifier from this list. Call whoami before it: ' +
+      'and every notebook tool takes its identifier from this list. Each says its ownership: ' +
+      '`own`, of this subscription, or `shared`, shared with this person from another one, ' +
+      'which also names its owner and the access the share grants — with `read`, every write ' +
+      'in it is refused. Call whoami before it: ' +
       'whoami lists the same notebooks, together with how to write in them and the skills to ' +
       'read before a task.',
     inputSchema: object({}),
@@ -131,10 +144,12 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Creates a notebook in this subscription: a notebook of Markdown notes, organised in folders ' +
       'and described by a guidance and by the templates of its folders — not a Jupyter notebook. ' +
-      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill and confirm ` +
-      'with the person the structure you propose: its guidance, folders and templates follow ' +
-      'from what the notebook will hold, and a notebook created before that gets a structure ' +
-      'nobody chose. Then write its guidance with set_guidance: a notebook without guidance ' +
+      `BEFORE calling it, read the skill \`${DESIGN_NOTEBOOK_SKILL}\` with get_skill: its ` +
+      'guidance, folders and templates follow from what the notebook will hold. Build it from ' +
+      'the material the person brought to the conversation when there is some, and say what ' +
+      'you built; propose a structure and confirm it first when there is none, since a notebook ' +
+      'created before either gets a structure nobody chose. Then write its guidance with ' +
+      'set_guidance: a notebook without guidance ' +
       'tells the next agent nothing about how it wants to be written. ' +
       'If a notebook with the same name already exists, this fails with ALREADY_EXISTS and returns ' +
       'the identifier of the existing one: no second notebook is created and no suffix is invented, ' +
@@ -230,7 +245,10 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'what tells the next agent what belongs in this folder, and it travels in every reading ' +
       'of the notebook context. Pass parent to nest it under another folder. The order of ' +
       'folders is content, and a new folder goes last among its siblings unless you pass ' +
-      'after; reorder_folder changes the order later.',
+      'after; reorder_folder changes the order later. A folder orders its own notes by hand ' +
+      'unless you pass noteOrder: alphabetical, for a folder of records looked up by name — ' +
+      'minutes, decisions, articles — where each note then appears by its name; ' +
+      'set_note_order changes it later.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -251,6 +269,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
             'Optional: identifier of the sibling folder this one goes right after, as ' +
             'get_notebook_context prints it. Without it the folder goes last among its siblings.',
         },
+        noteOrder: noteOrderArgument,
       },
       ['notebook', 'name', 'description'],
     ),
@@ -269,6 +288,28 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     inputSchema: object(
       { notebook: notebookArgument, folder: folderArgument, after: afterFolderArgument },
       ['notebook', 'folder', 'after'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'set_note_order',
+    title: 'Set how a folder orders its notes',
+    description:
+      'Sets how the notes of a folder are ordered. manual keeps the order written into the ' +
+      'folder, which create_note and reorder_note place: right for a folder read in sequence, ' +
+      'such as the chapters of a guide or the steps of a process. alphabetical orders them by ' +
+      'name, numbers by value so Ata 2 comes before Ata 10, a note with no name last: right for ' +
+      'a folder of records looked up by name. In an alphabetical folder a note appears by its ' +
+      'name wherever it is listed, and reorder_note is refused. The places notes had are kept, ' +
+      'so turning a folder back to manual shows the order it had. Answers the folder as it now ' +
+      'is.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        folder: folderArgument,
+        noteOrder: { ...noteOrderArgument, description: 'Required. manual or alphabetical.' },
+      },
+      ['notebook', 'folder', 'noteOrder'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
@@ -372,6 +413,7 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     description:
       'Index of the notes of a notebook, or of a single folder, in the ORDER DEFINED by whoever ' +
       'authored the notebook. The order is content, not decoration: it says where to start. ' +
+      'A folder that orders its notes by name lists them by name. ' +
       'Each note comes as its identifier, name, folder and position, one page at a time: the ' +
       'answer is { notes, nextCursor }, and while nextCursor is not null pass it back as cursor ' +
       'to read the next page. Read a note with read_note, and find notes by their text with ' +
@@ -434,7 +476,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'refused, naming the note that holds it, so a call retried after its answer was lost ' +
       'finds the note it made instead of writing a twin. A note with no name reserves nothing, ' +
       'so retrying one of those writes a second. Another folder may hold a note of the same ' +
-      'name. The note goes last in its folder unless you pass after.',
+      'name. The note goes last in its folder unless you pass after; in a folder that orders ' +
+      'its notes by name it appears by its name, wherever after puts it.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -637,7 +680,8 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'List the open uploads',
     description:
       'The uploads of the person that have not become files yet, newest first, each with the ' +
-      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did. ' +
+      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did, ' +
+      'and the files requested from the person and still waiting for them, as `kind: "request"`. ' +
       'Read it before starting an upload: an upload of the same file, found by its SHA-256, is ' +
       'resumed with file_upload_status instead of sent again.',
     inputSchema: object(
@@ -652,12 +696,88 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'request_file',
+    title: 'Ask the person for a file',
+    description:
+      'Asks the person for a file instead of sending it, when you cannot send its bytes: a ' +
+      'sandbox with no network, where no part of an upload by URL ever arrives, or a copy of an ' +
+      'attachment your client reduced. Write `![[name]]` where the file belongs first; the person ' +
+      'keeps the file from Transfers, under this name, and that reference draws it. Name an ' +
+      '`upload` you could not finish and the request is made of it — its name, type, description, ' +
+      'tags, path and purpose — and replaces it, its parts thrown away and its room given back; ' +
+      'otherwise declare the file as begin_file_upload does. A size and SHA-256 you know are shown ' +
+      'to the person as a reference, never enforced. Asking again for a name the notebook already ' +
+      'waits for answers the same request. `list_files` says when the file is kept.',
+    inputSchema: object(
+      {
+        upload: {
+          type: 'string',
+          description:
+            'Optional: an upload you could not finish, as begin_file_upload answered it. The ' +
+            'request takes everything from it and replaces it.',
+        },
+        notebook: {
+          ...notebookArgument,
+          description: 'The notebook the file goes to, when no upload is named.',
+        },
+        name: {
+          type: 'string',
+          description:
+            'The name a note addresses the file by, `![[name]]`: the one the person gave it.',
+        },
+        mimeType: { type: 'string', description: 'The type of the file, such as image/jpeg.' },
+        purpose: {
+          type: 'string',
+          description:
+            'What the file is for, in a sentence the person recognises in Transfers, such as ' +
+            '*the photo of the whiteboard of the planning meeting, for its minutes*.',
+        },
+        description: { type: 'string', description: 'Optional: what the file is.' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Optional: its tags.' },
+        path: { type: 'string', description: 'Optional: where it sits, such as /atas.' },
+        size: {
+          type: 'integer',
+          description: 'Optional: the size in bytes you know of the file.',
+        },
+        sha256: {
+          type: 'string',
+          description: 'Optional: the SHA-256 you know of the file, in lowercase hex.',
+        },
+      },
+      [],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'discard_file_upload',
+    title: 'Throw an upload away',
+    description:
+      'Throws away an upload that is not going to become a file — its parts, and the room it ' +
+      'reserved — or dismisses a request the person has not fulfilled. Use it on an attempt you ' +
+      'are giving up, so none is left open in Transfers; to hand an upload to the person instead, ' +
+      'use request_file with that upload. Any upload open on a notebook may be thrown away, ' +
+      "another agent's included: `list_file_uploads` says who opened each, what for and when its " +
+      'last part arrived, which is what to decide on.',
+    inputSchema: object(
+      {
+        upload: {
+          type: 'string',
+          description: 'The upload or request, as list_file_uploads answers it.',
+        },
+      },
+      ['upload'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
     name: 'list_files',
     title: 'List the files of a notebook',
     description:
       'Every file the notebook keeps, with the name a note addresses it by, what it is, its ' +
-      'type, its tags and where it sits. Read it before keeping one, so a note points at what ' +
-      'is already there instead of a second copy of it.',
+      'type, its size in bytes, its tags and where it sits. Read it before keeping one, so a note ' +
+      'points at what is already there instead of a second copy of it. The size is what tells a ' +
+      'file apart from another of a similar name: one already kept stands for the file the person ' +
+      'sent only when its bytes match.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -712,7 +832,9 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
       'Moves a note within its folder. The order is content: list_notes answers the notes in ' +
       'it, and it says where to start reading. Pass after: null to put the note first, or the ' +
       'identifier of the note it goes right after. Only the order changes: the note keeps its ' +
-      'folder, its content and its history. Answers the notes of the folder in their new order.',
+      'folder, its content and its history. Answers the notes of the folder in their new order. ' +
+      'A folder that orders its notes by name refuses it: there a note appears by its name, and ' +
+      'get_notebook_context says which folders do.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -795,12 +917,17 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     title: 'Check what a notebook left pending',
     description:
       'The sweep to run before saying a piece of work is done. Returns `pending`, every name ' +
-      'the notebook links to that no note carries yet, each with the notes that link to it, and ' +
-      '`orphans`, the notes nothing links to. A pending link is fine on purpose: it is a note ' +
-      'still to write. One with `likelyMeant` looks broken instead — it almost reaches a note ' +
-      'or a file the notebook has, in another case, without its accents or as the start of a ' +
-      'longer name — and the link is what to fix. It is as recent as the link index, which ' +
-      'follows a write within seconds, so right after the last write, run it again.',
+      'the notebook links to that no note or file carries yet, each with the notes that link to ' +
+      'it; `orphans`, the notes nothing links to; `unshownFiles`, the files kept that no note ' +
+      'names; and `openUploads`, the uploads not finished and the files requested from the ' +
+      'person. A pending link is fine on purpose: a note still to write, or a file the person ' +
+      'was asked for, which it says as `waitingFor`. One with `likelyMeant` looks broken instead ' +
+      '— it almost reaches a note or a file the notebook has, in another case, without its ' +
+      'accents or as the start of a longer name — and the link is what to fix. A file no note ' +
+      'shows may be kept on purpose: tell the person which. An upload left open is finished, ' +
+      'handed to the person with request_file, or thrown away with discard_file_upload. It is as ' +
+      'recent as the link index, which follows a write within seconds, so right after the last ' +
+      'write, run it again.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -820,6 +947,63 @@ export const TOOL_CATALOG: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
 ];
+
+/**
+ * What every tool that writes in a notebook says of a shared one (RN-AGT-046):
+ * said once here and appended, so no write tool can be added without it.
+ */
+const SHARED_REFUSAL =
+  ' A notebook shared with this person from another subscription with `read` access refuses ' +
+  'this with FORBIDDEN, naming its owner: list_notebooks says which notebooks are shared and ' +
+  'with which access.';
+
+function writesInANotebook(tool: ToolDefinition): boolean {
+  const writes =
+    tool.annotations.readOnlyHint === false || tool.annotations.destructiveHint === true;
+  const properties =
+    (tool.inputSchema as { properties?: Record<string, unknown> }).properties ?? {};
+  return writes && 'notebook' in properties;
+}
+
+export const TOOL_CATALOG: readonly ToolDefinition[] = DEFINITIONS.map((tool) =>
+  writesInANotebook(tool) ? { ...tool, description: tool.description + SHARED_REFUSAL } : tool,
+);
+
+/** The arguments a tool declares, in the order it declares them, and the required ones. */
+export function argumentsOf(tool: ToolDefinition): { names: string[]; required: Set<string> } {
+  const properties = tool.inputSchema['properties'];
+  const required = tool.inputSchema['required'];
+  return {
+    names: typeof properties === 'object' && properties !== null ? Object.keys(properties) : [],
+    required: new Set(Array.isArray(required) ? required.map(String) : []),
+  };
+}
+
+/**
+ * A tool as a model compares it against its own list (RN-AGT-047):
+ * `update_note(notebook, note, content, baseRevision, message?)`, an optional
+ * argument marked by `?`. A whole schema per tool would cost every `whoami`
+ * thousands of tokens, and a hash is something a model cannot compute over the
+ * list it holds.
+ */
+export function toolSignature(tool: ToolDefinition): string {
+  const { names, required } = argumentsOf(tool);
+  return `${tool.name}(${names.map((name) => (required.has(name) ? name : `${name}?`)).join(', ')})`;
+}
+
+/**
+ * The version of the catalogue: a short hash of the name, the description and
+ * the arguments of every tool, so it changes with anything a client keeps of
+ * the list, and with nothing else.
+ */
+export const CATALOG_VERSION = createHash('sha256')
+  .update(
+    JSON.stringify(
+      TOOL_CATALOG.map(({ name, description, inputSchema }) => [name, description, inputSchema]),
+    ),
+  )
+  .digest('hex')
+  .slice(0, 8);
 
 /**
  * The reading path this product is built around, as tool names.

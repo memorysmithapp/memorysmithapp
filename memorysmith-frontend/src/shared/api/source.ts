@@ -287,6 +287,14 @@ export function finishUpload(transferId: string): Promise<FinishedUploadDto> {
   return backend.finishUpload(transferId);
 }
 
+export function listUploads(): Promise<TransferDto[]> {
+  return backend.listUploads();
+}
+
+export function uploadStatus(transferId: string): Promise<UploadStatusDto> {
+  return backend.uploadStatus(transferId);
+}
+
 export function linkUpload(transferId: string, notebookId: string): Promise<TransferDto> {
   return backend.linkUpload(transferId, notebookId);
 }
@@ -349,6 +357,14 @@ export function deleteGuidance(notebookId: string): Promise<void> {
   return backend.deleteGuidance(notebookId);
 }
 
+export function setNoteOrder(
+  notebookId: string,
+  folderId: string,
+  noteOrder: 'manual' | 'alphabetical',
+): Promise<void> {
+  return backend.setNoteOrder(notebookId, folderId, noteOrder);
+}
+
 export function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
   return backend.deleteTemplate(notebookId, folderId);
 }
@@ -362,3 +378,18 @@ export function deleteTemplate(notebookId: string, folderId: string): Promise<vo
 export function canWrite(effectiveRole: string): boolean {
   return effectiveRole === 'OWNER' || effectiveRole === 'EDITOR';
 }
+
+// Sharing a notebook with a person of another subscription (#256): straight to
+// the API, because nothing a screen already holds answers any of it.
+export {
+  answerShare,
+  dismissRevokedShare,
+  dismissShareAnswer,
+  leaveShare,
+  listIncomingShares,
+  listNotebookShares,
+  listNotifications,
+  listOwnShares,
+  revokeShare,
+  shareNotebook,
+} from './backend';

@@ -11,4 +11,7 @@ packages:
   - memorysmith-backend/packages/markdown-spec
 
 allowBuilds:
+  # Dependencies of pagedjs whose install scripts only print a message.
+  core-js: false
+  es5-ext: false
   esbuild: true

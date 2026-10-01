@@ -308,6 +308,84 @@ export const connectorBindingRequestSchema = z.discriminatedUnion('grant', [
 /** The connector a session acts through, which is how `whoami` names it. */
 export const connectorSchema = agentIdentitySchema;
 
+/**
+ * A share of a notebook with a person who holds another subscription
+ * (RN-ACC-024 to RN-ACC-030). The notebook stays under the subscription that
+ * owns it; the share is the one door through that boundary, and it opens only
+ * when the person it names accepts it.
+ *
+ * `read-write` is in the contract so that the day it is offered changes no
+ * shape; no share grants it yet, and asking for it is refused (RN-ACC-024).
+ */
+export const shareAccessSchema = z.enum(['read', 'read-write']);
+
+/** Where a share stands, as its owner sees it. */
+export const shareStateSchema = z.enum(['pending', 'accepted', 'rejected', 'left']);
+
+/**
+ * Sharing a notebook with an e-mail. The answer is the same whether or not that
+ * e-mail has an account, so the door cannot be used to find out who is a
+ * customer (RN-ACC-025).
+ */
+export const shareNotebookRequestSchema = z.object({
+  email: z.string().min(1),
+  access: shareAccessSchema,
+});
+
+/** One person a notebook is shared with, in the owner's Share dialog. */
+export const outgoingShareSchema = z.object({
+  notebookId: ulidSchema,
+  granteeUserId: userIdSchema,
+  granteeEmail: z.string(),
+  access: shareAccessSchema,
+  state: shareStateSchema,
+  sharedAt: instantSchema,
+  answeredAt: instantSchema.nullable(),
+});
+
+/**
+ * A notebook shared with the person asking, as their Home draws it. A pending
+ * one carries only its name and description (RN-ACC-026); an accepted one
+ * carries what a card shows.
+ */
+export const incomingShareSchema = z.object({
+  notebookId: ulidSchema,
+  name: z.string(),
+  description: z.string(),
+  ownerEmail: z.string(),
+  access: shareAccessSchema,
+  state: z.enum(['pending', 'accepted']),
+  sharedAt: instantSchema,
+  noteCount: z.number().int().nonnegative().nullable(),
+  updatedAt: instantSchema.nullable(),
+});
+
+/** Leaving a notebook shared with me, and whether its owner is told (RN-ACC-028). */
+export const leaveShareRequestSchema = z.object({
+  notifyOwner: z.boolean(),
+});
+
+/**
+ * What the notifications button lists (RN-ACC-029): every change of a share,
+ * told to the other side. `shared` waits for an answer; the others are read and
+ * dismissed.
+ */
+export const notificationSchema = z.object({
+  kind: z.enum(['shared', 'revoked', 'accepted', 'rejected', 'left']),
+  notebookId: ulidSchema,
+  /** The name of the notebook, or null when it can no longer be read. */
+  notebookName: z.string().nullable(),
+  /** Who did it: the owner for `shared` and `revoked`, the grantee otherwise. */
+  person: z.string(),
+  /** The grantee, on the notices of the owner, which is how one is dismissed. */
+  granteeUserId: userIdSchema.nullable(),
+  at: instantSchema,
+});
+
+export const notificationListSchema = z.object({
+  notifications: z.array(notificationSchema),
+});
+
 export type SubscriptionLinkDto = z.infer<typeof subscriptionLinkSchema>;
 export type SessionDto = z.infer<typeof sessionSchema>;
 export type MemberDto = z.infer<typeof memberSchema>;
@@ -332,3 +410,11 @@ export type ConnectorBindingRequest = z.infer<typeof connectorBindingRequestSche
 export type ConnectorDto = z.infer<typeof connectorSchema>;
 export type UsageShareDto = z.infer<typeof usageShareSchema>;
 export type SubscriptionUsageDto = z.infer<typeof subscriptionUsageSchema>;
+export type ShareAccessDto = z.infer<typeof shareAccessSchema>;
+export type ShareStateDto = z.infer<typeof shareStateSchema>;
+export type ShareNotebookRequest = z.infer<typeof shareNotebookRequestSchema>;
+export type OutgoingShareDto = z.infer<typeof outgoingShareSchema>;
+export type IncomingShareDto = z.infer<typeof incomingShareSchema>;
+export type LeaveShareRequest = z.infer<typeof leaveShareRequestSchema>;
+export type NotificationDto = z.infer<typeof notificationSchema>;
+export type NotificationListDto = z.infer<typeof notificationListSchema>;

@@ -104,6 +104,7 @@ export function folderItem(folder: Folder, pk: string, sk: string): Item {
     slug: folder.slug.value,
     description: folder.description.value,
     position: folder.position.value,
+    noteOrder: folder.noteOrder,
     createdBy: serializeAuthorship(folder.createdBy),
     updatedAt: folder.updatedAt.toISOString(),
   };
@@ -118,6 +119,8 @@ export function parseFolder(item: Item): Folder {
     slug: unwrapOrThrow(Slug.create(String(item['slug']))),
     description: unwrapOrThrow(FolderDescription.create(String(item['description']))),
     position: unwrapOrThrow(Position.create(String(item['position']))),
+    // A folder written before folders declared an order has none: `manual`.
+    noteOrder: item['noteOrder'] === 'alphabetical' ? 'alphabetical' : 'manual',
     createdBy: parseAuthorship(item['createdBy']),
     updatedAt: unwrapOrThrow(Instant.fromISO(String(item['updatedAt']))),
   });

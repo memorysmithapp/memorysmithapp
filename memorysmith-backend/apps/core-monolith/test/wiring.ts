@@ -32,8 +32,18 @@ import {
   InMemoryOnboarding,
   InMemoryPlatformAdmin,
   InMemorySubscriptionRepository,
+  InMemoryAccountLookup,
+  InMemoryShareRepository,
   InMemoryUserLinkRepository,
 } from '@memorysmith/svc-access/adapters/memory';
+import {
+  contextThrough,
+  DeleteNotebookAndShares,
+  KnowledgeSharedNotebooks,
+  openShared,
+  openShareOf,
+  shareUseCasesOf,
+} from '../src/shares.js';
 import {
   GetSession,
   RequestSubscription,
@@ -132,15 +142,22 @@ import {
   RunImport,
   StartExport,
   StartImport,
+  type TransferWork,
 } from '@memorysmith/svc-portability/application/transfers';
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
-import { InMemoryPartStore } from '@memorysmith/svc-portability/adapters/memory';
+import {
+  InMemoryPartStore,
+  InMemoryPrintQueue,
+  InMemoryPrintStore,
+} from '@memorysmith/svc-portability/adapters/memory';
+import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
 import {
   BeginUpload,
   discardUpload,
   FinishUpload,
   GetUploadStatus,
   LinkUpload,
+  RequestFile,
   ListUploads,
   ObserveUpload,
   PutUploadPart,
@@ -308,7 +325,26 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
   });
 
+  /** The shares of notebooks between subscriptions, over the same module production uses. */
+  const accounts = new InMemoryAccountLookup();
+  const sharing = {
+    shares: new InMemoryShareRepository(accessDb, events),
+    notebooks: new KnowledgeSharedNotebooks(
+      (context) => knowledgeRepos(context).notebooks,
+      async (id) => accessDb.subscriptions.get(`S#${id.value}`)?.subscription.status.name ?? null,
+    ),
+  };
+  const notebookIdOf = (raw: string) => {
+    const parsed = NotebookId.create(raw);
+    return parsed.ok ? parsed.value : null;
+  };
+
   const accessUseCases: AccessUseCases = {
+    ...shareUseCasesOf({
+      ...sharing,
+      accounts,
+      subscriptionsOf: (request) => scopedAccess(request)?.subscriptions ?? null,
+    }),
     requestSubscription: () => new RequestSubscription(onboarding, links),
     getSession: (request) => {
       const scoped = scopedAccess(request);
@@ -400,7 +436,12 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     listNotebooks: (request) => new ListNotebooks(knowledgeRepos(request.subscription)),
     getNotebook: (request) => new GetNotebook(knowledgeRepos(request.subscription)),
     renameNotebook: (request) => new RenameNotebook(knowledgeRepos(request.subscription)),
-    deleteNotebook: (request) => new DeleteNotebook(knowledgeRepos(request.subscription)),
+    deleteNotebook: (request) =>
+      new DeleteNotebookAndShares(
+        knowledgeRepos(request.subscription),
+        request.subscription,
+        sharing.shares,
+      ),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
     deleteGuidance: (request) => new DeleteGuidance(knowledgeRepos(request.subscription)),
     getNotebookContext: (request) => new GetNotebookContext(knowledgeRepos(request.subscription)),
@@ -510,6 +551,9 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
    * the archive it keeps is what the test reads back.
    */
   const archives = new Map<string, Buffer>();
+  // A print is handed to a renderer the harness has none of: a case reads the
+  // job it was handed, and sets what the renderer would have left (RN-PRT-031).
+  const prints = { queue: new InMemoryPrintQueue(), store: new InMemoryPrintStore() };
   /**
    * The uploads of an import, in memory. The presigned address is a marker
    * this harness answers to itself: what the tests exercise is what happens
@@ -564,9 +608,20 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     const store = subscriptionId ? fileStores.get(subscriptionId) : undefined;
     store?.assembled.set(`${key}@${versionId}`, bytes);
   });
-  const exporterFor = (request: PortabilityRequest) =>
-    new ExportNotebook(
-      new KnowledgeExportSource(knowledgeRepos(request.subscription)),
+  const exporterFor = async (request: PortabilityRequest, work: TransferWork) => {
+    // The worker's rule: a notebook shared with the person is read through a
+    // share still accepted, and kept where the person is (RN-ACC-027).
+    let source = request.subscription;
+    if (work.sourceSubscriptionId && work.sourceSubscriptionId !== work.subscriptionId) {
+      const notebookId = notebookIdOf(work.notebookId ?? '');
+      const share = notebookId
+        ? await openShareOf(request.subscription.userId, notebookId, sharing)
+        : null;
+      if (!share) throw new Error('The notebook is no longer shared with the person');
+      source = contextThrough(share);
+    }
+    return new ExportNotebook(
+      new KnowledgeExportSource(knowledgeRepos(source)),
       archiveStore,
       createZip,
       request.subscription.subscriptionId.value,
@@ -574,24 +629,37 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       // The history an export may be asked to carry (RN-PRT-022).
       new AuditHistorySource(auditTrail, revisions),
     );
+  };
   const portabilityUseCases: PortabilityUseCases = {
     startExport: (request) =>
       new StartExport(
         transfers,
         {
           send: async (work) => {
-            await new RunExport(transfers, exporterFor(request)).execute(work);
+            await new RunExport(transfers, await exporterFor(request, work)).execute(work);
           },
         },
         {
           brief: async (notebookId: string) => {
             const parsed = NotebookId.create(notebookId);
             if (!parsed.ok) return null;
-            const repos = knowledgeRepos(request.subscription);
-            const notebook = await repos.notebooks.findById(parsed.value);
+            const mine = await knowledgeRepos(request.subscription).notebooks.findById(
+              parsed.value,
+            );
+            const share =
+              mine && !mine.isDeleted
+                ? null
+                : await openShareOf(request.subscription.userId, parsed.value, sharing);
+            if (!share && (!mine || mine.isDeleted)) return null;
+            const repos = knowledgeRepos(share ? contextThrough(share) : request.subscription);
+            const notebook = share ? await repos.notebooks.findById(parsed.value) : mine;
             if (!notebook || notebook.isDeleted) return null;
             const notes = await repos.notes.listByNotebook(parsed.value);
-            return { name: notebook.name.value, noteCount: notes.length };
+            return {
+              name: notebook.name.value,
+              noteCount: notes.length,
+              ...(share ? { sourceSubscriptionId: share.ownerSubscriptionId.value } : {}),
+            };
           },
         },
         { current: async () => ({ usedBytes: 0, limitBytes: Number.MAX_SAFE_INTEGER }) },
@@ -697,6 +765,17 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       ),
     linkUpload: (request) =>
       new LinkUpload(transfers, request.files, request.subscription.userId.value),
+    requestFile: (request) =>
+      new RequestFile(
+        transfers,
+        parts,
+        request.files,
+        request.subscription.subscriptionId.value,
+        request.subscription.userId.value,
+      ),
+    startPrint: (request) =>
+      new StartPrint(prints.queue, request.subscription.subscriptionId.value),
+    getPrint: (request) => new GetPrint(prints.store, request.subscription.subscriptionId.value),
   };
 
   const app = createApp({
@@ -737,6 +816,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         },
         request.ctx,
       ),
+    openSharedNotebook: (request, notebookId) =>
+      openShared(request, notebookId, { ...sharing, parse: notebookIdOf }),
     accessUseCases,
     knowledgeUseCases,
     auditUseCases,
@@ -794,6 +875,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   return {
     app,
     accessDb,
+    /** Who an e-mail belongs to, which a test registers to share with it. */
+    accounts,
     knowledgeDb,
     events,
     storage,
@@ -806,6 +889,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     projectNote,
     projectStructure,
     archives,
+    prints,
     uploads,
     transfers,
     parts,

@@ -12,8 +12,15 @@
  * caller needs to try again (RN-AGT-003).
  */
 
-import type { Deployment, UploadStatusDto } from '@memorysmith/contracts';
-import { TOOL_CATALOG } from './catalog.js';
+import {
+  ulidSchema,
+  type Deployment,
+  type TransferDto,
+  type UploadStatusDto,
+  type NoteOrder,
+} from '@memorysmith/contracts';
+import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
+import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillNamed } from './skills.js';
@@ -48,6 +55,37 @@ function json(value: unknown): ToolResult {
   return text(JSON.stringify(value, null, 2));
 }
 
+/**
+ * The arguments that carry an identifier, in every tool that takes one. Each
+ * is read in either case and passed on in its canonical form (#247), and a
+ * value that is not an identifier is refused the same way by every tool,
+ * before any service is asked (#248): one tool answering "not found" where the
+ * others answer "not an identifier" sent an agent after a notebook it had.
+ */
+const IDENTIFIER_ARGUMENTS = ['notebook', 'folder', 'note', 'file', 'upload', 'parent', 'after'];
+
+function canonicalIdentifiers(
+  args: Record<string, unknown>,
+  tool: string,
+): Record<string, unknown> {
+  const canonical = { ...args };
+  for (const name of IDENTIFIER_ARGUMENTS) {
+    const value = args[name];
+    if (typeof value !== 'string' || value.length === 0) continue;
+    const parsed = ulidSchema.safeParse(value);
+    if (!parsed.success) {
+      throw new GatewayError(
+        'VALIDATION',
+        `${tool}: "${name}" is not an identifier: "${value}". An identifier is the 26 ` +
+          'characters list_notebooks, get_notebook_context, list_notes, list_files and ' +
+          'list_file_uploads answer, in either case.',
+      );
+    }
+    canonical[name] = parsed.data;
+  }
+  return canonical;
+}
+
 function requireString(args: Record<string, unknown>, name: string, tool: string): string {
   const value = args[name];
   if (typeof value !== 'string' || value.length === 0) {
@@ -57,6 +95,15 @@ function requireString(args: Record<string, unknown>, name: string, tool: string
     });
   }
   return value;
+}
+
+/** How a folder orders its notes: one of the two, or a refusal saying which they are. */
+function noteOrderArgument(args: Record<string, unknown>, tool: string): NoteOrder {
+  const value = args['noteOrder'];
+  if (value === 'manual' || value === 'alphabetical') return value;
+  throw new GatewayError('VALIDATION', `${tool} takes noteOrder as "manual" or "alphabetical".`, {
+    noteOrder: value ?? null,
+  });
 }
 
 /**
@@ -147,6 +194,47 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
   });
 }
 
+/**
+ * An upload or a request as the connector lists it: who opened it, what for and
+ * how far it got — what deciding to finish, hand over or throw it away takes.
+ */
+function openUploadOf(each: TransferDto): Record<string, unknown> {
+  if (each.kind === 'request') {
+    return {
+      upload: each.transferId,
+      kind: 'request',
+      name: each.fileName,
+      notebook: each.notebookId,
+      notebookName: each.notebookName,
+      status: each.status,
+      waitingFor: 'person',
+      purpose: each.request?.purpose,
+      mimeType: each.request?.mimeType,
+      openedBy: each.request?.platform ?? null,
+      expectedSize: each.request?.expectedSize ?? null,
+      startedAt: each.requestedAt,
+    };
+  }
+  return {
+    upload: each.transferId,
+    kind: 'upload',
+    name: each.fileName,
+    notebook: each.notebookId,
+    notebookName: each.notebookName,
+    status: each.status,
+    failure: each.failure,
+    size: each.bytes,
+    sha256: each.upload?.sha256,
+    purpose: each.upload?.purpose,
+    openedBy: each.upload?.platform ?? null,
+    transport: each.upload?.transport,
+    partCount: each.upload?.partCount,
+    received: each.upload?.received ?? [],
+    startedAt: each.requestedAt,
+    lastPartAt: each.upload?.lastPartAt ?? null,
+  };
+}
+
 /** An argument that may be left out, which is most of what a file carries. */
 function optionalString(args: Record<string, unknown>, name: string): string | undefined {
   const value = args[name];
@@ -220,8 +308,10 @@ export class McpToolAdapter {
     args: Record<string, unknown>,
     caller: AgentCaller,
   ): Promise<ToolResult> {
+    const outOfCatalogue = this.outOfCatalogue(name, args);
+    if (outOfCatalogue) return text(await this.staleList(outOfCatalogue, caller), true);
     try {
-      return await this.dispatch(name, args, caller);
+      return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
     } catch (error) {
       if (error instanceof GatewayError) {
         const taken = nameTakenAnswer(error);
@@ -232,6 +322,50 @@ export class McpToolAdapter {
       }
       throw error;
     }
+  }
+
+  /**
+   * A call the catalogue does not answer, told as what it most likely is: a
+   * list the client kept from an older catalogue (RN-AGT-047). A tool that is
+   * not there, an argument the tool does not take and one it requires and did
+   * not get are the three a stale list produces, and each says the signature
+   * this server serves rather than refusing bare. Null when the call fits.
+   */
+  private outOfCatalogue(name: string, args: Record<string, unknown>): string | null {
+    const tool = TOOL_CATALOG.find((each) => each.name === name);
+    if (!tool) {
+      return (
+        `UNKNOWN_TOOL: there is no tool named "${name}" in the catalogue this server serves, ` +
+        `\`${CATALOG_VERSION}\`. whoami lists every tool it has, with its arguments.`
+      );
+    }
+    const { names, required } = argumentsOf(tool);
+    const unknown = Object.keys(args).filter((key) => !names.includes(key));
+    const missing = [...required].filter((key) => args[key] === undefined);
+    if (unknown.length === 0 && missing.length === 0) return null;
+    return [
+      `VALIDATION: ${name} was called with arguments that do not fit it as this server serves it.`,
+      ...missing.map((key) => `${name} requires the argument "${key}".`),
+      ...unknown.map((key) => `${name} takes no argument "${key}".`),
+      `Nothing was done. The tool is \`${toolSignature(tool)}\`, in the catalogue \`${CATALOG_VERSION}\`.`,
+    ].join(' ');
+  }
+
+  /**
+   * The refusal, and the way out of the one cause the agent cannot fix by
+   * itself. The connector is read only here, on a refusal, so a call that fits
+   * costs nothing more; failing to read it gives the steps of both clients.
+   */
+  private async staleList(refusal: string, caller: AgentCaller): Promise<string> {
+    const connector = await this.gateways.access.connector(caller).catch(() => null);
+    return [
+      refusal,
+      '',
+      'If the list of tools your client gave you shows this tool or these arguments, that list',
+      'is older than the server. Tell the person, and ask them to refresh it:',
+      '',
+      ...refreshSteps(connector).map((step) => `- ${step}`),
+    ].join('\n');
   }
 
   private async dispatch(
@@ -275,7 +409,8 @@ export class McpToolAdapter {
           return text(
             'This connector reaches no notebook yet. When the person asks for one, create it ' +
               `with create_notebook, after reading the skill \`${DESIGN_NOTEBOOK_SKILL}\` with ` +
-              'get_skill and confirming with them the structure you propose. Creating a notebook ' +
+              'get_skill, which says when to build from what they brought and when to propose a ' +
+              'structure first. Creating a notebook ' +
               'takes the EDITOR role, and a connection without it is refused and told so.',
           );
         }
@@ -358,9 +493,21 @@ export class McpToolAdapter {
           description: requireString(args, 'description', 'create_folder'),
           ...(parent === undefined ? {} : { parentFolderId: parent }),
           ...(after === undefined ? {} : { afterFolderId: after }),
+          ...(args['noteOrder'] === undefined
+            ? {}
+            : { noteOrder: noteOrderArgument(args, 'create_folder') }),
         });
         return json(folder);
       }
+
+      case 'set_note_order':
+        return json(
+          await knowledge.setNoteOrder(caller, {
+            notebookId: requireString(args, 'notebook', 'set_note_order'),
+            folderId: requireString(args, 'folder', 'set_note_order'),
+            noteOrder: noteOrderArgument(args, 'set_note_order'),
+          }),
+        );
 
       case 'reorder_folder':
         // The siblings in their new order, so the agent sees the result
@@ -534,24 +681,59 @@ export class McpToolAdapter {
           caller,
           optionalString(args, 'notebook') ?? null,
         );
+        return json({ uploads: uploads.map(openUploadOf) });
+      }
+
+      /**
+       * A file asked of the person instead of sent (#253, RN-PRT-030, RN-AGT-045):
+       * from nothing, or made of an upload the agent could not finish.
+       */
+      case 'request_file': {
+        const upload = optionalString(args, 'upload');
+        const size = args['size'];
+        const sha256 = optionalString(args, 'sha256');
+        const request = await knowledge.requestFile(
+          caller,
+          upload !== undefined
+            ? { fromUpload: upload }
+            : {
+                notebookId: requireString(args, 'notebook', 'request_file'),
+                name: requireString(args, 'name', 'request_file'),
+                mimeType: requireString(args, 'mimeType', 'request_file'),
+                purpose: requireString(args, 'purpose', 'request_file'),
+                ...(optionalString(args, 'description') === undefined
+                  ? {}
+                  : { description: optionalString(args, 'description') }),
+                ...(optionalStrings(args, 'tags') === undefined
+                  ? {}
+                  : { tags: optionalStrings(args, 'tags') }),
+                ...(optionalString(args, 'path') === undefined
+                  ? {}
+                  : { path: optionalString(args, 'path') }),
+                ...(typeof size === 'number' && Number.isInteger(size) && size > 0 ? { size } : {}),
+                ...(sha256 === undefined ? {} : { sha256: sha256.toLowerCase() }),
+              },
+        );
         return json({
-          uploads: uploads.map((each) => ({
-            upload: each.transferId,
-            name: each.fileName,
-            notebook: each.notebookId,
-            notebookName: each.notebookName,
-            status: each.status,
-            failure: each.failure,
-            size: each.bytes,
-            sha256: each.upload?.sha256,
-            purpose: each.upload?.purpose,
-            transport: each.upload?.transport,
-            partCount: each.upload?.partCount,
-            received: each.upload?.received ?? [],
-            startedAt: each.requestedAt,
-            lastPartAt: each.upload?.lastPartAt ?? null,
-          })),
+          request: request.transferId,
+          name: request.fileName,
+          notebook: request.notebookId,
+          reference: `![[${request.fileName ?? ''}]]`,
+          next:
+            'The person keeps the file from Transfers, under this name. Write the reference ' +
+            'where the file belongs, if it is not written yet, and tell them the file is ' +
+            'waiting for them there: the note draws it the moment it is kept, which list_files ' +
+            'will say.',
         });
+      }
+
+      case 'discard_file_upload': {
+        const upload = requireString(args, 'upload', 'discard_file_upload');
+        await knowledge.discardFileUpload(caller, upload);
+        return text(
+          `The upload ${upload} is gone: its parts are thrown away and the room it held is ` +
+            'given back. A request is dismissed the same way.',
+        );
       }
 
       case 'list_files':
@@ -569,15 +751,32 @@ export class McpToolAdapter {
         );
       }
 
-      case 'get_notebook_context':
+      case 'get_notebook_context': {
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read (software-vision.md, section 9.2).
-        return text(
-          await knowledge.notebookContext(
-            caller,
-            requireString(args, 'notebook', 'get_notebook_context'),
-          ),
+        const notebook = requireString(args, 'notebook', 'get_notebook_context');
+        const [context, reach] = await Promise.all([
+          knowledge.notebookContext(caller, notebook),
+          knowledge.listNotebooks(caller),
+        ]);
+        // A notebook shared from another subscription says so before anything
+        // else, because the guidance it opens with asks to be written in, and
+        // with read access it cannot be (RN-AGT-046).
+        const shared = reach.find(
+          (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
+        return text(
+          shared
+            ? `> **Shared with this person by ${shared.owner ?? 'its owner'}, with ` +
+                `\`${shared.access ?? 'read'}\` access.** ` +
+                (shared.access === 'read-write'
+                  ? 'It is written as any notebook is.'
+                  : 'Read it whole; every write here is refused, so do not follow the ' +
+                    'guidance below into writing — say whose notebook it is instead.') +
+                `\n\n${context}`
+            : context,
+        );
+      }
 
       case 'get_template': {
         const template = await knowledge.template(
@@ -674,10 +873,32 @@ export class McpToolAdapter {
           ),
         );
 
-      case 'check_notebook':
-        return json(
-          await discovery.checkNotebook(caller, requireString(args, 'notebook', 'check_notebook')),
-        );
+      case 'check_notebook': {
+        // The sweep reads the links from Discovery and what is still on its way
+        // from Portability (RN-DSC-064): a name the person was asked for is a
+        // pending link that waits for them, not a note still to write.
+        const notebook = requireString(args, 'notebook', 'check_notebook');
+        const [check, open] = await Promise.all([
+          discovery.checkNotebook(caller, notebook),
+          knowledge.listFileUploads(caller, notebook),
+        ]);
+        const waiting = new Map<string, 'person' | 'upload'>();
+        for (const each of open) {
+          if (each.status !== 'running' || !each.fileName) continue;
+          const name = each.fileName.normalize('NFC');
+          if (each.kind === 'request') waiting.set(name, 'person');
+          else if (!waiting.has(name)) waiting.set(name, 'upload');
+        }
+        return json({
+          pending: check.pending.map((each) => ({
+            ...each,
+            waitingFor: waiting.get(each.target.normalize('NFC')) ?? null,
+          })),
+          orphans: check.orphans,
+          unshownFiles: check.unshownFiles,
+          openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),
+        });
+      }
 
       case 'note_history':
         return json(

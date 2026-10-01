@@ -49,6 +49,7 @@ const folder = (id: string, name: string, notes: ReturnType<typeof note>[], chil
   slug: name.toLowerCase(),
   description: '',
   position: 0,
+  noteOrder: 'manual',
   hasTemplate: false,
   noteCount: notes.length,
   notes,

@@ -595,14 +595,18 @@ The composition root instantiates the repositories **per request**, with the sub
 
 Two product questions have to cross the boundary. Neither reveals content, and both are declared here, because leaving them implicit would be worse than naming them.
 
-**Exception 1: the links of the user.** Identity is global; a subscription is a link (RN-SUB-011). The `UserId` is the Cognito `sub` and belongs to no subscription:
+**Exception 1: the links of the user.** Identity is global; a subscription is a link (RN-SUB-011), and so is a notebook shared with the person (RN-ACC-024). The `UserId` is the Cognito `sub` and belongs to no subscription:
 
 ```
 Link      PK: USER#{userId}   SK: SUB#{subscriptionId}   { isOwner, joinedAt, isDefault,
                                                           welcomedAt }
+Share     PK: USER#{userId}   SK: SHARED#{notebookId}    { ownerSubscriptionId, state, access,
+                                                          ownerEmail, sharedAt, answeredAt }
 ```
 
-It answers *"which subscriptions do I take part in?"* and nothing else (RN-SUB-003).
+It answers *"which subscriptions do I take part in?"* and *"which notebooks were shared with me?"*, and nothing else (RN-SUB-003).
+
+**The second shape is the one door through the boundary**, and it opens only with two consents (RN-ACC-026): the owner shares, which writes the item under the owner's subscription, `S#{owner} / SHARE#{notebookId}#USER#{grantee}`, and this one beside it **in the same transaction**; the grantee accepts, which moves both to `accepted`. A request whose path addresses a notebook — under `/knowledge`, `/discovery` or `/audit` — reads the grantee's item by the person of its token and the notebook of its path, one `GetItem`. When it finds an accepted share and the owner's subscription grants access (RN-SUB-007), the request is built with `SubscriptionContext.fromAcceptedShare`: the person of the token, in the subscription **the stored item names**, with the `VIEWER` role and the owner's e-mail on the context, so every write is refused by the notebook's own policy (RN-ACC-027). Rule 2 holds because the owner's subscription never comes from the request: it was written by an authenticated act of its owner and is reached by a key taken from the grantee's token — the reasoning of the outbox note of §8.2, one hop across instead of one hop later. When no accepted share is found, the request goes on in the session's own subscription, untouched, and a notebook of another subscription is still indistinguishable from one that does not exist (RN-SUB-004).
 
 `welcomedAt` is the one attribute here that is not about the link: it says when this person was shown what the product is (RN-ACC-019), and it rides on this item because the exception names a KEY SHAPE and adds none. It is written on every link the person holds, because being welcomed happened to them and not to one of their subscriptions, and writing a link never touches it — which is why that write is an update and not a put.
 
@@ -758,6 +762,11 @@ S#{s}              / USER#{userId}          → a user known to the subscription
 S#{s}              / MEMBER#{userId}        → membership: role (EDITOR | VIEWER)
 USER#{userId}      / SUB#{subscriptionId}   → the link (§8.3, exception 1)
 S#{subscriptionId} / AVATAR#{userId}        → the face of that person here (RN-ACC-022)
+S#{s}              / SHARE#{notebookId}#USER#{userId}  → a notebook of s shared with that person
+                                                         (RN-ACC-024): state, access, both e-mails,
+                                                         sharedAt, answeredAt, notifyOwner, ownerSeenAt
+USER#{userId}      / SHARED#{notebookId}    → the same share, from the person's side
+                                              (§8.3, exception 1), written in the same transaction
 S#{s}              / CONNECTOR#TOKEN#{jti}        → the connector an access token was issued to
                                                     (ttl = the expiry of the token)
 S#{s}              / CONNECTOR#REFRESH#{sha256}   → the connector a refresh token renews (ttl = 30 days)
@@ -768,6 +777,8 @@ GSI2:  PLATFORM#{status}     → REQUESTED#{timestamp}#{subscriptionId}  → the
 ```
 
 **The `OWNER` is not a `MEMBER` item.** Ownership lives in `ownerId`, on the `META` item of the subscription: a single field, which is how RN-ACC-001 ("exactly one `OWNER`") stops being a rule to check and becomes the shape of the data. The transfer of ownership is a conditional `Update` on that field plus the `Put` of the `EDITOR` membership of the previous holder, in one transaction (RN-ACC-002).
+
+**A share is two items and one fact.** Both sides carry the same attributes and every transition writes both, with its event on the outbox of the owner's subscription, in one transaction: sharing and accepting write both; a rejection or a departure keeps the owner's line, which says so, and deletes the grantee's; a revocation deletes the owner's line and keeps the grantee's as the notice of it until they dismiss it (RN-ACC-029). Deleting the notebook deletes both sides of every share of it (RN-ACC-028).
 
 **A connector binding is keyed by the token, under the subscription the token names** (§13.3, item 4). An access token is bound once, by a conditional `Put`, so a second attempt to bind it is refused rather than obeyed; of a refresh token only the SHA-256 is stored. Both items carry a TTL, and every read checks the expiry as well, because the TTL removes an item eventually rather than on the second.
 
@@ -846,6 +857,8 @@ Which event moves which counter is one pure function of the envelope (`domain/se
 
 DynamoDB Streams → a relay Lambda → EventBridge. It guarantees that the state change and the publication are atomic, because without it "I wrote but did not publish" happens and is silent. In a system whose audit trail lives on events, that silence would be a hole in the record.
 
+**Two tables have an outbox, and each has its relay**: `mv-knowledge`, whose relay also moves the counters (§10.3), and `mv-access`, whose relay only publishes, with the source `memorysmith.access`, because no event of Access moves a counter. Until 0.10.0 the stream of `mv-access` existed and nothing drained it, so every event Access wrote was kept and never reached the trail; sharing a notebook, recorded in the trail of that notebook, is what made the gap visible.
+
 The stream hands the relay up to 25 records a batch, and one `PutEvents` call takes ten events, so the relay publishes a batch in calls of at most ten. `PutEvents` reports a refused entry in its answer rather than as an error, so the relay reads the count and fails the batch when any event was refused: the stream then delivers the whole batch again, which makes delivery at least once. An event delivered twice changes nothing: the audit trail keys each entry by the instant and the identifier of its event, so the same entry is written again, the counters are guarded by their `SEEN` item (§10.3), and the projections replace what they derive. A batch still failing after its retries lands in the dead-letter queue of the relay, whose alarm is how a hole in the record is seen.
 
 ### 10.5 Write order with S3
@@ -887,7 +900,7 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 
 **Which types are accepted is injected, not transcribed.** The list is published in `@memorysmith/contracts` and the composition root hands it to the use case as a port, the way the reserved vocabulary already is: the domain and the application of a context import the kernel and nothing else, and what the product decided to accept is a decision, not a rule of the domain.
 
-**The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`.
+**The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`. **The link is answered on `files.{zone}`, not on the name of the bucket** (#255), the way the parts of an upload are answered on `uploads.{zone}` (§16): the API signs the `GET` for the bucket's own host and rewrites only the host, and a CloudFront distribution that forwards everything but Host hands S3 the very request it signed, so the link expires when it always did and an altered one is refused by S3. The tab, the download bar and a copied link show a host of the product, and nothing of the bucket, the region or the credential that signed it. That host is still an origin apart from the product's, and it says so by header too: the distribution allows only `GET`, `HEAD` and `OPTIONS`, and answers with `X-Content-Type-Options: nosniff` and a `Content-Security-Policy` that sandboxes the document and allows no script, so an SVG opened in a tab of its own runs nothing while a picture, a PDF and a recording still show where they are opened. It is a distribution of its own, with a certificate of its own, rather than a second name on the uploads one: a read allows only a read, and the headers belong to what a browser renders. Its cache policy is not `CachingDisabled`, as the uploads one is: under it CloudFront drops `response-content-type` and `response-content-disposition` from the query while forwarding every other parameter, and S3 refuses the request it never signed, which is what a PDF opened from a card met on staging. A policy that names every query string forwards them whole; naming them needs a maximum TTL above zero, so it is one second, with the default at zero and no `Cache-Control` from S3, and nothing is kept. The link of a kept export is signed and answered the same way.
 
 **Discovery learns what a notebook keeps from the events**, `FileKept` and `FileDeleted`, and holds one `ATTACH#` item per name. Resolution then answers three things instead of two — a note, an attachment, nothing — and the reading surface draws each one for what it is (RN-DSC-061).
 
@@ -1313,6 +1326,9 @@ svc-portability  POST /notebooks/:v/export   starts the job and answers the tran
                  PUT  /uploads/:t/parts/:n   { sha256, contentBase64 } one inline part
                  POST /uploads/:t/finish   the whole becomes a file, or is refused
                  POST /uploads/:t/link   { notebookId } another notebook (RN-PRT-029)
+                 POST /notebooks/:v/notes/:n/pdf   { placement, tables, orientation,
+                    locale } starts a print as the person who asks (§16, RN-PRT-031)
+                 GET  /prints/:p   running, failed with why, or ready with a link
 ```
 
 The authorizer of `svc-access` does not appear here because **it is not a route**: it is a
@@ -1330,6 +1346,8 @@ Leaving this implicit is how authz holes are born. Each stage has an explicit ow
 1. **The authorizer (`svc-access`).** It validates the Cognito JWT, confirms the active subscription is in `trial` or `active` (RN-SUB-007), resolves ownership (`isOwner`) and the role of the user in the subscription, and injects all of it into the request context (5 min cache). **It does not know what a notebook is**, nor could it: whoever holds the per-notebook ceiling is Knowledge.
 2. **The service that owns the resource.** The `AuthorizationPolicy`, a domain service and not an infrastructure port (§6.7), decides locally, with no network call.
 
+**Between the two, the door of a share** (§8.3, exception 1). A path that addresses a notebook is checked against the shares of the person, one `GetItem`; an accepted share replaces the context of stage 1 with one in the owner's subscription, `VIEWER`, carrying the owner's e-mail, and stage 2 runs on it unchanged. Portability is not among those paths: an export of a shared notebook is kept where the person asking is, so its use case reads the share itself and the archive lands in the person's own subscription (RN-ACC-027).
+
 **The stage 2 decision, in one expression.** The effective role is the lesser of the subscription role and the notebook ceiling, and ownership overrides both:
 
 ```typescript
@@ -1345,7 +1363,7 @@ The three inputs arrive at no extra cost: `isOwner` and the role come from the c
 
 **A fixed rule:** every Knowledge use case loads the notebook and calls `policy.require(action, notebook)` **before anything else**. And **a resource the requester may not see returns the same `404` as a non-existent one** (RN-SUB-004), because a `403` would confirm the existence of a notebook the requester may not see.
 
-> **One deliberate exception to the `404`: a refusal over a notebook the requester already sees answers a real `403`.** `DomainError.forbiddenVisible` carries it, and `AuthorizationPolicy` raises it in three cases: a write refused because the notebook ceiling lowers the member to `VIEWER`, a write refused because the role in the subscription is `VIEWER`, and administering a notebook without owning the subscription. In all three the member **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides, and a member sees every notebook of the subscription). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
+> **One deliberate exception to the `404`: a refusal over a notebook the requester already sees answers a real `403`.** `DomainError.forbiddenVisible` carries it, and `AuthorizationPolicy` raises it in four cases: a write refused because the notebook ceiling lowers the member to `VIEWER`, a write refused because the role in the subscription is `VIEWER`, a write refused because the notebook is shared with the requester with read access — whose message names its owner (RN-ACC-027) — and administering a notebook without owning the subscription. In all four the requester **already knows** the notebook exists, because they see it in the list (RN-ACC-012: the ceiling never hides, and a member sees every notebook of the subscription). Returning a `404` there would protect no information and would produce the worst possible experience: a notebook that shows up on screen and disappears when written to. The `404` rule protects existence; where there is no existence to protect, it does not apply.
 
 **Three clocks, all declared:**
 
@@ -1414,6 +1432,8 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 **The import is the same door, from the other side, and it is a job too** (RN-PRT-018). `POST /imports` answers a short-lived address under `s/{subscriptionId}/imports/`, the client uploads the file there, and `POST /imports/apply` **starts** the import and answers a transfer of kind `import`: writing a notebook of several hundred notes does not fit in 29 seconds either, and the gateway answers a timeout with no CORS headers, so the browser used to say only `Failed to fetch`. The same worker runs it, and the same record carries its progress. **An upload may also be made of a kept export**, which is the way back from a deletion without the archive passing through the device of whoever kept it: `POST /imports/from-export` takes the `transferId` of the requester's own ready export and copies its object, with one `CopyObject` inside the bucket, to a fresh key under `imports/` — the key `POST /imports` would have answered — wearing the tag of an upload, so the lifecycle rule discards it like any other (RN-PRT-014). It answers that `uploadKey`, and `apply` takes it unchanged. The copy is made by the API through the `copyFrom` of the upload store, with the read and put the API already holds on the bucket; the export is read and never consumed, and anything but the requester's own ready export answers `404` (rule 9).
 
+**A file request is a transfer of kind `request` with no bytes** (RN-PRT-030): `POST /requests` records what an agent asked the person for, from nothing or from an upload it names — which it replaces, its parts discarded and its `TRANSIT` given back — and an upload that carries `request` in `POST /uploads` takes the notebook, the name and what travels with the file from it, and removes it when the finish keeps the file.
+
 **An upload in parts is a transfer of kind `agent`, and its bytes never cross a request whole** (RN-PRT-027, RN-PRT-028). `POST /uploads` declares the file — notebook, name, type, size, the SHA-256 of the whole, what it is for — reserves its size in `TRANSIT`, and answers where the parts go. Its parts live under `s/{subscriptionId}/uploads/{transferId}/`, which names no notebook (rule 4), so the purge of a deleted notebook does not reach them and linking an upload to another notebook (`POST /uploads/:t/link`) moves no byte (RN-PRT-029). Two transports:
 
 - **By URL**, a multipart upload of S3 opened at `…/whole`, with an address signed per part for an hour and 8 MiB parts, the minimum S3 asks of every part but the last being 5 MiB. **The address is answered on `uploads.{zone}`, not on the name of the bucket** (#241): a client that allows hosts one by one — the code sandbox of claude.ai is one — cannot be asked to allow `…-contentbucket52d4b12c-….s3.us-east-1.amazonaws.com`, which changes with every environment and every rebuild. A CloudFront distribution on that host, in `api.stack`, has the bucket's regional domain as its origin, forwards every query string and every header **but Host**, allows every method and caches nothing. A signature of S3 covers the host it was signed for and the path, so the part is signed exactly as before, for the bucket's own host, and only the name the client sees is swapped: the distribution hands S3 the very request it signed, and S3 checks it. Nothing re-signs, nothing authorises in between, no function sees the bytes, and the bucket keeps blocking public access, because what passes is only what a signature already allows. The Origin header travels too, so the CORS of the bucket lets the note editor of the site PUT parts through the same host (#242). The parts reach the store without passing through the API, so which ones arrived is **read from the store** (`ListParts`) whenever the upload is asked about, and never written into the record. The address is signed by a client built with `requestChecksumCalculation: 'WHEN_REQUIRED'`: version 3.1117 of the SDK otherwise signs a part with the CRC32 of an empty body, which a plain `PUT` of the real bytes cannot satisfy.
@@ -1433,13 +1453,15 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 **The schema lives in the contracts package and the validation happens at the edge.** `domain/` imports only the kernel and a zod schema is not the kernel, so the document is shaped in the domain, and the composition root is what serialises it through `notebookDocumentSchema` — which is what makes "the export writes nothing the schema does not describe" a fact rather than an intention (RN-PRT-011).
 
+**A note is printed by the server as a job too** (RN-PRT-031). The print tab of the interface lays a note into A4 pages in the browser (Paged.js), and the browser prints them; a PDF made without the dialog of the browser is that same page opened by a Chromium of the server. `POST /portability/notebooks/:v/notes/:n/pdf` checks that the caller reads the notebook, and sends one message to `mv-print` with the note, the choices of the tab and **the access token of the request**: the renderer opens the application's print page with that session in its storage, so the page reads exactly what the person reads and nothing more, and the token lives no longer than it would in their browser. The renderer, `PrintRenderer`, waits for the pages to be laid and saves them as a PDF at `s/{subscriptionId}/prints/{printId}.pdf`, the name of the note as metadata of the object — or, when there is nothing to make, the reason at `{printId}.failed`. Both wear the lifecycle tag the bucket expires in a day, and neither counts towards the storage of the subscription. Nothing records the print: `GET /portability/prints/:p` reads whether the file or the reason is there, under the subscription of the token, and mints a link on the files host, named after the note, when it is. A message is never retried — a person is waiting — and a print with neither after three minutes answers `TIMED_OUT`. **The page of the renderer reaches the product and nothing else**: every request outside the application, its API, the files host and the fonts it loads is refused, so a note pointing a picture at an address inside the network the function runs in reaches nothing.
+
 ---
 
 ## 17. Infrastructure
 
 | Layer | Choice |
 |---|---|
-| Compute | **One Lambda per service** (Node.js 22, ARM64), internal routing with Hono |
+| Compute | **One Lambda per service** (Node.js 22, ARM64), internal routing with Hono; the renderer of prints alone is x86_64, carrying the compressed Chromium of `@sparticuz/chromium` as a layer, because that binary is built for x86_64 only |
 | API | API Gateway HTTP API per service, behind a single CloudFront |
 | Data | One DynamoDB table per service (on-demand, PITR), a versioned S3 bucket with flat opaque keys and an S3 Vectors bucket |
 | Events | EventBridge (the `mv-events` bus) and DynamoDB Streams for the outbox |
@@ -1460,6 +1482,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | `api.memorysmith.app` | The internal API, routed by path on CloudFront (§14.1) | `network.stack` |
 | `mcp.memorysmith.app` | The MCP server and the OAuth endpoints of the CIMD proxy (§13) | `agent.stack` |
 | `uploads.memorysmith.app` | The parts of an upload, forwarded to the content bucket (§16) | `api.stack` |
+| `files.memorysmith.app` | A kept file and a kept export, read from the content bucket (§10.9) | `api.stack` |
 
 **One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone and the zones it delegates. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy into any account but the one `cdk.json` names. **Production and staging name the same account**, so credentials never tell one environment from the other: `-c environment` does. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the five tables (`mv-access-production`), the bus, the queues and the user pool — so the two never collide and nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Where a permission would otherwise reach both environments, it is conditioned on that tag: the functional suite manages accounts, and the teardown deletes a user pool, only in a pool tagged `staging`. Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
 
@@ -1473,6 +1496,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | MCP | `mcp.memorysmith.app/mcp` | `mcp.stg.memorysmith.app/mcp` |
 | Sign-in | `auth.memorysmith.app` | `auth.stg.memorysmith.app` |
 | Uploads | `uploads.memorysmith.app` | `uploads.stg.memorysmith.app` |
+| Files | `files.memorysmith.app` | `files.stg.memorysmith.app` |
 
 Two cautions that belong to the instruction, not to the execution:
 

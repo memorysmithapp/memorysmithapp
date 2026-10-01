@@ -12,6 +12,8 @@
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  NoteOrder,
+  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
 } from '@memorysmith/contracts';
@@ -39,6 +41,16 @@ export interface NotebookListing {
   readonly name: string;
   readonly description: string;
   readonly noteCount: number;
+  /**
+   * Whether the notebook is of the subscription of this connection or shared
+   * with its person from another one (RN-AGT-046). A shared one names its
+   * owner and the access the share grants, which is `read` for every share
+   * today; `read-write` is in the contract so the day it is offered changes no
+   * shape (RN-ACC-024).
+   */
+  readonly ownership: 'own' | 'shared';
+  readonly owner?: string;
+  readonly access?: 'read' | 'read-write';
 }
 
 /**
@@ -93,6 +105,11 @@ export interface NotebookCheck {
   }>;
   /** Notes nothing links to. */
   readonly orphans: readonly NoteReference[];
+  /**
+   * The files the notebook keeps that no note names (RN-DSC-064): some kept on
+   * purpose, and the agent says which to the person.
+   */
+  readonly unshownFiles: readonly string[];
 }
 
 export interface NoteContent {
@@ -182,6 +199,8 @@ export interface FolderListing {
   readonly description: string;
   /** The order key among its siblings: content, and never decoration. */
   readonly position: string;
+  /** How it orders its notes: by hand, or by name (RN-KNW-056). */
+  readonly noteOrder: NoteOrder;
 }
 
 /** What a tool asks of the Access context. */
@@ -232,7 +251,13 @@ export interface KnowledgeGateway {
       description: string;
       parentFolderId?: string;
       afterFolderId?: string;
+      noteOrder?: NoteOrder;
     },
+  ): Promise<FolderListing>;
+  /** How a folder orders its notes (RN-KNW-056). Answers the folder as it now is. */
+  setNoteOrder(
+    caller: AgentCaller,
+    input: { notebookId: string; folderId: string; noteOrder: NoteOrder },
   ): Promise<FolderListing>;
   /**
    * First among its siblings with no anchor, or right after one. Answers the
@@ -291,6 +316,16 @@ export interface KnowledgeGateway {
   ): Promise<UploadStatusDto>;
   finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
   listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
+  /**
+   * Asks the person for a file instead of sending it (#253, RN-PRT-030), from
+   * nothing or from an upload the agent could not finish, which it replaces.
+   */
+  requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto>;
+  /**
+   * Throws an open upload away, its parts and the room it reserved, or
+   * dismisses a request (RN-PRT-028, RN-PRT-030).
+   */
+  discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(

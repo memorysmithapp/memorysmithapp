@@ -49,6 +49,7 @@ import {
   uploadAssemblyKeyOf,
   uploadPartKeyOf,
   type Transfer,
+  type TransferRequest,
   type TransferStore,
   type TransferUpload,
 } from '../domain/Transfer.js';
@@ -70,6 +71,12 @@ export interface BeginUploadInput {
   readonly sha256: string;
   readonly transport: 'url' | 'inline';
   readonly partSize?: number | undefined;
+  /**
+   * The request of the person this upload fulfils (RN-PRT-030). The file is
+   * then the one the request names — its notebook, name and what travels with
+   * it — and the type chosen must be the one it asks for.
+   */
+  readonly request?: string | undefined;
 }
 
 /** How long the address of one part lives. Asked again, a fresh one is signed. */
@@ -247,6 +254,19 @@ async function openUpload(
   return ok(found as Transfer & { upload: TransferUpload });
 }
 
+/** The open request of this person by its identifier, or not found (rule 9). */
+async function openRequest(
+  transfers: TransferStore,
+  userId: string,
+  transferId: string,
+): Promise<Result<Transfer & { request: TransferRequest }, DomainError>> {
+  const found = await transfers.get(userId, transferId);
+  if (!found || found.kind !== 'request' || !found.request || found.status !== 'running') {
+    return err(DomainError.notFound('Request not found'));
+  }
+  return ok(found as Transfer & { request: TransferRequest });
+}
+
 export class BeginUpload {
   constructor(
     private readonly transfers: TransferStore,
@@ -258,8 +278,11 @@ export class BeginUpload {
   ) {}
 
   async execute(
-    input: BeginUploadInput & { by: Authorship },
+    declared: BeginUploadInput & { by: Authorship },
   ): Promise<Result<UploadStatus, DomainError>> {
+    const fulfilled = await this.fulfilling(declared);
+    if (!fulfilled.ok) return fulfilled;
+    const input = fulfilled.value;
     if (input.size > UPLOAD_MAX_BYTES) {
       return err(
         DomainError.limitExceeded(
@@ -359,11 +382,45 @@ export class BeginUpload {
         parts: {},
         assembled: null,
         lastPartAt: null,
+        fulfils: input.request ?? null,
       },
     };
     await this.transfers.put(transfer);
     await this.transfers.addTransitBytes(input.size, input.notebookId);
     return ok(await statusOf(transfer, this.parts, this.subscriptionId));
+  }
+
+  /**
+   * An upload that fulfils a request keeps the file the request names: the
+   * notebook, the name and what travels with a file come from the request, and
+   * only the bytes — their size, hash and type — from whoever chose the file.
+   */
+  private async fulfilling(
+    input: BeginUploadInput & { by: Authorship },
+  ): Promise<Result<BeginUploadInput & { by: Authorship }, DomainError>> {
+    if (!input.request) return ok(input);
+    const found = await openRequest(this.transfers, this.userId, input.request);
+    if (!found.ok) return found;
+    const { request } = found.value;
+    if (!found.value.notebookId) return err(DomainError.notFound('Notebook not found'));
+    if (input.mimeType.trim().toLowerCase() !== request.mimeType) {
+      return err(
+        DomainError.validation(
+          `This request asks for a file of type ${request.mimeType}, and the one chosen is ${input.mimeType}`,
+          { reason: 'REQUEST_TYPE_MISMATCH', expected: request.mimeType },
+        ),
+      );
+    }
+    return ok({
+      ...input,
+      notebookId: found.value.notebookId,
+      name: found.value.fileName ?? input.name,
+      mimeType: request.mimeType,
+      description: request.description,
+      tags: request.tags,
+      path: request.path,
+      purpose: request.purpose,
+    });
   }
 }
 
@@ -395,7 +452,8 @@ export class ListUploads {
     const observe = new ObserveUpload(this.parts, this.subscriptionId);
     const mine = (await this.transfers.list(this.userId)).filter(
       (transfer) =>
-        transfer.kind === 'agent' && (notebookId === null || transfer.notebookId === notebookId),
+        (transfer.kind === 'agent' || transfer.kind === 'request') &&
+        (notebookId === null || transfer.notebookId === notebookId),
     );
     return ok(await Promise.all(mine.map((transfer) => observe.execute(transfer))));
   }
@@ -572,6 +630,8 @@ export class FinishUpload {
     if (kept.ok) {
       await this.parts.destroy(assemblyKey, assembledVersion).catch(() => undefined);
       await this.transfers.remove(this.userId, transfer.transferId);
+      // The file the request asked for is kept, which is what ends it (RN-PRT-030).
+      if (upload.fulfils) await this.transfers.remove(this.userId, upload.fulfils);
       return ok({ ...kept.value, notebookId });
     }
 
@@ -646,6 +706,8 @@ export class LinkUpload {
   ) {}
 
   async execute(transferId: string, notebookId: string): Promise<Result<Transfer, DomainError>> {
+    const request = await openRequest(this.transfers, this.userId, transferId);
+    if (request.ok) return this.linkRequest(request.value, notebookId);
     const found = await openUpload(this.transfers, this.userId, transferId);
     if (!found.ok) return found;
     const transfer = found.value;
@@ -666,6 +728,187 @@ export class LinkUpload {
     await this.transfers.addTransitBytes(-transfer.bytes, transfer.notebookId);
     await this.transfers.addTransitBytes(transfer.bytes, notebookId);
     return ok({ ...transfer, notebookId, notebookName: destination.value.notebookName });
+  }
+
+  /** A request reserves nothing, so only its record moves (RN-PRT-030). */
+  private async linkRequest(
+    transfer: Transfer & { request: TransferRequest },
+    notebookId: string,
+  ): Promise<Result<Transfer, DomainError>> {
+    const destination = await this.files.destination({
+      notebookId,
+      name: transfer.fileName ?? '',
+      mimeType: transfer.request.mimeType,
+    });
+    if (!destination.ok) return destination;
+    await this.transfers.patch(this.userId, transfer.transferId, {
+      notebookId,
+      notebookName: destination.value.notebookName,
+    });
+    return ok({ ...transfer, notebookId, notebookName: destination.value.notebookName });
+  }
+}
+
+/**
+ * What asking the person for a file declares (RN-PRT-030): the file, as an
+ * upload declares it, without its bytes. `fromUpload` takes it all from an
+ * upload the agent could not finish instead, which that upload then becomes.
+ */
+export interface RequestFileInput {
+  readonly notebookId?: string | undefined;
+  readonly name?: string | undefined;
+  readonly mimeType?: string | undefined;
+  readonly description?: string | undefined;
+  readonly tags?: readonly string[] | undefined;
+  readonly path?: string | undefined;
+  readonly purpose?: string | undefined;
+  readonly size?: number | undefined;
+  readonly sha256?: string | undefined;
+  readonly fromUpload?: string | undefined;
+}
+
+interface RequestedFile {
+  readonly notebookId: string;
+  readonly name: string;
+  readonly mimeType: string;
+  readonly description: string;
+  readonly tags: readonly string[];
+  readonly path: string;
+  readonly purpose: string;
+  readonly size: number | null;
+  readonly sha256: string | null;
+  /** The upload the request replaces, when it is made from one. */
+  readonly upload: Transfer | null;
+}
+
+/**
+ * An agent asks the person for a file instead of sending it (#253, RN-PRT-030).
+ *
+ * An agent often learns it cannot send a file only by trying: a sandbox with no
+ * network opens an upload by URL and no part ever arrives. So a request is made
+ * either from nothing, or from that upload — which it replaces, its bytes
+ * thrown away and the room it reserved given back, so no attempt is left open.
+ *
+ * The request reserves nothing and has no deadline. It ends when the person
+ * keeps the file it names, or when either of them dismisses it; asking again
+ * for a name the notebook is already waiting for answers the same request.
+ */
+export class RequestFile {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly parts: PartStore,
+    private readonly files: FileKeeper,
+    private readonly subscriptionId: string,
+    private readonly userId: string,
+  ) {}
+
+  async execute(
+    input: RequestFileInput & { by: Authorship },
+  ): Promise<Result<Transfer, DomainError>> {
+    const declared = await this.declared(input);
+    if (!declared.ok) return declared;
+    const want = declared.value;
+
+    const destination = await this.files.destination({
+      notebookId: want.notebookId,
+      name: want.name,
+      mimeType: want.mimeType,
+    });
+    if (!destination.ok) return destination;
+
+    const name = want.name.normalize('NFC').trim();
+    const waiting = (await this.transfers.list(this.userId)).find(
+      (transfer) =>
+        transfer.kind === 'request' &&
+        transfer.status === 'running' &&
+        transfer.notebookId === want.notebookId &&
+        transfer.fileName === name,
+    );
+    if (waiting) {
+      await this.dropUpload(want.upload);
+      return ok(waiting);
+    }
+
+    const transfer: Transfer = {
+      transferId: ulid(),
+      kind: 'request',
+      status: 'running',
+      userId: this.userId,
+      notebookId: want.notebookId,
+      notebookName: destination.value.notebookName,
+      fileName: name,
+      requestedAt: Instant.now().toISOString(),
+      finishedAt: null,
+      done: 0,
+      total: 0,
+      bytes: want.size ?? 0,
+      key: null,
+      versionId: null,
+      failure: null,
+      request: {
+        mimeType: destination.value.mimeType,
+        description: want.description,
+        tags: want.tags,
+        path: want.path,
+        purpose: want.purpose,
+        platform: input.by.agent?.clientName ?? null,
+        expectedSize: want.size,
+        expectedSha256: want.sha256,
+      },
+    };
+    await this.transfers.put(transfer);
+    await this.dropUpload(want.upload);
+    return ok(transfer);
+  }
+
+  private async declared(input: RequestFileInput): Promise<Result<RequestedFile, DomainError>> {
+    if (input.fromUpload) {
+      const found = await openUpload(this.transfers, this.userId, input.fromUpload);
+      if (!found.ok) return found;
+      const upload = found.value;
+      if (upload.status !== 'running' || !upload.notebookId) {
+        return err(DomainError.conflict('This upload has ended: request the file from nothing'));
+      }
+      return ok({
+        notebookId: upload.notebookId,
+        name: upload.fileName ?? '',
+        mimeType: upload.upload.mimeType,
+        description: upload.upload.description,
+        tags: upload.upload.tags,
+        path: upload.upload.path,
+        purpose: upload.upload.purpose,
+        size: upload.bytes,
+        sha256: upload.upload.sha256,
+        upload,
+      });
+    }
+    if (!input.notebookId || !input.name || !input.mimeType || !input.purpose) {
+      return err(
+        DomainError.validation(
+          'A request names the notebook, the name of the file, its type and what it is for — or the upload it replaces',
+        ),
+      );
+    }
+    return ok({
+      notebookId: input.notebookId,
+      name: input.name,
+      mimeType: input.mimeType,
+      description: (input.description ?? '').trim(),
+      tags: input.tags ?? [],
+      path: input.path ?? '',
+      purpose: input.purpose.trim(),
+      size: input.size ?? null,
+      sha256: input.sha256 ?? null,
+      upload: null,
+    });
+  }
+
+  /** The upload a request replaces goes: its bytes, its record and the room it held. */
+  private async dropUpload(upload: Transfer | null): Promise<void> {
+    if (!upload) return;
+    await discardUpload(this.parts, this.subscriptionId, upload);
+    await this.transfers.remove(this.userId, upload.transferId);
+    await this.transfers.addTransitBytes(-upload.bytes, upload.notebookId);
   }
 }
 

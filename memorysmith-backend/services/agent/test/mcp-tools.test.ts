@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/catalog.js';
+import {
+  CATALOG_VERSION,
+  READING_PATH,
+  TOOL_CATALOG,
+  catalogIsWellFormed,
+  toolSignature,
+} from '../src/mcp/catalog.js';
+import { clientKind } from '../src/mcp/refresh.js';
 import { McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
@@ -32,7 +39,13 @@ function gateways(overrides: Record<string, unknown> = {}) {
   };
   const knowledge = {
     listNotebooks: async () => [
-      { notebookId: 'v1', name: 'Normas', description: 'Texto normativo', noteCount: 48 },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        name: 'Normas',
+        description: 'Texto normativo',
+        noteCount: 48,
+        ownership: 'own',
+      },
     ],
     notebookContext: async () => '# Notebook: Normas\n\n## Structure\n1. **Normas**: (48 notes)\n',
     template: async () => ({
@@ -41,56 +54,68 @@ function gateways(overrides: Record<string, unknown> = {}) {
       revision: 'v5',
     }),
     listNotes: async () => [
-      { noteId: 'n1', name: 'Lei 14.133', slug: 'lei-14133', folderId: 'f1', position: 'a0' },
+      {
+        noteId: '01JBQ2X00000000000000000N1',
+        name: 'Lei 14.133',
+        slug: 'lei-14133',
+        folderId: '01JBQ2X00000000000000000F1',
+        position: 'a0',
+      },
     ],
     nextNumber: async () => 42,
     readNote: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
       content: '# Lei 14.133',
       revision: 'v3',
       updatedAt: '2026-03-20T10:00:00.000Z',
     }),
     createNote: async () => ({
-      noteId: 'n2',
+      noteId: '01JBQ2X00000000000000000N2',
       name: 'Nova',
       content: '# Nova',
-      revision: 'v1',
+      revision: '01JBQ2X00000000000000000V1',
       updatedAt: '2026-03-21T10:00:00.000Z',
     }),
     updateNote: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
       content: '# Atualizada',
       revision: 'v4',
       updatedAt: '2026-03-22T10:00:00.000Z',
     }),
     searchNotes: async () => [
-      { noteId: 'n1', name: 'Lei 14.133', section: null, excerpt: 'Lei 14.133', score: 1 },
+      {
+        noteId: '01JBQ2X00000000000000000N1',
+        name: 'Lei 14.133',
+        section: null,
+        excerpt: 'Lei 14.133',
+        score: 1,
+      },
     ],
     createNotebook: async () => ({
-      notebookId: 'v2',
+      notebookId: '01JBQ2X00000000000000000V2',
       name: 'Achados',
       description: 'Achados de auditoria',
       noteCount: 0,
     }),
     deleteNotebook: async () => undefined,
     keptExportsOf: async () => 0,
-    setGuidance: async () => 'v2',
-    guidance: async () => ({ content: '# Proposito', revision: 'v1' }),
+    setGuidance: async () => '01JBQ2X00000000000000000V2',
+    guidance: async () => ({ content: '# Proposito', revision: '01JBQ2X00000000000000000V1' }),
     createFolder: async () => ({
-      folderId: 'f2',
+      folderId: '01JBQ2X00000000000000000F2',
       parentFolderId: null,
       name: 'Achados',
       slug: 'achados',
       description: 'Achados de auditoria.',
     }),
-    deleteFolder: async () => ({ removedFolderIds: ['f2'] }),
+    deleteFolder: async () => ({ removedFolderIds: ['01JBQ2X00000000000000000F2'] }),
     setTemplate: async () => 'v6',
     deleteNote: async () => undefined,
     reorderFolder: async () => [
       {
-        folderId: 'f2',
+        folderId: '01JBQ2X00000000000000000F2',
         parentFolderId: null,
         name: 'Achados',
         slug: 'achados',
@@ -98,7 +123,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
         position: 'Zz',
       },
       {
-        folderId: 'f1',
+        folderId: '01JBQ2X00000000000000000F1',
         parentFolderId: null,
         name: 'Normas',
         slug: 'normas',
@@ -106,22 +131,47 @@ function gateways(overrides: Record<string, unknown> = {}) {
         position: 'a0',
       },
     ],
+    listFileUploads: async () => [],
     reorderNote: async () => [
-      { noteId: 'n2', name: 'Nova', folderId: 'f1', position: 'Zz' },
-      { noteId: 'n1', name: 'Lei 14.133', folderId: 'f1', position: 'a0' },
+      {
+        noteId: '01JBQ2X00000000000000000N2',
+        name: 'Nova',
+        folderId: '01JBQ2X00000000000000000F1',
+        position: 'Zz',
+      },
+      {
+        noteId: '01JBQ2X00000000000000000N1',
+        name: 'Lei 14.133',
+        folderId: '01JBQ2X00000000000000000F1',
+        position: 'a0',
+      },
     ],
     ...((overrides['knowledge'] as object) ?? {}),
   };
   const discovery = {
     relatedNotes: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: 'Achado 12',
-      folderId: 'f1',
+      folderId: '01JBQ2X00000000000000000F1',
       depth: 0,
-      children: [{ noteId: 'n2', name: 'Lei 14.133', folderId: 'f2', depth: 1, children: [] }],
+      children: [
+        {
+          noteId: '01JBQ2X00000000000000000N2',
+          name: 'Lei 14.133',
+          folderId: '01JBQ2X00000000000000000F2',
+          depth: 1,
+          children: [],
+        },
+      ],
     }),
     backlinks: async () => [
-      { noteId: 'n3', name: 'Achado 12', slug: 'achado-12', folderId: 'f2', position: 'a0' },
+      {
+        noteId: 'n3',
+        name: 'Achado 12',
+        slug: 'achado-12',
+        folderId: '01JBQ2X00000000000000000F2',
+        position: 'a0',
+      },
     ],
     ...((overrides['discovery'] as object) ?? {}),
   };
@@ -137,10 +187,10 @@ function gateways(overrides: Record<string, unknown> = {}) {
       },
     ],
     revisionAt: async () => ({
-      noteId: 'n1',
+      noteId: '01JBQ2X00000000000000000N1',
       name: null,
       content: '# Como estava em marco',
-      revision: 'v2',
+      revision: '01JBQ2X00000000000000000V2',
       updatedAt: '2026-03-10T10:00:00.000Z',
     }),
     ...((overrides['audit'] as object) ?? {}),
@@ -164,6 +214,8 @@ describe('The tool catalog is the public contract', () => {
       'delete_guidance',
       'create_folder',
       'reorder_folder',
+      // How a folder orders its notes, by hand or by name (#262).
+      'set_note_order',
       'delete_folder',
       'get_template',
       'set_template',
@@ -180,6 +232,9 @@ describe('The tool catalog is the public contract', () => {
       'file_upload_status',
       'finish_file_upload',
       'list_file_uploads',
+      // A file asked of the person, and an attempt thrown away (#253).
+      'request_file',
+      'discard_file_upload',
       'list_files',
       'delete_file',
       'update_note',
@@ -223,6 +278,7 @@ describe('The tool catalog is the public contract', () => {
       'delete_guidance',
       'create_folder',
       'reorder_folder',
+      'set_note_order',
       'delete_folder',
       'set_template',
       'delete_template',
@@ -232,6 +288,8 @@ describe('The tool catalog is the public contract', () => {
       'begin_file_upload',
       'send_file_part',
       'finish_file_upload',
+      'request_file',
+      'discard_file_upload',
       'delete_file',
       'update_note',
       'reorder_note',
@@ -275,6 +333,61 @@ describe('The tool catalog is the public contract', () => {
     // description is what carries the instruction.
     const create = TOOL_CATALOG.find((tool) => tool.name === 'create_note');
     expect(create?.description).toContain('get_template');
+  });
+});
+
+describe('a notebook shared from another subscription', () => {
+  const shared = {
+    notebookId: '01JBQ2X00000000000000000S1',
+    name: 'Pesquisa',
+    description: 'O que outra assinatura aprendeu',
+    noteCount: 7,
+    ownership: 'shared',
+    owner: 'dona@example.com',
+    access: 'read',
+  };
+  const withShared = () =>
+    gateways({
+      knowledge: {
+        listNotebooks: async () => [
+          {
+            notebookId: '01JBQ2X00000000000000000V1',
+            name: 'Normas',
+            description: 'Texto normativo',
+            noteCount: 48,
+            ownership: 'own',
+          },
+          shared,
+        ],
+        notebookContext: async () => '# Notebook: Pesquisa\n',
+      },
+    });
+
+  it('is listed by whoami apart, with its owner and its access (RN-AGT-046)', async () => {
+    const answer = (await withShared().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('**Normas**');
+    expect(answer).toContain('Shared with this person from another subscription');
+    expect(answer).toContain('shared by dona@example.com, access `read`');
+  });
+
+  it('opens its context saying it is shared and read-only, before the guidance', async () => {
+    const answer =
+      (await withShared().call('get_notebook_context', { notebook: shared.notebookId }, caller))
+        .content[0]?.text ?? '';
+    expect(answer.startsWith('> **Shared with this person by dona@example.com')).toBe(true);
+    expect(answer).toContain('every write here is refused');
+    expect(answer).toContain('# Notebook: Pesquisa');
+  });
+
+  it('is named in the description of every tool that writes in a notebook', async () => {
+    const { TOOL_CATALOG } = await import('../src/mcp/catalog.js');
+    const writing = TOOL_CATALOG.filter(
+      (tool) =>
+        (tool.annotations.readOnlyHint === false || tool.annotations.destructiveHint === true) &&
+        'notebook' in ((tool.inputSchema as { properties?: object }).properties ?? {}),
+    );
+    expect(writing.length).toBeGreaterThan(5);
+    for (const tool of writing) expect(tool.description).toContain('shared with this person');
   });
 });
 
@@ -333,7 +446,7 @@ describe('whoami answers who is acting and how to write here', () => {
       expect(answer).toContain(`${index + 1}. **\`${step}\`**`);
     }
     // And nothing in the catalog is left out of the surface it advertises.
-    for (const tool of TOOL_CATALOG) expect(answer).toContain(`\`${tool.name}\``);
+    for (const tool of TOOL_CATALOG) expect(answer).toContain(`\`${toolSignature(tool)}\``);
   });
 
   it('says the server does not validate content against guidance or template', async () => {
@@ -341,6 +454,103 @@ describe('whoami answers who is acting and how to write here', () => {
     // would trust a check that never runs.
     const result = await gateways().call('whoami', {}, caller);
     expect(result.content[0]?.text ?? '').toContain('does NOT validate');
+  });
+});
+
+describe('an agent working from a stale list of tools is told so (#261, RN-AGT-047)', () => {
+  const claude = {
+    clientId: 'https://claude.ai/oauth/mcp-oauth-client-metadata',
+    clientName: 'Claude',
+  };
+  const chatgpt = { clientId: 'https://chatgpt.com/oauth/client.json', clientName: 'ChatGPT' };
+
+  it('lists every tool by its signature, under the version of the catalogue', async () => {
+    const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('## Your list of tools');
+    expect(answer).toContain(`\`${CATALOG_VERSION}\``);
+    expect(answer).toContain('`update_note(notebook, note, content, baseRevision, message?)`');
+    expect(CATALOG_VERSION).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it('sends the agent to compare, and gives the step of its own client', async () => {
+    const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('Compare it with the tools your client gave you');
+    expect(answer).toContain('Atualizar lista de ferramentas');
+    expect(answer).not.toContain('Atualizar ferramentas*');
+  });
+
+  it('gives the step of ChatGPT to ChatGPT, and both to a connector it does not know', async () => {
+    const asChatgpt = gateways({ access: { connector: async () => chatgpt } });
+    const answer = (await asChatgpt.call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('Plugins → MemorySmith.app');
+    expect(answer).not.toContain('Atualizar lista de ferramentas');
+
+    const unknown = gateways({ access: { connector: async () => null } });
+    const both = (await unknown.call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(both).toContain('Atualizar lista de ferramentas');
+    expect(both).toContain('Atualizar ferramentas');
+  });
+
+  it('tells the client apart by its identifier, and then by its name', () => {
+    expect(clientKind(claude)).toBe('claude');
+    expect(clientKind(chatgpt)).toBe('chatgpt');
+    expect(clientKind({ clientId: 'https://example.org/c', clientName: 'ChatGPT Desktop' })).toBe(
+      'chatgpt',
+    );
+    expect(clientKind({ clientId: 'https://example.org/c', clientName: 'Cursor' })).toBe('other');
+    expect(clientKind(null)).toBe('other');
+  });
+
+  it('answers a tool the catalogue does not have as a list that is older than the server', async () => {
+    const result = await gateways().call('read_notes_v0', {}, caller);
+    expect(result.isError).toBe(true);
+    const answer = result.content[0]?.text ?? '';
+    expect(answer).toContain('UNKNOWN_TOOL: there is no tool named "read_notes_v0"');
+    expect(answer).toContain('is older than the server');
+    expect(answer).toContain('Atualizar lista de ferramentas');
+  });
+
+  it('refuses an argument the tool does not take, doing nothing, with its signature', async () => {
+    let written = false;
+    const adapter = gateways({
+      knowledge: {
+        createNote: async () => {
+          written = true;
+          return {};
+        },
+      },
+    });
+    const result = await adapter.call(
+      'create_note',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '---\nname: X\n---\n',
+        path: 'decisions/x.md',
+      },
+      caller,
+    );
+    expect(written).toBe(false);
+    expect(result.isError).toBe(true);
+    const answer = result.content[0]?.text ?? '';
+    expect(answer).toContain('create_note takes no argument "path"');
+    expect(answer).toContain(
+      `\`${toolSignature(TOOL_CATALOG.find((t) => t.name === 'create_note')!)}\``,
+    );
+    expect(answer).toContain('is older than the server');
+  });
+
+  it('gives both steps when the connector cannot be read, and still refuses', async () => {
+    const adapter = gateways({
+      access: {
+        connector: async () => {
+          throw new Error('Access is down');
+        },
+      },
+    });
+    const answer = (await adapter.call('gone_tool', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('Atualizar lista de ferramentas');
+    expect(answer).toContain('Atualizar ferramentas');
   });
 });
 
@@ -352,7 +562,12 @@ describe('The connector authors the notebook, and not only its notes', () => {
       knowledge: {
         createNotebook: async (_caller: unknown, input: { name: string }) => {
           calls.push(`createNotebook:${input.name}`);
-          return { notebookId: 'v2', name: input.name, description: '', noteCount: 0 };
+          return {
+            notebookId: '01JBQ2X00000000000000000V2',
+            name: input.name,
+            description: '',
+            noteCount: 0,
+          };
         },
         deleteNotebook: async (_caller: unknown, notebookId: string) => {
           calls.push(`deleteNotebook:${notebookId}`);
@@ -369,7 +584,7 @@ describe('The connector authors the notebook, and not only its notes', () => {
         ) => {
           calls.push(`createFolder:${input.name}:${input.parentFolderId ?? 'root'}`);
           return {
-            folderId: 'f9',
+            folderId: '01JBQ2X00000000000000000F9',
             parentFolderId: input.parentFolderId ?? null,
             name: input.name,
             slug: 'x',
@@ -396,45 +611,71 @@ describe('The connector authors the notebook, and not only its notes', () => {
     await adapter.call('create_notebook', { name: 'Achados', description: 'De auditoria' }, caller);
     await adapter.call(
       'set_guidance',
-      { notebook: 'v2', content: '# Proposito', baseRevision: null },
+      { notebook: '01JBQ2X00000000000000000V2', content: '# Proposito', baseRevision: null },
       caller,
     );
     await adapter.call(
       'create_folder',
-      { notebook: 'v2', name: '2026', description: 'Deste exercicio.', parent: 'f1' },
+      {
+        notebook: '01JBQ2X00000000000000000V2',
+        name: '2026',
+        description: 'Deste exercicio.',
+        parent: '01JBQ2X00000000000000000F1',
+      },
       caller,
     );
     await adapter.call(
       'set_template',
-      { notebook: 'v2', folder: 'f9', content: '# {{t}}', baseRevision: null },
+      {
+        notebook: '01JBQ2X00000000000000000V2',
+        folder: '01JBQ2X00000000000000000F9',
+        content: '# {{t}}',
+        baseRevision: null,
+      },
       caller,
     );
 
     expect(calls).toEqual([
       'createNotebook:Achados',
-      'setGuidance:v2:# Proposito',
-      'createFolder:2026:f1',
-      'setTemplate:f9',
+      'setGuidance:01JBQ2X00000000000000000V2:# Proposito',
+      'createFolder:2026:01JBQ2X00000000000000000F1',
+      'setTemplate:01JBQ2X00000000000000000F9',
     ]);
   });
 
   it('deletes a note, a folder and a notebook, each through its own tool', async () => {
     const { calls, adapter } = spy();
-    await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
     await adapter.call(
-      'delete_folder',
-      { notebook: 'v1', folder: 'f2', policy: 'CASCADE' },
+      'delete_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
       caller,
     );
-    await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
+    await adapter.call(
+      'delete_folder',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F2',
+        policy: 'CASCADE',
+      },
+      caller,
+    );
+    await adapter.call('delete_notebook', { notebook: '01JBQ2X00000000000000000V1' }, caller);
 
-    expect(calls).toEqual(['deleteNote:v1:n1', 'deleteFolder:f2:CASCADE', 'deleteNotebook:v1']);
+    expect(calls).toEqual([
+      'deleteNote:01JBQ2X00000000000000000V1:01JBQ2X00000000000000000N1',
+      'deleteFolder:01JBQ2X00000000000000000F2:CASCADE',
+      'deleteNotebook:01JBQ2X00000000000000000V1',
+    ]);
   });
 
   it('refuses to remove a folder without an explicit policy', async () => {
     // RN-KNW-007: there is no implicit default, so the tool asks rather than
     // guessing between refusing and cascading over a subtree.
-    const result = await gateways().call('delete_folder', { notebook: 'v1', folder: 'f2' }, caller);
+    const result = await gateways().call(
+      'delete_folder',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2' },
+      caller,
+    );
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('delete_folder requires the argument "policy"');
   });
@@ -444,8 +685,16 @@ describe('The connector authors the notebook, and not only its notes', () => {
     // What the answer says is what an agent repeats to the person, so it says
     // what went and that nothing brings it back.
     const { adapter } = spy();
-    const note = await adapter.call('delete_note', { notebook: 'v1', note: 'n1' }, caller);
-    const notebook = await adapter.call('delete_notebook', { notebook: 'v1' }, caller);
+    const note = await adapter.call(
+      'delete_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
+    const notebook = await adapter.call(
+      'delete_notebook',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(note.content[0]?.text).toContain('Nothing brings it back');
     expect(notebook.content[0]?.text).toContain('Nothing brings it back');
     // And what does NOT go with it: the exports of that notebook stay, which
@@ -468,7 +717,11 @@ describe('The connector authors the notebook, and not only its notes', () => {
     });
     const result = await adapter.call(
       'create_note',
-      { notebook: 'v1', folder: 'f1', content: 'A body the gateway refuses.' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: 'A body the gateway refuses.',
+      },
       caller,
     );
     expect(result.isError).toBe(true);
@@ -496,7 +749,11 @@ describe('The connector authors the notebook, and not only its notes', () => {
 
 describe('The tool adapter translates in both directions', () => {
   it('returns the notebook context as Markdown, not as JSON', async () => {
-    const result = await gateways().call('get_notebook_context', { notebook: 'v1' }, caller);
+    const result = await gateways().call(
+      'get_notebook_context',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(result.isError).toBe(false);
     expect(result.content[0]?.text).toContain('# Notebook: Normas');
     expect(result.content[0]?.text).toContain('## Structure');
@@ -504,7 +761,11 @@ describe('The tool adapter translates in both directions', () => {
 
   it('answers a missing argument with the schema of the tool', async () => {
     // RN-AGT-003: the error carries what the next attempt needs.
-    const result = await gateways().call('create_note', { notebook: 'v1' }, caller);
+    const result = await gateways().call(
+      'create_note',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('create_note requires the argument "folder"');
     expect(result.content[0]?.text).toContain('content');
@@ -523,7 +784,12 @@ describe('The tool adapter translates in both directions', () => {
     });
     const result = await adapter.call(
       'update_note',
-      { notebook: 'v1', note: 'n1', content: '# Nova', baseRevision: 'v3' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N1',
+        content: '# Nova',
+        baseRevision: 'v3',
+      },
       caller,
     );
     expect(result.content[0]?.text).toContain('Conteudo atual');
@@ -532,17 +798,25 @@ describe('The tool adapter translates in both directions', () => {
   it('reads a past revision through the audit trail when asOf is given', async () => {
     const result = await gateways().call(
       'read_note',
-      { notebook: 'v1', note: 'n1', asOf: '2026-03-15T00:00:00.000Z' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N1',
+        asOf: '2026-03-15T00:00:00.000Z',
+      },
       caller,
     );
     expect(result.content[0]?.text).toContain('Como estava em marco');
   });
 
   it('renders the dependency tree as an indented outline', async () => {
-    const result = await gateways().call('related_notes', { notebook: 'v1', note: 'n1' }, caller);
+    const result = await gateways().call(
+      'related_notes',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
     // The folder tells apart two notes of one name (#128).
     expect(result.content[0]?.text).toBe(
-      '- Achado 12 (n1, folder f1)\n  - Lei 14.133 (n2, folder f2)',
+      '- Achado 12 (01JBQ2X00000000000000000N1, folder 01JBQ2X00000000000000000F1)\n  - Lei 14.133 (01JBQ2X00000000000000000N2, folder 01JBQ2X00000000000000000F2)',
     );
   });
 
@@ -551,16 +825,243 @@ describe('The tool adapter translates in both directions', () => {
       pending: [
         {
           target: 'M42',
-          from: [{ noteId: 'n2', name: 'Session 1', folderId: 'f1' }],
-          likelyMeant: { name: 'M42 Orion Nebula', kind: 'note', noteId: 'n1' },
+          from: [
+            {
+              noteId: '01JBQ2X00000000000000000N2',
+              name: 'Session 1',
+              folderId: '01JBQ2X00000000000000000F1',
+            },
+          ],
+          likelyMeant: {
+            name: 'M42 Orion Nebula',
+            kind: 'note',
+            noteId: '01JBQ2X00000000000000000N1',
+          },
         },
       ],
       orphans: [],
+      unshownFiles: [],
     };
     const adapter = gateways({ discovery: { checkNotebook: async () => answer } });
-    const result = await adapter.call('check_notebook', { notebook: 'v1' }, caller);
+    const result = await adapter.call(
+      'check_notebook',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.content[0]?.text ?? '')).toEqual(answer);
+    expect(JSON.parse(result.content[0]?.text ?? '')).toEqual({
+      pending: answer.pending.map((each) => ({ ...each, waitingFor: null })),
+      orphans: [],
+      unshownFiles: [],
+      openUploads: [],
+    });
+  });
+
+  it('says what is still on its way: a file asked of the person, an upload left open, a file shown nowhere (#253)', async () => {
+    const note = {
+      noteId: '01JBQ2X00000000000000000N2',
+      name: 'Ata',
+      folderId: '01JBQ2X00000000000000000F1',
+    };
+    const adapter = gateways({
+      discovery: {
+        checkNotebook: async () => ({
+          pending: [
+            { target: 'quadro.jpg', from: [note], likelyMeant: null },
+            { target: 'foto.png', from: [note], likelyMeant: null },
+            { target: 'Próxima reunião', from: [note], likelyMeant: null },
+          ],
+          orphans: [],
+          unshownFiles: ['figura-original.jpg'],
+        }),
+      },
+      knowledge: {
+        listFileUploads: async () => [
+          {
+            transferId: '01JBQ2X00000000000000000R1',
+            kind: 'request',
+            status: 'running',
+            notebookId: '01JBQ2X00000000000000000V1',
+            notebookName: 'Atas',
+            requestedAt: '2026-09-27T10:00:00.000Z',
+            finishedAt: null,
+            done: 0,
+            total: 0,
+            bytes: 0,
+            failure: null,
+            fileName: 'quadro.jpg',
+            request: {
+              mimeType: 'image/jpeg',
+              description: '',
+              purpose: 'O quadro da reunião',
+              tags: [],
+              path: '',
+              platform: 'ChatGPT',
+              expectedSize: null,
+              expectedSha256: null,
+            },
+          },
+          {
+            transferId: '01JBQ2X00000000000000000P1',
+            kind: 'agent',
+            status: 'running',
+            notebookId: '01JBQ2X00000000000000000V1',
+            notebookName: 'Atas',
+            requestedAt: '2026-09-27T10:00:00.000Z',
+            finishedAt: null,
+            done: 0,
+            total: 1,
+            bytes: 5000,
+            failure: null,
+            fileName: 'foto.png',
+            upload: {
+              mimeType: 'image/png',
+              purpose: 'A foto',
+              platform: 'Claude',
+              transport: 'url',
+              sha256: 'a'.repeat(64),
+              partSize: 8388608,
+              partCount: 1,
+              received: [],
+              lastPartAt: null,
+            },
+          },
+        ],
+      },
+    });
+    const result = await adapter.call(
+      'check_notebook',
+      { notebook: '01JBQ2X00000000000000000V1' },
+      caller,
+    );
+    const answer = JSON.parse(result.content[0]?.text ?? '') as {
+      pending: Array<{ target: string; waitingFor: string | null }>;
+      unshownFiles: string[];
+      openUploads: Array<{ kind: string; name: string; openedBy: string | null }>;
+    };
+    expect(answer.pending.map((each) => [each.target, each.waitingFor])).toEqual([
+      ['quadro.jpg', 'person'],
+      ['foto.png', 'upload'],
+      ['Próxima reunião', null],
+    ]);
+    expect(answer.unshownFiles).toEqual(['figura-original.jpg']);
+    expect(answer.openUploads.map((each) => [each.kind, each.name, each.openedBy])).toEqual([
+      ['request', 'quadro.jpg', 'ChatGPT'],
+      ['upload', 'foto.png', 'Claude'],
+    ]);
+  });
+
+  it('asks the person for a file, from nothing or from an upload it could not finish (#253)', async () => {
+    const asked: unknown[] = [];
+    const adapter = gateways({
+      knowledge: {
+        requestFile: async (_caller: unknown, input: unknown) => {
+          asked.push(input);
+          return {
+            transferId: '01JBQ2X00000000000000000R1',
+            kind: 'request',
+            notebookId: '01JBQ2X00000000000000000V1',
+            fileName: 'quadro.jpg',
+          };
+        },
+      },
+    });
+    const fromNothing = await adapter.call(
+      'request_file',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        purpose: 'O quadro da reunião',
+        size: 1935884,
+      },
+      caller,
+    );
+    expect(JSON.parse(fromNothing.content[0]?.text ?? '')).toMatchObject({
+      request: '01JBQ2X00000000000000000R1',
+      reference: '![[quadro.jpg]]',
+    });
+    await adapter.call('request_file', { upload: '01jbq2x00000000000000000p1' }, caller);
+    expect(asked).toEqual([
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        purpose: 'O quadro da reunião',
+        size: 1935884,
+      },
+      { fromUpload: '01JBQ2X00000000000000000P1' },
+    ]);
+  });
+
+  it('throws an upload away when asked to (#253)', async () => {
+    const discarded: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        discardFileUpload: async (_caller: unknown, upload: string) => {
+          discarded.push(upload);
+        },
+      },
+    });
+    const result = await adapter.call(
+      'discard_file_upload',
+      { upload: '01JBQ2X00000000000000000P1' },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(discarded).toEqual(['01JBQ2X00000000000000000P1']);
+  });
+
+  it('reads an identifier in either case, and passes it on in its canonical form (#247)', async () => {
+    const asked: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        readNote: async (_caller: unknown, notebookId: string, noteId: string) => {
+          asked.push(notebookId, noteId);
+          return { noteId, name: 'Nota', content: '', revision: 'r1', updatedAt: '' };
+        },
+      },
+      discovery: {
+        checkNotebook: async (_caller: unknown, notebookId: string) => {
+          asked.push(notebookId);
+          return { pending: [], orphans: [] };
+        },
+        noteLinks: async () => [],
+      },
+    });
+    const notebook = '01jbq2x00000000000000000v1';
+    const note = '01jbq2x00000000000000000n1';
+    await adapter.call('read_note', { notebook, note }, caller);
+    await adapter.call('check_notebook', { notebook }, caller);
+    expect(asked).toEqual([
+      '01JBQ2X00000000000000000V1',
+      '01JBQ2X00000000000000000N1',
+      '01JBQ2X00000000000000000V1',
+    ]);
+  });
+
+  it('refuses an argument that is not an identifier the same way in every tool (#248)', async () => {
+    let reached = false;
+    const adapter = gateways({
+      discovery: {
+        checkNotebook: async () => {
+          reached = true;
+          return { pending: [], orphans: [] };
+        },
+      },
+    });
+    for (const [tool, args] of [
+      ['check_notebook', { notebook: 'abc' }],
+      ['get_notebook_context', { notebook: 'abc' }],
+      ['list_files', { notebook: 'abc' }],
+      ['read_note', { notebook: '01JBQ2X00000000000000000V1', note: 'abc' }],
+      ['file_upload_status', { upload: 'abc' }],
+    ] as const) {
+      const result = await adapter.call(tool, args, caller);
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toMatch(/^VALIDATION: .* is not an identifier: "abc"/);
+    }
+    expect(reached).toBe(false);
   });
 
   it('says something useful when the connector reaches no notebook', async () => {
@@ -765,8 +1266,11 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain('Add the line of a map with the note it points at');
     expect(body).toContain('`next_number`');
     expect(body).toContain('`[[EV-00042|reads only the name key]]`');
-    // And no interview: the agent proposes, and the person confirms.
+    // And no interview. With material in the conversation the agent builds
+    // from it and says so; without it, it proposes and the person confirms
+    // (#252): Claude and ChatGPT read the old sentence in opposite ways.
     expect(body).not.toContain('samples');
+    expect(body).toContain('build the notebook from it without\nasking first');
     expect(body).toContain('confirm it before creating anything');
   });
 
@@ -839,6 +1343,18 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain('![[Load test of 2026-09-15#^p95]]');
   });
 
+  it('says what nesting one form in another costs, and leaves the choice to the agent', () => {
+    // #259: agents put tables in callouts and long code in cells. Both are
+    // valid and both render; the skill helps decide, and forbids neither.
+    const body = skillNamed('write-notes')?.body ?? '';
+    expect(body).toContain('## Putting one form inside another');
+    expect(body).toContain('A table inside a callout.');
+    expect(body).toContain('the callout stating the rule in a sentence or two');
+    expect(body).toContain('Code inside a table cell.');
+    expect(body).toContain('the block goes after the table');
+    expect(body).toContain('It is your call');
+  });
+
   it('names each source of the notation, and survives one without a version', () => {
     const body = skillNamed('write-notes')?.body ?? '';
 
@@ -874,7 +1390,7 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
     const adapter = gateways({
       knowledge: {
         readNote: async () => ({
-          noteId: 'n1',
+          noteId: '01JBQ2X00000000000000000N1',
           name: 'Direct contracting',
           content: body,
           revision: 'v3',
@@ -883,7 +1399,11 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
       },
     });
 
-    const result = await adapter.call('read_note', { notebook: 'v1', note: 'n1' }, caller);
+    const result = await adapter.call(
+      'read_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
     const text = result.content[0]?.text ?? '';
 
     // The agent that wants the target reads the target. Expanding here would
@@ -896,7 +1416,7 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('refuses set_guidance with no baseRevision, and says what is missing', async () => {
     const result = await gateways().call(
       'set_guidance',
-      { notebook: 'v1', content: '# New' },
+      { notebook: '01JBQ2X00000000000000000V1', content: '# New' },
       caller,
     );
 
@@ -907,7 +1427,7 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('accepts an explicit null, which is what an empty slot asserts', async () => {
     const result = await gateways().call(
       'set_guidance',
-      { notebook: 'v1', content: '# New', baseRevision: null },
+      { notebook: '01JBQ2X00000000000000000V1', content: '# New', baseRevision: null },
       caller,
     );
 
@@ -919,7 +1439,11 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('refuses set_template with no baseRevision', async () => {
     const result = await gateways().call(
       'set_template',
-      { notebook: 'v1', folder: 'f1', content: '# T' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '# T',
+      },
       caller,
     );
 
@@ -932,14 +1456,18 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
       knowledge: {
         guidance: async () => ({ content: '# Proposito', revision: 'v7' }),
       },
-    }).call('get_guidance', { notebook: 'v1' }, caller);
+    }).call('get_guidance', { notebook: '01JBQ2X00000000000000000V1' }, caller);
 
     expect(result.isError).toBe(false);
     expect(result.content[0]?.text).toContain('v7');
   });
 
   it('reads the template with the revision a write has to echo back', async () => {
-    const result = await gateways().call('get_template', { notebook: 'v1', folder: 'f1' }, caller);
+    const result = await gateways().call(
+      'get_template',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' },
+      caller,
+    );
 
     // The same shape get_guidance answers: without the revision, replacing a
     // Template that exists had no path that succeeded.
@@ -953,23 +1481,30 @@ describe('writing guidance and template carries the revision (RN-AGT-016)', () =
   it('answers the revision each write produced, so the next one needs no read', async () => {
     const guidance = await gateways().call(
       'set_guidance',
-      { notebook: 'v1', content: '# New', baseRevision: null },
+      { notebook: '01JBQ2X00000000000000000V1', content: '# New', baseRevision: null },
       caller,
     );
     const template = await gateways().call(
       'set_template',
-      { notebook: 'v1', folder: 'f1', content: '# T', baseRevision: null },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '# T',
+        baseRevision: null,
+      },
       caller,
     );
 
-    expect(JSON.parse(guidance.content[0]?.text ?? '')).toEqual({ revision: 'v2' });
+    expect(JSON.parse(guidance.content[0]?.text ?? '')).toEqual({
+      revision: '01JBQ2X00000000000000000V2',
+    });
     expect(JSON.parse(template.content[0]?.text ?? '')).toEqual({ revision: 'v6' });
   });
 
   it('says what to do when the notebook has no guidance yet', async () => {
     const result = await gateways({ knowledge: { guidance: async () => null } }).call(
       'get_guidance',
-      { notebook: 'v1' },
+      { notebook: '01JBQ2X00000000000000000V1' },
       caller,
     );
 
@@ -1108,10 +1643,11 @@ describe('the path an agent takes passes through the method of its task', () => 
     expect(description('whoami')).toContain('before any other tool');
   });
 
-  it('asks for the method, and for the person to confirm the structure, before a notebook is created', () => {
+  it('asks for the method before a notebook is created, and says when to confirm the structure (#252)', () => {
     const create = description('create_notebook');
     expect(create).toContain(`\`${DESIGN_NOTEBOOK_SKILL}\``);
-    expect(create).toContain('confirm with the person the structure you propose');
+    expect(create).toContain('Build it from the material the person brought');
+    expect(create).toContain('propose a structure and confirm it first when there is none');
     expect(create).not.toContain('samples');
     expect(create.indexOf('BEFORE calling it')).toBeLessThan(create.indexOf('set_guidance'));
   });
@@ -1141,7 +1677,7 @@ describe('the path an agent takes passes through the method of its task', () => 
       expect(answer).not.toMatch(/ask the owner/i);
       expect(answer).not.toContain('Nothing below will return content');
       expect(answer).not.toContain('samples');
-      expect(answer).toContain('the structure you propose');
+      expect(answer).toContain('build from what they brought');
     }
   });
 
@@ -1158,10 +1694,10 @@ describe('the path an agent takes passes through the method of its task', () => 
 
   it('answers a write that leaves a note with no name with a notice beside the null', async () => {
     const unnamed = {
-      noteId: 'n2',
+      noteId: '01JBQ2X00000000000000000N2',
       name: null,
       content: 'name: Nova\n\nNo block opens this note.',
-      revision: 'v1',
+      revision: '01JBQ2X00000000000000000V1',
       updatedAt: '2026-03-21T10:00:00.000Z',
     };
     const adapter = gateways({
@@ -1171,12 +1707,21 @@ describe('the path an agent takes passes through the method of its task', () => 
     const answers = [
       await adapter.call(
         'create_note',
-        { notebook: 'v1', folder: 'f1', content: unnamed.content },
+        {
+          notebook: '01JBQ2X00000000000000000V1',
+          folder: '01JBQ2X00000000000000000F1',
+          content: unnamed.content,
+        },
         caller,
       ),
       await adapter.call(
         'update_note',
-        { notebook: 'v1', note: 'n2', content: unnamed.content, baseRevision: 'v0' },
+        {
+          notebook: '01JBQ2X00000000000000000V1',
+          note: '01JBQ2X00000000000000000N2',
+          content: unnamed.content,
+          baseRevision: 'v0',
+        },
         caller,
       ),
     ];
@@ -1189,17 +1734,108 @@ describe('the path an agent takes passes through the method of its task', () => 
       expect(Object.keys(parsed)[0]).toBe('notice');
       expect(parsed['notice']).toBe(UNNAMED_NOTE_NOTICE);
       expect(parsed['name']).toBeNull();
-      expect(parsed['revision']).toBe('v1');
+      expect(parsed['revision']).toBe('01JBQ2X00000000000000000V1');
     }
   });
 
   it('says nothing more about a note that has a name', async () => {
     const answer = await gateways().call(
       'create_note',
-      { notebook: 'v1', folder: 'f1', content: '---\nname: Nova\n---' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '---\nname: Nova\n---',
+      },
       caller,
     );
     expect(JSON.parse(answer.content[0]?.text ?? '')).not.toHaveProperty('notice');
+  });
+});
+
+describe('a folder orders its notes by hand or by name (#262, RN-AGT-048)', () => {
+  const folder = (noteOrder: string) => ({
+    folderId: '01JBQ2X00000000000000000F1',
+    parentFolderId: null,
+    name: 'Atas',
+    slug: 'atas',
+    description: 'Uma ata por reunião.',
+    position: 'a0',
+    noteOrder,
+  });
+
+  it('creates a folder ordered by name when asked, and by hand when not', async () => {
+    const asked: Array<string | undefined> = [];
+    const adapter = gateways({
+      knowledge: {
+        createFolder: async (_caller: unknown, input: { noteOrder?: string }) => {
+          asked.push(input.noteOrder);
+          return folder(input.noteOrder ?? 'manual');
+        },
+      },
+    });
+    const base = {
+      notebook: '01JBQ2X00000000000000000V1',
+      name: 'Atas',
+      description: 'Uma ata por reunião.',
+    };
+    await adapter.call('create_folder', { ...base, noteOrder: 'alphabetical' }, caller);
+    await adapter.call('create_folder', base, caller);
+    expect(asked).toEqual(['alphabetical', undefined]);
+  });
+
+  it('sets the order of a folder and answers the folder as it now is', async () => {
+    const asked: string[] = [];
+    const adapter = gateways({
+      knowledge: {
+        setNoteOrder: async (_caller: unknown, input: { folderId: string; noteOrder: string }) => {
+          asked.push(`${input.folderId}:${input.noteOrder}`);
+          return folder(input.noteOrder);
+        },
+      },
+    });
+    const result = await adapter.call(
+      'set_note_order',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        noteOrder: 'alphabetical',
+      },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(asked).toEqual(['01JBQ2X00000000000000000F1:alphabetical']);
+    expect(JSON.parse(result.content[0]?.text ?? '{}')).toMatchObject({
+      noteOrder: 'alphabetical',
+    });
+  });
+
+  it('refuses an order that is neither of the two, saying which they are', async () => {
+    const result = await gateways().call(
+      'set_note_order',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        noteOrder: 'by-date',
+      },
+      caller,
+    );
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('"manual" or "alphabetical"');
+  });
+
+  it('teaches, while designing a notebook, which folders order their notes by name', () => {
+    const body = skillNamed('design-notebook')?.body ?? '';
+    expect(body).toContain('Each folder says how its notes are ordered.');
+    expect(body).toContain('noteOrder: alphabetical');
+    expect(body).toContain('set_note_order');
+  });
+
+  it('tells the agent where a note goes in a folder ordered by name, and that it is not moved', () => {
+    const describe = (name: string) => TOOL_CATALOG.find((tool) => tool.name === name)?.description;
+    expect(describe('reorder_note')).toContain('orders its notes by name refuses it');
+    expect(describe('create_note')).toContain('appears by its name');
+    expect(describe('list_notes')).toContain('lists them by name');
+    expect(describe('set_note_order')).toContain('Ata 2 comes before Ata 10');
   });
 });
 
@@ -1223,10 +1859,10 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
           position: 'a0V',
         }),
         createNote: record({
-          noteId: 'n2',
+          noteId: '01JBQ2X00000000000000000N2',
           name: 'Nova',
           content: '---\nname: Nova\n---',
-          revision: 'v1',
+          revision: '01JBQ2X00000000000000000V1',
           updatedAt: '2026-03-21T10:00:00.000Z',
         }),
       },
@@ -1234,23 +1870,33 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
 
     await adapter.call(
       'create_folder',
-      { notebook: 'v1', name: 'Glossário', description: 'Termos.', after: 'f1' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        name: 'Glossário',
+        description: 'Termos.',
+        after: '01JBQ2X00000000000000000F1',
+      },
       caller,
     );
     await adapter.call(
       'create_folder',
-      { notebook: 'v1', name: 'Fontes', description: 'De onde vem.' },
+      { notebook: '01JBQ2X00000000000000000V1', name: 'Fontes', description: 'De onde vem.' },
       caller,
     );
     await adapter.call(
       'create_note',
-      { notebook: 'v1', folder: 'f1', content: '---\nname: Nova\n---', after: 'n1' },
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '---\nname: Nova\n---',
+        after: '01JBQ2X00000000000000000N1',
+      },
       caller,
     );
 
-    expect(seen[0]).toMatchObject({ afterFolderId: 'f1' });
+    expect(seen[0]).toMatchObject({ afterFolderId: '01JBQ2X00000000000000000F1' });
     expect(seen[1]).not.toHaveProperty('afterFolderId');
-    expect(seen[2]).toMatchObject({ afterNoteId: 'n1' });
+    expect(seen[2]).toMatchObject({ afterNoteId: '01JBQ2X00000000000000000N1' });
   });
 
   it('asks a reorder where the item goes, and reads null as first', async () => {
@@ -1261,28 +1907,52 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
     };
     const adapter = gateways({ knowledge: { reorderFolder: record, reorderNote: record } });
 
-    const missing = await adapter.call('reorder_folder', { notebook: 'v1', folder: 'f2' }, caller);
-    await adapter.call('reorder_folder', { notebook: 'v1', folder: 'f2', after: null }, caller);
-    await adapter.call('reorder_note', { notebook: 'v1', note: 'n2', after: 'n1' }, caller);
+    const missing = await adapter.call(
+      'reorder_folder',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2' },
+      caller,
+    );
+    await adapter.call(
+      'reorder_folder',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2', after: null },
+      caller,
+    );
+    await adapter.call(
+      'reorder_note',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N2',
+        after: '01JBQ2X00000000000000000N1',
+      },
+      caller,
+    );
 
     // A missing anchor is a mistake worth an error, never a default.
     expect(missing.isError).toBe(true);
     expect(missing.content[0]?.text).toContain('"after"');
     expect(seen).toEqual([
-      { notebookId: 'v1', folderId: 'f2', afterFolderId: null },
-      { notebookId: 'v1', noteId: 'n2', afterNoteId: 'n1' },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        folderId: '01JBQ2X00000000000000000F2',
+        afterFolderId: null,
+      },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        noteId: '01JBQ2X00000000000000000N2',
+        afterNoteId: '01JBQ2X00000000000000000N1',
+      },
     ]);
   });
 
   it('answers the siblings in their new order', async () => {
     const folders = await gateways().call(
       'reorder_folder',
-      { notebook: 'v1', folder: 'f2', after: null },
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F2', after: null },
       caller,
     );
     const notes = await gateways().call(
       'reorder_note',
-      { notebook: 'v1', note: 'n2', after: null },
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N2', after: null },
       caller,
     );
 
@@ -1290,8 +1960,14 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       (JSON.parse(answer.content[0]?.text ?? '') as Array<Record<string, string>>).map(
         (each) => each[key],
       );
-    expect(ids(folders, 'folderId')).toEqual(['f2', 'f1']);
-    expect(ids(notes, 'noteId')).toEqual(['n2', 'n1']);
+    expect(ids(folders, 'folderId')).toEqual([
+      '01JBQ2X00000000000000000F2',
+      '01JBQ2X00000000000000000F1',
+    ]);
+    expect(ids(notes, 'noteId')).toEqual([
+      '01JBQ2X00000000000000000N2',
+      '01JBQ2X00000000000000000N1',
+    ]);
   });
 
   it('issues the next number of a folder as a write that is not idempotent', async () => {
@@ -1302,8 +1978,15 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       destructiveHint: false,
       idempotentHint: false,
     });
-    const answer = await gateways().call('next_number', { notebook: 'v1', folder: 'f1' }, caller);
-    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual({ folder: 'f1', number: 42 });
+    const answer = await gateways().call(
+      'next_number',
+      { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' },
+      caller,
+    );
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual({
+      folder: '01JBQ2X00000000000000000F1',
+      number: 42,
+    });
   });
 
   it('declares both reorders as writes that destroy nothing', () => {
@@ -1316,10 +1999,10 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
 
 describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', () => {
   const transfer = (upload: Record<string, unknown>) => ({
-    transferId: '01JBQ2X0000000000000000UP1',
+    transferId: '01JBQ2X0000000000000000VP1',
     kind: 'agent',
     status: 'running',
-    notebookId: 'v1',
+    notebookId: '01JBQ2X00000000000000000V1',
     notebookName: 'Atas',
     requestedAt: '2026-09-26T12:00:00.000Z',
     finishedAt: null,
@@ -1359,7 +2042,7 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     }).call(
       'begin_file_upload',
       {
-        notebook: 'v1',
+        notebook: '01JBQ2X00000000000000000V1',
         name: 'quadro.jpg',
         mimeType: 'image/jpeg',
         size: 20_000_000,
@@ -1372,7 +2055,11 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
 
     expect(answer.isError).toBe(false);
     // The hash travels as the API reads it, whatever case the agent typed.
-    expect(sent).toMatchObject({ notebookId: 'v1', sha256: 'a'.repeat(64), transport: 'url' });
+    expect(sent).toMatchObject({
+      notebookId: '01JBQ2X00000000000000000V1',
+      sha256: 'a'.repeat(64),
+      transport: 'url',
+    });
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
     expect(body['targets']).toHaveLength(3);
     // The host the parts go to, which a client that allows hosts one by one
@@ -1394,7 +2081,12 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       },
     }).call(
       'send_file_part',
-      { upload: 'u1', part: 1, sha256: 'b'.repeat(64), contentBase64: 'AAAA' },
+      {
+        upload: '01JBQ2X00000000000000000P1',
+        part: 1,
+        sha256: 'b'.repeat(64),
+        contentBase64: 'AAAA',
+      },
       caller,
     );
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
@@ -1407,12 +2099,12 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       knowledge: {
         finishFileUpload: async () => ({
           fileId: '01JBQ2X0000000000000000F01',
-          notebookId: 'v1',
+          notebookId: '01JBQ2X00000000000000000V1',
           name: 'quadro.jpg',
           bytes: 20_000_000,
         }),
       },
-    }).call('finish_file_upload', { upload: 'u1' }, caller);
+    }).call('finish_file_upload', { upload: '01JBQ2X00000000000000000P1' }, caller);
     expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
       reference: '![[quadro.jpg]]',
     });
@@ -1426,7 +2118,7 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       uploads: Array<Record<string, unknown>>;
     };
     expect(body.uploads[0]).toMatchObject({
-      upload: '01JBQ2X0000000000000000UP1',
+      upload: '01JBQ2X0000000000000000VP1',
       sha256: 'a'.repeat(64),
       received: [1, 2],
       purpose: 'A foto do quadro, para a ata',
@@ -1443,7 +2135,20 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     // What was seen on 2026-09-26: a chat that recompresses the attachment,
     // and an agent that kept the small copy in silence (#243, RN-AGT-042).
     expect(keep?.description).toContain('tell them both sizes');
-    expect(skill?.body).toContain('Anexar arquivo');
+    expect(skill?.body).toContain('request_file');
+    expect(skill?.body).toContain('Aguardando você');
+    expect(skill?.body).not.toContain('Anexar arquivo');
     expect(skill?.body).toContain('host_not_allowed');
+  });
+
+  it('holds a kept file to the one the person sent by its bytes, and keeps its name (#246)', () => {
+    const skill = SKILLS.find((each) => each.name === 'keep-files')?.body ?? '';
+    // ChatGPT pointed a note at a thumbnail of 7,500 bytes kept earlier under
+    // a similar name, and called a copy reduced to 2048 px the original.
+    expect(skill).toContain('is the one the person sent only when its\nsize matches');
+    expect(skill).toContain('the file you\nreceived');
+    expect(skill).toContain('Keep a file under the name the person gave it');
+    const list = TOOL_CATALOG.find((each) => each.name === 'list_files');
+    expect(list?.description).toContain('only when its bytes match');
   });
 });

@@ -118,6 +118,8 @@ export interface NotebookWriter {
     parentFolderId: string | null;
     name: string;
     description: string;
+    /** How it orders its notes (RN-KNW-056); a document that says nothing means by hand. */
+    noteOrder: 'manual' | 'alphabetical';
     by: Authorship;
   }): Promise<Result<{ folderId: string }, DomainError>>;
   setTemplate(input: {
@@ -525,6 +527,7 @@ export class ImportNotebook {
         parentFolderId,
         name: folder.name,
         description: folder.description,
+        noteOrder: folder.noteOrder ?? 'manual',
         by,
       });
       if (!written.ok) return undo(written);

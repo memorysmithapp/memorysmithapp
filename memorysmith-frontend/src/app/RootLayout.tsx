@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { usePreferences, resolveTheme } from '../shared/store/preferences';
+import { usePreferences, effectiveTheme } from '../shared/store/preferences';
 import { useLiveSession, authConfig, type WithoutSubscription } from '../shared/auth/session';
 import { readTokens, signOut as endHostedSession } from '../shared/auth/oauth';
 import { markWithoutSubscription } from '../features/auth/LoginPage';
@@ -8,20 +8,22 @@ import { AppSkeleton } from '../shared/components/skeletons';
 import { EnvironmentBanner } from '../shared/components/EnvironmentBanner';
 
 // Applies the effective theme (light/dark/system) to the document root and
-// re-applies it when the OS preference changes while in system mode.
+// re-applies it when the OS preference changes while in system mode. A page
+// drawn for paper is light, whatever was chosen (#258).
 export function RootLayout() {
   const theme = usePreferences((s) => s.theme);
+  const paper = usePreferences((s) => s.paper);
   const load = useLiveSession((state) => state.load);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      document.documentElement.dataset.theme = resolveTheme(theme);
+      document.documentElement.dataset.theme = effectiveTheme(theme, paper);
     };
     apply();
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
-  }, [theme]);
+  }, [theme, paper]);
 
   useEffect(() => {
     // The session comes from the token, always.

@@ -128,7 +128,12 @@
     "templateCardHint": "The suggested layout for the notes of this folder",
     "deleteTemplate": "Delete the Template",
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
-    "empty": "No notes in this folder yet."
+    "empty": "No notes in this folder yet.",
+    "noteOrder": "Order of the notes",
+    "noteOrderManual": "As written",
+    "noteOrderAlphabetical": "Alphabetical",
+    "notesByName": "In alphabetical order",
+    "noteOrderFailed": "The order of the notes was not changed. Try again."
   },
   "note": {
     "propertyTrue": "Yes",
@@ -160,6 +165,32 @@
     "changedElsewhere": "This note changed since you opened it, and what you see is the current version.",
     "changedElsewhereDismiss": "Got it"
   },
+  "print": {
+    "short": "Print",
+    "open": "Print the note or save it as a PDF, on an A4 page",
+    "print": "Print",
+    "toolbar": "Printing",
+    "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
+    "properties": "Properties",
+    "placement": {
+      "cover": "Cover page",
+      "end": "At the end",
+      "none": "None"
+    },
+    "tables": "Wide tables",
+    "fit": {
+      "wrap": "Wrap the text",
+      "shrink": "Shrink to fit"
+    },
+    "orientation": "Orientation",
+    "orient": {
+      "portrait": "Portrait",
+      "landscape": "Landscape"
+    },
+    "download": "Download PDF",
+    "downloading": "Making the PDF…",
+    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+  },
   "common": {
     "loading": "Loading…",
     "notFound": "Not found.",
@@ -170,6 +201,8 @@
     "selectNotebook": "Open a notebook",
     "prevNotebooks": "Previous notebooks",
     "nextNotebooks": "Next notebooks",
+    "expandNotebooks": "Show all notebooks",
+    "collapseNotebooks": "Back to one row",
     "goToNotebook": "Go to notebook {{number}}",
     "noNotebooks": "No notebook yet. An agent creates one through the connector, and an export comes back in through Transfers.",
     "space": "Subscription space",
@@ -390,7 +423,8 @@
       "all": "All",
       "export": "Exports",
       "import": "Imports",
-      "agent": "From agents"
+      "agent": "From agents",
+      "request": "Waiting for you"
     },
     "empty": "Nothing has been transferred yet.",
     "keptBytes": "Space used: {{size}}",
@@ -402,7 +436,8 @@
     "running": {
       "export": "exporting · {{done}} of {{total}} notes",
       "import": "importing · {{done}} of {{total}} notes",
-      "agent": "sending · {{done}} of {{total}} parts"
+      "agent": "sending · {{done}} of {{total}} parts",
+      "request": "waiting for you"
     },
     "ended": {
       "ready": "ready",
@@ -416,7 +451,8 @@
     "line": {
       "export": "Export · {{notebook}}",
       "import": "Import · {{notebook}}",
-      "agent": "Agent · {{notebook}}"
+      "agent": "Agent · {{notebook}}",
+      "request": "Request · {{notebook}}"
     },
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
@@ -425,7 +461,8 @@
     "kind": {
       "export": "Export",
       "import": "Import",
-      "agent": "Agent"
+      "agent": "Agent",
+      "request": "Request"
     },
     "state": {
       "ready": "Ready",
@@ -460,7 +497,19 @@
     "deleteUploadAsk": "Delete this upload?",
     "deleteUploadFrees": "The parts that arrived are thrown away and the {{size}} reserved go back to your plan. This is for good.",
     "deleteFailedUpload": "Only this notice leaves the list; its parts were already thrown away.",
-    "platformInterface": "from the interface"
+    "platformInterface": "from the interface",
+    "requestKnown": "the agent knows it as {{size}}",
+    "fulfil": "Send the file",
+    "dismiss": "Dismiss",
+    "deleteRequestAsk": "Dismiss this request?",
+    "deleteRequestKeeps": "The note keeps its reference to {{name}}, pending, until a file of that name is kept; the agent sees it dismissed the next time it checks the notebook.",
+    "requestUnavailable": "No notebook: the notebook of this request is not available. Link it to a notebook to send the file.",
+    "requestKeptAs": "The file is kept as {{name}}, whatever it is called on your disk, and the note that asked for it shows it.",
+    "requestHashing": "reading the file · {{percent}}",
+    "requestDone": "Kept as {{name}}.",
+    "requestWrongType": "This request asks for a file of the kind {{kind}}: choose a file of that kind.",
+    "waitingCount_one": "{{count}} file waiting for you",
+    "waitingCount_other": "{{count}} files waiting for you"
   },
   "about": {
     "menu": "About MemorySmith.app",
@@ -533,7 +582,7 @@
     "files": {
       "heading": "Sending files through your assistant",
       "body": "An assistant keeps a photo, a PDF or a recording whole, at the size it arrived, by sending the parts of the file straight to the address below. For that, the app it runs in has to allow it — and the settings that decide it do not say when they are in the way.",
-      "editor": "Without any of it, this way always works: open the note, click Edit and then Attach file. The file is kept whole, and its reference goes where the cursor is.",
+      "editor": "When the app does not allow it, the assistant asks you for the file: it appears in <b>Transfers</b>, on the <b>Waiting for you</b> tab, under the name the note expects. Choose, drag or paste the file there, and it is kept whole and shows in the note. To attach something yourself, open the note, click Edit and then Attach file, or paste or drag the file into the text.",
       "claude": {
         "one": "After an update of MemorySmith, open <b>Customize</b>, then <b>Connectors</b>, and reconnect <b>MemorySmith.app</b>: that is how new tools reach Claude.",
         "two": "In <b>Settings</b>, then <b>Capabilities</b>, turn on <b>Allow network egress</b>. If you allow domains one by one, allow the address above, or <b>*.memorysmith.app</b> at once.",
@@ -542,7 +591,7 @@
       "chatgpt": {
         "one": "After an update of MemorySmith, open the <b>MemorySmith.app</b> plugin in the <b>Plugins</b> settings and click <b>Refresh</b>, so the new tools appear.",
         "two": "ChatGPT hands the assistant a <b>reduced copy</b> of an attached photo, and its code cannot reach the network: the assistant has no original to keep, and should say so rather than keep the copy.",
-        "three": "To keep the photo whole, attach it to the note yourself, through <b>Edit</b> and <b>Attach file</b>, and ask the assistant for the rest of the work."
+        "three": "To keep the photo whole, the assistant asks you for the file: send it in <b>Transfers</b>, on the <b>Waiting for you</b> tab, and it shows in the note that asked for it."
       }
     }
   },
@@ -674,5 +723,89 @@
     "example": "Example",
     "quote": "Quote",
     "cite": "Cite"
+  },
+  "fileKind": {
+    "image_png": "PNG image",
+    "image_jpeg": "JPEG image",
+    "image_webp": "WebP image",
+    "image_gif": "GIF image",
+    "image_svg_xml": "SVG image",
+    "application_pdf": "PDF document",
+    "audio_mpeg": "MP3 audio",
+    "audio_wav": "WAV audio",
+    "audio_ogg": "Ogg audio",
+    "audio_webm": "WebM audio",
+    "video_mp4": "MP4 video",
+    "video_webm": "WebM video",
+    "video_quicktime": "QuickTime video",
+    "application_vnd_openxmlformats_officedocument_wordprocessingml_document": "Word document",
+    "application_vnd_openxmlformats_officedocument_spreadsheetml_sheet": "Excel spreadsheet",
+    "application_vnd_openxmlformats_officedocument_presentationml_presentation": "PowerPoint presentation"
+  },
+  "fileDrop": {
+    "label": "Give a file",
+    "hint": "Drag the file here, paste it with Ctrl+V, or",
+    "choose": "Choose a file"
+  },
+  "sharing": {
+    "ownership": {
+      "own": "Your notebook",
+      "sharedByMe": "Your notebook, shared by you",
+      "sharedWithMe": "Shared with you by {{owner}}"
+    },
+    "access": {
+      "read": "Read",
+      "readWrite": "Read and write"
+    },
+    "accept": "Accept",
+    "reject": "Decline",
+    "dialog": {
+      "title": "Share notebook",
+      "email": "E-mail of the person",
+      "emailPlaceholder": "name@example.com",
+      "access": "Access",
+      "readWriteLater": "Read and write is not offered yet: the person reads the whole notebook and writes nothing.",
+      "share": "Share",
+      "sharing": "Sharing…",
+      "sent": "Done. If {{email}} has a MemorySmith subscription, the notebook is waiting for their answer.",
+      "people": "Shared with",
+      "nobody": "Not shared with anybody yet.",
+      "revoke": "Revoke",
+      "remove": "Remove"
+    },
+    "state": {
+      "pending": "Waiting",
+      "accepted": "Accepted",
+      "rejected": "Declined",
+      "left": "Left"
+    },
+    "card": {
+      "share": "Share…",
+      "sharedBy": "Shared by {{owner}}",
+      "leave": "Leave notebook…",
+      "leaveTitle": "Leave {{name}}?",
+      "leaveBody": "You stop reading this notebook. Its owner can share it with you again.",
+      "notifyOwner": "Let {{owner}} know",
+      "stay": "Stay",
+      "leaveForGood": "Leave",
+      "pendingLabel": "{{name}}, waiting for your answer",
+      "invitedBy": "{{owner}} shared it with you",
+      "waiting": "Waiting for your answer"
+    }
+  },
+  "notifications": {
+    "heading": "Notifications",
+    "count_one": "{{count}} notification",
+    "count_other": "{{count}} notifications",
+    "empty": "Nothing new.",
+    "aNotebook": "a notebook",
+    "dismiss": "Dismiss",
+    "kind": {
+      "shared": "<b>{{person}}</b> shared <b>{{notebook}}</b> with you, to read.",
+      "revoked": "<b>{{person}}</b> stopped sharing <b>{{notebook}}</b> with you.",
+      "accepted": "<b>{{person}}</b> accepted <b>{{notebook}}</b>.",
+      "rejected": "<b>{{person}}</b> declined <b>{{notebook}}</b>.",
+      "left": "<b>{{person}}</b> left <b>{{notebook}}</b>."
+    }
   }
 }

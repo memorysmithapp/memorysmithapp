@@ -252,3 +252,27 @@ export function BarButton({
     </button>
   );
 }
+
+/**
+ * A button of the bar that opens a page in a tab of its own (#258). It is a
+ * link and not a button that calls `window.open`, so it is announced as one
+ * and the browser offers what it offers for any link.
+ */
+export function BarLink({
+  icon,
+  label,
+  title,
+  to,
+}: {
+  icon: ReactNode;
+  label: string;
+  title?: string;
+  to: string;
+}) {
+  return (
+    <Link to={to} target="_blank" className="bar-button" title={title ?? label}>
+      {icon}
+      <span className="bar-button-label">{label}</span>
+    </Link>
+  );
+}

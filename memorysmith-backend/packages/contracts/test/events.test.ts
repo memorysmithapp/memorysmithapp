@@ -112,6 +112,7 @@ describe('API DTOs', () => {
           slug: 'normas',
           description: 'Texto normativo por artigo. Uma norma por nota.',
           position: 'a0',
+          noteOrder: 'alphabetical',
           hasTemplate: true,
           noteCount: 48,
         },
@@ -119,6 +120,7 @@ describe('API DTOs', () => {
       guidance: null,
     });
     expect(detail.folders[0]?.hasTemplate).toBe(true);
+    expect(detail.folders[0]?.noteOrder).toBe('alphabetical');
   });
 
   it('refuses a folder with an empty description', () => {

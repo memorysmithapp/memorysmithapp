@@ -7,14 +7,20 @@
  * move (section 24).
  */
 
-import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import { Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
 import { HttpApi, CorsHttpMethod, DomainName, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpIamAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { SqsQueue } from 'aws-cdk-lib/aws-events-targets';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { StartingPosition } from 'aws-cdk-lib/aws-lambda';
+import {
+  Architecture,
+  Code,
+  LayerVersion,
+  Runtime,
+  StartingPosition,
+} from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource, SqsDlq, SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
@@ -22,11 +28,15 @@ import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53
 import { ApiGatewayv2DomainProperties, CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
 import {
   AllowedMethods,
+  CacheCookieBehavior,
+  CacheHeaderBehavior,
   CachePolicy,
+  CacheQueryStringBehavior,
   Distribution,
   OriginProtocolPolicy,
   OriginRequestPolicy,
   PriceClass,
+  ResponseHeadersPolicy,
   ViewerProtocolPolicy,
 } from 'aws-cdk-lib/aws-cloudfront';
 import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -35,12 +45,29 @@ import type { IUserPool } from 'aws-cdk-lib/aws-cognito';
 import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createRequire } from 'node:module';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const backend = join(here, '..', '..', 'memorysmith-backend');
+
+/**
+ * The browser the renderer of prints carries (#263): the compressed Chromium
+ * of `@sparticuz/chromium`, as the portability service depends on it — the
+ * version the lockfile pins, built for x86_64 and for the Amazon Linux of the
+ * runtime. It is a layer, because esbuild bundles code and not a binary.
+ */
+const chromiumBinaries = join(
+  dirname(
+    createRequire(join(backend, 'services', 'portability', 'package.json')).resolve(
+      '@sparticuz/chromium',
+    ),
+  ),
+  '..',
+  'bin',
+);
 
 /**
  * Where the connector proxy records which connector a token belongs to
@@ -67,6 +94,9 @@ export interface ApiStackProps extends StackProps {
   /** The host the parts of an upload are sent to, and its certificate (#241). */
   readonly uploadsDomainName: string;
   readonly uploadsCertificate: ICertificate;
+  /** The host a kept file and an export are read from, and its certificate (#255). */
+  readonly filesDomainName: string;
+  readonly filesCertificate: ICertificate;
   readonly cognitoIssuer: string;
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
@@ -109,6 +139,23 @@ export class ApiStack extends Stack {
       deadLetterQueue: { queue: transferDlq, maxReceiveCount: 3 },
     });
 
+    /**
+     * Where a print is handed to its renderer (#263, RN-PRT-031). Starting a
+     * browser and drawing a note does not fit in the 29 seconds of the API
+     * either. A message is never retried: a person is waiting on it, and the
+     * renderer leaves the reason when it cannot make the file.
+     */
+    const printDlq = new Queue(this, 'PrintDeadLetter', {
+      queueName: physicalName(props.environment, 'mv-print-dlq'),
+      retentionPeriod: Duration.days(4),
+    });
+    const printQueue = new Queue(this, 'PrintQueue', {
+      queueName: physicalName(props.environment, 'mv-print'),
+      // Longer than the timeout of the renderer.
+      visibilityTimeout: Duration.minutes(3),
+      deadLetterQueue: { queue: printDlq, maxReceiveCount: 1 },
+    });
+
     const environment = {
       ACCESS_TABLE: props.data.accessTable.table.tableName,
       KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
@@ -119,11 +166,14 @@ export class ApiStack extends Stack {
       EVENT_BUS_NAME: props.data.eventBus.eventBusName,
       COGNITO_ISSUER: props.cognitoIssuer,
       TRANSFER_QUEUE_URL: transferQueue.queueUrl,
+      PRINT_QUEUE_URL: printQueue.queueUrl,
       CONNECTOR_CLIENT_ID: props.connectorClientId,
       USER_POOL_ID: props.userPool.userPoolId,
       WEB_CLIENT_ID: props.webClientId,
       // Where a signed part is answered, instead of the bucket's own name (#241).
       UPLOADS_ORIGIN: `https://${props.uploadsDomainName}`,
+      // Where a link to a kept file or an export is answered (#255).
+      FILES_ORIGIN: `https://${props.filesDomainName}`,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -154,6 +204,7 @@ export class ApiStack extends Stack {
     props.data.discoveryTable.table.grantReadWriteData(api.function);
     props.data.portabilityTable.table.grantReadWriteData(api.function);
     transferQueue.grantSendMessages(api.function);
+    printQueue.grantSendMessages(api.function);
     /**
      * Read and put, and deliberately NOT delete. `grantReadWrite` carries
      * `s3:DeleteObject*`, which includes deleting a version, and only ONE
@@ -218,6 +269,29 @@ export class ApiStack extends Stack {
     );
     props.data.knowledgeTable.table.grantReadWriteData(relay.function);
     props.data.eventBus.grantPutEventsTo(relay.function);
+
+    // The same relay over mv-access, whose outbox nothing drained until a
+    // share of a notebook had to reach the trail (RN-ACC-024). Access events
+    // move no counter, so it only reads the stream and publishes.
+    const accessRelay = new ServiceLambda(this, 'AccessOutboxRelay', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'access-relay.handler.ts'),
+      description: 'Drains the transactional outbox of Access into the event bus.',
+      environment: {
+        ACCESS_TABLE: props.data.accessTable.table.tableName,
+        EVENT_BUS_NAME: props.data.eventBus.eventBusName,
+      },
+      timeout: Duration.seconds(30),
+    });
+
+    accessRelay.function.addEventSource(
+      new DynamoEventSource(props.data.accessTable.table, {
+        startingPosition: StartingPosition.TRIM_HORIZON,
+        batchSize: 25,
+        retryAttempts: 3,
+        onFailure: new SqsDlq(relayDlq),
+      }),
+    );
+    props.data.eventBus.grantPutEventsTo(accessRelay.function);
 
     // The depth of the relay dead-letter queue is one of the four mandatory
     // alarms (section 17): a message sitting there is an event that never
@@ -407,6 +481,51 @@ export class ApiStack extends Stack {
       treatMissingData: TreatMissingData.NOT_BREACHING,
     });
 
+    // ---- The renderer of prints (#263) ---------------------------------------
+
+    const chromium = new LayerVersion(this, 'Chromium', {
+      code: Code.fromAsset(chromiumBinaries),
+      compatibleArchitectures: [Architecture.X86_64],
+      compatibleRuntimes: [Runtime.NODEJS_22_X],
+      description: 'The compressed Chromium the renderer of prints opens pages in.',
+    });
+
+    const printer = new ServiceLambda(this, 'PrintRenderer', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'print.handler.ts'),
+      description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
+      environment: {
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+        // The page is opened on the application, and reaches its API and the
+        // host its pictures are served on — and nothing else.
+        SITE_ORIGIN: props.frontendOrigin,
+        API_ORIGIN: `https://${props.apiDomainName}`,
+        FILES_ORIGIN: `https://${props.filesDomainName}`,
+        CHROMIUM_DIRECTORY: '/opt',
+      },
+      // The binary is built for x86_64 only, and it unpacks into /tmp.
+      architecture: Architecture.X86_64,
+      layers: [chromium],
+      memorySize: 2048,
+      ephemeralStorageSize: Size.mebibytes(1024),
+      timeout: Duration.minutes(2),
+    });
+    // One note at a time: a browser draws one page well, and a batch would
+    // make one long note hold up the others.
+    printer.function.addEventSource(new SqsEventSource(printQueue, { batchSize: 1 }));
+    // It writes the file, or the reason there is none, under `prints/` alone:
+    // it reads nothing of the bucket, and the page reads the note through the
+    // API, as the person who asked.
+    props.data.contentBucket.grantPut(printer.function, 's/*/prints/*');
+
+    new Alarm(this, 'PrintDeadLetterDepth', {
+      alarmDescription: 'Print renderer: messages in the dead-letter queue',
+      metric: printDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+    });
+
     // ---- The HTTP surface ---------------------------------------------------
 
     const domain = new DomainName(this, 'ApiDomain', {
@@ -489,5 +608,76 @@ export class ApiStack extends Stack {
       target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
     });
     this.uploadsOrigin = `https://${props.uploadsDomainName}`;
+
+    /**
+     * The host a kept file and an export are read from (#255, RN-KNW-050).
+     * The same arrangement as the uploads host, in the other direction: the
+     * API signs the GET for the bucket's own host and answers it on this one,
+     * and CloudFront hands S3 the very request it signed, so the link expires
+     * when it always did and an altered one is refused by S3 itself.
+     *
+     * It is a distribution of its own, with a certificate of its own, rather
+     * than a second name on the uploads one: a read allows only a read, and the
+     * headers it adds are for what a browser renders. `files.{zone}` is an
+     * origin apart from the product's, which is what keeps something somebody
+     * uploaded from ever running as the application; `nosniff` and a policy
+     * that sandboxes the document and allows no script make that hold by
+     * header too — an SVG opened in its own tab runs nothing, while a picture,
+     * a PDF and a recording still show where they are opened.
+     */
+    const filesHeaders = new ResponseHeadersPolicy(this, 'FilesHeaders', {
+      comment: `MemorySmith files (${props.environment.name})`,
+      securityHeadersBehavior: {
+        contentTypeOptions: { override: true },
+        contentSecurityPolicy: {
+          contentSecurityPolicy:
+            "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox",
+          override: true,
+        },
+      },
+    });
+    /**
+     * Why not `CachingDisabled`, as on the uploads host: under it CloudFront
+     * drops the `response-content-type` and `response-content-disposition`
+     * of the query before it reaches S3, while forwarding every other
+     * parameter, so S3 sees a request it never signed and answers
+     * `SignatureDoesNotMatch` — found on staging, where a plain signed GET
+     * passed and one naming its disposition did not. Those two are what make
+     * a PDF open where it is opened and save under its name where it is
+     * saved (RN-KNW-050), so they have to arrive. A query string travels
+     * whole when the cache policy names it, and naming it needs a TTL above
+     * zero; the default stays at zero and S3 sends no Cache-Control, so
+     * nothing is kept, and a link is its own key anyway.
+     */
+    const filesCache = new CachePolicy(this, 'FilesCache', {
+      comment: `MemorySmith files (${props.environment.name}): the whole signed query reaches S3`,
+      defaultTtl: Duration.seconds(0),
+      minTtl: Duration.seconds(0),
+      maxTtl: Duration.seconds(1),
+      queryStringBehavior: CacheQueryStringBehavior.all(),
+      headerBehavior: CacheHeaderBehavior.none(),
+      cookieBehavior: CacheCookieBehavior.none(),
+    });
+    const files = new Distribution(this, 'FilesDistribution', {
+      comment: `MemorySmith files (${props.environment.name})`,
+      domainNames: [props.filesDomainName],
+      certificate: props.filesCertificate,
+      priceClass: PriceClass.PRICE_CLASS_100,
+      defaultBehavior: {
+        origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
+          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+        }),
+        allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachePolicy: filesCache,
+        originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        responseHeadersPolicy: filesHeaders,
+        viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+      },
+    });
+    new ARecord(this, 'FilesRecord', {
+      zone: props.hostedZone,
+      recordName: props.filesDomainName,
+      target: RecordTarget.fromAlias(new CloudFrontTarget(files)),
+    });
   }
 }

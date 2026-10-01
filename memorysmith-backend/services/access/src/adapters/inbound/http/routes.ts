@@ -18,6 +18,7 @@ import {
   err,
   httpStatusFor,
   Instant,
+  NotebookId,
   SubscriptionContext,
   SubscriptionId,
   UserId,
@@ -51,8 +52,26 @@ import type {
   SetProfilePicture,
 } from '../../../application/account.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
+import type {
+  AnswerShare,
+  DismissRevokedShare,
+  DismissShareAnswer,
+  LeaveShare,
+  ListIncomingShares,
+  ListNotebookShares,
+  ListNotifications,
+  ListSubscriptionShares,
+  RevokeShare,
+  ShareNotebook,
+} from '../../../application/shares.js';
+import type { Share } from '../../../domain/share/Share.js';
 import {
   connectorBindingRequestSchema,
+  incomingShareSchema,
+  leaveShareRequestSchema,
+  notificationListSchema,
+  outgoingShareSchema,
+  shareNotebookRequestSchema,
   profileSchema,
   sessionSchema,
   subscriptionUsageSchema,
@@ -100,6 +119,34 @@ export interface AccessUseCases {
   readonly transferOwnership: (request: AccessRequest) => TransferOwnership;
   readonly connectorOfSession: (request: AccessRequest) => ConnectorOfSession;
   readonly subscriptionUsage: (request: AccessRequest) => SubscriptionUsageQuery;
+  // Sharing a notebook with a person of another subscription (RN-ACC-024 to RN-ACC-030).
+  readonly shareNotebook: (request: AccessRequest) => ShareNotebook;
+  readonly listNotebookShares: (request: AccessRequest) => ListNotebookShares;
+  readonly listSubscriptionShares: (request: AccessRequest) => ListSubscriptionShares;
+  readonly revokeShare: (request: AccessRequest) => RevokeShare;
+  readonly dismissShareAnswer: (request: AccessRequest) => DismissShareAnswer;
+  readonly listIncomingShares: (request: AccessRequest) => ListIncomingShares;
+  readonly answerShare: (request: AccessRequest) => AnswerShare;
+  readonly leaveShare: (request: AccessRequest) => LeaveShare;
+  readonly dismissRevokedShare: (request: AccessRequest) => DismissRevokedShare;
+  readonly listNotifications: (request: AccessRequest) => ListNotifications;
+}
+
+/** One line of the owner's Share dialog. */
+function outgoingOf(share: Share) {
+  return outgoingShareSchema.parse({
+    notebookId: share.notebookId.value,
+    granteeUserId: share.granteeUserId.value,
+    granteeEmail: share.granteeEmail.value,
+    access: share.access,
+    state: share.state,
+    sharedAt: share.sharedAt.toISOString(),
+    answeredAt: share.answeredAt?.toISOString() ?? null,
+  });
+}
+
+function notebookIdOf(raw: string): Result<NotebookId, DomainError> {
+  return NotebookId.create(raw);
 }
 
 type Variables = { access: AccessRequest };
@@ -442,6 +489,211 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
   });
 
   // ---- Platform ------------------------------------------------------------
+
+  // ---- Shares (RN-ACC-024 to RN-ACC-030) -------------------------------------
+  //
+  // The owner's routes are under the notebook, in the owner's own
+  // subscription; the grantee's are under /shared, keyed by the grantee's own
+  // identifier. No route names the subscription of the other side.
+
+  app.get('/shares', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const listed = await useCases
+      .listSubscriptionShares(request)
+      .execute({ context: context.value });
+    return respond(
+      c,
+      listed.ok ? { ok: true as const, value: listed.value.map(outgoingOf) } : listed,
+    );
+  });
+
+  app.get('/notebooks/:v/shares', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    const listed = await useCases
+      .listNotebookShares(request)
+      .execute({ context: context.value, notebookId: notebookId.value });
+    return respond(
+      c,
+      listed.ok ? { ok: true as const, value: listed.value.map(outgoingOf) } : listed,
+    );
+  });
+
+  app.post('/notebooks/:v/shares', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    const body = shareNotebookRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) {
+      return respond(c, err(DomainError.validation('A share takes an e-mail and an access')));
+    }
+    return respond(
+      c,
+      await useCases.shareNotebook(request).execute({
+        context: context.value,
+        ownerEmail: request.profile.email.value,
+        notebookId: notebookId.value,
+        email: body.data.email,
+        access: body.data.access,
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+    );
+  });
+
+  app.delete('/notebooks/:v/shares/:user', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    const grantee = UserId.create(c.req.param('user'));
+    if (!grantee.ok) return respond(c, grantee);
+    return respond(
+      c,
+      await useCases.revokeShare(request).execute({
+        context: context.value,
+        notebookId: notebookId.value,
+        grantee: grantee.value,
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+    );
+  });
+
+  app.post('/notebooks/:v/shares/:user/seen', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    const grantee = UserId.create(c.req.param('user'));
+    if (!grantee.ok) return respond(c, grantee);
+    return respond(
+      c,
+      await useCases.dismissShareAnswer(request).execute({
+        context: context.value,
+        notebookId: notebookId.value,
+        grantee: grantee.value,
+      }),
+    );
+  });
+
+  app.get('/shared', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const listed = await useCases
+      .listIncomingShares(request)
+      .execute({ user: request.profile.userId });
+    if (!listed.ok) return respond(c, listed);
+    return respond(c, {
+      ok: true as const,
+      value: listed.value.map(({ share, notebook }) =>
+        incomingShareSchema.parse({
+          notebookId: share.notebookId.value,
+          name: notebook.name,
+          description: notebook.description,
+          ownerEmail: share.ownerEmail.value,
+          access: share.access,
+          state: share.state,
+          sharedAt: share.sharedAt.toISOString(),
+          // A pending share shows its name and description and nothing else
+          // (RN-ACC-026).
+          noteCount: share.isOpen ? notebook.noteCount : null,
+          updatedAt: share.isOpen ? notebook.updatedAt : null,
+        }),
+      ),
+    });
+  });
+
+  for (const answer of ['accept', 'reject'] as const) {
+    app.post(`/shared/:v/${answer}`, async (c) => {
+      const request = c.get('access');
+      const context = requireContext(request);
+      if (!context.ok) return respond(c, context);
+      const notebookId = notebookIdOf(c.req.param('v'));
+      if (!notebookId.ok) return respond(c, notebookId);
+      return respond(
+        c,
+        await useCases.answerShare(request).execute({
+          user: request.profile.userId,
+          notebookId: notebookId.value,
+          accept: answer === 'accept',
+          by: Authorship.byHuman(request.profile.userId),
+        }),
+      );
+    });
+  }
+
+  app.post('/shared/:v/leave', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    const body = leaveShareRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) {
+      return respond(c, err(DomainError.validation('Say whether the owner is told: notifyOwner')));
+    }
+    return respond(
+      c,
+      await useCases.leaveShare(request).execute({
+        user: request.profile.userId,
+        notebookId: notebookId.value,
+        notifyOwner: body.data.notifyOwner,
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+    );
+  });
+
+  app.delete('/shared/:v', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    return respond(
+      c,
+      await useCases
+        .dismissRevokedShare(request)
+        .execute({ user: request.profile.userId, notebookId: notebookId.value }),
+    );
+  });
+
+  app.get('/notifications', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const listed = await useCases
+      .listNotifications(request)
+      .execute({ user: request.profile.userId, context: context.value });
+    if (!listed.ok) return respond(c, listed);
+    return respond(c, {
+      ok: true as const,
+      value: notificationListSchema.parse({
+        notifications: listed.value.map(({ kind, share, notebookName }) => {
+          const ownerSide = kind === 'accepted' || kind === 'rejected' || kind === 'left';
+          return {
+            kind,
+            notebookId: share.notebookId.value,
+            notebookName,
+            person: ownerSide ? share.granteeEmail.value : share.ownerEmail.value,
+            granteeUserId: ownerSide ? share.granteeUserId.value : null,
+            at: (kind === 'shared'
+              ? share.sharedAt
+              : (share.answeredAt ?? share.sharedAt)
+            ).toISOString(),
+          };
+        }),
+      }),
+    });
+  });
 
   app.get('/platform/subscriptions', async (c) => {
     const request = c.get('access');

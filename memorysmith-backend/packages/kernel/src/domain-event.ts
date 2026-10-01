@@ -51,6 +51,17 @@ export const ACCESS_EVENT_TYPES = [
   'MemberRemoved',
   'NotebookRoleLimitSet',
   'NotebookRoleLimitCleared',
+  /**
+   * The life of a share, the one door through the boundary of a subscription
+   * (RN-ACC-024 to RN-ACC-028). Each is recorded under the subscription that
+   * owns the notebook, about that notebook, because who could reach it is part
+   * of its life.
+   */
+  'NotebookShared',
+  'NotebookShareAccepted',
+  'NotebookShareRejected',
+  'NotebookShareRevoked',
+  'NotebookShareLeft',
 ] as const;
 
 export const KNOWLEDGE_EVENT_TYPES = [
@@ -74,6 +85,7 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',
+  'FolderNotesOrdered',
   'FolderMoved',
   'FolderReordered',
   'FolderRemoved',

@@ -9,7 +9,15 @@
 
 import { z } from 'zod';
 
-export const ulidSchema = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/, 'Not a ULID');
+/**
+ * An identifier, read in either case and carried in its canonical upper-case
+ * form: Crockford base32 is case-insensitive, and the web writes identifiers in
+ * lower case in its addresses (#247).
+ */
+export const ulidSchema = z
+  .string()
+  .regex(/^[0-9A-HJKMNP-TV-Z]{26}$/i, 'Not a ULID')
+  .transform((value) => value.toUpperCase());
 export const userIdSchema = z.string().min(1).max(128);
 export const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Not a slug');
 export const positionSchema = z.string().regex(/^[a-zA-Z][0-9A-Za-z]*$/, 'Not a position');

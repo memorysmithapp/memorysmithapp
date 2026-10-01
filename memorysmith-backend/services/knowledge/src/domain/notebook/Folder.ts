@@ -13,7 +13,7 @@
  */
 
 import type { Authorship, FolderId, Instant, Position, Slug } from '@memorysmith/kernel';
-import type { FolderDescription, FolderName } from '../values.js';
+import type { FolderDescription, FolderName, FolderNoteOrder } from '../values.js';
 
 export class Folder {
   private constructor(
@@ -23,6 +23,7 @@ export class Folder {
     private _slug: Slug,
     private _description: FolderDescription,
     private _position: Position,
+    private _noteOrder: FolderNoteOrder,
     readonly createdBy: Authorship,
     private _updatedAt: Instant,
   ) {}
@@ -34,6 +35,7 @@ export class Folder {
     slug: Slug;
     description: FolderDescription;
     position: Position;
+    noteOrder?: FolderNoteOrder;
     createdBy: Authorship;
   }): Folder {
     return new Folder(
@@ -43,6 +45,7 @@ export class Folder {
       input.slug,
       input.description,
       input.position,
+      input.noteOrder ?? 'manual',
       input.createdBy,
       input.createdBy.at,
     );
@@ -56,6 +59,8 @@ export class Folder {
     slug: Slug;
     description: FolderDescription;
     position: Position;
+    /** Absent on a folder written before folders declared it: `manual`. */
+    noteOrder?: FolderNoteOrder;
     createdBy: Authorship;
     updatedAt: Instant;
   }): Folder {
@@ -66,6 +71,7 @@ export class Folder {
       input.slug,
       input.description,
       input.position,
+      input.noteOrder ?? 'manual',
       input.createdBy,
       input.updatedAt,
     );
@@ -86,6 +92,10 @@ export class Folder {
   get position(): Position {
     return this._position;
   }
+  /** How its notes are ordered: by hand, or by name (RN-KNW-056). */
+  get noteOrder(): FolderNoteOrder {
+    return this._noteOrder;
+  }
   get updatedAt(): Instant {
     return this._updatedAt;
   }
@@ -105,6 +115,11 @@ export class Folder {
 
   describe(description: FolderDescription, at: Instant): void {
     this._description = description;
+    this._updatedAt = at;
+  }
+
+  orderNotes(noteOrder: FolderNoteOrder, at: Instant): void {
+    this._noteOrder = noteOrder;
     this._updatedAt = at;
   }
 

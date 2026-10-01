@@ -68,6 +68,14 @@ export const queryKeys = {
 
   /** Everything on its way in or out, which is one list for the whole account. */
   transfers: () => ['transfers'] as const,
+  /** Every share the owner made, which marks the owner's cards (#256). */
+  ownShares: () => ['own-shares'] as const,
+  /** The people one notebook is shared with, in its Share dialog. */
+  notebookShares: (notebookId: string) => ['notebook-shares', notebookId] as const,
+  /** The notebooks shared with the person, pending and accepted. */
+  incomingShares: () => ['incoming-shares'] as const,
+  /** What the notifications button lists (RN-ACC-029). */
+  notifications: () => ['notifications'] as const,
 } as const;
 
 type KeyFactory = (typeof queryKeys)[keyof typeof queryKeys];

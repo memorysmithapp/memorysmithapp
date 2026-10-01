@@ -14,6 +14,7 @@ import {
   STALLED_AFTER_MS,
   fileOf,
   isOpenUpload,
+  isWaitingRequest,
   isStalled,
   isWorking,
   lineOf,
@@ -142,5 +143,40 @@ describe('an upload of an agent (#240, RN-PRT-028, RN-PRT-029)', () => {
     expect(notebookUnavailable(transfer({ kind: 'import', notebookId: null }), new Set())).toBe(
       false,
     );
+  });
+});
+
+describe('a file an agent asked for (#253, RN-PRT-030)', () => {
+  const request = transfer({
+    kind: 'request',
+    status: 'running',
+    finishedAt: null,
+    fileName: 'quadro.jpg',
+    request: {
+      mimeType: 'image/jpeg',
+      description: '',
+      purpose: 'O quadro da reunião',
+      tags: [],
+      path: '',
+      platform: 'ChatGPT',
+      expectedSize: null,
+      expectedSha256: null,
+    },
+  });
+
+  it('waits on the person, and is no job a worker ends nor an upload with parts', () => {
+    expect(isWaitingRequest(request)).toBe(true);
+    expect(isWorking(request)).toBe(false);
+    expect(isOpenUpload(request)).toBe(false);
+    expect(isWaitingRequest(transfer({ kind: 'agent', status: 'running' }))).toBe(false);
+  });
+
+  it('says its notebook is unavailable as an upload does', () => {
+    expect(notebookUnavailable(request, new Set())).toBe(true);
+    expect(notebookUnavailable(request, new Set(['01JBQ2X0000000000000000002']))).toBe(false);
+  });
+
+  it('names what it is about in one line, as the other kinds do', () => {
+    expect(lineOf(request, say)).toBe('transfers.line.request(notebook=Normas e Legislacao)');
   });
 });

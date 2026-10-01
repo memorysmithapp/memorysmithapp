@@ -20,6 +20,7 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import {
   isOpenUpload,
+  isWaitingRequest,
   notebookUnavailable,
   saveArchive,
   useRefreshTransfers,
@@ -35,8 +36,9 @@ import {
   failureOf,
 } from './TransferParts';
 import { queryKeys } from '../../shared/api/query-keys';
+import { RequestFulfil } from './RequestFulfil';
 
-type Filter = 'all' | 'export' | 'import' | 'agent';
+type Filter = 'all' | 'request' | 'export' | 'import' | 'agent';
 
 /**
  * Transfers: every export and every import of whoever is signed in
@@ -58,6 +60,11 @@ type Filter = 'all' | 'export' | 'import' | 'agent';
  * It has no deadline, so it is here that a person sees what it reserves and
  * throws it away; and when its notebook is no longer one they see, it is here
  * that it is pointed at another (RN-PRT-029).
+ *
+ * A fourth came with #253: a file an agent asked the person for, because it
+ * could not send it (RN-PRT-030). It is the one kind that waits on the person,
+ * so it has the tab right after all of them, *Aguardando você*, and it is here
+ * that the person gives the file — chosen, dragged or pasted.
  */
 export function TransfersPage() {
   const { t, i18n } = useTranslation();
@@ -119,7 +126,7 @@ export function TransfersPage() {
         id="transfers"
         label={t('transfers.filter')}
         className="transfers-filters"
-        tabs={(['all', 'export', 'import', 'agent'] as const).map((each) => ({
+        tabs={(['all', 'request', 'export', 'import', 'agent'] as const).map((each) => ({
           key: each,
           label: t(`transfers.filters.${each}`),
           total: each === 'all' ? all.length : all.filter((row) => row.kind === each).length,
@@ -220,6 +227,7 @@ function TransferRow({
   }
 
   const readyExport = transfer.status === 'ready' && transfer.kind === 'export';
+  const request = isWaitingRequest(transfer);
   /**
    * Every transfer that ended can leave the list (#221): an export with its
    * bytes, and an import with its record alone, since it keeps no bytes and the
@@ -229,24 +237,31 @@ function TransferRow({
   const upload = transfer.kind === 'agent';
   /**
    * An upload is deleted whatever its state: deleting it is the only thing
-   * that ends one, since it has no deadline (RN-PRT-028).
+   * that ends one, since it has no deadline (RN-PRT-028). So is a request,
+   * which the person dismisses (RN-PRT-030).
    */
-  const deletable = ended || upload;
+  const deletable = ended || upload || request;
   const ask =
     transfer.kind === 'import'
       ? 'transfers.deleteImportAsk'
       : upload
         ? 'transfers.deleteUploadAsk'
-        : 'transfers.deleteAsk';
+        : request
+          ? 'transfers.deleteRequestAsk'
+          : 'transfers.deleteAsk';
   const consequence = readyExport
     ? t('transfers.deleteFrees', { size: size(transfer.bytes) })
-    : upload
-      ? isOpenUpload(transfer)
-        ? t('transfers.deleteUploadFrees', { size: size(transfer.bytes) })
-        : t('transfers.deleteFailedUpload')
-      : t(
-          transfer.kind === 'import' ? 'transfers.deleteImportKeeps' : 'transfers.deleteRecordOnly',
-        );
+    : request
+      ? t('transfers.deleteRequestKeeps', { name: transfer.fileName ?? '' })
+      : upload
+        ? isOpenUpload(transfer)
+          ? t('transfers.deleteUploadFrees', { size: size(transfer.bytes) })
+          : t('transfers.deleteFailedUpload')
+        : t(
+            transfer.kind === 'import'
+              ? 'transfers.deleteImportKeeps'
+              : 'transfers.deleteRecordOnly',
+          );
   /** Where the row says its notebook is unavailable, in the words of its kind. */
   const unavailableNote = !unavailable
     ? null
@@ -256,7 +271,10 @@ function TransferRow({
         ? t('transfers.importUnavailable')
         : isOpenUpload(transfer)
           ? t('transfers.uploadUnavailable')
-          : null;
+          : request
+            ? t('transfers.requestUnavailable')
+            : null;
+  const [giving, setGiving] = useState(false);
 
   return (
     <li className="transfers-row">
@@ -308,7 +326,18 @@ function TransferRow({
         )}
         {/* An upload whose notebook is unavailable finishes in another one,
             and nothing but the record moves (RN-PRT-029). */}
-        {isOpenUpload(transfer) && unavailable && !linking && !asking && (
+        {/* A request is fulfilled here, in the notebook it names, while that
+            notebook is one the person sees (RN-PRT-030). */}
+        {request && !unavailable && !giving && !asking && (
+          <button
+            type="button"
+            className="button is-primary is-small"
+            onClick={() => setGiving(true)}
+          >
+            {t('transfers.fulfil')}
+          </button>
+        )}
+        {(isOpenUpload(transfer) || request) && unavailable && !linking && !asking && (
           <button
             type="button"
             className="button is-quiet is-small"
@@ -326,10 +355,20 @@ function TransferRow({
             className="button is-danger is-small"
             onClick={() => setAsking(true)}
           >
-            {t('transfers.delete')}
+            {t(request ? 'transfers.dismiss' : 'transfers.delete')}
           </button>
         )}
       </div>
+
+      {giving && request && !unavailable && (
+        <RequestFulfil
+          transfer={transfer}
+          onKept={() => {
+            setGiving(false);
+            refresh();
+          }}
+        />
+      )}
 
       {unavailableNote && <p className="transfers-row-note">{unavailableNote}</p>}
       {failure && <p className="transfers-row-note is-failure">{failure}</p>}

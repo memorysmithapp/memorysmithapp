@@ -194,7 +194,9 @@ export function AboutPage() {
             </li>
           ))}
         </ol>
-        <p className="about-note">{t('about.files.editor')}</p>
+        <p className="about-note">
+          <Trans i18nKey="about.files.editor" components={{ b: <strong /> }} />
+        </p>
       </section>
 
       <section className="about-section">

@@ -257,6 +257,18 @@ export class InMemoryLinkGraph implements LinkGraph {
       .filter((link): link is PendingLink => link !== null);
   }
 
+  async unshownAttachments(notebookId: string): Promise<string[]> {
+    const state = this.notebook(notebookId);
+    const named = new Set<string>();
+    for (const [fromNoteId, links] of state.outgoing) {
+      if (!state.notes.has(fromNoteId)) continue;
+      for (const link of links) named.add(link.name.normalize('NFC'));
+    }
+    return (await this.attachmentsOf(notebookId)).filter(
+      (name) => !named.has(name.normalize('NFC')),
+    );
+  }
+
   async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {
     const linked = new Set(
       this.resolved(notebookId).edges.flatMap((edge) => [edge.fromNoteId, edge.toNoteId]),
