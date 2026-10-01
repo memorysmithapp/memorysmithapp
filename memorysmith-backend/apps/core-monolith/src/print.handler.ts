@@ -55,7 +55,16 @@ export async function handler(event: QueueEvent): Promise<void> {
       const rendered = await renderPrint(job, config);
       if (rendered.ok)
         await output.keep(job.subscriptionId, job.printId, rendered.pdf, rendered.name);
-      else await output.fail(job.subscriptionId, job.printId, rendered.failure);
+      else {
+        // Why there is no file, with what the page said on the way: the person
+        // is told the reason, and the log keeps how it came about.
+        console.warn('The print made no file', {
+          printId: job.printId,
+          failure: rendered.failure,
+          diagnostics: rendered.diagnostics,
+        });
+        await output.fail(job.subscriptionId, job.printId, rendered.failure);
+      }
     } catch (error) {
       console.error('The print could not be made', {
         printId: job.printId,

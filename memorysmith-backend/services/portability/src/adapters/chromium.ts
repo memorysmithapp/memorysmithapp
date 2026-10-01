@@ -16,7 +16,7 @@
  */
 
 import chromium from '@sparticuz/chromium';
-import puppeteer, { type Browser } from 'puppeteer-core';
+import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import type { PrintJob } from '../application/Prints.js';
 
 export interface RendererConfig {
@@ -30,7 +30,12 @@ export interface RendererConfig {
 
 export type Rendered =
   | { readonly ok: true; readonly pdf: Uint8Array; readonly name: string }
-  | { readonly ok: false; readonly failure: string };
+  | {
+      readonly ok: false;
+      readonly failure: string;
+      /** What the page said on the way, for the log of the function: never shown. */
+      readonly diagnostics: readonly string[];
+    };
 
 /** How long the page has to draw the note and lay its pages. */
 const DRAWING_MILLIS = 75_000;
@@ -79,10 +84,44 @@ async function browserOf(config: RendererConfig): Promise<Browser> {
   return browser;
 }
 
+/**
+ * How the page ended: its pages laid, or why not. A note the person may not
+ * read answers not found; a session the API refused sends the page to sign in,
+ * which is another origin and is refused, so the page leaves the application —
+ * either way the person has no session here.
+ */
+async function outcomeOf(page: Page, siteOrigin: string): Promise<string> {
+  const deadline = Date.now() + DRAWING_MILLIS;
+  while (Date.now() < deadline) {
+    if (!page.url().startsWith(siteOrigin)) return 'SESSION';
+    const seen = await page
+      .evaluate(() => {
+        const scope = globalThis as unknown as {
+          document: { querySelector(selector: string): object | null };
+          location: { pathname: string };
+        };
+        if (scope.document.querySelector('.print-preview[data-ready="true"]')) return 'ready';
+        if (scope.document.querySelector('p.status')) return 'NOT_FOUND';
+        if (scope.location.pathname.startsWith('/login')) return 'SESSION';
+        return null;
+      })
+      // A page in the middle of navigating answers nothing for a moment.
+      .catch(() => null);
+    if (seen) return seen;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return 'TIMED_OUT';
+}
+
 export async function renderPrint(job: PrintJob, config: RendererConfig): Promise<Rendered> {
   const allowed = new Set([config.siteOrigin, ...config.allowedOrigins]);
+  const diagnostics: string[] = [];
   const page = await (await browserOf(config)).newPage();
   try {
+    page.on('pageerror', (error) => diagnostics.push(`page error: ${String(error)}`.slice(0, 300)));
+    page.on('console', (message) => {
+      if (message.type() === 'error') diagnostics.push(`console: ${message.text()}`.slice(0, 300));
+    });
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const url = request.url();
@@ -94,6 +133,7 @@ export async function renderPrint(job: PrintJob, config: RendererConfig): Promis
         // Not an address at all: refused below.
       }
       if (allowed.has(origin)) return void request.continue();
+      diagnostics.push(`refused: ${origin || url.slice(0, 80)}`);
       void request.abort('blockedbyclient');
     });
     await page.evaluateOnNewDocument(
@@ -111,26 +151,8 @@ export async function renderPrint(job: PrintJob, config: RendererConfig): Promis
 
     const address = `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/notes/${job.noteId.toLowerCase()}/print`;
     await page.goto(address, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    // The pages laid, or the page saying there is nothing to lay: a note the
-    // person may not read answers not found, and a session the API refused
-    // sends the page to sign in.
-    const outcome = await page
-      .waitForFunction(
-        () => {
-          const scope = globalThis as unknown as {
-            document: { querySelector(selector: string): object | null };
-            location: { pathname: string };
-          };
-          if (scope.document.querySelector('.print-preview[data-ready="true"]')) return 'ready';
-          if (scope.document.querySelector('p.status')) return 'NOT_FOUND';
-          if (scope.location.pathname.startsWith('/login')) return 'SESSION';
-          return false;
-        },
-        { timeout: DRAWING_MILLIS, polling: 250 },
-      )
-      .then((handle) => handle.jsonValue() as Promise<string>)
-      .catch(() => 'TIMED_OUT');
-    if (outcome !== 'ready') return { ok: false, failure: outcome };
+    const outcome = await outcomeOf(page, config.siteOrigin);
+    if (outcome !== 'ready') return { ok: false, failure: outcome, diagnostics };
 
     const name = (await page.title()).trim() || 'note';
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });

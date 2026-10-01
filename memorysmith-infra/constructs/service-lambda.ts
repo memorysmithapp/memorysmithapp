@@ -18,6 +18,16 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { deploymentOf, deploymentVariables } from './deployment.js';
 
+/**
+ * What every bundle opens with: a `require` for the CommonJS a dependency
+ * still calls, in an ES module. The import is renamed because esbuild cannot
+ * see the banner — a dependency that imports `createRequire` itself at the top
+ * of the bundle (puppeteer does) declared it twice, and the function never
+ * started (#263).
+ */
+export const LAMBDA_BANNER =
+  "import{createRequire as __bannerCreateRequire}from'module';const require=__bannerCreateRequire(import.meta.url);";
+
 export interface ServiceLambdaProps {
   readonly entry: string;
   readonly description: string;
@@ -85,7 +95,7 @@ export class ServiceLambda extends Construct {
         // The SDK is bundled rather than taken from the runtime, so the
         // version the tests exercise is the version that runs.
         externalModules: [],
-        banner: "import{createRequire}from'module';const require=createRequire(import.meta.url);",
+        banner: LAMBDA_BANNER,
         ...props.bundling,
       },
     });
