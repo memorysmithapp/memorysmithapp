@@ -166,12 +166,21 @@
     "print": "Imprimir",
     "toolbar": "Impressão",
     "hint": "Para um PDF, escolha “Salvar como PDF” como destino da impressão.",
-    "properties": "Propriedades na impressão",
+    "properties": "Propriedades",
     "placement": {
-      "side": "Ao lado",
       "cover": "Folha de rosto",
       "end": "No final",
       "none": "Nenhuma"
+    },
+    "tables": "Tabelas largas",
+    "fit": {
+      "wrap": "Quebrar o texto",
+      "shrink": "Reduzir para caber"
+    },
+    "orientation": "Orientação",
+    "orient": {
+      "portrait": "Retrato",
+      "landscape": "Paisagem"
     }
   },
   "common": {

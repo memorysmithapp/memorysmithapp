@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
@@ -22,9 +22,15 @@ import {
 } from '../../shared/components/PropertyValue';
 import { Segmented } from '../../shared/components/Segmented';
 import {
+  orientation as recalledOrientation,
   propertyPlacement,
+  rememberOrientation,
   rememberPropertyPlacement,
+  rememberTableFit,
+  tableFit,
+  type Orientation,
   type PropertyPlacement,
+  type TableFit,
 } from '../../shared/store/print-layout';
 import { useNotebookId } from '../structure/route-ids';
 
@@ -38,8 +44,8 @@ import { useNotebookId } from '../structure/route-ids';
  * of them a second time, and every difference would be a defect.
  *
  * The page opens in a tab of its own, outside the frame of the application,
- * with a bar that is never printed: where the properties of the note go, and
- * the button that prints. The dialog is not opened by itself — the person
+ * with a bar that is never printed: where the properties of the note go, how a
+ * wide table fits, which way the sheet lies, and the button that prints. The dialog is not opened by itself — the person
  * chooses first — and the button waits until everything that arrives late has
  * arrived: the names and the files the body resolves against, a picture, a
  * transclusion, a diagram. Printing before that prints a page with holes.
@@ -56,6 +62,8 @@ export function PrintNotePage() {
   const sheet = useRef<HTMLElement>(null);
   const [drawn, setDrawn] = useState(false);
   const [placement, setPlacement] = useState<PropertyPlacement>(propertyPlacement);
+  const [fit, setFit] = useState<TableFit>(tableFit);
+  const [orientation, setOrientation] = useState<Orientation>(recalledOrientation);
 
   useEffect(() => {
     setPaper(true);
@@ -114,10 +122,14 @@ export function PrintNotePage() {
     };
   }, [ready, client]);
 
-  function choose(next: PropertyPlacement) {
-    setPlacement(next);
-    rememberPropertyPlacement(next);
-  }
+  /**
+   * A table that shrinks is measured on the sheet as the screen draws it, and
+   * the sheet is the width of the paper less its margins, in the type the paper
+   * is printed in, so what fits here fits there.
+   */
+  useLayoutEffect(() => {
+    fitTables(sheet.current, fit);
+  }, [fit, orientation, placement, drawn, note.data]);
 
   if (failed) return <p className="status">{t('common.notFound')}</p>;
 
@@ -138,19 +150,63 @@ export function PrintNotePage() {
 
   return (
     <NotebookIdProvider notebookId={notebookId}>
-      <div className="print-page">
+      {/* The sheet the browser lays the page on. It is a rule of the page and
+          not of the stylesheet, because the person turns it. */}
+      <style>{`@page { size: A4 ${orientation}; margin: 18mm 16mm 20mm; }`}</style>
+      <div className="print-page" data-orientation={orientation}>
         <div className="print-toolbar" role="toolbar" aria-label={t('print.toolbar')}>
-          <Segmented
-            label={t('print.properties')}
-            value={placement}
-            onChange={choose}
-            options={[
-              { value: 'side', label: t('print.placement.side') },
-              { value: 'cover', label: t('print.placement.cover') },
-              { value: 'end', label: t('print.placement.end') },
-              { value: 'none', label: t('print.placement.none') },
-            ]}
-          />
+          <div className="print-choice">
+            <span className="print-choice-label" aria-hidden="true">
+              {t('print.properties')}
+            </span>
+            <Segmented
+              label={t('print.properties')}
+              value={placement}
+              onChange={(next) => {
+                setPlacement(next);
+                rememberPropertyPlacement(next);
+              }}
+              options={[
+                { value: 'cover', label: t('print.placement.cover') },
+                { value: 'end', label: t('print.placement.end') },
+                { value: 'none', label: t('print.placement.none') },
+              ]}
+            />
+          </div>
+          <div className="print-choice">
+            <span className="print-choice-label" aria-hidden="true">
+              {t('print.tables')}
+            </span>
+            <Segmented
+              label={t('print.tables')}
+              value={fit}
+              onChange={(next) => {
+                setFit(next);
+                rememberTableFit(next);
+              }}
+              options={[
+                { value: 'wrap', label: t('print.fit.wrap') },
+                { value: 'shrink', label: t('print.fit.shrink') },
+              ]}
+            />
+          </div>
+          <div className="print-choice">
+            <span className="print-choice-label" aria-hidden="true">
+              {t('print.orientation')}
+            </span>
+            <Segmented
+              label={t('print.orientation')}
+              value={orientation}
+              onChange={(next) => {
+                setOrientation(next);
+                rememberOrientation(next);
+              }}
+              options={[
+                { value: 'portrait', label: t('print.orient.portrait') },
+                { value: 'landscape', label: t('print.orient.landscape') },
+              ]}
+            />
+          </div>
           <p className="print-hint">{t('print.hint')}</p>
           <button type="button" className="button is-quiet" onClick={() => window.close()}>
             {t('common.close')}
@@ -170,10 +226,10 @@ export function PrintNotePage() {
           </article>
         ) : (
           <>
-            {/* A cover is a sheet of its own: the name and the properties,
-                and the text starts on the next one. */}
+            {/* The properties take a sheet of their own, before the text or
+                after it, with the name of the note above them. */}
             {placement === 'cover' && box ? (
-              <article className="print-sheet print-cover content-pane">
+              <article className="print-sheet print-properties print-cover content-pane">
                 {title}
                 {box}
               </article>
@@ -182,11 +238,9 @@ export function PrintNotePage() {
               className="print-sheet content-pane"
               ref={sheet}
               data-placement={placement}
+              data-tables={fit}
               data-ready={drawn || undefined}
             >
-              {/* Floated before the name, so the name and the text run
-                  beside it in the top-right corner of the first page. */}
-              {placement === 'side' && box ? <aside className="print-side">{box}</aside> : null}
               {placement === 'cover' && box ? null : title}
               <WritableContent
                 raw={data.raw}
@@ -196,18 +250,49 @@ export function PrintNotePage() {
                 write={() => Promise.reject(new Error('A page drawn for paper writes nothing.'))}
                 invalidates={queryKeys.note(notebookId, noteId)}
               />
-              {placement === 'end' && box ? (
-                <section className="print-end">
-                  <h2>{t('note.properties')}</h2>
-                  {box}
-                </section>
-              ) : null}
             </article>
+            {placement === 'end' && box ? (
+              <article className="print-sheet print-properties print-end content-pane">
+                <h2>{name}</h2>
+                {box}
+              </article>
+            ) : null}
           </>
         )}
       </div>
     </NotebookIdProvider>
   );
+}
+
+/**
+ * How small a table may shrink before it wraps instead: below this the type
+ * stops being read, and a table that does not fit at it wraps its text.
+ */
+const SMALLEST_TABLE = 0.6;
+
+/**
+ * Fits every table of the sheet to its width. Wrapping is the stylesheet's
+ * (`data-tables="wrap"`); shrinking is measured, a table at a time, because
+ * only the drawn table knows how much wider than the sheet it is.
+ */
+function fitTables(root: HTMLElement | null, fit: TableFit): void {
+  if (!root) return;
+  for (const table of root.querySelectorAll<HTMLTableElement>('table')) {
+    table.style.fontSize = '';
+    table.classList.remove('is-wrapped');
+    if (fit !== 'shrink') continue;
+    const room = table.parentElement?.clientWidth ?? 0;
+    if (room <= 0 || table.scrollWidth <= room) continue;
+    // The type shrinks and the padding of the cells does not, so one
+    // measurement undershoots: measure again until it fits or reaches the floor.
+    let scale = 1;
+    for (let pass = 0; pass < 6 && table.scrollWidth > room; pass++) {
+      scale = Math.max(SMALLEST_TABLE, scale * (room / table.scrollWidth) * 0.98);
+      table.style.fontSize = `${Math.floor(scale * 100)}%`;
+      if (scale === SMALLEST_TABLE) break;
+    }
+    if (table.scrollWidth > room) table.classList.add('is-wrapped');
+  }
 }
 
 /** The properties of a note as the reading surface draws them, open and still. */

@@ -1,43 +1,81 @@
 /**
- * Where the properties of a note go on paper (#258), in this browser.
+ * How a note is laid on paper (#258), in this browser.
  *
- * Four answers, because a note is printed for different readers: a **side**
- * box in the top-right corner of the first page, which is the closest to what
- * the screen shows without spending a sheet and is therefore the default; a
- * **cover** page of their own, the text starting on the next sheet; the
- * **end**, after the text; or **none**.
+ * Three choices, each made in the bar of the page drawn for paper:
  *
- * It is a convenience of the device, like the way Home was left, so it lives
- * in `localStorage` and never in the product. Everything is inside a
- * try/catch: a browser that keeps nothing prints with the default.
+ * - **Where the properties go**: a **cover** page of their own, the text
+ *   starting on the next sheet, which is the default; a page at the **end**,
+ *   after the text; or **none**. A box beside the text was offered first and
+ *   removed, because on paper it ran past the edge of the page.
+ * - **How a wide table fits**: its text **wraps** inside its cells, which is
+ *   the default, or the table **shrinks** until it fits.
+ * - **The orientation** of the A4 sheet: **portrait** by default, or
+ *   **landscape**.
+ *
+ * They are a convenience of the device, like the way Home was left, so they
+ * live in `localStorage` and never in the product. Everything is inside a
+ * try/catch: a browser that keeps nothing prints with the defaults.
  */
 
-export const PROPERTY_PLACEMENTS = ['side', 'cover', 'end', 'none'] as const;
+export const PROPERTY_PLACEMENTS = ['cover', 'end', 'none'] as const;
 export type PropertyPlacement = (typeof PROPERTY_PLACEMENTS)[number];
 
-const KEY = 'memorysmith.printProperties';
-const DEFAULT: PropertyPlacement = 'side';
+export const TABLE_FITS = ['wrap', 'shrink'] as const;
+export type TableFit = (typeof TABLE_FITS)[number];
 
-function isPlacement(value: unknown): value is PropertyPlacement {
-  return (PROPERTY_PLACEMENTS as readonly unknown[]).includes(value);
+export const ORIENTATIONS = ['portrait', 'landscape'] as const;
+export type Orientation = (typeof ORIENTATIONS)[number];
+
+interface Choice<V extends string> {
+  readonly key: string;
+  readonly values: readonly V[];
+  readonly fallback: V;
 }
 
-/** Where the properties went the last time a note was printed here. */
-export function propertyPlacement(): PropertyPlacement {
+const PLACEMENT: Choice<PropertyPlacement> = {
+  key: 'memorysmith.printProperties',
+  values: PROPERTY_PLACEMENTS,
+  fallback: 'cover',
+};
+const TABLES: Choice<TableFit> = {
+  key: 'memorysmith.printTables',
+  values: TABLE_FITS,
+  fallback: 'wrap',
+};
+const ORIENTATION: Choice<Orientation> = {
+  key: 'memorysmith.printOrientation',
+  values: ORIENTATIONS,
+  fallback: 'portrait',
+};
+
+function recalled<V extends string>(choice: Choice<V>): V {
   try {
-    const stored = localStorage.getItem(KEY);
-    return isPlacement(stored) ? stored : DEFAULT;
+    const stored = localStorage.getItem(choice.key);
+    // A value no longer offered — `side`, before it was removed — is the default.
+    return (choice.values as readonly (string | null)[]).includes(stored)
+      ? (stored as V)
+      : choice.fallback;
   } catch {
-    return DEFAULT;
+    return choice.fallback;
   }
 }
 
-/** Remembers the choice. The default is the absence of the entry. */
-export function rememberPropertyPlacement(placement: PropertyPlacement): void {
+/** The default is the absence of the entry. */
+function remembered<V extends string>(choice: Choice<V>, value: V): void {
   try {
-    if (placement === DEFAULT) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, placement);
+    if (value === choice.fallback) localStorage.removeItem(choice.key);
+    else localStorage.setItem(choice.key, value);
   } catch {
     // Storage refused or full: the next print starts on the default, nothing else.
   }
 }
+
+export const propertyPlacement = (): PropertyPlacement => recalled(PLACEMENT);
+export const rememberPropertyPlacement = (value: PropertyPlacement): void =>
+  remembered(PLACEMENT, value);
+
+export const tableFit = (): TableFit => recalled(TABLES);
+export const rememberTableFit = (value: TableFit): void => remembered(TABLES, value);
+
+export const orientation = (): Orientation => recalled(ORIENTATION);
+export const rememberOrientation = (value: Orientation): void => remembered(ORIENTATION, value);

@@ -166,12 +166,21 @@
     "print": "Print",
     "toolbar": "Printing",
     "hint": "For a PDF, choose “Save as PDF” as the destination of the print.",
-    "properties": "Properties on paper",
+    "properties": "Properties",
     "placement": {
-      "side": "Beside",
       "cover": "Cover page",
       "end": "At the end",
       "none": "None"
+    },
+    "tables": "Wide tables",
+    "fit": {
+      "wrap": "Wrap the text",
+      "shrink": "Shrink to fit"
+    },
+    "orientation": "Orientation",
+    "orient": {
+      "portrait": "Portrait",
+      "landscape": "Landscape"
     }
   },
   "common": {
