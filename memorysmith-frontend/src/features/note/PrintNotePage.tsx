@@ -273,25 +273,31 @@ const SMALLEST_TABLE = 0.6;
 /**
  * Fits every table of the sheet to its width. Wrapping is the stylesheet's
  * (`data-tables="wrap"`); shrinking is measured, a table at a time, because
- * only the drawn table knows how much wider than the sheet it is.
+ * only the drawn table knows how much wider than the sheet it is. Whatever is
+ * still wider than the sheet after either breaks inside its words, which is
+ * the last resort: it is what split "Kind" into three lines when it was the
+ * first.
  */
 function fitTables(root: HTMLElement | null, fit: TableFit): void {
   if (!root) return;
   for (const table of root.querySelectorAll<HTMLTableElement>('table')) {
     table.style.fontSize = '';
-    table.classList.remove('is-wrapped');
-    if (fit !== 'shrink') continue;
+    table.classList.remove('is-wrapped', 'is-broken');
     const room = table.parentElement?.clientWidth ?? 0;
-    if (room <= 0 || table.scrollWidth <= room) continue;
-    // The type shrinks and the padding of the cells does not, so one
-    // measurement undershoots: measure again until it fits or reaches the floor.
-    let scale = 1;
-    for (let pass = 0; pass < 6 && table.scrollWidth > room; pass++) {
-      scale = Math.max(SMALLEST_TABLE, scale * (room / table.scrollWidth) * 0.98);
-      table.style.fontSize = `${Math.floor(scale * 100)}%`;
-      if (scale === SMALLEST_TABLE) break;
+    if (room <= 0) continue;
+    const fits = () => table.scrollWidth <= room;
+    if (fit === 'shrink' && !fits()) {
+      // The type shrinks and the padding of the cells does not, so one
+      // measurement undershoots: measure again until it fits or reaches the floor.
+      let scale = 1;
+      for (let pass = 0; pass < 6 && !fits(); pass++) {
+        scale = Math.max(SMALLEST_TABLE, scale * (room / table.scrollWidth) * 0.98);
+        table.style.fontSize = `${Math.floor(scale * 100)}%`;
+        if (scale === SMALLEST_TABLE) break;
+      }
+      if (!fits()) table.classList.add('is-wrapped');
     }
-    if (table.scrollWidth > room) table.classList.add('is-wrapped');
+    if (!fits()) table.classList.add('is-broken');
   }
 }
 

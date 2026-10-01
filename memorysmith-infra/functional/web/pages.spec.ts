@@ -739,6 +739,26 @@ test.describe('the pages of an account', () => {
     // A wide table wraps inside the margins, and the paper is upright A4,
     // 595.28 by 841.89 points as Chromium rounds them (594.96 by 841.92).
     expect((await measure()).fits).toBe(true);
+    // A short word is never split to narrow its column: only what has no place
+    // to break does. And the button that copies a block is not on the paper.
+    const lines = await paper.evaluate(() => {
+      type Range = { selectNodeContents(node: object): void; getClientRects(): { length: number } };
+      const scope = globalThis as unknown as {
+        document: {
+          querySelectorAll(selector: string): Iterable<{ textContent: string | null }>;
+          createRange(): Range;
+        };
+      };
+      const kind = [...scope.document.querySelectorAll('.print-sheet[data-placement] th')].find(
+        (cell) => cell.textContent?.trim() === 'Kind',
+      );
+      if (!kind) return -1;
+      const range = scope.document.createRange();
+      range.selectNodeContents(kind);
+      return range.getClientRects().length;
+    });
+    expect(lines).toBe(1);
+    await expect(body.locator('.copy-action')).toBeHidden();
     const upright = await pdfOf('portrait-cover-wrap');
     expect(upright.width).toBeCloseTo(595.28, 0);
     expect(upright.height).toBeCloseTo(841.89, 0);

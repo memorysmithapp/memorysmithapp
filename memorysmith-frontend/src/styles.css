@@ -6577,7 +6577,7 @@ body.has-sheet .app-main {
   text-decoration-thickness: 1px;
 }
 /* What is there for the screen and says nothing on paper. */
-.print-sheet :is(.remote-notice, .copy-button, .attachment-card-actions) {
+.print-sheet :is(.remote-notice, .copy-action, .attachment-card-actions) {
   display: none;
 }
 
@@ -6594,10 +6594,17 @@ body.has-sheet .app-main {
 }
 
 /* A wide table is never cut at the margin. It is a table again rather than
-   the scrolling block of the screen, and either its text wraps inside its
-   cells — a long word and a code span included — or its lines are kept and
-   the page shrinks its type until it fits (PrintNotePage, fitTables), and
-   wraps after all below the smallest type it allows. */
+   the scrolling block of the screen, and it fits in one of two ways, measured
+   by the page (PrintNotePage, fitTables):
+
+   - wrapping: the text of a cell wraps between words, and only what has no
+     place to break — a code span, a link — breaks inside itself, so a short
+     word such as "Kind" is never split to narrow its column;
+   - shrinking: the lines of the cells are kept and the type is reduced until
+     the table fits; at the smallest type it allows, it wraps as above.
+
+   Breaking every word anywhere (`is-broken`) is the last resort, for a table
+   still wider than the page after both. */
 .print-sheet .markdown table {
   display: table;
   overflow: visible;
@@ -6605,14 +6612,18 @@ body.has-sheet .app-main {
 .print-sheet[data-tables='wrap'] :is(th, td),
 .print-sheet .markdown table.is-wrapped :is(th, td) {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
-.print-sheet[data-tables='wrap'] table code,
-.print-sheet .markdown table.is-wrapped code {
+.print-sheet[data-tables='wrap'] :is(th, td) :is(code, a),
+.print-sheet .markdown table.is-wrapped :is(th, td) :is(code, a) {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.print-sheet[data-tables='shrink'] .markdown table:not(.is-wrapped) :is(th, td) {
+.print-sheet .markdown table.is-broken :is(th, td) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.print-sheet[data-tables='shrink'] .markdown table:not(.is-wrapped, .is-broken) :is(th, td) {
   white-space: nowrap;
 }
 
