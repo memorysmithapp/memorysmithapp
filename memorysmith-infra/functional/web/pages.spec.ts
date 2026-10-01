@@ -323,6 +323,39 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
   });
 
+  test('[page:/notebooks/:notebookId] comes back to the note last read every time the notebook is entered, and answers its context from inside', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+    const last = app.locator('.notebook-bar .notebook-breadcrumb .crumb.is-last');
+    await expect(last).toHaveText(words.context);
+
+    await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
+    await app.locator('a.note-row', { hasText: 'Checklist' }).click();
+    await expect(last).toHaveText('Checklist');
+
+    // Out to Home and back in, inside the application: the defect this guards
+    // resumed only on the first arrival of the page session, and a notebook is
+    // shared, accepted and answered from Home, so every return landed on the
+    // context.
+    for (let round = 0; round < 2; round++) {
+      await app.locator('aside#notebook-sidebar a.back-link').click();
+      await expect(app).toHaveURL(`${state.surfaces.site}/`);
+      await app
+        .locator('article.notebook-card', { hasText: notebook.name })
+        .locator('a.notebook-open')
+        .click();
+      await expect(last).toHaveText('Checklist');
+    }
+
+    // From inside, the name of the notebook is a request for its context.
+    await app.locator('.notebook-bar .notebook-breadcrumb .crumb.is-notebook').click();
+    await expect(last).toHaveText(words.context);
+  });
+
   test('[page:/notebooks/:notebookId/folders] lists the folders of a notebook with what each keeps, under the Context', async ({
     app,
     notebook,

@@ -295,7 +295,12 @@ interface WebFixtures {
 
 type Scope = {
   location: { origin: string };
-  localStorage: { setItem(key: string, value: string): void; removeItem(key: string): void };
+  localStorage: {
+    readonly length: number;
+    key(index: number): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
+  };
 };
 
 /** Sets the locale of the interface before its first page loads, which is when it is read. */
@@ -306,7 +311,11 @@ export async function speak(page: Page, state: RunState, locale: AppLocale): Pro
       if (scope.location.origin !== site) return;
       scope.localStorage.setItem('memorysmith.locale', locale);
       // A remembered note would turn the page of a notebook into a redirect.
-      scope.localStorage.removeItem('memorysmith.lastNote');
+      // It is kept per person, under a key of its own for each.
+      for (let index = scope.localStorage.length - 1; index >= 0; index--) {
+        const key = scope.localStorage.key(index);
+        if (key?.startsWith('memorysmith.lastNote')) scope.localStorage.removeItem(key);
+      }
     },
     { site: state.surfaces.site, locale },
   );

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet } from 'react-router-dom';
@@ -16,6 +17,7 @@ import { SkeletonBar } from '../../shared/components/Skeleton';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useNotebookId } from './route-ids';
+import { leaveNotebook } from './ResumeReading';
 import { queryKeys } from '../../shared/api/query-keys';
 
 export interface NotebookOutletContext {
@@ -34,6 +36,10 @@ export function NotebookLayout() {
    * tree and the search box are never in the page twice.
    */
   const narrow = useMatchMedia(NARROW_NOTEBOOK);
+
+  // Leaving a notebook — for Home, for another notebook — makes coming back an
+  // arrival again, which resumes where the reading stopped (ResumeReading).
+  useEffect(() => () => leaveNotebook(notebookId), [notebookId]);
 
   const query = useQuery({
     queryKey: queryKeys.notebookStructure(notebookId),
