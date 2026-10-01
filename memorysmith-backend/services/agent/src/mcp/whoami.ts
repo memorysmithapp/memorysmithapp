@@ -14,7 +14,14 @@
  * which `catalogIsWellFormed` checks against the catalog itself.
  */
 
-import { READING_PATH, TOOL_CATALOG, type ToolDefinition } from './catalog.js';
+import {
+  CATALOG_VERSION,
+  READING_PATH,
+  TOOL_CATALOG,
+  toolSignature,
+  type ToolDefinition,
+} from './catalog.js';
+import { refreshSteps } from './refresh.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex } from './skills.js';
 import type { Deployment } from '@memorysmith/contracts';
 import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
@@ -59,6 +66,33 @@ function identity(caller: AgentCaller, connector: ConnectorIdentity | null): str
     '',
     'The subscription was fixed when consent was given, so no argument of any tool',
     'can move this connection to another one.',
+  ].join('\n');
+}
+
+/**
+ * Whether the list the client holds is the one this server serves (RN-AGT-047).
+ *
+ * A client keeps the list of tools it read and asks again only when the person
+ * refreshes it, so a tool added, removed or given other arguments may be
+ * missing from what the agent sees, and only the agent can notice a tool it
+ * was never shown. Comparing is a step here and not a suggestion: a model
+ * rarely notices what is absent unless it is sent to look. The way to refresh
+ * is said by the server, chosen by the connector, because everything this text
+ * says is current even when the list is not.
+ */
+function list(connector: ConnectorIdentity | null): string {
+  return [
+    '## Your list of tools',
+    '',
+    `This server serves the catalogue \`${CATALOG_VERSION}\`: every tool, with its arguments,`,
+    'is under **Every tool** below. Compare it with the tools your client gave you. A tool',
+    'listed there that you do not have, one you have that is not listed, or arguments that',
+    'differ mean your client kept an older list. Tell the person, and ask them to refresh it:',
+    '',
+    ...refreshSteps(connector).map((step) => `- ${step}`),
+    '',
+    'Everything a tool answers is current — this text, every skill, every refusal — so the',
+    'list your client holds is the only thing that can be old.',
   ].join('\n');
 }
 
@@ -163,10 +197,12 @@ function skills(): string {
 function surface(): string {
   const reading = TOOL_CATALOG.filter((tool) => !writes(tool));
   const writing = TOOL_CATALOG.filter(writes);
-  const line = (tool: ToolDefinition): string => `- \`${tool.name}\` — ${tool.title}`;
+  const line = (tool: ToolDefinition): string => `- \`${toolSignature(tool)}\` — ${tool.title}`;
 
   return [
     '## Every tool',
+    '',
+    `Catalogue \`${CATALOG_VERSION}\`. An argument marked \`?\` may be left out.`,
     '',
     '**Reading**',
     ...reading.map(line),
@@ -188,6 +224,7 @@ export function whoAmI(
   return [
     where(deployment),
     identity(caller, connector),
+    list(connector),
     reach(notebooks),
     path(),
     skills(),

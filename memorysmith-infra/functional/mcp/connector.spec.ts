@@ -140,6 +140,25 @@ test.describe('the tools', () => {
     expect(where).toBeLessThan(answer.text.indexOf('## Who is acting'));
   });
 
+  test('[tool:whoami] lists every tool the server lists by its signature, and a tool it does not have says the list is old (#261)', async ({
+    agent,
+  }) => {
+    const answer = await callTool(agent, 'whoami');
+    expect(answer.text).toContain('## Your list of tools');
+    expect(answer.text).toMatch(/catalogue `[0-9a-f]{8}`/);
+    const { tools } = await agent.listTools();
+    for (const tool of tools) expect(answer.text).toContain(`\`${tool.name}(`);
+
+    // A client holding an older list calls what the server no longer serves.
+    const gone = await callTool(agent, 'read_notes_v0', { notebook: 'x' });
+    expect(gone.isError).toBe(true);
+    expect(gone.text).toContain('UNKNOWN_TOOL');
+    expect(gone.text).toContain('is older than the server');
+    const extra = await callTool(agent, 'list_notebooks', { owner: 'me' });
+    expect(extra.isError).toBe(true);
+    expect(extra.text).toContain('list_notebooks takes no argument "owner"');
+  });
+
   test('[tool:get_skill] teaches the method of a task by name, and lists the names when one is wrong', async ({
     agent,
   }) => {

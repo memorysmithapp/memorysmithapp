@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { READING_PATH, TOOL_CATALOG, catalogIsWellFormed } from '../src/mcp/catalog.js';
+import {
+  CATALOG_VERSION,
+  READING_PATH,
+  TOOL_CATALOG,
+  catalogIsWellFormed,
+  toolSignature,
+} from '../src/mcp/catalog.js';
+import { clientKind } from '../src/mcp/refresh.js';
 import { McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
@@ -436,7 +443,7 @@ describe('whoami answers who is acting and how to write here', () => {
       expect(answer).toContain(`${index + 1}. **\`${step}\`**`);
     }
     // And nothing in the catalog is left out of the surface it advertises.
-    for (const tool of TOOL_CATALOG) expect(answer).toContain(`\`${tool.name}\``);
+    for (const tool of TOOL_CATALOG) expect(answer).toContain(`\`${toolSignature(tool)}\``);
   });
 
   it('says the server does not validate content against guidance or template', async () => {
@@ -444,6 +451,103 @@ describe('whoami answers who is acting and how to write here', () => {
     // would trust a check that never runs.
     const result = await gateways().call('whoami', {}, caller);
     expect(result.content[0]?.text ?? '').toContain('does NOT validate');
+  });
+});
+
+describe('an agent working from a stale list of tools is told so (#261, RN-AGT-047)', () => {
+  const claude = {
+    clientId: 'https://claude.ai/oauth/mcp-oauth-client-metadata',
+    clientName: 'Claude',
+  };
+  const chatgpt = { clientId: 'https://chatgpt.com/oauth/client.json', clientName: 'ChatGPT' };
+
+  it('lists every tool by its signature, under the version of the catalogue', async () => {
+    const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('## Your list of tools');
+    expect(answer).toContain(`\`${CATALOG_VERSION}\``);
+    expect(answer).toContain('`update_note(notebook, note, content, baseRevision, message?)`');
+    expect(CATALOG_VERSION).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it('sends the agent to compare, and gives the step of its own client', async () => {
+    const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('Compare it with the tools your client gave you');
+    expect(answer).toContain('Atualizar lista de ferramentas');
+    expect(answer).not.toContain('Atualizar ferramentas*');
+  });
+
+  it('gives the step of ChatGPT to ChatGPT, and both to a connector it does not know', async () => {
+    const asChatgpt = gateways({ access: { connector: async () => chatgpt } });
+    const answer = (await asChatgpt.call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('Plugins → MemorySmith.app');
+    expect(answer).not.toContain('Atualizar lista de ferramentas');
+
+    const unknown = gateways({ access: { connector: async () => null } });
+    const both = (await unknown.call('whoami', {}, caller)).content[0]?.text ?? '';
+    expect(both).toContain('Atualizar lista de ferramentas');
+    expect(both).toContain('Atualizar ferramentas');
+  });
+
+  it('tells the client apart by its identifier, and then by its name', () => {
+    expect(clientKind(claude)).toBe('claude');
+    expect(clientKind(chatgpt)).toBe('chatgpt');
+    expect(clientKind({ clientId: 'https://example.org/c', clientName: 'ChatGPT Desktop' })).toBe(
+      'chatgpt',
+    );
+    expect(clientKind({ clientId: 'https://example.org/c', clientName: 'Cursor' })).toBe('other');
+    expect(clientKind(null)).toBe('other');
+  });
+
+  it('answers a tool the catalogue does not have as a list that is older than the server', async () => {
+    const result = await gateways().call('read_notes_v0', {}, caller);
+    expect(result.isError).toBe(true);
+    const answer = result.content[0]?.text ?? '';
+    expect(answer).toContain('UNKNOWN_TOOL: there is no tool named "read_notes_v0"');
+    expect(answer).toContain('is older than the server');
+    expect(answer).toContain('Atualizar lista de ferramentas');
+  });
+
+  it('refuses an argument the tool does not take, doing nothing, with its signature', async () => {
+    let written = false;
+    const adapter = gateways({
+      knowledge: {
+        createNote: async () => {
+          written = true;
+          return {};
+        },
+      },
+    });
+    const result = await adapter.call(
+      'create_note',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        folder: '01JBQ2X00000000000000000F1',
+        content: '---\nname: X\n---\n',
+        path: 'decisions/x.md',
+      },
+      caller,
+    );
+    expect(written).toBe(false);
+    expect(result.isError).toBe(true);
+    const answer = result.content[0]?.text ?? '';
+    expect(answer).toContain('create_note takes no argument "path"');
+    expect(answer).toContain(
+      `\`${toolSignature(TOOL_CATALOG.find((t) => t.name === 'create_note')!)}\``,
+    );
+    expect(answer).toContain('is older than the server');
+  });
+
+  it('gives both steps when the connector cannot be read, and still refuses', async () => {
+    const adapter = gateways({
+      access: {
+        connector: async () => {
+          throw new Error('Access is down');
+        },
+      },
+    });
+    const answer = (await adapter.call('gone_tool', {}, caller)).content[0]?.text ?? '';
+    expect(answer).toContain('Atualizar lista de ferramentas');
+    expect(answer).toContain('Atualizar ferramentas');
   });
 });
 

@@ -18,7 +18,8 @@ import {
   type TransferDto,
   type UploadStatusDto,
 } from '@memorysmith/contracts';
-import { TOOL_CATALOG } from './catalog.js';
+import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
+import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillNamed } from './skills.js';
@@ -297,6 +298,8 @@ export class McpToolAdapter {
     args: Record<string, unknown>,
     caller: AgentCaller,
   ): Promise<ToolResult> {
+    const outOfCatalogue = this.outOfCatalogue(name, args);
+    if (outOfCatalogue) return text(await this.staleList(outOfCatalogue, caller), true);
     try {
       return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
     } catch (error) {
@@ -309,6 +312,50 @@ export class McpToolAdapter {
       }
       throw error;
     }
+  }
+
+  /**
+   * A call the catalogue does not answer, told as what it most likely is: a
+   * list the client kept from an older catalogue (RN-AGT-047). A tool that is
+   * not there, an argument the tool does not take and one it requires and did
+   * not get are the three a stale list produces, and each says the signature
+   * this server serves rather than refusing bare. Null when the call fits.
+   */
+  private outOfCatalogue(name: string, args: Record<string, unknown>): string | null {
+    const tool = TOOL_CATALOG.find((each) => each.name === name);
+    if (!tool) {
+      return (
+        `UNKNOWN_TOOL: there is no tool named "${name}" in the catalogue this server serves, ` +
+        `\`${CATALOG_VERSION}\`. whoami lists every tool it has, with its arguments.`
+      );
+    }
+    const { names, required } = argumentsOf(tool);
+    const unknown = Object.keys(args).filter((key) => !names.includes(key));
+    const missing = [...required].filter((key) => args[key] === undefined);
+    if (unknown.length === 0 && missing.length === 0) return null;
+    return [
+      `VALIDATION: ${name} was called with arguments that do not fit it as this server serves it.`,
+      ...missing.map((key) => `${name} requires the argument "${key}".`),
+      ...unknown.map((key) => `${name} takes no argument "${key}".`),
+      `Nothing was done. The tool is \`${toolSignature(tool)}\`, in the catalogue \`${CATALOG_VERSION}\`.`,
+    ].join(' ');
+  }
+
+  /**
+   * The refusal, and the way out of the one cause the agent cannot fix by
+   * itself. The connector is read only here, on a refusal, so a call that fits
+   * costs nothing more; failing to read it gives the steps of both clients.
+   */
+  private async staleList(refusal: string, caller: AgentCaller): Promise<string> {
+    const connector = await this.gateways.access.connector(caller).catch(() => null);
+    return [
+      refusal,
+      '',
+      'If the list of tools your client gave you shows this tool or these arguments, that list',
+      'is older than the server. Tell the person, and ask them to refresh it:',
+      '',
+      ...refreshSteps(connector).map((step) => `- ${step}`),
+    ].join('\n');
   }
 
   private async dispatch(

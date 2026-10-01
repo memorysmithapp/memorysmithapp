@@ -15,6 +15,7 @@
  *    stays that way as the surface grows.
  */
 
+import { createHash } from 'node:crypto';
 import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL } from './skills.js';
 
 export interface ToolDefinition {
@@ -928,6 +929,42 @@ function writesInANotebook(tool: ToolDefinition): boolean {
 export const TOOL_CATALOG: readonly ToolDefinition[] = DEFINITIONS.map((tool) =>
   writesInANotebook(tool) ? { ...tool, description: tool.description + SHARED_REFUSAL } : tool,
 );
+
+/** The arguments a tool declares, in the order it declares them, and the required ones. */
+export function argumentsOf(tool: ToolDefinition): { names: string[]; required: Set<string> } {
+  const properties = tool.inputSchema['properties'];
+  const required = tool.inputSchema['required'];
+  return {
+    names: typeof properties === 'object' && properties !== null ? Object.keys(properties) : [],
+    required: new Set(Array.isArray(required) ? required.map(String) : []),
+  };
+}
+
+/**
+ * A tool as a model compares it against its own list (RN-AGT-047):
+ * `update_note(notebook, note, content, baseRevision, message?)`, an optional
+ * argument marked by `?`. A whole schema per tool would cost every `whoami`
+ * thousands of tokens, and a hash is something a model cannot compute over the
+ * list it holds.
+ */
+export function toolSignature(tool: ToolDefinition): string {
+  const { names, required } = argumentsOf(tool);
+  return `${tool.name}(${names.map((name) => (required.has(name) ? name : `${name}?`)).join(', ')})`;
+}
+
+/**
+ * The version of the catalogue: a short hash of the name, the description and
+ * the arguments of every tool, so it changes with anything a client keeps of
+ * the list, and with nothing else.
+ */
+export const CATALOG_VERSION = createHash('sha256')
+  .update(
+    JSON.stringify(
+      TOOL_CATALOG.map(({ name, description, inputSchema }) => [name, description, inputSchema]),
+    ),
+  )
+  .digest('hex')
+  .slice(0, 8);
 
 /**
  * The reading path this product is built around, as tool names.

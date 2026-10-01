@@ -862,8 +862,9 @@ Three things of the client an agent runs in decide whether the bytes can go at
 all, and none of them announces itself:
 
 - **A tool \`whoami\` lists and your client does not show**: the client kept
-  the list it read when the connector was added. Ask the person to reconnect
-  the connector, and continue in the same conversation.
+  the list it read before. \`whoami\` says how the person refreshes it in the
+  client you run in; the refreshed list reaches a new conversation, where the
+  upload is found again as below.
 - **A PUT refused by your own environment** — a proxy answering
   \`host_not_allowed\`, a connection refused — means your code has no network,
   or not to that host. The answer of \`begin_file_upload\` names the host the
