@@ -335,7 +335,9 @@ test.describe('the pages of an account', () => {
 
     await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
     await app.locator('a.note-row', { hasText: 'Checklist' }).click();
-    await expect(last).toHaveText('Checklist');
+    // The trail of a note ends at its folder, so the address says which it is.
+    const checklist = new RegExp(`/notes/${notebook.noteId}$`, 'i');
+    await expect(app).toHaveURL(checklist);
 
     // Out to Home and back in, inside the application: the defect this guards
     // resumed only on the first arrival of the page session, and a notebook is
@@ -348,7 +350,7 @@ test.describe('the pages of an account', () => {
         .locator('article.notebook-card', { hasText: notebook.name })
         .locator('a.notebook-open')
         .click();
-      await expect(last).toHaveText('Checklist');
+      await expect(app).toHaveURL(checklist);
     }
 
     // From inside, the name of the notebook is a request for its context.
