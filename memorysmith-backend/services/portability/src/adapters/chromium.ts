@@ -21,7 +21,7 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import type { PrintJob } from '../application/Prints.js';
-import { clipOf, PREVIEW_WIDTH, type PreviewJob } from '../application/Previews.js';
+import { clipOf, type PreviewJob } from '../application/Previews.js';
 
 export interface RendererConfig {
   /** The origin the application is served from, the only one the page is opened on. */
@@ -225,6 +225,13 @@ export type Previewed =
     }
   | { readonly ok: false; readonly failure: string; readonly diagnostics: readonly string[] };
 
+/**
+ * Wider than the widest phone layout of the application, 860 pixels, so the
+ * preview is laid by the rules of a computer, where a person reads a note at
+ * this width.
+ */
+const PREVIEW_VIEWPORT_WIDTH = 1280;
+
 /** The element the preview page draws into, marked once what arrives late has arrived. */
 const PREVIEW_READY = '.note-preview[data-ready="true"]';
 
@@ -239,8 +246,10 @@ export async function renderPreview(
   draft: string | null,
   config: RendererConfig,
 ): Promise<Previewed> {
+  // The window is a computer's, so the page is laid as a computer reads it;
+  // what is captured is the element, as wide as the reading.
   const { page, diagnostics } = await openAs(config, previewStorageOf(job, draft), {
-    width: PREVIEW_WIDTH,
+    width: PREVIEW_VIEWPORT_WIDTH,
     height: 1000,
   });
   try {

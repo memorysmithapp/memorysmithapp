@@ -6888,3 +6888,25 @@ body.has-sheet .app-main {
     box-shadow: none;
   }
 }
+
+/* ── A note drawn for an agent to see (#260) ──────────────────────────────────
+   The renderer of the server opens this page at a viewport as wide as the
+   reading and captures `.note-preview`, so the element is exactly that wide —
+   700px of text and the margins of the pane — and lies at the top left of the
+   document, over the rows of the window: as tall as what it draws, never cut
+   by a row that scrolls, and over the banner of the environment, which is
+   nothing an agent should read as part of a note. */
+.preview-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 760px;
+  background: var(--bg);
+}
+.note-preview.content-pane {
+  width: 760px;
+  max-width: none;
+  margin: 0;
+  padding: 24px 30px 32px;
+}

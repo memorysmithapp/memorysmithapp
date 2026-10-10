@@ -45,6 +45,8 @@ describe('the pages of the interface', () => {
       // Outside the frame of the application, drawn as the sign-in (#214).
       '/profile/password',
       '/notebooks/:notebookId/notes/:noteId/print',
+      // Opened by the renderer of the server, never from the interface (#260).
+      '/notebooks/:notebookId/preview',
       '/',
       '/about',
       '/profile',

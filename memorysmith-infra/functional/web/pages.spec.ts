@@ -1009,6 +1009,64 @@ test.describe('the pages of an account', () => {
     expect(download.suggestedFilename()).toBe('On paper.pdf');
   });
 
+  test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
+    app,
+    notebook,
+  }, testInfo) => {
+    // What the renderer of the server leaves in the storage before it opens
+    // the page: a draft, the folder it would be written in, and a part. The
+    // reader chose the dark theme, which an image for an agent never wears.
+    const draft =
+      '---\nname: Plan limits\nstatus: draft\n---\n\nWhat each plan holds.\n\n## Limits\n\n' +
+      '> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n' +
+      '## Elsewhere\n\nNot part of the limits.\n';
+    const ask = async (part: string | null) => {
+      await app.addInitScript(
+        ([content, folderId, wanted]) => {
+          localStorage.setItem(
+            'memorysmith.preferences',
+            JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+          );
+          localStorage.setItem(
+            'memorysmith.preview',
+            JSON.stringify({ noteId: null, content, folderId, part: wanted }),
+          );
+        },
+        [draft, notebook.folderId, part] as const,
+      );
+      await app.goto(notebook.page('/preview'));
+    };
+
+    await ask(null);
+    const drawn = app.locator('.note-preview[data-ready="true"]');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(drawn.locator('h1')).toHaveText('Plan limits');
+    await expect(drawn.locator('.callout table')).toBeVisible();
+    // Exactly the reading width, from the top left of the page, which is the
+    // rectangle the renderer cuts the image from.
+    const box = await drawn.boundingBox();
+    expect(box).toMatchObject({ x: 0, y: 0, width: 760 });
+    await testInfo.attach('draft.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+
+    await ask('#Limits');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(drawn.locator('.callout table')).toBeVisible();
+    await expect(drawn.locator('h1')).toHaveCount(0);
+    await expect(drawn).not.toContainText('Not part of the limits');
+    await testInfo.attach('part.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // A part the draft does not hold is said on the element the renderer reads.
+    await ask('#Nowhere');
+    await expect(app.locator('.note-preview[data-failure="PART_NOT_FOUND"]')).toBeVisible();
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId] draws the rules of a table inside a callout in the colour of the callout (#259)', async ({
     app,
     owner,

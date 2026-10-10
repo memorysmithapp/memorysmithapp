@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getNote,
   getNotebookFiles,
@@ -47,6 +47,7 @@ import {
   WrapTextIcon,
 } from '../../shared/components/icons';
 import { paginate, unpaginate } from './paginate';
+import { whenDrawn } from './drawn';
 
 /**
  * A note alone, drawn for paper (#258).
@@ -465,28 +466,4 @@ function PropertiesBox({
       </div>
     </div>
   );
-}
-
-/**
- * Resolves once what arrives after the text has arrived, or after ten seconds
- * — a picture that never loads may not keep the dialog from ever opening.
- *
- * Drawn means: no request in flight (a link to a file, a transcluded note),
- * every picture decoded or failed, no diagram still drawing, and the fonts in.
- * It has to hold twice in a row, because a request that ends can start the
- * next one — a transclusion arrives and asks for the picture it embeds.
- */
-async function whenDrawn(root: HTMLElement | null, client: QueryClient): Promise<void> {
-  const deadline = Date.now() + 10_000;
-  await document.fonts.ready;
-  let quiet = 0;
-  while (Date.now() < deadline) {
-    const settled =
-      client.isFetching() === 0 &&
-      !root?.querySelector('.mermaid-loading, .attachment-loading, .skeleton') &&
-      [...(root?.querySelectorAll('img') ?? [])].every((image) => image.complete);
-    quiet = settled ? quiet + 1 : 0;
-    if (quiet >= 2) return;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
 }

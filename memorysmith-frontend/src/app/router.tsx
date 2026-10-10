@@ -17,6 +17,7 @@ import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
+import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { RequireSession, RootLayout } from './RootLayout';
 
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
           // A note alone, drawn for paper, in a tab of its own (#258): outside
           // the frame of the application, because nothing of it is printed.
           { path: '/notebooks/:notebookId/notes/:noteId/print', element: <PrintNotePage /> },
+          // A note or a draft drawn for an agent to see, opened by the renderer
+          // of the server and never from the interface (#260): outside the
+          // frame of the application, at the reading width.
+          { path: '/notebooks/:notebookId/preview', element: <PreviewNotePage /> },
           {
             element: <AppShell />,
             children: [
