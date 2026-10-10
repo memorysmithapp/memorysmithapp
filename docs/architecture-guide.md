@@ -136,7 +136,7 @@ The target design is six deployables (D5). **0.1.0 ships as a modular monolith w
 | Events | EventBridge (the `mv-events` bus) and DynamoDB Streams for the outbox | |
 | Identity | An Amazon Cognito user pool with a *pre-token-generation* trigger | MCP client registration through a CIMD proxy (§13.3) |
 | Validation | Zod, at the edge and in the event contracts | Never inside the domain |
-| Observability | AWS Lambda Powertools | `subscriptionId` on every log line |
+| Observability | AWS Lambda Powertools | One line per operation, identifiers only, the `subscriptionId` on it (§17) |
 | IaC | AWS CDK (TypeScript) | A project of its own, `memorysmith-infra` (§5.1, §5.4) |
 
 ### 4.2 Frontend
@@ -190,7 +190,8 @@ An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architectu
 memorysmith-backend/
 ├── packages/
 │   ├── kernel/              # SubscriptionId, Ulid, Slug, Authorship, Result, DomainEvent, errors
-│   └── contracts/           # Zod schemas of the events and the DTOs: the only package the frontend imports
+│   ├── contracts/           # Zod schemas of the events and the DTOs: the only package the frontend imports
+│   └── observability/       # the line of an operation, its allow-list and the correlation id (§17)
 ├── services/
 │   ├── access/
 │   ├── knowledge/
@@ -306,7 +307,7 @@ Three constructs carry an architectural guarantee, not a convenience:
 
 - **`append-only-table`** is where PE4 stops being policy and becomes permission. The explicit `Deny` on `UpdateItem` and `DeleteItem` lives here, and this is where the immutability test of §19 points.
 - **`alarms`** holds every alarm of the app to its environment at synthesis: an aspect over the whole app refuses an alarm without an action in production and any alarm at all in staging, so an `Alarm` created by hand, outside `mandatoryAlarm`, fails the synthesis instead of shipping mute (§17).
-- **`service-lambda`** guarantees that no service goes to production without Powertools and without the alarms of §17, each with the topic it notifies. Forgetting observability stops being possible by omission, and so does an alarm that reaches nobody: it creates its alarms through `mandatoryAlarm` of `alarms.ts`, which attaches the topic of the environment and creates nothing where the environment carries no alarms.
+- **`service-lambda`** guarantees that no service goes to production without Powertools, its log group kept a month, and without the alarms of §17, each with the topic it notifies. Forgetting observability stops being possible by omission, and so does an alarm that reaches nobody: it creates its alarms through `mandatoryAlarm` of `alarms.ts`, which attaches the topic of the environment and creates nothing where the environment carries no alarms.
 
 **One stack per service, plus the shared stacks.** When 0.1.0 ships as a modular monolith (§24), the service stacks collapse into two, one for the main deployable and one for `svc-audit`, without `stacks/` changing shape: what changes is which ones are instantiated in `bin/app.ts`.
 
@@ -864,6 +865,8 @@ DynamoDB Streams → a relay Lambda → EventBridge. It guarantees that the stat
 **Two tables have an outbox, and each has its relay**: `mv-knowledge`, whose relay also moves the counters (§10.3), and `mv-access`, whose relay only publishes, with the source `memorysmith.access`, because no event of Access moves a counter. Until 0.10.0 the stream of `mv-access` existed and nothing drained it, so every event Access wrote was kept and never reached the trail; sharing a notebook, recorded in the trail of that notebook, is what made the gap visible.
 
 The stream hands the relay up to 25 records a batch, and one `PutEvents` call takes ten events, so the relay publishes a batch in calls of at most ten. `PutEvents` reports a refused entry in its answer rather than as an error, so the relay reads the count and fails the batch when any event was refused: the stream then delivers the whole batch again, which makes delivery at least once. An event delivered twice changes nothing: the audit trail keys each entry by the instant and the identifier of its event, so the same entry is written again, the counters are guarded by their `SEEN` item (§10.3), and the projections replace what they derive. A batch still failing after its retries lands in the dead-letter queue of the relay, whose alarm is how a hole in the record is seen.
+
+**The envelope carries the request that caused it.** Its optional `correlationId` is the id of the operation in course when the event was written: the outbox writer of each table reads it from the scope the edge opened (§17) — never from the domain, which neither sees nor passes it — and the relay publishes it with the rest of the envelope, so the projector, the audit consumer and the purge log the event under the id of the tool call or the request that wrote it. The purge writes the events of what it destroyed under the id of the deletion it is carrying out, so the chain does not break at the second hop. It is optional because the trail is append-only: an envelope written before it existed parses, and an event no request caused, written by a migration or a command, carries none.
 
 ### 10.5 Write order with S3
 
@@ -1482,7 +1485,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | DNS | Route 53: the hosted zone of `memorysmith.app` and every record created by the CDK in `network.stack` |
 | Front end | React + Vite (SPA) on S3 + CloudFront |
 | IaC | AWS CDK (TypeScript), one stack per service plus one for network and domain |
-| Observability | Powertools for AWS Lambda; the `subscriptionId` on **every** log line and as a metric dimension |
+| Observability | Powertools for AWS Lambda: **one structured line per operation** of every function, and access logs on both HTTP APIs, all kept a month; the `subscriptionId` on every line and never as a metric dimension |
 
 > **One Lambda per service, not one per route:** fewer cold starts, one composition root per deployable, and the boundary that matters (the bounded context) stays the unit of deployment.
 
@@ -1543,6 +1546,29 @@ The fixed cost of the whole DNS and TLS layer is therefore the hosted zone: arou
 |---|---|---|
 | Content purge | On every deletion | Destroys what a deletion invalidated: every revision in S3, the items in `mv-knowledge` and the projections (§12.4, RN-KNW-047) |
 | `Position` rebalancing | On demand | Redistributes fractional keys that passed 12 characters (§6.5) |
+
+**Logs.** Every function writes **one JSON line per operation**, through one wrapper in `packages/observability`: a middleware at the edge of each HTTP API, which names the request by the **template** of its route (`POST /knowledge/notebooks/:v/notes`) and never by its path, and a wrapper around each event or job of an asynchronous function — the two relays, the projector, the audit consumer, the purge, the transfer worker, the renderer and the two triggers of the user pool. A line carries:
+
+| Field | What it holds |
+|---|---|
+| `operation` | The MCP tool, the HTTP route template, or the event type or job kind a worker handled |
+| `outcome` | `ok`, `refused`, `conflict` or `error`, read from the status, the code of the taxonomy (§15) or the throw |
+| `durationMs` | How long the operation took; for a batch the relay or the audit consumer handles as a unit, the batch |
+| `correlationId` | The id the operation, and everything it caused, is found by |
+| `subscriptionId`, `userId` | Who: from the claim at the edge, from the envelope or the message in a worker |
+| `channel`, `agentClient` | `web` or `mcp`, and the `clientName` of the `Authorship` when a connector wrote it |
+| `status`, `eventId` | The HTTP status answered; the event a worker handled |
+| `errorName`, `errorCode`, `errorFrames` | What failed: its class, its code and the frames of its stack |
+
+Powertools adds its own `level`, `message` (always `operation`), `timestamp` and `service`, the name of the function's construct.
+
+**Identifiers only, never content.** No note name, notebook name, folder name, file name, path, query text or body reaches a line, because the backend does not interpret content (rule 5) and a log would be the one place it kept a copy of it anyway, a month long, readable by whoever operates the account. The rule is held by code: a line is built from an allow-list, a key outside it is dropped, a value without the shape of its field is dropped too, and **an error is written by its class, code and frames and never by its message**, because a refusal quotes the name it refused and a parser the line it could not read. A test of the package and a test of the core API, which reads the lines a real request writes, fail when a line carries a key outside the list or a byte of what the request wrote. The renderer of prints no longer writes what the page said while it was drawn, for the same reason.
+
+**One id from the tool call to the trail.** The edge takes the id API Gateway gave the request — the same `requestId` its access log carries — unless the request brings an `x-correlation-id`, and answers it in that header. The connector forwards it to the core on every call it makes with the caller's token, so a tool call and the core request it caused share it; the outbox writers put it on the envelope (§10.4), and a job of a queue carries it as a message attribute. One `create_note` is followed across the connector, the core, the relay, the projector and the audit consumer with one query of Logs Insights over their groups, filtered on `correlationId`.
+
+**Access logs.** Both HTTP APIs, the core one and the connector's, write one JSON line per request the gateway answered — its refusals before the function included — with the request id, the route key, the status, the latency and the integration latency, to a log group of their own declared beside the API. Not the path and not the address of the caller.
+
+**The `subscriptionId` is in the logs and not in the metric dimensions.** A dimension per subscription multiplies the number of custom metrics, each billed by the month, by the number of subscriptions, and a question about one subscription is answered by a query of the logs instead. **Production and staging both log**, and every log group, of a function or of an API, is declared by the CDK with a retention of one month, so none outlives its stack or is billed forever.
 
 **Mandatory alarms, in production:** per Lambda, errors, throttles and p99 duration (a projector, asynchronous by design, has no latency alarm), and the depth of every dead-letter queue — the outbox relay, the purge, the transfers, the prints and the Discovery projector. An alarm exists to reach a person, so **every one of them notifies one SNS topic**, `memorysmith-alarms-production`, which `network.stack` declares, the first stack a delivery deploys, with the address of whoever operates the product subscribed to it by e-mail. The alarms name it by the ARN its fixed name gives, so no stack takes a reference on the network stack. The address is **not in `cdk.json`**, because the repository is public: it is the variable `ALARM_EMAIL` of the `production` environment of GitHub Actions, which `deliver` passes to the synthesis as `-c alarmEmail=`, and a synthesis of production without it fails, so an alarm is never created with nowhere to go. AWS sends that address a confirmation, and the topic delivers nothing until it is confirmed.
 

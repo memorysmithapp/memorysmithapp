@@ -33,6 +33,9 @@ const HANDLERS = [
   'memorysmith-backend/services/discovery/src/main/handler.ts',
   // The connector, which answers an image now (#260).
   'memorysmith-backend/services/agent/src/lambda.ts',
+  // The two triggers of the user pool, which log through Powertools now (#269).
+  'memorysmith-backend/services/access/src/adapters/inbound/pre-token-generation.ts',
+  'memorysmith-backend/services/access/src/adapters/inbound/custom-message.ts',
 ];
 
 describe('every function, bundled as it is deployed', () => {

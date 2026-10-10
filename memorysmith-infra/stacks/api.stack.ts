@@ -48,6 +48,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { ServiceLambda } from '../constructs/service-lambda.js';
+import { accessLogOf } from '../constructs/access-log.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
@@ -552,12 +553,16 @@ export class ApiStack extends Stack {
           CorsHttpMethod.OPTIONS,
         ],
         allowHeaders: ['authorization', 'content-type'],
-        // What answered, readable by the interface and by a test (section 23.3).
-        exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version'],
+        // What answered, readable by the interface and by a test (section 23.3),
+        // and the id its log lines are found by (section 17).
+        exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version', 'x-correlation-id'],
         maxAge: Duration.hours(1),
       },
       defaultDomainMapping: { domainName: domain },
     });
+
+    // One line per request the gateway answered, its refusals included (section 17).
+    accessLogOf(this, 'ApiAccessLogs', this.httpApi);
 
     // The gateway refuses an unsigned request before it reaches the function,
     // and the function checks that the gateway did (section 14.1).

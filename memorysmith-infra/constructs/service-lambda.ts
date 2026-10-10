@@ -80,8 +80,10 @@ export class ServiceLambda extends Construct {
       logGroup,
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
-        // Powertools: the subscriptionId goes on every log line and as a
-        // metric dimension (section 17).
+        // Powertools writes the one line of each operation, named by this
+        // service, with the subscriptionId on it (section 17). The subscription
+        // is never a metric dimension: a question about one subscription is a
+        // query of the logs, not a metric per subscription.
         POWERTOOLS_SERVICE_NAME: id,
         POWERTOOLS_LOG_LEVEL: 'INFO',
         POWERTOOLS_METRICS_NAMESPACE: 'MemorySmith',
