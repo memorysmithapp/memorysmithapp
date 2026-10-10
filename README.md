@@ -367,6 +367,14 @@ Two things the command does that are worth understanding:
 
 ## Maintaining an environment
 
+On staging, clean up first. The functional suite deletes what each run writes, and the runs before it did not, so staging holds notebooks of accounts that no longer exist:
+
+```
+pnpm -C memorysmith-infra cleanup-staging
+```
+
+`cleanup-staging` deletes the notebooks of every subscription whose owner is an `@example.com` account the pool no longer holds, through the same deletion a person makes, so the purge takes them in the background. It reports first and deletes only with `--apply`, and it refuses every environment but staging. Run it before any job below on staging, because each of them scans every notebook of the environment.
+
 Every number and every graph the product derives owes an answer to how it remakes itself when it is wrong, and two of those answers are jobs an operator runs against the tables of an environment, with credentials of its account:
 
 ```
@@ -374,7 +382,7 @@ pnpm -C memorysmith-infra recount-storage --environment production
 pnpm -C memorysmith-infra reproject-links --environment production
 ```
 
-`recount-storage` adds up the content each subscription holds and rewrites its storage counter; run it with the accounts idle, because a write that lands during the scan can be counted by it and by the relay. It also lists the files of notebooks that no longer exist, which it counts in nothing and destroys never. `reproject-links` forgets the link graph of every notebook and resolves every link again, from the notes themselves and the files each notebook keeps. Both are the product's own code, both report first and write only with `--apply`, and `reproject-links` exits with `2` when an edge was lost.
+`recount-storage` adds up the content each subscription holds and rewrites its storage counter; run it with the accounts idle, because a write that lands during the scan can be counted by it and by the relay. It also lists the files of notebooks that no longer exist, which it counts in nothing and destroys never. `reproject-links` forgets the link graph of every notebook and resolves every link again, from the notes themselves and the files each notebook keeps. Both are the product's own code, both report first and write only with `--apply`, and `reproject-links` exits with `2` when an edge was lost. On staging, both run after `cleanup-staging`.
 
 ## Tearing staging down
 

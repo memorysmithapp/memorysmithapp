@@ -1,22 +1,37 @@
 /**
- * After every case: the accounts of the run are deleted, what the run knew is
- * forgotten, and what it measured is summarized into the report
- * (architecture-guide.md, section 19).
+ * After every case: the notebooks of the run are deleted, then its accounts,
+ * what the run knew is forgotten, and what it measured is summarized into the
+ * report (architecture-guide.md, section 19).
  *
- * The subscriptions and notebooks of the run stay in the tables. Nothing in the
- * product deletes a subscription, and staging is torn down whole.
+ * The subscriptions of the run stay in the tables, because nothing in the
+ * product deletes a subscription; their notebooks do not (#276).
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { deleteAccount } from './accounts.js';
+import { deleteNotebooksOf } from './cleanup.js';
 import { summarize, type LatencyRecord } from './latencies.js';
 import { forgetState, readState, REPORT_DIRECTORY } from './state.js';
 
 export default async function globalTeardown(): Promise<void> {
   const state = readState();
-  for (const account of Object.values(state.accounts)) await deleteAccount(state, account);
-  forgetState();
+  let deleted = 0;
+  const failed: string[] = [];
+  try {
+    for (const account of Object.values(state.accounts)) {
+      if (!account.subscriptionId) continue;
+      const cleanup = await deleteNotebooksOf(state, account);
+      deleted += cleanup.deleted;
+      failed.push(...cleanup.failed);
+    }
+  } finally {
+    // The accounts go whatever became of their notebooks.
+    for (const account of Object.values(state.accounts)) await deleteAccount(state, account);
+    forgetState();
+  }
+  process.stdout.write(`\nDeleted ${deleted} notebook(s) the run wrote.\n`);
+  for (const each of failed) process.stdout.write(`  not deleted: ${each}\n`);
 
   const lines = join(REPORT_DIRECTORY, 'latencies.jsonl');
   if (!existsSync(lines)) return;

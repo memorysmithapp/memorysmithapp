@@ -13,9 +13,18 @@ export interface MaintenanceJob {
   readonly entry: string;
   /** What it rebuilds, as a person reads it. */
   readonly rebuilds: string;
+  /** The only environments it may run in, when it is not every one. */
+  readonly only?: readonly string[];
 }
 
 export const MAINTENANCE_JOBS = {
+  // First, because it is what makes a scan of staging worth running (#276).
+  'cleanup-staging': {
+    entry: 'memorysmith-backend/apps/core-monolith/src/cleanup-staging.ts',
+    rebuilds:
+      'nothing: it deletes the notebooks of the subscriptions the functional suite made and abandoned',
+    only: ['staging'],
+  },
   'recount-storage': {
     entry: 'memorysmith-backend/apps/core-monolith/src/recount.ts',
     rebuilds:
@@ -45,16 +54,29 @@ export function isMaintenanceJob(name: string): name is MaintenanceJobName {
 export function jobVariables(input: {
   readonly environment: string;
   readonly contentBucket: string;
+  readonly userPoolId: string;
 }): Record<string, string> {
   return {
+    // A job that deletes checks the environment itself as well (#276).
+    ENVIRONMENT: input.environment,
     KNOWLEDGE_TABLE: `mv-knowledge-${input.environment}`,
     DISCOVERY_TABLE: `mv-discovery-${input.environment}`,
     // The recount of the storage reads the revisions off the trail and the
     // kept exports off their own table (RN-SUB-024).
     AUDIT_TABLE: `mv-audit-${input.environment}`,
     PORTABILITY_TABLE: `mv-portability-${input.environment}`,
+    // The cleanup reads the owner of a subscription off Access and asks the
+    // pool whether that account still exists.
+    ACCESS_TABLE: `mv-access-${input.environment}`,
     CONTENT_BUCKET: input.contentBucket,
+    USER_POOL_ID: input.userPoolId,
   };
+}
+
+/** Why a job may not run in an environment at all, or null. */
+export function environmentRefusal(job: MaintenanceJob, environment: string): string | null {
+  if (!job.only || job.only.includes(environment)) return null;
+  return `This job runs on ${job.only.join(' and ')} only, and never on ${environment}. Nothing ran.`;
 }
 
 /** Why a job may not run under these credentials, or null. */

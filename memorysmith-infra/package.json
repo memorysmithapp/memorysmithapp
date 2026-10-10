@@ -19,6 +19,7 @@
     "publish-release": "tsx commands/publish-release.ts",
     "onboard": "tsx commands/onboard.ts",
     "destroy-staging": "tsx commands/destroy-staging.ts",
+    "cleanup-staging": "tsx commands/maintenance.ts cleanup-staging",
     "recount-storage": "tsx commands/maintenance.ts recount-storage",
     "reproject-links": "tsx commands/maintenance.ts reproject-links",
     "migrate-slots": "tsx commands/maintenance.ts migrate-slots",
