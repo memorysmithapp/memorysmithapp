@@ -118,6 +118,10 @@ export interface Words {
   /** The button of the print tab that downloads the PDF the server makes (#263). */
   readonly downloadPdf: string;
   readonly conflict: string;
+  /** The (i) beside the order of the notes of a folder, and what it says of each order (#273). */
+  readonly noteOrderHint: string;
+  readonly noteOrderHintManual: string;
+  readonly noteOrderHintAlphabetical: string;
 }
 
 export const WORDS: Record<AppLocale, Words> = {
@@ -190,6 +194,11 @@ export const WORDS: Record<AppLocale, Words> = {
     printNote: 'Print',
     downloadPdf: 'Download PDF',
     conflict: 'Somebody else wrote this note',
+    noteOrderHint: 'What the order of the notes does',
+    noteOrderHintManual:
+      'The notes keep the position they were given in this folder, by you or by an agent.',
+    noteOrderHintAlphabetical:
+      'The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.',
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
@@ -260,6 +269,11 @@ export const WORDS: Record<AppLocale, Words> = {
     printNote: 'Imprimir',
     downloadPdf: 'Baixar PDF',
     conflict: 'Outra pessoa gravou esta nota',
+    noteOrderHint: 'O que a ordem das notas faz',
+    noteOrderHintManual:
+      'As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.',
+    noteOrderHintAlphabetical:
+      'As notas seguem o nome, com os números pelo valor: Ata 2 vem antes de Ata 10. A posição de cada uma fica guardada e volta se a ordem voltar a ser manual.',
   },
 };
 

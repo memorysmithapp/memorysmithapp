@@ -130,8 +130,11 @@
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet.",
     "noteOrder": "Order of the notes",
-    "noteOrderManual": "As written",
+    "noteOrderManual": "Manual",
     "noteOrderAlphabetical": "Alphabetical",
+    "noteOrderHint": "What the order of the notes does",
+    "noteOrderHintManual": "The notes keep the position they were given in this folder, by you or by an agent.",
+    "noteOrderHintAlphabetical": "The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.",
     "notesByName": "In alphabetical order",
     "noteOrderFailed": "The order of the notes was not changed. Try again."
   },

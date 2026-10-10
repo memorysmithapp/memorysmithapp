@@ -10,6 +10,7 @@ import {
   setNoteOrder,
 } from '../../shared/api/source';
 import { Segmented } from '../../shared/components/Segmented';
+import { Hint } from '../../shared/components/Hint';
 import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { identifierOf, noteAddress } from '../../shared/api/note-address';
 import { ChevronRightIcon } from '../../shared/components/icons';
@@ -22,6 +23,9 @@ import { folderTrailOf } from './trail';
 import { NotebookBar, folderCrumbs } from './NotebookBreadcrumb';
 import { useNotebookId } from './route-ids';
 import { queryKeys } from '../../shared/api/query-keys';
+
+/** The text that says what the order of the notes does, by its identifier (#273). */
+const NOTE_ORDER_HINT = 'folder-note-order-hint';
 
 /**
  * A folder, addressed by its identifier alone (RN-DSC-045). Renaming it or
@@ -63,6 +67,12 @@ export function FolderPage() {
   if (!folder) return <p className="status">{t('common.notFound')}</p>;
 
   const writable = canWrite(structure.effectiveRole);
+  const shownOrder = ordering.isPending
+    ? (ordering.variables ?? folder.noteOrder)
+    : folder.noteOrder;
+  // What each order does, said beside the control and heard as its description.
+  const orderHint = (order: 'manual' | 'alphabetical') =>
+    order === 'manual' ? t('folder.noteOrderHintManual') : t('folder.noteOrderHintAlphabetical');
   const empty = folder.notes.length === 0 && folder.children.length === 0;
 
   // The folder is named by the trail, and never again under it (#225): the
@@ -122,7 +132,7 @@ export function FolderPage() {
           <section className="folder-group" aria-labelledby="folder-subfolders">
             <div className="folder-group-head">
               <h2 id="folder-subfolders">{t('folder.subfolders')}</h2>
-              <span>{folder.children.length}</span>
+              <span className="folder-group-count">{folder.children.length}</span>
             </div>
             <FolderRows notebookId={notebookId} folders={folder.children} nested={false} />
           </section>
@@ -132,16 +142,13 @@ export function FolderPage() {
           <section className="folder-group" aria-labelledby="folder-notes">
             <div className="folder-group-head">
               <h2 id="folder-notes">{t('folder.notesHeading')}</h2>
-              <span>{folder.notes.length}</span>
+              <span className="folder-group-count">{folder.notes.length}</span>
               {writable ? (
                 <span className="folder-note-order">
                   <Segmented
                     label={t('folder.noteOrder')}
-                    value={
-                      ordering.isPending
-                        ? (ordering.variables ?? folder.noteOrder)
-                        : folder.noteOrder
-                    }
+                    value={shownOrder}
+                    describedBy={NOTE_ORDER_HINT}
                     onChange={(next) => {
                       if (next !== folder.noteOrder) ordering.mutate(next);
                     }}
@@ -150,9 +157,21 @@ export function FolderPage() {
                       { value: 'alphabetical', label: t('folder.noteOrderAlphabetical') },
                     ]}
                   />
+                  <Hint
+                    id={NOTE_ORDER_HINT}
+                    label={t('folder.noteOrderHint')}
+                    text={orderHint(shownOrder)}
+                  />
                 </span>
               ) : folder.noteOrder === 'alphabetical' ? (
-                <span className="folder-note-order is-said">{t('folder.notesByName')}</span>
+                <span className="folder-note-order is-said">
+                  <span aria-describedby={NOTE_ORDER_HINT}>{t('folder.notesByName')}</span>
+                  <Hint
+                    id={NOTE_ORDER_HINT}
+                    label={t('folder.noteOrderHint')}
+                    text={orderHint('alphabetical')}
+                  />
+                </span>
               ) : null}
             </div>
             {ordering.isError && (

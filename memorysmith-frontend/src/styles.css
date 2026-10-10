@@ -1401,6 +1401,9 @@ a:hover {
    heading of the group it orders. */
 .folder-note-order {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .folder-note-order.is-said {
   color: var(--text-soft);
@@ -1419,10 +1422,65 @@ a:hover {
   line-height: 1.25;
   letter-spacing: -0.015em;
 }
-.folder-group-head span {
+/* The count beside the heading, and only the count: a bare `span` here also
+   reached the labels of the order control and greyed its chosen option (#273). */
+.folder-group-count {
   font-size: 12.5px;
   line-height: 1;
   color: var(--text-soft);
+}
+
+/* A toggletip (#273): an (i) that shows a short text while the pointer rests
+   on it, and keeps it while a click or a tap pinned it. The box is the menu's. */
+.hint-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.hint-trigger {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.hint-trigger:hover,
+.hint-trigger[aria-expanded='true'] {
+  background: var(--hover);
+  color: var(--text);
+}
+.hint-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.hint-bubble {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--menu-shadow);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: start;
+  white-space: normal;
+}
+.hint-bubble[hidden] {
+  display: none;
 }
 .note-row {
   display: flex;

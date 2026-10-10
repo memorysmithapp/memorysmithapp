@@ -527,7 +527,8 @@ test.describe('the pages of an account', () => {
     app,
     owner,
     notebook,
-  }) => {
+    words,
+  }, testInfo) => {
     const path = `/knowledge/notebooks/${notebook.notebookId}`;
     const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
       name: 'Minutes',
@@ -544,10 +545,44 @@ test.describe('the pages of an account', () => {
     // By hand, the order they were written in; the structure reads again until it shows them.
     await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1'], { timeout: 60_000 });
 
-    const order = app.locator('.folder-note-order').getByRole('radio');
+    const group = app.locator('.folder-note-order').getByRole('radiogroup');
+    const order = group.getByRole('radio');
+    // What each order does is the description of the group, heard without
+    // opening the (i) (#273).
+    await expect(group).toHaveAccessibleDescription(words.noteOrderHintManual);
     await order.nth(1).click();
     await expect(order.nth(1)).toHaveAttribute('aria-checked', 'true');
     await expect(rows).toHaveText(['Ata 1', 'Ata 2', 'Ata 10']);
+    await expect(group).toHaveAccessibleDescription(words.noteOrderHintAlphabetical);
+
+    // The (i) opens it on a click, and the chosen label wears the colour of
+    // its button rather than the grey of the count beside the heading (#273).
+    const hint = app.getByRole('button', { name: words.noteOrderHint });
+    await hint.click();
+    await expect(hint).toHaveAttribute('aria-expanded', 'true');
+    await expect(app.locator('.folder-note-order').getByRole('note')).toHaveText(
+      words.noteOrderHintAlphabetical,
+    );
+    const colours = await order.nth(1).evaluate((button) => {
+      const scope = globalThis as unknown as {
+        getComputedStyle(element: object): { color: string };
+      };
+      const label = (button as unknown as { querySelector(s: string): object }).querySelector(
+        '.segmented-label',
+      );
+      return {
+        button: scope.getComputedStyle(button).color,
+        label: scope.getComputedStyle(label).color,
+      };
+    });
+    expect(colours.label).toBe(colours.button);
+    await testInfo.attach('order-hint.png', {
+      body: await app.locator('.folder-group', { has: group }).screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.folder-note-order').getByRole('note')).toBeHidden();
+    await expect(hint).toHaveAttribute('aria-expanded', 'false');
     // And the tree beside the page agrees.
     await expect(
       app.locator('aside#notebook-sidebar .tree-folder', { hasText: 'Minutes' }).first(),

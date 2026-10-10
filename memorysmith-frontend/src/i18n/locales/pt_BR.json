@@ -130,8 +130,11 @@
     "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta.",
     "noteOrder": "Ordem das notas",
-    "noteOrderManual": "Do caderno",
+    "noteOrderManual": "Manual",
     "noteOrderAlphabetical": "Alfabética",
+    "noteOrderHint": "O que a ordem das notas faz",
+    "noteOrderHintManual": "As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.",
+    "noteOrderHintAlphabetical": "As notas seguem o nome, com os números pelo valor: Ata 2 vem antes de Ata 10. A posição de cada uma fica guardada e volta se a ordem voltar a ser manual.",
     "notesByName": "Em ordem alfabética",
     "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo."
   },
