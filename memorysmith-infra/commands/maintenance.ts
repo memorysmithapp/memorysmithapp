@@ -2,11 +2,13 @@
  * Runs a maintenance job of the core against the tables of an environment
  * (architecture-guide.md, sections 10.3 and 11).
  *
+ *   pnpm -C memorysmith-infra cleanup-staging [--apply]
  *   pnpm -C memorysmith-infra recount-storage --environment production [--apply]
  *   pnpm -C memorysmith-infra reproject-links --environment staging [--apply]
  *
  * With credentials of the account of the environment, and refused under any
- * other. The job reports first and writes only with --apply, and its exit code
+ * other; a job that names the environments it may run in is refused in every
+ * other one before anything is read. The job reports first and writes only with --apply, and its exit code
  * is this command's: reproject-links exits 2 when an edge was lost.
  *
  * The job is the product's own code, run as a process of its own. A command
@@ -22,6 +24,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import {
   accountRefusal,
+  environmentRefusal,
   isMaintenanceJob,
   jobVariables,
   MAINTENANCE_JOBS,
@@ -51,6 +54,8 @@ if (!isMaintenanceJob(name)) {
 const job = MAINTENANCE_JOBS[name];
 
 const environment = values.environment;
+const refusedHere = environmentRefusal(job, environment);
+if (refusedHere) fail(refusedHere);
 const declared = (
   JSON.parse(readText('memorysmith-infra/cdk.json')) as {
     context: { environments: Record<string, { account?: string; region?: string } | undefined> };
@@ -67,20 +72,22 @@ const refusal = accountRefusal({
 });
 if (refusal) fail(refusal);
 
-const dataStack = stackIdOf(environment, 'Data');
-const outputs =
-  (
-    await new CloudFormationClient({ region }).send(
-      new DescribeStacksCommand({ StackName: dataStack }),
-    )
-  ).Stacks?.[0]?.Outputs ?? [];
-const contentBucket =
-  outputs.find((output) => output.OutputKey === 'ContentBucketName')?.OutputValue ??
-  fail(`${dataStack} has no ContentBucketName output.`);
+const cloudFormation = new CloudFormationClient({ region });
+async function outputOf(stack: 'Data' | 'Identity', key: string): Promise<string> {
+  const name = stackIdOf(environment, stack);
+  const outputs =
+    (await cloudFormation.send(new DescribeStacksCommand({ StackName: name }))).Stacks?.[0]
+      ?.Outputs ?? [];
+  return (
+    outputs.find((output) => output.OutputKey === key)?.OutputValue ??
+    fail(`${name} has no ${key} output.`)
+  );
+}
+const contentBucket = await outputOf('Data', 'ContentBucketName');
+const userPoolId = await outputOf('Identity', 'UserPoolId');
 
-process.stdout.write(
-  `Rebuilding ${job.rebuilds} of ${environment}${values.apply ? '' : ', as a report'}.\n`,
-);
+const what = 'deletes' in job ? `Deleting ${job.deletes}` : `Rebuilding ${job.rebuilds}`;
+process.stdout.write(`${what} of ${environment}${values.apply ? '' : ', as a report'}.\n`);
 
 // tsx, run by node itself, so no shell stands between the arguments and the job.
 const tsx = createRequire(import.meta.url).resolve('tsx/cli');
@@ -89,7 +96,11 @@ const run = spawnSync(
   [tsx, join(REPOSITORY_ROOT, job.entry), ...(values.apply ? ['--apply'] : [])],
   {
     stdio: 'inherit',
-    env: { ...process.env, AWS_REGION: region, ...jobVariables({ environment, contentBucket }) },
+    env: {
+      ...process.env,
+      AWS_REGION: region,
+      ...jobVariables({ environment, contentBucket, userPoolId }),
+    },
   },
 );
 process.exit(run.status ?? 1);

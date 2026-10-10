@@ -22,6 +22,7 @@ import { AgentStack } from '../stacks/agent.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { FrontendReleaseStack } from '../stacks/frontend-release.stack.js';
 import { GithubDeliveryStack } from '../stacks/github-delivery.stack.js';
+import { guardAlarms } from '../constructs/alarms.js';
 import { deploymentOf, tagDelivery } from '../constructs/deployment.js';
 import { environmentOf, stackId } from '../config/environments.js';
 
@@ -129,7 +130,7 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
  * environment, so only a synth of production, which owns the account, declares
  * it, and it is deployed by hand once, after `cdk bootstrap`:
  *
- *   cdk deploy MemorysmithGithubDelivery -c environment=production
+ *   cdk deploy MemorysmithGithubDelivery -c environment=production -c alarmEmail=<address>
  *
  * A delivery never names it, so no run can change what it may do.
  */
@@ -157,3 +158,7 @@ for (const stack of [network, data, identity, api, projections, agent, hosting, 
 // what a deploy delivers, and never on the roles of GitHub, which deliver every
 // version.
 tagDelivery([network, data, identity, api, projections, agent, hosting, release], deployment);
+
+// Every alarm of the app is held to the environment at synthesis: in production
+// it has the topic as its action, in staging it does not exist (section 17, #267).
+guardAlarms(app, environment);

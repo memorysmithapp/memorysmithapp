@@ -569,6 +569,74 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:move_note] [tool:note_history] moves a note to another folder with its history, and refuses a folder that holds its name (#265)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const published = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Published',
+        description: 'What was approved, moved here from Findings.',
+      }),
+    );
+    const write = async (folder: string, content: string) =>
+      parsed<{ noteId: string; revision: string }>(
+        await callTool(agent, 'create_note', { ...where, folder, content }),
+      );
+    const draft = await write(notebook.folderId, '---\nname: Draft\n---\n\nFirst take.\n');
+    await callTool(agent, 'update_note', {
+      ...where,
+      note: draft.noteId,
+      content: '---\nname: Draft\n---\n\nSecond take.\n',
+      baseRevision: draft.revision,
+    });
+
+    const moved = parsed<{ noteId: string; folderId: string; folder: string[] }>(
+      await callTool(agent, 'move_note', {
+        ...where,
+        note: draft.noteId,
+        folder: published.folderId,
+      }),
+    );
+    expect(moved.noteId).toBe(draft.noteId);
+    expect(moved.folderId).toBe(published.folderId);
+    expect(moved.folder).toEqual(['Published']);
+
+    // The same note where it now is, and every revision it had, plus the move.
+    const read = parsed<{ noteId: string; folderId: string; content: string }>(
+      await callTool(agent, 'read_note', { ...where, note: draft.noteId }),
+    );
+    expect(read.folderId).toBe(published.folderId);
+    expect(read.content).toContain('Second take.');
+    await eventually(
+      'both writes and the move in the history of the note',
+      async () =>
+        parsed<Array<{ type: string; revision: string | null }>>(
+          await callTool(agent, 'note_history', { ...where, note: draft.noteId }),
+        ),
+      (history) =>
+        history.filter((entry) => entry.revision !== null).length >= 2 &&
+        history.some((entry) => entry.type === 'NoteMoved'),
+    );
+
+    // A folder holds one note of each name, and the refusal names the one there.
+    const twin = await write(notebook.folderId, '---\nname: Draft\n---\n\nAnother take.\n');
+    const refused = await callTool(agent, 'move_note', {
+      ...where,
+      note: twin.noteId,
+      folder: published.folderId,
+    });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('ALREADY_EXISTS');
+    expect(refused.text).toContain(draft.noteId);
+    const stayed = parsed<{ folderId: string }>(
+      await callTool(agent, 'read_note', { ...where, note: twin.noteId }),
+    );
+    expect(stayed.folderId).toBe(notebook.folderId);
+  });
+
   test('[tool:create_folder] [tool:set_note_order] [tool:list_notes] orders the notes of a folder by name, says so in the context, and refuses to move one there (#262)', async ({
     agent,
     notebook,
@@ -768,6 +836,75 @@ test.describe('the tools', () => {
     const find = (target: string) => answer.pending.find((pending) => pending.target === target);
     expect(find(`Nebula${tag}`)?.likelyMeant?.noteId).toBe(meant.noteId);
     expect(find(`Galaxy${tag}`)?.likelyMeant).toBeNull();
+  });
+
+  test('[tool:preview_note] [tool:get_preview] draws a note, a part of it or a draft as the person reads it, and answers the image (#260)', async ({
+    agent,
+    notebook,
+  }, testInfo) => {
+    test.setTimeout(420_000);
+    const created = parsed<{ noteId: string }>(
+      await callTool(agent, 'create_note', {
+        notebook: notebook.notebookId,
+        folder: notebook.folderId,
+        content:
+          '---\nname: Plan limits\n---\n\nWhat each plan holds.\n\n## Limits\n\n' +
+          '> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n' +
+          '## Elsewhere\n\nNot part of the limits.\n',
+      }),
+    );
+
+    /** Starts a preview, and asks for it until it is drawn or says why not. */
+    const drawn = async (args: Record<string, unknown>) => {
+      const { preview } = parsed<{ preview: string }>(
+        await callTool(agent, 'preview_note', { notebook: notebook.notebookId, ...args }),
+      );
+      return eventually(
+        'the preview to be drawn',
+        () => callTool(agent, 'get_preview', { notebook: notebook.notebookId, preview }),
+        (answer) => answer.isError || answer.images.length > 0,
+        // A cold renderer unpacks a browser before it opens the page.
+        { timeoutMs: 180_000, intervalMs: 3_000 },
+      );
+    };
+    /** The width and the height a PNG declares in its header. */
+    const sizeOf = (png: Buffer) => {
+      expect(png.subarray(1, 4).toString('latin1')).toBe('PNG');
+      return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+    };
+
+    const part = await drawn({ note: created.noteId, part: '#Limits' });
+    expect(part.isError, part.text).toBe(false);
+    expect(part.images).toHaveLength(1);
+    expect(part.images[0]?.mimeType).toBe('image/png');
+    const png = Buffer.from(part.images[0]?.data ?? '', 'base64');
+    const size = sizeOf(png);
+    expect(size.width).toBe(760);
+    expect(size.height).toBeLessThanOrEqual(1600);
+    expect(part.text).toBe(`Drawn at 760×${size.height} px.`);
+    await testInfo.attach('part of a note.png', { body: png, contentType: 'image/png' });
+
+    const draft = await drawn({
+      content:
+        '---\nname: A draft\n---\n\nLinks to [[Plan limits]].\n\n```mermaid\ngraph LR; A-->B\n```\n',
+      folder: notebook.folderId,
+    });
+    expect(draft.isError, draft.text).toBe(false);
+    const drafted = Buffer.from(draft.images[0]?.data ?? '', 'base64');
+    expect(sizeOf(drafted).width).toBe(760);
+    await testInfo.attach('a draft.png', { body: drafted, contentType: 'image/png' });
+
+    const missing = await drawn({ note: created.noteId, part: '#Nowhere' });
+    expect(missing.isError).toBe(true);
+    expect(missing.text).toMatch(/^PART_NOT_FOUND: nothing was drawn/);
+
+    const both = await callTool(agent, 'preview_note', {
+      notebook: notebook.notebookId,
+      note: created.noteId,
+      content: '# x',
+    });
+    expect(both.isError).toBe(true);
+    expect(both.text).toContain('exactly one of the two');
   });
 
   test('[tool:note_history] [tool:read_note] records the connector of every write, and reads a note as it was', async ({

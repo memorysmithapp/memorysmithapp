@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/infra",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "description": "All CDK for MemorySmith: stacks, constructs, IAM policies and the pipeline.",
@@ -19,6 +19,7 @@
     "publish-release": "tsx commands/publish-release.ts",
     "onboard": "tsx commands/onboard.ts",
     "destroy-staging": "tsx commands/destroy-staging.ts",
+    "cleanup-staging": "tsx commands/maintenance.ts cleanup-staging",
     "recount-storage": "tsx commands/maintenance.ts recount-storage",
     "reproject-links": "tsx commands/maintenance.ts reproject-links",
     "migrate-slots": "tsx commands/maintenance.ts migrate-slots",

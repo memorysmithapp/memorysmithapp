@@ -30,6 +30,7 @@ import { Template } from '../../../domain/content-slot/Template.js';
 import { Note } from '../../../domain/note/Note.js';
 import { Notebook } from '../../../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, ShortText, NotebookName } from '../../../domain/values.js';
+import { currentCorrelationId } from '@memorysmith/observability';
 
 /** A raw item as the DynamoDB document client hands it over. */
 export type Item = Record<string, unknown>;
@@ -282,6 +283,9 @@ export function parseNote(item: Item, subscriptionId: SubscriptionId): Note {
 const OUTBOX_TTL_DAYS = 7;
 
 export function outboxItem(event: DomainEvent, pk: string, sk: string): Item {
+  // The request that caused the event, read from the scope the edge opened:
+  // the domain never sees it, and every reader of the event logs it (section 17).
+  const correlationId = currentCorrelationId();
   return {
     PK: pk,
     SK: sk,
@@ -295,6 +299,7 @@ export function outboxItem(event: DomainEvent, pk: string, sk: string): Item {
     authorship: serializeAuthorship(event.authorship),
     contentRef: serializeContentRef(event.contentRef),
     storageDelta: event.storageDelta,
+    ...(correlationId ? { correlationId } : {}),
     payload: event.payload,
     ttl: event.occurredAt.plusDays(OUTBOX_TTL_DAYS).toEpochSeconds(),
   };
@@ -312,6 +317,7 @@ export function eventEnvelopeFrom(item: Item): Item {
     authorship: item['authorship'],
     contentRef: item['contentRef'] ?? null,
     storageDelta: item['storageDelta'] ?? 0,
+    ...(item['correlationId'] ? { correlationId: item['correlationId'] } : {}),
     payload: item['payload'] ?? {},
   };
 }

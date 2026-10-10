@@ -13,6 +13,7 @@
  *    AND the human, and a token with no binding writes nothing (RN-AGT-001).
  */
 
+import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmith/observability';
 import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
@@ -33,6 +34,7 @@ import type {
   NotebookFileDto,
   NotebookHealthDto,
   NotebookNamesDto,
+  PreviewDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
 import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmith/contracts';
@@ -46,6 +48,7 @@ import {
   type FolderListing,
   type HistoryEntry,
   type KnowledgeGateway,
+  type MovedNote,
   type NoteContent,
   type NoteListing,
   type NotePage,
@@ -110,6 +113,20 @@ function inDefinedOrder<T extends { position: string }>(
   });
 }
 
+/**
+ * The headers of every call to the core: the caller's own token, and the id of
+ * the request in course, so the line the core writes for it and the events it
+ * causes are found by the id of the tool call that asked (section 17).
+ */
+function headersFor(token: string, json: boolean): Record<string, string> {
+  const correlationId = currentCorrelationId();
+  return {
+    authorization: `Bearer ${token}`,
+    ...(json ? { 'content-type': 'application/json' } : {}),
+    ...(correlationId ? { [CORRELATION_HEADER]: correlationId } : {}),
+  };
+}
+
 /** The bearer token travels with the caller, and only inside this process. */
 export interface TokenCarrier extends AgentCaller {
   readonly bearerToken: string;
@@ -124,10 +141,7 @@ async function callApi<T>(
   const token = (caller as TokenCarrier).bearerToken;
   const response = await fetch(`${origin}${path}`, {
     method: init.method ?? 'GET',
-    headers: {
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-    },
+    headers: headersFor(token, true),
     ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
   });
 
@@ -482,6 +496,34 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     });
   }
 
+  /**
+   * The renderer draws as the person the connector acts for because the core
+   * hands it the token this request carries, which is the caller's own
+   * (RN-PRT-032): the page reads exactly what they read.
+   */
+  async startPreview(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      noteId?: string;
+      content?: string;
+      folderId?: string;
+      part?: string;
+    },
+  ): Promise<{ previewId: string }> {
+    const { notebookId, ...body } = input;
+    return callApi<{ previewId: string }>(
+      this.origin,
+      caller,
+      `/portability/notebooks/${notebookId}/previews`,
+      { method: 'POST', body },
+    );
+  }
+
+  async getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto> {
+    return callApi<PreviewDto>(this.origin, caller, `/portability/previews/${previewId}`);
+  }
+
   async listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]> {
     const listed = await callApi<FileListDto>(
       this.origin,
@@ -506,7 +548,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async notebookContext(caller: AgentCaller, notebookId: string): Promise<string> {
     const token = (caller as TokenCarrier).bearerToken;
     const response = await fetch(`${this.origin}/knowledge/notebooks/${notebookId}/context`, {
-      headers: { authorization: `Bearer ${token}` },
+      headers: headersFor(token, false),
     });
     if (!response.ok) {
       const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
@@ -681,6 +723,33 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       )
     ).map(listingOf);
     return inDefinedOrder(siblings, (note) => note.noteId, listingOf(moved));
+  }
+
+  async moveNote(
+    caller: AgentCaller,
+    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+  ): Promise<MovedNote> {
+    await callApi<NoteSummaryDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}/move`,
+      {
+        method: 'POST',
+        body: { toFolderId: input.folderId, afterNoteId: input.afterNoteId ?? null },
+      },
+    );
+    // Read back from the note itself, which says the folder by its names as
+    // well; the listing of a folder converges after the write.
+    const note = await this.noteOf(caller, input.notebookId, input.noteId);
+    return {
+      noteId: note.noteId,
+      name: note.name,
+      folderId: note.folderId ?? input.folderId,
+      ...(note.folder ? { folder: note.folder } : {}),
+      position: note.position ?? '',
+      revision: note.revision,
+      updatedAt: note.updatedAt,
+    };
   }
 
   async updateNote(

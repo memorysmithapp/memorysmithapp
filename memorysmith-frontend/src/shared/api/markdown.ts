@@ -219,22 +219,109 @@ const WIKILINK = /(!)?\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;
  * the notation is a remark plugin, working on a tree where a code node is
  * already a code node.
  *
+ * Code is found by the rules the profile states and never by a pattern of
+ * backticks (#266): a fence opens on a line whose first thing is a run of
+ * three or more backticks or tildes, closes on a line holding a run of the
+ * same character, at least as long, and nothing else, and otherwise runs to
+ * the end of the note; a code span closes on a run of exactly its own length.
+ * A pattern pairing any two runs of three backticks read a span SHOWING three
+ * backticks as an opening fence, and every block after it out of phase. The
+ * link extractor of Discovery reads code by the same rules, and both are held
+ * to the `link-in-code` cases of the conformance suite.
+ *
  * The indented form is deliberately NOT here, and the reason is the cost of
  * being wrong. Telling four spaces of code from four spaces of a nested list
  * item needs the block context only a parser has; guessing it wrong turns a
  * real link into text, and the same guess in the link extractor would drop a
  * real edge. A wikilink written inside an indented code block is therefore
  * still read, in both readers, and that is declared rather than discovered
- * (`architecture-guide.md` §11.1).
+ * (`architecture-guide.md` §11.1). For the same reason a fence is accepted
+ * after whatever its list item or block quote puts in front of it, and a code
+ * span is not followed across a line break.
  */
-const CODE = /```[\s\S]*?(?:\n```|$)|`[^`\n]*`/g;
+const CONTAINER = String.raw`(?:[ \t]*(?:>[ \t]?|(?:[-*+]|\d{1,9}[.)])[ \t]+))*[ \t]*`;
+const OPENING_FENCE = new RegExp(`^(${CONTAINER})(\`{3,}|~{3,})(.*?)\r?$`);
+const CLOSING_FENCE = new RegExp(`^${CONTAINER}(\`{3,}|~{3,})[ \t]*\r?$`);
 
-/** The half-open ranges of `body` that are code. */
+/**
+ * The fenced blocks of `body`, as half-open ranges from the opening run to the
+ * end of the closing line, and the lines no fence holds, which are where code
+ * spans may be.
+ */
+function scanFences(body: string): {
+  fences: Array<[number, number]>;
+  prose: Array<{ line: string; at: number }>;
+} {
+  const fences: Array<[number, number]> = [];
+  const prose: Array<{ line: string; at: number }> = [];
+  let open: { char: string; length: number; start: number } | null = null;
+  let at = 0;
+
+  for (const line of body.split('\n')) {
+    const end = at + line.length;
+    if (open) {
+      const run = CLOSING_FENCE.exec(line)?.[1];
+      if (run && run[0] === open.char && run.length >= open.length) {
+        fences.push([open.start, end]);
+        open = null;
+      }
+    } else {
+      const fence = OPENING_FENCE.exec(line);
+      const run = fence?.[2] ?? '';
+      // A backtick fence may not carry a backtick in its info string: such a
+      // line is a paragraph, and what looks like a fence in it is a span.
+      if (fence && !(run[0] === '`' && (fence[3] ?? '').includes('`'))) {
+        open = { char: run[0] ?? '`', length: run.length, start: at + (fence[1] ?? '').length };
+      } else {
+        prose.push({ line, at });
+      }
+    }
+    at = end + 1;
+  }
+
+  if (open) fences.push([open.start, body.length]);
+  return { fences, prose };
+}
+
+/**
+ * The code spans of one line: a run of backticks closes on the next run of
+ * exactly its length, a run with no partner is text, and a backtick escaped by
+ * a backslash opens nothing.
+ */
+function codeSpans(line: string, offset: number): Array<[number, number]> {
+  const runs = [...line.matchAll(/`+/g)].map((match) => ({
+    index: match.index ?? 0,
+    length: match[0].length,
+  }));
+  const spans: Array<[number, number]> = [];
+
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    if (!run) continue;
+    const escaped = /(^|[^\\])(\\\\)*\\$/.test(line.slice(0, run.index));
+    const start = escaped ? run.index + 1 : run.index;
+    const length = escaped ? run.length - 1 : run.length;
+    if (length === 0) continue;
+
+    const close = runs.findIndex((other, j) => j > i && other.length === length);
+    const closing = runs[close];
+    if (close === -1 || !closing) continue;
+    spans.push([offset + start, offset + closing.index + closing.length]);
+    i = close;
+  }
+  return spans;
+}
+
+/** The half-open ranges of `body` that are fenced blocks. */
+export function fenceRegions(body: string): Array<[number, number]> {
+  return scanFences(body).fences;
+}
+
+/** The half-open ranges of `body` that are code, fenced or inline, in order. */
 export function codeRegions(body: string): Array<[number, number]> {
-  return [...body.matchAll(CODE)].map((match) => [
-    match.index ?? 0,
-    (match.index ?? 0) + match[0].length,
-  ]);
+  const { fences, prose } = scanFences(body);
+  const spans = prose.flatMap(({ line, at }) => codeSpans(line, at));
+  return [...fences, ...spans].sort((a, b) => a[0] - b[0]);
 }
 
 /** Whether an offset falls inside one of them. */

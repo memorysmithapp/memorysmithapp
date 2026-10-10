@@ -1,5 +1,6 @@
 /**
- * Network stack: the hosted zone of the environment and its certificates
+ * Network stack: the hosted zone of the environment, its certificates and,
+ * where the environment carries alarms, the topic they notify
  * (architecture-guide.md, section 17).
  *
  * The hosted zone already exists, created by hand once per environment, because
@@ -14,6 +15,7 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import type { EnvironmentConfig } from '../config/environments.js';
+import { AlarmTopic } from '../constructs/alarms.js';
 
 export interface NetworkStackProps extends StackProps {
   readonly environment: EnvironmentConfig;
@@ -146,5 +148,15 @@ export class NetworkStack extends Stack {
       subjectAlternativeNames: [`www.${zoneName}`],
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
+
+    /**
+     * Where every alarm of the environment goes (#267). It lives here because
+     * this is the first stack a delivery deploys, so the topic exists before any
+     * alarm names it, and every alarm names it by the ARN its fixed name gives,
+     * which ties no stack to this one. Staging carries no alarms, and no topic.
+     */
+    if (props.environment.alarms) {
+      new AlarmTopic(this, 'Alarms', { environment: props.environment });
+    }
   }
 }

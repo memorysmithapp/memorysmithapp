@@ -54,6 +54,13 @@ import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynam
 import { KnowledgeExportSource } from './export-source.js';
 import { contextThrough, openShareOf } from './shares.js';
 import {
+  annotate,
+  correlationIdOfRecord,
+  errorFieldsOf,
+  observe,
+  type OperationStart,
+} from '@memorysmith/observability';
+import {
   buildAccess,
   buildKnowledge,
   buildShares,
@@ -63,7 +70,10 @@ import {
 } from './composition-root.js';
 
 interface QueueEvent {
-  Records?: Array<{ body?: string }>;
+  Records?: Array<{
+    body?: string;
+    messageAttributes?: Record<string, { stringValue?: string } | undefined>;
+  }>;
 }
 
 function required(name: string): string {
@@ -186,54 +196,76 @@ async function sourceOf(
   return contextThrough(share);
 }
 
+/**
+ * Who asked for the transfer and under which request, for its log line: the
+ * kind of the job is the operation, and nothing of what it carries — no name,
+ * no selection — goes on the line (section 17).
+ */
+function startOf(work: TransferWork, correlationId: string | undefined): OperationStart {
+  const agent = work.authorship?.agent ?? null;
+  return {
+    operation: work.kind === 'import' ? 'import' : 'export',
+    correlationId,
+    subscriptionId: work.subscriptionId,
+    userId: work.authorship?.userId ?? work.userId,
+    channel: agent ? 'mcp' : 'web',
+    ...(agent ? { agentClient: agent.clientName } : {}),
+  };
+}
+
+/** A failure the run kept on the transfer rather than threw, told to the line of the job. */
+function unexpected(error: unknown): void {
+  annotate({ outcome: 'error', ...errorFieldsOf(error) });
+}
+
 export async function handler(event: QueueEvent): Promise<void> {
   for (const record of event.Records ?? []) {
     const work = JSON.parse(record.body ?? '{}') as TransferWork;
-    const context = contextOf(work);
-
-    const transfers = new DynamoTransferStore(
-      infra.db,
-      infra.portabilityTable,
-      work.subscriptionId,
-    );
-
-    /**
-     * The trail of THIS subscription, read for an export that carries the
-     * history and written for an import that brings one back (RN-PRT-022,
-     * RN-PRT-023).
-     */
-    const trail = new DynamoAuditTrail(infra.db, infra.auditTable, context.subscriptionId);
-
-    if (work.kind === 'import') {
-      const importer = new ImportNotebook(
-        new S3UploadStore(infra.s3, infra.contentBucket),
-        await writerFor(context),
-        readZip,
-        parseNotebookDocument,
-        work.subscriptionId,
-        new ImportedTrailWriter(trail, work.subscriptionId),
-        work.transferId,
-      );
-      await new RunImport(transfers, importer, authorshipOf(work)).execute(work);
-      continue;
-    }
-
-    const source = await sourceOf(work, context);
-    const exporter = new ExportNotebook(
-      new KnowledgeExportSource(buildKnowledge(infra, source)),
-      // The archive is kept, and counted, where the transfer is: under the
-      // person who asked, whoever holds the notebook (RN-ACC-027).
-      new S3ArchiveStore(infra.s3, infra.contentBucket),
-      createZip,
-      work.subscriptionId,
-      serializeNotebookDocument,
-      new AuditHistorySource(
-        source === context
-          ? trail
-          : new DynamoAuditTrail(infra.db, infra.auditTable, source.subscriptionId),
-        new S3RevisionReader(source.subscriptionId, infra.s3, infra.contentBucket),
-      ),
-    );
-    await new RunExport(transfers, exporter).execute(work);
+    await observe(startOf(work, correlationIdOfRecord(record)), () => run(work));
   }
+}
+
+async function run(work: TransferWork): Promise<void> {
+  const context = contextOf(work);
+
+  const transfers = new DynamoTransferStore(infra.db, infra.portabilityTable, work.subscriptionId);
+
+  /**
+   * The trail of THIS subscription, read for an export that carries the
+   * history and written for an import that brings one back (RN-PRT-022,
+   * RN-PRT-023).
+   */
+  const trail = new DynamoAuditTrail(infra.db, infra.auditTable, context.subscriptionId);
+
+  if (work.kind === 'import') {
+    const importer = new ImportNotebook(
+      new S3UploadStore(infra.s3, infra.contentBucket),
+      await writerFor(context),
+      readZip,
+      parseNotebookDocument,
+      work.subscriptionId,
+      new ImportedTrailWriter(trail, work.subscriptionId),
+      work.transferId,
+    );
+    await new RunImport(transfers, importer, authorshipOf(work), unexpected).execute(work);
+    return;
+  }
+
+  const source = await sourceOf(work, context);
+  const exporter = new ExportNotebook(
+    new KnowledgeExportSource(buildKnowledge(infra, source)),
+    // The archive is kept, and counted, where the transfer is: under the
+    // person who asked, whoever holds the notebook (RN-ACC-027).
+    new S3ArchiveStore(infra.s3, infra.contentBucket),
+    createZip,
+    work.subscriptionId,
+    serializeNotebookDocument,
+    new AuditHistorySource(
+      source === context
+        ? trail
+        : new DynamoAuditTrail(infra.db, infra.auditTable, source.subscriptionId),
+      new S3RevisionReader(source.subscriptionId, infra.s3, infra.contentBucket),
+    ),
+  );
+  await new RunExport(transfers, exporter, unexpected).execute(work);
 }

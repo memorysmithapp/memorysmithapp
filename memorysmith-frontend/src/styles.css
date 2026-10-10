@@ -935,7 +935,12 @@ a:hover {
   width: 100%;
 }
 .notebook-sidebar {
-  width: 272px;
+  /* It grows with the window, from 272 px up to 400 px, so a long name in a
+     deep folder is cut later on a large screen (#274). It starts growing at
+     1236 px and stops at 1818 px, and the content beside it keeps 78vw — 964
+     px where it starts — which never falls under the 780 px of the reading
+     column; under 1236 px it is 272 px as it always was. */
+  width: clamp(272px, 22vw, 400px);
   flex: none;
   display: flex;
   flex-direction: column;
@@ -1168,15 +1173,17 @@ a:hover {
   line-height: 1;
   color: var(--text-soft);
 }
+/* A block and not a flex box: the ellipsis of a name cut at the edge of the
+   column is drawn only on the text of a block, and a flex box cut it bare
+   (#274). The line height centres the name in its row. */
 .tree-note {
+  display: block;
   height: 28px;
-  display: flex;
-  align-items: center;
   margin: 0 -8px;
   padding: 0 8px;
   border-radius: 6px;
   font-size: 13px;
-  line-height: 1;
+  line-height: 28px;
   color: var(--text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1401,6 +1408,9 @@ a:hover {
    heading of the group it orders. */
 .folder-note-order {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .folder-note-order.is-said {
   color: var(--text-soft);
@@ -1419,10 +1429,65 @@ a:hover {
   line-height: 1.25;
   letter-spacing: -0.015em;
 }
-.folder-group-head span {
+/* The count beside the heading, and only the count: a bare `span` here also
+   reached the labels of the order control and greyed its chosen option (#273). */
+.folder-group-count {
   font-size: 12.5px;
   line-height: 1;
   color: var(--text-soft);
+}
+
+/* A toggletip (#273): an (i) that shows a short text while the pointer rests
+   on it, and keeps it while a click or a tap pinned it. The box is the menu's. */
+.hint-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.hint-trigger {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.hint-trigger:hover,
+.hint-trigger[aria-expanded='true'] {
+  background: var(--hover);
+  color: var(--text);
+}
+.hint-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.hint-bubble {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--menu-shadow);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: start;
+  white-space: normal;
+}
+.hint-bubble[hidden] {
+  display: none;
 }
 .note-row {
   display: flex;
@@ -3831,6 +3896,9 @@ body.has-sheet .app-main {
   .tree-note {
     height: 40px;
   }
+  .tree-note {
+    line-height: 40px;
+  }
   .tree-toggle {
     width: 28px;
     height: 28px;
@@ -5972,6 +6040,42 @@ body.has-sheet .app-main {
   padding: 12px 0;
 }
 
+/* Moving a note to another folder (#265): what goes with it, the folder, and
+   where in it when the folder is kept by hand. A modal on a computer and a
+   sheet on a phone, as the history is. */
+.move-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.move-form .hint,
+.move-explain {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.move-explain {
+  color: var(--text);
+}
+.move-form .ask-dialog-foot {
+  margin-top: 4px;
+}
+.move-refusal {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--danger);
+}
+.move-refusal a {
+  color: var(--accent);
+}
+.move-sheet .ask-dialog-foot {
+  justify-content: stretch;
+}
+.move-sheet .ask-dialog-foot .button {
+  flex: 1;
+}
+
 /* ---- The box and the radio of the Controles, in a transfer (#205) --------
  *
  * Chosen is Tinta (Papel in the dark theme), like everything chosen. A box a
@@ -6788,4 +6892,26 @@ body.has-sheet .app-main {
   .print-preview .pagedjs_page {
     box-shadow: none;
   }
+}
+
+/* ── A note drawn for an agent to see (#260) ──────────────────────────────────
+   The renderer of the server opens this page at a viewport as wide as the
+   reading and captures `.note-preview`, so the element is exactly that wide —
+   700px of text and the margins of the pane — and lies at the top left of the
+   document, over the rows of the window: as tall as what it draws, never cut
+   by a row that scrolls, and over the banner of the environment, which is
+   nothing an agent should read as part of a note. */
+.preview-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 760px;
+  background: var(--bg);
+}
+.note-preview.content-pane {
+  width: 760px;
+  max-width: none;
+  margin: 0;
+  padding: 24px 30px 32px;
 }

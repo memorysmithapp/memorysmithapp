@@ -145,6 +145,109 @@ test.describe('a note as a PDF made by the server', () => {
   });
 });
 
+interface PreviewDto {
+  previewId: string;
+  status: 'running' | 'ready' | 'failed';
+  image?: {
+    mimeType: string;
+    base64: string;
+    width: number;
+    height: number;
+    drawnHeight: number;
+    cut: boolean;
+  };
+  failure?: string;
+}
+
+/** Starts a preview and waits for the renderer to draw it, or say why it did not. */
+async function previewed(
+  api: Api,
+  notebookId: string,
+  body: Record<string, unknown>,
+): Promise<PreviewDto> {
+  const started = await api.ok<PreviewDto>(
+    'POST',
+    `/portability/notebooks/${notebookId}/previews`,
+    body,
+  );
+  expect(started.status).toBe('running');
+  return eventually(
+    'the preview to end',
+    () => api.ok<PreviewDto>('GET', `/portability/previews/${started.previewId}`),
+    (preview) => preview.status !== 'running',
+    { timeoutMs: 180_000, intervalMs: 2_000 },
+  );
+}
+
+/** The width and the height a PNG declares in its header. */
+function pngSize(bytes: Buffer): { width: number; height: number } {
+  expect(bytes.subarray(1, 4).toString('latin1')).toBe('PNG');
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+test.describe('a note drawn as an image an agent can see', () => {
+  test('[route:POST /portability/notebooks/:v/previews] [route:GET /portability/previews/:p] draws a part of a note and a draft at the reading width, and says why it drew nothing (#260)', async ({
+    owner,
+    notebook,
+  }, testInfo) => {
+    test.setTimeout(420_000);
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content:
+          '---\nname: Limites do plano\n---\n\nIntro.\n\n## Limites\n\n> [!warning] Limites\n> | Plano | Notas |\n> | --- | --- |\n> | Free | 100 |\n\n## Outro\n\nFim.\n',
+      },
+    );
+    const part = await previewed(owner, notebook.notebookId, { noteId, part: '#Limites' });
+    expect(part.failure ?? null).toBeNull();
+    expect(part.image?.mimeType).toBe('image/png');
+    const png = Buffer.from(part.image?.base64 ?? '', 'base64');
+    const size = pngSize(png);
+    expect(size.width).toBe(760);
+    expect(size.height).toBeLessThanOrEqual(1600);
+    expect(size).toEqual({ width: part.image?.width, height: part.image?.height });
+    await testInfo.attach('part of a note', { body: png, contentType: 'image/png' });
+
+    // A draft taller than the tallest image is cut there, and says so.
+    const tall = Array.from({ length: 120 }, (_, n) => `Line ${n + 1} of a long draft.`).join(
+      '\n\n',
+    );
+    const draft = await previewed(owner, notebook.notebookId, {
+      content: `---\nname: Rascunho\n---\n\n${tall}\n`,
+      folderId: notebook.folderId,
+    });
+    expect(draft.image).toMatchObject({ width: 760, height: 1600, cut: true });
+    expect(draft.image?.drawnHeight).toBeGreaterThan(1600);
+    await testInfo.attach('a long draft, cut', {
+      body: Buffer.from(draft.image?.base64 ?? '', 'base64'),
+      contentType: 'image/png',
+    });
+
+    const missing = await previewed(owner, notebook.notebookId, { noteId, part: '#Nenhuma' });
+    expect(missing).toMatchObject({ status: 'failed', failure: 'PART_NOT_FOUND' });
+    const unknown = await previewed(owner, notebook.notebookId, { noteId: unknownId() });
+    expect(unknown).toMatchObject({ status: 'failed', failure: 'NOT_FOUND' });
+
+    // A note and a draft at once is refused before anything is drawn, and a
+    // notebook the caller cannot read starts nothing at all.
+    const both = await owner.call(
+      'POST',
+      `/portability/notebooks/${notebook.notebookId}/previews`,
+      {
+        noteId,
+        content: '# x',
+      },
+    );
+    expect(both.status).toBe(400);
+    const refused = await owner.call('POST', `/portability/notebooks/${unknownId()}/previews`, {
+      noteId,
+    });
+    expect(refused.status).toBe(404);
+  });
+});
+
 test.describe('a notebook out and back in', () => {
   test('[route:POST /portability/notebooks/:v/export] [route:GET /portability/transfers/:t] [route:POST /portability/transfers/:t/download] [route:POST /portability/imports] [route:POST /portability/imports/apply] exports a notebook as a job and imports it back as the same notebook', async ({
     owner,

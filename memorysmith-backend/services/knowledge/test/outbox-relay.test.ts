@@ -68,6 +68,19 @@ describe('OutboxRelay', () => {
     expect(detail['contentRef']).toMatchObject({ versionId: 'v1', bytes: 12 });
   });
 
+  it('carries the correlation id of the request that wrote the event onto the bus', async () => {
+    const { relay, busCalls } = fakes();
+    await relay.process([{ ...outboxItem, correlationId: 'corr-from-the-edge' }]);
+    const entries = (busCalls[0] as { input: { Entries: Array<Record<string, unknown>> } }).input
+      .Entries;
+    const detail = JSON.parse(String(entries[0]?.['Detail'])) as Record<string, unknown>;
+    expect(detail['correlationId']).toBe('corr-from-the-edge');
+  });
+
+  it('publishes an item written before the correlation id existed, without one', () => {
+    expect(envelopeOf(outboxItem)).not.toHaveProperty('correlationId');
+  });
+
   it('refuses to publish an envelope that does not match its contract', async () => {
     const { relay } = fakes();
     const broken = { ...outboxItem, payload: { notebookId: NOTEBOOK } };
@@ -127,6 +140,40 @@ describe('OutboxRelay', () => {
     ]);
     // Reordering moves no note in or out of a folder, so no counter moves.
     expect(reorder.dbCalls).toHaveLength(0);
+  });
+
+  it('moves a note out of one folder counter and into another, within a notebook (#265)', async () => {
+    const OTHER_FOLDER = '01JBQ2X0000000000000000008';
+    const { relay, dbCalls } = fakes();
+    await relay.process([
+      {
+        ...outboxItem,
+        type: 'NoteMoved',
+        payload: {
+          noteId: NOTE,
+          fromNotebookId: NOTEBOOK,
+          fromFolderId: FOLDER,
+          toNotebookId: NOTEBOOK,
+          toFolderId: OTHER_FOLDER,
+          position: 'a0',
+        },
+      },
+    ]);
+    const items = (
+      dbCalls[0] as { input: { TransactItems: Array<Record<string, Record<string, unknown>>> } }
+    ).input.TransactItems;
+    const deltaOf = (sk: string) =>
+      items
+        .map((item) => item['Update'])
+        .filter((update) => (update?.['Key'] as Record<string, unknown> | undefined)?.['SK'] === sk)
+        .map(
+          (update) => (update?.['ExpressionAttributeValues'] as Record<string, unknown>)[':delta'],
+        );
+
+    expect(deltaOf(`FSTAT#${FOLDER}`)).toEqual([-1]);
+    expect(deltaOf(`FSTAT#${OTHER_FOLDER}`)).toEqual([1]);
+    // The notebook holds as many notes as it did.
+    expect(deltaOf('FSTAT')).toEqual([]);
   });
 
   it('publishes a batch of the stream in calls of at most ten events, and counts them all', async () => {

@@ -23,7 +23,8 @@ import {
 } from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource, SqsDlq, SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { mandatoryAlarm } from '../constructs/alarms.js';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties, CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
 import {
@@ -47,6 +48,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { ServiceLambda } from '../constructs/service-lambda.js';
+import { accessLogOf } from '../constructs/access-log.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
@@ -296,7 +298,7 @@ export class ApiStack extends Stack {
     // The depth of the relay dead-letter queue is one of the four mandatory
     // alarms (section 17): a message sitting there is an event that never
     // reached the trail.
-    new Alarm(this, 'RelayDeadLetterDepth', {
+    mandatoryAlarm(this, 'RelayDeadLetterDepth', {
       alarmDescription: 'Outbox relay: messages in the dead-letter queue',
       metric: relayDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -400,7 +402,7 @@ export class ApiStack extends Stack {
 
     // A message in this queue is content that was deleted and still exists,
     // which is a promise of the product left unkept.
-    new Alarm(this, 'PurgeDeadLetterDepth', {
+    mandatoryAlarm(this, 'PurgeDeadLetterDepth', {
       alarmDescription: 'Content purge: messages in the dead-letter queue',
       metric: purgeDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -472,7 +474,7 @@ export class ApiStack extends Stack {
     props.data.auditTable.grantReadAndAppend(transfers.function);
 
     // A message here is an export somebody asked for and will never get.
-    new Alarm(this, 'TransferDeadLetterDepth', {
+    mandatoryAlarm(this, 'TransferDeadLetterDepth', {
       alarmDescription: 'Transfer worker: messages in the dead-letter queue',
       metric: transferDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -481,7 +483,7 @@ export class ApiStack extends Stack {
       treatMissingData: TreatMissingData.NOT_BREACHING,
     });
 
-    // ---- The renderer of prints (#263) ---------------------------------------
+    // ---- The renderer of prints and previews (#263, #260) -------------------
 
     const chromium = new LayerVersion(this, 'Chromium', {
       code: Code.fromAsset(chromiumBinaries),
@@ -492,7 +494,8 @@ export class ApiStack extends Stack {
 
     const printer = new ServiceLambda(this, 'PrintRenderer', {
       entry: join(backend, 'apps', 'core-monolith', 'src', 'print.handler.ts'),
-      description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
+      description:
+        'Opens the print or the preview page of a note as the person who asked, and saves it as a PDF or a PNG.',
       environment: {
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
         // The page is opened on the application, and reaches its API and the
@@ -512,12 +515,15 @@ export class ApiStack extends Stack {
     // One note at a time: a browser draws one page well, and a batch would
     // make one long note hold up the others.
     printer.function.addEventSource(new SqsEventSource(printQueue, { batchSize: 1 }));
-    // It writes the file, or the reason there is none, under `prints/` alone:
-    // it reads nothing of the bucket, and the page reads the note through the
-    // API, as the person who asked.
+    // It writes the file, or the reason there is none, under `prints/` and
+    // `previews/` alone, and reads only the draft a preview draws (#260),
+    // which the API kept under `previews/`: the page reads everything else
+    // through the API, as the person who asked.
     props.data.contentBucket.grantPut(printer.function, 's/*/prints/*');
+    props.data.contentBucket.grantPut(printer.function, 's/*/previews/*');
+    props.data.contentBucket.grantRead(printer.function, 's/*/previews/*');
 
-    new Alarm(this, 'PrintDeadLetterDepth', {
+    mandatoryAlarm(this, 'PrintDeadLetterDepth', {
       alarmDescription: 'Print renderer: messages in the dead-letter queue',
       metric: printDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -547,12 +553,16 @@ export class ApiStack extends Stack {
           CorsHttpMethod.OPTIONS,
         ],
         allowHeaders: ['authorization', 'content-type'],
-        // What answered, readable by the interface and by a test (section 23.3).
-        exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version'],
+        // What answered, readable by the interface and by a test (section 23.3),
+        // and the id its log lines are found by (section 17).
+        exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version', 'x-correlation-id'],
         maxAge: Duration.hours(1),
       },
       defaultDomainMapping: { domainName: domain },
     });
+
+    // One line per request the gateway answered, its refusals included (section 17).
+    accessLogOf(this, 'ApiAccessLogs', this.httpApi);
 
     // The gateway refuses an unsigned request before it reaches the function,
     // and the function checks that the gateway did (section 14.1).

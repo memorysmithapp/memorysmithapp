@@ -330,6 +330,16 @@ export function updateNote(
     .then((note) => note.revision.versionId);
 }
 
+/** A note to another folder of its notebook, keeping its history (RN-KNW-057). */
+export async function moveNote(
+  notebookId: string,
+  noteId: string,
+  toFolderId: string,
+  afterNoteId: string | null,
+): Promise<void> {
+  await backend.moveNote(notebookId, noteId, { toFolderId, afterNoteId });
+}
+
 export function putGuidance(
   notebookId: string,
   content: string,

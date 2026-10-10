@@ -24,6 +24,7 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'memorysmith.app',
     hostedZoneId: 'ZPRODUCTION',
+    alarms: true,
     delegations: [
       {
         recordName: 'stg',
@@ -41,6 +42,7 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'stg.memorysmith.app',
     hostedZoneId: 'ZSTAGING',
+    alarms: false,
     delegations: [],
   },
 };
@@ -48,7 +50,12 @@ const ENVIRONMENTS = {
 function appFor(environment: string): App {
   // No bundling: these cases read templates, and a Lambda bundle is not one.
   return new App({
-    context: { environment, environments: ENVIRONMENTS, 'aws:cdk:bundling-stacks': [] },
+    context: {
+      environment,
+      environments: ENVIRONMENTS,
+      alarmEmail: 'operator@example.com',
+      'aws:cdk:bundling-stacks': [],
+    },
   });
 }
 
@@ -76,7 +83,9 @@ function stacksOf(app: App, environment: EnvironmentConfig) {
 
 describe('the environment of a synth', () => {
   it('is production when none is named', () => {
-    const app = new App({ context: { environments: ENVIRONMENTS } });
+    const app = new App({
+      context: { environments: ENVIRONMENTS, alarmEmail: 'operator@example.com' },
+    });
     expect(environmentOf(app.node).name).toBe('production');
   });
 

@@ -44,6 +44,8 @@ import {
 } from '@memorysmith/svc-portability/adapters/http';
 import type { NotebookWriter } from '@memorysmith/svc-portability/application/import';
 import type { FileKeeper } from '@memorysmith/svc-portability/application/uploads';
+import { annotate, type Channel } from '@memorysmith/observability';
+import { operationErrorHandler, operationLog } from '@memorysmith/observability/hono';
 
 export interface AppDependencies {
   /** The environment, the version and the commit this function was deployed as (23.3). */
@@ -93,6 +95,12 @@ export interface AppDependencies {
     request: KnowledgeRequest,
     notebookId: string,
   ) => Promise<KnowledgeRequest | null>;
+  /**
+   * The app client of the connector proxy: a token issued to it came through
+   * an agent's connector, and its requests are logged on the `mcp` channel
+   * (section 17). Absent, every request is logged as the interface's.
+   */
+  readonly connectorClientId?: string;
 }
 
 /** The notebook a Knowledge, Discovery or Audit path addresses, when it addresses one. */
@@ -117,8 +125,32 @@ function fail(c: Context, error: DomainError): Response {
   );
 }
 
+/**
+ * Who a request is, told to its log line as soon as it is known: identifiers
+ * only, never a name or an address (section 17).
+ */
+function annotateCaller(deps: AppDependencies, session: AccessRequest): void {
+  const channel: Channel =
+    deps.connectorClientId !== undefined && session.credential.clientId === deps.connectorClientId
+      ? 'mcp'
+      : 'web';
+  annotate({
+    userId: session.profile.userId.value,
+    channel,
+    ...(session.context ? { subscriptionId: session.context.subscriptionId.value } : {}),
+  });
+}
+
 export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
+
+  /**
+   * One line per request, written when its answer is known, under the
+   * correlation id the connector handed or the one the gateway gave
+   * (section 17). First, so a refusal and a preflight are written too.
+   */
+  app.use('*', operationLog());
+  app.onError(operationErrorHandler);
 
   /**
    * Every response says what answered it, a refusal and a preflight included:
@@ -162,6 +194,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
   app.use('/access/*', async (c: Context<{ Variables: Variables }>, next: Next) => {
     const session = await authenticate(deps.verifier, c.req.header('authorization'));
     if (!session.ok) return fail(c, session.error);
+    annotateCaller(deps, session.value);
     c.set('access', session.value);
     await next();
   });
@@ -177,10 +210,16 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
     async (c: Context<{ Variables: Variables }>, next: Next) => {
       const session = await authenticate(deps.verifier, c.req.header('authorization'));
       if (!session.ok) return fail(c, session.error);
+      annotateCaller(deps, session.value);
       c.set('access', session.value);
 
       const resolved = await deps.resolveContext(session.value);
       if (!resolved.ok) return fail(c, resolved.error);
+      // The connector the proxy bound this token to, by the name it gave itself.
+      const authorship = resolved.value.authorship;
+      if (authorship.ok && authorship.value.agent) {
+        annotate({ channel: 'mcp', agentClient: authorship.value.agent.clientName });
+      }
       // A notebook shared with this session reads under the subscription that
       // owns it, as this person, read-only (RN-ACC-026, RN-ACC-027). Portability
       // is not among the paths: an export of a shared notebook is kept where

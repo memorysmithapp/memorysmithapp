@@ -11,6 +11,8 @@ import { recordLatency } from './api.js';
 export interface ToolAnswer {
   readonly text: string;
   readonly isError: boolean;
+  /** The images the answer carries, as MCP declares them: base64 and a type (#260). */
+  readonly images: ReadonlyArray<{ readonly data: string; readonly mimeType: string }>;
 }
 
 export async function connectAgent(mcp: string, token: string): Promise<Client> {
@@ -32,13 +34,21 @@ export async function callTool(
   const result = await client.callTool({ name, arguments: args });
   recordLatency(`tool ${name}`, performance.now() - started);
 
-  const content = (result.content ?? []) as Array<{ type: string; text?: string }>;
+  const content = (result.content ?? []) as Array<{
+    type: string;
+    text?: string;
+    data?: string;
+    mimeType?: string;
+  }>;
   return {
     text: content
       .filter((part) => part.type === 'text')
       .map((part) => part.text ?? '')
       .join('\n'),
     isError: result.isError === true,
+    images: content
+      .filter((part) => part.type === 'image')
+      .map((part) => ({ data: part.data ?? '', mimeType: part.mimeType ?? '' })),
   };
 }
 

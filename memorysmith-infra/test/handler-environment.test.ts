@@ -32,6 +32,7 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'stg.memorysmith.app',
     hostedZoneId: 'ZSTAGING',
+    alarms: false,
     delegations: [],
   },
 };
@@ -60,7 +61,8 @@ const HANDLERS: ReadonlyArray<{ entry: string; description: string }> = [
   },
   {
     entry: 'memorysmith-backend/apps/core-monolith/src/print.handler.ts',
-    description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
+    description:
+      'Opens the print or the preview page of a note as the person who asked, and saves it as a PDF or a PNG.',
   },
   {
     entry: 'memorysmith-backend/services/audit/src/main/handler.ts',

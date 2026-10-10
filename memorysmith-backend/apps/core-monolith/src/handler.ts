@@ -123,9 +123,15 @@ import {
   StartExport,
   StartImport,
 } from '@memorysmith/svc-portability/application/transfers';
-import { SqsPrintQueue, SqsTransferQueue } from '@memorysmith/svc-portability/adapters/sqs';
+import {
+  SqsPreviewQueue,
+  SqsPrintQueue,
+  SqsTransferQueue,
+} from '@memorysmith/svc-portability/adapters/sqs';
 import { S3PrintStore } from '@memorysmith/svc-portability/adapters/prints';
+import { S3PreviewStore } from '@memorysmith/svc-portability/adapters/previews';
 import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
+import { GetPreview, StartPreview } from '@memorysmith/svc-portability/application/previews';
 import { SQSClient } from '@aws-sdk/client-sqs';
 import {
   ImportFromExport,
@@ -584,6 +590,19 @@ const portabilityUseCases: PortabilityUseCases = {
       new S3PrintStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
       request.subscription.subscriptionId.value,
     ),
+  // How a note is drawn, for an agent to see (#260, RN-PRT-032): the renderer
+  // of prints draws it, from the same queue.
+  startPreview: (request) =>
+    new StartPreview(
+      new SqsPreviewQueue(sqs, printQueueUrl),
+      new S3PreviewStore(infra.s3, infra.contentBucket),
+      request.subscription.subscriptionId.value,
+    ),
+  getPreview: (request) =>
+    new GetPreview(
+      new S3PreviewStore(infra.s3, infra.contentBucket),
+      request.subscription.subscriptionId.value,
+    ),
 };
 
 function discoveryFor(context: SubscriptionContext) {
@@ -618,6 +637,8 @@ function discoveryFor(context: SubscriptionContext) {
 const app = createApp({
   deployment: deploymentFromVariables(process.env),
   verifier,
+  // A token of the proxy's app client is an agent's, and its line says so (section 17).
+  connectorClientId,
   connectorBindings: {
     verifier,
     connectorClientId,

@@ -91,6 +91,11 @@ jobs:
           role-session-name: production-${{ github.run_id }}
           role-duration-seconds: 7200
       - name: Deliver
+        env:
+          # Who the alarms of production notify (section 17, #267): a variable of
+          # this environment, never a line of cdk.json, because the repository is
+          # public. Without it the delivery refuses before it builds anything.
+          ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}
         run: pnpm -C memorysmith-infra deliver --environment production
 
   release:

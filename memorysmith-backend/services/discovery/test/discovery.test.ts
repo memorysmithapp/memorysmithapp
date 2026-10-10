@@ -98,6 +98,51 @@ describe('LinkExtractor: a target is a name', () => {
   });
 });
 
+/**
+ * Code is recognised by the fence and span rules of the specification, and not
+ * by a pattern of backticks (#266). The failures the issue named are cases of
+ * the conformance suite; these are the edges of the same rules that a suite of
+ * whole notes would not reach.
+ */
+describe('LinkExtractor: what is code is decided by its fences', () => {
+  const names = (markdown: string): string[] => extractLinks(markdown).map((link) => link.name);
+
+  it('does not open a fence on a line of backticks whose info string holds a backtick', () => {
+    // ```` ```js``` ```` is a code span in a paragraph, and the link after it is prose.
+    expect(names('```js``` and [[Real]]\n\n[[Also real]]\n')).toEqual(['Real', 'Also real']);
+  });
+
+  it('opens a tilde fence whose info string holds backticks', () => {
+    expect(names('~~~ `odd` info\n[[Inner]]\n~~~\n\n[[Real]]\n')).toEqual(['Real']);
+  });
+
+  it('does not close a fence on a line that holds more than the run', () => {
+    expect(names('```\n``` not a close [[Inner]]\n```\n\n[[Real]]\n')).toEqual(['Real']);
+  });
+
+  it('reads a note written with CRLF line endings the same way', () => {
+    expect(names('```\r\n[[Inner]]\r\n```\r\n\r\n[[Real]]\r\n')).toEqual(['Real']);
+  });
+
+  it('treats an unpaired backtick as text, and the link after it as a link', () => {
+    expect(names('A lone ` backtick, then [[Real]].')).toEqual(['Real']);
+    expect(names('A pair ``of two` is no span, so [[Real]] counts.')).toEqual(['Real']);
+  });
+
+  it('lets an escaped backtick open nothing', () => {
+    expect(names('An escaped \\` then [[Real]] then a ` lone one.')).toEqual(['Real']);
+  });
+
+  it('keeps a span inside its line, so a stray backtick erases no link below it', () => {
+    expect(names('A stray ` here\n\n[[Real]]\n\nand ` there.')).toEqual(['Real']);
+  });
+
+  it('keeps the line a definition starts after a block, so the reference still resolves', () => {
+    const links = names('```\ncode\n```\n[ref]: ./lei-14133.md\n\nSee [the act][ref].\n');
+    expect(links).toEqual(['lei-14133']);
+  });
+});
+
 describe('FacetExtractor: classification by the shape of the value', () => {
   it('reads only the frontmatter block', () => {
     const facets = extractFacets('---\nmaturity: growing\n---\n\nmaturity: no corpo nao conta');

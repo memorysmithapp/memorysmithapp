@@ -18,6 +18,7 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'memorysmith.app',
     hostedZoneId: 'ZPRODUCTION',
+    alarms: true,
     delegations: [],
   },
   staging: {
@@ -25,12 +26,15 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'stg.memorysmith.app',
     hostedZoneId: 'ZSTAGING',
+    alarms: false,
     delegations: [],
   },
 };
 
 function synth(): Template {
-  const app = new App({ context: { environments: ENVIRONMENTS } });
+  const app = new App({
+    context: { environments: ENVIRONMENTS, alarmEmail: 'operator@example.com' },
+  });
   const named = (name: string) =>
     environmentOf({
       tryGetContext: (key) => (key === 'environment' ? name : app.node.tryGetContext(key)),

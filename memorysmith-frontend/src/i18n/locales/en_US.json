@@ -130,8 +130,11 @@
     "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet.",
     "noteOrder": "Order of the notes",
-    "noteOrderManual": "As written",
+    "noteOrderManual": "Manual",
     "noteOrderAlphabetical": "Alphabetical",
+    "noteOrderHint": "What the order of the notes does",
+    "noteOrderHintManual": "The notes keep the position they were given in this folder, by you or by an agent.",
+    "noteOrderHintAlphabetical": "The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.",
     "notesByName": "In alphabetical order",
     "noteOrderFailed": "The order of the notes was not changed. Try again."
   },
@@ -679,6 +682,24 @@
       "EMPTY": "This file is empty.",
       "NO_TYPE": "The browser did not say what type this file is, so it cannot be kept."
     }
+  },
+  "move": {
+    "short": "Move",
+    "open": "Move this note to another folder of the notebook",
+    "title": "Move to another folder",
+    "explain": "The note keeps its history, and every link to it keeps working: a link finds a note by its name, never by its folder.",
+    "folder": "Folder",
+    "current": "{{folder}} (where it is)",
+    "noOther": "This notebook has no other folder to move it to.",
+    "where": "Where in the folder",
+    "atEnd": "At the end",
+    "after": "After {{name}}",
+    "byName": "This folder orders its notes by name, so the note will appear by its name.",
+    "move": "Move",
+    "moving": "Moving…",
+    "nameTaken": "“{{folder}}” already holds a note named “{{name}}”, and a folder holds one note of each name. Nothing was moved.",
+    "openHolder": "Open that note",
+    "moved": "Moved to {{folder}}."
   },
   "history": {
     "heading": "History of this note",

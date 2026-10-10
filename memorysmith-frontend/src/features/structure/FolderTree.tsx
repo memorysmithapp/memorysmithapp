@@ -48,6 +48,9 @@ function TreeNote({
         ref={ref}
         className={`tree-note${isActive ? ' active' : ''}`}
         to={noteAddress(notebookId, note.id)}
+        // A long name is cut at the width of the column, and the pointer
+        // reads it whole (#274).
+        title={note.name ?? t('note.unnamed')}
       >
         {note.name ?? t('note.unnamed')}
       </Link>
@@ -89,7 +92,13 @@ function FolderItem({
         >
           <ChevronRightIcon width={13} height={13} strokeWidth={2.2} />
         </button>
-        <Link ref={linkRef} to={folderAddress(notebookId, folder.id)} title={folder.description}>
+        <Link
+          ref={linkRef}
+          to={folderAddress(notebookId, folder.id)}
+          // The whole name first, since the row may cut it (#274), and what
+          // the folder keeps under it.
+          title={folder.description ? `${folder.name}\n${folder.description}` : folder.name}
+        >
           {folder.name}
         </Link>
         <FolderCount folder={folder} className="tree-count" />

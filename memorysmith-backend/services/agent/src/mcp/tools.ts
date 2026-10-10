@@ -15,6 +15,7 @@
 import {
   ulidSchema,
   type Deployment,
+  type PreviewDto,
   type TransferDto,
   type UploadStatusDto,
   type NoteOrder,
@@ -35,8 +36,23 @@ import {
   type RelatedNode,
 } from './gateway.js';
 
+/**
+ * What a result carries: text, and an image where a tool answers one (#260).
+ * An image is base64 with its type, as MCP declares it; a client that does not
+ * hand images to its model keeps the text beside it.
+ */
+export type ToolContent =
+  | { readonly type: 'text'; readonly text: string }
+  | {
+      readonly type: 'image';
+      readonly data: string;
+      readonly mimeType: string;
+      /** Never set: an image has no text, and reading one beside the text answers nothing. */
+      readonly text?: undefined;
+    };
+
 export interface ToolResult {
-  readonly content: Array<{ type: 'text'; text: string }>;
+  readonly content: ToolContent[];
   readonly isError: boolean;
 }
 
@@ -62,7 +78,16 @@ function json(value: unknown): ToolResult {
  * before any service is asked (#248): one tool answering "not found" where the
  * others answer "not an identifier" sent an agent after a notebook it had.
  */
-const IDENTIFIER_ARGUMENTS = ['notebook', 'folder', 'note', 'file', 'upload', 'parent', 'after'];
+const IDENTIFIER_ARGUMENTS = [
+  'notebook',
+  'folder',
+  'note',
+  'file',
+  'upload',
+  'parent',
+  'after',
+  'preview',
+];
 
 function canonicalIdentifiers(
   args: Record<string, unknown>,
@@ -77,8 +102,8 @@ function canonicalIdentifiers(
       throw new GatewayError(
         'VALIDATION',
         `${tool}: "${name}" is not an identifier: "${value}". An identifier is the 26 ` +
-          'characters list_notebooks, get_notebook_context, list_notes, list_files and ' +
-          'list_file_uploads answer, in either case.',
+          'characters list_notebooks, get_notebook_context, list_notes, list_files, ' +
+          'list_file_uploads and preview_note answer, in either case.',
       );
     }
     canonical[name] = parsed.data;
@@ -251,6 +276,57 @@ function optionalAnchor(args: Record<string, unknown>): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/**
+ * Why a preview drew nothing, in the words an agent acts on (RN-AGT-050).
+ */
+const PREVIEW_FAILURES: Readonly<Record<string, string>> = {
+  NOT_FOUND:
+    'the note, or the folder of the draft, is not in this notebook, or not one this ' +
+    'connection reads. Check the identifier with list_notes or get_notebook_context.',
+  PART_NOT_FOUND:
+    'the note holds no such part. A section is addressed by the text of its heading, ' +
+    '`#Section`; a block by the identifier written at its end, `#^block`.',
+  SESSION:
+    'the page could not be opened as the person, because the session of this connection ' +
+    'ended. Start the preview again; if it repeats, the person reconnects the connector.',
+  TIMED_OUT: 'the page was not drawn in time. Start the preview again with preview_note.',
+};
+
+/**
+ * A preview drawn (#260, RN-AGT-050): the image, and one line with the size it
+ * was drawn at and whether it was cut — which is what a client that shows the
+ * model no image still gets.
+ */
+function previewAnswer(preview: PreviewDto): ToolResult {
+  if (preview.status === 'running') {
+    return text(
+      `The preview ${preview.previewId} is still being drawn. Ask again with get_preview in a ` +
+        'few seconds: a drawing takes from 3 to 15 seconds, more the first time in a while.',
+    );
+  }
+  const image = preview.image;
+  if (preview.status === 'failed' || !image) {
+    const failure = preview.failure ?? 'FAILED';
+    return text(
+      `${failure}: nothing was drawn: ` +
+        (PREVIEW_FAILURES[failure] ?? 'the drawing failed. Start it again with preview_note.'),
+      true,
+    );
+  }
+  const line = image.cut
+    ? `Drawn at ${image.width}×${image.drawnHeight} px and cut at ${image.height}: the image ` +
+      `shows the top ${image.width}×${image.height}. Preview a part, \`#Section\` or ` +
+      '`#^block`, to see the rest.'
+    : `Drawn at ${image.width}×${image.height} px.`;
+  return {
+    content: [
+      { type: 'image', data: image.base64, mimeType: image.mimeType },
+      { type: 'text', text: line },
+    ],
+    isError: false,
+  };
+}
+
 function renderRelated(node: RelatedNode, indent = 0): string {
   // Two notes of one name live in two folders, and the folder is what tells
   // the two lines apart.
@@ -285,9 +361,20 @@ function noteAnswer(note: NoteContent): ToolResult {
  * also what a create retried after a lost answer receives, and there the note
  * named IS the one the first call wrote (RN-AGT-024).
  */
-function nameTakenAnswer(error: GatewayError): string | null {
+function nameTakenAnswer(error: GatewayError, tool: string): string | null {
   const details = error.details as { code?: string; noteId?: string; name?: string } | undefined;
   if (details?.code !== 'ALREADY_EXISTS' || !details.noteId) return null;
+  // A move carries the name it already has: there is no retry to recognise,
+  // only two notes of one name, of which one has to change or stay (RN-AGT-049).
+  if (tool === 'move_note') {
+    return (
+      `ALREADY_EXISTS: the destination folder already holds a note named ` +
+      `"${details.name ?? ''}", ${details.noteId}, and a folder holds one note of each name. ` +
+      'Nothing was moved. Read that note with read_note: if it is the same material, tell the ' +
+      'person before merging the two; otherwise rename one of them with update_note, or leave ' +
+      'the note where it is.'
+    );
+  }
   return (
     `ALREADY_EXISTS: this folder already holds a note named "${details.name ?? ''}", ` +
     `${details.noteId}, and a folder holds one note of each name. Nothing was written. ` +
@@ -314,7 +401,7 @@ export class McpToolAdapter {
       return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
     } catch (error) {
       if (error instanceof GatewayError) {
-        const taken = nameTakenAnswer(error);
+        const taken = nameTakenAnswer(error, name);
         if (taken) return text(taken, true);
         // Actionable text, plus whatever the caller needs for the next attempt.
         const details = error.details ? `\n\n${JSON.stringify(error.details, null, 2)}` : '';
@@ -846,6 +933,18 @@ export class McpToolAdapter {
           }),
         );
 
+      case 'move_note': {
+        const after = optionalAnchor(args);
+        return json(
+          await knowledge.moveNote(caller, {
+            notebookId: requireString(args, 'notebook', 'move_note'),
+            noteId: requireString(args, 'note', 'move_note'),
+            folderId: requireString(args, 'folder', 'move_note'),
+            ...(after === undefined ? {} : { afterNoteId: after }),
+          }),
+        );
+      }
+
       case 'search_notes':
         return json(
           await knowledge.searchNotes(
@@ -898,6 +997,53 @@ export class McpToolAdapter {
           unshownFiles: check.unshownFiles,
           openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),
         });
+      }
+
+      /**
+       * How a note, a draft or a part of either is drawn (#260, RN-AGT-050):
+       * two steps, because drawing takes longer than a call may wait.
+       */
+      case 'preview_note': {
+        const notebook = requireString(args, 'notebook', 'preview_note');
+        const note = optionalString(args, 'note');
+        const content = typeof args['content'] === 'string' ? args['content'] : undefined;
+        const folder = optionalString(args, 'folder');
+        const part = optionalString(args, 'part');
+        if ((note === undefined) === (content === undefined)) {
+          throw new GatewayError(
+            'VALIDATION',
+            'preview_note takes `note`, a note already written, or `content`, a draft not ' +
+              'written yet: exactly one of the two. Nothing was drawn.',
+          );
+        }
+        if (note !== undefined && folder !== undefined) {
+          throw new GatewayError(
+            'VALIDATION',
+            'preview_note takes `folder` with `content`, the folder a draft would be written ' +
+              'in; a note is drawn where it is. Nothing was drawn.',
+          );
+        }
+        const started = await knowledge.startPreview(caller, {
+          notebookId: notebook,
+          ...(note === undefined ? {} : { noteId: note }),
+          ...(content === undefined ? {} : { content }),
+          ...(folder === undefined ? {} : { folderId: folder }),
+          ...(part === undefined ? {} : { part }),
+        });
+        return json({
+          preview: started.previewId,
+          notebook,
+          next:
+            'Call get_preview with this preview and notebook in a few seconds: a drawing takes ' +
+            'from 3 to 15 seconds, more the first time in a while.',
+        });
+      }
+
+      case 'get_preview': {
+        requireString(args, 'notebook', 'get_preview');
+        return previewAnswer(
+          await knowledge.getPreview(caller, requireString(args, 'preview', 'get_preview')),
+        );
       }
 
       case 'note_history':

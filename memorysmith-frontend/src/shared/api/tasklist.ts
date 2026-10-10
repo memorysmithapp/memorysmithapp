@@ -10,6 +10,8 @@
  * a file nobody typed.
  */
 
+import { fenceRegions } from './markdown';
+
 /** A task item, as GFM defines it, at the start of a list item. */
 const TASK = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+\[([ xX])\]/gm;
 
@@ -18,12 +20,19 @@ const TASK = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+\[([ xX])\]/gm;
  * inside a fence is an example, not a box, and counting it would shift the
  * index and toggle a different item: the worst possible defect here, because
  * it is silent and lands in the wrong place.
+ *
+ * The fences are the ones the reading surface finds, by the rules of the
+ * profile (#266): a longer outer fence holds a shorter inner one, so a box
+ * written after the inner fence closes is still an example.
  */
 function maskFences(text: string): string {
-  return text.replace(
-    /(^|\n)(```|~~~)[\s\S]*?(\n\2|$)/g,
-    (block, lead: string) => lead + ' '.repeat(block.length - lead.length),
-  );
+  let masked = '';
+  let cursor = 0;
+  for (const [start, end] of fenceRegions(text)) {
+    masked += text.slice(cursor, start) + text.slice(start, end).replace(/[^\n]/g, ' ');
+    cursor = end;
+  }
+  return masked + text.slice(cursor);
 }
 
 /** Offset of the `[` of every real task box, in document order. */

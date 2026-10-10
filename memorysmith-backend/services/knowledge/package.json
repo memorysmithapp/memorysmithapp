@@ -1,6 +1,6 @@
 {
   "name": "@memorysmith/svc-knowledge",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
@@ -17,6 +17,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*",
+    "@memorysmith/observability": "workspace:*",
     "hono": "^4.13.3"
   },
   "exports": {

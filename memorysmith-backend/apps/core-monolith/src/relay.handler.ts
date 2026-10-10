@@ -11,7 +11,8 @@ import type { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
-import { OutboxRelay } from '@memorysmith/svc-knowledge/adapters/relay';
+import { OutboxRelay, envelopeOf } from '@memorysmith/svc-knowledge/adapters/relay';
+import { observeBatch, startOfEvent } from '@memorysmith/observability';
 
 interface StreamEvent {
   Records?: Array<{
@@ -42,5 +43,12 @@ export async function handler(event: StreamEvent): Promise<void> {
     .filter((record) => record.eventName === 'INSERT' && record.dynamodb?.NewImage)
     .map((record) => unmarshall(record.dynamodb?.NewImage ?? {}));
 
-  await relay.process(items);
+  // One line per event published, under the id of the request that wrote it
+  // (section 17). The batch is published as a unit, and fails as one.
+  const events = items.filter((item) => item['entity'] === 'EVENT').map(envelopeOf);
+  await observeBatch(
+    events,
+    (envelope) => startOfEvent(envelope),
+    () => relay.process(items),
+  );
 }

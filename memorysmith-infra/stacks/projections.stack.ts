@@ -17,7 +17,8 @@ import { Rule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction, SqsQueue } from 'aws-cdk-lib/aws-events-targets';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { mandatoryAlarm } from '../constructs/alarms.js';
 import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -122,7 +123,7 @@ export class ProjectionsStack extends Stack {
     );
     props.data.discoveryTable.table.grantReadWriteData(projector.function);
     props.data.contentBucket.grantRead(projector.function);
-    new Alarm(this, 'ProjectionDeadLetterDepth', {
+    mandatoryAlarm(this, 'ProjectionDeadLetterDepth', {
       alarmDescription: 'Discovery projector: messages in the dead-letter queue',
       metric: projectionDlq.metricApproximateNumberOfMessagesVisible({
         period: Duration.minutes(5),

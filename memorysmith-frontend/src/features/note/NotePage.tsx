@@ -22,11 +22,13 @@ import {
   CheckIcon,
   CopyIcon,
   HistoryIcon,
+  MoveIcon,
   PencilIcon,
   PrinterIcon,
 } from '../../shared/components/icons';
 import { NoteEditor, type EditOutcome } from './NoteEditor';
 import { NoteHistoryDialog } from './NoteHistory';
+import { MoveNoteDialog } from './MoveNote';
 import { withAlias } from '../../shared/api/markdown';
 import { ApiError } from '../../shared/api/error-mapper';
 import { useQueryClient } from '@tanstack/react-query';
@@ -61,6 +63,13 @@ export function NotePage({ noteId }: { noteId: string }) {
    */
   const [historyOpen, setHistoryOpen] = useState(false);
   const historyButton = useRef<HTMLButtonElement>(null);
+  /**
+   * Whether the move is open (#265), and where the note went once it moved:
+   * the trail says it too, and this says it in a sentence.
+   */
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [movedTo, setMovedTo] = useState<string | null>(null);
+  const moveButton = useRef<HTMLButtonElement>(null);
   const client = useQueryClient();
 
   /**
@@ -100,6 +109,7 @@ export function NotePage({ noteId }: { noteId: string }) {
   useEffect(() => {
     seenRevision.current = null;
     setChangedElsewhere(false);
+    setMovedTo(null);
   }, [noteId]);
   useEffect(() => {
     if (!data) return;
@@ -230,6 +240,17 @@ export function NotePage({ noteId }: { noteId: string }) {
           title={t('print.open')}
           to={printAddress(notebookId, noteId)}
         />
+        {/* To another folder of this notebook, the same note with its history
+            (#265, RN-KNW-057): only a role that writes is offered it. */}
+        {writable ? (
+          <BarButton
+            ref={moveButton}
+            icon={<MoveIcon />}
+            label={t('move.short')}
+            title={t('move.open')}
+            onClick={() => setMoveOpen(true)}
+          />
+        ) : null}
         {/* Only a role that writes ever sees it: a reader gets the copy button
             alone, never a pencil that would refuse them. */}
         {writable ? (
@@ -257,6 +278,15 @@ export function NotePage({ noteId }: { noteId: string }) {
         </h1>
 
         {refusal ? <p className="editor-refusal">{refusal}</p> : null}
+
+        {movedTo ? (
+          <p className="note-changed" role="status">
+            <span>{t('move.moved', { folder: movedTo })}</span>
+            <button type="button" className="link-button" onClick={() => setMovedTo(null)}>
+              {t('note.changedElsewhereDismiss')}
+            </button>
+          </p>
+        ) : null}
 
         {changedElsewhere && !editing && (
           <p className="note-changed" role="status">
@@ -330,6 +360,17 @@ export function NotePage({ noteId }: { noteId: string }) {
         updatedAt={data.updatedAt}
         returnFocus={historyButton}
       />
+      {writable ? (
+        <MoveNoteDialog
+          open={moveOpen}
+          onClose={() => setMoveOpen(false)}
+          onMoved={setMovedTo}
+          notebookId={notebookId}
+          note={{ id: data.id, name: data.name ?? t('note.unnamed'), folderId: data.folderId }}
+          structure={structure}
+          returnFocus={moveButton}
+        />
+      ) : null}
     </>
   );
 }

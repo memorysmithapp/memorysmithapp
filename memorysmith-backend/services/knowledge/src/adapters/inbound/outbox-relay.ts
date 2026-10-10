@@ -93,31 +93,55 @@ export function callsOf(entries: readonly PutEventsRequestEntry[]): PutEventsReq
 }
 
 /**
- * Which events move the note counters, by how much, and whether the counter of
- * ONE FOLDER moves with the counter of the notebook.
+ * Which events move the note counters, by how much, and which FOLDER counters
+ * move with the counter of the notebook.
  *
  * `FolderRemoved` is the one that moves the notebook counter alone: the folder
  * counters of the removed subtree were deleted by the same write, and
  * recreating one to decrement it would leave an orphan item holding a negative
  * number. It carries how many notes the subtree held, because nothing under it
  * was written and no note event will ever say those notes are gone.
+ *
+ * `NoteMoved` within one notebook moves no note in or out of the notebook, and
+ * one out of a folder and into another: the folder it left counts one less and
+ * the one it reached one more (#265). Without it, a moved note went on being
+ * counted where it was, by the folder page and the Notebook Context alike. A
+ * move between notebooks writes in two partitions, and its counters are left
+ * as they were, the way that move is: no client offers it.
  */
 function counterDelta(
   type: string,
   payload: Record<string, unknown>,
 ): {
   notes: number;
-  folder: boolean;
+  folders: Array<{ folderId: string; delta: number }>;
 } {
+  const folder = (delta: number) => {
+    const folderId = String(payload['folderId'] ?? '');
+    return folderId ? [{ folderId, delta }] : [];
+  };
   switch (type) {
     case 'NoteCreated':
-      return { notes: 1, folder: true };
+      return { notes: 1, folders: folder(1) };
     case 'NoteDeleted':
-      return { notes: -1, folder: true };
+      return { notes: -1, folders: folder(-1) };
     case 'FolderRemoved':
-      return { notes: -Number(payload['noteCount'] ?? 0), folder: false };
+      return { notes: -Number(payload['noteCount'] ?? 0), folders: [] };
+    case 'NoteMoved': {
+      const from = String(payload['fromFolderId'] ?? '');
+      const to = String(payload['toFolderId'] ?? '');
+      const withinOneNotebook = payload['fromNotebookId'] === payload['toNotebookId'];
+      if (!withinOneNotebook || !from || !to || from === to) return { notes: 0, folders: [] };
+      return {
+        notes: 0,
+        folders: [
+          { folderId: from, delta: -1 },
+          { folderId: to, delta: 1 },
+        ],
+      };
+    }
     default:
-      return { notes: 0, folder: false };
+      return { notes: 0, folders: [] };
   }
 }
 
@@ -137,6 +161,8 @@ export function envelopeOf(item: Record<string, unknown>): unknown {
     authorship: item['authorship'],
     contentRef: item['contentRef'] ?? null,
     storageDelta: item['storageDelta'] ?? 0,
+    // Absent on an item written before it existed, and on one no request caused.
+    ...(item['correlationId'] ? { correlationId: item['correlationId'] } : {}),
     payload: item['payload'] ?? {},
   };
 }
@@ -185,16 +211,16 @@ export class OutboxRelay {
     }
 
     for (const [index, envelope] of envelopes.entries()) {
-      const { notes, folder } = counterDelta(envelope.type, envelope.payload);
+      const { notes, folders } = counterDelta(envelope.type, envelope.payload);
       const bytes = envelope.storageDelta;
       // What fills the space, by kind and by notebook (#197, RN-SUB-024),
       // moved from the same event and in the same transaction as the total.
       const usage = withoutZeros(usageChangeOf(envelope));
       // An event that moves no counter needs no transaction, and needs no SEEN
       // item either: there is nothing to apply twice.
-      if (notes === 0 && bytes === 0 && isEmptyChange(usage)) continue;
+      if (notes === 0 && folders.length === 0 && bytes === 0 && isEmptyChange(usage)) continue;
       const item = events[index] as Record<string, unknown>;
-      await this.applyCounters(String(item['PK']), envelope, notes, bytes, folder, usage);
+      await this.applyCounters(String(item['PK']), envelope, notes, bytes, folders, usage);
     }
 
     return { published: envelopes.length };
@@ -218,11 +244,9 @@ export class OutboxRelay {
     },
     notes: number,
     bytes: number,
-    countsFolder: boolean,
+    folders: Array<{ folderId: string; delta: number }>,
     usage: UsageChange,
   ): Promise<void> {
-    const folderId = countsFolder ? String(envelope.payload['folderId'] ?? '') : '';
-
     const occurredAt = Instant.fromISO(envelope.occurredAt);
     const ttl = occurredAt.ok
       ? occurredAt.value.plusDays(SEEN_TTL_DAYS).toEpochSeconds()
@@ -240,13 +264,13 @@ export class OutboxRelay {
       },
     ];
 
-    if (notes !== 0 && folderId) {
+    for (const { folderId, delta } of folders) {
       writes.push({
         Update: {
           TableName: this.deps.tableName,
           Key: { PK: partition, SK: `FSTAT#${folderId}` },
           UpdateExpression: 'ADD noteCount :delta SET updatedAt = :at',
-          ExpressionAttributeValues: { ':delta': notes, ':at': envelope.occurredAt },
+          ExpressionAttributeValues: { ':delta': delta, ':at': envelope.occurredAt },
         },
       });
     }

@@ -136,7 +136,7 @@ The target design is six deployables (D5). **0.1.0 ships as a modular monolith w
 | Events | EventBridge (the `mv-events` bus) and DynamoDB Streams for the outbox | |
 | Identity | An Amazon Cognito user pool with a *pre-token-generation* trigger | MCP client registration through a CIMD proxy (§13.3) |
 | Validation | Zod, at the edge and in the event contracts | Never inside the domain |
-| Observability | AWS Lambda Powertools | `subscriptionId` on every log line |
+| Observability | AWS Lambda Powertools | One line per operation, identifiers only, the `subscriptionId` on it (§17) |
 | IaC | AWS CDK (TypeScript) | A project of its own, `memorysmith-infra` (§5.1, §5.4) |
 
 ### 4.2 Frontend
@@ -190,7 +190,8 @@ An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architectu
 memorysmith-backend/
 ├── packages/
 │   ├── kernel/              # SubscriptionId, Ulid, Slug, Authorship, Result, DomainEvent, errors
-│   └── contracts/           # Zod schemas of the events and the DTOs: the only package the frontend imports
+│   ├── contracts/           # Zod schemas of the events and the DTOs: the only package the frontend imports
+│   └── observability/       # the line of an operation, its allow-list and the correlation id (§17)
 ├── services/
 │   ├── access/
 │   ├── knowledge/
@@ -286,6 +287,7 @@ memorysmith-infra/
 │   └── github-delivery.stack.ts     # the roles GitHub Actions delivers with (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + mandatory alarms (§17)
+│   ├── alarms.ts                    # where the alarms go, and the aspect refusing a mute one (§17)
 │   ├── subscription-table.ts        # a DynamoDB table with PITR and streams
 │   └── append-only-table.ts         # a table + a role with an explicit Deny on Update/Delete
 ├── cdk.json
@@ -301,10 +303,11 @@ Beside `stacks/` and `constructs/`, two folders that are not infrastructure them
 
 Two rules of `dependency-cruiser` keep `commands/`, `functional/` and `agent-eval/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports any of them, so a synth never loads what operates or tests the product; and none of them imports anything of the backend, the frontend or the infrastructure but `@memorysmith/contracts`, because all three reach the product the way anybody outside does.
 
-Two constructs carry an architectural guarantee, not a convenience:
+Three constructs carry an architectural guarantee, not a convenience:
 
 - **`append-only-table`** is where PE4 stops being policy and becomes permission. The explicit `Deny` on `UpdateItem` and `DeleteItem` lives here, and this is where the immutability test of §19 points.
-- **`service-lambda`** guarantees that no service goes to production without Powertools and without the alarms of §17. Forgetting observability stops being possible by omission.
+- **`alarms`** holds every alarm of the app to its environment at synthesis: an aspect over the whole app refuses an alarm without an action in production and any alarm at all in staging, so an `Alarm` created by hand, outside `mandatoryAlarm`, fails the synthesis instead of shipping mute (§17).
+- **`service-lambda`** guarantees that no service goes to production without Powertools, its log group kept a month, and without the alarms of §17, each with the topic it notifies. Forgetting observability stops being possible by omission, and so does an alarm that reaches nobody: it creates its alarms through `mandatoryAlarm` of `alarms.ts`, which attaches the topic of the environment and creates nothing where the environment carries no alarms.
 
 **One stack per service, plus the shared stacks.** When 0.1.0 ships as a modular monolith (§24), the service stacks collapse into two, one for the main deployable and one for `svc-audit`, without `stacks/` changing shape: what changes is which ones are instantiated in `bin/app.ts`.
 
@@ -823,6 +826,8 @@ TransactWriteItems
 
 An eventually consistent count is acceptable on purpose: the number guides the agent and the UI, and takes part in no invariant.
 
+`NoteCreated` adds one to its folder and to the notebook, `NoteDeleted` takes one away from both, and `NoteMoved` within one notebook takes one from the folder the note left and adds one to the folder it reached, in the same transaction, leaving the notebook as it was (RN-KNW-057).
+
 **The storage usage of the subscription is kept by the same relay, in the same transaction** (RN-SUB-021). Every event declares how much current content it added or freed, in a `storageDelta` field of the envelope, and the relay adds that value into a single item per subscription:
 
 ```
@@ -860,6 +865,8 @@ DynamoDB Streams → a relay Lambda → EventBridge. It guarantees that the stat
 **Two tables have an outbox, and each has its relay**: `mv-knowledge`, whose relay also moves the counters (§10.3), and `mv-access`, whose relay only publishes, with the source `memorysmith.access`, because no event of Access moves a counter. Until 0.10.0 the stream of `mv-access` existed and nothing drained it, so every event Access wrote was kept and never reached the trail; sharing a notebook, recorded in the trail of that notebook, is what made the gap visible.
 
 The stream hands the relay up to 25 records a batch, and one `PutEvents` call takes ten events, so the relay publishes a batch in calls of at most ten. `PutEvents` reports a refused entry in its answer rather than as an error, so the relay reads the count and fails the batch when any event was refused: the stream then delivers the whole batch again, which makes delivery at least once. An event delivered twice changes nothing: the audit trail keys each entry by the instant and the identifier of its event, so the same entry is written again, the counters are guarded by their `SEEN` item (§10.3), and the projections replace what they derive. A batch still failing after its retries lands in the dead-letter queue of the relay, whose alarm is how a hole in the record is seen.
+
+**The envelope carries the request that caused it.** Its optional `correlationId` is the id of the operation in course when the event was written: the outbox writer of each table reads it from the scope the edge opened (§17) — never from the domain, which neither sees nor passes it — and the relay publishes it with the rest of the envelope, so the projector, the audit consumer and the purge log the event under the id of the tool call or the request that wrote it. The purge writes the events of what it destroyed under the id of the deletion it is carrying out, so the chain does not break at the second hop. It is optional because the trail is append-only: an envelope written before it existed parses, and an event no request caused, written by a migration or a command, carries none.
 
 ### 10.5 Write order with S3
 
@@ -973,6 +980,8 @@ The split is not tidiness. A rendering assertion cannot live in a JSON file — 
 **An image is not a link (RN-DSC-038).** The extractor matched `[alt](destination)` without looking at the `!` in front of it, so a picture became a note: `![Curve](./curve.png)` produced a pending link called `curve-png`. A public image never showed it, because an address with a scheme is external and dropped by RN-DSC-003 — the relative form is where it bit. The embed keeps its edge: it is read by the wikilink pattern, which requires no parenthesis, and the two patterns never meet.
 
 **Three forms of one link, and code that is not a link.** The wikilink, the inline Markdown link and the **reference** form all produce the same edge, because the destination decides it and not the syntax that carried it (RN-DSC-037); a definition nobody used produces nothing, since it renders nothing where it stands. A link written inside a fenced block or a code span is an example and not a reference, and produces no edge (RN-DSC-036) — the same rule the reading surface applies before it rewrites a wikilink, which is why `` `[[Target]]` `` now survives on the page instead of being turned into a link to the note it was describing.
+
+**Code is found by its fences, line by line, and never by a pattern of backticks.** A fence opens on a line whose first thing is a run of three or more backticks or tildes and closes on a line holding a run of the same character, at least as long, and nothing else, or at the end of the note; a code span closes on a run of exactly its own length, within its line. Before #266 one pattern paired any two runs of three backticks, so a span showing ` ``` ` in a sentence opened a "block" that closed on the next real fence, and every block after it was read out of phase: the links inside them became pending links and the links written between them produced no edge. Two approximations stay, both chosen by the same cost: the indentation a fence may carry is relative to its list item or block quote, which this reader does not see, so whatever a container puts in front of a fence is accepted; and a code span is not followed across a line break, because pairing a stray backtick with one paragraphs later would erase every link in between.
 
 **The indented code block is the declared exception, and the reason is the cost of being wrong.** The profile says it suppresses notation exactly as a fenced block does. Neither sanctioned reader implements it, because telling four spaces of code from four spaces of a nested list item needs the block context only a parser has, and this reader has none by design (PP4). Of the two ways to be wrong, reading a link that was an example costs one spurious pending link; skipping a nested list item costs a **real edge**, which is the graph lying about what the notebook says. The cheaper mistake is the one that stays, and it is asserted as behaviour so that nobody has to rediscover it.
 
@@ -1193,6 +1202,8 @@ Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). The to
 
 `McpToolAdapter` translates a tool call into a use case command and back, forwarding the caller's own token, from which the core resolves the `Authorship` (§12.1). No MCP vocabulary enters the core (RN-AGT-008), and swapping protocols tomorrow is swapping one adapter.
 
+A result is text, and **an image where a tool answers one**: `get_preview` turns the PNG the core answers base64 into MCP content of type `image`, beside a line of text (RN-AGT-050). The image travels inline, because a connector call has no second request in which to fetch a link, and a PNG 760 × 1600 fits what a response of the function carries. Forwarding the caller's own token is also what lets the renderer draw a preview as the person (§16, RN-PRT-032): the core hands the renderer the token the connector's request carried.
+
 ### 13.2 Authentication
 
 Remote MCP requires OAuth 2.1 with *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito as the Authorization Server; `svc-agent` as the Resource Server and as the client registration proxy (§13.3).** The `subscriptionId` enters the token through the *pre-token-generation* trigger (§8.3), and the connector a token was issued to, which the proxy binds to it, becomes the `AgentIdentity` (§12.1, §13.3 item 4).
@@ -1283,7 +1294,7 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                     the note as the full DTO. Answering less made a person
                     conflict with themselves on the second write.
                  POST /notebooks/:v/notes/:n/reorder   { afterNoteId | null }
-                 POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId }
+                 POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId, afterNoteId? }
                  PUT|DELETE /notebooks/:v/limits/:userId   { limit: VIEWER }   (§9.3)
 svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target resolves
                     to: the notes it reaches and whether a name or an alias
@@ -1329,6 +1340,9 @@ svc-portability  POST /notebooks/:v/export   starts the job and answers the tran
                  POST /notebooks/:v/notes/:n/pdf   { placement, tables, orientation,
                     locale } starts a print as the person who asks (§16, RN-PRT-031)
                  GET  /prints/:p   running, failed with why, or ready with a link
+                 POST /notebooks/:v/previews   { noteId | content, folderId?, part?,
+                    locale } starts drawing a note or a draft (RN-PRT-032)
+                 GET  /previews/:p   running, failed with why, or ready with the PNG
 ```
 
 The authorizer of `svc-access` does not appear here because **it is not a route**: it is a
@@ -1455,6 +1469,8 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 
 **A note is printed by the server as a job too** (RN-PRT-031). The print tab of the interface lays a note into A4 pages in the browser (Paged.js), and the browser prints them; a PDF made without the dialog of the browser is that same page opened by a Chromium of the server. `POST /portability/notebooks/:v/notes/:n/pdf` checks that the caller reads the notebook, and sends one message to `mv-print` with the note, the choices of the tab and **the access token of the request**: the renderer opens the application's print page with that session in its storage, so the page reads exactly what the person reads and nothing more, and the token lives no longer than it would in their browser. The renderer, `PrintRenderer`, waits for the pages to be laid and saves them as a PDF at `s/{subscriptionId}/prints/{printId}.pdf`, the name of the note as metadata of the object — or, when there is nothing to make, the reason at `{printId}.failed`. Both wear the lifecycle tag the bucket expires in a day, and neither counts towards the storage of the subscription. Nothing records the print: `GET /portability/prints/:p` reads whether the file or the reason is there, under the subscription of the token, and mints a link on the files host, named after the note, when it is. A message is never retried — a person is waiting — and a print with neither after three minutes answers `TIMED_OUT`. **The page of the renderer reaches the product and nothing else**: every request outside the application, its API, the files host and the fonts it loads is refused, so a note pointing a picture at an address inside the network the function runs in reaches nothing.
 
+**A note is drawn for an agent by the same renderer** (RN-PRT-032). `POST /portability/notebooks/:v/previews` checks that the caller reads the notebook and takes a note by its identifier or a draft by its content — exactly one — with the folder a draft would be written in and a part, `#Section` or `#^block`. A draft is kept at `s/{subscriptionId}/previews/{previewId}.md`, because a note may be a megabyte and a message of a queue may not, and one message goes to `mv-print` with `kind: "preview"`, which the renderer tells from a print by: the note or that the draft is kept, the folder, the part and the access token of the request — for the connector, the caller's own token, which it forwards to the core (§13). The renderer reads the draft, the one object of the bucket it reads, and opens the application's preview page, `/notebooks/:notebookId/preview`, in a window laid as a computer's, wider than the phone layout, with the session and what to draw in its storage, cleared of whatever the last page left. The page draws it with the reading surface of the note page in the light theme, resolving links and embeds against the notebook, and marks `.note-preview` ready once what arrives late has arrived, by the rule the print page decides it by; a note it cannot read, a folder the notebook does not have or a part the note does not hold, it marks with the reason instead. The renderer captures the element as a PNG at most 1600 pixels high and keeps it at `{previewId}.png`, its width, height and drawn height as metadata of the object, or the reason at `{previewId}.failed`, all three with the lifecycle tag the bucket expires in a day and none counted towards the storage. `GET /portability/previews/:p` answers the image inline, base64, which a 760 × 1600 PNG keeps well inside what a response of the function carries, so the connector puts it in its result with no link to follow. The allow-list of requests is the one of a print.
+
 ---
 
 ## 17. Infrastructure
@@ -1469,7 +1485,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | DNS | Route 53: the hosted zone of `memorysmith.app` and every record created by the CDK in `network.stack` |
 | Front end | React + Vite (SPA) on S3 + CloudFront |
 | IaC | AWS CDK (TypeScript), one stack per service plus one for network and domain |
-| Observability | Powertools for AWS Lambda; the `subscriptionId` on **every** log line and as a metric dimension |
+| Observability | Powertools for AWS Lambda: **one structured line per operation** of every function, and access logs on both HTTP APIs, all kept a month; the `subscriptionId` on every line and never as a metric dimension |
 
 > **One Lambda per service, not one per route:** fewer cold starts, one composition root per deployable, and the boundary that matters (the bounded context) stays the unit of deployment.
 
@@ -1484,7 +1500,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | `uploads.memorysmith.app` | The parts of an upload, forwarded to the content bucket (§16) | `api.stack` |
 | `files.memorysmith.app` | A kept file and a kept export, read from the content bucket (§10.9) | `api.stack` |
 
-**One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone and the zones it delegates. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy into any account but the one `cdk.json` names. **Production and staging name the same account**, so credentials never tell one environment from the other: `-c environment` does. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the five tables (`mv-access-production`), the bus, the queues and the user pool — so the two never collide and nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Where a permission would otherwise reach both environments, it is conditioned on that tag: the functional suite manages accounts, and the teardown deletes a user pool, only in a pool tagged `staging`. Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
+**One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone, the zones it delegates and whether it carries alarms. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy into any account but the one `cdk.json` names. **Production and staging name the same account**, so credentials never tell one environment from the other: `-c environment` does. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the five tables (`mv-access-production`), the bus, the queues and the user pool — so the two never collide and nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Where a permission would otherwise reach both environments, it is conditioned on that tag: the functional suite manages accounts, and the teardown deletes a user pool, only in a pool tagged `staging`. Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
 
 **Staging lives one level below production**, in a hosted zone of its own, and the zone of production delegates it with an `NS` record that `network.stack` declares from the name servers the production entry of `cdk.json` lists. Staging has to run before production is first delivered, because it validates the release that delivers it, so an installation writes that record by hand once, with the same values, and the first delivery of production replaces it with the one declared in code. A hosted zone is never created or deleted by a stack: its name servers are drawn when it is created, and recreating it breaks the delegation.
 
@@ -1531,7 +1547,32 @@ The fixed cost of the whole DNS and TLS layer is therefore the hosted zone: arou
 | Content purge | On every deletion | Destroys what a deletion invalidated: every revision in S3, the items in `mv-knowledge` and the projections (§12.4, RN-KNW-047) |
 | `Position` rebalancing | On demand | Redistributes fractional keys that passed 12 characters (§6.5) |
 
-**Mandatory alarms per Lambda:** error rate, p99 duration, throttles and the depth of the dead-letter queue of the outbox relay.
+**Logs.** Every function writes **one JSON line per operation**, through one wrapper in `packages/observability`: a middleware at the edge of each HTTP API, which names the request by the **template** of its route (`POST /knowledge/notebooks/:v/notes`) and never by its path, and a wrapper around each event or job of an asynchronous function — the two relays, the projector, the audit consumer, the purge, the transfer worker, the renderer and the two triggers of the user pool. A line carries:
+
+| Field | What it holds |
+|---|---|
+| `operation` | The MCP tool, the HTTP route template, or the event type or job kind a worker handled |
+| `outcome` | `ok`, `refused`, `conflict` or `error`, read from the status, the code of the taxonomy (§15) or the throw |
+| `durationMs` | How long the operation took; for a batch the relay or the audit consumer handles as a unit, the batch |
+| `correlationId` | The id the operation, and everything it caused, is found by |
+| `subscriptionId`, `userId` | Who: from the claim at the edge, from the envelope or the message in a worker |
+| `channel`, `agentClient` | `web` or `mcp`, and the `clientName` of the `Authorship` when a connector wrote it |
+| `status`, `eventId` | The HTTP status answered; the event a worker handled |
+| `errorName`, `errorCode`, `errorFrames` | What failed: its class, its code and the frames of its stack |
+
+Powertools adds its own `level`, `message` (always `operation`), `timestamp` and `service`, the name of the function's construct.
+
+**Identifiers only, never content.** No note name, notebook name, folder name, file name, path, query text or body reaches a line, because the backend does not interpret content (rule 5) and a log would be the one place it kept a copy of it anyway, a month long, readable by whoever operates the account. The rule is held by code: a line is built from an allow-list, a key outside it is dropped, a value without the shape of its field is dropped too, and **an error is written by its class, code and frames and never by its message**, because a refusal quotes the name it refused and a parser the line it could not read. A test of the package and a test of the core API, which reads the lines a real request writes, fail when a line carries a key outside the list or a byte of what the request wrote. The renderer of prints no longer writes what the page said while it was drawn, for the same reason.
+
+**One id from the tool call to the trail.** The edge takes the id API Gateway gave the request — the same `requestId` its access log carries — unless the request brings an `x-correlation-id`, and answers it in that header. The connector forwards it to the core on every call it makes with the caller's token, so a tool call and the core request it caused share it; the outbox writers put it on the envelope (§10.4), and a job of a queue carries it as a message attribute. One `create_note` is followed across the connector, the core, the relay, the projector and the audit consumer with one query of Logs Insights over their groups, filtered on `correlationId`.
+
+**Access logs.** Both HTTP APIs, the core one and the connector's, write one JSON line per request the gateway answered — its refusals before the function included — with the request id, the route key, the status, the latency and the integration latency, to a log group of their own declared beside the API. Not the path and not the address of the caller.
+
+**The `subscriptionId` is in the logs and not in the metric dimensions.** A dimension per subscription multiplies the number of custom metrics, each billed by the month, by the number of subscriptions, and a question about one subscription is answered by a query of the logs instead. **Production and staging both log**, and every log group, of a function or of an API, is declared by the CDK with a retention of one month, so none outlives its stack or is billed forever.
+
+**Mandatory alarms, in production:** per Lambda, errors, throttles and p99 duration (a projector, asynchronous by design, has no latency alarm), and the depth of every dead-letter queue — the outbox relay, the purge, the transfers, the prints and the Discovery projector. An alarm exists to reach a person, so **every one of them notifies one SNS topic**, `memorysmith-alarms-production`, which `network.stack` declares, the first stack a delivery deploys, with the address of whoever operates the product subscribed to it by e-mail. The alarms name it by the ARN its fixed name gives, so no stack takes a reference on the network stack. The address is **not in `cdk.json`**, because the repository is public: it is the variable `ALARM_EMAIL` of the `production` environment of GitHub Actions, which `deliver` passes to the synthesis as `-c alarmEmail=`, and a synthesis of production without it fails, so an alarm is never created with nowhere to go. AWS sends that address a confirmation, and the topic delivers nothing until it is confirmed.
+
+**Staging carries no alarm.** It is disposable and proved by the smoke and the functional suite (§19), never watched, so an alarm there would reach nobody and only cost money. Each environment declares it in `cdk.json`, `"alarms": true` or `false`, and the choice is never assumed: an entry without it fails the synthesis. `ServiceLambda` and the stacks create every alarm through `mandatoryAlarm`, which attaches the topic or creates nothing, and an aspect over the whole app refuses the synthesis of an alarm without an action in production and of any alarm in staging (§5.4).
 
 ---
 
@@ -1559,7 +1600,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 | Adapters | Against the real DynamoDB and S3 of staging, after a delivery of it, every case under a subscription of its own |
 | Event contracts | Zod schemas validated on both sides (producer and consumer) |
 | End to end | Per vertical slice, in process |
-| Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked by the CI against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts; and a case for every tool of the connector, checked against its live `tools/list` and called through the official MCP SDK with a token the run obtains through the whole OAuth flow of the connector, in Chromium, as a client whose Client ID Metadata Document it publishes on the site of the environment; and a case for every page of the interface, in `en_US` and in `pt_BR`, checked by the CI against the router, beside journeys that cross the surfaces: an agent that writes by the Guidance and the Template, a person who ticks its box on the web, and the history of the note naming both. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and deletes the accounts at the end. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
+| Functional | Against the deployed staging, in Playwright Test, after its adapter tests: a case for every route of the core, checked by the CI against `routes.json`, the manifest a test of the core keeps equal to the routes its app mounts; and a case for every tool of the connector, checked against its live `tools/list` and called through the official MCP SDK with a token the run obtains through the whole OAuth flow of the connector, in Chromium, as a client whose Client ID Metadata Document it publishes on the site of the environment; and a case for every page of the interface, in `en_US` and in `pt_BR`, checked by the CI against the router, beside journeys that cross the surfaces: an agent that writes by the Guidance and the Template, a person who ticks its box on the web, and the history of the note naming both. A run creates accounts of its own through the Cognito admin API, asks for their subscriptions and approves them through the product, and at the end deletes every notebook those accounts own through `DELETE /knowledge/notebooks/:v`, as their owner, and then the accounts; a deletion that fails is named in the run and fails nothing, and the subscriptions stay, because nothing deletes one. What runs before that was in place left notebooks nobody can open, and `cleanup-staging` deletes them: the notebooks of every subscription whose owner is an `@example.com` account the pool no longer holds, by the use case the API runs and as that owner, so the purge takes them as it takes any notebook. It refuses every environment but staging by name, in the command and in the entrypoint, and it runs before any job that scans staging, which otherwise scans them too. A projection is awaited by polling up to the target of §18, never by sleeping, and the latency of every route is recorded in the report and never gated |
 | Agent evaluation | Against the connector of the deployed staging, from a workstation, before the pull request of a release is merged: whether an agent that knows nothing but what the connector serves leaves a notebook the method describes. A catalogue of cases under `agent-eval/cases`, each a request in a person's words, the sheet of the person a simulated user plays, the setup it starts from, its mechanical checks and the rubric a judge reads it against. Every run gets an account of its own and a token obtained through the whole OAuth flow, and the executor is a separate headless Claude Code process in an empty directory outside any git repository, loading no setting source, no skill and no built-in tool, with the connector as its only MCP server; the simulated user is another such process with no server at all. A round plays every case three times per model, reads the notebooks before and after each run through the API, and ends in a scorecard of passes per check. It refuses to start when a skill `whoami` announces has no case; AE-00 asks what only this repository answers, so an open room is caught; and a run whose executor used a term the server never sent is discarded rather than scored |
 
 **Three tests that are not optional and exist from the first delivery that makes them possible:**
@@ -1624,6 +1665,7 @@ smoke             every surface serves the version and the environment of the de
 publish-release   the annotated tag and the GitHub Release of a version, signed by the token of the run
 destroy-staging   tears staging down, and refuses every other environment
 onboard           an account and its subscription, through the API
+cleanup-staging   deletes the notebooks the functional suite abandoned in staging, and refuses every other environment (§19)
 recount-storage   rebuilds the storage counters of every subscription, and what fills them (§10.3)
 reproject-links   rebuilds the link graph of every notebook (§11)
 agent-eval        a round of the blind agent evaluation against staging (§19)

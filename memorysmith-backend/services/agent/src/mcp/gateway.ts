@@ -13,6 +13,7 @@ import type {
   BeginUploadRequest,
   FinishedUploadDto,
   NoteOrder,
+  PreviewDto,
   RequestFileRequest,
   TransferDto,
   UploadStatusDto,
@@ -132,6 +133,21 @@ export interface NoteContent {
    * past, because the link projection has no past.
    */
   readonly links?: NoteLink[];
+}
+
+/**
+ * A note as a move leaves it (RN-AGT-049): where it now lives and where it
+ * sits there, and the revision it carried, which the move did not change. The
+ * body is left out: a move writes none, and the agent already holds it.
+ */
+export interface MovedNote {
+  readonly noteId: string;
+  readonly name: string | null;
+  readonly folderId: string;
+  readonly folder?: string[];
+  readonly position: string;
+  readonly revision: string;
+  readonly updatedAt: string;
 }
 
 /** A file of a notebook, as the connector answers it (#166). */
@@ -326,6 +342,22 @@ export interface KnowledgeGateway {
    * dismisses a request (RN-PRT-028, RN-PRT-030).
    */
   discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void>;
+  /**
+   * Starts drawing a note, or a draft, whole or one part, as the person sees
+   * it (#260, RN-PRT-032): a job of Portability, which answers an identifier
+   * at once, and the image once the renderer drew it.
+   */
+  startPreview(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      noteId?: string;
+      content?: string;
+      folderId?: string;
+      part?: string;
+    },
+  ): Promise<{ previewId: string }>;
+  getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(
@@ -362,6 +394,15 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     input: { notebookId: string; noteId: string; afterNoteId: string | null },
   ): Promise<NoteListing[]>;
+  /**
+   * To another folder of its notebook, keeping its identifier and with it its
+   * history (RN-KNW-023, RN-AGT-049): last there with no anchor, or right after
+   * a note of that folder.
+   */
+  moveNote(
+    caller: AgentCaller,
+    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+  ): Promise<MovedNote>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
 }
 

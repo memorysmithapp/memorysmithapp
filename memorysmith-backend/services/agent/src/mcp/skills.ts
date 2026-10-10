@@ -244,7 +244,12 @@ reader, and state each convention once.
   with \`set_note_order\`. Choose it when you create the folder, and the
   numbering of a record then decides where it appears.
 - **A folder is where a note lives, and not part of what identifies it**:
-  moving a note keeps every link to it.
+  \`move_note\` takes a note to another folder and keeps every link to it and its
+  whole history. That makes **a lifecycle by folder** something the guidance can
+  declare and an agent can follow — an inbox and what was processed, drafts and
+  what was published, what is open and what is closed: say in the guidance when
+  a note moves on, and where to. Never move a note by creating a copy and
+  deleting the original, which destroys its history for good.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
   limit of notes: what bounds a notebook is the storage of its subscription.
 
@@ -709,6 +714,38 @@ A note shows a file the notebook keeps by writing \`![[name]]\`, the way it
 embeds a note. How the file gets there — whole, at the size the person gave it,
 by URL when you can run a command with network — is the skill
 \`keep-files\`.
+
+## Moving a note to another folder
+
+A note changes folder with \`move_note\`, and never by \`create_note\` in the new
+folder followed by \`delete_note\` of the old one: deleting is definitive, and the
+history of the note — every revision, who wrote it and with which agent — goes
+with it. A moved note is the same note, with the same identifier and the same
+history, and a link to it keeps working because a link finds a note by its
+name. The one thing the folder decides is the name: a folder that already holds
+a note of that name refuses the move, naming it.
+
+## Seeing what you wrote
+
+You write Markdown and the person reads a page, and some forms are drawn in
+ways the Markdown does not show: the rules of a table inside a callout, a code
+span that widens a column until the table scrolls, a diagram that does not
+read. \`preview_note\` draws a note as the person will see it, and
+\`get_preview\` answers the image a few seconds later — ask again while it says
+it is still being drawn.
+
+- **After writing a table, a callout, a diagram, or one form inside another,
+  look at it** before you hand the work over, and fix what does not read.
+- **Before writing, preview the draft** when its shape is the question: pass
+  \`content\` with the \`folder\` it goes in, so its links resolve as they will.
+- **Preview the part, not the note**: \`part: "#Section"\` or
+  \`part: "#^block"\`. The image is 760 pixels wide and at most 1600 high, and
+  a longer note is cut there, which the answer says.
+
+The image reaches you only when your client hands images in a tool result to
+you, as Claude does. When the answer is a line with no image, your client does
+not: do not describe a drawing you did not see, and ask the person to look at
+the note instead.
 
 ## Before you hand the notes over
 

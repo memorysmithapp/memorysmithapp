@@ -12,6 +12,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoAuditTrail } from '../adapters/outbound/DynamoAuditTrail.js';
 import { AuditEventConsumer } from '../adapters/inbound/event-consumer.js';
 import { RecordEvents } from '../application/index.js';
+import { observeBatch, startOfEvent } from '@memorysmith/observability';
 
 interface BusEvent {
   detail?: unknown;
@@ -47,5 +48,11 @@ export async function handler(event: BusEvent): Promise<void> {
       })
     : [event.detail].filter((detail) => detail !== undefined);
 
-  await consumer.consume(envelopes);
+  // One line per event appended, under the id of the request that caused it
+  // (section 17). The batch is appended as a unit, and fails as one.
+  await observeBatch(
+    envelopes,
+    (envelope) => startOfEvent(envelope),
+    () => consumer.consume(envelopes),
+  );
 }

@@ -6,12 +6,15 @@
  */
 
 import type { DomainEvent } from '@memorysmith/kernel';
+import { currentCorrelationId } from '@memorysmith/observability';
 
 export type Item = Record<string, unknown>;
 
 const OUTBOX_TTL_DAYS = 7;
 
 export function outboxItemFor(event: DomainEvent, partition: string): Item {
+  // The request that caused the event, as the Knowledge outbox carries it (section 17).
+  const correlationId = currentCorrelationId();
   return {
     PK: partition,
     SK: `EVENT#${event.eventId}`,
@@ -24,6 +27,7 @@ export function outboxItemFor(event: DomainEvent, partition: string): Item {
     subjectId: event.subjectId,
     authorship: event.authorship.toJSON(),
     contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+    ...(correlationId ? { correlationId } : {}),
     payload: event.payload,
     ttl: event.occurredAt.plusDays(OUTBOX_TTL_DAYS).toEpochSeconds(),
   };

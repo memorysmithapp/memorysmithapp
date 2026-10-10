@@ -7,6 +7,7 @@
 import { test as base, expect } from '@playwright/test';
 import { randomBytes, randomInt } from 'node:crypto';
 import { apiToken, createAccount, deleteAccount } from '../support/accounts.js';
+import { deleteNotebooksOf } from '../support/cleanup.js';
 import { Api } from '../support/api.js';
 import { readState, type RunState, type TestAccount } from '../support/state.js';
 
@@ -101,6 +102,8 @@ export const test = base.extend<Fixtures>({
     try {
       await use({ account, api, userId: session.user.userId });
     } finally {
+      // A case may have made it a subscription, and written in it.
+      await deleteNotebooksOf(state, account);
       await deleteAccount(state, account);
     }
   },

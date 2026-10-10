@@ -7,8 +7,10 @@
  */
 
 import { SendMessageCommand, type SQSClient } from '@aws-sdk/client-sqs';
+import { correlationAttributes } from '@memorysmith/observability';
 import type { TransferQueue, TransferWork } from '../application/Transfers.js';
 import type { PrintJob, PrintQueue } from '../application/Prints.js';
+import type { PreviewJob, PreviewQueue } from '../application/Previews.js';
 
 export class SqsTransferQueue implements TransferQueue {
   constructor(
@@ -18,7 +20,12 @@ export class SqsTransferQueue implements TransferQueue {
 
   async send(work: TransferWork): Promise<void> {
     await this.sqs.send(
-      new SendMessageCommand({ QueueUrl: this.queueUrl, MessageBody: JSON.stringify(work) }),
+      new SendMessageCommand({
+        QueueUrl: this.queueUrl,
+        MessageBody: JSON.stringify(work),
+        // The request that asked for it, which the worker logs (section 17).
+        ...correlationAttributes(),
+      }),
     );
   }
 }
@@ -32,7 +39,32 @@ export class SqsPrintQueue implements PrintQueue {
 
   async send(job: PrintJob): Promise<void> {
     await this.sqs.send(
-      new SendMessageCommand({ QueueUrl: this.queueUrl, MessageBody: JSON.stringify(job) }),
+      new SendMessageCommand({
+        QueueUrl: this.queueUrl,
+        MessageBody: JSON.stringify(job),
+        ...correlationAttributes(),
+      }),
+    );
+  }
+}
+
+/**
+ * Where a preview is handed to the renderer (#260): the queue of prints, which
+ * the renderer reads, and the `kind` of the job tells the two apart.
+ */
+export class SqsPreviewQueue implements PreviewQueue {
+  constructor(
+    private readonly sqs: SQSClient,
+    private readonly queueUrl: string,
+  ) {}
+
+  async send(job: PreviewJob): Promise<void> {
+    await this.sqs.send(
+      new SendMessageCommand({
+        QueueUrl: this.queueUrl,
+        MessageBody: JSON.stringify(job),
+        ...correlationAttributes(),
+      }),
     );
   }
 }

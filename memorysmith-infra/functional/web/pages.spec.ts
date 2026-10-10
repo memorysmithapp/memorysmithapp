@@ -509,6 +509,59 @@ test.describe('the pages of an account', () => {
     await expect(crumbs.first()).toHaveText(notebook.name);
   });
 
+  test('widens the sidebar with the window and names every row of the tree whole (#274)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    let parentFolderId: string | null = null;
+    const folders: string[] = [];
+    for (const name of ['Decisions of the board', 'Year of the review', 'Third quarter']) {
+      const { folderId }: { folderId: string } = await owner.ok<{ folderId: string }>(
+        'POST',
+        `${path}/folders`,
+        { name, description: 'Where the case keeps a long name.', parentFolderId },
+      );
+      folders.push(folderId);
+      parentFolderId = folderId;
+    }
+    const long = 'Resolution on the renewal of the maintenance contract of the archive';
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: parentFolderId,
+      content: `---\nname: ${long}\n---\n\nWhat was resolved.\n`,
+    });
+
+    for (const width of [1280, 1440, 1920]) {
+      await app.setViewportSize({ width, height: 900 });
+      if (width === 1280) await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      const row = app.locator('aside#notebook-sidebar a.tree-note', { hasText: long });
+      // The structure reads again until it shows the note.
+      await expect(row).toBeVisible({ timeout: 60_000 });
+      // Pointing at a row reads its name whole, wherever the column cuts it.
+      await expect(row).toHaveAttribute('title', long);
+      // A name the column cuts is cut by an ellipsis: the row is a block, the
+      // only box whose text draws one, and it overflows its own width.
+      await expect(row).toHaveCSS('display', 'block');
+      await expect(row).toHaveCSS('text-overflow', 'ellipsis');
+      await expect(
+        app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Third quarter' }),
+      ).toHaveAttribute('title', /^Third quarter\n/);
+
+      const sidebar = await app.locator('aside#notebook-sidebar').boundingBox();
+      const pane = await app.locator('article.content-pane').first().boundingBox();
+      // Wider than it was on a window that has the room, and never at the
+      // cost of the reading column, which keeps its 780 px.
+      if (width >= 1440) expect(sidebar?.width ?? 0).toBeGreaterThan(272);
+      expect(pane?.width ?? 0).toBeGreaterThanOrEqual(779);
+      expect((pane?.x ?? 0) + 1).toBeGreaterThanOrEqual((sidebar?.x ?? 0) + (sidebar?.width ?? 0));
+      await testInfo.attach(`sidebar-${width}.png`, {
+        body: await app.screenshot(),
+        contentType: 'image/png',
+      });
+    }
+  });
+
   test('[page:/notebooks/:notebookId/folders/:folderId] lists the notes of a folder', async ({
     app,
     notebook,
@@ -527,7 +580,8 @@ test.describe('the pages of an account', () => {
     app,
     owner,
     notebook,
-  }) => {
+    words,
+  }, testInfo) => {
     const path = `/knowledge/notebooks/${notebook.notebookId}`;
     const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
       name: 'Minutes',
@@ -544,10 +598,44 @@ test.describe('the pages of an account', () => {
     // By hand, the order they were written in; the structure reads again until it shows them.
     await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1'], { timeout: 60_000 });
 
-    const order = app.locator('.folder-note-order').getByRole('radio');
+    const group = app.locator('.folder-note-order').getByRole('radiogroup');
+    const order = group.getByRole('radio');
+    // What each order does is the description of the group, heard without
+    // opening the (i) (#273).
+    await expect(group).toHaveAccessibleDescription(words.noteOrderHintManual);
     await order.nth(1).click();
     await expect(order.nth(1)).toHaveAttribute('aria-checked', 'true');
     await expect(rows).toHaveText(['Ata 1', 'Ata 2', 'Ata 10']);
+    await expect(group).toHaveAccessibleDescription(words.noteOrderHintAlphabetical);
+
+    // The (i) opens it on a click, and the chosen label wears the colour of
+    // its button rather than the grey of the count beside the heading (#273).
+    const hint = app.getByRole('button', { name: words.noteOrderHint });
+    await hint.click();
+    await expect(hint).toHaveAttribute('aria-expanded', 'true');
+    await expect(app.locator('.folder-note-order').getByRole('note')).toHaveText(
+      words.noteOrderHintAlphabetical,
+    );
+    const colours = await order.nth(1).evaluate((button) => {
+      const scope = globalThis as unknown as {
+        getComputedStyle(element: object): { color: string };
+      };
+      const label = (button as unknown as { querySelector(s: string): object }).querySelector(
+        '.segmented-label',
+      );
+      return {
+        button: scope.getComputedStyle(button).color,
+        label: scope.getComputedStyle(label).color,
+      };
+    });
+    expect(colours.label).toBe(colours.button);
+    await testInfo.attach('order-hint.png', {
+      body: await app.locator('.folder-group', { has: group }).screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.folder-note-order').getByRole('note')).toBeHidden();
+    await expect(hint).toHaveAttribute('aria-expanded', 'false');
     // And the tree beside the page agrees.
     await expect(
       app.locator('aside#notebook-sidebar .tree-folder', { hasText: 'Minutes' }).first(),
@@ -925,6 +1013,64 @@ test.describe('the pages of an account', () => {
     expect(download.suggestedFilename()).toBe('On paper.pdf');
   });
 
+  test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
+    app,
+    notebook,
+  }, testInfo) => {
+    // What the renderer of the server leaves in the storage before it opens
+    // the page: a draft, the folder it would be written in, and a part. The
+    // reader chose the dark theme, which an image for an agent never wears.
+    const draft =
+      '---\nname: Plan limits\nstatus: draft\n---\n\nWhat each plan holds.\n\n## Limits\n\n' +
+      '> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n' +
+      '## Elsewhere\n\nNot part of the limits.\n';
+    const ask = async (part: string | null) => {
+      await app.addInitScript(
+        ([content, folderId, wanted]) => {
+          localStorage.setItem(
+            'memorysmith.preferences',
+            JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+          );
+          localStorage.setItem(
+            'memorysmith.preview',
+            JSON.stringify({ noteId: null, content, folderId, part: wanted }),
+          );
+        },
+        [draft, notebook.folderId, part] as const,
+      );
+      await app.goto(notebook.page('/preview'));
+    };
+
+    await ask(null);
+    const drawn = app.locator('.note-preview[data-ready="true"]');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(drawn.locator('h1')).toHaveText('Plan limits');
+    await expect(drawn.locator('.callout table')).toBeVisible();
+    // Exactly the reading width, from the top left of the page, which is the
+    // rectangle the renderer cuts the image from.
+    const box = await drawn.boundingBox();
+    expect(box).toMatchObject({ x: 0, y: 0, width: 760 });
+    await testInfo.attach('draft.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+
+    await ask('#Limits');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(drawn.locator('.callout table')).toBeVisible();
+    await expect(drawn.locator('h1')).toHaveCount(0);
+    await expect(drawn).not.toContainText('Not part of the limits');
+    await testInfo.attach('part.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // A part the draft does not hold is said on the element the renderer reads.
+    await ask('#Nowhere');
+    await expect(app.locator('.note-preview[data-failure="PART_NOT_FOUND"]')).toBeVisible();
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId] draws the rules of a table inside a callout in the colour of the callout (#259)', async ({
     app,
     owner,
@@ -994,6 +1140,88 @@ A note to rename.
     await expect(app.locator('article.content-pane > h1')).toHaveText(after);
     await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] moves a note to another folder from its bar, with its history, and refuses a folder that holds its name (#265)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    // Its own note, written twice, so the history has something to keep.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `Draft ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${name}\n---\n\nFirst take.\n`,
+    });
+    const read = await owner.ok<{ revision: { versionId: string } }>(
+      'GET',
+      `${path}/notes/${noteId}`,
+    );
+    await owner.ok('PUT', `${path}/notes/${noteId}`, {
+      content: `---\nname: ${name}\n---\n\nSecond take.\n`,
+      baseRevision: read.revision.versionId,
+    });
+
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+
+    // It says beforehand that the links keep working, and only then asks where.
+    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
+    const dialog = app.getByRole('dialog', { name: words.moveHeading });
+    await expect(dialog.getByText(words.moveLinksKeep)).toBeVisible();
+    await dialog.getByLabel(words.moveFolder, { exact: true }).selectOption({ label: 'Concepts' });
+    await testInfo.attach('move-dialog.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await dialog.getByRole('button', { name: words.moveNote, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The same address, the same note, in its new folder, and the tree follows.
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
+    await expect(app.getByText('Second take.')).toBeVisible();
+    const moved = await owner.ok<{ folderId: string }>('GET', `${path}/notes/${noteId}`);
+    expect(moved.folderId).not.toBe(notebook.folderId);
+
+    // And its history goes with it: both writes, and the move.
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    const history = app.getByRole('dialog', { name: words.historyHeading });
+    await expect(history.getByText(words.historyMoved, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(history.locator('.history-list li')).toHaveCount(3);
+    await app.keyboard.press('Escape');
+
+    // A folder holds one note of each name: Facet is in both, so the one in
+    // Findings cannot join the one in Concepts, and the dialog says so.
+    await app.goto(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
+    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
+    const refusing = app.getByRole('dialog', { name: words.moveHeading });
+    await refusing
+      .getByLabel(words.moveFolder, { exact: true })
+      .selectOption({ label: 'Concepts' });
+    await refusing.getByRole('button', { name: words.moveNote, exact: true }).click();
+    await expect(refusing.getByRole('alert')).toContainText(words.moveNameTaken);
+    await testInfo.attach('move-refused.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+
+    // On a phone it rises as a sheet from the foot of the screen.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.locator(`button.bar-button[title="${words.moveNoteTitle}"]`).click();
+    const sheet = app.getByRole('dialog', { name: words.moveHeading });
+    await expect(sheet.getByText(words.moveLinksKeep)).toBeVisible();
+    await testInfo.attach('move-sheet-phone.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
   });
 
   test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({

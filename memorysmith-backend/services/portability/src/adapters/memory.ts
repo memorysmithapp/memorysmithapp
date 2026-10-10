@@ -7,6 +7,12 @@
 
 import type { PrintJob, PrintQueue, PrintState, PrintStore } from '../application/Prints.js';
 import type { PartStore } from '../application/Uploads.js';
+import type {
+  PreviewJob,
+  PreviewQueue,
+  PreviewState,
+  PreviewStore,
+} from '../application/Previews.js';
 
 export class InMemoryPartStore implements PartStore {
   /** Every revision written, as `key@version`. */
@@ -104,5 +110,28 @@ export class InMemoryPrintStore implements PrintStore {
   }
   async link(subscriptionId: string, printId: string, name: string, seconds: number) {
     return `https://files.example.test/s/${subscriptionId}/prints/${printId}.pdf?name=${encodeURIComponent(name)}&ttl=${seconds}`;
+  }
+}
+
+/** A queue of previews that keeps what it was handed, for a test to read (#260). */
+export class InMemoryPreviewQueue implements PreviewQueue {
+  readonly sent: PreviewJob[] = [];
+  async send(job: PreviewJob): Promise<void> {
+    this.sent.push(job);
+  }
+}
+
+/** Previews and their drafts by subscription and identifier, as the bucket keeps them. */
+export class InMemoryPreviewStore implements PreviewStore {
+  readonly states = new Map<string, PreviewState>();
+  readonly drafts = new Map<string, string>();
+  set(subscriptionId: string, previewId: string, state: PreviewState): void {
+    this.states.set(`${subscriptionId}/${previewId}`, state);
+  }
+  async keepDraft(subscriptionId: string, previewId: string, content: string): Promise<void> {
+    this.drafts.set(`${subscriptionId}/${previewId}`, content);
+  }
+  async state(subscriptionId: string, previewId: string): Promise<PreviewState> {
+    return this.states.get(`${subscriptionId}/${previewId}`) ?? { status: 'running' };
   }
 }

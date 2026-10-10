@@ -15,7 +15,11 @@
  * tree with uncommitted changes is said out loud, because `deploy:sha` would
  * otherwise name a commit that never held what is being served.
  *
- * It refuses any account but the one cdk.json names for the environment.
+ * It refuses any account but the one cdk.json names for the environment, and an
+ * environment that carries alarms when `ALARM_EMAIL` names nobody for them to
+ * notify (§17): the address is a variable of the GitHub environment, handed to
+ * the synthesis as context, and never written into cdk.json, because the
+ * repository is public.
  */
 
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
@@ -54,7 +58,7 @@ const declared = (
     context: {
       environments: Record<
         string,
-        { account?: string; region?: string; hostedZoneName?: string } | undefined
+        { account?: string; region?: string; hostedZoneName?: string; alarms?: boolean } | undefined
       >;
     };
   }
@@ -63,6 +67,12 @@ const declared = (
 const account = declared?.account ?? refuse(`cdk.json names no account for ${environment}.`);
 const region = declared?.region ?? 'us-east-1';
 const zone = declared?.hostedZoneName ?? refuse(`cdk.json names no zone for ${environment}.`);
+const alarmEmail = process.env['ALARM_EMAIL']?.trim() ?? '';
+if (declared?.alarms === true && alarmEmail === '') {
+  refuse(
+    `${environment} carries alarms, and ALARM_EMAIL names nobody for them to notify. Nothing was deployed.`,
+  );
+}
 
 const caller = await new STSClient({ region }).send(new GetCallerIdentityCommand({}));
 if (caller.Account !== account) {
@@ -140,6 +150,7 @@ node('Synthesising', [
   `version=${version}`,
   '-c',
   `commit=${sha}`,
+  ...(alarmEmail === '' ? [] : ['-c', `alarmEmail=${alarmEmail}`]),
 ]);
 
 deploy('Deploying the network and the hosting', ids(['Network', 'Frontend']));

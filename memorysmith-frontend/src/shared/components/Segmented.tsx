@@ -14,6 +14,7 @@ export function Segmented<V extends string>({
   value,
   onChange,
   inMenu = false,
+  describedBy,
 }: {
   label: string;
   /** `disabled` offers an option that cannot be chosen yet, as a picture before there is one (#215). */
@@ -21,9 +22,16 @@ export function Segmented<V extends string>({
   value: V;
   onChange: (value: V) => void;
   inMenu?: boolean;
+  /** The identifier of a text that says what the choice does (#273). */
+  describedBy?: string;
 }) {
   return (
-    <div className="segmented" role={inMenu ? 'group' : 'radiogroup'} aria-label={label}>
+    <div
+      className="segmented"
+      role={inMenu ? 'group' : 'radiogroup'}
+      aria-label={label}
+      aria-describedby={describedBy}
+    >
       {options.map((option) => (
         <button
           key={option.value}

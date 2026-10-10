@@ -19,6 +19,8 @@
  *   POST   /requests                   ->  asks the person for a file (RN-PRT-030)
  *   POST   /notebooks/:v/notes/:n/pdf  ->  starts a print, answers it (RN-PRT-031)
  *   GET    /prints/:p                  ->  the print, with a link once its file is made
+ *   POST   /notebooks/:v/previews      ->  starts drawing a note or a draft (RN-PRT-032)
+ *   GET    /previews/:p                ->  the preview, with its image once it is drawn
  *
  * **An export is a job and not a request** (RN-PRT-019). Building the archive
  * means reading every note of the notebook, and the function behind this API
@@ -42,6 +44,7 @@ import {
   importFromExportRequestSchema,
   importUploadSchema,
   linkUploadRequestSchema,
+  previewRequestSchema,
   printRequestSchema,
   requestFileRequestSchema,
   uploadPartRequestSchema,
@@ -66,6 +69,7 @@ import type {
 } from '../application/Transfers.js';
 import type { ImportSelection } from '../application/ImportNotebook.js';
 import type { GetPrint, StartPrint } from '../application/Prints.js';
+import type { GetPreview, StartPreview } from '../application/Previews.js';
 import type { Transfer } from '../domain/Transfer.js';
 import {
   receivedOf,
@@ -130,6 +134,8 @@ export interface PortabilityUseCases {
   readonly requestFile: (request: PortabilityRequest) => RequestFile;
   readonly startPrint: (request: PortabilityRequest) => StartPrint;
   readonly getPrint: (request: PortabilityRequest) => GetPrint;
+  readonly startPreview: (request: PortabilityRequest) => StartPreview;
+  readonly getPreview: (request: PortabilityRequest) => GetPreview;
 }
 
 /** What a transfer looks like on the wire, which is what it is (§16). */
@@ -258,6 +264,44 @@ export function createPortabilityRoutes(
   app.get('/prints/:p', async (c) => {
     const request = c.get('portability');
     const found = await useCases.getPrint(request).execute(c.req.param('p') ?? '');
+    return present(c, found, (value) => value);
+  });
+
+  /**
+   * How a note, a draft or a part of either is drawn, as an image an agent can
+   * see (#260, RN-PRT-032). A job, as a print is: the answer is the preview,
+   * and the connector asks for it until its image is drawn.
+   */
+  app.post('/notebooks/:v/previews', async (c) => {
+    const request = c.get('portability');
+    const notebookId = c.req.param('v') ?? '';
+    if (!(await request.canRead(notebookId))) {
+      return fail(c, DomainError.forbidden('Notebook not found'));
+    }
+    const body = previewRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) {
+      return fail(
+        c,
+        DomainError.validation('That is not a preview this page draws', body.error.issues),
+      );
+    }
+    const started = await useCases.startPreview(request).execute({
+      notebookId,
+      noteId: body.data.noteId,
+      content: body.data.content,
+      folderId: body.data.folderId,
+      part: body.data.part,
+      accessToken: request.accessToken,
+      locale: body.data.locale,
+    });
+    return started.ok
+      ? c.json({ previewId: started.value.previewId, status: 'running' }, 202)
+      : fail(c, started.error);
+  });
+
+  app.get('/previews/:p', async (c) => {
+    const request = c.get('portability');
+    const found = await useCases.getPreview(request).execute(c.req.param('p') ?? '');
     return present(c, found, (value) => value);
   });
 

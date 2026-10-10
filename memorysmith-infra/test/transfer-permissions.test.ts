@@ -31,6 +31,7 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'stg.memorysmith.app',
     hostedZoneId: 'ZSTAGING',
+    alarms: false,
     delegations: [],
   },
 };
@@ -312,5 +313,36 @@ describe('removing an entry of the trail', () => {
         expect(alters, `${description} may alter an entry of the trail`).toBe(false);
       }
     }
+  });
+});
+
+/**
+ * The renderer opens a page as the person who asked, and reads the note
+ * through the API like them. Of the bucket it reads exactly one thing, the
+ * draft a preview draws (#260, RN-PRT-032), and it writes only what it makes:
+ * a PDF, an image, or why there is none.
+ */
+describe('the renderer of prints and previews', () => {
+  const RENDERER =
+    'Opens the print or the preview page of a note as the person who asked, and saves it as a PDF or a PNG.';
+
+  it('reads only under previews, and writes only under prints and previews', () => {
+    const template = SYNTHESISED.api;
+    const role = rolesByDescription(template).get(RENDERER);
+    expect(role, `no function is described as "${RENDERER}"`).toBeDefined();
+    const s3 = allowedOf(template, role ?? '').filter((each) =>
+      each.actions.some((action) => action.startsWith('s3:')),
+    );
+    const reads = s3.filter((each) => each.actions.some((action) => action.startsWith('s3:Get')));
+    const puts = s3.filter((each) => each.actions.some((action) => action.startsWith('s3:Put')));
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads.every((each) => each.resource.includes('s/*/previews/*'))).toBe(true);
+    expect(puts.map((each) => /s\/\*\/(\w+)\/\*/.exec(each.resource)?.[1]).sort()).toEqual([
+      'previews',
+      'prints',
+    ]);
+    expect(s3.some((each) => each.actions.some((action) => action.startsWith('s3:Delete')))).toBe(
+      false,
+    );
   });
 });

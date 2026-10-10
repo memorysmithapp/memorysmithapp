@@ -59,6 +59,7 @@ const WRITES = new Set([
   'set_template',
   'create_note',
   'update_note',
+  'move_note',
   'delete_note',
 ]);
 

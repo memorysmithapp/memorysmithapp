@@ -18,6 +18,7 @@ import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 import { ServiceLambda } from '../constructs/service-lambda.js';
+import { accessLogOf } from '../constructs/access-log.js';
 import { CONNECTOR_BINDING_ROUTE } from './api.stack.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -114,6 +115,9 @@ export class AgentStack extends Stack {
       defaultIntegration: new HttpLambdaIntegration('AgentIntegration', fn),
       defaultDomainMapping: { domainName },
     });
+
+    // One line per request the gateway answered, its refusals included (section 17).
+    accessLogOf(this, 'McpAccessLogs', api);
 
     new route53.ARecord(this, 'McpAliasRecord', {
       zone: props.hostedZone,
