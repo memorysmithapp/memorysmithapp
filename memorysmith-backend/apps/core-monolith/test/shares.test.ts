@@ -222,6 +222,14 @@ describe('sharing a notebook with a person of another subscription', () => {
     });
     expect(write.status).toBe(403);
     expect((await json<{ message: string }>(write)).message).toContain(OWNER.email);
+    // Moving a note to another folder is a write like any other (RN-KNW-057).
+    const move = await call(
+      GRANTEE.token,
+      `/knowledge/notebooks/${notebookId}/notes/${noteId}/move`,
+      { method: 'POST', body: { toFolderId: folderId } },
+    );
+    expect(move.status).toBe(403);
+    expect((await json<{ message: string }>(move)).message).toContain(OWNER.email);
 
     // The card now carries what a card shows.
     const incoming = await json<Array<{ state: string; noteCount: number | null }>>(

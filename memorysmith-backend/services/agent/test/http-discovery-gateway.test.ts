@@ -181,6 +181,67 @@ describe('the connector reads Discovery as the contracts publish it', () => {
   });
 });
 
+describe('a move reaches the route the core publishes, and reads the note back (#265)', () => {
+  it('posts the destination and the anchor, and answers the note where it now is, without its body', async () => {
+    const DESTINATION = '01JBQ2X000000000000000F002';
+    const calls: Array<{ url: string; method: string; body: unknown }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({
+          url,
+          method: init?.method ?? 'GET',
+          body: init?.body ? JSON.parse(String(init.body)) : null,
+        });
+        const body = url.endsWith('/move')
+          ? {
+              noteId: FINDING,
+              name: 'Achado 12',
+              folderId: DESTINATION,
+              position: 'a1',
+              updatedAt: '2026-09-16T00:00:00.000Z',
+            }
+          : {
+              noteId: FINDING,
+              name: 'Achado 12',
+              folderId: DESTINATION,
+              folderTrail: ['Publicados'],
+              position: 'a1',
+              content: 'O corpo, que o movimento não escreveu.',
+              revision: { versionId: 'v7' },
+              updatedAt: '2026-09-16T00:00:00.000Z',
+            };
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    const moved = await new HttpKnowledgeGateway('https://api.example.com').moveNote(caller, {
+      notebookId: 'notebook',
+      noteId: FINDING,
+      folderId: DESTINATION,
+      afterNoteId: LAW,
+    });
+
+    expect(calls[0]).toEqual({
+      url: `https://api.example.com/knowledge/notebooks/notebook/notes/${FINDING}/move`,
+      method: 'POST',
+      body: { toFolderId: DESTINATION, afterNoteId: LAW },
+    });
+    expect(moved).toEqual({
+      noteId: FINDING,
+      name: 'Achado 12',
+      folderId: DESTINATION,
+      folder: ['Publicados'],
+      position: 'a1',
+      revision: 'v7',
+      updatedAt: '2026-09-16T00:00:00.000Z',
+    });
+  });
+});
+
 describe('the sweep of a notebook reads its pending links beside its names (#217)', () => {
   it('flags the pending link that almost reaches a note, and leaves the one on purpose', async () => {
     const SESSION = '01JBQ2X000000000000000N010';

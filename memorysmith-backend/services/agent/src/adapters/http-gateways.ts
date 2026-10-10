@@ -46,6 +46,7 @@ import {
   type FolderListing,
   type HistoryEntry,
   type KnowledgeGateway,
+  type MovedNote,
   type NoteContent,
   type NoteListing,
   type NotePage,
@@ -681,6 +682,33 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       )
     ).map(listingOf);
     return inDefinedOrder(siblings, (note) => note.noteId, listingOf(moved));
+  }
+
+  async moveNote(
+    caller: AgentCaller,
+    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+  ): Promise<MovedNote> {
+    await callApi<NoteSummaryDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}/move`,
+      {
+        method: 'POST',
+        body: { toFolderId: input.folderId, afterNoteId: input.afterNoteId ?? null },
+      },
+    );
+    // Read back from the note itself, which says the folder by its names as
+    // well; the listing of a folder converges after the write.
+    const note = await this.noteOf(caller, input.notebookId, input.noteId);
+    return {
+      noteId: note.noteId,
+      name: note.name,
+      folderId: note.folderId ?? input.folderId,
+      ...(note.folder ? { folder: note.folder } : {}),
+      position: note.position ?? '',
+      revision: note.revision,
+      updatedAt: note.updatedAt,
+    };
   }
 
   async updateNote(

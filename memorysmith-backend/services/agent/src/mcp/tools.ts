@@ -285,9 +285,20 @@ function noteAnswer(note: NoteContent): ToolResult {
  * also what a create retried after a lost answer receives, and there the note
  * named IS the one the first call wrote (RN-AGT-024).
  */
-function nameTakenAnswer(error: GatewayError): string | null {
+function nameTakenAnswer(error: GatewayError, tool: string): string | null {
   const details = error.details as { code?: string; noteId?: string; name?: string } | undefined;
   if (details?.code !== 'ALREADY_EXISTS' || !details.noteId) return null;
+  // A move carries the name it already has: there is no retry to recognise,
+  // only two notes of one name, of which one has to change or stay (RN-AGT-049).
+  if (tool === 'move_note') {
+    return (
+      `ALREADY_EXISTS: the destination folder already holds a note named ` +
+      `"${details.name ?? ''}", ${details.noteId}, and a folder holds one note of each name. ` +
+      'Nothing was moved. Read that note with read_note: if it is the same material, tell the ' +
+      'person before merging the two; otherwise rename one of them with update_note, or leave ' +
+      'the note where it is.'
+    );
+  }
   return (
     `ALREADY_EXISTS: this folder already holds a note named "${details.name ?? ''}", ` +
     `${details.noteId}, and a folder holds one note of each name. Nothing was written. ` +
@@ -314,7 +325,7 @@ export class McpToolAdapter {
       return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
     } catch (error) {
       if (error instanceof GatewayError) {
-        const taken = nameTakenAnswer(error);
+        const taken = nameTakenAnswer(error, name);
         if (taken) return text(taken, true);
         // Actionable text, plus whatever the caller needs for the next attempt.
         const details = error.details ? `\n\n${JSON.stringify(error.details, null, 2)}` : '';
@@ -845,6 +856,18 @@ export class McpToolAdapter {
             afterNoteId: anchorArgument(args, 'reorder_note'),
           }),
         );
+
+      case 'move_note': {
+        const after = optionalAnchor(args);
+        return json(
+          await knowledge.moveNote(caller, {
+            notebookId: requireString(args, 'notebook', 'move_note'),
+            noteId: requireString(args, 'note', 'move_note'),
+            folderId: requireString(args, 'folder', 'move_note'),
+            ...(after === undefined ? {} : { afterNoteId: after }),
+          }),
+        );
+      }
 
       case 'search_notes':
         return json(

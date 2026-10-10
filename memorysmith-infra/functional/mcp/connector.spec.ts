@@ -569,6 +569,74 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:move_note] [tool:note_history] moves a note to another folder with its history, and refuses a folder that holds its name (#265)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const published = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Published',
+        description: 'What was approved, moved here from Findings.',
+      }),
+    );
+    const write = async (folder: string, content: string) =>
+      parsed<{ noteId: string; revision: string }>(
+        await callTool(agent, 'create_note', { ...where, folder, content }),
+      );
+    const draft = await write(notebook.folderId, '---\nname: Draft\n---\n\nFirst take.\n');
+    await callTool(agent, 'update_note', {
+      ...where,
+      note: draft.noteId,
+      content: '---\nname: Draft\n---\n\nSecond take.\n',
+      baseRevision: draft.revision,
+    });
+
+    const moved = parsed<{ noteId: string; folderId: string; folder: string[] }>(
+      await callTool(agent, 'move_note', {
+        ...where,
+        note: draft.noteId,
+        folder: published.folderId,
+      }),
+    );
+    expect(moved.noteId).toBe(draft.noteId);
+    expect(moved.folderId).toBe(published.folderId);
+    expect(moved.folder).toEqual(['Published']);
+
+    // The same note where it now is, and every revision it had, plus the move.
+    const read = parsed<{ noteId: string; folderId: string; content: string }>(
+      await callTool(agent, 'read_note', { ...where, note: draft.noteId }),
+    );
+    expect(read.folderId).toBe(published.folderId);
+    expect(read.content).toContain('Second take.');
+    await eventually(
+      'both writes and the move in the history of the note',
+      async () =>
+        parsed<Array<{ type: string; revision: string | null }>>(
+          await callTool(agent, 'note_history', { ...where, note: draft.noteId }),
+        ),
+      (history) =>
+        history.filter((entry) => entry.revision !== null).length >= 2 &&
+        history.some((entry) => entry.type === 'NoteMoved'),
+    );
+
+    // A folder holds one note of each name, and the refusal names the one there.
+    const twin = await write(notebook.folderId, '---\nname: Draft\n---\n\nAnother take.\n');
+    const refused = await callTool(agent, 'move_note', {
+      ...where,
+      note: twin.noteId,
+      folder: published.folderId,
+    });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('ALREADY_EXISTS');
+    expect(refused.text).toContain(draft.noteId);
+    const stayed = parsed<{ folderId: string }>(
+      await callTool(agent, 'read_note', { ...where, note: twin.noteId }),
+    );
+    expect(stayed.folderId).toBe(notebook.folderId);
+  });
+
   test('[tool:create_folder] [tool:set_note_order] [tool:list_notes] orders the notes of a folder by name, says so in the context, and refuses to move one there (#262)', async ({
     agent,
     notebook,

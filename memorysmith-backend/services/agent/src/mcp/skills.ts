@@ -244,7 +244,12 @@ reader, and state each convention once.
   with \`set_note_order\`. Choose it when you create the folder, and the
   numbering of a record then decides where it appears.
 - **A folder is where a note lives, and not part of what identifies it**:
-  moving a note keeps every link to it.
+  \`move_note\` takes a note to another folder and keeps every link to it and its
+  whole history. That makes **a lifecycle by folder** something the guidance can
+  declare and an agent can follow — an inbox and what was processed, drafts and
+  what was published, what is open and what is closed: say in the guidance when
+  a note moves on, and where to. Never move a note by creating a copy and
+  deleting the original, which destroys its history for good.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
   limit of notes: what bounds a notebook is the storage of its subscription.
 
@@ -709,6 +714,16 @@ A note shows a file the notebook keeps by writing \`![[name]]\`, the way it
 embeds a note. How the file gets there — whole, at the size the person gave it,
 by URL when you can run a command with network — is the skill
 \`keep-files\`.
+
+## Moving a note to another folder
+
+A note changes folder with \`move_note\`, and never by \`create_note\` in the new
+folder followed by \`delete_note\` of the old one: deleting is definitive, and the
+history of the note — every revision, who wrote it and with which agent — goes
+with it. A moved note is the same note, with the same identifier and the same
+history, and a link to it keeps working because a link finds a note by its
+name. The one thing the folder decides is the name: a folder that already holds
+a note of that name refuses the move, naming it.
 
 ## Before you hand the notes over
 

@@ -134,6 +134,21 @@ export interface NoteContent {
   readonly links?: NoteLink[];
 }
 
+/**
+ * A note as a move leaves it (RN-AGT-049): where it now lives and where it
+ * sits there, and the revision it carried, which the move did not change. The
+ * body is left out: a move writes none, and the agent already holds it.
+ */
+export interface MovedNote {
+  readonly noteId: string;
+  readonly name: string | null;
+  readonly folderId: string;
+  readonly folder?: string[];
+  readonly position: string;
+  readonly revision: string;
+  readonly updatedAt: string;
+}
+
 /** A file of a notebook, as the connector answers it (#166). */
 export interface NotebookFileRef {
   readonly fileId: string;
@@ -362,6 +377,15 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     input: { notebookId: string; noteId: string; afterNoteId: string | null },
   ): Promise<NoteListing[]>;
+  /**
+   * To another folder of its notebook, keeping its identifier and with it its
+   * history (RN-KNW-023, RN-AGT-049): last there with no anchor, or right after
+   * a note of that folder.
+   */
+  moveNote(
+    caller: AgentCaller,
+    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+  ): Promise<MovedNote>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
 }
 

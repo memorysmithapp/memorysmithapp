@@ -129,6 +129,40 @@ describe('OutboxRelay', () => {
     expect(reorder.dbCalls).toHaveLength(0);
   });
 
+  it('moves a note out of one folder counter and into another, within a notebook (#265)', async () => {
+    const OTHER_FOLDER = '01JBQ2X0000000000000000008';
+    const { relay, dbCalls } = fakes();
+    await relay.process([
+      {
+        ...outboxItem,
+        type: 'NoteMoved',
+        payload: {
+          noteId: NOTE,
+          fromNotebookId: NOTEBOOK,
+          fromFolderId: FOLDER,
+          toNotebookId: NOTEBOOK,
+          toFolderId: OTHER_FOLDER,
+          position: 'a0',
+        },
+      },
+    ]);
+    const items = (
+      dbCalls[0] as { input: { TransactItems: Array<Record<string, Record<string, unknown>>> } }
+    ).input.TransactItems;
+    const deltaOf = (sk: string) =>
+      items
+        .map((item) => item['Update'])
+        .filter((update) => (update?.['Key'] as Record<string, unknown> | undefined)?.['SK'] === sk)
+        .map(
+          (update) => (update?.['ExpressionAttributeValues'] as Record<string, unknown>)[':delta'],
+        );
+
+    expect(deltaOf(`FSTAT#${FOLDER}`)).toEqual([-1]);
+    expect(deltaOf(`FSTAT#${OTHER_FOLDER}`)).toEqual([1]);
+    // The notebook holds as many notes as it did.
+    expect(deltaOf('FSTAT')).toEqual([]);
+  });
+
   it('publishes a batch of the stream in calls of at most ten events, and counts them all', async () => {
     // The stream hands the relay up to 25 records, and PutEvents takes ten.
     // Staging refused every batch of more than ten until this held.

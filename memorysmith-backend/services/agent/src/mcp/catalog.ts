@@ -832,7 +832,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Moves a note within its folder. The order is content: list_notes answers the notes in ' +
       'it, and it says where to start reading. Pass after: null to put the note first, or the ' +
       'identifier of the note it goes right after. Only the order changes: the note keeps its ' +
-      'folder, its content and its history. Answers the notes of the folder in their new order. ' +
+      'folder, its content and its history, and move_note is what takes it to another folder. ' +
+      'Answers the notes of the folder in their new order. ' +
       'A folder that orders its notes by name refuses it: there a note appears by its name, and ' +
       'get_notebook_context says which folders do.',
     inputSchema: object(
@@ -842,6 +843,43 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         after: afterNoteArgument,
       },
       ['notebook', 'note', 'after'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'move_note',
+    title: 'Move a note to another folder',
+    description:
+      'Moves a note to another folder of the same notebook. It stays the same note: its ' +
+      'identifier, its content and its whole history go with it, and note_history answers ' +
+      'every revision it had, plus the move. Every link to it keeps working, because a link ' +
+      'finds a note by its name and never by its folder. This is how a note changes folder — ' +
+      'when a notebook moves its notes along a lifecycle, from a draft to what was published, ' +
+      'for one — and never by creating a copy and deleting the original: deleting is ' +
+      'definitive and takes the history with it. A destination that already holds a note of ' +
+      'its name refuses the move, naming that note, and nothing changes. The note goes last ' +
+      'in the destination unless you pass after; in a folder that orders its notes by name it ' +
+      'appears by its name, wherever after puts it. A note already in that folder is refused: ' +
+      'reorder_note moves it within its folder. Answers the note in its new folder and ' +
+      'position.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        note: { type: 'string', description: 'Note identifier.' },
+        folder: {
+          type: 'string',
+          description:
+            'Folder the note moves to, of the same notebook, by the identifier ' +
+            'get_notebook_context prints next to its name.',
+        },
+        after: {
+          type: 'string',
+          description:
+            'Optional: identifier of a note of the destination folder this one goes right ' +
+            'after, as list_notes prints it. Without it the note goes last there.',
+        },
+      },
+      ['notebook', 'note', 'folder'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },

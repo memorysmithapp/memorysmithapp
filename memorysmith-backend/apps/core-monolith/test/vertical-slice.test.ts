@@ -472,6 +472,79 @@ describe('Structure operations write nothing they do not have to', () => {
     expect(after.folderId).toBe(other.folderId);
     // Same slot, same revision: the move wrote nothing to the content store.
     expect(after.revision).toEqual(before.revision);
+
+    // The same note, so the same history, with the move at its end (RN-KNW-057).
+    await harness.auditConsumer.consume(
+      harness.events.published.map((event) => ({
+        eventId: event.eventId,
+        type: event.type,
+        occurredAt: event.occurredAt.toISOString(),
+        subscriptionId: event.subscriptionId.value,
+        subject: event.subject,
+        subjectId: event.subjectId,
+        authorship: event.authorship.toJSON(),
+        contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+        payload: event.payload,
+      })),
+    );
+    const history = (await (
+      await call(`/audit/notebooks/${notebookId}/notes/${created.noteId}/history`)
+    ).json()) as { entries: Array<{ type: string }> };
+    expect(history.entries.map((entry) => entry.type)).toEqual(
+      expect.arrayContaining(['NoteCreated', 'NoteMoved']),
+    );
+  });
+
+  it('moves a note into a folder that orders its notes by name, where after decides nothing', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const minutes = (await (
+      await call(`/knowledge/notebooks/${notebookId}/folders`, {
+        method: 'POST',
+        body: { name: 'Atas', description: 'Uma ata por reunião.', noteOrder: 'alphabetical' },
+      })
+    ).json()) as { folderId: string };
+    const write = async (folder: string, name: string) =>
+      (
+        (await (
+          await call(`/knowledge/notebooks/${notebookId}/notes`, {
+            method: 'POST',
+            body: { folderId: folder, content: `---\nname: ${name}\n---\n` },
+          })
+        ).json()) as { noteId: string }
+      ).noteId;
+    await write(minutes.folderId, 'Ata 10');
+    const moving = await write(folderId, 'Ata 2');
+
+    const moved = await call(`/knowledge/notebooks/${notebookId}/notes/${moving}/move`, {
+      method: 'POST',
+      body: { toFolderId: minutes.folderId },
+    });
+    expect(moved.status).toBe(200);
+
+    const listed = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes?folderId=${minutes.folderId}`)
+    ).json()) as Array<{ name: string }>;
+    expect(listed.map((note) => note.name)).toEqual(['Ata 2', 'Ata 10']);
+  });
+
+  it('refuses a move into the folder the note is already in, and one to a folder of no notebook', async () => {
+    const { notebookId, folderId } = await seedNotebook();
+    const created = (await (
+      await call(`/knowledge/notebooks/${notebookId}/notes`, {
+        method: 'POST',
+        body: { folderId, content: '---\nname: Lei 14.133\n---\n' },
+      })
+    ).json()) as { noteId: string };
+    const same = await call(`/knowledge/notebooks/${notebookId}/notes/${created.noteId}/move`, {
+      method: 'POST',
+      body: { toFolderId: folderId },
+    });
+    expect(same.status).toBe(400);
+    const nowhere = await call(`/knowledge/notebooks/${notebookId}/notes/${created.noteId}/move`, {
+      method: 'POST',
+      body: { toFolderId: '01JBQ2X0000000000000000099' },
+    });
+    expect(nowhere.status).toBe(404);
   });
 
   it('refuses to remove a folder that holds notes without an explicit policy', async () => {

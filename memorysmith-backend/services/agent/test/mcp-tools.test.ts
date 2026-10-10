@@ -239,6 +239,8 @@ describe('The tool catalog is the public contract', () => {
       'delete_file',
       'update_note',
       'reorder_note',
+      // A note changes folder keeping its history (#265).
+      'move_note',
       'delete_note',
       'search_notes',
       'related_notes',
@@ -293,6 +295,7 @@ describe('The tool catalog is the public contract', () => {
       'delete_file',
       'update_note',
       'reorder_note',
+      'move_note',
       'delete_note',
     ]);
     for (const tool of TOOL_CATALOG) {
@@ -1994,6 +1997,127 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       const tool = TOOL_CATALOG.find((each) => each.name === name);
       expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
     }
+  });
+});
+
+describe('a note moves to another folder, keeping its history (#265, RN-AGT-049)', () => {
+  const moved = {
+    noteId: '01JBQ2X00000000000000000N1',
+    name: 'Lei 14.133',
+    folderId: '01JBQ2X00000000000000000F2',
+    folder: ['Achados'],
+    position: 'a0',
+    revision: 'v3',
+    updatedAt: '2026-03-22T10:00:00.000Z',
+  };
+
+  it('declares a write that destroys nothing, signed with its optional anchor', () => {
+    const tool = TOOL_CATALOG.find((each) => each.name === 'move_note');
+    expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(tool && toolSignature(tool)).toBe('move_note(notebook, note, folder, after?)');
+    // What it keeps, and the one way it must never be done.
+    expect(tool?.description).toContain('whole history');
+    expect(tool?.description).toContain('a link finds a note by its name');
+    expect(tool?.description).toContain('never by creating a copy and deleting the original');
+    // A shared notebook refuses it as it refuses every write (RN-AGT-046).
+    expect(tool?.description).toContain('FORBIDDEN, naming its owner');
+  });
+
+  it('passes the destination and the anchor in their canonical case, and answers the note where it now is', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const adapter = gateways({
+      knowledge: {
+        moveNote: async (_caller: unknown, input: Record<string, unknown>) => {
+          seen.push(input);
+          return moved;
+        },
+      },
+    });
+
+    const answer = await adapter.call(
+      'move_note',
+      {
+        notebook: '01jbq2x00000000000000000v1',
+        note: '01JBQ2X00000000000000000N1',
+        folder: '01jbq2x00000000000000000f2',
+        after: '01JBQ2X00000000000000000N3',
+      },
+      caller,
+    );
+    await adapter.call(
+      'move_note',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N1',
+        folder: '01JBQ2X00000000000000000F2',
+      },
+      caller,
+    );
+
+    expect(answer.isError).toBe(false);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual(moved);
+    expect(seen).toEqual([
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        noteId: '01JBQ2X00000000000000000N1',
+        folderId: '01JBQ2X00000000000000000F2',
+        afterNoteId: '01JBQ2X00000000000000000N3',
+      },
+      {
+        notebookId: '01JBQ2X00000000000000000V1',
+        noteId: '01JBQ2X00000000000000000N1',
+        folderId: '01JBQ2X00000000000000000F2',
+      },
+    ]);
+  });
+
+  it('asks for the destination before anything is moved', async () => {
+    const answer = await gateways().call(
+      'move_note',
+      { notebook: '01JBQ2X00000000000000000V1', note: '01JBQ2X00000000000000000N1' },
+      caller,
+    );
+    expect(answer.isError).toBe(true);
+    expect(answer.content[0]?.text).toContain('move_note requires the argument "folder"');
+  });
+
+  it('names the note that holds the name in the destination, and says nothing was moved', async () => {
+    const adapter = gateways({
+      knowledge: {
+        moveNote: async () => {
+          throw new GatewayError('CONFLICT', 'A note of this folder is already named "Lei"', {
+            code: 'ALREADY_EXISTS',
+            noteId: '01JBQ2X0000000000000000HLD',
+            name: 'Lei',
+          });
+        },
+      },
+    });
+    const result = await adapter.call(
+      'move_note',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        note: '01JBQ2X00000000000000000N1',
+        folder: '01JBQ2X00000000000000000F2',
+      },
+      caller,
+    );
+    const said = result.content[0]?.text ?? '';
+    expect(result.isError).toBe(true);
+    expect(said).toContain('ALREADY_EXISTS');
+    expect(said).toContain('01JBQ2X0000000000000000HLD');
+    expect(said).toContain('Nothing was moved');
+    // Not the words of a create retried after a lost answer.
+    expect(said).not.toContain('retried');
+  });
+
+  it('teaches both skills that a note changes folder with move_note, never by create and delete', () => {
+    const design = skillNamed('design-notebook')?.body ?? '';
+    const write = skillNamed('write-notes')?.body ?? '';
+    expect(design).toContain('`move_note`');
+    expect(design).toContain('lifecycle by folder');
+    expect(write).toContain('## Moving a note to another folder');
+    expect(write).toContain('never by `create_note` in the new\nfolder followed by `delete_note`');
   });
 });
 

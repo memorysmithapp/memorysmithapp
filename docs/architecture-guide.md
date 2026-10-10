@@ -825,6 +825,8 @@ TransactWriteItems
 
 An eventually consistent count is acceptable on purpose: the number guides the agent and the UI, and takes part in no invariant.
 
+`NoteCreated` adds one to its folder and to the notebook, `NoteDeleted` takes one away from both, and `NoteMoved` within one notebook takes one from the folder the note left and adds one to the folder it reached, in the same transaction, leaving the notebook as it was (RN-KNW-057).
+
 **The storage usage of the subscription is kept by the same relay, in the same transaction** (RN-SUB-021). Every event declares how much current content it added or freed, in a `storageDelta` field of the envelope, and the relay adds that value into a single item per subscription:
 
 ```
@@ -1287,7 +1289,7 @@ svc-knowledge    GET  /notebooks · POST /notebooks
                     the note as the full DTO. Answering less made a person
                     conflict with themselves on the second write.
                  POST /notebooks/:v/notes/:n/reorder   { afterNoteId | null }
-                 POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId }
+                 POST /notebooks/:v/notes/:n/move   { toNotebookId?, toFolderId, afterNoteId? }
                  PUT|DELETE /notebooks/:v/limits/:userId   { limit: VIEWER }   (§9.3)
 svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target resolves
                     to: the notes it reaches and whether a name or an alias
