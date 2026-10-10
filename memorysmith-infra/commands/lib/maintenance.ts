@@ -11,8 +11,9 @@
 export interface MaintenanceJob {
   /** The entrypoint of the core, from the root of the repository. */
   readonly entry: string;
-  /** What it rebuilds, as a person reads it. */
-  readonly rebuilds: string;
+  /** What it rebuilds, as a person reads it, or what it deletes, for a job that deletes. */
+  readonly rebuilds?: string;
+  readonly deletes?: string;
   /** The only environments it may run in, when it is not every one. */
   readonly only?: readonly string[];
 }
@@ -21,8 +22,7 @@ export const MAINTENANCE_JOBS = {
   // First, because it is what makes a scan of staging worth running (#276).
   'cleanup-staging': {
     entry: 'memorysmith-backend/apps/core-monolith/src/cleanup-staging.ts',
-    rebuilds:
-      'nothing: it deletes the notebooks of the subscriptions the functional suite made and abandoned',
+    deletes: 'the notebooks the functional suite abandoned',
     only: ['staging'],
   },
   'recount-storage': {

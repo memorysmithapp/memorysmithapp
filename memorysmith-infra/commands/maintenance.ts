@@ -86,9 +86,8 @@ async function outputOf(stack: 'Data' | 'Identity', key: string): Promise<string
 const contentBucket = await outputOf('Data', 'ContentBucketName');
 const userPoolId = await outputOf('Identity', 'UserPoolId');
 
-process.stdout.write(
-  `Rebuilding ${job.rebuilds} of ${environment}${values.apply ? '' : ', as a report'}.\n`,
-);
+const what = 'deletes' in job ? `Deleting ${job.deletes}` : `Rebuilding ${job.rebuilds}`;
+process.stdout.write(`${what} of ${environment}${values.apply ? '' : ', as a report'}.\n`);
 
 // tsx, run by node itself, so no shell stands between the arguments and the job.
 const tsx = createRequire(import.meta.url).resolve('tsx/cli');
