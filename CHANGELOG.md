@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-10
+
 ### Added
 
 - **An agent moves a note to another folder, and the note keeps its history.** The only way to put a note in another folder was to write a copy there and delete the original, and deleting is definitive: every revision, who wrote it and with which agent went with it — exactly where a notebook moves its notes along a lifecycle, from a folder of proposals to one of what was made, from an inbox to what was processed. `move_note(notebook, note, folder, after?)` moves it within its notebook and answers it in its new folder and position; `read_note` answers the same `noteId` there, `note_history` every revision it had plus the move, and every link to it keeps working, because a link finds a note by its name. A destination that already holds its name is refused naming the note that holds it, as `create_note` is, and nothing moves. `whoami` lists it, and the skills `write-notes` and `design-notebook` teach that a note changes folder this way and never by a create and a delete, and that a lifecycle by folder is something the Guidance can now declare (#265, RN-KNW-057, RN-AGT-049).
@@ -715,7 +717,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.7.0...v0.8.0
