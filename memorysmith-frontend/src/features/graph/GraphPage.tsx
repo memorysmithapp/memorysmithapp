@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   forceCenter,
+  forceCollide,
   forceLink,
   forceManyBody,
   forceX,
@@ -22,6 +23,7 @@ import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { getNotebookGraph } from '../../shared/api/backend';
 import { CloseIcon, GearIcon } from '../../shared/components/icons';
+import { COLLISION_GAP, linkLength, radiiOf } from './node-scale';
 
 interface GraphFile {
   nodes: {
@@ -71,6 +73,14 @@ function pinnedLabel(id: string): string {
  * node per note instead of showing what several notes have in common.
  */
 const MAX_DISCRETE_VALUES = 24;
+
+/**
+ * The length of a link between the edges of its two nodes (#275), on the whole
+ * notebook and inside a held group. With two nodes at the floor it is close to
+ * the 28 and 70 the links had from centre to centre; larger nodes push apart.
+ */
+const LINK_GAP = 20;
+const HELD_LINK_GAP = 60;
 /**
  * Colour slots for the drawn attributes. Three, validated against the note
  * blue and against each other for colour-vision deficiency on both surfaces;
@@ -400,16 +410,13 @@ export function GraphPage() {
       });
     }
 
-    // Both grow with how much they hold, and a value node grows faster: it is
-    // the thing you aim at to hold its group, and it used to be the smallest
-    // mark on a drawing where every note around it was larger. A target has to
-    // be hittable, and one that gathers four hundred notes has earned the size.
-    for (const node of nodes) {
-      node.radius =
-        node.kind === 'value'
-          ? Math.min(16, 3.5 + 1.6 * Math.sqrt(node.degree))
-          : Math.min(13, 2.2 + 1.25 * Math.sqrt(node.degree));
-    }
+    // Both grow with how much they hold, relative to the nodes drawn (#275),
+    // and a value node starts larger: it is the thing you aim at to hold its
+    // group, and a target has to be hittable.
+    const radii = radiiOf(nodes);
+    nodes.forEach((node, index) => {
+      node.radius = radii[index] ?? node.radius;
+    });
     return { nodes, links };
   }, [data, drawn, dateLike]);
 
@@ -599,8 +606,16 @@ export function GraphPage() {
 
     // Held apart so holding a group can retune them: a group of forty in an
     // empty field wants more room between its nodes than one of six hundred.
-    const linkForce = forceLink<GraphNode, GraphLink>(links).distance(28).strength(0.4);
+    // A link is measured between the edges of its nodes (#275), so two large
+    // ones are not drawn on top of each other.
+    const lengthOf = (gap: number) => (link: GraphLink) =>
+      linkLength(gap, link.source as GraphNode, link.target as GraphNode);
+    const linkForce = forceLink<GraphNode, GraphLink>(links)
+      .distance(lengthOf(LINK_GAP))
+      .strength(0.4);
     const chargeForce = forceManyBody().strength(-24);
+    // And no dot covers another once the drawing settles (#275).
+    const collideForce = forceCollide<GraphNode>((node) => node.radius + COLLISION_GAP);
 
     const sim = forceSimulation<GraphNode>(nodes)
       .force('link', linkForce)
@@ -608,6 +623,7 @@ export function GraphPage() {
       .force('center', forceCenter(0, 0))
       .force('x', forceX(0).strength(0.04))
       .force('y', forceY(0).strength(0.04))
+      .force('collide', collideForce)
       .on('tick', draw);
     state.sim = sim;
     state.redraw = draw;
@@ -640,12 +656,16 @@ export function GraphPage() {
         const group = state.neighbors.get(held) ?? new Set<GraphNode>();
         const shown = new Set<GraphNode>([held, ...group]);
         state.shown = shown;
+        // The sizes are measured again among the group (#275): against the
+        // whole notebook, the group of a minor value would draw every note at
+        // the floor.
+        sizeAmong([...shown]);
         linkForce.links(
           state.links.filter(
             (link) => shown.has(link.source as GraphNode) && shown.has(link.target as GraphNode),
           ),
         );
-        linkForce.distance(70);
+        linkForce.distance(lengthOf(HELD_LINK_GAP));
         chargeForce.strength(-160);
         sim.nodes([...shown]);
         // The group is pulled to the origin of the drawing, so the view is put
@@ -655,12 +675,22 @@ export function GraphPage() {
         state.transform.y = height / 2;
       } else {
         state.shown = null;
+        sizeAmong(state.nodes);
         linkForce.links(state.links);
-        linkForce.distance(28);
+        linkForce.distance(lengthOf(LINK_GAP));
         chargeForce.strength(-24);
         sim.nodes(state.nodes);
       }
       sim.alpha(0.7).restart();
+    }
+
+    /** Sizes these nodes among themselves; the collision reads them again on `sim.nodes`. */
+    function sizeAmong(over: GraphNode[]) {
+      const radii = radiiOf(over);
+      over.forEach((node, index) => {
+        node.radius = radii[index] ?? node.radius;
+      });
+      collideForce.radius((node) => node.radius + COLLISION_GAP);
     }
 
     function toGraphSpace(event: { clientX: number; clientY: number }) {
