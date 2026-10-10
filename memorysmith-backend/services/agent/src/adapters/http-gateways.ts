@@ -33,6 +33,7 @@ import type {
   NotebookFileDto,
   NotebookHealthDto,
   NotebookNamesDto,
+  PreviewDto,
   SearchResultDto,
 } from '@memorysmith/contracts';
 import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmith/contracts';
@@ -481,6 +482,34 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     await callApi<unknown>(this.origin, caller, `/portability/transfers/${uploadId}`, {
       method: 'DELETE',
     });
+  }
+
+  /**
+   * The renderer draws as the person the connector acts for because the core
+   * hands it the token this request carries, which is the caller's own
+   * (RN-PRT-032): the page reads exactly what they read.
+   */
+  async startPreview(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      noteId?: string;
+      content?: string;
+      folderId?: string;
+      part?: string;
+    },
+  ): Promise<{ previewId: string }> {
+    const { notebookId, ...body } = input;
+    return callApi<{ previewId: string }>(
+      this.origin,
+      caller,
+      `/portability/notebooks/${notebookId}/previews`,
+      { method: 'POST', body },
+    );
+  }
+
+  async getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto> {
+    return callApi<PreviewDto>(this.origin, caller, `/portability/previews/${previewId}`);
   }
 
   async listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]> {

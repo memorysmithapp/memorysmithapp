@@ -970,6 +970,64 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'preview_note',
+    title: 'See how a note is drawn',
+    description:
+      'Starts drawing a note, or a part of it, as the person will see it on the page, and ' +
+      'answers a `preview` at once: get_preview answers the image once it is drawn, a few ' +
+      'seconds later. Pass `note` for a note already written, or `content` for a draft not ' +
+      'written yet — exactly one — with the `folder` it would be written in, so its links and ' +
+      'embeds resolve against this notebook as they will once it is. Pass `part` for one ' +
+      'section or block, as an embed addresses one: `#Section` or `#^block`. The image is ' +
+      '760 pixels wide, the reading width, in the light theme, and at most 1600 high: ' +
+      'preview a part rather than a long note. Use it to check what you cannot see from the ' +
+      'Markdown — a table, a callout, a diagram, one form inside another — before handing the ' +
+      'work over, or before writing a draft. It writes nothing in the notebook.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        note: {
+          type: 'string',
+          description: 'Optional: the note to draw, as written. Pass this or content.',
+        },
+        content: {
+          type: 'string',
+          description: 'Optional: the Markdown of a draft to draw. Pass this or note.',
+        },
+        folder: {
+          type: 'string',
+          description:
+            'Optional, with content: the folder the draft would be written in, as ' +
+            'get_notebook_context prints it.',
+        },
+        part: {
+          type: 'string',
+          description: 'Optional: one section, `#Section`, or one block, `#^block`, alone.',
+        },
+      },
+      ['notebook'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'get_preview',
+    title: 'See the image of a preview',
+    description:
+      'Answers the image preview_note started, once it is drawn: a PNG, and a line with the ' +
+      'size it was drawn at and whether it was cut at 1600 pixels. While it is still being ' +
+      'drawn it says so: ask again in a few seconds. When nothing could be drawn it says why ' +
+      '— the note or the folder is not in the notebook, the part is not in the note. A client ' +
+      'that does not show images to the model receives the line alone.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        preview: { type: 'string', description: 'The preview, as preview_note answered it.' },
+      },
+      ['notebook', 'preview'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'note_history',
     title: 'Read the history of a note',
     description:

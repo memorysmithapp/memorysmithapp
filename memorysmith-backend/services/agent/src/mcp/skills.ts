@@ -725,6 +725,28 @@ history, and a link to it keeps working because a link finds a note by its
 name. The one thing the folder decides is the name: a folder that already holds
 a note of that name refuses the move, naming it.
 
+## Seeing what you wrote
+
+You write Markdown and the person reads a page, and some forms are drawn in
+ways the Markdown does not show: the rules of a table inside a callout, a code
+span that widens a column until the table scrolls, a diagram that does not
+read. \`preview_note\` draws a note as the person will see it, and
+\`get_preview\` answers the image a few seconds later — ask again while it says
+it is still being drawn.
+
+- **After writing a table, a callout, a diagram, or one form inside another,
+  look at it** before you hand the work over, and fix what does not read.
+- **Before writing, preview the draft** when its shape is the question: pass
+  \`content\` with the \`folder\` it goes in, so its links resolve as they will.
+- **Preview the part, not the note**: \`part: "#Section"\` or
+  \`part: "#^block"\`. The image is 760 pixels wide and at most 1600 high, and
+  a longer note is cut there, which the answer says.
+
+The image reaches you only when your client hands images in a tool result to
+you, as Claude does. When the answer is a line with no image, your client does
+not: do not describe a drawing you did not see, and ask the person to look at
+the note instead.
+
 ## Before you hand the notes over
 
 While notes are being written a link points at a note that does not exist yet,

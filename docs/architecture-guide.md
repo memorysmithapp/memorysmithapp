@@ -1199,6 +1199,8 @@ Endpoint: `https://mcp.memorysmith.app/mcp` (Streamable HTTP, OAuth 2.1). The to
 
 `McpToolAdapter` translates a tool call into a use case command and back, forwarding the caller's own token, from which the core resolves the `Authorship` (§12.1). No MCP vocabulary enters the core (RN-AGT-008), and swapping protocols tomorrow is swapping one adapter.
 
+A result is text, and **an image where a tool answers one**: `get_preview` turns the PNG the core answers base64 into MCP content of type `image`, beside a line of text (RN-AGT-050). The image travels inline, because a connector call has no second request in which to fetch a link, and a PNG 760 × 1600 fits what a response of the function carries. Forwarding the caller's own token is also what lets the renderer draw a preview as the person (§16, RN-PRT-032): the core hands the renderer the token the connector's request carried.
+
 ### 13.2 Authentication
 
 Remote MCP requires OAuth 2.1 with *Protected Resource Metadata* (`knowledge-base.md` §3.4). **Cognito as the Authorization Server; `svc-agent` as the Resource Server and as the client registration proxy (§13.3).** The `subscriptionId` enters the token through the *pre-token-generation* trigger (§8.3), and the connector a token was issued to, which the proxy binds to it, becomes the `AgentIdentity` (§12.1, §13.3 item 4).

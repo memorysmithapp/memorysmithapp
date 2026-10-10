@@ -13,6 +13,7 @@ import type {
   BeginUploadRequest,
   FinishedUploadDto,
   NoteOrder,
+  PreviewDto,
   RequestFileRequest,
   TransferDto,
   UploadStatusDto,
@@ -341,6 +342,22 @@ export interface KnowledgeGateway {
    * dismisses a request (RN-PRT-028, RN-PRT-030).
    */
   discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void>;
+  /**
+   * Starts drawing a note, or a draft, whole or one part, as the person sees
+   * it (#260, RN-PRT-032): a job of Portability, which answers an identifier
+   * at once, and the image once the renderer drew it.
+   */
+  startPreview(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      noteId?: string;
+      content?: string;
+      folderId?: string;
+      part?: string;
+    },
+  ): Promise<{ previewId: string }>;
+  getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(

@@ -838,6 +838,75 @@ test.describe('the tools', () => {
     expect(find(`Galaxy${tag}`)?.likelyMeant).toBeNull();
   });
 
+  test('[tool:preview_note] [tool:get_preview] draws a note, a part of it or a draft as the person reads it, and answers the image (#260)', async ({
+    agent,
+    notebook,
+  }, testInfo) => {
+    test.setTimeout(420_000);
+    const created = parsed<{ noteId: string }>(
+      await callTool(agent, 'create_note', {
+        notebook: notebook.notebookId,
+        folder: notebook.folderId,
+        content:
+          '---\nname: Plan limits\n---\n\nWhat each plan holds.\n\n## Limits\n\n' +
+          '> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n' +
+          '## Elsewhere\n\nNot part of the limits.\n',
+      }),
+    );
+
+    /** Starts a preview, and asks for it until it is drawn or says why not. */
+    const drawn = async (args: Record<string, unknown>) => {
+      const { preview } = parsed<{ preview: string }>(
+        await callTool(agent, 'preview_note', { notebook: notebook.notebookId, ...args }),
+      );
+      return eventually(
+        'the preview to be drawn',
+        () => callTool(agent, 'get_preview', { notebook: notebook.notebookId, preview }),
+        (answer) => answer.isError || answer.images.length > 0,
+        // A cold renderer unpacks a browser before it opens the page.
+        { timeoutMs: 180_000, intervalMs: 3_000 },
+      );
+    };
+    /** The width and the height a PNG declares in its header. */
+    const sizeOf = (png: Buffer) => {
+      expect(png.subarray(1, 4).toString('latin1')).toBe('PNG');
+      return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+    };
+
+    const part = await drawn({ note: created.noteId, part: '#Limits' });
+    expect(part.isError, part.text).toBe(false);
+    expect(part.images).toHaveLength(1);
+    expect(part.images[0]?.mimeType).toBe('image/png');
+    const png = Buffer.from(part.images[0]?.data ?? '', 'base64');
+    const size = sizeOf(png);
+    expect(size.width).toBe(760);
+    expect(size.height).toBeLessThanOrEqual(1600);
+    expect(part.text).toBe(`Drawn at 760×${size.height} px.`);
+    await testInfo.attach('part of a note.png', { body: png, contentType: 'image/png' });
+
+    const draft = await drawn({
+      content:
+        '---\nname: A draft\n---\n\nLinks to [[Plan limits]].\n\n```mermaid\ngraph LR; A-->B\n```\n',
+      folder: notebook.folderId,
+    });
+    expect(draft.isError, draft.text).toBe(false);
+    const drafted = Buffer.from(draft.images[0]?.data ?? '', 'base64');
+    expect(sizeOf(drafted).width).toBe(760);
+    await testInfo.attach('a draft.png', { body: drafted, contentType: 'image/png' });
+
+    const missing = await drawn({ note: created.noteId, part: '#Nowhere' });
+    expect(missing.isError).toBe(true);
+    expect(missing.text).toMatch(/^PART_NOT_FOUND: nothing was drawn/);
+
+    const both = await callTool(agent, 'preview_note', {
+      notebook: notebook.notebookId,
+      note: created.noteId,
+      content: '# x',
+    });
+    expect(both.isError).toBe(true);
+    expect(both.text).toContain('exactly one of the two');
+  });
+
   test('[tool:note_history] [tool:read_note] records the connector of every write, and reads a note as it was', async ({
     agent,
     notebook,

@@ -11,6 +11,7 @@ import {
   noteLinksSchema,
   notebookHealthSchema,
   notebookNamesSchema,
+  previewSchema,
   searchResultSchema,
 } from '@memorysmith/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -288,5 +289,38 @@ describe('the sweep of a notebook reads its pending links beside its names (#217
       },
     ]);
     expect(check.orphans).toEqual([{ noteId: ORION, name: 'M42 Orion Nebula', folderId: FOLDER }]);
+  });
+});
+
+describe('the connector reads a preview as the contracts publish it (#260)', () => {
+  it('starts one on the notebook it draws in, and reads its image back', async () => {
+    const ready = previewSchema.parse({
+      previewId: '01JBQ2X000000000000000PV01',
+      status: 'ready',
+      image: {
+        mimeType: 'image/png',
+        base64: 'iVBORw0KGgo=',
+        width: 760,
+        height: 420,
+        drawnHeight: 420,
+        cut: false,
+      },
+    });
+    apiAnswering({ previewId: ready.previewId, status: 'running' });
+    const gateway = new HttpKnowledgeGateway('https://api.example.com');
+    const started = await gateway.startPreview(caller, {
+      notebookId: '01JBQ2X000000000000000V001',
+      content: '# Draft',
+      folderId: FOLDER,
+    });
+    expect(started.previewId).toBe(ready.previewId);
+    const [address, init] = vi.mocked(fetch).mock.calls[0] ?? [];
+    expect(address).toBe(
+      'https://api.example.com/portability/notebooks/01JBQ2X000000000000000V001/previews',
+    );
+    expect(JSON.parse(String(init?.body))).toEqual({ content: '# Draft', folderId: FOLDER });
+
+    apiAnswering(ready);
+    expect(await gateway.getPreview(caller, ready.previewId)).toEqual(ready);
   });
 });

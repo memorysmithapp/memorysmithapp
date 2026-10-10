@@ -31,6 +31,8 @@ const HANDLERS = [
   'memorysmith-backend/apps/core-monolith/src/print.handler.ts',
   'memorysmith-backend/services/audit/src/main/handler.ts',
   'memorysmith-backend/services/discovery/src/main/handler.ts',
+  // The connector, which answers an image now (#260).
+  'memorysmith-backend/services/agent/src/lambda.ts',
 ];
 
 describe('every function, bundled as it is deployed', () => {

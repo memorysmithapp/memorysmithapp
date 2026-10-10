@@ -247,6 +247,9 @@ describe('The tool catalog is the public contract', () => {
       'backlinks',
       // The sweep before the work is handed over (#217).
       'check_notebook',
+      // How a note is drawn, before or after it is written (#260).
+      'preview_note',
+      'get_preview',
       'note_history',
     ]);
   });
@@ -1959,7 +1962,7 @@ describe('the connector orders what it writes (RN-AGT-029)', () => {
       caller,
     );
 
-    const ids = (answer: { content: Array<{ text: string }> }, key: string) =>
+    const ids = (answer: { content: Array<{ text?: string }> }, key: string) =>
       (JSON.parse(answer.content[0]?.text ?? '') as Array<Record<string, string>>).map(
         (each) => each[key],
       );
@@ -2274,5 +2277,192 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(skill).toContain('Keep a file under the name the person gave it');
     const list = TOOL_CATALOG.find((each) => each.name === 'list_files');
     expect(list?.description).toContain('only when its bytes match');
+  });
+});
+
+describe('an agent sees how a note is drawn (#260, RN-AGT-050)', () => {
+  const NOTEBOOK = '01JBQ2X00000000000000000V1';
+  const NOTE = '01JBQ2X00000000000000000N1';
+  const FOLDER = '01JBQ2X00000000000000000F1';
+  const PREVIEW = '01JBQ2X00000000000000000PV';
+
+  function previewing(answer: unknown) {
+    const started: unknown[] = [];
+    const adapter = gateways({
+      knowledge: {
+        startPreview: async (_caller: unknown, input: unknown) => {
+          started.push(input);
+          return { previewId: PREVIEW };
+        },
+        getPreview: async () => answer,
+      },
+    });
+    return { adapter, started };
+  }
+
+  it('starts drawing a written note or a part of it, and answers the preview at once', async () => {
+    const { adapter, started } = previewing(null);
+    const answer = await adapter.call(
+      'preview_note',
+      { notebook: NOTEBOOK.toLowerCase(), note: NOTE.toLowerCase(), part: '#Limites' },
+      caller,
+    );
+    expect(answer.isError).toBe(false);
+    expect(started).toEqual([{ notebookId: NOTEBOOK, noteId: NOTE, part: '#Limites' }]);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
+      preview: PREVIEW,
+      notebook: NOTEBOOK,
+    });
+  });
+
+  it('starts drawing a draft in the folder it would be written in', async () => {
+    const { adapter, started } = previewing(null);
+    await adapter.call(
+      'preview_note',
+      { notebook: NOTEBOOK, content: '# Draft', folder: FOLDER },
+      caller,
+    );
+    expect(started).toEqual([{ notebookId: NOTEBOOK, content: '# Draft', folderId: FOLDER }]);
+  });
+
+  it('draws exactly one of a note and a draft, and a folder only for a draft', async () => {
+    const { adapter, started } = previewing(null);
+    const both = await adapter.call(
+      'preview_note',
+      { notebook: NOTEBOOK, note: NOTE, content: '# x' },
+      caller,
+    );
+    const neither = await adapter.call('preview_note', { notebook: NOTEBOOK }, caller);
+    const placed = await adapter.call(
+      'preview_note',
+      { notebook: NOTEBOOK, note: NOTE, folder: FOLDER },
+      caller,
+    );
+    for (const refused of [both, neither, placed]) {
+      expect(refused.isError).toBe(true);
+      expect(refused.content[0]?.text).toMatch(/^VALIDATION: preview_note takes/);
+    }
+    const notAnId = await adapter.call('get_preview', { notebook: NOTEBOOK, preview: 'x' }, caller);
+    expect(notAnId.content[0]?.text).toContain('"preview" is not an identifier');
+    expect(started).toEqual([]);
+  });
+
+  it('answers the image and the size it was drawn at', async () => {
+    const { adapter } = previewing({
+      previewId: PREVIEW,
+      status: 'ready',
+      image: {
+        mimeType: 'image/png',
+        base64: 'iVBORw0KGgo=',
+        width: 760,
+        height: 1240,
+        drawnHeight: 1240,
+        cut: false,
+      },
+    });
+    const answer = await adapter.call(
+      'get_preview',
+      { notebook: NOTEBOOK, preview: PREVIEW },
+      caller,
+    );
+    expect(answer).toEqual({
+      content: [
+        { type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' },
+        { type: 'text', text: 'Drawn at 760×1240 px.' },
+      ],
+      isError: false,
+    });
+  });
+
+  it('says when the image was cut, and how to see the rest', async () => {
+    const { adapter } = previewing({
+      previewId: PREVIEW,
+      status: 'ready',
+      image: {
+        mimeType: 'image/png',
+        base64: 'iVBORw0KGgo=',
+        width: 760,
+        height: 1600,
+        drawnHeight: 4100,
+        cut: true,
+      },
+    });
+    const answer = await adapter.call(
+      'get_preview',
+      { notebook: NOTEBOOK, preview: PREVIEW },
+      caller,
+    );
+    expect(answer.content[1]?.text).toContain('Drawn at 760×4100 px and cut at 1600');
+    expect(answer.content[1]?.text).toContain('`#Section`');
+  });
+
+  it('says it is still drawing, or why it drew nothing', async () => {
+    const running = await previewing({ previewId: PREVIEW, status: 'running' }).adapter.call(
+      'get_preview',
+      { notebook: NOTEBOOK, preview: PREVIEW },
+      caller,
+    );
+    expect(running.isError).toBe(false);
+    expect(running.content[0]?.text).toContain('still being drawn');
+    const missing = await previewing({
+      previewId: PREVIEW,
+      status: 'failed',
+      failure: 'PART_NOT_FOUND',
+    }).adapter.call('get_preview', { notebook: NOTEBOOK, preview: PREVIEW }, caller);
+    expect(missing.isError).toBe(true);
+    expect(missing.content[0]?.text).toMatch(/^PART_NOT_FOUND: nothing was drawn: /);
+  });
+
+  it('carries the image through the transport as MCP declares it', async () => {
+    const adapter = previewing({
+      previewId: PREVIEW,
+      status: 'ready',
+      image: {
+        mimeType: 'image/png',
+        base64: 'iVBORw0KGgo=',
+        width: 760,
+        height: 300,
+        drawnHeight: 300,
+        cut: false,
+      },
+    }).adapter;
+    const response = await handleMcpRequest(
+      {
+        jsonrpc: '2.0',
+        id: 7,
+        method: 'tools/call',
+        params: { name: 'get_preview', arguments: { notebook: NOTEBOOK, preview: PREVIEW } },
+      },
+      {
+        sub: 'user-1',
+        clientId: 'https://claude.ai/mcp',
+        subscriptionId: '01JBQ2X0000000000000000000',
+        payload: {},
+      },
+      adapter,
+    );
+    const result = (response as { result: { content: unknown[] } }).result;
+    expect(result.content[0]).toEqual({
+      type: 'image',
+      data: 'iVBORw0KGgo=',
+      mimeType: 'image/png',
+    });
+  });
+
+  it('is read-only, and taught by the skill that teaches writing', () => {
+    for (const name of ['preview_note', 'get_preview']) {
+      expect(TOOL_CATALOG.find((tool) => tool.name === name)?.annotations.readOnlyHint).toBe(true);
+    }
+    const preview = TOOL_CATALOG.find((tool) => tool.name === 'preview_note');
+    expect(preview && toolSignature(preview)).toBe(
+      'preview_note(notebook, note?, content?, folder?, part?)',
+    );
+    const get = TOOL_CATALOG.find((tool) => tool.name === 'get_preview');
+    expect(get && toolSignature(get)).toBe('get_preview(notebook, preview)');
+    const skill = SKILLS.find((each) => each.name === 'write-notes')?.body ?? '';
+    expect(skill).toContain('preview_note');
+    expect(skill).toContain('get_preview');
+    expect(skill).toContain('760 pixels wide and at most 1600 high');
+    expect(skill).toContain('as Claude does');
   });
 });
