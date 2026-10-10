@@ -122,6 +122,18 @@ export interface Words {
   readonly noteOrderHint: string;
   readonly noteOrderHintManual: string;
   readonly noteOrderHintAlphabetical: string;
+  /** Moving a note to another folder, from the bar of the note (#265). */
+  readonly moveNote: string;
+  /** Its title, which names the button where the bar shows icons alone. */
+  readonly moveNoteTitle: string;
+  readonly moveHeading: string;
+  readonly moveFolder: string;
+  /** What the dialog says before anything is chosen. */
+  readonly moveLinksKeep: string;
+  /** A destination that holds the name, as the dialog refuses it. */
+  readonly moveNameTaken: string;
+  /** The kind the history gives the move. */
+  readonly historyMoved: string;
 }
 
 export const WORDS: Record<AppLocale, Words> = {
@@ -199,6 +211,13 @@ export const WORDS: Record<AppLocale, Words> = {
       'The notes keep the position they were given in this folder, by you or by an agent.',
     noteOrderHintAlphabetical:
       'The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.',
+    moveNote: 'Move',
+    moveNoteTitle: 'Move this note to another folder of the notebook',
+    moveHeading: 'Move to another folder',
+    moveFolder: 'Folder',
+    moveLinksKeep: 'a link finds a note by its name, never by its folder',
+    moveNameTaken: 'already holds a note named',
+    historyMoved: 'Moved',
   },
   pt_BR: {
     openNotebook: 'Abrir um caderno',
@@ -274,6 +293,13 @@ export const WORDS: Record<AppLocale, Words> = {
       'As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.',
     noteOrderHintAlphabetical:
       'As notas seguem o nome, com os números pelo valor: Ata 2 vem antes de Ata 10. A posição de cada uma fica guardada e volta se a ordem voltar a ser manual.',
+    moveNote: 'Mover',
+    moveNoteTitle: 'Mover esta nota para outra pasta do caderno',
+    moveHeading: 'Mover para outra pasta',
+    moveFolder: 'Pasta',
+    moveLinksKeep: 'um link encontra uma nota pelo nome, nunca pela pasta',
+    moveNameTaken: 'já tem uma nota chamada',
+    historyMoved: 'Movida',
   },
 };
 

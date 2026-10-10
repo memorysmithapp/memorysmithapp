@@ -1080,6 +1080,88 @@ A note to rename.
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] moves a note to another folder from its bar, with its history, and refuses a folder that holds its name (#265)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    // Its own note, written twice, so the history has something to keep.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `Draft ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${name}\n---\n\nFirst take.\n`,
+    });
+    const read = await owner.ok<{ revision: { versionId: string } }>(
+      'GET',
+      `${path}/notes/${noteId}`,
+    );
+    await owner.ok('PUT', `${path}/notes/${noteId}`, {
+      content: `---\nname: ${name}\n---\n\nSecond take.\n`,
+      baseRevision: read.revision.versionId,
+    });
+
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+
+    // It says beforehand that the links keep working, and only then asks where.
+    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
+    const dialog = app.getByRole('dialog', { name: words.moveHeading });
+    await expect(dialog.getByText(words.moveLinksKeep)).toBeVisible();
+    await dialog.getByLabel(words.moveFolder, { exact: true }).selectOption({ label: 'Concepts' });
+    await testInfo.attach('move-dialog.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await dialog.getByRole('button', { name: words.moveNote, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The same address, the same note, in its new folder, and the tree follows.
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
+    await expect(app.getByText('Second take.')).toBeVisible();
+    const moved = await owner.ok<{ folderId: string }>('GET', `${path}/notes/${noteId}`);
+    expect(moved.folderId).not.toBe(notebook.folderId);
+
+    // And its history goes with it: both writes, and the move.
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    const history = app.getByRole('dialog', { name: words.historyHeading });
+    await expect(history.getByText(words.historyMoved, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(history.locator('.history-list li')).toHaveCount(3);
+    await app.keyboard.press('Escape');
+
+    // A folder holds one note of each name: Facet is in both, so the one in
+    // Findings cannot join the one in Concepts, and the dialog says so.
+    await app.goto(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
+    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
+    const refusing = app.getByRole('dialog', { name: words.moveHeading });
+    await refusing
+      .getByLabel(words.moveFolder, { exact: true })
+      .selectOption({ label: 'Concepts' });
+    await refusing.getByRole('button', { name: words.moveNote, exact: true }).click();
+    await expect(refusing.getByRole('alert')).toContainText(words.moveNameTaken);
+    await testInfo.attach('move-refused.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+
+    // On a phone it rises as a sheet from the foot of the screen.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.locator(`button.bar-button[title="${words.moveNoteTitle}"]`).click();
+    const sheet = app.getByRole('dialog', { name: words.moveHeading });
+    await expect(sheet.getByText(words.moveLinksKeep)).toBeVisible();
+    await testInfo.attach('move-sheet-phone.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+  });
+
   test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({
     app,
     notebook,

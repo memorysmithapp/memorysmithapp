@@ -6035,6 +6035,42 @@ body.has-sheet .app-main {
   padding: 12px 0;
 }
 
+/* Moving a note to another folder (#265): what goes with it, the folder, and
+   where in it when the folder is kept by hand. A modal on a computer and a
+   sheet on a phone, as the history is. */
+.move-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.move-form .hint,
+.move-explain {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.move-explain {
+  color: var(--text);
+}
+.move-form .ask-dialog-foot {
+  margin-top: 4px;
+}
+.move-refusal {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--danger);
+}
+.move-refusal a {
+  color: var(--accent);
+}
+.move-sheet .ask-dialog-foot {
+  justify-content: stretch;
+}
+.move-sheet .ask-dialog-foot .button {
+  flex: 1;
+}
+
 /* ---- The box and the radio of the Controles, in a transfer (#205) --------
  *
  * Chosen is Tinta (Papel in the dark theme), like everything chosen. A box a

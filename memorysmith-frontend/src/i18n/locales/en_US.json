@@ -683,6 +683,24 @@
       "NO_TYPE": "The browser did not say what type this file is, so it cannot be kept."
     }
   },
+  "move": {
+    "short": "Move",
+    "open": "Move this note to another folder of the notebook",
+    "title": "Move to another folder",
+    "explain": "The note keeps its history, and every link to it keeps working: a link finds a note by its name, never by its folder.",
+    "folder": "Folder",
+    "current": "{{folder}} (where it is)",
+    "noOther": "This notebook has no other folder to move it to.",
+    "where": "Where in the folder",
+    "atEnd": "At the end",
+    "after": "After {{name}}",
+    "byName": "This folder orders its notes by name, so the note will appear by its name.",
+    "move": "Move",
+    "moving": "Moving…",
+    "nameTaken": "“{{folder}}” already holds a note named “{{name}}”, and a folder holds one note of each name. Nothing was moved.",
+    "openHolder": "Open that note",
+    "moved": "Moved to {{folder}}."
+  },
   "history": {
     "heading": "History of this note",
     "short": "History",

@@ -686,6 +686,24 @@
       "NO_TYPE": "O navegador não disse de que tipo é esse arquivo, então ele não pode ser guardado."
     }
   },
+  "move": {
+    "short": "Mover",
+    "open": "Mover esta nota para outra pasta do caderno",
+    "title": "Mover para outra pasta",
+    "explain": "A nota leva o seu histórico, e todo link para ela continua funcionando: um link encontra uma nota pelo nome, nunca pela pasta.",
+    "folder": "Pasta",
+    "current": "{{folder}} (onde está)",
+    "noOther": "Este caderno não tem outra pasta para onde movê-la.",
+    "where": "Onde na pasta",
+    "atEnd": "No fim",
+    "after": "Depois de {{name}}",
+    "byName": "Esta pasta ordena as notas pelo nome, então a nota aparecerá pelo nome dela.",
+    "move": "Mover",
+    "moving": "Movendo…",
+    "nameTaken": "“{{folder}}” já tem uma nota chamada “{{name}}”, e uma pasta guarda uma nota de cada nome. Nada foi movido.",
+    "openHolder": "Abrir essa nota",
+    "moved": "Movida para {{folder}}."
+  },
   "history": {
     "heading": "Histórico desta nota",
     "short": "Histórico",
