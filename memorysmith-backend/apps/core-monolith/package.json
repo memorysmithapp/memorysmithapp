@@ -17,6 +17,7 @@
     "@aws-sdk/util-dynamodb": "^3.996.9",
     "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*",
+    "@memorysmith/observability": "workspace:*",
     "@memorysmith/svc-access": "workspace:*",
     "@memorysmith/svc-audit": "workspace:*",
     "@memorysmith/svc-discovery": "workspace:*",

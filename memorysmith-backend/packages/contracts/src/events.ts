@@ -121,6 +121,14 @@ export const eventEnvelopeSchema = z.object({
    * is append-only, and an event already written has to stay readable.
    */
   storageDelta: z.number().int().default(0),
+  /**
+   * The id of the request that caused this event, carried to everything that
+   * reads it — the relay, the projector, the audit consumer and the workers —
+   * so one operation is followed across every log it touched (section 17).
+   * Optional, so an envelope written before it existed still parses, and so an
+   * event no request caused carries none.
+   */
+  correlationId: z.string().min(1).max(128).optional(),
   payload: z.record(z.string(), z.unknown()),
 });
 

@@ -161,6 +161,8 @@ export function envelopeOf(item: Record<string, unknown>): unknown {
     authorship: item['authorship'],
     contentRef: item['contentRef'] ?? null,
     storageDelta: item['storageDelta'] ?? 0,
+    // Absent on an item written before it existed, and on one no request caused.
+    ...(item['correlationId'] ? { correlationId: item['correlationId'] } : {}),
     payload: item['payload'] ?? {},
   };
 }

@@ -17,6 +17,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*",
+    "@memorysmith/observability": "workspace:*",
     "hono": "^4.13.3"
   },
   "exports": {

@@ -42,6 +42,19 @@ const noteCreated = {
 };
 
 describe('event contracts', () => {
+  it('parses an envelope written before the correlation id existed, and one carrying it', () => {
+    // The trail is append-only: an event already written has to stay readable
+    // (section 17), and the id is carried on when it is there.
+    expect(parseEvent(noteCreated).correlationId).toBeUndefined();
+    expect(parseEvent({ ...noteCreated, correlationId: 'Ab1cDEfGhIJKlmN=' }).correlationId).toBe(
+      'Ab1cDEfGhIJKlmN=',
+    );
+  });
+
+  it('refuses a correlation id that is empty', () => {
+    expect(() => parseEvent({ ...noteCreated, correlationId: '' })).toThrow();
+  });
+
   it('accepts a well-formed content event with its complete ContentRef', () => {
     const parsed = parseEvent(noteCreated);
     expect(parsed.type).toBe('NoteCreated');

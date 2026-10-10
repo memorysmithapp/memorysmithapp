@@ -68,6 +68,19 @@ describe('OutboxRelay', () => {
     expect(detail['contentRef']).toMatchObject({ versionId: 'v1', bytes: 12 });
   });
 
+  it('carries the correlation id of the request that wrote the event onto the bus', async () => {
+    const { relay, busCalls } = fakes();
+    await relay.process([{ ...outboxItem, correlationId: 'corr-from-the-edge' }]);
+    const entries = (busCalls[0] as { input: { Entries: Array<Record<string, unknown>> } }).input
+      .Entries;
+    const detail = JSON.parse(String(entries[0]?.['Detail'])) as Record<string, unknown>;
+    expect(detail['correlationId']).toBe('corr-from-the-edge');
+  });
+
+  it('publishes an item written before the correlation id existed, without one', () => {
+    expect(envelopeOf(outboxItem)).not.toHaveProperty('correlationId');
+  });
+
   it('refuses to publish an envelope that does not match its contract', async () => {
     const { relay } = fakes();
     const broken = { ...outboxItem, payload: { notebookId: NOTEBOOK } };

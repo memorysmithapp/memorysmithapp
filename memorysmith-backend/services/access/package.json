@@ -15,6 +15,7 @@
     "@aws-sdk/lib-dynamodb": "^3.1117.0",
     "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*",
+    "@memorysmith/observability": "workspace:*",
     "hono": "^4.9.0",
     "jose": "^6.0.13"
   },

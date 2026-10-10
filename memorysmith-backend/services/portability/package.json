@@ -35,6 +35,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "@memorysmith/contracts": "workspace:*",
     "@memorysmith/kernel": "workspace:*",
+    "@memorysmith/observability": "workspace:*",
     "@sparticuz/chromium": "153.0.0",
     "hono": "^4.13.3",
     "puppeteer-core": "25.11.0"
