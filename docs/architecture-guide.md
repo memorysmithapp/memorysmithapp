@@ -286,6 +286,7 @@ memorysmith-infra/
 │   └── github-delivery.stack.ts     # the roles GitHub Actions delivers with (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + mandatory alarms (§17)
+│   ├── alarms.ts                    # where the alarms go, and the aspect refusing a mute one (§17)
 │   ├── subscription-table.ts        # a DynamoDB table with PITR and streams
 │   └── append-only-table.ts         # a table + a role with an explicit Deny on Update/Delete
 ├── cdk.json
@@ -301,10 +302,11 @@ Beside `stacks/` and `constructs/`, two folders that are not infrastructure them
 
 Two rules of `dependency-cruiser` keep `commands/`, `functional/` and `agent-eval/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports any of them, so a synth never loads what operates or tests the product; and none of them imports anything of the backend, the frontend or the infrastructure but `@memorysmith/contracts`, because all three reach the product the way anybody outside does.
 
-Two constructs carry an architectural guarantee, not a convenience:
+Three constructs carry an architectural guarantee, not a convenience:
 
 - **`append-only-table`** is where PE4 stops being policy and becomes permission. The explicit `Deny` on `UpdateItem` and `DeleteItem` lives here, and this is where the immutability test of §19 points.
-- **`service-lambda`** guarantees that no service goes to production without Powertools and without the alarms of §17. Forgetting observability stops being possible by omission.
+- **`alarms`** holds every alarm of the app to its environment at synthesis: an aspect over the whole app refuses an alarm without an action in production and any alarm at all in staging, so an `Alarm` created by hand, outside `mandatoryAlarm`, fails the synthesis instead of shipping mute (§17).
+- **`service-lambda`** guarantees that no service goes to production without Powertools and without the alarms of §17, each with the topic it notifies. Forgetting observability stops being possible by omission, and so does an alarm that reaches nobody: it creates its alarms through `mandatoryAlarm` of `alarms.ts`, which attaches the topic of the environment and creates nothing where the environment carries no alarms.
 
 **One stack per service, plus the shared stacks.** When 0.1.0 ships as a modular monolith (§24), the service stacks collapse into two, one for the main deployable and one for `svc-audit`, without `stacks/` changing shape: what changes is which ones are instantiated in `bin/app.ts`.
 
@@ -1486,7 +1488,7 @@ The domain returns `Result<T, DomainError>`; **exceptions exist only at the edge
 | `uploads.memorysmith.app` | The parts of an upload, forwarded to the content bucket (§16) | `api.stack` |
 | `files.memorysmith.app` | A kept file and a kept export, read from the content bucket (§10.9) | `api.stack` |
 
-**One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone and the zones it delegates. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy into any account but the one `cdk.json` names. **Production and staging name the same account**, so credentials never tell one environment from the other: `-c environment` does. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the five tables (`mv-access-production`), the bus, the queues and the user pool — so the two never collide and nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Where a permission would otherwise reach both environments, it is conditioned on that tag: the functional suite manages accounts, and the teardown deletes a user pool, only in a pool tagged `staging`. Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
+**One app, two environments.** `bin/app.ts` describes production or staging, chosen with `-c environment=`, and what differs between them lives under `environments` in `cdk.json` and is read by `config/environments.ts`: the account, the region, the hosted zone, the zones it delegates and whether it carries alarms. **The account is explicit in the environment of every stack**, so the CDK refuses to deploy into any account but the one `cdk.json` names. **Production and staging name the same account**, so credentials never tell one environment from the other: `-c environment` does. Every physical name ends with the environment — the stacks (`MemorysmithProductionData`, `MemorysmithStagingData`), the five tables (`mv-access-production`), the bus, the queues and the user pool — so the two never collide and nothing read from a console, a log line or a bill passes for the other environment, and every stack carries `app:environment`, `app:version` and `deploy:sha` (§23.3). Where a permission would otherwise reach both environments, it is conditioned on that tag: the functional suite manages accounts, and the teardown deletes a user pool, only in a pool tagged `staging`. Outside production the subjects of the messages the pool sends start with the environment, `[staging]`.
 
 **Staging lives one level below production**, in a hosted zone of its own, and the zone of production delegates it with an `NS` record that `network.stack` declares from the name servers the production entry of `cdk.json` lists. Staging has to run before production is first delivered, because it validates the release that delivers it, so an installation writes that record by hand once, with the same values, and the first delivery of production replaces it with the one declared in code. A hosted zone is never created or deleted by a stack: its name servers are drawn when it is created, and recreating it breaks the delegation.
 
@@ -1533,7 +1535,9 @@ The fixed cost of the whole DNS and TLS layer is therefore the hosted zone: arou
 | Content purge | On every deletion | Destroys what a deletion invalidated: every revision in S3, the items in `mv-knowledge` and the projections (§12.4, RN-KNW-047) |
 | `Position` rebalancing | On demand | Redistributes fractional keys that passed 12 characters (§6.5) |
 
-**Mandatory alarms per Lambda:** error rate, p99 duration, throttles and the depth of the dead-letter queue of the outbox relay.
+**Mandatory alarms, in production:** per Lambda, errors, throttles and p99 duration (a projector, asynchronous by design, has no latency alarm), and the depth of every dead-letter queue — the outbox relay, the purge, the transfers, the prints and the Discovery projector. An alarm exists to reach a person, so **every one of them notifies one SNS topic**, `memorysmith-alarms-production`, which `network.stack` declares, the first stack a delivery deploys, with the address of whoever operates the product subscribed to it by e-mail. The alarms name it by the ARN its fixed name gives, so no stack takes a reference on the network stack. The address is **not in `cdk.json`**, because the repository is public: it is the variable `ALARM_EMAIL` of the `production` environment of GitHub Actions, which `deliver` passes to the synthesis as `-c alarmEmail=`, and a synthesis of production without it fails, so an alarm is never created with nowhere to go. AWS sends that address a confirmation, and the topic delivers nothing until it is confirmed.
+
+**Staging carries no alarm.** It is disposable and proved by the smoke and the functional suite (§19), never watched, so an alarm there would reach nobody and only cost money. Each environment declares it in `cdk.json`, `"alarms": true` or `false`, and the choice is never assumed: an entry without it fails the synthesis. `ServiceLambda` and the stacks create every alarm through `mandatoryAlarm`, which attaches the topic or creates nothing, and an aspect over the whole app refuses the synthesis of an alarm without an action in production and of any alarm in staging (§5.4).
 
 ---
 

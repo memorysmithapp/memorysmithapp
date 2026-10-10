@@ -3,8 +3,10 @@
  *
  * `-c environment=production|staging` chooses one, and everything that differs
  * between them is read from `environments` in cdk.json: the account, the
- * region, the hosted zone and the zones it delegates. A synth that names no
- * environment is production.
+ * region, the hosted zone, the zones it delegates and whether it carries
+ * alarms. A synth that names no environment is production. The one thing that
+ * differs and is not in cdk.json is the address the alarms notify, which is
+ * context a delivery passes, because the repository is public.
  *
  * The account is never taken from the credentials. Named explicitly in the
  * environment of every stack, it makes the CDK itself refuse to deploy into
@@ -41,6 +43,20 @@ export interface EnvironmentConfig {
    * under the same name is another repository; `repo:owner/name` otherwise.
    */
   readonly repositorySubject: string;
+  /**
+   * Whether this environment carries the alarms of section 17 (#267). An alarm
+   * exists to reach a person, so production carries them and staging, which is
+   * disposable and proved by the smoke and the functional suite rather than
+   * watched, carries none. Declared per environment in cdk.json, never assumed.
+   */
+  readonly alarms: boolean;
+  /**
+   * Who the alarms notify, present exactly when `alarms` is. It arrives as the
+   * context `alarmEmail`, which `deliver` takes from the variable `ALARM_EMAIL`
+   * of the GitHub environment, and it is never written into cdk.json, because
+   * the repository is public.
+   */
+  readonly alarmEmail?: string;
 }
 
 interface ContextReader {
@@ -91,6 +107,19 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     );
   }
   const delegations = Array.isArray(raw['delegations']) ? raw['delegations'] : [];
+  const alarms = raw['alarms'];
+  if (typeof alarms !== 'boolean') {
+    throw new Error(
+      `The ${requested} environment in cdk.json does not say whether it carries alarms ("alarms": true or false).`,
+    );
+  }
+  const alarmEmail = String(node.tryGetContext('alarmEmail') ?? '').trim();
+  if (alarms && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(alarmEmail)) {
+    throw new Error(
+      `The ${requested} environment carries alarms, and no address to notify was given. ` +
+        'Pass it as -c alarmEmail=…, which deliver takes from ALARM_EMAIL: an alarm is never created with nowhere to go.',
+    );
+  }
   const repository =
     typeof node.tryGetContext('repository') === 'string'
       ? String(node.tryGetContext('repository'))
@@ -108,6 +137,8 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
       typeof node.tryGetContext('repositorySubject') === 'string'
         ? String(node.tryGetContext('repositorySubject'))
         : `repo:${repository}`,
+    alarms,
+    ...(alarms ? { alarmEmail } : {}),
   };
 }
 

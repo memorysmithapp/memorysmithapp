@@ -1,6 +1,8 @@
 /**
  * ServiceLambda: no service reaches production without observability and the
- * mandatory alarms (architecture-guide.md, sections 5.4 and 17).
+ * mandatory alarms, each with the destination it notifies (architecture-guide.md,
+ * sections 5.4 and 17). Where the environment carries no alarms, as staging
+ * does, it creates none (#267).
  *
  * Forgetting them stops being possible by omission, which is the whole reason
  * this construct exists instead of a helper function someone may skip.
@@ -11,11 +13,12 @@
  */
 
 import { Duration, RemovalPolicy, type Size } from 'aws-cdk-lib';
-import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
 import { Architecture, Runtime, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import { mandatoryAlarm } from './alarms.js';
 import { deploymentOf, deploymentVariables } from './deployment.js';
 
 /**
@@ -101,8 +104,10 @@ export class ServiceLambda extends Construct {
     });
 
     // ---- The mandatory alarms (section 17) ---------------------------------
+    // Through mandatoryAlarm, which attaches the topic of the environment and
+    // creates nothing where the environment carries no alarms (#267).
 
-    new Alarm(this, 'Errors', {
+    mandatoryAlarm(this, 'Errors', {
       alarmDescription: `${id}: invocation errors`,
       metric: this.function.metricErrors({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -111,7 +116,7 @@ export class ServiceLambda extends Construct {
       treatMissingData: TreatMissingData.NOT_BREACHING,
     });
 
-    new Alarm(this, 'Throttles', {
+    mandatoryAlarm(this, 'Throttles', {
       alarmDescription: `${id}: throttled invocations`,
       metric: this.function.metricThrottles({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -121,7 +126,7 @@ export class ServiceLambda extends Construct {
     });
 
     if (props.latencyAlarm !== false) {
-      new Alarm(this, 'Duration', {
+      mandatoryAlarm(this, 'Duration', {
         alarmDescription: `${id}: p99 duration`,
         metric: this.function.metricDuration({
           period: Duration.minutes(5),

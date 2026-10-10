@@ -23,7 +23,8 @@ import {
 } from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource, SqsDlq, SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { mandatoryAlarm } from '../constructs/alarms.js';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties, CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
 import {
@@ -296,7 +297,7 @@ export class ApiStack extends Stack {
     // The depth of the relay dead-letter queue is one of the four mandatory
     // alarms (section 17): a message sitting there is an event that never
     // reached the trail.
-    new Alarm(this, 'RelayDeadLetterDepth', {
+    mandatoryAlarm(this, 'RelayDeadLetterDepth', {
       alarmDescription: 'Outbox relay: messages in the dead-letter queue',
       metric: relayDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -400,7 +401,7 @@ export class ApiStack extends Stack {
 
     // A message in this queue is content that was deleted and still exists,
     // which is a promise of the product left unkept.
-    new Alarm(this, 'PurgeDeadLetterDepth', {
+    mandatoryAlarm(this, 'PurgeDeadLetterDepth', {
       alarmDescription: 'Content purge: messages in the dead-letter queue',
       metric: purgeDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -472,7 +473,7 @@ export class ApiStack extends Stack {
     props.data.auditTable.grantReadAndAppend(transfers.function);
 
     // A message here is an export somebody asked for and will never get.
-    new Alarm(this, 'TransferDeadLetterDepth', {
+    mandatoryAlarm(this, 'TransferDeadLetterDepth', {
       alarmDescription: 'Transfer worker: messages in the dead-letter queue',
       metric: transferDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
@@ -517,7 +518,7 @@ export class ApiStack extends Stack {
     // API, as the person who asked.
     props.data.contentBucket.grantPut(printer.function, 's/*/prints/*');
 
-    new Alarm(this, 'PrintDeadLetterDepth', {
+    mandatoryAlarm(this, 'PrintDeadLetterDepth', {
       alarmDescription: 'Print renderer: messages in the dead-letter queue',
       metric: printDlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
       threshold: 1,
