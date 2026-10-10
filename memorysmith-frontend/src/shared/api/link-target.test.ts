@@ -43,6 +43,20 @@ describe('the reading surface reads the target the specification states', () => 
     }
   });
 
+  /**
+   * Code is the one place the rewrite can lose a link as well as invent one: a
+   * span showing three backticks read as a fence hid every link up to the next
+   * one (#266). So these cases are held both ways — every target it asks for is
+   * declared, and every declared target is asked for.
+   */
+  it.each(CONFORMANCE_CASES.filter((each) => each.notation === 'link-in-code'))(
+    '$id finds the code the extractor finds',
+    (each: ConformanceCase) => {
+      const expected = (each.links ?? []).map((link) => link.name);
+      expect([...new Set(targetsAskedFor(each.markdown))].sort()).toEqual([...expected].sort());
+    },
+  );
+
   it('asks for the name literally, without folding anything', () => {
     expect(targetsAskedFor('Ver [[Lei 14.133]].')).toEqual(['Lei 14.133']);
     expect(targetsAskedFor('Ver [[Reunião 03/09/2026]].')).toEqual(['Reunião 03/09/2026']);

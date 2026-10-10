@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A link inside a code block is read by its fences, not by a pattern of backticks.** The graph of a notebook decided what was code by pairing any two runs of three backticks, wherever they stood, so a sentence or a table cell showing ` ```mermaid ` opened a "block" that closed on the next real fence, and every block after it was read out of phase: the links written inside them became pending links, and the links written between them produced no edge and no backlink. A block fenced with tildes was not code at all. A video script showing a demo note in a ```` ````markdown ```` block answered nine pending links to `check_notebook`, every one of them inside the block. Code is now found by the rules the specification states — a fence of backticks or tildes opens at the start of a line and closes only on its own character, at least as long, with nothing after it, or at the end of the note, and a code span closes on a run of exactly its own length — and the page follows the same rules where it turns a wikilink into a link and where it counts task boxes. A notebook projected before this keeps its old graph until its links are projected again. (#266)
+
 ## [0.10.0] - 2026-10-01
 
 ### Added

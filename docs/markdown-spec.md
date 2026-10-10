@@ -211,6 +211,8 @@ The word after the opening fence is the **info string**, and by convention it na
 
 Because a fence closes only on the same character at the same length or longer, **a fence nests**: an outer fence uses more characters than any fence inside it, or a different character. That is the only way to write a code block holding a code block, which is what documenting this specification requires — and it is how the examples in this document are written.
 
+A fence opens at the start of a line — indented up to three spaces within its block quote or list item — and nowhere else, so three backticks in the middle of a sentence or inside a code span open nothing. It closes on a line holding the run and nothing after it but spaces, so a line that carries an info string never closes a block. A fence that never closes runs to the end of the document.
+
 **Indented**, with four spaces or one tab:
 
 ```markdown
@@ -474,6 +476,8 @@ A link whose target matches no name and no alias is **not an error and MUST NOT 
 ### 5.6 Code
 
 A link inside a code span or a fenced code block is an example, not a reference. An Indexer MUST NOT extract it.
+
+What is code is decided by the rules of §3.7 and §3.11 and by nothing looser: a fence of backticks or of tildes, closed only by its own character at its own length or longer, and a code span closed by a run of exactly its own length. An Indexer that pairs runs of backticks wherever they fall reads a code span showing ` ``` ` as the opening of a block, and from there every block after it out of phase — extracting the links inside them and dropping the links written between them.
 
 ### 5.7 Embeds
 

@@ -142,6 +142,106 @@
       "links": []
     },
     {
+      "id": "code/a-span-showing-a-fence-opens-nothing",
+      "notation": "link-in-code",
+      "markdown": "Write a block with ` ```mermaid ` in it.\n\n```\n[[Lei 14.133]]\n```\n",
+      "links": []
+    },
+    {
+      "id": "code/a-link-after-a-span-showing-a-fence-is-a-link",
+      "notation": "link-in-code",
+      "markdown": "Write a block with ` ```mermaid ` in it. See [[Lei 14.133]].\n\n```\ncode\n```\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-tilde-fence-is-code",
+      "notation": "link-in-code",
+      "markdown": "~~~\n[[Lei 14.133]]\n~~~\n",
+      "links": []
+    },
+    {
+      "id": "code/a-longer-fence-holds-a-shorter-one",
+      "notation": "link-in-code",
+      "markdown": "````markdown\n```\n[[Inner]]\n```\n[[Still inside]]\n````\n\nAfter it, [[Lei 14.133]].\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-fence-closes-only-on-its-own-character",
+      "notation": "link-in-code",
+      "markdown": "~~~\n```\n[[Inner]]\n~~~\n\nAfter it, [[Lei 14.133]].\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-closing-fence-carries-no-info-string",
+      "notation": "link-in-code",
+      "markdown": "```\n[[Inner]]\n```js\n[[Still inside]]\n```\n\nAfter it, [[Lei 14.133]].\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-fence-that-never-closes-runs-to-the-end",
+      "notation": "link-in-code",
+      "markdown": "Before it, [[Lei 14.133]].\n\n```\n[[Inner]]\n\n[[Still inside]]\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-fence-inside-a-list-item-or-a-quote-is-code",
+      "notation": "link-in-code",
+      "markdown": "- A step:\n\n    ```\n    [[Inner]]\n    ```\n\n> ~~~\n> [[Quoted]]\n> ~~~\n\nAfter them, [[Lei 14.133]].\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-span-closes-on-a-run-of-its-own-length",
+      "notation": "link-in-code",
+      "markdown": "Write ``a ` then [[Inner]]`` and then [[Lei 14.133]].",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ]
+    },
+    {
+      "id": "code/a-script-showing-a-note-with-its-fences",
+      "notation": "link-in-code",
+      "markdown": "| Form | How |\n| --- | --- |\n| Diagram | ` ```mermaid ` |\n\nThe demo is in [[Decisões da obra]].\n\n````markdown\n# Elétrica\n\nSee [[Orçamento da marcenaria]] and ![[azulejo-cozinha.jpg]].\n\n```mermaid\ngraph TD\n  A --> B\n```\n\nAnd [[Elétrica]].\n````\n",
+      "links": [
+        {
+          "name": "Decisões da obra",
+          "anchor": null
+        }
+      ]
+    },
+    {
       "id": "frontmatter/enum",
       "notation": "frontmatter-enum",
       "markdown": "---\nmaturity: evergreen\n---\n\nBody.",

@@ -30,6 +30,22 @@ describe('finding the boxes', () => {
     expect(toggleTaskAt(withFence, 0)).toContain('- [x] the real one');
     expect(toggleTaskAt(withFence, 0)).toContain('- [ ] an example');
   });
+
+  it('ignores a task item after an inner fence closes inside a longer one (#266)', () => {
+    const nested = [
+      '````markdown',
+      '```',
+      'code',
+      '```',
+      '- [ ] still an example',
+      '````',
+      '',
+      '- [ ] the real one',
+    ].join('\n');
+
+    expect(taskBoxes(nested)).toHaveLength(1);
+    expect(toggleTaskAt(nested, 0)).toContain('- [x] the real one');
+  });
 });
 
 describe('toggling one box', () => {
