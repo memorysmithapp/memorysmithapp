@@ -19,7 +19,9 @@
     "./adapters/memory": "./src/adapters/memory.ts",
     "./application/prints": "./src/application/Prints.ts",
     "./adapters/prints": "./src/adapters/prints.ts",
-    "./adapters/chromium": "./src/adapters/chromium.ts"
+    "./adapters/chromium": "./src/adapters/chromium.ts",
+    "./application/previews": "./src/application/Previews.ts",
+    "./adapters/previews": "./src/adapters/previews.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

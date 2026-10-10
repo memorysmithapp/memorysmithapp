@@ -147,10 +147,13 @@ import {
 import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
 import {
   InMemoryPartStore,
+  InMemoryPreviewQueue,
+  InMemoryPreviewStore,
   InMemoryPrintQueue,
   InMemoryPrintStore,
 } from '@memorysmith/svc-portability/adapters/memory';
 import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
+import { GetPreview, StartPreview } from '@memorysmith/svc-portability/application/previews';
 import {
   BeginUpload,
   discardUpload,
@@ -554,6 +557,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   // A print is handed to a renderer the harness has none of: a case reads the
   // job it was handed, and sets what the renderer would have left (RN-PRT-031).
   const prints = { queue: new InMemoryPrintQueue(), store: new InMemoryPrintStore() };
+  // A preview the same way: the job it was handed, and what the renderer left (#260).
+  const previews = { queue: new InMemoryPreviewQueue(), store: new InMemoryPreviewStore() };
   /**
    * The uploads of an import, in memory. The presigned address is a marker
    * this harness answers to itself: what the tests exercise is what happens
@@ -776,6 +781,10 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     startPrint: (request) =>
       new StartPrint(prints.queue, request.subscription.subscriptionId.value),
     getPrint: (request) => new GetPrint(prints.store, request.subscription.subscriptionId.value),
+    startPreview: (request) =>
+      new StartPreview(previews.queue, previews.store, request.subscription.subscriptionId.value),
+    getPreview: (request) =>
+      new GetPreview(previews.store, request.subscription.subscriptionId.value),
   };
 
   const app = createApp({
@@ -890,6 +899,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     projectStructure,
     archives,
     prints,
+    previews,
     uploads,
     transfers,
     parts,

@@ -7,6 +7,9 @@
  * file and the preview are one drawing, and a change to how a note is printed
  * reaches the PDF with no change here.
  *
+ * The same browser draws a preview for an agent (#260): the application's
+ * preview page, at the reading width, captured as a PNG instead of printed.
+ *
  * **It reaches the product and nothing else.** A note may point a picture at
  * any address, and a browser on the server that fetched any address a note
  * names would be a door into the network it runs in. Every request outside the
@@ -18,6 +21,7 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import type { PrintJob } from '../application/Prints.js';
+import { clipOf, PREVIEW_WIDTH, type PreviewJob } from '../application/Previews.js';
 
 export interface RendererConfig {
   /** The origin the application is served from, the only one the page is opened on. */
@@ -54,8 +58,8 @@ function expiryOf(token: string): number {
   }
 }
 
-/** What the page finds in the storage of the browser: the session, and the choices. */
-function storageOf(job: PrintJob): Record<string, string> {
+/** The session of the person who asked, as the application keeps its own. */
+function sessionOf(job: { accessToken: string; locale: string }): Record<string, string> {
   return {
     'memorysmith.tokens': JSON.stringify({
       accessToken: job.accessToken,
@@ -64,6 +68,13 @@ function storageOf(job: PrintJob): Record<string, string> {
       expiresAt: expiryOf(job.accessToken),
     }),
     'memorysmith.locale': LOCALES.has(job.locale) ? job.locale : 'en_US',
+  };
+}
+
+/** What the page finds in the storage of the browser: the session, and the choices. */
+function storageOf(job: PrintJob): Record<string, string> {
+  return {
+    ...sessionOf(job),
     'memorysmith.printProperties': job.choices.placement,
     'memorysmith.printTables': job.choices.tables,
     'memorysmith.printOrientation': job.choices.orientation,
@@ -90,21 +101,28 @@ async function browserOf(config: RendererConfig): Promise<Browser> {
  * which is another origin and is refused, so the page leaves the application —
  * either way the person has no session here.
  */
-async function outcomeOf(page: Page, siteOrigin: string): Promise<string> {
+async function outcomeOf(page: Page, siteOrigin: string, drawn: string): Promise<string> {
   const deadline = Date.now() + DRAWING_MILLIS;
   while (Date.now() < deadline) {
     if (!page.url().startsWith(siteOrigin)) return 'SESSION';
     const seen = await page
-      .evaluate(() => {
+      .evaluate((ready: string) => {
         const scope = globalThis as unknown as {
-          document: { querySelector(selector: string): object | null };
+          document: {
+            querySelector(selector: string): { getAttribute(name: string): string | null } | null;
+          };
           location: { pathname: string };
         };
-        if (scope.document.querySelector('.print-preview[data-ready="true"]')) return 'ready';
+        if (scope.document.querySelector(ready)) return 'ready';
+        // A page that knows why it draws nothing says so on its own element.
+        const refused = scope.document
+          .querySelector('[data-failure]')
+          ?.getAttribute('data-failure');
+        if (refused) return refused;
         if (scope.document.querySelector('p.status')) return 'NOT_FOUND';
         if (scope.location.pathname.startsWith('/login')) return 'SESSION';
         return null;
-      })
+      }, drawn)
       // A page in the middle of navigating answers nothing for a moment.
       .catch(() => null);
     if (seen) return seen;
@@ -113,50 +131,139 @@ async function outcomeOf(page: Page, siteOrigin: string): Promise<string> {
   return 'TIMED_OUT';
 }
 
-export async function renderPrint(job: PrintJob, config: RendererConfig): Promise<Rendered> {
+/**
+ * A page of the application, opened as the person who asked with what it is
+ * handed in its storage, which may reach the product and nothing else.
+ */
+async function openAs(
+  config: RendererConfig,
+  storage: Record<string, string>,
+  viewport: { width: number; height: number } | null,
+): Promise<{ page: Page; diagnostics: string[] }> {
   const allowed = new Set([config.siteOrigin, ...config.allowedOrigins]);
   const diagnostics: string[] = [];
   const page = await (await browserOf(config)).newPage();
-  try {
-    page.on('pageerror', (error) => diagnostics.push(`page error: ${String(error)}`.slice(0, 300)));
-    page.on('console', (message) => {
-      if (message.type() === 'error') diagnostics.push(`console: ${message.text()}`.slice(0, 300));
-    });
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      const url = request.url();
-      if (url.startsWith('data:') || url.startsWith('blob:')) return void request.continue();
-      let origin = '';
-      try {
-        origin = new URL(url).origin;
-      } catch {
-        // Not an address at all: refused below.
-      }
-      if (allowed.has(origin)) return void request.continue();
-      diagnostics.push(`refused: ${origin || url.slice(0, 80)}`);
-      void request.abort('blockedbyclient');
-    });
-    await page.evaluateOnNewDocument(
-      (site: string, entries: Record<string, string>) => {
-        const scope = globalThis as unknown as {
-          location: { origin: string };
-          localStorage: { setItem(key: string, value: string): void };
-        };
-        if (scope.location.origin !== site) return;
-        for (const [key, value] of Object.entries(entries)) scope.localStorage.setItem(key, value);
-      },
-      config.siteOrigin,
-      storageOf(job),
-    );
+  if (viewport) await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
+  page.on('pageerror', (error) => diagnostics.push(`page error: ${String(error)}`.slice(0, 300)));
+  page.on('console', (message) => {
+    if (message.type() === 'error') diagnostics.push(`console: ${message.text()}`.slice(0, 300));
+  });
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    const url = request.url();
+    if (url.startsWith('data:') || url.startsWith('blob:')) return void request.continue();
+    let origin = '';
+    try {
+      origin = new URL(url).origin;
+    } catch {
+      // Not an address at all: refused below.
+    }
+    if (allowed.has(origin)) return void request.continue();
+    diagnostics.push(`refused: ${origin || url.slice(0, 80)}`);
+    void request.abort('blockedbyclient');
+  });
+  await page.evaluateOnNewDocument(
+    (site: string, entries: Record<string, string>) => {
+      const scope = globalThis as unknown as {
+        location: { origin: string };
+        localStorage: { clear(): void; setItem(key: string, value: string): void };
+      };
+      if (scope.location.origin !== site) return;
+      // One browser draws for whoever asks next: nothing of the last person,
+      // or of what they asked for, is left for the page to find.
+      scope.localStorage.clear();
+      for (const [key, value] of Object.entries(entries)) scope.localStorage.setItem(key, value);
+    },
+    config.siteOrigin,
+    storage,
+  );
+  return { page, diagnostics };
+}
 
+export async function renderPrint(job: PrintJob, config: RendererConfig): Promise<Rendered> {
+  const { page, diagnostics } = await openAs(config, storageOf(job), null);
+  try {
     const address = `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/notes/${job.noteId.toLowerCase()}/print`;
     await page.goto(address, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    const outcome = await outcomeOf(page, config.siteOrigin);
+    const outcome = await outcomeOf(page, config.siteOrigin, '.print-preview[data-ready="true"]');
     if (outcome !== 'ready') return { ok: false, failure: outcome, diagnostics };
 
     const name = (await page.title()).trim() || 'note';
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     return { ok: true, pdf, name };
+  } finally {
+    await page.close().catch(() => undefined);
+  }
+}
+
+/**
+ * Where the preview page reads what it draws (#260): a note by its
+ * identifier, or the draft the renderer read where the API kept it, the folder
+ * a draft would be written in, and the part — beside the session.
+ */
+export const PREVIEW_STORAGE_KEY = 'memorysmith.preview';
+
+export function previewStorageOf(job: PreviewJob, draft: string | null): Record<string, string> {
+  return {
+    ...sessionOf(job),
+    [PREVIEW_STORAGE_KEY]: JSON.stringify({
+      noteId: job.noteId,
+      content: draft,
+      folderId: job.folderId,
+      part: job.part,
+    }),
+  };
+}
+
+export type Previewed =
+  | {
+      readonly ok: true;
+      readonly png: Uint8Array;
+      readonly width: number;
+      readonly height: number;
+      readonly drawnHeight: number;
+    }
+  | { readonly ok: false; readonly failure: string; readonly diagnostics: readonly string[] };
+
+/** The element the preview page draws into, marked once what arrives late has arrived. */
+const PREVIEW_READY = '.note-preview[data-ready="true"]';
+
+/**
+ * A note, a draft or a part of either, drawn by the application's preview page
+ * at the reading width and in the light theme, and captured as a PNG (#260,
+ * RN-PRT-032): as wide as the page reads, as tall as it drew, up to the
+ * tallest image a preview answers, a taller drawing cut there.
+ */
+export async function renderPreview(
+  job: PreviewJob,
+  draft: string | null,
+  config: RendererConfig,
+): Promise<Previewed> {
+  const { page, diagnostics } = await openAs(config, previewStorageOf(job, draft), {
+    width: PREVIEW_WIDTH,
+    height: 1000,
+  });
+  try {
+    const address = `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/preview`;
+    await page.goto(address, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    const outcome = await outcomeOf(page, config.siteOrigin, PREVIEW_READY);
+    if (outcome !== 'ready') return { ok: false, failure: outcome, diagnostics };
+
+    const box = await (await page.$(PREVIEW_READY))?.boundingBox();
+    if (!box) return { ok: false, failure: 'FAILED', diagnostics };
+    const clip = clipOf(box.height);
+    const png = await page.screenshot({
+      type: 'png',
+      clip: { x: box.x, y: box.y, width: clip.width, height: clip.height },
+      captureBeyondViewport: true,
+    });
+    return {
+      ok: true,
+      png,
+      width: clip.width,
+      height: clip.height,
+      drawnHeight: Math.max(clip.height, Math.ceil(box.height)),
+    };
   } finally {
     await page.close().catch(() => undefined);
   }

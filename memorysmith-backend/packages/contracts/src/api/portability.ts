@@ -276,6 +276,47 @@ export const printSchema = z.object({
   failure: z.string().optional(),
 });
 
+/**
+ * How a note, or a part of it, is drawn, as an image an agent can see (#260,
+ * RN-PRT-032): a note already written, by its identifier, OR a draft not
+ * written yet, with the folder it would be written in — exactly one of the two,
+ * which the use case says when it is not. A part is addressed as a
+ * transclusion addresses one, `#Section` or `#^block`. The answer is the
+ * preview, which is polled until its image is ready.
+ */
+export const previewRequestSchema = z.object({
+  noteId: z.string().min(1).optional(),
+  content: z.string().max(1_048_576).optional(),
+  folderId: z.string().min(1).optional(),
+  part: z.string().min(1).max(512).optional(),
+  locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
+});
+
+export const previewSchema = z.object({
+  previewId: ulidSchema,
+  status: z.enum(['running', 'ready', 'failed']),
+  /**
+   * The image, once it is drawn: a PNG, base64, 760 pixels wide — the reading
+   * width — and at most 1600 high, a taller drawing cut there.
+   */
+  image: z
+    .object({
+      mimeType: z.literal('image/png'),
+      base64: z.string(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+      /** How tall the drawing was before it was cut to `height`. */
+      drawnHeight: z.number().int().positive(),
+      cut: z.boolean(),
+    })
+    .optional(),
+  /**
+   * Why there is no image: NOT_FOUND (the note, or the folder of a draft),
+   * PART_NOT_FOUND, SESSION, TIMED_OUT or FAILED.
+   */
+  failure: z.string().optional(),
+});
+
 export type ExportRequest = z.infer<typeof exportRequestSchema>;
 export type ImportFromExportRequest = z.infer<typeof importFromExportRequestSchema>;
 export type ImportUploadDto = z.infer<typeof importUploadSchema>;
@@ -293,3 +334,5 @@ export type TransferRequestDto = z.infer<typeof transferRequestSchema>;
 export type RequestFileRequest = z.infer<typeof requestFileRequestSchema>;
 export type PrintRequest = z.infer<typeof printRequestSchema>;
 export type PrintDto = z.infer<typeof printSchema>;
+export type PreviewRequest = z.input<typeof previewRequestSchema>;
+export type PreviewDto = z.infer<typeof previewSchema>;

@@ -1051,6 +1051,64 @@ describe('Portability answers over the API', () => {
     expect(refusedChoice.status).toBe(400);
   });
 
+  it('starts a preview of a note or a draft as the person who asked, and answers its image once drawn (#260)', async () => {
+    // RN-PRT-032.
+    const { notebookId, folderId, notes } = await seed();
+    const started = await call(`/portability/notebooks/${notebookId}/previews`, {
+      method: 'POST',
+      body: { noteId: notes['lei'], part: '#^limite' },
+    });
+    expect(started.status).toBe(202);
+    const { previewId } = (await started.json()) as { previewId: string };
+    expect(harness.previews.queue.sent.at(-1)).toMatchObject({
+      kind: 'preview',
+      previewId,
+      notebookId,
+      noteId: notes['lei'],
+      draft: false,
+      part: '^limite',
+      accessToken: TOKEN,
+    });
+
+    const polled = async () =>
+      (await (await call(`/portability/previews/${previewId}`)).json()) as {
+        status: string;
+        image?: { mimeType: string; width: number; height: number; cut: boolean };
+      };
+    expect((await polled()).status).toBe('running');
+    const job = harness.previews.queue.sent.at(-1);
+    harness.previews.store.set(job?.subscriptionId ?? '', previewId, {
+      status: 'ready',
+      image: { png: new Uint8Array([1, 2, 3]), width: 760, height: 900, drawnHeight: 900 },
+    });
+    expect((await polled()).image).toMatchObject({
+      mimeType: 'image/png',
+      width: 760,
+      height: 900,
+      cut: false,
+    });
+
+    // A draft is kept beside the image; a note and a draft at once is refused.
+    const drafted = await call(`/portability/notebooks/${notebookId}/previews`, {
+      method: 'POST',
+      body: { content: '# Rascunho\n', folderId },
+    });
+    expect(drafted.status).toBe(202);
+    expect(harness.previews.store.drafts.size).toBe(1);
+    const both = await call(`/portability/notebooks/${notebookId}/previews`, {
+      method: 'POST',
+      body: { content: '# Rascunho\n', noteId: notes['lei'] },
+    });
+    expect(both.status).toBe(400);
+
+    // A notebook the caller cannot read draws nothing, and says nothing of itself.
+    const refused = await call('/portability/notebooks/01JBQ2X0000000000000000ZZZ/previews', {
+      method: 'POST',
+      body: { noteId: notes['lei'] },
+    });
+    expect(refused.status).toBe(404);
+  });
+
   it('lists the notes of a folder ordered by name, refuses to move one, and carries the order through an export', async () => {
     // RN-KNW-056: Achado 12 was written first, so by hand it comes first.
     const { notebookId, folderId, notes } = await seed();

@@ -482,7 +482,7 @@ export class ApiStack extends Stack {
       treatMissingData: TreatMissingData.NOT_BREACHING,
     });
 
-    // ---- The renderer of prints (#263) ---------------------------------------
+    // ---- The renderer of prints and previews (#263, #260) -------------------
 
     const chromium = new LayerVersion(this, 'Chromium', {
       code: Code.fromAsset(chromiumBinaries),
@@ -493,7 +493,8 @@ export class ApiStack extends Stack {
 
     const printer = new ServiceLambda(this, 'PrintRenderer', {
       entry: join(backend, 'apps', 'core-monolith', 'src', 'print.handler.ts'),
-      description: 'Opens the print page of a note as the person who asked, and saves it as a PDF.',
+      description:
+        'Opens the print or the preview page of a note as the person who asked, and saves it as a PDF or a PNG.',
       environment: {
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
         // The page is opened on the application, and reaches its API and the
@@ -513,10 +514,13 @@ export class ApiStack extends Stack {
     // One note at a time: a browser draws one page well, and a batch would
     // make one long note hold up the others.
     printer.function.addEventSource(new SqsEventSource(printQueue, { batchSize: 1 }));
-    // It writes the file, or the reason there is none, under `prints/` alone:
-    // it reads nothing of the bucket, and the page reads the note through the
-    // API, as the person who asked.
+    // It writes the file, or the reason there is none, under `prints/` and
+    // `previews/` alone, and reads only the draft a preview draws (#260),
+    // which the API kept under `previews/`: the page reads everything else
+    // through the API, as the person who asked.
     props.data.contentBucket.grantPut(printer.function, 's/*/prints/*');
+    props.data.contentBucket.grantPut(printer.function, 's/*/previews/*');
+    props.data.contentBucket.grantRead(printer.function, 's/*/previews/*');
 
     mandatoryAlarm(this, 'PrintDeadLetterDepth', {
       alarmDescription: 'Print renderer: messages in the dead-letter queue',
