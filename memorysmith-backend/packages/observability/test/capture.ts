@@ -8,6 +8,8 @@ import { vi } from 'vitest';
 
 process.env['POWERTOOLS_DEV'] = 'true';
 process.env['POWERTOOLS_SERVICE_NAME'] = 'TestFunction';
+// A suite that silences the lines of its other tests is read at INFO here.
+process.env['POWERTOOLS_LOG_LEVEL'] = 'INFO';
 
 export type Line = Record<string, unknown>;
 

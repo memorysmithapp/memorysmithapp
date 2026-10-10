@@ -20,6 +20,7 @@ import {
 } from '../adapters/aws.js';
 import { ProjectFiles, ProjectNote, ProjectStructure } from '../application/projections.js';
 import { dispatch } from '../adapters/dispatch.js';
+import { observe, startOfEvent } from '@memorysmith/observability';
 
 interface QueueEvent {
   detail?: unknown;
@@ -84,7 +85,7 @@ function projectorsFor(subscriptionId: SubscriptionId) {
  */
 export async function handler(event: QueueEvent): Promise<BatchResponse> {
   if (!event.Records) {
-    if (event.detail !== undefined) await projectOne(event.detail);
+    if (event.detail !== undefined) await observed(event.detail);
     return { batchItemFailures: [] };
   }
 
@@ -92,13 +93,19 @@ export async function handler(event: QueueEvent): Promise<BatchResponse> {
   for (const record of event.Records) {
     try {
       const parsed = JSON.parse(record.body ?? '{}') as { detail?: unknown };
-      await projectOne(parsed.detail ?? parsed);
-    } catch (error) {
-      console.error('A projection failed and goes back to the queue alone', error);
+      await observed(parsed.detail ?? parsed);
+    } catch {
+      // The line of the event already says it failed, and how (section 17);
+      // the record goes back to the queue alone.
       failures.push({ itemIdentifier: record.messageId ?? '' });
     }
   }
   return { batchItemFailures: failures };
+}
+
+/** One line per event projected, under the id of the request that caused it (section 17). */
+function observed(each: unknown): Promise<void> {
+  return observe(startOfEvent(each), () => projectOne(each));
 }
 
 async function projectOne(each: unknown): Promise<void> {

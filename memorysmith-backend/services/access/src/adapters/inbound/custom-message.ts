@@ -8,6 +8,7 @@
  * event: the language is an attribute of the account, so no table is involved.
  */
 
+import { observe } from '@memorysmith/observability';
 import { composePoolMessage } from './pool-messages.js';
 
 interface CustomMessageEvent {
@@ -29,7 +30,15 @@ const setting = {
   site: process.env['SITE_ORIGIN'] ?? 'https://memorysmith.app',
 };
 
-export async function handler(event: CustomMessageEvent): Promise<CustomMessageEvent> {
+/**
+ * One line per message composed, named by its trigger; never the address it
+ * goes to or the code it carries (section 17).
+ */
+export function handler(event: CustomMessageEvent): Promise<CustomMessageEvent> {
+  return observe({ operation: String(event.triggerSource) }, () => compose(event));
+}
+
+async function compose(event: CustomMessageEvent): Promise<CustomMessageEvent> {
   const message = composePoolMessage(event.triggerSource, event.request, setting);
   if (message) {
     event.response.emailSubject = message.subject;

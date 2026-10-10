@@ -21,6 +21,7 @@ import { Instant, type SubscriptionId } from '@memorysmith/kernel';
 import { ContentPurge } from '@memorysmith/svc-knowledge/adapters/purge';
 import { S3ContentPurger } from '@memorysmith/svc-knowledge/adapters/purger';
 import { DynamoTrailCloser } from '@memorysmith/svc-audit/adapters/closer';
+import { observe, startOfEvent } from '@memorysmith/observability';
 
 interface QueueEvent {
   detail?: unknown;
@@ -68,14 +69,18 @@ export async function handler(event: QueueEvent): Promise<void> {
   for (const body of bodies) {
     const parsed = JSON.parse(body) as { detail?: unknown };
     const envelope = (parsed.detail ?? parsed) as Parameters<ContentPurge['run']>[0];
-    const outcome = await purge.run(envelope);
+    // Under the id of the deletion that caused it, which the events of the
+    // purge carry on to the trail (section 17).
+    await observe(startOfEvent(envelope, `purge ${String(envelope.type)}`), async () => {
+      const outcome = await purge.run(envelope);
 
-    if (!outcome.done) {
-      // What is left carries on in a message of its own, with the same
-      // envelope: the worker reads the partition again and finds less.
-      await sqs.send(
-        new SendMessageCommand({ QueueUrl: queueUrl, MessageBody: JSON.stringify(envelope) }),
-      );
-    }
+      if (!outcome.done) {
+        // What is left carries on in a message of its own, with the same
+        // envelope: the worker reads the partition again and finds less.
+        await sqs.send(
+          new SendMessageCommand({ QueueUrl: queueUrl, MessageBody: JSON.stringify(envelope) }),
+        );
+      }
+    });
   }
 }

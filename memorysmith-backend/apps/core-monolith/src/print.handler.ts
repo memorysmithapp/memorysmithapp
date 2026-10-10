@@ -26,9 +26,19 @@ import {
   renderPrint,
   type RendererConfig,
 } from '@memorysmith/svc-portability/adapters/chromium';
+import {
+  annotate,
+  correlationIdOfRecord,
+  errorFieldsOf,
+  observe,
+  refusedWith,
+} from '@memorysmith/observability';
 
 interface QueueEvent {
-  Records?: Array<{ body?: string }>;
+  Records?: Array<{
+    body?: string;
+    messageAttributes?: Record<string, { stringValue?: string } | undefined>;
+  }>;
 }
 
 function required(name: string): string {
@@ -64,20 +74,14 @@ async function print(job: PrintJob): Promise<void> {
     if (rendered.ok)
       await output.keep(job.subscriptionId, job.printId, rendered.pdf, rendered.name);
     else {
-      // Why there is no file, with what the page said on the way: the person
-      // is told the reason, and the log keeps how it came about.
-      console.warn('The print made no file', {
-        printId: job.printId,
-        failure: rendered.failure,
-        diagnostics: rendered.diagnostics,
-      });
+      // Why there is no file: the person is told the reason, and the line of
+      // the job keeps its code. What the page said on the way is not written:
+      // a message of a page may quote the note it was drawing (section 17).
+      annotate(refusedWith(rendered.failure));
       await output.fail(job.subscriptionId, job.printId, rendered.failure);
     }
   } catch (error) {
-    console.error('The print could not be made', {
-      printId: job.printId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    annotate({ outcome: 'error', ...errorFieldsOf(error) });
     await output.fail(job.subscriptionId, job.printId, 'FAILED');
   }
 }
@@ -88,18 +92,11 @@ async function preview(job: PreviewJob): Promise<void> {
     const drawn = await renderPreview(job, draft, config);
     if (drawn.ok) await previews.keep(job.subscriptionId, job.previewId, drawn);
     else {
-      console.warn('The preview drew nothing', {
-        previewId: job.previewId,
-        failure: drawn.failure,
-        diagnostics: drawn.diagnostics,
-      });
+      annotate(refusedWith(drawn.failure));
       await previews.fail(job.subscriptionId, job.previewId, drawn.failure);
     }
   } catch (error) {
-    console.error('The preview could not be drawn', {
-      previewId: job.previewId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    annotate({ outcome: 'error', ...errorFieldsOf(error) });
     await previews.fail(job.subscriptionId, job.previewId, 'FAILED');
   }
 }
@@ -108,7 +105,16 @@ export async function handler(event: QueueEvent): Promise<void> {
   for (const record of event.Records ?? []) {
     const job = JSON.parse(record.body ?? '{}') as PrintJob | PreviewJob;
     // A print carries no kind: it was the only job this queue knew.
-    if ('kind' in job && job.kind === 'preview') await preview(job);
-    else await print(job as PrintJob);
+    const isPreview = 'kind' in job && job.kind === 'preview';
+    // The line of the job: its kind and its subscription, never the token it
+    // carries, the note it draws or the choices it was asked with (section 17).
+    await observe(
+      {
+        operation: isPreview ? 'preview' : 'print',
+        correlationId: correlationIdOfRecord(record),
+        subscriptionId: job.subscriptionId,
+      },
+      () => (isPreview ? preview(job as PreviewJob) : print(job as PrintJob)),
+    );
   }
 }

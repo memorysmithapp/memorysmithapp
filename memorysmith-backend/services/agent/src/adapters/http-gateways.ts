@@ -13,6 +13,7 @@
  *    AND the human, and a token with no binding writes nothing (RN-AGT-001).
  */
 
+import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmith/observability';
 import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
@@ -112,6 +113,20 @@ function inDefinedOrder<T extends { position: string }>(
   });
 }
 
+/**
+ * The headers of every call to the core: the caller's own token, and the id of
+ * the request in course, so the line the core writes for it and the events it
+ * causes are found by the id of the tool call that asked (section 17).
+ */
+function headersFor(token: string, json: boolean): Record<string, string> {
+  const correlationId = currentCorrelationId();
+  return {
+    authorization: `Bearer ${token}`,
+    ...(json ? { 'content-type': 'application/json' } : {}),
+    ...(correlationId ? { [CORRELATION_HEADER]: correlationId } : {}),
+  };
+}
+
 /** The bearer token travels with the caller, and only inside this process. */
 export interface TokenCarrier extends AgentCaller {
   readonly bearerToken: string;
@@ -126,10 +141,7 @@ async function callApi<T>(
   const token = (caller as TokenCarrier).bearerToken;
   const response = await fetch(`${origin}${path}`, {
     method: init.method ?? 'GET',
-    headers: {
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-    },
+    headers: headersFor(token, true),
     ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
   });
 
@@ -536,7 +548,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async notebookContext(caller: AgentCaller, notebookId: string): Promise<string> {
     const token = (caller as TokenCarrier).bearerToken;
     const response = await fetch(`${this.origin}/knowledge/notebooks/${notebookId}/context`, {
-      headers: { authorization: `Bearer ${token}` },
+      headers: headersFor(token, false),
     });
     if (!response.ok) {
       const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;

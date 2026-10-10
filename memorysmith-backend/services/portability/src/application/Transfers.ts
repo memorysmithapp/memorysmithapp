@@ -415,6 +415,7 @@ export class RunExport {
   constructor(
     private readonly transfers: TransferStore,
     private readonly exporter: ExportRunner,
+    private readonly unexpected: UnexpectedFailure = IGNORED,
   ) {}
 
   async execute(work: TransferWork): Promise<void> {
@@ -472,7 +473,7 @@ export class RunExport {
       // somebody clicked.
       await this.transfers.addKeptBytes(built.value.bytes, work.notebookId ?? null);
     } catch (error) {
-      reportUnexpected('export', work, error);
+      this.unexpected(error);
       await this.transfers.patch(work.userId, work.transferId, {
         status: 'failed',
         finishedAt: Instant.now().toISOString(),
@@ -487,15 +488,13 @@ export class RunExport {
  * cut to 200 characters, which is where a sentence of the cloud provider names
  * the thing it refused: the one that started #148 reached the person ending
  * mid-word, at `perfo`. The worker serves no request and has nowhere to carry
- * an error out to, so the whole of it is written here, where the log of the
- * function keeps it.
+ * an error out to, so it is handed to whoever runs the worker, whose log line
+ * keeps what it was and where it was thrown — and never its message, which
+ * may quote what the archive held (architecture-guide.md, section 17).
  */
-function reportUnexpected(kind: 'export' | 'import', work: TransferWork, error: unknown): void {
-  console.error(
-    `A transfer failed for a reason it did not foresee (${kind} ${work.transferId})`,
-    error,
-  );
-}
+export type UnexpectedFailure = (error: unknown) => void;
+
+const IGNORED: UnexpectedFailure = () => undefined;
 
 /**
  * The worker side of an import: writes the notebook and records how far it got,
@@ -527,6 +526,7 @@ export class RunImport {
     private readonly transfers: TransferStore,
     private readonly importer: ImportRunner,
     private readonly by: Authorship,
+    private readonly unexpected: UnexpectedFailure = IGNORED,
   ) {}
 
   async execute(work: TransferWork): Promise<void> {
@@ -596,7 +596,7 @@ export class RunImport {
         notebookId: written.value.notebookId,
       });
     } catch (error) {
-      reportUnexpected('import', work, error);
+      this.unexpected(error);
       await this.transfers.patch(work.userId, work.transferId, {
         status: 'failed',
         finishedAt: Instant.now().toISOString(),

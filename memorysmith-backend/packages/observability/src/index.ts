@@ -35,6 +35,7 @@ export {
   type Annotations,
   type OperationScope,
 } from './scope.js';
+export { correlationAttributes, correlationIdOfRecord } from './messages.js';
 export {
   observe,
   observeBatch,

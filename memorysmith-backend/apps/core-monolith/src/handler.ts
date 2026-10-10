@@ -637,6 +637,8 @@ function discoveryFor(context: SubscriptionContext) {
 const app = createApp({
   deployment: deploymentFromVariables(process.env),
   verifier,
+  // A token of the proxy's app client is an agent's, and its line says so (section 17).
+  connectorClientId,
   connectorBindings: {
     verifier,
     connectorClientId,

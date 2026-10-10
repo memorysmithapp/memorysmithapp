@@ -9,12 +9,33 @@
 
 import type { VerifiedAgentToken } from './auth.js';
 import { TOOL_CATALOG } from './mcp/catalog.js';
-import type { McpToolAdapter } from './mcp/tools.js';
+import type { McpToolAdapter, ToolResult } from './mcp/tools.js';
 import type { AgentCaller } from './mcp/gateway.js';
 import type { Deployment } from '@memorysmith/contracts';
 import { PRODUCTION_DEFAULT } from './mcp/environment.js';
 import { serverInstructions } from './mcp/instructions.js';
 import { serverInfo } from './mcp/server-info.js';
+import { annotate, refusedWith } from '@memorysmith/observability';
+
+/** The methods a line is named after; any other is named `unknown method`. */
+const KNOWN_METHODS = new Set(['initialize', 'notifications/initialized', 'ping', 'tools/list']);
+const TOOL_NAMES = new Set(TOOL_CATALOG.map((tool) => tool.name));
+
+/**
+ * What the line of this request is named: the tool, for a call of one in the
+ * catalogue, and the method otherwise. A name the client typed that the
+ * catalogue does not hold is never written, since it could be anything
+ * (section 17).
+ */
+function operationOf(request: JsonRpcRequest): string {
+  if (request.method === 'tools/call') {
+    const name = request.params?.['name'];
+    return typeof name === 'string' && TOOL_NAMES.has(name) ? name : 'tools/call unknown tool';
+  }
+  return typeof request.method === 'string' && KNOWN_METHODS.has(request.method)
+    ? request.method
+    : 'unknown method';
+}
 
 /**
  * The revisions this server speaks, newest first. 2025-11-25 is the one that
@@ -79,6 +100,17 @@ export function callerFrom(
   };
 }
 
+/**
+ * The code a refused call opens its text with — `CONFLICT:`, `VALIDATION:`,
+ * `UNKNOWN_TOOL:` — which is all of the refusal its line keeps: the rest of the
+ * text may quote a name (section 17).
+ */
+function refusalCodeOf(answer: ToolResult): string {
+  const first = answer.content[0];
+  const text = first && 'text' in first && typeof first.text === 'string' ? first.text : '';
+  return /^([A-Z][A-Z0-9_]*):/.exec(text)?.[1] ?? 'REFUSED';
+}
+
 export async function handleMcpRequest(
   body: unknown,
   token: VerifiedAgentToken,
@@ -92,6 +124,7 @@ export async function handleMcpRequest(
   }
   const request = body as JsonRpcRequest;
   const id = request.id ?? null;
+  annotate({ operation: operationOf(request) });
 
   switch (request.method) {
     case 'initialize': {
@@ -128,6 +161,7 @@ export async function handleMcpRequest(
       if (!caller) {
         // A token with no subscription claim cannot reach a notebook, and the
         // failure is structural rather than a permission check (RN-SUB-016).
+        annotate({ outcome: 'refused', errorCode: 'NO_SUBSCRIPTION' });
         return result(id, {
           content: [
             {
@@ -141,7 +175,9 @@ export async function handleMcpRequest(
         });
       }
       const args = (request.params?.['arguments'] ?? {}) as Record<string, unknown>;
-      return result(id, await tools.call(name, args, caller));
+      const answer = await tools.call(name, args, caller);
+      if (answer.isError) annotate(refusedWith(refusalCodeOf(answer)));
+      return result(id, answer);
     }
 
     default:

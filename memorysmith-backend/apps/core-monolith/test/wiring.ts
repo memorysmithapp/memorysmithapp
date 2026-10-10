@@ -790,6 +790,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const app = createApp({
     deployment,
     verifier,
+    connectorClientId: CONNECTOR_CLIENT_ID,
     connectorBindings: {
       verifier,
       connectorClientId: CONNECTOR_CLIENT_ID,

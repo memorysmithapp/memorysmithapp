@@ -21,6 +21,8 @@ import type { McpToolAdapter } from './mcp/tools.js';
 import type { ConnectorBinder } from './connector-binding.js';
 import { DEPLOYMENT_HEADERS, type Deployment } from '@memorysmith/contracts';
 import { PRODUCTION_DEFAULT } from './mcp/environment.js';
+import { annotate, errorFieldsOf } from '@memorysmith/observability';
+import { operationErrorHandler, operationLog } from '@memorysmith/observability/hono';
 
 /** The longest connector name an authorship keeps. */
 const CLIENT_NAME_LIMIT = 200;
@@ -60,6 +62,14 @@ export function createApp(
   deployment: Deployment = PRODUCTION_DEFAULT,
 ): Hono {
   const app = new Hono();
+
+  /**
+   * One line per request, written when its answer is known (section 17). A
+   * tool call is named by its tool, and its id is the one the gateway gave the
+   * request, which the call to the core carries on.
+   */
+  app.use('*', operationLog({ channel: 'mcp' }));
+  app.onError(operationErrorHandler);
 
   /**
    * Every response says what answered it, the OAuth challenge included: it is
@@ -273,13 +283,10 @@ export function createApp(
     const tokens = response.ok ? issuedTokens(body) : null;
     if (tokens) {
       await bindTo(tokens).catch((error: unknown) => {
-        console.error(
-          JSON.stringify({
-            message: 'The connector could not be bound to the token it was issued',
-            grantType,
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+        // The token is answered anyway, and every write through it will be
+        // refused until the connector reconnects: the line says the binding
+        // failed, which is an error of ours and not of the client.
+        annotate({ ...errorFieldsOf(error), outcome: 'error', errorCode: 'CONNECTOR_NOT_BOUND' });
       });
     }
     return c.newResponse(body, response.status as 200, {
@@ -302,6 +309,10 @@ export function createApp(
     const bearerToken = authorization.slice('Bearer '.length);
     const token = await verifyAccessToken(bearerToken, config);
     if (!token) return unauthorized();
+    annotate({
+      userId: token.sub,
+      ...(token.subscriptionId ? { subscriptionId: token.subscriptionId } : {}),
+    });
 
     if (c.req.method !== 'POST') {
       // Stateless transport: no server-initiated stream, no session to delete.

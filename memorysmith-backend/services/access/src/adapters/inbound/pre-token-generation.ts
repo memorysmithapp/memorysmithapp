@@ -19,6 +19,7 @@
  *    it is the same nature as the five minutes of the authorizer cache.
  */
 
+import { observe } from '@memorysmith/observability';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -30,7 +31,22 @@ interface TriggerEvent {
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const tableName = process.env['ACCESS_TABLE'] ?? '';
 
-export async function handler(event: TriggerEvent): Promise<TriggerEvent> {
+/**
+ * One line per token issued, named by the trigger that asked for it and
+ * carrying the person's identifier and nothing of their attributes (section 17).
+ */
+export function handler(event: TriggerEvent): Promise<TriggerEvent> {
+  const userId = event.request.userAttributes['sub'];
+  return observe(
+    {
+      operation: String((event as { triggerSource?: unknown }).triggerSource ?? 'TokenGeneration'),
+      ...(userId ? { userId } : {}),
+    },
+    () => claimsOf(event),
+  );
+}
+
+async function claimsOf(event: TriggerEvent): Promise<TriggerEvent> {
   const userId = event.request.userAttributes['sub'];
   // Who the person is travels with EVERY token, subscription or not. The
   // access token carries no email of its own, and without it the API can only
