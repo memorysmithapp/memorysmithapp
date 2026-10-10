@@ -540,6 +540,10 @@ test.describe('the pages of an account', () => {
       await expect(row).toBeVisible({ timeout: 60_000 });
       // Pointing at a row reads its name whole, wherever the column cuts it.
       await expect(row).toHaveAttribute('title', long);
+      // A name the column cuts is cut by an ellipsis: the row is a block, the
+      // only box whose text draws one, and it overflows its own width.
+      await expect(row).toHaveCSS('display', 'block');
+      await expect(row).toHaveCSS('text-overflow', 'ellipsis');
       await expect(
         app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Third quarter' }),
       ).toHaveAttribute('title', /^Third quarter\n/);

@@ -1173,15 +1173,17 @@ a:hover {
   line-height: 1;
   color: var(--text-soft);
 }
+/* A block and not a flex box: the ellipsis of a name cut at the edge of the
+   column is drawn only on the text of a block, and a flex box cut it bare
+   (#274). The line height centres the name in its row. */
 .tree-note {
+  display: block;
   height: 28px;
-  display: flex;
-  align-items: center;
   margin: 0 -8px;
   padding: 0 8px;
   border-radius: 6px;
   font-size: 13px;
-  line-height: 1;
+  line-height: 28px;
   color: var(--text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3893,6 +3895,9 @@ body.has-sheet .app-main {
   .tree-folder,
   .tree-note {
     height: 40px;
+  }
+  .tree-note {
+    line-height: 40px;
   }
   .tree-toggle {
     width: 28px;

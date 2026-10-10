@@ -47,4 +47,11 @@ describe('the sidebar of a notebook', () => {
       expect(content >= reading || sidebarAt(viewport) === 272).toBe(true);
     }
   });
+
+  it('cuts a long name of a note with an ellipsis, which only the text of a block draws', () => {
+    const rule = /\n\.tree-note \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toMatch(/display: block;/);
+    expect(rule).toMatch(/text-overflow: ellipsis;/);
+    expect(rule).not.toMatch(/display: (inline-)?flex/);
+  });
 });
