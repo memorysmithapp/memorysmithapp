@@ -935,7 +935,12 @@ a:hover {
   width: 100%;
 }
 .notebook-sidebar {
-  width: 272px;
+  /* It grows with the window, from 272 px up to 400 px, so a long name in a
+     deep folder is cut later on a large screen (#274). It starts growing at
+     1236 px and stops at 1818 px, and the content beside it keeps 78vw — 964
+     px where it starts — which never falls under the 780 px of the reading
+     column; under 1236 px it is 272 px as it always was. */
+  width: clamp(272px, 22vw, 400px);
   flex: none;
   display: flex;
   flex-direction: column;

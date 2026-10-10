@@ -13,7 +13,6 @@ issues each entry cites.
 
 ### Changed
 
-- **The alarms of production reach somebody, and staging carries none.** The 70 alarms of the two environments — errors, throttles and p99 duration of every function, and the depth of every dead-letter queue — had no action at all, so an event stuck in the dead-letter queue of the relay told nobody, and they had become the largest recurring line of the bill. In production every alarm now notifies one SNS topic, `memorysmith-alarms-production`, with the operator's address subscribed by e-mail; staging, which is disposable and proved by the smoke and the functional suite, creates no alarm. Each environment declares the choice in `cdk.json` (`"alarms": true` or `false`). The address is the variable `ALARM_EMAIL` of the `production` environment of GitHub Actions, never a line of `cdk.json`: a delivery or a synth of production without it is refused, and an alarm created without an action, or in staging, fails the synthesis. **Before the next delivery of production**, set `ALARM_EMAIL` in that environment, and after it follow the link of the confirmation AWS sends to that address. (#267)
 
 ### Fixed
 

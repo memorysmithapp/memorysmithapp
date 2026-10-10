@@ -509,6 +509,55 @@ test.describe('the pages of an account', () => {
     await expect(crumbs.first()).toHaveText(notebook.name);
   });
 
+  test('widens the sidebar with the window and names every row of the tree whole (#274)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    let parentFolderId: string | null = null;
+    const folders: string[] = [];
+    for (const name of ['Decisions of the board', 'Year of the review', 'Third quarter']) {
+      const { folderId }: { folderId: string } = await owner.ok<{ folderId: string }>(
+        'POST',
+        `${path}/folders`,
+        { name, description: 'Where the case keeps a long name.', parentFolderId },
+      );
+      folders.push(folderId);
+      parentFolderId = folderId;
+    }
+    const long = 'Resolution on the renewal of the maintenance contract of the archive';
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: parentFolderId,
+      content: `---\nname: ${long}\n---\n\nWhat was resolved.\n`,
+    });
+
+    for (const width of [1280, 1440, 1920]) {
+      await app.setViewportSize({ width, height: 900 });
+      if (width === 1280) await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      const row = app.locator('aside#notebook-sidebar a.tree-note', { hasText: long });
+      // The structure reads again until it shows the note.
+      await expect(row).toBeVisible({ timeout: 60_000 });
+      // Pointing at a row reads its name whole, wherever the column cuts it.
+      await expect(row).toHaveAttribute('title', long);
+      await expect(
+        app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Third quarter' }),
+      ).toHaveAttribute('title', /^Third quarter\n/);
+
+      const sidebar = await app.locator('aside#notebook-sidebar').boundingBox();
+      const pane = await app.locator('article.content-pane').first().boundingBox();
+      // Wider than it was on a window that has the room, and never at the
+      // cost of the reading column, which keeps its 780 px.
+      if (width >= 1440) expect(sidebar?.width ?? 0).toBeGreaterThan(272);
+      expect(pane?.width ?? 0).toBeGreaterThanOrEqual(779);
+      expect((pane?.x ?? 0) + 1).toBeGreaterThanOrEqual((sidebar?.x ?? 0) + (sidebar?.width ?? 0));
+      await testInfo.attach(`sidebar-${width}.png`, {
+        body: await app.screenshot(),
+        contentType: 'image/png',
+      });
+    }
+  });
+
   test('[page:/notebooks/:notebookId/folders/:folderId] lists the notes of a folder', async ({
     app,
     notebook,
