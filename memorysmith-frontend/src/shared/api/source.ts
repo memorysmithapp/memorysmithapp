@@ -375,6 +375,14 @@ export function setNoteOrder(
   return backend.setNoteOrder(notebookId, folderId, noteOrder);
 }
 
+export function updateFolder(
+  notebookId: string,
+  folderId: string,
+  change: { name?: string; description?: string },
+): Promise<void> {
+  return backend.updateFolder(notebookId, folderId, change);
+}
+
 export function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
   return backend.deleteTemplate(notebookId, folderId);
 }

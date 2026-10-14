@@ -336,18 +336,50 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     caller: AgentCaller,
     input: { notebookId: string; folderId: string; noteOrder: NoteOrder },
   ): Promise<FolderListing> {
+    return this.patchFolder(caller, input.notebookId, input.folderId, {
+      noteOrder: input.noteOrder,
+    });
+  }
+
+  async updateFolder(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      folderId: string;
+      name?: string;
+      description?: string;
+      parentFolderId?: string | null;
+    },
+  ): Promise<FolderListing> {
+    return this.patchFolder(caller, input.notebookId, input.folderId, {
+      ...(input.name === undefined ? {} : { name: input.name }),
+      ...(input.description === undefined ? {} : { description: input.description }),
+      // A move with no anchor lands last among its new siblings.
+      ...(input.parentFolderId === undefined
+        ? {}
+        : { parentFolderId: input.parentFolderId, afterFolderId: null }),
+    });
+  }
+
+  /** One write that changes only what is given, then the folder as it now is. */
+  private async patchFolder(
+    caller: AgentCaller,
+    notebookId: string,
+    folderId: string,
+    body: Record<string, unknown>,
+  ): Promise<FolderListing> {
     await callApi<void>(
       this.origin,
       caller,
-      `/knowledge/notebooks/${input.notebookId}/folders/${input.folderId}`,
-      { method: 'PATCH', body: { noteOrder: input.noteOrder } },
+      `/knowledge/notebooks/${notebookId}/folders/${folderId}`,
+      { method: 'PATCH', body },
     );
     const detail = await callApi<NotebookDetailDto>(
       this.origin,
       caller,
-      `/knowledge/notebooks/${input.notebookId}`,
+      `/knowledge/notebooks/${notebookId}`,
     );
-    const folder = detail.folders.find((each) => each.folderId === input.folderId);
+    const folder = detail.folders.find((each) => each.folderId === folderId);
     if (!folder) throw new GatewayError('NOT_FOUND', 'Folder not found in this notebook');
     return folderListingOf(folder);
   }

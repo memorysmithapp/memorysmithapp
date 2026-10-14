@@ -481,6 +481,22 @@ export async function setNoteOrder(
   });
 }
 
+/**
+ * Renames a folder or changes its description (#278): one write that changes
+ * only what is given, with the folder keeping its identifier, its notes and
+ * every address that reaches it (RN-KNW-009, RN-DSC-057).
+ */
+export async function updateFolder(
+  notebookId: string,
+  folderId: string,
+  change: { name?: string; description?: string },
+): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}/folders/${folderId}`, {
+    method: 'PATCH',
+    body: change,
+  });
+}
+
 export async function putGuidance(
   notebookId: string,
   content: string,

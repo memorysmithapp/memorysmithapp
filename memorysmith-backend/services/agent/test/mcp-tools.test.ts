@@ -216,6 +216,8 @@ describe('The tool catalog is the public contract', () => {
       'reorder_folder',
       // How a folder orders its notes, by hand or by name (#262).
       'set_note_order',
+      // A folder renamed, redescribed or moved after it exists (#278).
+      'update_folder',
       'delete_folder',
       'get_template',
       'set_template',
@@ -284,6 +286,7 @@ describe('The tool catalog is the public contract', () => {
       'create_folder',
       'reorder_folder',
       'set_note_order',
+      'update_folder',
       'delete_folder',
       'set_template',
       'delete_template',
@@ -2464,5 +2467,96 @@ describe('an agent sees how a note is drawn (#260, RN-AGT-050)', () => {
     expect(skill).toContain('get_preview');
     expect(skill).toContain('760 pixels wide and at most 1600 high');
     expect(skill).toContain('as Claude does');
+  });
+});
+
+describe('a folder changes after it exists (#278, RN-AGT-051)', () => {
+  const changed = {
+    folderId: '01JBQ2X00000000000000000F1',
+    parentFolderId: null,
+    name: 'Achados publicados',
+    slug: 'achados-publicados',
+    description: 'O que foi publicado, um achado por nota.',
+    position: 'a2',
+    noteOrder: 'manual',
+  };
+
+  it('declares a write that destroys nothing, every change optional', () => {
+    const tool = TOOL_CATALOG.find((each) => each.name === 'update_folder');
+    expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(tool && toolSignature(tool)).toBe(
+      'update_folder(notebook, folder, name?, description?, parent?)',
+    );
+    expect(tool?.description).toContain('every link keeps working');
+    expect(tool?.description).toContain('A name a sibling folder holds is refused');
+    expect(tool?.description).toContain('FORBIDDEN, naming its owner');
+  });
+
+  it('passes only what changes, a move to the top as null, and answers the folder as it now is', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const adapter = gateways({
+      knowledge: {
+        updateFolder: async (_caller: unknown, input: Record<string, unknown>) => {
+          seen.push(input);
+          return changed;
+        },
+      },
+    });
+    const notebook = '01jbq2x00000000000000000v1';
+    const folder = '01jbq2x00000000000000000f1';
+
+    const answer = await adapter.call(
+      'update_folder',
+      { notebook, folder, name: 'Achados publicados' },
+      caller,
+    );
+    await adapter.call('update_folder', { notebook, folder, description: 'Outra.' }, caller);
+    await adapter.call(
+      'update_folder',
+      { notebook, folder, parent: '01jbq2x00000000000000000f9' },
+      caller,
+    );
+    await adapter.call('update_folder', { notebook, folder, parent: null }, caller);
+
+    expect(answer.isError).toBe(false);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toEqual(changed);
+    const ids = {
+      notebookId: '01JBQ2X00000000000000000V1',
+      folderId: '01JBQ2X00000000000000000F1',
+    };
+    expect(seen).toEqual([
+      { ...ids, name: 'Achados publicados' },
+      { ...ids, description: 'Outra.' },
+      { ...ids, parentFolderId: '01JBQ2X00000000000000000F9' },
+      { ...ids, parentFolderId: null },
+    ]);
+  });
+
+  it('refuses a call that changes nothing, and an empty name, before anything is written', async () => {
+    let written = false;
+    const adapter = gateways({
+      knowledge: {
+        updateFolder: async () => {
+          written = true;
+          return changed;
+        },
+      },
+    });
+    const base = { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' };
+
+    const nothing = await adapter.call('update_folder', base, caller);
+    const empty = await adapter.call('update_folder', { ...base, name: '  ' }, caller);
+
+    expect(nothing.isError).toBe(true);
+    expect(nothing.content[0]?.text).toContain('pass name, description or parent');
+    expect(empty.isError).toBe(true);
+    expect(empty.content[0]?.text).toContain('"name" as text that is not empty');
+    expect(written).toBe(false);
+  });
+
+  it('teaches, while designing a notebook, that a folder is changed and never recreated', () => {
+    const body = skillNamed('design-notebook')?.body ?? '';
+    expect(body).toContain('`update_folder`');
+    expect(body).toContain('never recreate a\n  folder to change it');
   });
 });

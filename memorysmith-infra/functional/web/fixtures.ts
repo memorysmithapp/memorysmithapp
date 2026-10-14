@@ -132,6 +132,12 @@ export interface Words {
   readonly moveLinksKeep: string;
   /** A destination that holds the name, as the dialog refuses it. */
   readonly moveNameTaken: string;
+  readonly folderEdit: string;
+  readonly folderEditHeading: string;
+  readonly folderEditName: string;
+  readonly folderEditDescription: string;
+  readonly folderEditSave: string;
+  readonly folderEditNameTaken: string;
   /** The kind the history gives the move. */
   readonly historyMoved: string;
 }
@@ -217,6 +223,12 @@ export const WORDS: Record<AppLocale, Words> = {
     moveFolder: 'Folder',
     moveLinksKeep: 'a link finds a note by its name, never by its folder',
     moveNameTaken: 'already holds a note named',
+    folderEdit: 'Edit',
+    folderEditHeading: 'Edit the folder',
+    folderEditName: 'Name',
+    folderEditDescription: 'Description',
+    folderEditSave: 'Save',
+    folderEditNameTaken: 'already exists at this level',
     historyMoved: 'Moved',
   },
   pt_BR: {
@@ -299,6 +311,12 @@ export const WORDS: Record<AppLocale, Words> = {
     moveFolder: 'Pasta',
     moveLinksKeep: 'um link encontra uma nota pelo nome, nunca pela pasta',
     moveNameTaken: 'já tem uma nota chamada',
+    folderEdit: 'Editar',
+    folderEditHeading: 'Editar a pasta',
+    folderEditName: 'Nome',
+    folderEditDescription: 'Descrição',
+    folderEditSave: 'Salvar',
+    folderEditNameTaken: 'já existe uma pasta chamada',
     historyMoved: 'Movida',
   },
 };

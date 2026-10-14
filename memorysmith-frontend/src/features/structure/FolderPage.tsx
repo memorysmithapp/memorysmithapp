@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
@@ -13,14 +14,15 @@ import { Segmented } from '../../shared/components/Segmented';
 import { Hint } from '../../shared/components/Hint';
 import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { identifierOf, noteAddress } from '../../shared/api/note-address';
-import { ChevronRightIcon } from '../../shared/components/icons';
+import { ChevronRightIcon, PencilIcon } from '../../shared/components/icons';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { FolderRows } from './FolderRows';
 import { WritableContent } from '../../shared/components/WritableContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrailOf } from './trail';
-import { NotebookBar, folderCrumbs } from './NotebookBreadcrumb';
+import { BarButton, NotebookBar, folderCrumbs } from './NotebookBreadcrumb';
+import { EditFolderDialog } from './EditFolder';
 import { useNotebookId } from './route-ids';
 import { queryKeys } from '../../shared/api/query-keys';
 
@@ -50,6 +52,8 @@ export function FolderPage() {
    * notes sorted here: the tree, this page and the agent see one order.
    */
   const client = useQueryClient();
+  const [editOpen, setEditOpen] = useState(false);
+  const editButton = useRef<HTMLButtonElement>(null);
   const ordering = useMutation({
     mutationFn: (noteOrder: 'manual' | 'alphabetical') =>
       setNoteOrder(notebookId, folder?.id ?? '', noteOrder),
@@ -82,7 +86,19 @@ export function FolderPage() {
     <>
       <NotebookBar
         crumbs={[...folderCrumbs(notebookId, chain.slice(0, -1)), { label: folder.name }]}
-      />
+      >
+        {/* The name and the description, which directs the next agent that
+            writes here (#278): only a role that writes is offered it. */}
+        {writable ? (
+          <BarButton
+            ref={editButton}
+            icon={<PencilIcon />}
+            label={t('folderEdit.short')}
+            title={t('folderEdit.open')}
+            onClick={() => setEditOpen(true)}
+          />
+        ) : null}
+      </NotebookBar>
       <article className="content-pane folder-page">
         <p className="folder-description">{folder.description}</p>
 
@@ -191,6 +207,15 @@ export function FolderPage() {
           </section>
         )}
       </article>
+      <EditFolderDialog
+        // A new dialog for each opening, so it starts from the folder as it is.
+        key={editOpen ? 'open' : 'closed'}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        notebookId={notebookId}
+        folder={folder}
+        returnFocus={editButton}
+      />
     </>
   );
 }

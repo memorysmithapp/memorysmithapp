@@ -170,6 +170,39 @@ function anchorArgument(args: Record<string, unknown>, tool: string): string | n
   return value;
 }
 
+/**
+ * An argument that may be left out, but not given empty: an empty name or
+ * description is a mistake to say, never a change to make.
+ */
+function changedText(
+  args: Record<string, unknown>,
+  name: string,
+  tool: string,
+): string | undefined {
+  const value = args[name];
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new GatewayError('VALIDATION', `${tool} takes "${name}" as text that is not empty.`, {
+      [name]: value ?? null,
+    });
+  }
+  return value;
+}
+
+/** Where a folder moves: under a folder, to the top of the tree with null, or nowhere. */
+function parentArgument(args: Record<string, unknown>): string | null | undefined {
+  const value = args['parent'];
+  if (value === undefined || value === null) return value;
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new GatewayError(
+      'VALIDATION',
+      'update_folder takes "parent" as the identifier of a folder, or null for the top of the tree.',
+      { parent: value },
+    );
+  }
+  return value;
+}
+
 /** On a creation the anchor is optional, and without one the item goes last. */
 /** A whole number the tool cannot do without, such as the size of a file. */
 function requireInteger(args: Record<string, unknown>, name: string, tool: string): number {
@@ -595,6 +628,28 @@ export class McpToolAdapter {
             noteOrder: noteOrderArgument(args, 'set_note_order'),
           }),
         );
+
+      case 'update_folder': {
+        const name = changedText(args, 'name', 'update_folder');
+        const description = changedText(args, 'description', 'update_folder');
+        const parent = parentArgument(args);
+        if (name === undefined && description === undefined && parent === undefined) {
+          throw new GatewayError(
+            'VALIDATION',
+            'update_folder changes something: pass name, description or parent. Nothing was ' +
+              'written.',
+          );
+        }
+        return json(
+          await knowledge.updateFolder(caller, {
+            notebookId: requireString(args, 'notebook', 'update_folder'),
+            folderId: requireString(args, 'folder', 'update_folder'),
+            ...(name === undefined ? {} : { name }),
+            ...(description === undefined ? {} : { description }),
+            ...(parent === undefined ? {} : { parentFolderId: parent }),
+          }),
+        );
+      }
 
       case 'reorder_folder':
         // The siblings in their new order, so the agent sees the result

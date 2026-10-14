@@ -138,6 +138,19 @@
     "notesByName": "Em ordem alfabética",
     "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo."
   },
+  "folderEdit": {
+    "short": "Editar",
+    "open": "Editar o nome e a descrição desta pasta",
+    "title": "Editar a pasta",
+    "name": "Nome",
+    "description": "Descrição",
+    "descriptionHint": "É o que orienta o próximo agente que escrever aqui.",
+    "count": "{{used}}/{{max}}",
+    "explain": "A pasta mantém as notas, as subpastas e o Modelo, e todo link continua funcionando.",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "nameTaken": "Já existe uma pasta chamada “{{name}}” neste nível. Nada foi alterado."
+  },
   "note": {
     "propertyTrue": "Sim",
     "propertyFalse": "Não",

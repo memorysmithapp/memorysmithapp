@@ -644,6 +644,77 @@ test.describe('the pages of an account', () => {
     await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1']);
   });
 
+  test('[page:/notebooks/:notebookId/folders/:folderId] renames a folder and changes its description from its bar, and refuses a name a sibling holds (#278)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const suffix = randomBytes(3).toString('hex');
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: `Drafts ${suffix}`,
+      description: 'Whatever is still being written.',
+    });
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
+      `Drafts ${suffix}`,
+      { timeout: 60_000 },
+    );
+
+    await app.getByRole('button', { name: words.folderEdit, exact: true }).click();
+    const dialog = app.getByRole('dialog', { name: words.folderEditHeading });
+    await dialog.getByLabel(words.folderEditName, { exact: true }).fill(`Proposals ${suffix}`);
+    await dialog
+      .getByLabel(words.folderEditDescription, { exact: true })
+      .fill('One proposal per note, until it is decided.');
+    await expect(dialog.getByText('43/500')).toBeVisible();
+    await testInfo.attach('folder-edit-dialog.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await dialog.getByRole('button', { name: words.folderEditSave, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The trail, the page and the tree show it at once, and the API agrees.
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
+      `Proposals ${suffix}`,
+    );
+    await expect(app.locator('.folder-description')).toHaveText(
+      'One proposal per note, until it is decided.',
+    );
+    await expect(
+      app.locator('aside#notebook-sidebar .tree-folder a', { hasText: `Proposals ${suffix}` }),
+    ).toBeVisible();
+
+    // Findings sits at the same level, so its name is refused in the dialog.
+    await app.getByRole('button', { name: words.folderEdit, exact: true }).click();
+    const refusing = app.getByRole('dialog', { name: words.folderEditHeading });
+    await refusing.getByLabel(words.folderEditName, { exact: true }).fill('Findings');
+    await refusing.getByRole('button', { name: words.folderEditSave, exact: true }).click();
+    await expect(refusing.getByRole('alert')).toContainText(words.folderEditNameTaken);
+    await testInfo.attach('folder-edit-refused.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
+      `Proposals ${suffix}`,
+    );
+
+    // On a phone it rises as a sheet from the foot of the screen.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.locator('.notebook-bar button.bar-button').first().click();
+    const sheet = app.getByRole('dialog', { name: words.folderEditHeading });
+    await expect(sheet.getByLabel(words.folderEditDescription, { exact: true })).toBeVisible();
+    await testInfo.attach('folder-edit-sheet-phone.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
     app,
     notebook,

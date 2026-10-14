@@ -138,6 +138,19 @@
     "notesByName": "In alphabetical order",
     "noteOrderFailed": "The order of the notes was not changed. Try again."
   },
+  "folderEdit": {
+    "short": "Edit",
+    "open": "Edit the name and the description of this folder",
+    "title": "Edit the folder",
+    "name": "Name",
+    "description": "Description",
+    "descriptionHint": "It is what directs the next agent that writes here.",
+    "count": "{{used}}/{{max}}",
+    "explain": "The folder keeps its notes, its subfolders and its Template, and every link keeps working.",
+    "save": "Save",
+    "saving": "Saving…",
+    "nameTaken": "A folder named “{{name}}” already exists at this level. Nothing was changed."
+  },
   "note": {
     "propertyTrue": "Yes",
     "propertyFalse": "No",

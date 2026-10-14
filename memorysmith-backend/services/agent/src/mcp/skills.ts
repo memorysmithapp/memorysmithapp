@@ -236,6 +236,12 @@ reader, and state each convention once.
   Context numbers the folders by it, so a folder name needs no number. Create the
   folders in reading order, or place one with \`after\`, and change the order
   later with \`reorder_folder\`.
+- **A folder changes with the notebook.** When what a folder holds drifts from
+  what its description says, rewrite the description with \`update_folder\`:
+  it is what the next agent reads before writing there, and a stale one directs
+  it wrong. The same tool renames a folder and moves it under another, keeping
+  its identifier, its notes, its subfolders and its template — never recreate a
+  folder to change it.
 - **Each folder says how its notes are ordered.** A folder read in sequence —
   the chapters of a guide, the steps of a process — keeps the order its notes
   are written in, placed with \`after\` and \`reorder_note\`. A folder of

@@ -6069,6 +6069,42 @@ body.has-sheet .app-main {
 .move-refusal a {
   color: var(--accent);
 }
+/* The name and the description of a folder (#278): the description is a
+   field of several lines, its count said beside the reason it matters. */
+.transfer-field textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.transfer-field textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.transfer-field textarea[aria-invalid='true'],
+.transfer-field input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.folder-edit-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.folder-edit-count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.folder-edit-count.is-over {
+  color: var(--danger);
+}
 .move-sheet .ask-dialog-foot {
   justify-content: stretch;
 }

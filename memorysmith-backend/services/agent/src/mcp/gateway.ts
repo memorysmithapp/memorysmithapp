@@ -276,6 +276,20 @@ export interface KnowledgeGateway {
     input: { notebookId: string; folderId: string; noteOrder: NoteOrder },
   ): Promise<FolderListing>;
   /**
+   * Renames, redescribes or moves a folder under another parent, in one write
+   * that changes only what is given (RN-AGT-051). Answers the folder as it now is.
+   */
+  updateFolder(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      folderId: string;
+      name?: string;
+      description?: string;
+      parentFolderId?: string | null;
+    },
+  ): Promise<FolderListing>;
+  /**
    * First among its siblings with no anchor, or right after one. Answers the
    * siblings in their new order.
    */

@@ -700,6 +700,58 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:update_folder] [tool:get_notebook_context] renames, redescribes and moves a folder, and refuses a name a sibling holds (#278)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const create = async (name: string, parent?: string) =>
+      parsed<{ folderId: string }>(
+        await callTool(agent, 'create_folder', {
+          ...where,
+          name,
+          description: `What ${name} holds.`,
+          ...(parent ? { parent } : {}),
+        }),
+      ).folderId;
+    const drafts = await create('Drafts');
+    const archive = await create('Archive');
+
+    const renamed = parsed<{ name: string; description: string; parentFolderId: string | null }>(
+      await callTool(agent, 'update_folder', {
+        ...where,
+        folder: drafts,
+        name: 'Proposals',
+        description: 'One proposal per note, until it is decided.',
+      }),
+    );
+    expect(renamed).toMatchObject({
+      name: 'Proposals',
+      description: 'One proposal per note, until it is decided.',
+    });
+
+    const moved = parsed<{ parentFolderId: string | null }>(
+      await callTool(agent, 'update_folder', { ...where, folder: drafts, parent: archive }),
+    );
+    expect(moved.parentFolderId).toBe(archive);
+    const context = await callTool(agent, 'get_notebook_context', where);
+    expect(context.text).toContain('Proposals');
+    expect(context.text).toContain('One proposal per note, until it is decided.');
+
+    // Back to the top, where a sibling now holds the name it asks for.
+    const top = parsed<{ parentFolderId: string | null }>(
+      await callTool(agent, 'update_folder', { ...where, folder: drafts, parent: null }),
+    );
+    expect(top.parentFolderId).toBeNull();
+    const refused = await callTool(agent, 'update_folder', {
+      ...where,
+      folder: drafts,
+      name: 'Archive',
+    });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('CONFLICT');
+  });
+
   test('[tool:create_note] [tool:list_notes] [tool:read_note] [tool:update_note] [tool:delete_note] writes a note, edits it on the revision it read, and deletes it', async ({
     agent,
     notebook,

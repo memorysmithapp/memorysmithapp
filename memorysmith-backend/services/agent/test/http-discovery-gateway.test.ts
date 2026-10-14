@@ -243,6 +243,65 @@ describe('a move reaches the route the core publishes, and reads the note back (
   });
 });
 
+describe('a folder changes through the route the core publishes (#278)', () => {
+  it('patches only what changes, a move landing last, and reads the folder back', async () => {
+    const FOLDER = '01JBQ2X000000000000000F001';
+    const PARENT = '01JBQ2X000000000000000F009';
+    const calls: Array<{ url: string; method: string; body: unknown }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({
+          url,
+          method: init?.method ?? 'GET',
+          body: init?.body ? JSON.parse(String(init.body)) : null,
+        });
+        if (init?.method === 'PATCH') return new Response(null, { status: 204 });
+        const folder = {
+          folderId: FOLDER,
+          parentFolderId: PARENT,
+          name: 'Publicados',
+          slug: 'publicados',
+          description: 'O que foi publicado.',
+          position: 'a5',
+          noteOrder: 'manual',
+        };
+        return new Response(JSON.stringify({ folders: [folder] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    const gateway = new HttpKnowledgeGateway('https://api.example.com');
+    const changed = await gateway.updateFolder(caller, {
+      notebookId: 'notebook',
+      folderId: FOLDER,
+      name: 'Publicados',
+      parentFolderId: PARENT,
+    });
+    await gateway.updateFolder(caller, {
+      notebookId: 'notebook',
+      folderId: FOLDER,
+      description: 'O que foi publicado.',
+    });
+
+    expect(calls.filter((call) => call.method === 'PATCH')).toEqual([
+      {
+        url: `https://api.example.com/knowledge/notebooks/notebook/folders/${FOLDER}`,
+        method: 'PATCH',
+        body: { name: 'Publicados', parentFolderId: PARENT, afterFolderId: null },
+      },
+      {
+        url: `https://api.example.com/knowledge/notebooks/notebook/folders/${FOLDER}`,
+        method: 'PATCH',
+        body: { description: 'O que foi publicado.' },
+      },
+    ]);
+    expect(changed).toMatchObject({ folderId: FOLDER, parentFolderId: PARENT, name: 'Publicados' });
+  });
+});
+
 describe('the sweep of a notebook reads its pending links beside its names (#217)', () => {
   it('flags the pending link that almost reaches a note, and leaves the one on purpose', async () => {
     const SESSION = '01JBQ2X000000000000000N010';

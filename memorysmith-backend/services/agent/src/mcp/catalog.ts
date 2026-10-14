@@ -314,6 +314,43 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
+    name: 'update_folder',
+    title: 'Rename, describe or move a folder',
+    description:
+      'Changes a folder that already exists, keeping its identifier, its notes, its subfolders ' +
+      'and its template. Pass name to rename it, description to change what it says belongs ' +
+      'in it, and parent to move it under another folder of the same notebook, or null to the ' +
+      'top of the tree; pass only what changes. The description is what directs the next ' +
+      'agent that writes here, so keep it saying what the folder holds now. Nothing is ' +
+      'written to any note: a link finds a note by its name, never by its folder, so every ' +
+      'link keeps working. A name a sibling folder holds is refused, a description holds 1 to ' +
+      '500 characters, and a folder cannot move into its own subtree or past six levels; a ' +
+      'refusal changes nothing. A moved folder goes last among its new siblings, and ' +
+      'reorder_folder places it. Answers the folder as it now is.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        folder: folderArgument,
+        name: { type: 'string', description: 'Optional: the new name of the folder.' },
+        description: {
+          type: 'string',
+          description:
+            'Optional: what now belongs in this folder, 1 to 500 characters, read by whoever ' +
+            'writes here.',
+        },
+        parent: {
+          type: ['string', 'null'],
+          description:
+            'Optional: identifier of the folder this one moves under, as get_notebook_context ' +
+            'prints it, or null to move it to the top of the tree. Leave it out to keep the ' +
+            'folder where it is.',
+        },
+      },
+      ['notebook', 'folder'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
     name: 'delete_folder',
     title: 'Delete a folder',
     description:

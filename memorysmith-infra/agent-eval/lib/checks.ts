@@ -55,6 +55,7 @@ const WRITES = new Set([
   'delete_notebook',
   'set_guidance',
   'create_folder',
+  'update_folder',
   'delete_folder',
   'set_template',
   'create_note',
