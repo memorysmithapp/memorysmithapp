@@ -5440,7 +5440,8 @@ body.has-sheet .app-main {
   margin: 0.75rem 0 0;
   font-size: 0.8125rem;
 }
-.note-notices-heading {
+/* Under the page's own heading rule, which would make it a section title. */
+.content-pane .note-notices-heading {
   margin: 0 0 0.4rem;
   font-family: var(--display);
   font-weight: 500;
@@ -5475,6 +5476,9 @@ body.has-sheet .app-main {
   color: var(--text-soft);
 }
 .note-notice:hover {
+  background: color-mix(in srgb, var(--signal) 18%, transparent);
+}
+.note-notice[data-severity='hint']:hover {
   background: var(--hover);
 }
 .note-notice:focus-visible {
