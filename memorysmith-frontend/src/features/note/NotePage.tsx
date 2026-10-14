@@ -6,7 +6,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
 import { copyText } from '../../shared/lib/clipboard';
-import { WritableContent } from '../../shared/components/WritableContent';
+import { NoteContent } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { canWrite, updateNote } from '../../shared/api/source';
@@ -334,7 +334,7 @@ export function NotePage({ noteId }: { noteId: string }) {
         )}
 
         {editing ? null : (
-          <WritableContent
+          <NoteContent
             raw={data.raw}
             notebookId={notebookId}
             baseRevision={data.revision}

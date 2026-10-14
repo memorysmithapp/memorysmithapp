@@ -15,3 +15,9 @@ allowBuilds:
   core-js: false
   es5-ext: false
   esbuild: true
+
+# The organisation's own packages arrive the day they are published (#291):
+# the release age protects against a package somebody else took over, and
+# these are released by this organisation.
+minimumReleaseAgeExclude:
+  - '@memorysmithapp/*'

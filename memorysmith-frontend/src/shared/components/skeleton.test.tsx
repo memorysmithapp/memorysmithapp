@@ -57,12 +57,6 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
     expect((html.match(/class="skeleton"/g) ?? []).length).toBeGreaterThan(4);
   });
 
-  it('draws an embed with its frame and its caption', () => {
-    const html = render(<parts.TransclusionSkeleton />);
-    expect(html).toContain('embed-body');
-    expect(html).toContain('embed-source');
-  });
-
   it('draws a tree with depth, and not a stack of identical bars', () => {
     const html = render(<parts.FolderTreeSkeleton />);
     expect(html).toContain('padding-left:1rem');
@@ -77,7 +71,6 @@ describe('a placeholder never talks over the screen reader', () => {
     'SpaceSkeleton',
     'NoteSkeleton',
     'TemplateSkeleton',
-    'TransclusionSkeleton',
     'GraphSkeleton',
     'FolderTreeSkeleton',
   ];

@@ -95,22 +95,6 @@ export function TemplateSkeleton() {
   );
 }
 
-/** An embedded block, mid-paragraph, inside otherwise rendered prose. */
-export function TransclusionSkeleton() {
-  return (
-    <SkeletonRegion>
-      <figure className="embed embed-skeleton">
-        <div className="embed-body">
-          <SkeletonText lines={2} />
-        </div>
-        <figcaption className="embed-source">
-          <SkeletonBar width="8rem" height="0.8rem" />
-        </figcaption>
-      </figure>
-    </SkeletonRegion>
-  );
-}
-
 /** The graph canvas, which is one large area and not a list of anything. */
 export function GraphSkeleton() {
   return (

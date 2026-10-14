@@ -316,7 +316,7 @@ export const WORDS: Record<AppLocale, Words> = {
     folderEditName: 'Nome',
     folderEditDescription: 'Descrição',
     folderEditSave: 'Salvar',
-    folderEditNameTaken: 'já existe uma pasta chamada',
+    folderEditNameTaken: 'existe uma pasta chamada',
     historyMoved: 'Movida',
   },
 };

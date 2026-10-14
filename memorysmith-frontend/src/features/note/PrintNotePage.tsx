@@ -13,7 +13,7 @@ import { identifierOf } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { WritableContent } from '../../shared/components/WritableContent';
+import { NoteContent } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import {
   PropertyValue,
@@ -364,7 +364,7 @@ export function PrintNotePage() {
                 data-tables={fit}
               >
                 {placement === 'cover' && box ? null : title}
-                <WritableContent
+                <NoteContent
                   raw={data.raw}
                   notebookId={notebookId}
                   baseRevision={data.revision}

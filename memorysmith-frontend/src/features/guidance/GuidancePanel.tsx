@@ -2,7 +2,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { canWrite, deleteGuidance, putGuidance } from '../../shared/api/source';
 import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
-import { WritableContent } from '../../shared/components/WritableContent';
+import { NoteContent } from '../../shared/components/NoteContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBar, contextCrumbs } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
@@ -22,7 +22,7 @@ export function GuidancePanel() {
       <article className="content-pane">
         {structure.guidance ? (
           <>
-            <WritableContent
+            <NoteContent
               raw={structure.guidance}
               notebookId={notebookId}
               baseRevision={structure.guidanceRevision}

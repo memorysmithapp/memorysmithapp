@@ -53,13 +53,13 @@ const LOADING_THE_PIPELINE_MS = 30_000;
 
 beforeAll(async () => {
   await import('../../i18n');
-  const { WritableContent } = await import('./WritableContent');
+  const { NoteContent } = await import('./NoteContent');
 
   render = (markdown: string, writable = true): string =>
     renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
         <MemoryRouter>
-          <WritableContent
+          <NoteContent
             raw={markdown}
             notebookId="01J8X2K9QZ3M4N5P6R7S8T9V0A"
             baseRevision="rev-1"

@@ -1666,12 +1666,6 @@ a:hover {
   --h6-size: 1em;
 }
 
-.markdown {
-  font-size: 1rem;
-  line-height: var(--line-height-normal);
-  overflow-wrap: break-word;
-}
-
 /* Every heading of the reading surface takes the text face and the modular
    scale, whether it came out of the Markdown or from the page around it: the
    name of a note, of a folder and of a notebook are all the notebook talking. No
@@ -1705,15 +1699,6 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* The rhythm, though, is prose's own: a heading stands two and a half
-   paragraphs clear of what came before and sits right on top of what follows.
-   A page title has neither above nor below it, because it opens the page. */
-.markdown :is(h1, h2, h3, h4, h5, h6) {
-  margin-block: var(--heading-spacing) 0;
-}
-.markdown > :first-child {
-  margin-block-start: 0;
-}
 .content-pane > h1 {
   margin-block: 0 0.6rem;
 }
@@ -1721,178 +1706,9 @@ a:hover {
   margin-block: 2rem 0.6rem;
 }
 
-.markdown p {
-  margin-block: var(--p-spacing);
-}
-.markdown ul,
-.markdown ol {
-  margin-block: var(--p-spacing);
-  padding-inline-start: var(--list-indent);
-}
-.markdown li {
-  margin-block: var(--list-spacing);
-}
-/* A list inside a list, and a paragraph inside an item, are the same breath. */
-.markdown li > p,
-.markdown li :is(ul, ol) {
-  margin-block: 0;
-}
-.markdown li[class~='task-list-item'] {
-  list-style: none;
-}
-.markdown ul[class~='contains-task-list'] {
-  padding-inline-start: 0.4em;
-}
-.markdown input[type='checkbox'] {
-  margin-inline-end: 0.45em;
-  accent-color: var(--accent);
-}
-
-/* A blockquote is a quotation and nothing more: a hairline and an indent, no
-   tint, no rounding, no italic. What used to be drawn here was the callout
-   treatment applied to every quotation, which left real callouts nothing of
-   their own to say. */
-.markdown blockquote {
-  /* The 40px the browser gives a blockquote by default would land on top of
-     the theme's own indent and push the quotation into the middle of the page. */
-  margin: var(--p-spacing) 0;
-  padding: 0 0 0 1.5em;
-  border: 0;
-  border-inline-start: 2px solid var(--border);
-  border-radius: 0;
-  background: none;
-  font-style: normal;
-  color: inherit;
-}
-
-/* Footnotes (§7.12): the reference is a small raised number, and the notes are
-   gathered at the end of the note under a hairline, smaller and softer than the
-   text they serve. The label is a heading a reader sees, in their locale. */
-.markdown sup:has(> a[data-footnote-ref]) {
-  line-height: 0;
-}
-.markdown a[data-footnote-ref] {
-  padding-inline: 0.1em;
-  font-size: 0.8em;
-  text-decoration: none;
-}
-.markdown section.footnotes {
-  margin-top: 2.5em;
-  padding-top: 0.75em;
-  border-top: 1px solid var(--border);
-  font-size: 0.875em;
-  color: var(--text-soft);
-}
-.markdown .footnotes-label {
-  margin: 0 0 0.5em;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-.markdown section.footnotes li p {
-  margin-block: 0.25em;
-}
-.markdown a.data-footnote-backref {
-  margin-inline-start: 0.35em;
-  text-decoration: none;
-}
-
-/* Inline code is told apart by its face and its colour, and nothing else: in
-   a sentence a fill only spots the paragraph (#194). */
-.markdown code {
-  font-family: var(--mono);
-  font-size: 0.875em;
-  color: var(--code-color);
-}
-/* A fenced block needs an edge, because the face alone does not say where it
-   starts and ends: the frame of the connector box, around a `pre` that
-   scrolls and never wraps, and the Copy button in its corner, which stays put
-   while the content scrolls under it (#194). */
-.markdown .code-block {
-  position: relative;
-  margin-block: var(--p-spacing);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--code-bg);
-}
-.markdown pre {
-  margin-block: var(--p-spacing);
-  padding: 0.75rem 1rem;
-  overflow-x: auto;
-  font-size: 0.875em;
-  line-height: 1.45;
-}
-.markdown .code-block > pre {
-  margin: 0;
-  /* Room for the button, so the first line is never under it. */
-  padding-right: 6.5rem;
-}
 /* A button does not inherit the colour of its text, so the verb says its own. */
 .copy-action {
   color: var(--text);
-}
-.markdown .code-copy {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  border-color: var(--border);
-  background: var(--surface);
-}
-.markdown pre code {
-  background: none;
-  color: var(--text);
-  padding: 0;
-  border-radius: 0;
-  font-size: inherit;
-}
-
-.markdown table {
-  margin-block: var(--p-spacing);
-  border-collapse: collapse;
-  display: block;
-  overflow-x: auto;
-  line-height: var(--line-height-tight);
-}
-.markdown :is(th, td) {
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  text-align: start;
-}
-/* The header is told apart by the type and by a heavier rule, and not by a
-   fill: white over the paper made the one part of a table that is drawn on
-   another material, and the only tint a table has left is the row under the
-   pointer, which is what makes that tint read as the pointer (#165). */
-.markdown th {
-  font-weight: 600;
-  color: var(--text);
-  border-bottom: 2px solid var(--text-soft);
-}
-.markdown tbody tr:hover {
-  background: var(--code-bg);
-}
-/* Inside a callout the rules are drawn in the colour of the callout (#259).
-   The neutral border is visible on the paper and almost the colour of the 10%
-   tint a callout lays under it, in both themes, so a table there lost its
-   rules and read as loose words. It is still a table: only the rules change. */
-.markdown .callout :is(th, td) {
-  border-color: rgba(var(--callout-color), 0.35);
-}
-.markdown .callout th {
-  border-bottom-color: rgba(var(--callout-color), 0.7);
-}
-.markdown .callout tbody tr:hover {
-  background: rgba(var(--callout-color), 0.08);
-}
-
-.markdown hr {
-  margin-block: calc(var(--p-spacing) * 2);
-  border: 0;
-  border-top: 2px solid var(--border);
-}
-.markdown img {
-  max-width: 100%;
 }
 
 /* The line icons a callout and a property row wear, as masks rather than
@@ -1949,99 +1765,6 @@ a:hover {
   --callout-quote: 147, 160, 186;
 }
 
-.markdown .callout {
-  --callout-color: var(--callout-info);
-  --callout-icon: var(--icon-pencil);
-  margin-block: var(--p-spacing);
-  padding: 0.75rem 0.9rem 0.75rem 1.1rem;
-  border-radius: 8px;
-  background: rgba(var(--callout-color), 0.1);
-  overflow-x: auto;
-}
-.markdown .callout-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
-  margin: 0;
-  color: rgb(var(--callout-color));
-  font-weight: 600;
-  line-height: var(--line-height-tight);
-}
-.markdown .callout-title::before {
-  content: '';
-  flex: 0 0 auto;
-  width: 1.1em;
-  height: 1.1em;
-  margin-top: 0.1em;
-  background-color: currentcolor;
-  -webkit-mask: var(--callout-icon) center / contain no-repeat;
-  mask: var(--callout-icon) center / contain no-repeat;
-}
-/* The body opens under the title and closes flush with the field. */
-.markdown .callout > :not(.callout-title) {
-  margin-block: 0.4rem 0;
-}
-.markdown .callout > :last-child {
-  margin-block-end: 0;
-}
-/* A quotation inside a callout borrows the callout's own colour for its rule,
-   which is what keeps a nested quote from reading as a second callout. */
-.markdown .callout blockquote {
-  border-inline-start-color: rgba(var(--callout-color), 0.4);
-}
-/* Inline code shows the callout's tint through; a block keeps a tint of the
-   callout's colour and takes its edge in the tone of a quotation there. */
-.markdown .callout .code-block {
-  background: rgba(var(--callout-color), 0.1);
-  border-color: rgba(var(--callout-color), 0.4);
-}
-
-.markdown .callout:is([data-callout='note']) {
-  --callout-color: var(--callout-info);
-  --callout-icon: var(--icon-pencil);
-}
-.markdown .callout:is([data-callout='info'], [data-callout='todo']) {
-  --callout-color: var(--callout-info);
-  --callout-icon: var(--icon-info);
-}
-.markdown .callout:is([data-callout='abstract'], [data-callout='summary'], [data-callout='tldr']) {
-  --callout-color: var(--callout-idea);
-  --callout-icon: var(--icon-clipboard);
-}
-.markdown .callout:is([data-callout='tip'], [data-callout='hint'], [data-callout='important']) {
-  --callout-color: var(--callout-idea);
-  --callout-icon: var(--icon-flame);
-}
-.markdown .callout:is([data-callout='success'], [data-callout='check'], [data-callout='done']) {
-  --callout-color: var(--callout-done);
-  --callout-icon: var(--icon-check);
-}
-.markdown .callout:is([data-callout='question'], [data-callout='help'], [data-callout='faq']) {
-  --callout-color: var(--callout-warn);
-  --callout-icon: var(--icon-question);
-}
-.markdown
-  .callout:is([data-callout='warning'], [data-callout='caution'], [data-callout='attention']) {
-  --callout-color: var(--callout-warn);
-  --callout-icon: var(--icon-alert);
-}
-.markdown .callout:is([data-callout='failure'], [data-callout='fail'], [data-callout='missing']) {
-  --callout-color: var(--callout-stop);
-  --callout-icon: var(--icon-cross);
-}
-.markdown .callout:is([data-callout='danger'], [data-callout='error'], [data-callout='bug']) {
-  --callout-color: var(--callout-stop);
-  --callout-icon: var(--icon-zap);
-}
-.markdown .callout:is([data-callout='example']) {
-  --callout-color: var(--callout-aside);
-  --callout-icon: var(--icon-list);
-}
-.markdown .callout:is([data-callout='quote'], [data-callout='cite']) {
-  --callout-color: var(--callout-quote);
-  --callout-icon: var(--icon-quote);
-}
-
 /* ── Properties ─────────────────────────────────────────────────────────────
    What the note says about itself, in the shape the editors give it: one row
    per key, the key muted and named by an icon for what kind of value it holds,
@@ -2087,6 +1810,10 @@ a:hover {
   gap: 0.4rem;
   color: var(--text-soft);
   overflow-wrap: anywhere;
+  /* Its own height, not its row's: stretched to a value that wraps, the key
+     centred its icon on the whole row while its text stayed on the first
+     line (#291, as the renderer draws it). */
+  align-self: start;
 }
 .metadata-property-key::before {
   content: '';
@@ -2352,24 +2079,8 @@ a:hover {
   inset: 0;
 }
 
-/* Mermaid diagrams */
-.mermaid-diagram {
-  margin: 1rem 0;
-  overflow-x: auto;
-}
-.mermaid-diagram svg {
-  max-width: 100%;
-  height: auto;
-}
-.mermaid-loading {
-  min-height: 3rem;
-}
-.markdown pre:has(> .mermaid-diagram) {
-  background: none;
-  border: 0;
-  padding: 0;
-}
-
+/* A link in a value of a property, which the page draws outside the note
+   (#291): the note itself draws its own. */
 .wikilink {
   font-weight: 600;
 }
@@ -2377,6 +2088,12 @@ a:hover {
   color: var(--pending);
   border-bottom: 1px dashed var(--pending);
   cursor: pointer;
+}
+
+/* A part of a note the preview was asked for and the note does not hold. */
+.embed-missing {
+  color: var(--text-soft);
+  font-size: 0.9rem;
 }
 
 /* The choice a link opens where it stands (RN-DSC-046). It hangs from the link
@@ -2401,8 +2118,11 @@ a:hover {
 .link-choice-dialog::backdrop {
   background: rgb(14 21 38 / 0.45);
 }
-/* The page behind a modal does not scroll under it. */
-body.has-modal {
+/* The page behind a modal does not scroll under it. The choice a link of a
+   note opens is the renderer's dialog, which touches nothing outside the note
+   (#291), so the page reads it off the open dialog. */
+body.has-modal,
+body:has(.markdown dialog[open]) {
   overflow: hidden;
 }
 .link-choice-card {
@@ -2553,126 +2273,6 @@ body.has-modal {
   color: var(--text-soft);
   border-bottom: 1px dashed var(--text-soft);
   cursor: help;
-}
-
-/* An address this surface does not follow. The text is the author's and stays
-   exactly as they wrote it; what it loses is the affordance, because a link
-   that looks like a link and goes nowhere is worse than plain text. The dotted
-   rule is the only sign, and the title says why. */
-.link-refused {
-  border-bottom: 1px dotted var(--text-soft);
-  cursor: help;
-}
-
-/* Transclusion: another note, shown in place. The left rule and the source
-   line exist for one reason: a passage without provenance is indistinguishable
-   from what the author wrote. */
-/*
- * A passage brought from another note is the SAME passage: same paper, same
- * spacing, same tints (#165).
- *
- * It used to be a white card over the paper, and a card costs twice. Every
- * tint of this surface is translucent over what is behind it — a callout is
- * `rgba(…, 0.1)`, and so are a code block, a table row under the pointer and
- * a property row — so the same callout read as two different callouts
- * depending on whether it had been embedded. And the card had a rem of room on
- * the left and none on the right, so a callout and a diagram, which paint
- * their own box, ran flush into its edge and over its rounded corner.
- *
- * What is left is what an embed actually has to say: a rule down the side, in
- * the blue of structure, and the note it came from named underneath. A
- * quotation carries the same gesture in the hairline of the surface, so the
- * two read as what they are — another voice, and another note.
- */
-.embed {
-  margin: 1.2rem 0;
-  padding-inline-start: 1rem;
-  border-inline-start: 2px solid var(--accent);
-}
-.embed-body > .markdown > :first-child {
-  margin-top: 0;
-}
-.embed-body > .markdown > :last-child {
-  margin-bottom: 0.35rem;
-}
-.embed-source {
-  font-size: 0.82rem;
-  color: var(--text-soft);
-  padding: 0;
-}
-.embed-source a {
-  color: var(--text-soft);
-  text-decoration: none;
-  border-bottom: 1px dotted var(--text-soft);
-}
-.embed-missing,
-.embed-pending {
-  color: var(--text-soft);
-  font-size: 0.9rem;
-}
-
-/* What this note asked the browser to fetch (profile 7.10, RN-DSC-040). It is
-   a disclosure and not a warning: nothing went wrong, and a person is being
-   told something they could not otherwise know. So it reads as a footnote of
-   the note it belongs to, in the soft text of the surface, and never in the
-   signal orange, which this product spends on capture. */
-/* Prism token classes, mapped onto the palette above. The grammars name far
-   more tokens than this; every one not named here inherits --code-color, which
-   is what the block looked like before highlighting existed. Adding a colour
-   is deliberate, because the value of highlighting is the few things it picks
-   out and not the many it could. */
-.markdown .token.comment,
-.markdown .token.prolog,
-.markdown .token.doctype,
-.markdown .token.cdata {
-  color: var(--token-comment);
-  font-style: italic;
-}
-.markdown .token.punctuation,
-.markdown .token.operator {
-  color: var(--token-punctuation);
-}
-.markdown .token.keyword,
-.markdown .token.atrule,
-.markdown .token.rule,
-.markdown .token.important,
-.markdown .token.tag,
-.markdown .token.selector {
-  color: var(--token-keyword);
-}
-.markdown .token.string,
-.markdown .token.char,
-.markdown .token.attr-value,
-.markdown .token.regex {
-  color: var(--token-string);
-}
-.markdown .token.number,
-.markdown .token.boolean,
-.markdown .token.constant,
-.markdown .token.symbol,
-.markdown .token.inserted {
-  color: var(--token-number);
-}
-.markdown .token.property,
-.markdown .token.attr-name,
-.markdown .token.function,
-.markdown .token.class-name,
-.markdown .token.variable {
-  color: var(--code-color);
-  font-weight: 500;
-}
-/* A diff is the one grammar whose meaning is the line and not the token. */
-.markdown .token.deleted {
-  color: var(--token-string);
-}
-
-.remote-notice {
-  margin-top: 2rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-  color: var(--text-soft);
-  font-size: 0.85rem;
-  line-height: 1.5;
 }
 
 /* Dark mode: brand "Fundo escuro" #0B1220, Papel as text */
@@ -3948,19 +3548,6 @@ body.has-sheet .app-main {
   }
 }
 
-/* A task box that can be ticked. Disabled is the default, and it is what a
-   VIEWER, and an EDITOR demoted in this notebook, keep seeing. */
-.markdown li.task-item {
-  list-style: none;
-  margin-left: -1.2rem;
-}
-.markdown li.task-item input[type='checkbox'] {
-  margin-right: 0.5rem;
-  accent-color: var(--accent);
-}
-.markdown li.task-item input[type='checkbox']:not(:disabled) {
-  cursor: pointer;
-}
 .write-failed {
   color: var(--signal);
 }
@@ -4144,9 +3731,6 @@ body.has-sheet .app-main {
   /* The same move for Copy: the icon stays, the word is in its label. */
   .copy-action-label {
     display: none;
-  }
-  .markdown .code-block > pre {
-    padding-right: 3rem;
   }
 }
 

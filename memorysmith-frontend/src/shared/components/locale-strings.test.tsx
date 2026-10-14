@@ -5,6 +5,8 @@
  * was its type in English whatever the reader spoke.
  */
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryKeys } from '../api/query-keys';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -39,12 +41,21 @@ const LOADING_THE_PIPELINE_MS = 30_000;
 
 beforeAll(async () => {
   i18n = (await import('../../i18n')).default;
-  const { Markdown } = await import('./Markdown');
+  const { NoteContent } = await import('./NoteContent');
   render = (markdown: string): string =>
     renderToStaticMarkup(
-      <MemoryRouter>
-        <Markdown>{markdown}</Markdown>
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <NoteContent
+            raw={markdown}
+            notebookId="01J8X2K9QZ3M4N5P6R7S8T9V0A"
+            baseRevision={null}
+            writable={false}
+            write={() => Promise.resolve('rev-2')}
+            invalidates={queryKeys.note('01J8X2K9QZ3M4N5P6R7S8T9V0A', 'unused')}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 }, LOADING_THE_PIPELINE_MS);
 

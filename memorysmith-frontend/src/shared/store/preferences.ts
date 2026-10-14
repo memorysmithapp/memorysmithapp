@@ -29,7 +29,9 @@ export const usePreferences = create<PreferencesState>()(
 
 export function resolveTheme(choice: ThemeChoice): 'light' | 'dark' {
   if (choice !== 'system') return choice;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Read through the global, so a page drawn without a window — a note
+  // rendered to markup — is light rather than an error.
+  return globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 /** The theme the page is drawn in: the choice of the person, unless it is paper. */

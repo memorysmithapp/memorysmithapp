@@ -1,6 +1,8 @@
 /**
  * The target the reading surface reads out of a wikilink, held to the cases of
- * the specification the extractor runs.
+ * the specification the extractor runs. The reading surface is
+ * @memorysmithapp/markdown-renderer (#291), so it is its resolver this file
+ * holds to the cases of this repository.
  *
  * This file used to prove a slug, and the slug is gone. Specification 0.6.0
  * resolves a link against the **name** of a note: a wikilink target is
@@ -18,7 +20,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { CONFORMANCE_CASES, type ConformanceCase } from '@memorysmithapp/contracts';
-import { resolveWikilinks } from './markdown';
+import { resolveWikilinks } from '@memorysmithapp/markdown-renderer';
 
 /** The wikilink cases: the Markdown form is the backend's to tolerate. */
 const wikilinkCases = CONFORMANCE_CASES.filter(

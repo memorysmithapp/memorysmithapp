@@ -9,7 +9,7 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
-import { WritableContent } from '../../shared/components/WritableContent';
+import { NoteContent } from '../../shared/components/NoteContent';
 import { ChevronRightIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
@@ -97,7 +97,7 @@ export function TemplatesPage() {
               </summary>
               {template ? (
                 <div className="template-card-body">
-                  <WritableContent
+                  <NoteContent
                     raw={template.body}
                     notebookId={notebookId}
                     baseRevision={template.revision}

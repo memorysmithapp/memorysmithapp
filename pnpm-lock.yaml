@@ -288,24 +288,21 @@ importers:
       '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../memorysmith-backend/packages/contracts
+      '@memorysmithapp/markdown-renderer':
+        specifier: '>=0.3.0 <1.0.0'
+        version: 0.3.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.101.4(react@19.2.8)
       d3-force:
         specifier: ^3.0.0
         version: 3.0.0
-      hast-util-to-jsx-runtime:
-        specifier: ^2.3.6
-        version: 2.3.6(supports-color@7.2.0)
       i18next:
         specifier: ^24.0.0
         version: 24.2.3(typescript@5.9.3)
       katex:
         specifier: ^0.18.5
         version: 0.18.5
-      mermaid:
-        specifier: ^11.17.0
-        version: 11.17.0
       pagedjs:
         specifier: 0.4.3
         version: 0.4.3
@@ -318,24 +315,9 @@ importers:
       react-i18next:
         specifier: ^15.0.0
         version: 15.7.4(i18next@24.2.3(typescript@5.9.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
-      react-markdown:
-        specifier: ^9.0.0
-        version: 9.1.0(@types/react@19.2.18)(react@19.2.8)(supports-color@7.2.0)
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      refractor:
-        specifier: ^5.0.0
-        version: 5.0.0
-      rehype-katex:
-        specifier: ^7.0.1
-        version: 7.0.1
-      remark-gfm:
-        specifier: ^4.0.0
-        version: 4.0.1(supports-color@7.2.0)
-      remark-math:
-        specifier: ^6.0.0
-        version: 6.0.0(supports-color@7.2.0)
       zustand:
         specifier: ^5.0.0
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
@@ -343,9 +325,6 @@ importers:
       '@types/d3-force':
         specifier: ^3.0.10
         version: 3.0.10
-      '@types/hast':
-        specifier: ^3.0.5
-        version: 3.0.5
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.18
@@ -1204,6 +1183,13 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@memorysmithapp/markdown-renderer@0.3.0':
+    resolution: {integrity: sha512-U1Qz8EYIPOMY2MOjz7m7YgxSEZ/1c3y/PcdeMbsVgue0khHSc6l9uuL2yzoB64i9qXKXWcTF6movbq8+Il2IuA==}
+    peerDependencies:
+      katex: ^0.18.5
+      react: ^19.0.0
+      react-dom: ^19.0.0
 
   '@mermaid-js/parser@1.2.1':
     resolution: {integrity: sha512-n12NohV3mrUyUL2o93IgG/ifeW9FTyeJn3zDxkhwa8MJ9Fxg3HQMlA3RiGmD/3UnJvheztkjjQAjA2T4LmUcpw==}
@@ -4616,6 +4602,24 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@memorysmithapp/markdown-renderer@0.3.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)':
+    dependencies:
+      hast-util-to-jsx-runtime: 2.3.6(supports-color@7.2.0)
+      katex: 0.18.5
+      mermaid: 11.17.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      react-markdown: 9.1.0(@types/react@19.2.18)(react@19.2.8)(supports-color@7.2.0)
+      refractor: 5.0.0
+      rehype-katex: 7.0.1
+      remark-gfm: 4.0.1(supports-color@7.2.0)
+      remark-math: 6.0.0(supports-color@7.2.0)
+      remark-parse: 11.0.0(supports-color@7.2.0)
+      unified: 11.0.5
+    transitivePeerDependencies:
+      - '@types/react'
+      - supports-color
 
   '@mermaid-js/parser@1.2.1':
     dependencies:

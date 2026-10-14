@@ -12,7 +12,7 @@ import { blockOf, isBlockAnchor, sectionOf } from '../../shared/api/transclusion
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { WritableContent } from '../../shared/components/WritableContent';
+import { NoteContent } from '../../shared/components/NoteContent';
 import {
   PropertyValue,
   orderedProperties,
@@ -120,7 +120,7 @@ export function NotePreview({
     );
   }
   const content = (
-    <WritableContent
+    <NoteContent
       raw={drawing.raw}
       notebookId={notebookId}
       baseRevision={null}

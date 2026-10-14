@@ -91,13 +91,13 @@ beforeAll(async () => {
   await import('../../i18n');
   const source = await import('../api/source');
   await source.getNotebookStructure(NOTEBOOK);
-  const { WritableContent } = await import('./WritableContent');
+  const { NoteContent } = await import('./NoteContent');
 
   render = (markdown: string): string =>
     renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
         <MemoryRouter>
-          <WritableContent
+          <NoteContent
             raw={markdown}
             notebookId={NOTEBOOK}
             baseRevision="rev-1"

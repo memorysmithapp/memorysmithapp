@@ -17,7 +17,7 @@ import { identifierOf, noteAddress } from '../../shared/api/note-address';
 import { ChevronRightIcon, PencilIcon } from '../../shared/components/icons';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { FolderRows } from './FolderRows';
-import { WritableContent } from '../../shared/components/WritableContent';
+import { NoteContent } from '../../shared/components/NoteContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrailOf } from './trail';
@@ -112,7 +112,7 @@ export function FolderPage() {
             <div className="template-card-body">
               {template ? (
                 <>
-                  <WritableContent
+                  <NoteContent
                     raw={template.body}
                     notebookId={notebookId}
                     baseRevision={template.revision}
