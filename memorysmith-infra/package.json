@@ -18,6 +18,7 @@
     "wait-for-email-identity": "tsx commands/wait-for-email-identity.ts",
     "publish-release": "tsx commands/publish-release.ts",
     "onboard": "tsx commands/onboard.ts",
+    "activate-cost-tags": "tsx commands/activate-cost-tags.ts",
     "destroy-staging": "tsx commands/destroy-staging.ts",
     "cleanup-staging": "tsx commands/maintenance.ts cleanup-staging",
     "recount-storage": "tsx commands/maintenance.ts recount-storage",
@@ -27,16 +28,17 @@
     "agent-eval": "tsx agent-eval/run.ts"
   },
   "dependencies": {
-    "@memorysmithapp/contracts": "workspace:*",
     "@aws-sdk/client-cloudformation": "^3.1131.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.1131.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",
+    "@aws-sdk/client-cost-explorer": "^3.1150.0",
     "@aws-sdk/client-dynamodb": "^3.1117.0",
     "@aws-sdk/client-lambda": "^3.1131.0",
     "@aws-sdk/client-s3": "^3.1117.0",
     "@aws-sdk/client-secrets-manager": "^3.1117.0",
     "@aws-sdk/client-sesv2": "^3.1131.0",
     "@aws-sdk/client-sts": "^3.1131.0",
+    "@memorysmithapp/contracts": "workspace:*",
     "aws-cdk-lib": "^2.220.0",
     "constructs": "^10.4.2"
   },
