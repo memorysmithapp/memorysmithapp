@@ -385,6 +385,14 @@ export interface KnowledgeGateway {
     input: { notebookId: string; folderId?: string; limit?: number; cursor?: string },
   ): Promise<NotePage>;
   readNote(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteContent>;
+  /**
+   * Every note of the notebook, the most recently written first, by name: what
+   * the sweep reads the notices of (RN-AGT-052).
+   */
+  recentNotes(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<Array<{ noteId: string; name: string | null; updatedAt: string }>>;
   /** Without an anchor the note goes last in its folder. */
   createNote(
     caller: AgentCaller,

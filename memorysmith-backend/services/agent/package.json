@@ -11,10 +11,12 @@
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.1117.0",
     "@memorysmithapp/contracts": "workspace:*",
+    "@memorysmithapp/markdown-renderer": ">=0.3.0 <1.0.0",
     "@memorysmithapp/observability": "workspace:*",
     "@smithy/signature-v4": "5.7.3",
     "hono": "^4.9.0",
-    "jose": "^6.0.13"
+    "jose": "^6.0.13",
+    "katex": "^0.18.5"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",

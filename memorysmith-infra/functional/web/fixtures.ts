@@ -138,6 +138,8 @@ export interface Words {
   readonly folderEditDescription: string;
   readonly folderEditSave: string;
   readonly folderEditNameTaken: string;
+  readonly noticesHeading: string;
+  readonly noticeFenceUnclosed: string;
   /** The kind the history gives the move. */
   readonly historyMoved: string;
 }
@@ -229,6 +231,8 @@ export const WORDS: Record<AppLocale, Words> = {
     folderEditDescription: 'Description',
     folderEditSave: 'Save',
     folderEditNameTaken: 'already exists at this level',
+    noticesHeading: 'What the page will not show as typed',
+    noticeFenceUnclosed: 'This code block is never closed',
     historyMoved: 'Moved',
   },
   pt_BR: {
@@ -317,6 +321,8 @@ export const WORDS: Record<AppLocale, Words> = {
     folderEditDescription: 'Descrição',
     folderEditSave: 'Salvar',
     folderEditNameTaken: 'existe uma pasta chamada',
+    noticesHeading: 'O que a página não vai mostrar como foi digitado',
+    noticeFenceUnclosed: 'Este bloco de código nunca é fechado',
     historyMoved: 'Movida',
   },
 };

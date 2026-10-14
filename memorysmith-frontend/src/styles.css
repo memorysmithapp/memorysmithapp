@@ -5432,6 +5432,73 @@ body.has-sheet .app-main {
 }
 /* What the write will do, said before it is confirmed. The pending colour is
    the one a link to nothing already wears, so the two read as one fact. */
+/* The notices of the note being written (#291): under the text, each a line
+   that takes the cursor to where it is. What differs from the text is said
+   in the signal colour of capture; what the note could still declare is
+   folded, in the soft text, because it is advice and not a difference. */
+.note-notices {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+}
+.note-notices-heading {
+  margin: 0 0 0.4rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+.note-notices-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.note-notice {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-left: 3px solid var(--signal);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--signal) 10%, transparent);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.note-notice[data-severity='hint'] {
+  border-left-color: var(--border);
+  background: transparent;
+  color: var(--text-soft);
+}
+.note-notice:hover {
+  background: var(--hover);
+}
+.note-notice:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.note-notice-at {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.note-notices-hints {
+  margin-top: 0.5rem;
+}
+.note-notices-hints > summary {
+  cursor: pointer;
+  color: var(--text-soft);
+  margin-bottom: 0.3rem;
+}
+.note-notices-count {
+  font-variant-numeric: tabular-nums;
+}
+
 .editor-notice {
   margin: 0 0 0.9rem;
   padding: 0.7rem 0.85rem;

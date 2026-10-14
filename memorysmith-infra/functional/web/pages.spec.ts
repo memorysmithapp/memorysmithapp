@@ -715,6 +715,127 @@ test.describe('the pages of an account', () => {
     await expect(sheet).toHaveCount(0);
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] draws a note through the published renderer, in light, dark and on a phone, and ticks a box inside a callout (#291)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const suffix = randomBytes(3).toString('hex');
+    await owner.ok('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Embedded ${suffix}\n---\n\nThe embedded text, drawn in place.\n`,
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: [
+        '---',
+        `name: Renderer ${suffix}`,
+        '---',
+        '',
+        `A claim with a footnote.[^1] And [[Nobody wrote ${suffix}]].`,
+        '',
+        `![[Embedded ${suffix}]]`,
+        '',
+        '> [!note] Inside a callout',
+        '> - [ ] A box in a callout',
+        '',
+        '$$',
+        'E = mc^2',
+        '$$',
+        '',
+        '```mermaid',
+        'flowchart LR',
+        '  A --> B',
+        '```',
+        '',
+        '[^1]: The definition, after the embed.',
+        '',
+      ].join('\n'),
+    });
+
+    const look = async (name: string) => {
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      const note = app.locator('.content-pane .markdown[data-theme]').first();
+      await expect(note.locator('.embed')).toContainText('The embedded text, drawn in place.', {
+        timeout: 60_000,
+      });
+      await expect(
+        note.locator('.wikilink-pending', { hasText: `Nobody wrote ${suffix}` }),
+      ).toBeVisible();
+      await expect(note.locator('.katex').first()).toBeVisible();
+      await expect(note.locator('.mermaid-diagram svg')).toBeVisible({ timeout: 30_000 });
+      // The reference before the embed and the definition after it are one
+      // footnote, numbered once, at the end of the note.
+      await expect(note.locator('section.footnotes')).toContainText(
+        'The definition, after the embed.',
+      );
+      await testInfo.attach(name, {
+        body: await app.screenshot({ fullPage: true }),
+        contentType: 'image/png',
+      });
+      return note;
+    };
+
+    const note = await look('renderer-light.png');
+    await expect(note).toHaveAttribute('data-theme', 'light');
+
+    // The box inside the callout writes its own line back, and nothing else.
+    await note.locator('.callout li.task-item').getByRole('checkbox').check();
+    await expect(app.locator('.write-status')).toHaveAttribute('data-state', 'saved', {
+      timeout: 15_000,
+    });
+    const stored = await owner.ok<{ content: string }>('GET', `${path}/notes/${noteId}`);
+    expect(stored.content).toContain('> - [x] A box in a callout');
+    expect(stored.content).toContain('[^1]: The definition, after the embed.');
+
+    await app.addInitScript(() => {
+      localStorage.setItem(
+        'memorysmith.preferences',
+        JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+      );
+    });
+    const dark = await look('renderer-dark.png');
+    await expect(dark).toHaveAttribute('data-theme', 'dark');
+
+    await app.setViewportSize({ width: 390, height: 844 });
+    await look('renderer-phone.png');
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] says in the editor where the page will not show the note as typed (#291)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Notices ${randomBytes(3).toString('hex')}\n---\n\n# Notices\n`,
+    });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    const area = app.locator('textarea.note-editor-area');
+    await area.fill(`${await area.inputValue()}\n### Skipped\n\n\`\`\`\nnever closed\n`);
+
+    const notices = app.locator('.note-notices');
+    await expect(notices.getByRole('heading', { name: words.noticesHeading })).toBeVisible();
+    const fence = notices.getByRole('button', { name: new RegExp(words.noticeFenceUnclosed) });
+    await expect(fence).toBeVisible();
+    // A notice takes the cursor to where it is.
+    await fence.click();
+    const selected = await area.evaluate((field) =>
+      (field as unknown as { value: string; selectionStart: number }).value.slice(
+        (field as unknown as { selectionStart: number }).selectionStart,
+      ),
+    );
+    expect(selected.startsWith('```')).toBe(true);
+    await testInfo.attach('editor-notices.png', {
+      body: await app.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    });
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
     app,
     notebook,

@@ -63,6 +63,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
       },
     ],
     nextNumber: async () => 42,
+    recentNotes: async () => [],
     readNote: async () => ({
       noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
@@ -863,6 +864,8 @@ describe('The tool adapter translates in both directions', () => {
       orphans: [],
       unshownFiles: [],
       openUploads: [],
+      notices: [],
+      noticesRead: { notes: 0, of: 0, complete: true },
     });
   });
 
@@ -2558,5 +2561,128 @@ describe('a folder changes after it exists (#278, RN-AGT-051)', () => {
     const body = skillNamed('design-notebook')?.body ?? '';
     expect(body).toContain('`update_folder`');
     expect(body).toContain('never recreate a\n  folder to change it');
+  });
+});
+
+describe('a write says where the page will not show what was typed (#291, RN-AGT-052)', () => {
+  const where = { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' };
+
+  it('answers the notices and the hints of what create_note wrote, by line', async () => {
+    const content = '---\nname: Nova\n---\n\n### Skipped\n\n```js\nnever closed\n';
+    const answer = await gateways({
+      knowledge: {
+        createNote: async () => ({
+          noteId: '01JBQ2X00000000000000000N2',
+          name: 'Nova',
+          content,
+          revision: 'v1',
+          updatedAt: '2026-03-21T10:00:00.000Z',
+        }),
+      },
+    }).call('create_note', { ...where, content }, caller);
+
+    const body = JSON.parse(answer.content[0]?.text ?? '{}') as {
+      notices: Array<{ code: string; severity: string; line: number }>;
+    };
+    expect(answer.isError).toBe(false);
+    expect(body.notices.map((each) => each.code)).toEqual([
+      'aliases-missing',
+      'tags-missing',
+      'heading-first-level',
+      'fence-unclosed',
+    ]);
+    expect(body.notices.find((each) => each.code === 'fence-unclosed')).toMatchObject({
+      severity: 'notice',
+      line: 7,
+    });
+  });
+
+  it('says nothing more of a note the page draws as typed', async () => {
+    const content = '---\nname: Nova\naliases: [N]\ntags: [a]\n---\n\n# Nova\n\nText.\n';
+    const answer = await gateways({
+      knowledge: {
+        updateNote: async () => ({
+          noteId: '01JBQ2X00000000000000000N2',
+          name: 'Nova',
+          content,
+          revision: 'v2',
+          updatedAt: '2026-03-21T10:00:00.000Z',
+        }),
+      },
+    }).call(
+      'update_note',
+      { notebook: where.notebook, note: '01JBQ2X00000000000000000N2', content, baseRevision: 'v1' },
+      caller,
+    );
+    expect(JSON.parse(answer.content[0]?.text ?? '{}')).not.toHaveProperty('notices');
+  });
+
+  it('does not repeat, as a notice, the name the unnamed notice already asks for', async () => {
+    const content = '# No name\n';
+    const answer = await gateways({
+      knowledge: {
+        createNote: async () => ({
+          noteId: '01JBQ2X00000000000000000N2',
+          name: null,
+          content,
+          revision: 'v1',
+          updatedAt: '2026-03-21T10:00:00.000Z',
+        }),
+      },
+    }).call('create_note', { ...where, content }, caller);
+    const body = JSON.parse(answer.content[0]?.text ?? '{}') as {
+      notice: string;
+      notices?: Array<{ code: string }>;
+    };
+    expect(body.notice).toBe(UNNAMED_NOTE_NOTICE);
+    expect((body.notices ?? []).map((each) => each.code)).not.toContain('name-missing');
+  });
+
+  it('lists the notices of the notebook in the sweep, the most recent notes first, and no hints', async () => {
+    const read: string[] = [];
+    const answer = await gateways({
+      knowledge: {
+        recentNotes: async () => [
+          { noteId: '01JBQ2X00000000000000000N2', name: 'Open', updatedAt: '2026-03-22' },
+          { noteId: '01JBQ2X00000000000000000N1', name: 'Fine', updatedAt: '2026-03-21' },
+        ],
+        readNote: async (_caller: unknown, _notebook: string, noteId: string) => {
+          read.push(noteId);
+          return {
+            noteId,
+            name: 'x',
+            content: noteId.endsWith('N2')
+              ? '---\nname: Open\n---\n\n# Open\n\n```\nnever closed\n'
+              : '---\nname: Fine\n---\n\n# Fine\n',
+            revision: 'v1',
+            updatedAt: '2026-03-21T10:00:00.000Z',
+          };
+        },
+      },
+      discovery: {
+        checkNotebook: async () => ({ pending: [], orphans: [], unshownFiles: [] }),
+      },
+    }).call('check_notebook', { notebook: where.notebook }, caller);
+
+    const body = JSON.parse(answer.content[0]?.text ?? '{}') as {
+      notices: Array<{ code: string; severity: string; note: { noteId: string; name: string } }>;
+      noticesRead: { notes: number; of: number; complete: boolean };
+    };
+    expect(read).toEqual(['01JBQ2X00000000000000000N2', '01JBQ2X00000000000000000N1']);
+    expect(body.notices.every((each) => each.severity === 'notice')).toBe(true);
+    expect(body.notices.map((each) => [each.note.name, each.code])).toEqual([
+      ['Open', 'fence-unclosed'],
+    ]);
+    expect(body.noticesRead).toEqual({ notes: 2, of: 2, complete: true });
+  });
+});
+
+describe('the agent is told what a notice is before it meets one (RN-AGT-052)', () => {
+  it('says it in the two tools that write a body, in the sweep and in the skill', () => {
+    const describe = (name: string) => TOOL_CATALOG.find((tool) => tool.name === name)?.description;
+    expect(describe('create_note')).toContain('The answer carries `notices`');
+    expect(describe('update_note')).toContain('The answer carries `notices`');
+    expect(describe('check_notebook')).toContain('`noticesRead`');
+    expect(skillNamed('write-notes')?.body).toContain('**Read the notices a write answers.**');
   });
 });

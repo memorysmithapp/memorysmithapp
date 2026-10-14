@@ -9,6 +9,7 @@ import { queryKeys } from '../../shared/api/query-keys';
 import { Modal } from '../../shared/components/Modal';
 import { AttachRefusal, attachFile, insertAt, referenceOf } from './attach';
 import { ATTACH_PORTS } from './attach-ports';
+import { NoteNotices, useNotices } from './NoteNotices';
 
 export interface EditOutcome {
   readonly content: string;
@@ -110,6 +111,9 @@ export function NoteEditor({
   }
 
   const dirty = text !== initial;
+  // Where the page will draw the note differently from the text, said while it
+  // is typed and never as a refusal (#291, RN-KNW-059).
+  const notices = useNotices(text, notebookId);
 
   useEffect(() => {
     area.current?.focus();
@@ -172,6 +176,8 @@ export function NoteEditor({
           void attach(dropped);
         }}
       />
+
+      <NoteNotices text={text} notices={notices} area={area} />
 
       <div className="note-editor-actions">
         <button

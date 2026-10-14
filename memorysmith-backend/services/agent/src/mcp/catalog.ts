@@ -90,6 +90,17 @@ function object(
   return { type: 'object', properties, required, additionalProperties: false };
 }
 
+/**
+ * What a write answers beside the note (RN-AGT-052): said once, so the two
+ * tools that write a body say it the same way.
+ */
+const NOTICES_ANSWERED =
+  'The answer carries `notices` when the page will not show the note as typed: each with a ' +
+  'code, a line and a column, a `notice` where what is drawn differs from the text (a fence ' +
+  'never closed, a heading that skips a level, raw HTML) and a `hint` where the note lacks ' +
+  'something the specification reserves (no aliases, no tags). Nothing is refused for them: ' +
+  'fix a notice with update_note in the same turn, and weigh a hint against the guidance.';
+
 const DEFINITIONS: readonly ToolDefinition[] = [
   {
     name: 'whoami',
@@ -514,7 +525,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'finds the note it made instead of writing a twin. A note with no name reserves nothing, ' +
       'so retrying one of those writes a second. Another folder may hold a note of the same ' +
       'name. The note goes last in its folder unless you pass after; in a folder that orders ' +
-      'its notes by name it appears by its name, wherever after puts it.',
+      'its notes by name it appears by its name, wherever after puts it. ' +
+      NOTICES_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -843,7 +855,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'so you can choose between redoing and merging. Blind overwrite is not accepted. This is ' +
       'also how a note is renamed: change the `name:` of its frontmatter. Pass message to say ' +
       'what you changed and why: it is recorded in the history of the note beside the instant ' +
-      'and who wrote, and it is what a person reads there months later.',
+      'and who wrote, and it is what a person reads there months later. ' +
+      NOTICES_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -1000,9 +1013,12 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '— it almost reaches a note or a file the notebook has, in another case, without its ' +
       'accents or as the start of a longer name — and the link is what to fix. A file no note ' +
       'shows may be kept on purpose: tell the person which. An upload left open is finished, ' +
-      'handed to the person with request_file, or thrown away with discard_file_upload. It is as ' +
-      'recent as the link index, which follows a write within seconds, so right after the last ' +
-      'write, run it again.',
+      'handed to the person with request_file, or thrown away with discard_file_upload. ' +
+      '`notices` lists, note by note, where the page will not show what was typed — a fence ' +
+      'never closed, a heading that skips a level, a footnote with no definition — read from ' +
+      'the most recently written notes, up to 200, with `noticesRead` saying how many were read ' +
+      'of how many. It is as recent as the link index, which follows a write within seconds, so ' +
+      'right after the last write, run it again.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },

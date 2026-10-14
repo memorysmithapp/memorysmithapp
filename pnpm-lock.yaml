@@ -143,6 +143,9 @@ importers:
       '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@memorysmithapp/markdown-renderer':
+        specifier: '>=0.3.0 <1.0.0'
+        version: 0.3.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
       '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -155,6 +158,9 @@ importers:
       jose:
         specifier: ^6.0.13
         version: 6.2.10
+      katex:
+        specifier: ^0.18.5
+        version: 0.18.5
     devDependencies:
       '@types/aws-lambda':
         specifier: ^8.10.152

@@ -619,6 +619,20 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
    * the four fields of an index, one page at a time, in the defined order —
    * which across folders is the order of the tree, read from the notebook.
    */
+  async recentNotes(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<Array<{ noteId: string; name: string | null; updatedAt: string }>> {
+    const notes = await callApi<Array<{ noteId: string; name: string | null; updatedAt: string }>>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/notes`,
+    );
+    return notes
+      .map(({ noteId, name, updatedAt }) => ({ noteId, name, updatedAt }))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  }
+
   async listNotes(
     caller: AgentCaller,
     input: { notebookId: string; folderId?: string; limit?: number; cursor?: string },

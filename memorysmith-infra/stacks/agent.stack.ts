@@ -76,6 +76,10 @@ export class AgentStack extends Stack {
       entry: join(here, '..', '..', 'memorysmith-backend', 'services', 'agent', 'src', 'lambda.ts'),
       description: 'MCP server and CIMD registration proxy.',
       timeout: Duration.seconds(15),
+      // The notices of a note are read without diagrams (#291), so Mermaid,
+      // which the renderer imports only on demand, stays out of the bundle:
+      // inlined it was four fifths of it.
+      bundling: { externalModules: ['mermaid'] },
       environment: {
         PUBLIC_ORIGIN: publicOrigin,
         SITE_ORIGIN: props.siteOrigin,

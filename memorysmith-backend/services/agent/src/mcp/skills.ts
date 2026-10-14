@@ -765,6 +765,15 @@ it is a note still to write: write it, or tell the person it is left to write.
 The index follows a write within seconds, so right after the last write, run it
 again.
 
+**Read the notices a write answers.** \`create_note\` and \`update_note\` answer
+\`notices\` when the page will not draw the note as you typed it — a fence never
+closed swallows everything after it, a heading that skips a level breaks the
+outline, a footnote with no definition is drawn as its characters — each with
+its line. Fix a \`notice\` with \`update_note\` before going on. A \`hint\` says the
+note lacks something the specification reserves, \`aliases\` or \`tags\`: add it
+when the guidance asks for it, and leave it otherwise. \`check_notebook\` lists
+the notices of the notebook's latest notes the same way.
+
 ## Searching what you wrote
 
 \`search_notes\` reads the body, not the frontmatter, and its query language is

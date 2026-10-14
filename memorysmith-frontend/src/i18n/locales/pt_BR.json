@@ -699,6 +699,32 @@
       "NO_TYPE": "O navegador não disse de que tipo é esse arquivo, então ele não pode ser guardado."
     }
   },
+  "notices": {
+    "heading": "O que a página não vai mostrar como foi digitado",
+    "hintsHeading": "O que esta nota ainda poderia declarar",
+    "at": "Linha {{line}}",
+    "goTo": "Ir para a linha {{line}}, coluna {{column}}",
+    "codes": {
+      "fence-unclosed": "Este bloco de código nunca é fechado: tudo depois dele é desenhado como código.",
+      "math-unclosed": "Este bloco de fórmula nunca é fechado: tudo depois dele é desenhado como fórmula.",
+      "formula-invalid": "Esta fórmula não pode ser composta, então aparece como foi digitada.",
+      "diagram-invalid": "Este diagrama não pode ser lido, então aparece como erro.",
+      "frontmatter-unclosed": "O bloco de propriedades nunca é fechado, então é desenhado como texto.",
+      "name-missing": "A nota não tem nome: um link só chega a ela por um apelido.",
+      "name-unusable": "O nome não pode ser usado: um link não alcança um nome com # [ ] ou |.",
+      "reserved-not-a-list": "aliases e tags são listas: escritos de outro jeito, são lidos como um valor só.",
+      "aliases-missing": "Sem apelidos (aliases): só o nome atende a um link.",
+      "tags-missing": "Sem tags: a nota não tem assuntos pelos quais ser filtrada.",
+      "heading-first-level": "O primeiro título do corpo não é de nível um.",
+      "heading-skipped-level": "Este título pula um nível abaixo do título anterior.",
+      "footnote-undefined": "Esta nota de rodapé não tem definição, então aparece como os caracteres digitados.",
+      "footnote-unreferenced": "Esta nota de rodapé nunca é referenciada, então não é desenhada.",
+      "raw-html": "HTML aparece como texto, nunca é executado.",
+      "strikethrough-single-tilde": "Um til só não risca nada aqui: escreva ~~ para riscar.",
+      "link-pending": "Nenhuma nota atende a este link ainda.",
+      "embed-pending": "Nenhuma nota ou arquivo atende a esta incorporação ainda."
+    }
+  },
   "move": {
     "short": "Mover",
     "open": "Mover esta nota para outra pasta do caderno",

@@ -700,6 +700,41 @@ test.describe('the tools', () => {
     );
   });
 
+  test('[tool:create_note] [tool:check_notebook] answers where the page will not show a note as typed (#291)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const name = `Unclosed ${randomBytes(3).toString('hex')}`;
+    const created = parsed<{
+      noteId: string;
+      notices: Array<{ code: string; severity: string; line: number }>;
+    }>(
+      await callTool(agent, 'create_note', {
+        ...where,
+        folder: notebook.folderId,
+        content: `---\nname: ${name}\n---\n\n### Skipped\n\n\`\`\`\nnever closed\n`,
+      }),
+    );
+    expect(created.notices.map((each) => each.code)).toEqual(
+      expect.arrayContaining(['heading-first-level', 'fence-unclosed', 'aliases-missing']),
+    );
+    expect(created.notices.find((each) => each.code === 'fence-unclosed')?.line).toBe(7);
+
+    await eventually(
+      'the sweep reading the notices of the new note',
+      () => callTool(agent, 'check_notebook', where),
+      (answer) =>
+        (
+          JSON.parse(answer.text) as {
+            notices: Array<{ code: string; note: { noteId: string } }>;
+          }
+        ).notices.some(
+          (each) => each.note.noteId === created.noteId && each.code === 'fence-unclosed',
+        ),
+    );
+  });
+
   test('[tool:update_folder] [tool:get_notebook_context] renames, redescribes and moves a folder, and refuses a name a sibling holds (#278)', async ({
     agent,
     notebook,

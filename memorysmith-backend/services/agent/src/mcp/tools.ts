@@ -24,6 +24,7 @@ import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './cat
 import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
+import { noticesOf, type NoteNotice } from './notices.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
@@ -384,9 +385,23 @@ export const UNNAMED_NOTE_NOTICE =
  * read before a long body. It is a field of the one JSON document and never a
  * second content block, so a client reading the answer as JSON keeps reading it.
  */
-function noteAnswer(note: NoteContent): ToolResult {
-  return json(note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : note);
+function noteAnswer(note: NoteContent, notices: readonly NoteNotice[] = []): ToolResult {
+  // A note with no name already opens with the notice that says so, so the
+  // diagnosis does not say it a second time.
+  const said =
+    note.name === null ? notices.filter((each) => each.code !== 'name-missing') : notices;
+  const body = note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : { ...note };
+  return json(said.length > 0 ? { ...body, notices: said } : body);
 }
+
+/**
+ * How many notes the sweep reads the notices of, the most recently written
+ * first, and how long it may spend reading them: a call to the connector dies
+ * at about thirty seconds and the function at fifteen (RN-AGT-052).
+ */
+export const CHECK_NOTICES_LIMIT = 200;
+const CHECK_NOTICES_BUDGET_MS = 8_000;
+const CHECK_NOTICES_PARALLEL = 10;
 
 /**
  * The refusal of a name its folder already holds, said the way an agent can act
@@ -442,6 +457,45 @@ export class McpToolAdapter {
       }
       throw error;
     }
+  }
+
+  /**
+   * The notices of the notes of a notebook (RN-AGT-052), the most recently
+   * written first and at most CHECK_NOTICES_LIMIT of them, only those that say
+   * the page differs from what was typed: a hint about a missing alias on
+   * every note would bury the one fence left open. The links are the sweep's
+   * own answer and are not repeated here. Reading stops at its time budget,
+   * and says how far it got.
+   */
+  private async noticesOfNotebook(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<{
+    notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }>;
+    read: { notes: number; of: number; complete: boolean };
+  }> {
+    const started = Date.now();
+    const recent = await this.gateways.knowledge.recentNotes(caller, notebookId);
+    const wanted = recent.slice(0, CHECK_NOTICES_LIMIT);
+    const notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }> = [];
+    let read = 0;
+    for (let at = 0; at < wanted.length; at += CHECK_NOTICES_PARALLEL) {
+      if (Date.now() - started > CHECK_NOTICES_BUDGET_MS) break;
+      const batch = wanted.slice(at, at + CHECK_NOTICES_PARALLEL);
+      const found = await Promise.all(
+        batch.map(async (each) => {
+          const note = await this.gateways.knowledge.readNote(caller, notebookId, each.noteId);
+          const said = await noticesOf(note.content ?? '', ['notice']);
+          return said.map((notice) => ({
+            note: { noteId: each.noteId, name: each.name },
+            ...notice,
+          }));
+        }),
+      );
+      read += batch.length;
+      notices.push(...found.flat());
+    }
+    return { notices, read: { notes: read, of: recent.length, complete: read === recent.length } };
   }
 
   /**
@@ -959,24 +1013,26 @@ export class McpToolAdapter {
 
       case 'create_note': {
         const after = optionalAnchor(args);
+        const content = requireString(args, 'content', 'create_note');
         const created = await knowledge.createNote(caller, {
           notebookId: requireString(args, 'notebook', 'create_note'),
           folderId: requireString(args, 'folder', 'create_note'),
-          content: requireString(args, 'content', 'create_note'),
+          content,
           ...(after === undefined ? {} : { afterNoteId: after }),
         });
-        return noteAnswer(created);
+        return noteAnswer(created, await noticesOf(content));
       }
 
       case 'update_note': {
+        const content = requireString(args, 'content', 'update_note');
         const updated = await knowledge.updateNote(caller, {
           notebookId: requireString(args, 'notebook', 'update_note'),
           noteId: requireString(args, 'note', 'update_note'),
-          content: requireString(args, 'content', 'update_note'),
+          content,
           baseRevision: requireString(args, 'baseRevision', 'update_note'),
           message: optionalString(args, 'message'),
         });
-        return noteAnswer(updated);
+        return noteAnswer(updated, await noticesOf(content));
       }
 
       case 'reorder_note':
@@ -1032,9 +1088,10 @@ export class McpToolAdapter {
         // from Portability (RN-DSC-064): a name the person was asked for is a
         // pending link that waits for them, not a note still to write.
         const notebook = requireString(args, 'notebook', 'check_notebook');
-        const [check, open] = await Promise.all([
+        const [check, open, notices] = await Promise.all([
           discovery.checkNotebook(caller, notebook),
           knowledge.listFileUploads(caller, notebook),
+          this.noticesOfNotebook(caller, notebook),
         ]);
         const waiting = new Map<string, 'person' | 'upload'>();
         for (const each of open) {
@@ -1051,6 +1108,8 @@ export class McpToolAdapter {
           orphans: check.orphans,
           unshownFiles: check.unshownFiles,
           openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),
+          notices: notices.notices,
+          noticesRead: notices.read,
         });
       }
 

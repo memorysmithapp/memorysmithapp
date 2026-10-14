@@ -51,6 +51,8 @@ describe('every function, bundled as it is deployed', () => {
         target: 'node22',
         outfile,
         banner: { js: LAMBDA_BANNER },
+        // As the agent stack declares it: Mermaid is never loaded there (#291).
+        ...(entry.includes('services/agent/') ? { external: ['mermaid'] } : {}),
         logLevel: 'silent',
       });
       expect(() =>

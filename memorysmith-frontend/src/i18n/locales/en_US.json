@@ -696,6 +696,32 @@
       "NO_TYPE": "The browser did not say what type this file is, so it cannot be kept."
     }
   },
+  "notices": {
+    "heading": "What the page will not show as typed",
+    "hintsHeading": "What this note could still declare",
+    "at": "Line {{line}}",
+    "goTo": "Go to line {{line}}, column {{column}}",
+    "codes": {
+      "fence-unclosed": "This code block is never closed: everything after it is drawn as code.",
+      "math-unclosed": "This formula block is never closed: everything after it is drawn as a formula.",
+      "formula-invalid": "This formula cannot be typeset, so it is shown as typed.",
+      "diagram-invalid": "This diagram cannot be read, so it is shown as an error.",
+      "frontmatter-unclosed": "The properties block is never closed, so it is drawn as text.",
+      "name-missing": "The note has no name: a link reaches it only through an alias.",
+      "name-unusable": "The name cannot be used: a link cannot reach a name with # [ ] or |.",
+      "reserved-not-a-list": "aliases and tags are lists: written otherwise, they are read as one value.",
+      "aliases-missing": "No aliases: only the name catches a link.",
+      "tags-missing": "No tags: the note has no subjects to be filtered by.",
+      "heading-first-level": "The first heading of the body is not level one.",
+      "heading-skipped-level": "This heading skips a level below the heading before it.",
+      "footnote-undefined": "This footnote has no definition, so it is drawn as its characters.",
+      "footnote-unreferenced": "This footnote is never referenced, so it is not drawn.",
+      "raw-html": "HTML is shown as text, never run.",
+      "strikethrough-single-tilde": "One tilde strikes nothing here: write ~~ to strike text.",
+      "link-pending": "No note answers this link yet.",
+      "embed-pending": "No note or file answers this embed yet."
+    }
+  },
   "move": {
     "short": "Move",
     "open": "Move this note to another folder of the notebook",
