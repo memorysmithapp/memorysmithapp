@@ -7,7 +7,7 @@
  * the hand-made event carried a reference the real one never did (#141).
  */
 
-import type { EventEnvelope } from '@memorysmith/contracts';
+import type { EventEnvelope } from '@memorysmithapp/contracts';
 import type { ProjectFiles, ProjectNote, ProjectStructure } from '../application/projections.js';
 
 export interface Projectors {

@@ -27,7 +27,7 @@ import {
   type UserId,
   type DomainEvent,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { type Email, type RejectionReason, StorageQuota, SubscriptionType } from '../values.js';
 
 /**

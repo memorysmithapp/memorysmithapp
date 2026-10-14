@@ -3,7 +3,7 @@ import type {
   FinishedUploadDto,
   TransferDto,
   UploadStatusDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 
 /**
  * A file given from the interface: attached in the note editor (#242,

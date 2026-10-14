@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { NotebookDocument, TransferDto } from '@memorysmith/contracts';
+import type { NotebookDocument, TransferDto } from '@memorysmithapp/contracts';
 import {
   applyImport,
   downloadTransfer,

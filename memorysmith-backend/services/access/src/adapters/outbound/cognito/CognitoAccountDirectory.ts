@@ -16,7 +16,7 @@ import {
   AdminUserGlobalSignOutCommand,
   CognitoIdentityProviderClient,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { DomainError, err, ok, UserId, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, UserId, type Result } from '@memorysmithapp/kernel';
 import type { AccountDirectory, AccountLookup } from '../../../domain/ports/index.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 

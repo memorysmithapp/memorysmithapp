@@ -7,7 +7,7 @@
  * differ, which is the point of the hexagon.
  */
 
-import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmith/contracts';
+import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmithapp/contracts';
 import {
   FILE_TYPE_CATALOGUE,
   PICTURE_CATALOGUE,
@@ -20,10 +20,13 @@ import {
   type SubscriptionContext,
   type EventPublisher,
   type DomainEvent,
-} from '@memorysmith/kernel';
-import type { TokenVerifier, VerifiedToken } from '@memorysmith/svc-access/adapters/auth';
-import type { AccessRequest, AccessUseCases } from '@memorysmith/svc-access/adapters/http';
-import type { KnowledgeRequest, KnowledgeUseCases } from '@memorysmith/svc-knowledge/adapters/http';
+} from '@memorysmithapp/kernel';
+import type { TokenVerifier, VerifiedToken } from '@memorysmithapp/svc-access/adapters/auth';
+import type { AccessRequest, AccessUseCases } from '@memorysmithapp/svc-access/adapters/http';
+import type {
+  KnowledgeRequest,
+  KnowledgeUseCases,
+} from '@memorysmithapp/svc-knowledge/adapters/http';
 import {
   InMemoryAccessDatabase,
   InMemoryAccountDirectory,
@@ -35,7 +38,7 @@ import {
   InMemoryAccountLookup,
   InMemoryShareRepository,
   InMemoryUserLinkRepository,
-} from '@memorysmith/svc-access/adapters/memory';
+} from '@memorysmithapp/svc-access/adapters/memory';
 import {
   contextThrough,
   DeleteNotebookAndShares,
@@ -48,7 +51,7 @@ import {
   GetSession,
   RequestSubscription,
   SwitchActiveSubscription,
-} from '@memorysmith/svc-access/application/onboarding';
+} from '@memorysmithapp/svc-access/application/onboarding';
 import {
   ChangePassword,
   ChooseLanguage,
@@ -57,24 +60,24 @@ import {
   ReadProfile,
   RecordWelcome,
   SetProfilePicture,
-} from '@memorysmith/svc-access/application/account';
+} from '@memorysmithapp/svc-access/application/account';
 import {
   ListPlatformQueue,
   ReviewSubscription,
-} from '@memorysmith/svc-access/application/platform';
+} from '@memorysmithapp/svc-access/application/platform';
 import {
   ChangeMemberRole,
   ListMembers,
   RemoveMember,
   TransferOwnership,
-} from '@memorysmith/svc-access/application/members';
-import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
+} from '@memorysmithapp/svc-access/application/members';
+import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
 import {
   BindConnector,
   ConnectorOfSession,
   RebindConnector,
   ResolveAuthorship,
-} from '@memorysmith/svc-access/application/connectors';
+} from '@memorysmithapp/svc-access/application/connectors';
 import {
   InMemoryContentSlotRepository,
   InMemoryFolderNumbers,
@@ -86,7 +89,7 @@ import {
   InMemoryDatabase,
   InMemoryNoteRepository,
   InMemoryNotebookRepository,
-} from '@memorysmith/svc-knowledge/adapters/memory';
+} from '@memorysmithapp/svc-knowledge/adapters/memory';
 import {
   ClearNotebookRoleLimit,
   CreateNotebook,
@@ -98,7 +101,7 @@ import {
   DeleteNotebook,
   RenameNotebook,
   SetNotebookRoleLimit,
-} from '@memorysmith/svc-knowledge/application/notebooks';
+} from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
   DeleteTemplate,
@@ -109,7 +112,7 @@ import {
   PutTemplate,
   RemoveFolder,
   ReorderFolder,
-} from '@memorysmith/svc-knowledge/application/folders';
+} from '@memorysmithapp/svc-knowledge/application/folders';
 import {
   CreateNote,
   DeleteNote,
@@ -118,7 +121,7 @@ import {
   ReadNote,
   ReorderNote,
   UpdateNote,
-} from '@memorysmith/svc-knowledge/application/notes';
+} from '@memorysmithapp/svc-knowledge/application/notes';
 import {
   CheckFileDestination,
   DeleteFile,
@@ -126,12 +129,12 @@ import {
   KeepFile,
   LinkToFile,
   ListFiles,
-} from '@memorysmith/svc-knowledge/application/files';
-import { InMemoryAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
+} from '@memorysmithapp/svc-knowledge/application/files';
+import { InMemoryAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
 import type {
   PortabilityRequest,
   PortabilityUseCases,
-} from '@memorysmith/svc-portability/adapters/http';
+} from '@memorysmithapp/svc-portability/adapters/http';
 import {
   CancelTransfer,
   DeleteTransfer,
@@ -143,17 +146,17 @@ import {
   StartExport,
   StartImport,
   type TransferWork,
-} from '@memorysmith/svc-portability/application/transfers';
-import { InMemoryTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
+} from '@memorysmithapp/svc-portability/application/transfers';
+import { InMemoryTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import {
   InMemoryPartStore,
   InMemoryPreviewQueue,
   InMemoryPreviewStore,
   InMemoryPrintQueue,
   InMemoryPrintStore,
-} from '@memorysmith/svc-portability/adapters/memory';
-import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
-import { GetPreview, StartPreview } from '@memorysmith/svc-portability/application/previews';
+} from '@memorysmithapp/svc-portability/adapters/memory';
+import { GetPrint, StartPrint } from '@memorysmithapp/svc-portability/application/prints';
+import { GetPreview, StartPreview } from '@memorysmithapp/svc-portability/application/previews';
 import {
   BeginUpload,
   discardUpload,
@@ -164,15 +167,15 @@ import {
   ListUploads,
   ObserveUpload,
   PutUploadPart,
-} from '@memorysmith/svc-portability/application/uploads';
+} from '@memorysmithapp/svc-portability/application/uploads';
 import { KnowledgeFileKeeper } from '../src/file-keeper.js';
-import { ExportNotebook } from '@memorysmith/svc-portability/application';
-import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
+import { ExportNotebook } from '@memorysmithapp/svc-portability/application';
+import { createZip, readZip } from '@memorysmithapp/svc-portability/adapters/zip';
 import {
   ImportFromExport,
   ImportNotebook,
   PrepareImport,
-} from '@memorysmith/svc-portability/application/import';
+} from '@memorysmithapp/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from '../src/import-writer.js';
 import { parseNotebookDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
@@ -183,9 +186,9 @@ import {
   GetNotebookActivity,
   ReadRevision,
   RecordEvents,
-} from '@memorysmith/svc-audit/application';
-import { AuditEventConsumer } from '@memorysmith/svc-audit/adapters/consumer';
-import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
+} from '@memorysmithapp/svc-audit/application';
+import { AuditEventConsumer } from '@memorysmithapp/svc-audit/adapters/consumer';
+import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   InMemoryContentIndex,
   InMemoryProjectedVersions,
@@ -193,7 +196,7 @@ import {
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
   InMemoryStructureProjection,
-} from '@memorysmith/svc-discovery/adapters/memory';
+} from '@memorysmithapp/svc-discovery/adapters/memory';
 import {
   Backlinks,
   NoteLinks,
@@ -204,12 +207,15 @@ import {
   SearchNotes,
   NotebookGraphQuery,
   NotebookHealth,
-} from '@memorysmith/svc-discovery/application/queries';
-import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
-import { ProjectNote, ProjectStructure } from '@memorysmith/svc-discovery/application/projections';
+} from '@memorysmithapp/svc-discovery/application/queries';
+import type { DiscoveryUseCases } from '@memorysmithapp/svc-discovery/adapters/http';
+import {
+  ProjectNote,
+  ProjectStructure,
+} from '@memorysmithapp/svc-discovery/application/projections';
 import { createApp } from '../src/app.js';
-import { ReadStorageUsage } from '@memorysmith/svc-knowledge/application/usage';
-import { StorageQuota } from '@memorysmith/svc-access/domain/values';
+import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
+import { StorageQuota } from '@memorysmithapp/svc-access/domain/values';
 import { noSubscription, SubscriptionUsageReport } from '../src/usage.js';
 
 export class RecordingEventPublisher implements EventPublisher {
@@ -835,7 +841,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     portabilityUseCases,
     // Discovery holds no notebook, so it asks the context that owns it.
     canReadNotebook: async (request, notebookId) => {
-      const parsed = (await import('@memorysmith/kernel')).NotebookId.create(notebookId);
+      const parsed = (await import('@memorysmithapp/kernel')).NotebookId.create(notebookId);
       if (!parsed.ok) return false;
       const notebook = await knowledgeRepos(request.subscription).notebooks.findById(parsed.value);
       // A deleted notebook is unreadable to every context, not only to Knowledge.
@@ -844,7 +850,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     // And Audit holds no note: what a notebook still holds, live, is a
     // Knowledge fact (RN-KNW-046).
     notebookHoldsNote: async (request, notebookId, noteId) => {
-      const kernel = await import('@memorysmith/kernel');
+      const kernel = await import('@memorysmithapp/kernel');
       const parsedNotebook = kernel.NotebookId.create(notebookId);
       const parsedNote = kernel.NoteId.create(noteId);
       if (!parsedNotebook.ok || !parsedNote.ok) return false;

@@ -17,11 +17,11 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
-import { Instant, type SubscriptionId } from '@memorysmith/kernel';
-import { ContentPurge } from '@memorysmith/svc-knowledge/adapters/purge';
-import { S3ContentPurger } from '@memorysmith/svc-knowledge/adapters/purger';
-import { DynamoTrailCloser } from '@memorysmith/svc-audit/adapters/closer';
-import { observe, startOfEvent } from '@memorysmith/observability';
+import { Instant, type SubscriptionId } from '@memorysmithapp/kernel';
+import { ContentPurge } from '@memorysmithapp/svc-knowledge/adapters/purge';
+import { S3ContentPurger } from '@memorysmithapp/svc-knowledge/adapters/purger';
+import { DynamoTrailCloser } from '@memorysmithapp/svc-audit/adapters/closer';
+import { observe, startOfEvent } from '@memorysmithapp/observability';
 
 interface QueueEvent {
   detail?: unknown;

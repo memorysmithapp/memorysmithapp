@@ -4,7 +4,7 @@
  * the domain (architecture-guide.md, section 6.5).
  */
 
-import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
 
 function bounded(
   raw: string,

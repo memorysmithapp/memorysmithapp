@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Authorship, NotebookId, SubscriptionId, UserId } from '@memorysmith/kernel';
+import { Authorship, NotebookId, SubscriptionId, UserId } from '@memorysmithapp/kernel';
 import { Share } from '../src/domain/share/Share.js';
 import { Email } from '../src/domain/values.js';
 

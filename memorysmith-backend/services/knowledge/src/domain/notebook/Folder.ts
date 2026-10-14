@@ -12,7 +12,7 @@
  * tree.
  */
 
-import type { Authorship, FolderId, Instant, Position, Slug } from '@memorysmith/kernel';
+import type { Authorship, FolderId, Instant, Position, Slug } from '@memorysmithapp/kernel';
 import type { FolderDescription, FolderName, FolderNoteOrder } from '../values.js';
 
 export class Folder {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FolderId, NotebookId } from '@memorysmith/kernel';
+import { FolderId, NotebookId } from '@memorysmithapp/kernel';
 import { NotePlacement } from '../src/domain/services/NotePlacement.js';
 import {
   authorship,

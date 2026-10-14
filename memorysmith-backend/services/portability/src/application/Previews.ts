@@ -28,7 +28,7 @@ import {
   ulid,
   ulidTime,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { PRINT_DEADLINE_MILLIS } from './Prints.js';
 
 /** The width a preview is drawn at, and the tallest image it answers (#260). */

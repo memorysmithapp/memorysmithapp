@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmith/contracts';
+import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmithapp/contracts';
 import { noteNameOf } from '../../shared/api/markdown';
 import { notesReaching } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';

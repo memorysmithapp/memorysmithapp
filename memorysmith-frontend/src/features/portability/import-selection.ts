@@ -1,4 +1,4 @@
-import type { NotebookDocument, TransferSelection } from '@memorysmith/contracts';
+import type { NotebookDocument, TransferSelection } from '@memorysmithapp/contracts';
 
 /**
  * The tree of a `.notebook` document, and what a selection of it means

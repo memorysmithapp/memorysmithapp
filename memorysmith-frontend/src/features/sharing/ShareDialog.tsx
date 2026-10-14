@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { OutgoingShareDto } from '@memorysmith/contracts';
+import type { OutgoingShareDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import { listNotebookShares, revokeShare, shareNotebook } from '../../shared/api/source';

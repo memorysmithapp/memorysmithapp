@@ -11,7 +11,7 @@
  */
 
 import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import type { SubscriptionContext } from '@memorysmith/kernel';
+import type { SubscriptionContext } from '@memorysmithapp/kernel';
 import {
   EMPTY_SUBSCRIPTION_USAGE,
   type NotebookUsageCounters,

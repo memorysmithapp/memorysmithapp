@@ -13,7 +13,7 @@
  * the constructor, and never from a request (§8.2).
  */
 
-import type { ContentId, SubscriptionId } from '@memorysmith/kernel';
+import type { ContentId, SubscriptionId } from '@memorysmithapp/kernel';
 import { DeleteObjectsCommand, ListObjectVersionsCommand, type S3Client } from '@aws-sdk/client-s3';
 
 /** What the purge worker needs of the object store, and nothing more. */

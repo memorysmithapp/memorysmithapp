@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { fileTypeOf } from '@memorysmith/contracts';
+import { fileTypeOf } from '@memorysmithapp/contracts';
 
 /**
  * The key of the words that name a type, under `fileKind` in each locale.

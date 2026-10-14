@@ -9,7 +9,7 @@
  * Guidance already there copies it.
  */
 
-import { likelyMeant, type LinkCandidate } from '@memorysmith/contracts';
+import { likelyMeant, type LinkCandidate } from '@memorysmithapp/contracts';
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';

@@ -10,14 +10,14 @@
  * surface is held to the same cases the extractor runs.
  *
  * The boundary that made two implementations necessary has not moved: the
- * frontend takes what it needs from `@memorysmith/contracts` and nothing else
+ * frontend takes what it needs from `@memorysmithapp/contracts` and nothing else
  * from the backend. What changed is that the rule they both implement got
  * simpler, and a simpler rule drifts less — the defect this file was written
  * for (#73) was a slug computed two different ways, and there is no slug now.
  */
 
 import { describe, expect, it } from 'vitest';
-import { CONFORMANCE_CASES, type ConformanceCase } from '@memorysmith/contracts';
+import { CONFORMANCE_CASES, type ConformanceCase } from '@memorysmithapp/contracts';
 import { resolveWikilinks } from './markdown';
 
 /** The wikilink cases: the Markdown form is the backend's to tolerate. */

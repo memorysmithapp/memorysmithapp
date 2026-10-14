@@ -15,7 +15,7 @@ import {
   ulid,
   type Authorship,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
 import type { ArchiveStore } from './ExportNotebook.js';
 import { refusalOf, type ImportJob, type ImportSelection } from './ImportNotebook.js';

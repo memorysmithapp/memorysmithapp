@@ -17,7 +17,7 @@ import type {
   RequestFileRequest,
   TransferDto,
   UploadStatusDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 
 export interface AgentCaller {
   /** The human who authorized the connector; always present. */

@@ -37,7 +37,7 @@ import {
   type NotebookId,
   type DomainEvent,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { filePath, fileTags } from '../values.js';
 
 const MAX_NAME = 512;

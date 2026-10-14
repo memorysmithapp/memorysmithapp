@@ -23,8 +23,8 @@ import {
   type PutEventsRequestEntry,
 } from '@aws-sdk/client-eventbridge';
 import { TransactWriteCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { parseEvent } from '@memorysmith/contracts';
-import { Instant } from '@memorysmith/kernel';
+import { parseEvent } from '@memorysmithapp/contracts';
+import { Instant } from '@memorysmithapp/kernel';
 import {
   isEmptyChange,
   usageChangeOf,

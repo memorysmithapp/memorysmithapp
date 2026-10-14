@@ -9,7 +9,7 @@
  * querying the core for the folder tree would invert the arrow.
  */
 
-import { bodyWithoutFrontmatter, noteName } from '@memorysmith/kernel';
+import { bodyWithoutFrontmatter, noteName } from '@memorysmithapp/kernel';
 
 import { extractLinks } from '../domain/LinkExtractor.js';
 import { extractFacets } from '../domain/FacetExtractor.js';

@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { noteSchema, updateNoteRequestSchema } from '@memorysmith/contracts';
+import { noteSchema, updateNoteRequestSchema } from '@memorysmithapp/contracts';
 
 /** What the API answers for a note, as its own schema defines it. */
 const payload = {

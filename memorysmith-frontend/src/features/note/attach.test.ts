@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { TransferDto, UploadStatusDto } from '@memorysmith/contracts';
+import type { TransferDto, UploadStatusDto } from '@memorysmithapp/contracts';
 import {
   ATTACH_PART_BYTES,
   AttachRefusal,

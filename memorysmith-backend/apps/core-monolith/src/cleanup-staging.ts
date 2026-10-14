@@ -29,11 +29,11 @@ import {
   SubscriptionId,
   SubscriptionStatus,
   type UserId,
-} from '@memorysmith/kernel';
-import { CognitoAccountDirectory } from '@memorysmith/svc-access/adapters/cognito';
-import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
-import { Email } from '@memorysmith/svc-access/domain/values';
-import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
+} from '@memorysmithapp/kernel';
+import { CognitoAccountDirectory } from '@memorysmithapp/svc-access/adapters/cognito';
+import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
+import { Email } from '@memorysmithapp/svc-access/domain/values';
+import { DynamoStorageMeter } from '@memorysmithapp/svc-knowledge/adapters/storage';
 import {
   buildAccess,
   buildKnowledge,

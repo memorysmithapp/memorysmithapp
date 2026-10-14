@@ -13,7 +13,7 @@
 import { describe, expect, it } from 'vitest';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { NotebookId, SubscriptionId } from '@memorysmith/kernel';
+import { NotebookId, SubscriptionId } from '@memorysmithapp/kernel';
 import { DynamoLinkGraph, DynamoProjectedVersions } from '../../src/adapters/aws.js';
 import type { NoteRef } from '../../src/domain/ports.js';
 

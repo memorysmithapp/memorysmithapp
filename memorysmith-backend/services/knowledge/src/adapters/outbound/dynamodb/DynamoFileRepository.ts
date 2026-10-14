@@ -23,7 +23,7 @@ import {
   NotebookId,
   type Result,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
 import { GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { NotebookFile } from '../../../domain/file/NotebookFile.js';

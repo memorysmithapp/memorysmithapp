@@ -23,7 +23,7 @@ import {
   MARKDOWN_SPEC_SOURCES,
   RECOGNISED_NOTATION,
   type Deployment,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
 

@@ -32,7 +32,7 @@
  * itself is whatever language its authors write in.
  */
 
-import type { FolderId } from '@memorysmith/kernel';
+import type { FolderId } from '@memorysmithapp/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Folder } from '../notebook/Folder.js';
 import { NOTEBOOK_LIMITS } from '../values.js';

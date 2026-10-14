@@ -16,7 +16,7 @@ import {
   type Result,
   type SubscriptionContext,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { Subscription } from '../domain/subscription/Subscription.js';
 import { StorageQuota, SubscriptionType } from '../domain/values.js';
 import type {

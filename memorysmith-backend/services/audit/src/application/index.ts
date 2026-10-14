@@ -5,7 +5,7 @@
  * only thing it ever does with them is append (RN-AUD-001).
  */
 
-import { DomainError, err, Instant, ok, type Result } from '@memorysmith/kernel';
+import { DomainError, err, Instant, ok, type Result } from '@memorysmithapp/kernel';
 import {
   type AuditEvent,
   type ClosedTrails,

@@ -9,12 +9,12 @@ import {
   NotebookRoleLimit,
   Slug,
   SubscriptionId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { Folder } from '../src/domain/notebook/Folder.js';
 import { Notebook } from '../src/domain/notebook/Notebook.js';
 import { ShortText } from '../src/domain/values.js';
 import { NotePlacement } from '../src/domain/services/NotePlacement.js';
-import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
+import { RESERVED_FRONTMATTER_KEYS } from '@memorysmithapp/contracts';
 import { composeNotebookContext } from '../src/domain/services/NotebookContextComposer.js';
 import {
   AuthorizationPolicy,

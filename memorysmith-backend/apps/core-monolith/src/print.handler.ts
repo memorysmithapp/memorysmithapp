@@ -17,22 +17,22 @@
  */
 
 import { S3Client } from '@aws-sdk/client-s3';
-import type { PrintJob } from '@memorysmith/svc-portability/application/prints';
-import type { PreviewJob } from '@memorysmith/svc-portability/application/previews';
-import { S3PrintOutput } from '@memorysmith/svc-portability/adapters/prints';
-import { S3PreviewOutput } from '@memorysmith/svc-portability/adapters/previews';
+import type { PrintJob } from '@memorysmithapp/svc-portability/application/prints';
+import type { PreviewJob } from '@memorysmithapp/svc-portability/application/previews';
+import { S3PrintOutput } from '@memorysmithapp/svc-portability/adapters/prints';
+import { S3PreviewOutput } from '@memorysmithapp/svc-portability/adapters/previews';
 import {
   renderPreview,
   renderPrint,
   type RendererConfig,
-} from '@memorysmith/svc-portability/adapters/chromium';
+} from '@memorysmithapp/svc-portability/adapters/chromium';
 import {
   annotate,
   correlationIdOfRecord,
   errorFieldsOf,
   observe,
   refusedWith,
-} from '@memorysmith/observability';
+} from '@memorysmithapp/observability';
 
 interface QueueEvent {
   Records?: Array<{

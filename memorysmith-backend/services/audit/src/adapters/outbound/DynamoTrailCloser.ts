@@ -29,7 +29,7 @@ import {
   QueryCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import type { DomainEventType, Instant, SubscriptionId } from '@memorysmith/kernel';
+import type { DomainEventType, Instant, SubscriptionId } from '@memorysmithapp/kernel';
 import { survivesTheNotebook, type TrailCloser } from '../../domain/index.js';
 import { closedKeyOf } from './DynamoAuditTrail.js';
 

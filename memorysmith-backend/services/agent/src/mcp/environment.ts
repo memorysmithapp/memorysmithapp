@@ -8,7 +8,7 @@
  * announces is the released one.
  */
 
-import { isProduction, type Deployment } from '@memorysmith/contracts';
+import { isProduction, type Deployment } from '@memorysmithapp/contracts';
 import pkg from '../../package.json' with { type: 'json' };
 
 /**

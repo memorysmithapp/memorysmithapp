@@ -40,7 +40,7 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import { Instant, ulid, type SubscriptionId } from '@memorysmith/kernel';
+import { Instant, ulid, type SubscriptionId } from '@memorysmithapp/kernel';
 import type {
   PendingLink,
   OutgoingTarget,

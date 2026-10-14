@@ -22,7 +22,7 @@ import {
   httpStatusFor,
   type Result,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { AuditEvent } from '../../domain/index.js';
 import type { GetNoteHistory, GetNotebookActivity, ReadRevision } from '../../application/index.js';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Authorship, SubscriptionId, UserId, createEvent } from '@memorysmith/kernel';
-import { openScope, runInScope } from '@memorysmith/observability';
+import { Authorship, SubscriptionId, UserId, createEvent } from '@memorysmithapp/kernel';
+import { openScope, runInScope } from '@memorysmithapp/observability';
 import { outboxItem, unwrapOrThrow } from '../src/adapters/outbound/dynamodb/items.js';
 import { envelopeOf } from '../src/adapters/inbound/outbox-relay.js';
 

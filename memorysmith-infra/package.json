@@ -1,5 +1,5 @@
 {
-  "name": "@memorysmith/infra",
+  "name": "@memorysmithapp/infra",
   "version": "0.11.0",
   "private": true,
   "type": "module",
@@ -27,7 +27,7 @@
     "agent-eval": "tsx agent-eval/run.ts"
   },
   "dependencies": {
-    "@memorysmith/contracts": "workspace:*",
+    "@memorysmithapp/contracts": "workspace:*",
     "@aws-sdk/client-cloudformation": "^3.1131.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.1131.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",

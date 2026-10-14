@@ -58,28 +58,28 @@ importers:
       '@aws-sdk/util-dynamodb':
         specifier: ^3.996.9
         version: 3.996.9(@aws-sdk/client-dynamodb@3.1117.0)
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/kernel':
+      '@memorysmithapp/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@memorysmith/svc-access':
+      '@memorysmithapp/svc-access':
         specifier: workspace:*
         version: link:../../services/access
-      '@memorysmith/svc-audit':
+      '@memorysmithapp/svc-audit':
         specifier: workspace:*
         version: link:../../services/audit
-      '@memorysmith/svc-discovery':
+      '@memorysmithapp/svc-discovery':
         specifier: workspace:*
         version: link:../../services/discovery
-      '@memorysmith/svc-knowledge':
+      '@memorysmithapp/svc-knowledge':
         specifier: workspace:*
         version: link:../../services/knowledge
-      '@memorysmith/svc-portability':
+      '@memorysmithapp/svc-portability':
         specifier: workspace:*
         version: link:../../services/portability
       hono:
@@ -88,7 +88,7 @@ importers:
 
   memorysmith-backend/packages/contracts:
     dependencies:
-      '@memorysmith/markdown-spec':
+      '@memorysmithapp/markdown-spec':
         specifier: workspace:*
         version: link:../markdown-spec
       zod:
@@ -119,13 +119,13 @@ importers:
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1117.0
         version: 3.1117.0(@aws-sdk/client-dynamodb@3.1117.0)
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/kernel':
+      '@memorysmithapp/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       hono:
@@ -140,10 +140,10 @@ importers:
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.1117.0
         version: 3.1117.0
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       '@smithy/signature-v4':
@@ -180,13 +180,13 @@ importers:
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1117.0
         version: 3.1117.0(@aws-sdk/client-dynamodb@3.1117.0)
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/kernel':
+      '@memorysmithapp/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       hono:
@@ -204,13 +204,13 @@ importers:
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1117.0
         version: 3.1117.0(@aws-sdk/client-dynamodb@3.1117.0)
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/kernel':
+      '@memorysmithapp/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       hono:
@@ -234,13 +234,13 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1117.0
         version: 3.1117.0
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/kernel':
+      '@memorysmithapp/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       hono:
@@ -264,13 +264,13 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1117.0
         version: 3.1117.0
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@memorysmith/kernel':
+      '@memorysmithapp/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@memorysmith/observability':
+      '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       '@sparticuz/chromium':
@@ -285,7 +285,7 @@ importers:
 
   memorysmith-frontend:
     dependencies:
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../memorysmith-backend/packages/contracts
       '@tanstack/react-query':
@@ -394,7 +394,7 @@ importers:
       '@aws-sdk/client-sts':
         specifier: ^3.1131.0
         version: 3.1131.0
-      '@memorysmith/contracts':
+      '@memorysmithapp/contracts':
         specifier: workspace:*
         version: link:../memorysmith-backend/packages/contracts
       aws-cdk-lib:

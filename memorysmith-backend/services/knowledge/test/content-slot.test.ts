@@ -18,7 +18,7 @@ import {
   newTemplate,
   unwrap,
 } from './fixtures.js';
-import { FolderId } from '@memorysmith/kernel';
+import { FolderId } from '@memorysmithapp/kernel';
 
 describe('Guidance: a pointer, never Markdown', () => {
   it('records the event carrying the complete reference', () => {

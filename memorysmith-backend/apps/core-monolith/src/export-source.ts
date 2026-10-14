@@ -9,7 +9,7 @@
  * is what RN-PRT-006 asks for.
  */
 
-import { NotebookId } from '@memorysmith/kernel';
+import { NotebookId } from '@memorysmithapp/kernel';
 import type {
   ContentSlotRepository,
   ContentStore,
@@ -18,9 +18,9 @@ import type {
   FolderNumbers,
   NoteRepository,
   NotebookRepository,
-} from '@memorysmith/svc-knowledge/domain';
-import type { ExportSource } from '@memorysmith/svc-portability/application';
-import type { ExportInput } from '@memorysmith/svc-portability/domain';
+} from '@memorysmithapp/svc-knowledge/domain';
+import type { ExportSource } from '@memorysmithapp/svc-portability/application';
+import type { ExportInput } from '@memorysmithapp/svc-portability/domain';
 
 /**
  * How many blobs are read from the object store at once. One at a time makes

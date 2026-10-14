@@ -17,7 +17,7 @@ import {
   UserId,
   NotebookId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { Notebook } from '../src/domain/notebook/Notebook.js';
 import { Folder } from '../src/domain/notebook/Folder.js';
 import { Guidance } from '../src/domain/content-slot/Guidance.js';

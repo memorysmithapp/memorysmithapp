@@ -39,7 +39,7 @@ import type {
   NoteRefDto,
   NotebookSummaryDto,
   SubscriptionUsageDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import type {
   FolderNode,
   NoteDetail,

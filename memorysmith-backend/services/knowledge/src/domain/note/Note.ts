@@ -39,7 +39,7 @@ import {
   type NotebookId,
   type DomainEvent,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 export class Note {
   private readonly events: DomainEvent[] = [];
 

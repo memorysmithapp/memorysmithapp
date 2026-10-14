@@ -21,13 +21,13 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import type { SubscriptionId } from '@memorysmith/kernel';
-import { DynamoLinkGraph } from '@memorysmith/svc-discovery/adapters/aws';
+import type { SubscriptionId } from '@memorysmithapp/kernel';
+import { DynamoLinkGraph } from '@memorysmithapp/svc-discovery/adapters/aws';
 import {
   LinkReprojection,
   type PlannedEdge,
   type NotebookPlan,
-} from '@memorysmith/svc-discovery/adapters/reprojection';
+} from '@memorysmithapp/svc-discovery/adapters/reprojection';
 
 function required(name: string): string {
   const value = process.env[name];

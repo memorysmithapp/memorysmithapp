@@ -19,7 +19,7 @@
  * composition root is where the two meet.
  */
 
-import { NotebookId, ok, type DomainError, type Result } from '@memorysmith/kernel';
+import { NotebookId, ok, type DomainError, type Result } from '@memorysmithapp/kernel';
 import { AuthorizationPolicy, type RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
 import type { NotebookRepository } from '../domain/ports/index.js';

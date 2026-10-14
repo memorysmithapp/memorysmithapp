@@ -12,7 +12,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoAuditTrail } from '../adapters/outbound/DynamoAuditTrail.js';
 import { AuditEventConsumer } from '../adapters/inbound/event-consumer.js';
 import { RecordEvents } from '../application/index.js';
-import { observeBatch, startOfEvent } from '@memorysmith/observability';
+import { observeBatch, startOfEvent } from '@memorysmithapp/observability';
 
 interface BusEvent {
   detail?: unknown;

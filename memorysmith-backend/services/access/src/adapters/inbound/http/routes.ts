@@ -23,7 +23,7 @@ import {
   SubscriptionId,
   UserId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { Context } from 'hono';
 import type {
   RequestSubscription,
@@ -76,7 +76,7 @@ import {
   sessionSchema,
   subscriptionUsageSchema,
   type SubscriptionUsageDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import type { TokenVerifier } from './authentication.js';
 
 /** What the auth middleware puts on the request. */

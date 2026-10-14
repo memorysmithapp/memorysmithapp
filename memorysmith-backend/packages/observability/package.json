@@ -1,5 +1,5 @@
 {
-  "name": "@memorysmith/observability",
+  "name": "@memorysmithapp/observability",
   "version": "0.11.0",
   "private": true,
   "type": "module",

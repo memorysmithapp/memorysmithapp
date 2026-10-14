@@ -3,7 +3,7 @@
  * notes, and none of them reaches the Knowledge context (RN-DSC-017).
  */
 
-import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
 import {
   GRAPH_LIMITS,
   type AnnotatedNotebookGraph,

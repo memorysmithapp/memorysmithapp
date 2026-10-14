@@ -9,7 +9,7 @@
  * connector fills all four.
  */
 
-import { isProduction, type Deployment } from '@memorysmith/contracts';
+import { isProduction, type Deployment } from '@memorysmithapp/contracts';
 
 export const SERVER_NAME = 'memorysmith-mcp';
 

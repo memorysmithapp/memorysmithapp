@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { type FolderId, NoteId, Position, Role } from '@memorysmith/kernel';
+import { type FolderId, NoteId, Position, Role } from '@memorysmithapp/kernel';
 import { CreateNote, ReorderNote } from '../src/application/notes.js';
 import { Note } from '../src/domain/note/Note.js';
 import type { Notebook } from '../src/domain/notebook/Notebook.js';

@@ -1,4 +1,4 @@
-import { compareByName } from '@memorysmith/contracts';
+import { compareByName } from '@memorysmithapp/contracts';
 import type { TFunction } from 'i18next';
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
 import type { FolderNode, NoteSummary, NotebookStructure } from '../../shared/types/api';

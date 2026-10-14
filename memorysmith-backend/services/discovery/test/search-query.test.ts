@@ -8,8 +8,11 @@ import {
   score,
   type Candidate,
 } from '../src/domain/SearchQuery.js';
-import { RESERVED_FRONTMATTER_KEYS, NAME_KEY as SPECIFIED_NAME_KEY } from '@memorysmith/contracts';
-import { NAME_KEY } from '@memorysmith/kernel';
+import {
+  RESERVED_FRONTMATTER_KEYS,
+  NAME_KEY as SPECIFIED_NAME_KEY,
+} from '@memorysmithapp/contracts';
+import { NAME_KEY } from '@memorysmithapp/kernel';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
 
 function note(overrides: Partial<Candidate> = {}): Candidate {

@@ -25,7 +25,7 @@ import {
   ok,
   type NotebookId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
 import { Note } from '../domain/note/Note.js';

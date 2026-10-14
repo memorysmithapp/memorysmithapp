@@ -12,7 +12,7 @@
  * require() BEFORE anything else.
  */
 
-import { DomainError, err, ok, Role, type Result, type UserId } from '@memorysmith/kernel';
+import { DomainError, err, ok, Role, type Result, type UserId } from '@memorysmithapp/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 
 export type Action = 'read' | 'write' | 'administer';

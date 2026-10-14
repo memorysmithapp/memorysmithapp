@@ -14,15 +14,15 @@ import {
   SubscriptionContext,
   type SubscriptionId,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type {
   AccountLookup,
   SharedNotebooks,
   SharedNotebookView,
   ShareRepository,
   SubscriptionRepository,
-} from '@memorysmith/svc-access/domain/ports';
-import type { Share } from '@memorysmith/svc-access/domain/share';
+} from '@memorysmithapp/svc-access/domain/ports';
+import type { Share } from '@memorysmithapp/svc-access/domain/share';
 import {
   AnswerShare,
   DismissRevokedShare,
@@ -36,10 +36,10 @@ import {
   RevokeShare,
   ShareNotebook,
   type ShareDependencies,
-} from '@memorysmith/svc-access/application/shares';
-import type { AccessRequest, AccessUseCases } from '@memorysmith/svc-access/adapters/http';
-import type { KnowledgeRequest } from '@memorysmith/svc-knowledge/adapters/http';
-import { DeleteNotebook } from '@memorysmith/svc-knowledge/application/notebooks';
+} from '@memorysmithapp/svc-access/application/shares';
+import type { AccessRequest, AccessUseCases } from '@memorysmithapp/svc-access/adapters/http';
+import type { KnowledgeRequest } from '@memorysmithapp/svc-knowledge/adapters/http';
+import { DeleteNotebook } from '@memorysmithapp/svc-knowledge/application/notebooks';
 
 /** The part of the Knowledge repositories a share reads: the notebook itself. */
 export interface NotebookReader {

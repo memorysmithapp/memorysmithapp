@@ -22,7 +22,7 @@ import {
   httpStatusFor,
   type Result,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type {
   Backlinks,
   GetFacetStats,

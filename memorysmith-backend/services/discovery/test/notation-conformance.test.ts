@@ -24,8 +24,8 @@ import {
   CONFORMANCE_CASES,
   RECOGNISED_NOTATION,
   type ConformanceCase,
-} from '@memorysmith/contracts';
-import { noteName } from '@memorysmith/kernel';
+} from '@memorysmithapp/contracts';
+import { noteName } from '@memorysmithapp/kernel';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
 import { resolveTarget, notebookNames } from '../src/domain/LinkResolver.js';

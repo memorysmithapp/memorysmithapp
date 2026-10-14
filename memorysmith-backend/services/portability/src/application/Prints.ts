@@ -25,7 +25,7 @@ import {
   ulid,
   ulidTime,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 
 /** Where the properties go, how wide tables fit and which way the sheet lies (#258). */
 export interface PrintChoices {

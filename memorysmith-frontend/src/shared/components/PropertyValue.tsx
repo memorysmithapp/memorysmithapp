@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DRAWN_RESERVED_KEYS, NAME_KEY } from '@memorysmith/contracts';
+import { DRAWN_RESERVED_KEYS, NAME_KEY } from '@memorysmithapp/contracts';
 import { wikilinkUrl } from '../api/source';
 import { intlLocale } from '../../i18n/intl-locale';
 

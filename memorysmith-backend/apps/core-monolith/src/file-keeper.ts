@@ -4,13 +4,13 @@
  * declares is filled here, per request, as the writer of an import is.
  */
 
-import { DomainError, NotebookId, ok, type Authorship, type Result } from '@memorysmith/kernel';
-import type { RequestContext } from '@memorysmith/svc-knowledge/domain';
+import { DomainError, NotebookId, ok, type Authorship, type Result } from '@memorysmithapp/kernel';
+import type { RequestContext } from '@memorysmithapp/svc-knowledge/domain';
 import type {
   CheckFileDestination,
   KeepAssembledFile,
-} from '@memorysmith/svc-knowledge/application/files';
-import type { FileKeeper } from '@memorysmith/svc-portability/application/uploads';
+} from '@memorysmithapp/svc-knowledge/application/files';
+import type { FileKeeper } from '@memorysmithapp/svc-portability/application/uploads';
 
 export class KnowledgeFileKeeper implements FileKeeper {
   constructor(

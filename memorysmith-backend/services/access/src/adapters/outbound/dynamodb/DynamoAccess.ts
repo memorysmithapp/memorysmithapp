@@ -32,7 +32,7 @@ import {
   UserId,
   type Result,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import {
   DeleteCommand,
   GetCommand,

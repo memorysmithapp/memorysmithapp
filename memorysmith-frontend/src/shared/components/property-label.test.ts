@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { DRAWN_RESERVED_KEYS } from '@memorysmith/contracts';
+import { DRAWN_RESERVED_KEYS } from '@memorysmithapp/contracts';
 import { orderedProperties, propertyLabel, propertyType, readableValue } from './PropertyValue';
 import en from '../../i18n/locales/en_US.json' with { type: 'json' };
 import pt from '../../i18n/locales/pt_BR.json' with { type: 'json' };

@@ -9,9 +9,9 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { sessionSchema, subscriptionUsageSchema } from '@memorysmith/contracts';
-import { Authorship, createEvent, Role, SubscriptionId, UserId } from '@memorysmith/kernel';
-import { Email, StorageQuota } from '@memorysmith/svc-access/domain/values';
+import { sessionSchema, subscriptionUsageSchema } from '@memorysmithapp/contracts';
+import { Authorship, createEvent, Role, SubscriptionId, UserId } from '@memorysmithapp/kernel';
+import { Email, StorageQuota } from '@memorysmithapp/svc-access/domain/values';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

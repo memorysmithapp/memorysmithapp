@@ -7,7 +7,7 @@
  */
 
 import { SendMessageCommand, type SQSClient } from '@aws-sdk/client-sqs';
-import { correlationAttributes } from '@memorysmith/observability';
+import { correlationAttributes } from '@memorysmithapp/observability';
 import type { TransferQueue, TransferWork } from '../application/Transfers.js';
 import type { PrintJob, PrintQueue } from '../application/Prints.js';
 import type { PreviewJob, PreviewQueue } from '../application/Previews.js';

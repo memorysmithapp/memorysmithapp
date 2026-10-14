@@ -13,7 +13,7 @@
  *    AND the human, and a token with no binding writes nothing (RN-AGT-001).
  */
 
-import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmith/observability';
+import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmithapp/observability';
 import { pageOf } from '../mcp/note-pages.js';
 import type {
   BacklinksDto,
@@ -36,8 +36,8 @@ import type {
   NotebookNamesDto,
   PreviewDto,
   SearchResultDto,
-} from '@memorysmith/contracts';
-import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
+import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmithapp/contracts';
 import {
   GatewayError,
   type AccessGateway,

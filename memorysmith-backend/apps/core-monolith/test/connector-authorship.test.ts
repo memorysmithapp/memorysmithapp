@@ -11,7 +11,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { UNIDENTIFIED_CONNECTOR } from '@memorysmith/svc-access/application/connectors';
+import { UNIDENTIFIED_CONNECTOR } from '@memorysmithapp/svc-access/application/connectors';
 import { buildTestApp, CONNECTOR_CLIENT_ID, SIGNED_WITH_IAM } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

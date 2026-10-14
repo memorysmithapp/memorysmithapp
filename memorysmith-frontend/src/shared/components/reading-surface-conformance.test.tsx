@@ -44,7 +44,7 @@ import {
   DECLARED_SILENCE,
   DELEGATED_TO_THE_BASE_PARSER,
   RECOGNISED_NOTATION,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import { queryKeys } from '../api/query-keys';
 
 function memoryStorage(): Storage {

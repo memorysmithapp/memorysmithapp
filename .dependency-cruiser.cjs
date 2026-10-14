@@ -78,7 +78,7 @@ module.exports = {
     {
       name: 'frontend-imports-contracts-only',
       comment:
-        'The frontend imports @memorysmith/contracts — its types, and the constants it derives ' +
+        'The frontend imports @memorysmithapp/contracts — its types, and the constants it derives ' +
         'from the Markdown specification — and nothing else from the backend: not the kernel, ' +
         'not a service (architecture-guide.md, section 5.1).',
       severity: 'error',
@@ -93,7 +93,7 @@ module.exports = {
       comment:
         'The Markdown specification is data the contracts derive from, in the package of the ' +
         'backend that holds it beside the document it belongs to (#162). The ' +
-        'frontend reads the notation and its cases from @memorysmith/contracts, so the ' +
+        'frontend reads the notation and its cases from @memorysmithapp/contracts, so the ' +
         'specification has one door into the interface and not two (architecture-guide.md, ' +
         'section 11.0).',
       severity: 'error',
@@ -101,7 +101,7 @@ module.exports = {
       // Both shapes: the package name, which is what an import the frontend does
       // not declare resolves to, and the real path, which is what a relative import
       // or a declared dependency resolves to.
-      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
+      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmithapp/markdown-spec(/|$)' },
     },
     {
       name: 'infrastructure-never-loads-what-operates-it',
@@ -119,7 +119,7 @@ module.exports = {
       comment:
         'The commands, the functional suite and the agent evaluation reach the product the way ' +
         'anybody outside does, through its surfaces: of ' +
-        'this repository they import @memorysmith/contracts and nothing else, not a service and ' +
+        'this repository they import @memorysmithapp/contracts and nothing else, not a service and ' +
         'not a stack (architecture-guide.md, section 5.4).',
       severity: 'error',
       from: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },

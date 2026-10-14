@@ -23,7 +23,7 @@ import {
   type Result,
   type SubscriptionContext,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { Subscription } from '../domain/subscription/Subscription.js';
 import { Email } from '../domain/values.js';
 import type { SubscriptionRepository, UserLinkRepository } from '../domain/ports/index.js';

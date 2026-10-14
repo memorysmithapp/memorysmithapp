@@ -31,7 +31,7 @@ import {
   type DomainEventType,
   type EventSubject,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import {
   AuditEvent,
   notebookOf,

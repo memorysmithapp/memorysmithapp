@@ -11,12 +11,12 @@
  * Every number is a counter. Nothing on this path lists a note or a file.
  */
 
-import { DomainError, ok, type Result } from '@memorysmith/kernel';
-import type { SubscriptionUsageDto } from '@memorysmith/contracts';
-import type { SubscriptionUsageQuery } from '@memorysmith/svc-access/adapters/http';
-import type { RequestContext, StorageState } from '@memorysmith/svc-knowledge/domain';
-import type { KnowledgeUsage } from '@memorysmith/svc-knowledge/application/usage';
-import type { KeptUsage } from '@memorysmith/svc-portability/domain/transfer';
+import { DomainError, ok, type Result } from '@memorysmithapp/kernel';
+import type { SubscriptionUsageDto } from '@memorysmithapp/contracts';
+import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters/http';
+import type { RequestContext, StorageState } from '@memorysmithapp/svc-knowledge/domain';
+import type { KnowledgeUsage } from '@memorysmithapp/svc-knowledge/application/usage';
+import type { KeptUsage } from '@memorysmithapp/svc-portability/domain/transfer';
 
 export interface UsageSources {
   /** The requester's standing in the subscription, which Access resolves. */

@@ -14,7 +14,7 @@ import type {
   FolderId,
   SubscriptionId,
   NotebookId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { ContentSlot, type ContentSlotRole } from './ContentSlot.js';
 
 export class Guidance extends ContentSlot {

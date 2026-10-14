@@ -5,7 +5,7 @@
  * rubric of the case, and never mixed into these.
  */
 
-import { RESERVED_FRONTMATTER_KEYS } from '@memorysmith/contracts';
+import { RESERVED_FRONTMATTER_KEYS } from '@memorysmithapp/contracts';
 import type { CheckName } from './case.js';
 import type { Transcript } from './transcript.js';
 

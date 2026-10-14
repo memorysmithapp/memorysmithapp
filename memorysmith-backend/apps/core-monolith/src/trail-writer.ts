@@ -17,10 +17,10 @@
  * with it rather than writing half a history.
  */
 
-import { toAuditEvent } from '@memorysmith/svc-audit/adapters/consumer';
-import type { AuditTrail } from '@memorysmith/svc-audit/domain';
-import { parseEvent } from '@memorysmith/contracts';
-import type { TrailWriter } from '@memorysmith/svc-portability/application/import';
+import { toAuditEvent } from '@memorysmithapp/svc-audit/adapters/consumer';
+import type { AuditTrail } from '@memorysmithapp/svc-audit/domain';
+import { parseEvent } from '@memorysmithapp/contracts';
+import type { TrailWriter } from '@memorysmithapp/svc-portability/application/import';
 
 export class ImportedTrailWriter implements TrailWriter {
   constructor(

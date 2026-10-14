@@ -6,9 +6,9 @@
  * This is what "the whole thing works" means before any of it is deployed.
  */
 
-import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
+import { createZip, readZip } from '@memorysmithapp/svc-portability/adapters/zip';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { noteLinksSchema, searchResultSchema } from '@memorysmith/contracts';
+import { noteLinksSchema, searchResultSchema } from '@memorysmithapp/contracts';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

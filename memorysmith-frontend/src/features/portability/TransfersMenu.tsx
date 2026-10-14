@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { notebookAddress } from '../../shared/api/note-address';
 import { Trans, useTranslation } from 'react-i18next';
-import type { TransferDto } from '@memorysmith/contracts';
+import type { TransferDto } from '@memorysmithapp/contracts';
 import { isWaitingRequest, isWorking, progressOf, saveArchive, useTransfers } from './transfers';
 import { Menu } from '../../shared/components/Menu';
 import { formatBytes } from '../../shared/components/StorageBar';

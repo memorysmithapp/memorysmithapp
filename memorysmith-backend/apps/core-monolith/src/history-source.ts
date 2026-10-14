@@ -22,13 +22,13 @@
  * travelled in the `revisions` of an archive that left the thing itself out.
  */
 
-import type { AuditEvent, AuditTrail, RevisionReader } from '@memorysmith/svc-audit/domain';
-import type { HistorySource } from '@memorysmith/svc-portability/application';
+import type { AuditEvent, AuditTrail, RevisionReader } from '@memorysmithapp/svc-audit/domain';
+import type { HistorySource } from '@memorysmithapp/svc-portability/application';
 import {
   carriesEntry,
   type CarriedSubjects,
   type DocumentHistory,
-} from '@memorysmith/svc-portability/domain';
+} from '@memorysmithapp/svc-portability/domain';
 
 /** How many revisions are read from the object store at once. */
 const READ_CONCURRENCY = 24;

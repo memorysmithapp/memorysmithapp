@@ -19,7 +19,7 @@ import {
   transferListSchema,
   uploadStatusSchema,
   type UploadStatusDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

@@ -30,7 +30,7 @@ import {
   ok,
   type NotebookId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { NotebookFile } from '../domain/file/NotebookFile.js';
 import type { FileRepository, FileStore, FileTypes } from '../domain/ports/index.js';

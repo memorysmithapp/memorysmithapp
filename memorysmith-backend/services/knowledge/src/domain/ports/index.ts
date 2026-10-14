@@ -23,7 +23,7 @@ import type {
   NotebookId,
   ConcurrencyError,
   Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
 import type { NotebookFile } from '../file/NotebookFile.js';

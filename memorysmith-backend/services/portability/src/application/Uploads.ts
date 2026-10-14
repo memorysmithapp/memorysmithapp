@@ -37,7 +37,7 @@ import {
   ulid,
   type Authorship,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { createHash } from 'node:crypto';
 import {
   UPLOAD_INLINE_MAX_BYTES,

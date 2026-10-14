@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Role, type ContentRef } from '@memorysmith/kernel';
+import { Role, type ContentRef } from '@memorysmithapp/kernel';
 import { RemoveFolder } from '../src/application/folders.js';
 import { CreateNote } from '../src/application/notes.js';
 import { NOTEBOOK_LIMITS } from '../src/domain/values.js';

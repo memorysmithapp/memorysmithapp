@@ -6,13 +6,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { captureLines } from '@memorysmith/observability/testing';
+import { captureLines } from '@memorysmithapp/observability/testing';
 import {
   CORRELATION_HEADER,
   LOG_LINE_FIELDS,
   openScope,
   runInScope,
-} from '@memorysmith/observability';
+} from '@memorysmithapp/observability';
 import { HttpKnowledgeGateway } from '../src/adapters/http-gateways.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import type { McpToolAdapter, ToolResult } from '../src/mcp/tools.js';

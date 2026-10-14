@@ -20,7 +20,7 @@ import {
   type AgentIdentity,
   type Result,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { ConnectorBindingRepository } from '../domain/ports/index.js';
 import { ACCESS_LIMITS } from '../domain/values.js';
 

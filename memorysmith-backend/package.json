@@ -1,5 +1,5 @@
 {
-  "name": "@memorysmith/backend",
+  "name": "@memorysmithapp/backend",
   "version": "0.11.0",
   "private": true,
   "type": "module",

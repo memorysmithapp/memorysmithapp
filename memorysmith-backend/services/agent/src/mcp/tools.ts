@@ -19,7 +19,7 @@ import {
   type TransferDto,
   type UploadStatusDto,
   type NoteOrder,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
 import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';

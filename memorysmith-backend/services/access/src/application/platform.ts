@@ -17,7 +17,7 @@ import {
   SubscriptionStatus,
   type Result,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { RejectionReason, StorageQuota, SubscriptionType } from '../domain/values.js';
 import type { Subscription } from '../domain/subscription/Subscription.js';
 import type { PlatformSubscriptionAdmin, PlatformSubscriptionView } from '../domain/ports/index.js';

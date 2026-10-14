@@ -6,8 +6,8 @@
  * rebuildable (architecture-guide.md, section 3.1).
  */
 
-import type { NoteCatalog, NoteRef } from '@memorysmith/svc-discovery/domain';
-import { NotebookId } from '@memorysmith/kernel';
+import type { NoteCatalog, NoteRef } from '@memorysmithapp/svc-discovery/domain';
+import { NotebookId } from '@memorysmithapp/kernel';
 
 interface KnowledgeSide {
   readonly notebooks: {

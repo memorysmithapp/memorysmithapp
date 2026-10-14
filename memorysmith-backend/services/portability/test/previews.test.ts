@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ulid } from '@memorysmith/kernel';
+import { ulid } from '@memorysmithapp/kernel';
 import {
   clipOf,
   GetPreview,

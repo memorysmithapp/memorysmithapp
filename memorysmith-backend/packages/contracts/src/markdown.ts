@@ -30,8 +30,8 @@
  * forms the profile deliberately no longer describes.
  */
 
-import spec from '@memorysmith/markdown-spec/spec.json' with { type: 'json' };
-import conformance from '@memorysmith/markdown-spec/conformance.json' with { type: 'json' };
+import spec from '@memorysmithapp/markdown-spec/spec.json' with { type: 'json' };
+import conformance from '@memorysmithapp/markdown-spec/conformance.json' with { type: 'json' };
 
 /**
  * Who decides this notation. The first two are the sanctioned extractors of

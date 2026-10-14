@@ -1,7 +1,7 @@
 // DTO shapes mirror the future internal API (architecture-guide.md §14.1).
 // The seed adapter fills them today; the HTTP client will fill them tomorrow.
 
-import type { SearchHitDto } from '@memorysmith/contracts';
+import type { SearchHitDto } from '@memorysmithapp/contracts';
 
 export interface NotebookSummary {
   id: string;

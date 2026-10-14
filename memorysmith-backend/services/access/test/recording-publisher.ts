@@ -1,4 +1,4 @@
-import type { DomainEvent, EventPublisher } from '@memorysmith/kernel';
+import type { DomainEvent, EventPublisher } from '@memorysmithapp/kernel';
 
 /** Captures the event stream so a test can assert on what was published. */
 export class RecordingEventPublisher implements EventPublisher {

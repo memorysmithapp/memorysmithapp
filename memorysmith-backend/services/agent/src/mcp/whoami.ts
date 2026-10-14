@@ -23,7 +23,7 @@ import {
 } from './catalog.js';
 import { refreshSteps } from './refresh.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex } from './skills.js';
-import type { Deployment } from '@memorysmith/contracts';
+import type { Deployment } from '@memorysmithapp/contracts';
 import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
 import { environmentNotice, PRODUCTION_DEFAULT } from './environment.js';
 

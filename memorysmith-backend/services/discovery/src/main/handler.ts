@@ -9,8 +9,8 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { SubscriptionId } from '@memorysmith/kernel';
-import { parseEvent } from '@memorysmith/contracts';
+import { SubscriptionId } from '@memorysmithapp/kernel';
+import { parseEvent } from '@memorysmithapp/contracts';
 import {
   DynamoContentIndex,
   DynamoFacetIndex,
@@ -20,7 +20,7 @@ import {
 } from '../adapters/aws.js';
 import { ProjectFiles, ProjectNote, ProjectStructure } from '../application/projections.js';
 import { dispatch } from '../adapters/dispatch.js';
-import { observe, startOfEvent } from '@memorysmith/observability';
+import { observe, startOfEvent } from '@memorysmithapp/observability';
 
 interface QueueEvent {
   detail?: unknown;

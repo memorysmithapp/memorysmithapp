@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TransferDto, TransferListDto } from '@memorysmith/contracts';
+import type { TransferDto, TransferListDto } from '@memorysmithapp/contracts';
 import { downloadTransfer, listTransfers } from '../../shared/api/source';
 import { queryKeys } from '../../shared/api/query-keys';
 

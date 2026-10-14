@@ -21,8 +21,8 @@ import {
   type DomainEventType,
   type EventSubject,
   type Result,
-} from '@memorysmith/kernel';
-import { parseEvent, type EventEnvelope } from '@memorysmith/contracts';
+} from '@memorysmithapp/kernel';
+import { parseEvent, type EventEnvelope } from '@memorysmithapp/contracts';
 import { AuditEvent } from '../../domain/index.js';
 import type { RecordEvents } from '../../application/index.js';
 

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { healthSchema } from '@memorysmith/contracts';
+import { healthSchema } from '@memorysmithapp/contracts';
 import { buildTestApp } from './wiring.js';
 
 const STAGING = {

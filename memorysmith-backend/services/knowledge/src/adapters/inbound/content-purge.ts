@@ -35,7 +35,7 @@ import {
   Instant,
   sha256Hex,
   SubscriptionId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import {
   GetCommand,
   QueryCommand,

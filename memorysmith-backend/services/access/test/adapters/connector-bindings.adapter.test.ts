@@ -18,7 +18,7 @@ import {
   SubscriptionContext,
   SubscriptionId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { DynamoConnectorBindingRepository } from '../../src/adapters/outbound/dynamodb/DynamoAccess.js';
 
 const TABLE_NAME = process.env['ACCESS_TABLE'] ?? '';

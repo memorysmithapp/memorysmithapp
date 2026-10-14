@@ -31,7 +31,7 @@ import {
   type Result,
   type SubscriptionId,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { Email } from '../values.js';
 
 /** What a share lets its grantee do. Only `read` is granted (RN-ACC-024). */

@@ -15,10 +15,10 @@ import {
   fileListSchema,
   notebookFileSchema,
   noteLinksSchema,
-} from '@memorysmith/contracts';
-import { MAX_INLINE_BYTES } from '@memorysmith/svc-knowledge/application/files';
-import { ProjectFiles } from '@memorysmith/svc-discovery/application/projections';
-import { dispatch } from '@memorysmith/svc-discovery/adapters/dispatch';
+} from '@memorysmithapp/contracts';
+import { MAX_INLINE_BYTES } from '@memorysmithapp/svc-knowledge/application/files';
+import { ProjectFiles } from '@memorysmithapp/svc-discovery/application/projections';
+import { dispatch } from '@memorysmithapp/svc-discovery/adapters/dispatch';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;

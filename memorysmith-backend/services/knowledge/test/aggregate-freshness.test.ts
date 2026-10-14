@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Role } from '@memorysmith/kernel';
+import { Role } from '@memorysmithapp/kernel';
 import { CreateFolder } from '../src/application/folders.js';
 import { GetNotebook } from '../src/application/notebooks.js';
 import type { Notebook } from '../src/domain/notebook/Notebook.js';

@@ -1,4 +1,4 @@
-import type { TransferDto } from '@memorysmith/contracts';
+import type { TransferDto } from '@memorysmithapp/contracts';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import { formatBytes } from '../../shared/components/StorageBar';

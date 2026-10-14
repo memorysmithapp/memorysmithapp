@@ -18,7 +18,7 @@ import {
   type Result,
   type SubscriptionContext,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { SubscriptionRepository } from '../domain/ports/index.js';
 
 /** Exactly the shape the Knowledge context expects to receive. */

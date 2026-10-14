@@ -8,7 +8,7 @@
 
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { FileLinkDto, NotebookFileDto } from '@memorysmith/contracts';
+import type { FileLinkDto, NotebookFileDto } from '@memorysmithapp/contracts';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -59,7 +59,7 @@ beforeAll(async () => {
 
 describe('the kind of a file', () => {
   it('has words in every locale for every type the product accepts (#251)', async () => {
-    const { FILE_MIME_TYPES } = await import('@memorysmith/contracts');
+    const { FILE_MIME_TYPES } = await import('@memorysmithapp/contracts');
     const { default: i18n } = await import('../../i18n');
     const { fileKindKey } = await import('./file-kind');
     for (const mimeType of FILE_MIME_TYPES) {

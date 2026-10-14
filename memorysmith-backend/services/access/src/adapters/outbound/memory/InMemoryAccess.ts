@@ -18,7 +18,7 @@ import {
   type SubscriptionId,
   type SubscriptionStatus,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { Subscription } from '../../../domain/subscription/Subscription.js';
 import { Share } from '../../../domain/share/Share.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';

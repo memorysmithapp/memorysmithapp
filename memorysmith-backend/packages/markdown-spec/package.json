@@ -1,5 +1,5 @@
 {
-  "name": "@memorysmith/markdown-spec",
+  "name": "@memorysmithapp/markdown-spec",
   "private": true,
   "description": "The MemorySmith Markdown Specification as data, with the suite that proves the product reads it. The document it belongs to is docs/markdown-spec.md; this package is what the product implements it with. It carries no version of its own and follows the version of the product.",
   "license": "MIT",

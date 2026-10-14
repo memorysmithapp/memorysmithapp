@@ -10,8 +10,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { captureLines, type Line } from '@memorysmith/observability/testing';
-import { CORRELATION_HEADER, LOG_LINE_FIELDS } from '@memorysmith/observability';
+import { captureLines, type Line } from '@memorysmithapp/observability/testing';
+import { CORRELATION_HEADER, LOG_LINE_FIELDS } from '@memorysmithapp/observability';
 import { buildTestApp, CONNECTOR_CLIENT_ID, SIGNED_WITH_IAM } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

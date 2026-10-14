@@ -7,7 +7,7 @@
  * folder IN THE DEFINED ORDER, so the service never sorts and never scans.
  */
 
-import { DomainError, err, ok, Position, type NoteId, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, Position, type NoteId, type Result } from '@memorysmithapp/kernel';
 
 /** A sibling, as GSI2 hands it over: identity plus order key. */
 export interface NoteOrder {

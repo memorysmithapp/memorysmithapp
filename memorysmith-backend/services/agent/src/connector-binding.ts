@@ -15,7 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { ConnectorBindingRequest } from '@memorysmith/contracts';
+import type { ConnectorBindingRequest } from '@memorysmithapp/contracts';
 
 export interface ConnectorBinder {
   /** A token was issued, through the authorization code grant, to this connector. */

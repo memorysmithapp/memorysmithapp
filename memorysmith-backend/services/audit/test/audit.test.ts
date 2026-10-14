@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Instant, SubscriptionId } from '@memorysmith/kernel';
+import { Instant, SubscriptionId } from '@memorysmithapp/kernel';
 import { DynamoAuditTrail, InMemoryAuditTrail } from '../src/adapters/outbound/DynamoAuditTrail.js';
 import {
   GetNoteHistory,
@@ -9,7 +9,7 @@ import {
 } from '../src/application/index.js';
 import { AuditEventConsumer } from '../src/adapters/inbound/event-consumer.js';
 import type { RevisionReader } from '../src/domain/index.js';
-import type { ContentRef } from '@memorysmith/kernel';
+import type { ContentRef } from '@memorysmithapp/kernel';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
 const NOTEBOOK = '01JBQ2X0000000000000000001';

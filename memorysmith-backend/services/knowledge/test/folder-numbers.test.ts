@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { FolderId, Role, SubscriptionContext } from '@memorysmith/kernel';
+import { FolderId, Role, SubscriptionContext } from '@memorysmithapp/kernel';
 import { NextNumber, RestoreFolderNumber } from '../src/application/folders.js';
 import {
   InMemoryDatabase,

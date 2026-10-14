@@ -13,7 +13,7 @@
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { SlotMigration } from '@memorysmith/svc-knowledge/adapters/slot-migration';
+import { SlotMigration } from '@memorysmithapp/svc-knowledge/adapters/slot-migration';
 
 function required(name: string): string {
   const value = process.env[name];

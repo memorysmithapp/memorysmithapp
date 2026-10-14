@@ -14,7 +14,7 @@
  * environment notice comes first (RN-AGT-026).
  */
 
-import type { Deployment } from '@memorysmith/contracts';
+import type { Deployment } from '@memorysmithapp/contracts';
 import { environmentNotice } from './environment.js';
 import { skillIndex } from './skills.js';
 

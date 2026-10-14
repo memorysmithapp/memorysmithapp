@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { DomainError, err, ok, type Instant } from '@memorysmith/kernel';
+import { DomainError, err, ok, type Instant } from '@memorysmithapp/kernel';
 import { InMemoryTransferStore } from '../src/adapters/dynamo.js';
 import {
   DeleteTransfer,
@@ -17,7 +17,7 @@ import {
   StartImport,
   type TransferWork,
 } from '../src/application/Transfers.js';
-import { Authorship, Instant as Clock, UserId } from '@memorysmith/kernel';
+import { Authorship, Instant as Clock, UserId } from '@memorysmithapp/kernel';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
 const USER = 'user-owner';

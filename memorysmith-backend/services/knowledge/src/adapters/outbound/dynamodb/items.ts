@@ -22,7 +22,7 @@ import {
   NotebookId,
   NotebookRoleLimit,
   type DomainEvent,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { Folder } from '../../../domain/notebook/Folder.js';
 import type { ContentSlot } from '../../../domain/content-slot/ContentSlot.js';
 import { Guidance } from '../../../domain/content-slot/Guidance.js';
@@ -30,7 +30,7 @@ import { Template } from '../../../domain/content-slot/Template.js';
 import { Note } from '../../../domain/note/Note.js';
 import { Notebook } from '../../../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, ShortText, NotebookName } from '../../../domain/values.js';
-import { currentCorrelationId } from '@memorysmith/observability';
+import { currentCorrelationId } from '@memorysmithapp/observability';
 
 /** A raw item as the DynamoDB document client hands it over. */
 export type Item = Record<string, unknown>;

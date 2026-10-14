@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { NotebookRoleLimit, Role, type DomainEvent } from '@memorysmith/kernel';
+import { NotebookRoleLimit, Role, type DomainEvent } from '@memorysmithapp/kernel';
 import { ReadStorageUsage } from '../src/application/usage.js';
 import type { Notebook } from '../src/domain/notebook/Notebook.js';
 import { usageChangeOf, withoutZeros } from '../src/domain/services/StorageUsage.js';

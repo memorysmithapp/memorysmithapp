@@ -19,7 +19,7 @@
  * buys is a hot path that stays exactly as fast as it was.
  */
 
-import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
 
 /** What the subscription is storing now, and what its plan allows. */
 export interface StorageState {

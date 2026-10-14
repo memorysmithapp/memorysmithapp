@@ -17,7 +17,7 @@ import { SubscriptionSpace } from './SubscriptionSpace';
 import { byName } from './catalogue';
 import { useIncomingShares, useOwnShares } from '../sharing/shares';
 import { AcceptedShareCard, PendingShareCard } from '../sharing/SharedNotebookCards';
-import type { IncomingShareDto } from '@memorysmith/contracts';
+import type { IncomingShareDto } from '@memorysmithapp/contracts';
 import type { NotebookSummary } from '../../shared/types/api';
 
 /** One card of the row: a notebook of mine, or one shared with me (#256). */

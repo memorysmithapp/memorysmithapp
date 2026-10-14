@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { TransferDto } from '@memorysmith/contracts';
+import type { TransferDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
 import { FileDrop } from '../../shared/components/FileDrop';
 import { fileKind } from '../../shared/components/file-kind';

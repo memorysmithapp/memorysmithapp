@@ -21,7 +21,7 @@ import {
   type Slug,
   type SubscriptionContext,
   NotebookId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
 import {
   BatchWriteCommand,

@@ -37,7 +37,7 @@ import {
   type DomainEvent,
   type Result,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { FolderTreePlacement } from '../services/FolderTreePlacement.js';
 import {
   type FolderDescription,

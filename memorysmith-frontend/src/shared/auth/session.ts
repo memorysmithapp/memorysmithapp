@@ -9,7 +9,7 @@
 // token (RN-SUB-013).
 
 import { create } from 'zustand';
-import type { AvatarSourceDto, SessionDto } from '@memorysmith/contracts';
+import type { AvatarSourceDto, SessionDto } from '@memorysmithapp/contracts';
 import { claimsOf, readTokens, type AuthConfig } from './oauth';
 import { ApiError } from '../api/error-mapper';
 import { getSession } from '../api/backend';

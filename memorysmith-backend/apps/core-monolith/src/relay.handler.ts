@@ -11,8 +11,8 @@ import type { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
-import { OutboxRelay, envelopeOf } from '@memorysmith/svc-knowledge/adapters/relay';
-import { observeBatch, startOfEvent } from '@memorysmith/observability';
+import { OutboxRelay, envelopeOf } from '@memorysmithapp/svc-knowledge/adapters/relay';
+import { observeBatch, startOfEvent } from '@memorysmithapp/observability';
 
 interface StreamEvent {
   Records?: Array<{

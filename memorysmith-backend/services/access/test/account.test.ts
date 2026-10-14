@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UserId, type Result } from '@memorysmith/kernel';
+import { UserId, type Result } from '@memorysmithapp/kernel';
 import { ChooseLanguage } from '../src/application/account.js';
 import { InMemoryAccountDirectory } from '../src/adapters/outbound/memory/InMemoryAccess.js';
 import { Email } from '../src/domain/values.js';

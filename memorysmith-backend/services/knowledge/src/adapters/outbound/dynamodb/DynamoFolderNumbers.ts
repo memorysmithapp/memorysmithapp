@@ -11,7 +11,7 @@
  * reused, so a number is never issued twice.
  */
 
-import type { Authorship, FolderId, NotebookId, SubscriptionContext } from '@memorysmith/kernel';
+import type { Authorship, FolderId, NotebookId, SubscriptionContext } from '@memorysmithapp/kernel';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import type { FolderNumbers } from '../../../domain/ports/index.js';

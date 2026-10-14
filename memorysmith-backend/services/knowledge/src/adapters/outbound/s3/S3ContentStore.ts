@@ -12,7 +12,7 @@
  * never from an argument.
  */
 
-import { ContentId, ContentRef, Instant, type SubscriptionContext } from '@memorysmith/kernel';
+import { ContentId, ContentRef, Instant, type SubscriptionContext } from '@memorysmithapp/kernel';
 import { GetObjectCommand, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
 import { createHash } from 'node:crypto';
 import type { ContentStore } from '../../../domain/ports/index.js';

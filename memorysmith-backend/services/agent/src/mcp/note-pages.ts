@@ -13,7 +13,7 @@
  * strictly after it.
  */
 
-import { compareByName, type NoteOrder } from '@memorysmith/contracts';
+import { compareByName, type NoteOrder } from '@memorysmithapp/contracts';
 import { GatewayError, type NoteListing, type NotePage } from './gateway.js';
 
 /** What one page holds when the caller does not say. */

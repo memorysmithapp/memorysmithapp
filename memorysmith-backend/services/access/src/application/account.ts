@@ -2,7 +2,7 @@
  * The account of the person signed in (software-vision.md, section 5.4).
  */
 
-import { DomainError, err, Instant, ok, type Result } from '@memorysmith/kernel';
+import { DomainError, err, Instant, ok, type Result } from '@memorysmithapp/kernel';
 import { ACCESS_LIMITS, AccountLocale, AvatarSource, PersonName } from '../domain/values.js';
 import type {
   AccountDirectory,

@@ -12,22 +12,22 @@
  * an import that bypassed them would be a second way into the notebook.
  */
 
-import type { Authorship, DomainError, Result } from '@memorysmith/kernel';
-import { FolderId, ok, NotebookId, type SubscriptionId } from '@memorysmith/kernel';
-import type { NotebookWriter } from '@memorysmith/svc-portability/application/import';
+import type { Authorship, DomainError, Result } from '@memorysmithapp/kernel';
+import { FolderId, ok, NotebookId, type SubscriptionId } from '@memorysmithapp/kernel';
+import type { NotebookWriter } from '@memorysmithapp/svc-portability/application/import';
 import type {
   CreateNotebook,
   DeleteNotebook,
   PutGuidance,
-} from '@memorysmith/svc-knowledge/application/notebooks';
+} from '@memorysmithapp/svc-knowledge/application/notebooks';
 import type {
   CreateFolder,
   PutTemplate,
   RestoreFolderNumber,
-} from '@memorysmith/svc-knowledge/application/folders';
-import type { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
-import type { KeepFile } from '@memorysmith/svc-knowledge/application/files';
-import type { ContentStore, RequestContext } from '@memorysmith/svc-knowledge/domain';
+} from '@memorysmithapp/svc-knowledge/application/folders';
+import type { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
+import type { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import type { ContentStore, RequestContext } from '@memorysmithapp/svc-knowledge/domain';
 
 export interface KnowledgeWriteUseCases {
   readonly createNotebook: CreateNotebook;

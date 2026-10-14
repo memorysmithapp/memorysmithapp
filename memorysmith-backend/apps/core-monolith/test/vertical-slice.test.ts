@@ -12,7 +12,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
-import { contentSchema, sessionSchema } from '@memorysmith/contracts';
+import { contentSchema, sessionSchema } from '@memorysmithapp/contracts';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;

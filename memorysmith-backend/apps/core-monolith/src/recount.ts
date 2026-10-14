@@ -18,9 +18,9 @@
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { StorageRecount } from '@memorysmith/svc-knowledge/adapters/recount';
-import { DynamoRevisionCensus } from '@memorysmith/svc-audit/adapters/census';
-import { KeptRecount } from '@memorysmith/svc-portability/adapters/dynamo';
+import { StorageRecount } from '@memorysmithapp/svc-knowledge/adapters/recount';
+import { DynamoRevisionCensus } from '@memorysmithapp/svc-audit/adapters/census';
+import { KeptRecount } from '@memorysmithapp/svc-portability/adapters/dynamo';
 
 function required(name: string): string {
   const value = process.env[name];

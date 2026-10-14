@@ -65,7 +65,7 @@ memorysmithapp/
 ```
 memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
 memorysmith-backend    →  knows nothing about infra or frontend
-memorysmith-frontend   →  imports @memorysmith/contracts (its types, and the constants it
+memorysmith-frontend   →  imports @memorysmithapp/contracts (its types, and the constants it
                           derives from the Markdown specification) and calls the API at runtime
 ```
 

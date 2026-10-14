@@ -2,7 +2,7 @@
  * Value objects of the Access context.
  */
 
-import { DomainError, err, ok, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

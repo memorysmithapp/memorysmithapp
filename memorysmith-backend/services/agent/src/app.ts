@@ -19,10 +19,10 @@ import { verifyAccessToken } from './auth.js';
 import { handleMcpRequest } from './mcp.js';
 import type { McpToolAdapter } from './mcp/tools.js';
 import type { ConnectorBinder } from './connector-binding.js';
-import { DEPLOYMENT_HEADERS, type Deployment } from '@memorysmith/contracts';
+import { DEPLOYMENT_HEADERS, type Deployment } from '@memorysmithapp/contracts';
 import { PRODUCTION_DEFAULT } from './mcp/environment.js';
-import { annotate, errorFieldsOf } from '@memorysmith/observability';
-import { operationErrorHandler, operationLog } from '@memorysmith/observability/hono';
+import { annotate, errorFieldsOf } from '@memorysmithapp/observability';
+import { operationErrorHandler, operationLog } from '@memorysmithapp/observability/hono';
 
 /** The longest connector name an authorship keeps. */
 const CLIENT_NAME_LIMIT = 200;

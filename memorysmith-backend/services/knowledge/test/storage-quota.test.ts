@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { admitWrite } from '../src/domain/services/StorageQuota.js';
-import { FolderId } from '@memorysmith/kernel';
+import { FolderId } from '@memorysmithapp/kernel';
 import {
   authorship,
   contentRef,

@@ -12,40 +12,40 @@
  */
 
 import { Hono, type Context, type Next } from 'hono';
-import { type DomainError, httpStatusFor } from '@memorysmith/kernel';
-import { DEPLOYMENT_HEADERS, type Deployment, type HealthDto } from '@memorysmith/contracts';
-import { authenticate, type TokenVerifier } from '@memorysmith/svc-access/adapters/auth';
+import { type DomainError, httpStatusFor } from '@memorysmithapp/kernel';
+import { DEPLOYMENT_HEADERS, type Deployment, type HealthDto } from '@memorysmithapp/contracts';
+import { authenticate, type TokenVerifier } from '@memorysmithapp/svc-access/adapters/auth';
 import {
   createAccessRoutes,
   createConnectorBindingRoutes,
   type AccessRequest,
   type AccessUseCases,
   type ConnectorBindingDependencies,
-} from '@memorysmith/svc-access/adapters/http';
+} from '@memorysmithapp/svc-access/adapters/http';
 import {
   createKnowledgeRoutes,
   type KnowledgeRequest,
   type KnowledgeUseCases,
-} from '@memorysmith/svc-knowledge/adapters/http';
+} from '@memorysmithapp/svc-knowledge/adapters/http';
 import {
   createAuditRoutes,
   type AuditRequest,
   type AuditUseCases,
-} from '@memorysmith/svc-audit/adapters/http';
+} from '@memorysmithapp/svc-audit/adapters/http';
 import {
   createDiscoveryRoutes,
   type DiscoveryRequest,
   type DiscoveryUseCases,
-} from '@memorysmith/svc-discovery/adapters/http';
+} from '@memorysmithapp/svc-discovery/adapters/http';
 import {
   createPortabilityRoutes,
   type PortabilityRequest,
   type PortabilityUseCases,
-} from '@memorysmith/svc-portability/adapters/http';
-import type { NotebookWriter } from '@memorysmith/svc-portability/application/import';
-import type { FileKeeper } from '@memorysmith/svc-portability/application/uploads';
-import { annotate, type Channel } from '@memorysmith/observability';
-import { operationErrorHandler, operationLog } from '@memorysmith/observability/hono';
+} from '@memorysmithapp/svc-portability/adapters/http';
+import type { NotebookWriter } from '@memorysmithapp/svc-portability/application/import';
+import type { FileKeeper } from '@memorysmithapp/svc-portability/application/uploads';
+import { annotate, type Channel } from '@memorysmithapp/observability';
+import { operationErrorHandler, operationLog } from '@memorysmithapp/observability/hono';
 
 export interface AppDependencies {
   /** The environment, the version and the commit this function was deployed as (23.3). */

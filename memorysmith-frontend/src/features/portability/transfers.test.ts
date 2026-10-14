@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { TransferDto } from '@memorysmith/contracts';
+import type { TransferDto } from '@memorysmithapp/contracts';
 import {
   STALLED_AFTER_MS,
   fileOf,

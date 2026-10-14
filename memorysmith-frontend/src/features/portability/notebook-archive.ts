@@ -1,4 +1,4 @@
-import { notebookDocumentSchema, type NotebookDocument } from '@memorysmith/contracts';
+import { notebookDocumentSchema, type NotebookDocument } from '@memorysmithapp/contracts';
 
 /**
  * Reading a `.notebook` **in the browser**, before a byte is uploaded (#143).

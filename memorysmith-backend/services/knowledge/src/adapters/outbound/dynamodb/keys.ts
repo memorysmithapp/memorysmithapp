@@ -21,7 +21,7 @@ import {
   type Position,
   type SubscriptionId,
   type NotebookId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 
 /** The sort key of the notebook item itself. */
 export const META = 'META';

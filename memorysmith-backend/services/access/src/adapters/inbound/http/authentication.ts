@@ -19,7 +19,7 @@ import {
   UserId,
   type Result,
   type TokenClaims,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { Email } from '../../../domain/values.js';
 import type { UserProfile } from '../../../domain/ports/index.js';
 import type { TokenCredential } from '../../../application/connectors.js';

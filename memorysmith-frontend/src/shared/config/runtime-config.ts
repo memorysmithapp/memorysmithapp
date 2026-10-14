@@ -9,7 +9,7 @@
  * bundle, and the page reads it before rendering anything.
  */
 
-import type { DeploymentEnvironment } from '@memorysmith/contracts';
+import type { DeploymentEnvironment } from '@memorysmithapp/contracts';
 
 export interface RuntimeConfig {
   /** Where the product API answers, with no trailing slash. */

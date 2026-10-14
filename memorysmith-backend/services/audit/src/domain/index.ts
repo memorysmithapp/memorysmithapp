@@ -20,7 +20,7 @@ import {
   type EventSubject,
   type Result,
   type SubscriptionId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 
 export class AuditEvent {
   private constructor(

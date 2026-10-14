@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { NotebookDocument } from '@memorysmith/contracts';
+import type { NotebookDocument } from '@memorysmithapp/contracts';
 import {
   countsOf,
   danglingLinks,

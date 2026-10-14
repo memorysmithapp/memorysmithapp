@@ -12,7 +12,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { SubscriptionContext, SubscriptionId } from '@memorysmith/kernel';
+import { SubscriptionContext, SubscriptionId } from '@memorysmithapp/kernel';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

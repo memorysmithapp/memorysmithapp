@@ -8,7 +8,7 @@
  * event: the language is an attribute of the account, so no table is involved.
  */
 
-import { observe } from '@memorysmith/observability';
+import { observe } from '@memorysmithapp/observability';
 import { composePoolMessage } from './pool-messages.js';
 
 interface CustomMessageEvent {

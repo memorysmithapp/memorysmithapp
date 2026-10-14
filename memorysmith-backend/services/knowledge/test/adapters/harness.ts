@@ -21,7 +21,7 @@ import {
   SubscriptionContext,
   SubscriptionId,
   type TokenClaims,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 
 function required(name: string): string {
   const value = process.env[name];

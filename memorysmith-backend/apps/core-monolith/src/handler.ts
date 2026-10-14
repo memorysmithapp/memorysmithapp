@@ -9,7 +9,7 @@
 
 import type { Context } from 'hono';
 import { handle } from 'hono/aws-lambda';
-import { deploymentFromVariables } from '@memorysmith/contracts';
+import { deploymentFromVariables } from '@memorysmithapp/contracts';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -19,14 +19,14 @@ import {
   NotebookId,
   type SubscriptionContext,
   type SubscriptionId,
-} from '@memorysmith/kernel';
-import { CognitoTokenVerifier } from '@memorysmith/svc-access/adapters/auth';
-import type { AccessRequest, AccessUseCases } from '@memorysmith/svc-access/adapters/http';
+} from '@memorysmithapp/kernel';
+import { CognitoTokenVerifier } from '@memorysmithapp/svc-access/adapters/auth';
+import type { AccessRequest, AccessUseCases } from '@memorysmithapp/svc-access/adapters/http';
 import {
   GetSession,
   RequestSubscription,
   SwitchActiveSubscription,
-} from '@memorysmith/svc-access/application/onboarding';
+} from '@memorysmithapp/svc-access/application/onboarding';
 import {
   ChangePassword,
   ChooseLanguage,
@@ -35,25 +35,28 @@ import {
   ReadProfile,
   RecordWelcome,
   SetProfilePicture,
-} from '@memorysmith/svc-access/application/account';
-import { CognitoAccountDirectory } from '@memorysmith/svc-access/adapters/cognito';
+} from '@memorysmithapp/svc-access/application/account';
+import { CognitoAccountDirectory } from '@memorysmithapp/svc-access/adapters/cognito';
 import {
   ListPlatformQueue,
   ReviewSubscription,
-} from '@memorysmith/svc-access/application/platform';
+} from '@memorysmithapp/svc-access/application/platform';
 import {
   BindConnector,
   ConnectorOfSession,
   RebindConnector,
   ResolveAuthorship,
-} from '@memorysmith/svc-access/application/connectors';
+} from '@memorysmithapp/svc-access/application/connectors';
 import {
   ChangeMemberRole,
   ListMembers,
   RemoveMember,
   TransferOwnership,
-} from '@memorysmith/svc-access/application/members';
-import type { KnowledgeRequest, KnowledgeUseCases } from '@memorysmith/svc-knowledge/adapters/http';
+} from '@memorysmithapp/svc-access/application/members';
+import type {
+  KnowledgeRequest,
+  KnowledgeUseCases,
+} from '@memorysmithapp/svc-knowledge/adapters/http';
 import {
   ClearNotebookRoleLimit,
   CreateNotebook,
@@ -65,7 +68,7 @@ import {
   PutGuidance,
   RenameNotebook,
   SetNotebookRoleLimit,
-} from '@memorysmith/svc-knowledge/application/notebooks';
+} from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
   DeleteTemplate,
@@ -76,7 +79,7 @@ import {
   PutTemplate,
   RemoveFolder,
   ReorderFolder,
-} from '@memorysmith/svc-knowledge/application/folders';
+} from '@memorysmithapp/svc-knowledge/application/folders';
 import {
   CreateNote,
   DeleteNote,
@@ -85,7 +88,7 @@ import {
   ReadNote,
   ReorderNote,
   UpdateNote,
-} from '@memorysmith/svc-knowledge/application/notes';
+} from '@memorysmithapp/svc-knowledge/application/notes';
 import {
   CheckFileDestination,
   DeleteFile,
@@ -93,15 +96,15 @@ import {
   KeepFile,
   LinkToFile,
   ListFiles,
-} from '@memorysmith/svc-knowledge/application/files';
-import type { AuditUseCases } from '@memorysmith/svc-audit/adapters/http';
+} from '@memorysmithapp/svc-knowledge/application/files';
+import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   GetNoteHistory,
   GetNotebookActivity,
   ReadRevision,
-} from '@memorysmith/svc-audit/application';
-import type { DiscoveryUseCases } from '@memorysmith/svc-discovery/adapters/http';
-import type { SearchMeasure } from '@memorysmith/svc-discovery/domain';
+} from '@memorysmithapp/svc-audit/application';
+import type { DiscoveryUseCases } from '@memorysmithapp/svc-discovery/adapters/http';
+import type { SearchMeasure } from '@memorysmithapp/svc-discovery/domain';
 import {
   Backlinks,
   NoteLinks,
@@ -112,8 +115,8 @@ import {
   SearchNotes,
   NotebookGraphQuery,
   NotebookHealth,
-} from '@memorysmith/svc-discovery/application/queries';
-import type { PortabilityUseCases } from '@memorysmith/svc-portability/adapters/http';
+} from '@memorysmithapp/svc-discovery/application/queries';
+import type { PortabilityUseCases } from '@memorysmithapp/svc-portability/adapters/http';
 import {
   CancelTransfer,
   DeleteTransfer,
@@ -122,29 +125,29 @@ import {
   ListTransfers,
   StartExport,
   StartImport,
-} from '@memorysmith/svc-portability/application/transfers';
+} from '@memorysmithapp/svc-portability/application/transfers';
 import {
   SqsPreviewQueue,
   SqsPrintQueue,
   SqsTransferQueue,
-} from '@memorysmith/svc-portability/adapters/sqs';
-import { S3PrintStore } from '@memorysmith/svc-portability/adapters/prints';
-import { S3PreviewStore } from '@memorysmith/svc-portability/adapters/previews';
-import { GetPrint, StartPrint } from '@memorysmith/svc-portability/application/prints';
-import { GetPreview, StartPreview } from '@memorysmith/svc-portability/application/previews';
+} from '@memorysmithapp/svc-portability/adapters/sqs';
+import { S3PrintStore } from '@memorysmithapp/svc-portability/adapters/prints';
+import { S3PreviewStore } from '@memorysmithapp/svc-portability/adapters/previews';
+import { GetPrint, StartPrint } from '@memorysmithapp/svc-portability/application/prints';
+import { GetPreview, StartPreview } from '@memorysmithapp/svc-portability/application/previews';
 import { SQSClient } from '@aws-sdk/client-sqs';
 import {
   ImportFromExport,
   PrepareImport,
   type NotebookWriter,
-} from '@memorysmith/svc-portability/application/import';
+} from '@memorysmithapp/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from './import-writer.js';
 import { KnowledgeFileKeeper } from './file-keeper.js';
 import {
   S3ArchiveStore,
   S3PartStore,
   S3UploadStore,
-} from '@memorysmith/svc-portability/adapters/s3';
+} from '@memorysmithapp/svc-portability/adapters/s3';
 import {
   BeginUpload,
   discardUpload,
@@ -156,7 +159,7 @@ import {
   ObserveUpload,
   PutUploadPart,
   type FileKeeper,
-} from '@memorysmith/svc-portability/application/uploads';
+} from '@memorysmithapp/svc-portability/application/uploads';
 import { createApp } from './app.js';
 import {
   buildAccess,
@@ -671,7 +674,7 @@ const app = createApp({
       };
     }
     const authorizer = new (
-      await import('@memorysmith/svc-access/application/context')
+      await import('@memorysmithapp/svc-access/application/context')
     ).ResolveRequestContext(scoped.subscriptions);
     const resolved = await authorizer.execute(context);
     if (!resolved.ok) return { ok: false as const, error: resolved.error };

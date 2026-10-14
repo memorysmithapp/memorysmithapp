@@ -20,7 +20,7 @@
  * download, and never stored.
  */
 
-import { DomainError, err, ok, ulid, type Instant, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, ulid, type Instant, type Result } from '@memorysmithapp/kernel';
 import {
   archiveNameOf,
   buildNotebookDocument,

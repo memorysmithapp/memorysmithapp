@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
-import type { NotificationDto } from '@memorysmith/contracts';
+import type { NotificationDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { answerShare, dismissRevokedShare, dismissShareAnswer } from '../../shared/api/source';
 import { Menu } from '../../shared/components/Menu';

@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The workspace packages are named under the npm scope of the organisation, `@memorysmithapp`.** The thirteen packages of the monorepo were named `@memorysmith/*`, after the project identifier, while the packages the organisation publishes — `@memorysmithapp/markdown-spec` and `@memorysmithapp/markdown-renderer` — live under `@memorysmithapp`, so depending on one of them would have put two scopes side by side. Every package, import and rule of the dependency checker moved to the one scope; the packages stay private, and the project identifier `memorysmith` names everything else as before — tables, stacks, buckets and the domain. Nothing changes for whoever uses the product. (#290)
+
 ## [0.11.0] - 2026-10-10
 
 ### Added

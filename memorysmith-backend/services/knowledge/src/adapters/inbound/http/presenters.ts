@@ -3,7 +3,7 @@
  * and the backend cannot drift: both import the same schemas.
  */
 
-import type { ContentRef, Role } from '@memorysmith/kernel';
+import type { ContentRef, Role } from '@memorysmithapp/kernel';
 import type {
   ContentDto,
   FolderDto,
@@ -12,13 +12,13 @@ import type {
   NotebookFileDto,
   NotebookDetailDto,
   NotebookSummaryDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import type { Note } from '../../../domain/note/Note.js';
 import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
 import type { Notebook } from '../../../domain/notebook/Notebook.js';
 import type { Folder } from '../../../domain/notebook/Folder.js';
 import type { NoteListing } from '../../../application/notes.js';
-import { compareByName } from '@memorysmith/contracts';
+import { compareByName } from '@memorysmithapp/contracts';
 
 export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
   return {

@@ -5,7 +5,7 @@
  */
 
 import { S3Client } from '@aws-sdk/client-s3';
-import { SubscriptionContext, SubscriptionId } from '@memorysmith/kernel';
+import { SubscriptionContext, SubscriptionId } from '@memorysmithapp/kernel';
 import { describe, expect, it } from 'vitest';
 import { S3FileStore } from '../src/adapters/outbound/s3/S3FileStore.js';
 import { contentRef, unwrap } from './fixtures.js';

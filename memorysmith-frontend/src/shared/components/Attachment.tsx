@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { rendersAs, type FileLinkDto, type NotebookFileDto } from '@memorysmith/contracts';
+import { rendersAs, type FileLinkDto, type NotebookFileDto } from '@memorysmithapp/contracts';
 import { fileKept, linkToFile } from '../api/source';
 import { queryKeys } from '../api/query-keys';
 import { intlLocale } from '../../i18n';

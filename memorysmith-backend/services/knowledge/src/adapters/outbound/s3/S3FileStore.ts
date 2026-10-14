@@ -14,7 +14,7 @@
  * checked against the bytes before this was ever called.
  */
 
-import { ContentId, ContentRef, Instant, type SubscriptionContext } from '@memorysmith/kernel';
+import { ContentId, ContentRef, Instant, type SubscriptionContext } from '@memorysmithapp/kernel';
 import {
   CopyObjectCommand,
   GetObjectCommand,
@@ -23,7 +23,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash } from 'node:crypto';
-import { rendersAs } from '@memorysmith/contracts';
+import { rendersAs } from '@memorysmithapp/contracts';
 import type { FileDisposition, FileStore, SignedFile } from '../../../domain/ports/index.js';
 
 /** How long a link to a file lasts. Long enough to read a note, and no longer. */

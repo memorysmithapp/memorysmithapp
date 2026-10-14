@@ -24,7 +24,7 @@ import {
   type Result,
   type SubscriptionContext,
   type NotebookId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
 import { GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import type { ContentSlot } from '../../../domain/content-slot/ContentSlot.js';

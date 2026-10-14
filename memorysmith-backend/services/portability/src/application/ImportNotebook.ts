@@ -45,7 +45,7 @@ import {
   ulid,
   type Authorship,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
 

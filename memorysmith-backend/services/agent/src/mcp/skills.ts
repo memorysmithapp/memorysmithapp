@@ -28,7 +28,7 @@ import {
   MARKDOWN_SPEC_URL,
   RECOGNISED_NOTATION,
   type RecognisedNotation,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 
 export interface Skill {
   /** Stable identifier, and the argument `get_skill` takes. */

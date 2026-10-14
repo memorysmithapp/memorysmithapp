@@ -32,7 +32,7 @@
  */
 
 import { ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { noteName, SubscriptionId } from '@memorysmith/kernel';
+import { noteName, SubscriptionId } from '@memorysmithapp/kernel';
 
 import { extractLinks } from '../domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';

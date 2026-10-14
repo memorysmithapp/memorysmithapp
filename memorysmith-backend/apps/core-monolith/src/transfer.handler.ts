@@ -22,35 +22,35 @@ import {
   NotebookId,
   SubscriptionContext,
   UserId,
-} from '@memorysmith/kernel';
-import { ExportNotebook } from '@memorysmith/svc-portability/application';
+} from '@memorysmithapp/kernel';
+import { ExportNotebook } from '@memorysmithapp/svc-portability/application';
 import {
   RunExport,
   RunImport,
   type TransferWork,
-} from '@memorysmith/svc-portability/application/transfers';
-import { ImportNotebook } from '@memorysmith/svc-portability/application/import';
-import { S3ArchiveStore, S3UploadStore } from '@memorysmith/svc-portability/adapters/s3';
-import { createZip, readZip } from '@memorysmith/svc-portability/adapters/zip';
+} from '@memorysmithapp/svc-portability/application/transfers';
+import { ImportNotebook } from '@memorysmithapp/svc-portability/application/import';
+import { S3ArchiveStore, S3UploadStore } from '@memorysmithapp/svc-portability/adapters/s3';
+import { createZip, readZip } from '@memorysmithapp/svc-portability/adapters/zip';
 import { KnowledgeNotebookWriter } from './import-writer.js';
 import { AuditHistorySource } from './history-source.js';
 import { ImportedTrailWriter } from './trail-writer.js';
-import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
-import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
+import { DynamoAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
+import { S3RevisionReader } from '@memorysmithapp/svc-audit/adapters/content';
 import {
   CreateNotebook,
   DeleteNotebook,
   PutGuidance,
-} from '@memorysmith/svc-knowledge/application/notebooks';
+} from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
   PutTemplate,
   RestoreFolderNumber,
-} from '@memorysmith/svc-knowledge/application/folders';
-import { CreateNote } from '@memorysmith/svc-knowledge/application/notes';
-import { KeepFile } from '@memorysmith/svc-knowledge/application/files';
-import { ResolveRequestContext } from '@memorysmith/svc-access/application/context';
-import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
+} from '@memorysmithapp/svc-knowledge/application/folders';
+import { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
+import { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
+import { DynamoTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import { KnowledgeExportSource } from './export-source.js';
 import { contextThrough, openShareOf } from './shares.js';
 import {
@@ -59,7 +59,7 @@ import {
   errorFieldsOf,
   observe,
   type OperationStart,
-} from '@memorysmith/observability';
+} from '@memorysmithapp/observability';
 import {
   buildAccess,
   buildKnowledge,

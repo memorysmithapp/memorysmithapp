@@ -25,7 +25,7 @@ import {
   type Slug,
   type SubscriptionContext,
   type NotebookId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
 import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
@@ -55,7 +55,7 @@ import {
   type SubscriptionUsageCounters,
 } from '../../../domain/services/StorageUsage.js';
 import { Notebook } from '../../../domain/notebook/Notebook.js';
-import { NotebookRoleLimit } from '@memorysmith/kernel';
+import { NotebookRoleLimit } from '@memorysmithapp/kernel';
 
 /** Records what was published, so a test can assert on the event stream. */
 export class RecordingEventPublisher implements EventPublisher {

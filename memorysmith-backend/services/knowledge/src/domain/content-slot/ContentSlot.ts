@@ -33,7 +33,7 @@ import {
   type Result,
   type SubscriptionId,
   type NotebookId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 
 /** Which role the slot plays, which is what decides the item that holds it. */
 export type ContentSlotRole = 'GUIDANCE' | 'TEMPLATE';

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { SubscriptionUsageDto } from '@memorysmith/contracts';
+import type { SubscriptionUsageDto } from '@memorysmithapp/contracts';
 import type { NotebookSummary } from '../../shared/types/api';
 import { byName } from './catalogue';
 import { graphIndexOf } from './card-graphs';

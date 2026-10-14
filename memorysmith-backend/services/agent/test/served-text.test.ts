@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { DECLARED_SILENCE, RECOGNISED_NOTATION } from '@memorysmith/contracts';
+import { DECLARED_SILENCE, RECOGNISED_NOTATION } from '@memorysmithapp/contracts';
 import { TOOL_CATALOG } from '../src/mcp/catalog.js';
 import { PRODUCTION_DEFAULT } from '../src/mcp/environment.js';
 import { serverInstructions } from '../src/mcp/instructions.js';

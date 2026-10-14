@@ -1,4 +1,4 @@
-import type { SubscriptionUsageDto } from '@memorysmith/contracts';
+import type { SubscriptionUsageDto } from '@memorysmithapp/contracts';
 
 /**
  * What the space panel of the Home screen draws, shaped out of the answer of

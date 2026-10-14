@@ -10,7 +10,7 @@
  * an alias fills an empty and never takes a target a name already answered.
  */
 
-import { frontmatterOf } from '@memorysmith/kernel';
+import { frontmatterOf } from '@memorysmithapp/kernel';
 
 const ALIASES_KEY = 'aliases';
 

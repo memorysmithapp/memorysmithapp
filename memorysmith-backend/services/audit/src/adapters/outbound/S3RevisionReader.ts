@@ -7,7 +7,7 @@
  */
 
 import { GetObjectCommand, type S3Client } from '@aws-sdk/client-s3';
-import type { ContentRef, SubscriptionId } from '@memorysmith/kernel';
+import type { ContentRef, SubscriptionId } from '@memorysmithapp/kernel';
 import type { RevisionReader } from '../../domain/index.js';
 
 export class S3RevisionReader implements RevisionReader {

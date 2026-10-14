@@ -8,7 +8,7 @@
  * create a cycle" without walking the whole thing every time.
  */
 
-import type { FolderId, Position } from '@memorysmith/kernel';
+import type { FolderId, Position } from '@memorysmithapp/kernel';
 import type { Folder } from './Folder.js';
 
 export class FolderTree {

@@ -8,7 +8,7 @@ import {
   SubscriptionStatus,
   UserId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { Subscription } from '../src/domain/subscription/Subscription.js';
 import { Email, RejectionReason } from '../src/domain/values.js';
 import {

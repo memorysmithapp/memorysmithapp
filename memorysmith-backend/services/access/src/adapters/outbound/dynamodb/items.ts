@@ -5,8 +5,8 @@
  * (architecture-guide.md, section 10.4).
  */
 
-import type { DomainEvent } from '@memorysmith/kernel';
-import { currentCorrelationId } from '@memorysmith/observability';
+import type { DomainEvent } from '@memorysmithapp/kernel';
+import { currentCorrelationId } from '@memorysmithapp/observability';
 
 export type Item = Record<string, unknown>;
 

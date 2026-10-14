@@ -10,7 +10,7 @@ import {
   HttpDiscoveryGateway,
   HttpKnowledgeGateway,
 } from '../adapters/http-gateways.js';
-import { deploymentFromVariables, type Deployment } from '@memorysmith/contracts';
+import { deploymentFromVariables, type Deployment } from '@memorysmithapp/contracts';
 import { McpToolAdapter } from '../mcp/tools.js';
 import { SERVICE_VERSION } from '../mcp/environment.js';
 import { HttpConnectorBinder, type RequestSigner } from '../connector-binding.js';

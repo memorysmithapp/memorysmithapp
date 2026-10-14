@@ -9,7 +9,7 @@
  * which is a rule about three things rather than a property of one.
  */
 
-import { DomainError, err, ok, Position, type FolderId, type Result } from '@memorysmith/kernel';
+import { DomainError, err, ok, Position, type FolderId, type Result } from '@memorysmithapp/kernel';
 import type { FolderTree } from '../notebook/FolderTree.js';
 import { NOTEBOOK_LIMITS } from '../values.js';
 

@@ -19,7 +19,7 @@ import {
   NotebookRoleLimit,
   type Result,
   type UserId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { AuthorizationPolicy, type RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { composeNotebookContext } from '../domain/services/NotebookContextComposer.js';
 import { Guidance } from '../domain/content-slot/Guidance.js';

@@ -48,7 +48,7 @@ import {
   printRequestSchema,
   requestFileRequestSchema,
   uploadPartRequestSchema,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
 import {
   type Authorship,
@@ -57,7 +57,7 @@ import {
   Instant,
   type Result,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type {
   CancelTransfer,
   DeleteTransfer,

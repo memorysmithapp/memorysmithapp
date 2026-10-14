@@ -19,7 +19,7 @@
  *    it is the same nature as the five minutes of the authorizer cache.
  */
 
-import { observe } from '@memorysmith/observability';
+import { observe } from '@memorysmithapp/observability';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 

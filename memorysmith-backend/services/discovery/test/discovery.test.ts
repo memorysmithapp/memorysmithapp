@@ -17,7 +17,7 @@ import {
   InMemoryStructureProjection,
 } from '../src/adapters/memory.js';
 import { dispatch } from '../src/adapters/dispatch.js';
-import { parseEvent } from '@memorysmith/contracts';
+import { parseEvent } from '@memorysmithapp/contracts';
 import {
   ProjectNote,
   ProjectFiles,

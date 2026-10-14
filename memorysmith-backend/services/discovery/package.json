@@ -1,5 +1,5 @@
 {
-  "name": "@memorysmith/svc-discovery",
+  "name": "@memorysmithapp/svc-discovery",
   "version": "0.11.0",
   "private": true,
   "type": "module",
@@ -27,9 +27,9 @@
     "@aws-sdk/client-dynamodb": "^3.1117.0",
     "@aws-sdk/client-s3": "^3.1117.0",
     "@aws-sdk/lib-dynamodb": "^3.1117.0",
-    "@memorysmith/contracts": "workspace:*",
-    "@memorysmith/kernel": "workspace:*",
-    "@memorysmith/observability": "workspace:*",
+    "@memorysmithapp/contracts": "workspace:*",
+    "@memorysmithapp/kernel": "workspace:*",
+    "@memorysmithapp/observability": "workspace:*",
     "hono": "^4.9.0"
   }
 }

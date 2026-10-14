@@ -7,7 +7,7 @@
  * needs a member, or a subscription to approve, creates an account of its own.
  */
 
-import { subscriptionUsageSchema } from '@memorysmith/contracts';
+import { subscriptionUsageSchema } from '@memorysmithapp/contracts';
 import { apiToken, localeOf } from '../support/accounts.js';
 import { eventually } from '../support/eventually.js';
 import type { Api } from '../support/api.js';

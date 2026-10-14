@@ -11,11 +11,11 @@ import type { VerifiedAgentToken } from './auth.js';
 import { TOOL_CATALOG } from './mcp/catalog.js';
 import type { McpToolAdapter, ToolResult } from './mcp/tools.js';
 import type { AgentCaller } from './mcp/gateway.js';
-import type { Deployment } from '@memorysmith/contracts';
+import type { Deployment } from '@memorysmithapp/contracts';
 import { PRODUCTION_DEFAULT } from './mcp/environment.js';
 import { serverInstructions } from './mcp/instructions.js';
 import { serverInfo } from './mcp/server-info.js';
-import { annotate, refusedWith } from '@memorysmith/observability';
+import { annotate, refusedWith } from '@memorysmithapp/observability';
 
 /** The methods a line is named after; any other is named `unknown method`. */
 const KNOWN_METHODS = new Set(['initialize', 'notifications/initialized', 'ping', 'tools/list']);

@@ -20,7 +20,7 @@ import {
   type Result,
   type Role,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { RequestContext } from '../../../domain/access/AuthorizationPolicy.js';
 import type {
   ClearNotebookRoleLimit,
@@ -54,7 +54,7 @@ import type {
   UpdateNote,
 } from '../../../application/notes.js';
 import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
-import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmith/contracts';
+import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmithapp/contracts';
 import {
   fileToDto,
   folderToDto,

@@ -21,7 +21,7 @@ import {
   NotebookId,
   sha256Hex,
   SubscriptionId,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import {
   ContentPurge,
   type DeletionEnvelope,

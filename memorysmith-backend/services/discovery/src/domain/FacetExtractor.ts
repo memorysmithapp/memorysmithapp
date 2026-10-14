@@ -24,7 +24,7 @@
  * second value to an attribute must not change what the attribute is.
  */
 
-import { frontmatterOf, NAME_KEY, type FrontmatterEntry } from '@memorysmith/kernel';
+import { frontmatterOf, NAME_KEY, type FrontmatterEntry } from '@memorysmithapp/kernel';
 
 export type FacetKind = 'date' | 'boolean' | 'enum' | 'list';
 

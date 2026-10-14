@@ -21,7 +21,7 @@ import type {
   UploadStatusDto,
   TransferDto,
   TransferListDto,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import * as backend from './backend';
 import { linkTargetAddress, noteAddress } from './note-address';
 import type {

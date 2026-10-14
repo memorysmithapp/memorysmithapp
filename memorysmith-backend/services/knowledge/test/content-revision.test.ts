@@ -17,7 +17,7 @@ import {
   Position,
   Role,
   sha256Hex,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { PutGuidance } from '../src/application/notebooks.js';
 import { PutTemplate } from '../src/application/folders.js';
 import { UpdateNote } from '../src/application/notes.js';

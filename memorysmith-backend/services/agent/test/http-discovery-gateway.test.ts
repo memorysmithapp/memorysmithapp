@@ -13,7 +13,7 @@ import {
   notebookNamesSchema,
   previewSchema,
   searchResultSchema,
-} from '@memorysmith/contracts';
+} from '@memorysmithapp/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HttpDiscoveryGateway, HttpKnowledgeGateway } from '../src/adapters/http-gateways.js';
 import type { AgentCaller } from '../src/mcp/gateway.js';

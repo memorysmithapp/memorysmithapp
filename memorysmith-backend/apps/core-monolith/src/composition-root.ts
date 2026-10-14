@@ -24,11 +24,11 @@ import {
   RESERVED_FRONTMATTER_KEYS,
   NOTEBOOK_DOCUMENT_ENTRY,
   notebookDocumentSchema,
-} from '@memorysmith/contracts';
-import type { NotebookDocument } from '@memorysmith/svc-portability/domain';
+} from '@memorysmithapp/contracts';
+import type { NotebookDocument } from '@memorysmithapp/svc-portability/domain';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { Role, type SubscriptionContext } from '@memorysmith/kernel';
+import { Role, type SubscriptionContext } from '@memorysmithapp/kernel';
 import {
   DynamoAvatarRepository,
   DynamoConnectorBindingRepository,
@@ -37,36 +37,36 @@ import {
   DynamoSubscriptionRepository,
   DynamoUserLinkRepository,
   DynamoShareRepository,
-} from '@memorysmith/svc-access/adapters/dynamodb';
-import { NULL_OUTBOX_SINK } from '@memorysmith/svc-access/adapters/items';
+} from '@memorysmithapp/svc-access/adapters/dynamodb';
+import { NULL_OUTBOX_SINK } from '@memorysmithapp/svc-access/adapters/items';
 import {
   CachedRequestContext,
   ResolveRequestContext,
   type ResolvedContext,
-} from '@memorysmith/svc-access/application/context';
-import { ACCESS_LIMITS, StorageQuota } from '@memorysmith/svc-access/domain/values';
-import type { PictureTypes } from '@memorysmith/svc-access/domain/ports';
-import { DynamoNoteRepository } from '@memorysmith/svc-knowledge/adapters/notes';
-import { DynamoContentSlotRepository } from '@memorysmith/svc-knowledge/adapters/slots';
-import { DynamoFolderNumbers } from '@memorysmith/svc-knowledge/adapters/numbers';
-import { DynamoNotebookRepository } from '@memorysmith/svc-knowledge/adapters/notebooks';
-import { S3ContentStore } from '@memorysmith/svc-knowledge/adapters/content';
-import { DynamoFileRepository } from '@memorysmith/svc-knowledge/adapters/files';
-import { S3FileStore } from '@memorysmith/svc-knowledge/adapters/file-store';
-import type { FileTypes } from '@memorysmith/svc-knowledge/domain';
-import { DynamoStorageMeter } from '@memorysmith/svc-knowledge/adapters/storage';
-import type { StorageState } from '@memorysmith/svc-knowledge/domain';
-import { DynamoAuditTrail } from '@memorysmith/svc-audit/adapters/trail';
-import { S3RevisionReader } from '@memorysmith/svc-audit/adapters/content';
+} from '@memorysmithapp/svc-access/application/context';
+import { ACCESS_LIMITS, StorageQuota } from '@memorysmithapp/svc-access/domain/values';
+import type { PictureTypes } from '@memorysmithapp/svc-access/domain/ports';
+import { DynamoNoteRepository } from '@memorysmithapp/svc-knowledge/adapters/notes';
+import { DynamoContentSlotRepository } from '@memorysmithapp/svc-knowledge/adapters/slots';
+import { DynamoFolderNumbers } from '@memorysmithapp/svc-knowledge/adapters/numbers';
+import { DynamoNotebookRepository } from '@memorysmithapp/svc-knowledge/adapters/notebooks';
+import { S3ContentStore } from '@memorysmithapp/svc-knowledge/adapters/content';
+import { DynamoFileRepository } from '@memorysmithapp/svc-knowledge/adapters/files';
+import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
+import type { FileTypes } from '@memorysmithapp/svc-knowledge/domain';
+import { DynamoStorageMeter } from '@memorysmithapp/svc-knowledge/adapters/storage';
+import type { StorageState } from '@memorysmithapp/svc-knowledge/domain';
+import { DynamoAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
+import { S3RevisionReader } from '@memorysmithapp/svc-audit/adapters/content';
 import {
   DynamoContentIndex,
   DynamoFacetIndex,
   DynamoLinkGraph,
   DynamoStructureProjection,
-} from '@memorysmith/svc-discovery/adapters/aws';
-import { DynamoTransferStore } from '@memorysmith/svc-portability/adapters/dynamo';
-import type { SubscriptionUsageQuery } from '@memorysmith/svc-access/adapters/http';
-import { ReadStorageUsage } from '@memorysmith/svc-knowledge/application/usage';
+} from '@memorysmithapp/svc-discovery/adapters/aws';
+import { DynamoTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
+import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters/http';
+import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
 import { KnowledgeSharedNotebooks } from './shares.js';
 

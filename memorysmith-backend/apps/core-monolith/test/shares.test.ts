@@ -10,11 +10,11 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { UserId } from '@memorysmith/kernel';
-import { Email } from '@memorysmith/svc-access/domain/values';
-import { outboxItemFor } from '@memorysmith/svc-access/adapters/items';
-import { envelopeOf } from '@memorysmith/svc-knowledge/adapters/relay';
-import { parseEvent } from '@memorysmith/contracts';
+import { UserId } from '@memorysmithapp/kernel';
+import { Email } from '@memorysmithapp/svc-access/domain/values';
+import { outboxItemFor } from '@memorysmithapp/svc-access/adapters/items';
+import { envelopeOf } from '@memorysmithapp/svc-knowledge/adapters/relay';
+import { parseEvent } from '@memorysmithapp/contracts';
 import { buildTestApp } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type FolderId, Instant, NotebookRoleLimit } from '@memorysmith/kernel';
+import { type FolderId, Instant, NotebookRoleLimit } from '@memorysmithapp/kernel';
 import type { Folder } from '../src/domain/notebook/Folder.js';
 import { RemovalPolicy, NOTEBOOK_LIMITS } from '../src/domain/values.js';
 import {

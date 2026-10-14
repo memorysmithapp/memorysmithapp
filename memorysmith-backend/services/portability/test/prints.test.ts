@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ulid } from '@memorysmith/kernel';
+import { ulid } from '@memorysmithapp/kernel';
 import { GetPrint, PRINT_DEADLINE_MILLIS, StartPrint } from '../src/application/Prints.js';
 import { InMemoryPrintQueue, InMemoryPrintStore } from '../src/adapters/memory.js';
 import { attachmentNamed } from '../src/adapters/s3.js';

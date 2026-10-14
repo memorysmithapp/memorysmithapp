@@ -13,7 +13,7 @@ import {
   ok,
   type NotebookId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import { Template } from '../domain/content-slot/Template.js';
 import type { Folder } from '../domain/notebook/Folder.js';

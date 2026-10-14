@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { ok, SubscriptionId, type SubscriptionContext } from '@memorysmith/kernel';
+import { ok, SubscriptionId, type SubscriptionContext } from '@memorysmithapp/kernel';
 import {
   createDiscoveryRoutes,
   type DiscoveryRequest,

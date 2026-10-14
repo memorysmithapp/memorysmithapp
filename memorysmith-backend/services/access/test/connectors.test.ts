@@ -17,7 +17,7 @@ import {
   SubscriptionId,
   UserId,
   type Result,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import {
   InMemoryAccessDatabase,
   InMemoryConnectorBindingRepository,

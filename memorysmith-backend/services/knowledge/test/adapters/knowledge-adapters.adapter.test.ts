@@ -21,7 +21,7 @@ import {
   NotebookId,
   NotebookRoleLimit,
   type SubscriptionContext,
-} from '@memorysmith/kernel';
+} from '@memorysmithapp/kernel';
 import { GetCommand, QueryCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { ContentPurge } from '../../src/adapters/inbound/content-purge.js';

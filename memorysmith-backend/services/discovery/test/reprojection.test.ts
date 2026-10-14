@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { noteName } from '@memorysmith/kernel';
+import { noteName } from '@memorysmithapp/kernel';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 import { distinctEdges, resolveAll, type ReadNote } from '../src/adapters/reprojection.js';

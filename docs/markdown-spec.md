@@ -833,7 +833,7 @@ note to one that deserves a note of its own.
 
 ## 9. The machine-readable specification
 
-**This document is the specification; the data and the suite are how the product implements it.** The document lives here, with the other documents of the repository; [`spec.json`](../memorysmith-backend/packages/markdown-spec/spec.json), the schema that validates it and the conformance suite live in a package of the backend, `@memorysmith/markdown-spec`, and the three of them move in the same change (#162).
+**This document is the specification; the data and the suite are how the product implements it.** The document lives here, with the other documents of the repository; [`spec.json`](../memorysmith-backend/packages/markdown-spec/spec.json), the schema that validates it and the conformance suite live in a package of the backend, `@memorysmithapp/markdown-spec`, and the three of them move in the same change (#162).
 
 [`spec.json`](../memorysmith-backend/packages/markdown-spec/spec.json) carries every notation of §3 to §7 as data: an identifier, which reader decides it, the syntax, a worked example and the observable effect. It is validated by [`schema/spec.schema.json`](../memorysmith-backend/packages/markdown-spec/schema/spec.schema.json).
 
