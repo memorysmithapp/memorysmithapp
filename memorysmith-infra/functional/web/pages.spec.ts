@@ -414,7 +414,7 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(notebook.page('/guidance'));
 
-    await expect(app.locator('article.content-pane .markdown')).toContainText(
+    await expect(app.locator('article.content-pane .markdown[data-theme]')).toContainText(
       'Write one finding per note',
     );
     await expect(app).toHaveTitle(
@@ -698,6 +698,8 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
+    // Closed before the window narrows, or it would come back as a sheet.
+    await expect(refusing).toHaveCount(0);
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
       `Proposals ${suffix}`,
     );
