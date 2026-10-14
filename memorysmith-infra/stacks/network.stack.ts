@@ -1,7 +1,7 @@
 /**
  * Network stack: the hosted zone of the environment, its certificates and,
- * where the environment carries alarms, the topic they notify
- * (architecture-guide.md, section 17).
+ * where the environment carries alarms, the topic they notify and, in
+ * production, the cost budgets of the account (architecture-guide.md, section 17).
  *
  * The hosted zone already exists, created by hand once per environment, because
  * its name servers are drawn when it is created and recreating it would break
@@ -16,6 +16,7 @@ import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import type { EnvironmentConfig } from '../config/environments.js';
 import { AlarmTopic } from '../constructs/alarms.js';
+import { CostBudgets } from '../constructs/budgets.js';
 
 export interface NetworkStackProps extends StackProps {
   readonly environment: EnvironmentConfig;
@@ -157,6 +158,15 @@ export class NetworkStack extends Stack {
      */
     if (props.environment.alarms) {
       new AlarmTopic(this, 'Alarms', { environment: props.environment });
+    }
+
+    /**
+     * The budgets of the account (#279), which production owns: declared once,
+     * here, so a delivery of production creates them, and staging, which shares
+     * the account, declares none of its own.
+     */
+    if (props.environment.name === 'production') {
+      new CostBudgets(this, 'Budgets', { environment: props.environment });
     }
   }
 }
