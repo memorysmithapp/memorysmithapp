@@ -548,6 +548,9 @@ test.describe('the pages of an account', () => {
         app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Third quarter' }),
       ).toHaveAttribute('title', /^Third quarter\n/);
 
+      // Measured once the note is drawn: a read of the page in between
+      // redraws the pane, and a box measured then is no box at all.
+      await expect(app.locator('article.content-pane .markdown[data-theme]')).toBeVisible();
       const sidebar = await app.locator('aside#notebook-sidebar').boundingBox();
       const pane = await app.locator('article.content-pane').first().boundingBox();
       // Wider than it was on a window that has the room, and never at the
