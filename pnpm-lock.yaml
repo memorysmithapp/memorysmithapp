@@ -36,9 +36,9 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(supports-color@7.2.0)(tsx@4.23.12)
 
-  memorysmith-backend: {}
+  memorysmithapp-backend: {}
 
-  memorysmith-backend/apps/core-monolith:
+  memorysmithapp-backend/apps/core-monolith:
     dependencies:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
@@ -86,7 +86,7 @@ importers:
         specifier: ^4.9.0
         version: 4.13.3
 
-  memorysmith-backend/packages/contracts:
+  memorysmithapp-backend/packages/contracts:
     dependencies:
       '@memorysmithapp/markdown-spec':
         specifier: workspace:*
@@ -95,11 +95,11 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
 
-  memorysmith-backend/packages/kernel: {}
+  memorysmithapp-backend/packages/kernel: {}
 
-  memorysmith-backend/packages/markdown-spec: {}
+  memorysmithapp-backend/packages/markdown-spec: {}
 
-  memorysmith-backend/packages/observability:
+  memorysmithapp-backend/packages/observability:
     dependencies:
       '@aws-lambda-powertools/logger':
         specifier: 2.35.0
@@ -108,7 +108,7 @@ importers:
         specifier: ^4.13.3
         version: 4.13.3
 
-  memorysmith-backend/services/access:
+  memorysmithapp-backend/services/access:
     dependencies:
       '@aws-sdk/client-cognito-identity-provider':
         specifier: ^3.1131.0
@@ -135,7 +135,7 @@ importers:
         specifier: ^6.0.13
         version: 6.2.10
 
-  memorysmith-backend/services/agent:
+  memorysmithapp-backend/services/agent:
     dependencies:
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.1117.0
@@ -175,7 +175,7 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(supports-color@7.2.0)(tsx@4.23.12)
 
-  memorysmith-backend/services/audit:
+  memorysmithapp-backend/services/audit:
     dependencies:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
@@ -199,7 +199,7 @@ importers:
         specifier: ^4.9.0
         version: 4.13.3
 
-  memorysmith-backend/services/discovery:
+  memorysmithapp-backend/services/discovery:
     dependencies:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
@@ -223,7 +223,7 @@ importers:
         specifier: ^4.9.0
         version: 4.13.3
 
-  memorysmith-backend/services/knowledge:
+  memorysmithapp-backend/services/knowledge:
     dependencies:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
@@ -253,7 +253,7 @@ importers:
         specifier: ^4.13.3
         version: 4.13.3
 
-  memorysmith-backend/services/portability:
+  memorysmithapp-backend/services/portability:
     dependencies:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1117.0
@@ -289,11 +289,11 @@ importers:
         specifier: 25.11.0
         version: 25.11.0
 
-  memorysmith-frontend:
+  memorysmithapp-frontend:
     dependencies:
       '@memorysmithapp/contracts':
         specifier: workspace:*
-        version: link:../memorysmith-backend/packages/contracts
+        version: link:../memorysmithapp-backend/packages/contracts
       '@memorysmithapp/markdown-renderer':
         specifier: '>=0.3.0 <1.0.0'
         version: 0.3.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
@@ -350,7 +350,7 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(supports-color@7.2.0)(tsx@4.23.12)
 
-  memorysmith-infra:
+  memorysmithapp-infra:
     dependencies:
       '@aws-sdk/client-cloudformation':
         specifier: ^3.1131.0
@@ -384,7 +384,7 @@ importers:
         version: 3.1131.0
       '@memorysmithapp/contracts':
         specifier: workspace:*
-        version: link:../memorysmith-backend/packages/contracts
+        version: link:../memorysmithapp-backend/packages/contracts
       aws-cdk-lib:
         specifier: ^2.220.0
         version: 2.266.0(constructs@10.8.1)

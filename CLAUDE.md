@@ -46,16 +46,16 @@ github.com/memorysmithapp/memorysmithapp
 
 ## Repository layout
 
-A pnpm monorepo with **three first-level projects**, named after the project identifier. The complete structure and its justification are in `docs/architecture-guide.md` §5.
+A pnpm monorepo with **three first-level projects**, named after the organisation, `memorysmithapp`, while everything deployed keeps the project identifier `memorysmith` in its physical names (#293). The complete structure and its justification are in `docs/architecture-guide.md` §5.
 
 ```
 memorysmithapp/
-├── memorysmith-backend/     # six bounded contexts + shared kernel + event contracts
+├── memorysmithapp-backend/     # six bounded contexts + shared kernel + event contracts
 │   ├── packages/            # kernel and contracts
 │   ├── services/            # access, knowledge, discovery, audit, agent, portability
 │   └── apps/core-monolith/  # the composition root of the main deployable
-├── memorysmith-frontend/    # React SPA
-└── memorysmith-infra/       # all CDK: stacks, constructs, IAM policies, delivery roles
+├── memorysmithapp-frontend/    # React SPA
+└── memorysmithapp-infra/       # all CDK: stacks, constructs, IAM policies, delivery roles
 ```
 
 **Never put infrastructure code inside the backend project, and never put the definition of a stack inside a service.** The infra project declares resources for all three projects, the bucket serving the frontend and the pipeline deploying everything included, and therefore it cannot live inside any of them. That also keeps the deploy credentials separable from the application code.
@@ -63,15 +63,15 @@ memorysmithapp/
 **The dependency direction between the projects, single and checked in CI:**
 
 ```
-memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
-memorysmith-backend    →  knows nothing about infra or frontend
-memorysmith-frontend   →  imports @memorysmithapp/contracts (its types, and the constants it
+memorysmithapp-infra      →  references backend and frontend artifacts (bundling, deploy)
+memorysmithapp-backend    →  knows nothing about infra or frontend
+memorysmithapp-frontend   →  imports @memorysmithapp/contracts (its types, and the constants it
                           derives from the Markdown specification) and calls the API at runtime
 ```
 
-An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architecture error, not a matter of style. Services never import each other either: communication between contexts is HTTP with IAM authentication or an event, never an `import`.
+An `import` of `memorysmithapp-infra` inside `memorysmithapp-backend` is an architecture error, not a matter of style. Services never import each other either: communication between contexts is HTTP with IAM authentication or an event, never an `import`.
 
-When creating a file, decide where it goes by asking what it is, not what it is for: a CDK construct for the audit table belongs in `memorysmith-infra/constructs/`, even if only the audit service uses it.
+When creating a file, decide where it goes by asking what it is, not what it is for: a CDK construct for the audit table belongs in `memorysmithapp-infra/constructs/`, even if only the audit service uses it.
 
 ---
 
@@ -96,7 +96,7 @@ The last two rows of the table separate what confuses most. The test: "the outbo
 
 ### A notation lives in three files
 
-**A notation lives in three files at once — the document, [`docs/markdown-spec.md`](docs/markdown-spec.md), and `spec.json` and `tests/conformance.json` of `memorysmith-backend/packages/markdown-spec/` — and the three move in the same commit**, together with the reader that implements it. The document is in `docs/` because it is what the product **publishes**; the data, the suite and the checker are a package of the backend because they are what it **implements**, and code of this product lives there. What keeps the three together now that they do not share a folder is `tools/check-spec.mjs`, which reads the document across the repository and fails when it is missing rather than skipping it. A notation without a conformance case is not part of the specification. The one exception is already known to the checker, which is the `test` script of the package: an entry whose reader is `reading-surface` is rendering, and is proved by the renderer rather than by a case. The specification carries no version of its own and follows the version of the product.
+**A notation lives in three files at once — the document, [`docs/markdown-spec.md`](docs/markdown-spec.md), and `spec.json` and `tests/conformance.json` of `memorysmithapp-backend/packages/markdown-spec/` — and the three move in the same commit**, together with the reader that implements it. The document is in `docs/` because it is what the product **publishes**; the data, the suite and the checker are a package of the backend because they are what it **implements**, and code of this product lives there. What keeps the three together now that they do not share a folder is `tools/check-spec.mjs`, which reads the document across the repository and fails when it is missing rather than skipping it. A notation without a conformance case is not part of the specification. The one exception is already known to the checker, which is the `test` script of the package: an entry whose reader is `reading-surface` is rendering, and is proved by the renderer rather than by a case. The specification carries no version of its own and follows the version of the product.
 
 ### Business rule codes
 
@@ -137,7 +137,7 @@ The reason is not preference. Everything the product exposes is already en-US: t
 
 - The `pt_BR` locale of the interface, which is mandatory and speaks to whoever uses the product, not to whoever reads the specification.
 - Answers in issues, from whoever reports something. The language of the repository is not a demand on whoever uses the product.
-- The words of the person in a case of the agent evaluation, in `memorysmith-infra/agent-eval/`: the request of a `pt_BR` variant, the sheet of the person its simulated user plays and the notes of the notebook it starts from. They are what a person says to an agent, not what the repository says, and a case in one language only would never test the other. The rest of a case, its title, checks and rubric included, is en-US.
+- The words of the person in a case of the agent evaluation, in `memorysmithapp-infra/agent-eval/`: the request of a `pt_BR` variant, the sheet of the person its simulated user plays and the notes of the notebook it starts from. They are what a person says to an agent, not what the repository says, and a case in one language only would never test the other. The rest of a case, its title, checks and rubric included, is en-US.
 
 ### Examples of the specification, in any language
 

@@ -1,0 +1,149 @@
+/**
+ * Agent stack for the CIMD spike: the svc-agent Lambda (resource server +
+ * authorization proxy + minimal MCP server) behind an HTTP API on
+ * mcp.memorysmith.app (architecture-guide.md, sections 13 and 17).
+ *
+ * Transitional by design: when delivery 8 lands, the MCP host moves to the
+ * modular-monolith deployable and this stack stops being instantiated.
+ */
+
+import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import type * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import type * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import type { Construct } from 'constructs';
+import { ServiceLambda } from '../constructs/service-lambda.js';
+import { accessLogOf } from '../constructs/access-log.js';
+import { CONNECTOR_BINDING_ROUTE } from './api.stack.js';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const here = dirname(fileURLToPath(import.meta.url));
+
+export interface AgentStackProps extends StackProps {
+  hostedZone: route53.IHostedZone;
+  certificate: acm.ICertificate;
+  mcpDomainName: string;
+  userPool: cognito.UserPool;
+  /** Where the sign-in page answers, already assembled by the identity stack. */
+  hostedUiOrigin: string;
+  proxyClient: cognito.UserPoolClient;
+  /**
+   * Where the tools reach the other contexts. svc-agent forwards the caller's
+   * own token, so the subscription that arrives at the core is the one fixed
+   * at consent, and the connector recorded as the agent is the one the proxy
+   * bound that token to (architecture-guide.md, sections 13.1, 13.3, 14.1).
+   */
+  internalApiOrigin: string;
+  /** The API of the core, whose connector binding route this function alone may invoke. */
+  coreApi: apigwv2.HttpApi;
+  /**
+   * The site of the same environment, which serves the icons the handshake
+   * declares and is the website it names (RN-AGT-026).
+   */
+  siteOrigin: string;
+}
+
+export class AgentStack extends Stack {
+  constructor(scope: Construct, id: string, props: AgentStackProps) {
+    super(scope, id, props);
+
+    const publicOrigin = `https://${props.mcpDomainName}`;
+    const cognitoDomain = props.hostedUiOrigin;
+    const cognitoIssuer = `https://cognito-idp.${this.region}.amazonaws.com/${props.userPool.userPoolId}`;
+
+    // HMAC key that signs the state correlating the two OAuth legs. Rotating it
+    // only invalidates in-flight authorization redirects (10-minute TTL).
+    const stateSecret = new secretsmanager.Secret(this, 'StateSecret', {
+      description: 'HMAC key for the CIMD proxy state parameter',
+      generateSecretString: { passwordLength: 48, excludePunctuation: true },
+    });
+
+    /**
+     * Built through ServiceLambda like every other function, which is what
+     * gives it Powertools, the mandatory alarms and a declared log group. It
+     * also carries the createRequire banner: the AWS SDK is CommonJS inside,
+     * and an ESM bundle without it dies at init with "Dynamic require of
+     * node:https is not supported". The spike shipped without the banner and
+     * this is where that showed up.
+     */
+    const service = new ServiceLambda(this, 'AgentFunction', {
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmithapp-backend',
+        'services',
+        'agent',
+        'src',
+        'lambda.ts',
+      ),
+      description: 'MCP server and CIMD registration proxy.',
+      timeout: Duration.seconds(15),
+      // The notices of a note are read without diagrams (#291), so Mermaid,
+      // which the renderer imports only on demand, stays out of the bundle:
+      // inlined it was four fifths of it.
+      bundling: { externalModules: ['mermaid'] },
+      environment: {
+        PUBLIC_ORIGIN: publicOrigin,
+        SITE_ORIGIN: props.siteOrigin,
+        COGNITO_ISSUER: cognitoIssuer,
+        COGNITO_DOMAIN: cognitoDomain,
+        PROXY_CLIENT_ID: props.proxyClient.userPoolClientId,
+        STATE_SECRET_ID: stateSecret.secretArn,
+        INTERNAL_API_ORIGIN: props.internalApiOrigin,
+      },
+    });
+    const fn = service.function;
+
+    // The function reads the HMAC key itself. Injecting the value would store it
+    // in plaintext on the function configuration and in the CloudFormation
+    // template, where anyone with describe rights could read it.
+    stateSecret.grantRead(fn);
+
+    /**
+     * The one call this function signs with its own credentials: at /token it
+     * records which connector a token belongs to, through the route of Access
+     * that nothing else may invoke (sections 13.3 and 14.1).
+     */
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['execute-api:Invoke'],
+        resources: [props.coreApi.arnForExecuteApi('POST', CONNECTOR_BINDING_ROUTE)],
+      }),
+    );
+
+    const domainName = new apigwv2.DomainName(this, 'McpDomain', {
+      domainName: props.mcpDomainName,
+      certificate: props.certificate,
+    });
+
+    const api = new apigwv2.HttpApi(this, 'McpApi', {
+      apiName: 'memorysmith-mcp',
+      defaultIntegration: new HttpLambdaIntegration('AgentIntegration', fn),
+      defaultDomainMapping: { domainName },
+    });
+
+    // One line per request the gateway answered, its refusals included (section 17).
+    accessLogOf(this, 'McpAccessLogs', api);
+
+    new route53.ARecord(this, 'McpAliasRecord', {
+      zone: props.hostedZone,
+      recordName: props.mcpDomainName,
+      target: route53.RecordTarget.fromAlias(
+        new targets.ApiGatewayv2DomainProperties(
+          domainName.regionalDomainName,
+          domainName.regionalHostedZoneId,
+        ),
+      ),
+    });
+
+    new CfnOutput(this, 'McpEndpoint', { value: `${publicOrigin}/mcp` });
+    new CfnOutput(this, 'ApiId', { value: api.apiId });
+  }
+}

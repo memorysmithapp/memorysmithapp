@@ -19,7 +19,7 @@ coverage/
 .env.*
 !.env.example
 # The configuration vite dev serves as /config.json, pointing at a live environment
-memorysmith-frontend/config.local.json
+memorysmithapp-frontend/config.local.json
 *.pem
 *.key
 
@@ -36,11 +36,11 @@ tmp/
 .DS_Store
 
 # The functional suite: its report, and what a run knows while it runs
-memorysmith-infra/functional-report/
-memorysmith-infra/functional/.state/
+memorysmithapp-infra/functional-report/
+memorysmithapp-infra/functional/.state/
 
 # The agent evaluation: the transcripts, snapshots and scorecard of every round
-memorysmith-infra/agent-eval/runs/
+memorysmithapp-infra/agent-eval/runs/
 
 # Worktrees of the agents of a Claude Code session
 .claude/worktrees/

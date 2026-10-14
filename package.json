@@ -1,5 +1,5 @@
 {
-  "name": "memorysmith",
+  "name": "memorysmithapp",
   "version": "0.11.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "depcruise": "depcruise memorysmith-backend memorysmith-frontend memorysmith-infra"
+    "depcruise": "depcruise memorysmithapp-backend memorysmithapp-frontend memorysmithapp-infra"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -112,7 +112,7 @@ Six contexts (the map of responsibilities is in `software-vision.md` §6), **eac
 - `svc-knowledge` → `svc-access`: **Customer/Supplier**. Knowledge consumes authorisation decisions; Access does not know Knowledge.
 - `svc-agent` → the rest: **Anticorruption Layer**. MCP vocabulary never leaks into the domain (RN-AGT-008).
 - `svc-discovery`, `svc-audit`, `svc-portability` ← everyone: **Published Language** through EventBridge events. None of them is consulted by the core, they only feed on it.
-- **Shared Kernel** (`memorysmith-backend/packages/kernel`): only primitives with no rules, such as `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` and the error taxonomy. Deliberately tiny, because a large shared kernel is coupling in disguise.
+- **Shared Kernel** (`memorysmithapp-backend/packages/kernel`): only primitives with no rules, such as `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` and the error taxonomy. Deliberately tiny, because a large shared kernel is coupling in disguise.
 
 ### 3.2 Deployment shape
 
@@ -137,7 +137,7 @@ The target design is six deployables (D5). **0.1.0 ships as a modular monolith w
 | Identity | An Amazon Cognito user pool with a *pre-token-generation* trigger | MCP client registration through a CIMD proxy (§13.3) |
 | Validation | Zod, at the edge and in the event contracts | Never inside the domain |
 | Observability | AWS Lambda Powertools | One line per operation, identifiers only, the `subscriptionId` on it (§17) |
-| IaC | AWS CDK (TypeScript) | A project of its own, `memorysmith-infra` (§5.1, §5.4) |
+| IaC | AWS CDK (TypeScript) | A project of its own, `memorysmithapp-infra` (§5.1, §5.4) |
 
 ### 4.2 Frontend
 
@@ -160,13 +160,13 @@ pnpm (workspaces) · Vitest · `dependency-cruiser` (§5.5) · ESLint + Prettier
 
 ### 5.1 Three top-level projects
 
-The repository is a pnpm monorepo with **three first-level projects**, named after the project identifier (`CLAUDE.md` → Project identifier):
+The repository is a pnpm monorepo with **three first-level projects**, named after the organisation, `memorysmithapp`. The project identifier (`CLAUDE.md` → Project identifier) stays in the physical names of everything deployed, because renaming a table, a bucket or the user pool makes CloudFormation replace it, with what it holds (#293):
 
 | Project | Holds | Does **not** hold |
 |---|---|---|
-| **`memorysmith-backend/`** | The six bounded contexts, the shared kernel and the event contracts. All the domain, application and adapter code | Not a line of CDK, no stack name, no reference to an account or a region |
-| **`memorysmith-frontend/`** | The React SPA: screens, state, i18n, HTTP client | Business rules; no decision that belongs to the domain |
-| **`memorysmith-infra/`** | All the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with | No business rule, no handler |
+| **`memorysmithapp-backend/`** | The six bounded contexts, the shared kernel and the event contracts. All the domain, application and adapter code | Not a line of CDK, no stack name, no reference to an account or a region |
+| **`memorysmithapp-frontend/`** | The React SPA: screens, state, i18n, HTTP client | Business rules; no decision that belongs to the domain |
+| **`memorysmithapp-infra/`** | All the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with | No business rule, no handler |
 
 > **Why infrastructure is a project of its own, and not a folder inside the backend.** Three reasons, in the order they show up in practice:
 >
@@ -177,18 +177,18 @@ The repository is a pnpm monorepo with **three first-level projects**, named aft
 **The dependency rule between projects, in one direction:**
 
 ```
-memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
-memorysmith-backend    →  knows nothing about infra, knows nothing about frontend
-memorysmith-frontend   →  consumes @memorysmithapp/contracts (its types, and the constants
+memorysmithapp-infra      →  references backend and frontend artifacts (bundling, deploy)
+memorysmithapp-backend    →  knows nothing about infra, knows nothing about frontend
+memorysmithapp-frontend   →  consumes @memorysmithapp/contracts (its types, and the constants
                           derived from the Markdown specification) and the API at runtime
 ```
 
-An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architecture error, not a matter of taste: it would mean the service code knows the AWS account, the same leak PE1 prevents one layer below.
+An `import` of `memorysmithapp-infra` inside `memorysmithapp-backend` is an architecture error, not a matter of taste: it would mean the service code knows the AWS account, the same leak PE1 prevents one layer below.
 
-### 5.2 `memorysmith-backend/`
+### 5.2 `memorysmithapp-backend/`
 
 ```
-memorysmith-backend/
+memorysmithapp-backend/
 ├── packages/
 │   ├── kernel/              # SubscriptionId, Ulid, Slug, Authorship, Result, DomainEvent, errors
 │   ├── contracts/           # Zod schemas of the events and the DTOs: the only package the frontend imports
@@ -223,10 +223,10 @@ memorysmith-backend/
 
 Every service has exactly the same internal four-layer structure. Uniformity here is not aesthetics: it is what lets the dependency rule of §5.5 be a single configuration, valid for all six.
 
-### 5.3 `memorysmith-frontend/`
+### 5.3 `memorysmithapp-frontend/`
 
 ```
-memorysmith-frontend/
+memorysmithapp-frontend/
 ├── public/
 ├── src/
 │   ├── main.tsx                        # bootstrap: auth, i18n, query client
@@ -268,10 +268,10 @@ The mapping from error to message lives in `shared/api/error-mapper.ts` and cove
 
 **The token lifecycle has exactly two rules, and both are enforced in one place each.** `shared/auth/oauth.ts` is the only module that speaks to the identity provider, and what it persists after a token exchange **keeps the refresh token when the answer carries none**: Cognito returns `refresh_token` on the authorization-code exchange and never on a refresh, so a missing field means the held credential is still valid and not that it was revoked. `shared/api/http.ts` is the only module that reacts to a session that cannot authenticate: a token that cannot be renewed and a `401` from the API are the same fact, and both call the `onUnauthenticated` handler the bootstrap wires to `app/session-expiry.ts`, which discards the credential, empties the session store and returns the browser to the sign-in screen with the reason (RN-SUB-022). **No screen carries any part of that**, and no screen may present a query that has failed as a query still loading: `shared/api/query-state.ts` separates the three states, because `isLoading || !data` collapses two of them whenever retries are off.
 
-### 5.4 `memorysmith-infra/`
+### 5.4 `memorysmithapp-infra/`
 
 ```
-memorysmith-infra/
+memorysmithapp-infra/
 ├── bin/app.ts
 ├── stacks/
 │   ├── network.stack.ts             # Route 53 (hosted zone), CloudFront, ACM certificates (§17)
@@ -284,7 +284,7 @@ memorysmith-infra/
 │   ├── audit.stack.ts               # the mv-audit table + Lambda with an APPEND-ONLY role (§12.2)
 │   ├── agent.stack.ts               # MCP server + OAuth resource server + CIMD proxy (§13.3)
 │   ├── portability.stack.ts
-│   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC for memorysmith-frontend
+│   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC for memorysmithapp-frontend
 │   └── github-delivery.stack.ts     # the roles GitHub Actions delivers with (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + mandatory alarms (§17)
@@ -314,7 +314,7 @@ Three constructs carry an architectural guarantee, not a convenience:
 
 ### 5.5 The dependency rule between layers (checked in CI)
 
-Inside each service of `memorysmith-backend/services/*`:
+Inside each service of `memorysmithapp-backend/services/*`:
 
 ```
 domain/       →  imports only from itself and from packages/kernel
@@ -325,7 +325,7 @@ main/         →  imports from everything (it is the only place that knows the 
 
 Configured in `dependency-cruiser` and run on every pull request. **The build breaks if `domain/` imports an AWS SDK.** Without that check, hexagonal becomes folder naming in three sprints (PE1).
 
-The same configuration declares the rules between the projects of §5.1: `memorysmith-backend` and `memorysmith-frontend` may not import from `memorysmith-infra`, and no service may import from another. Communication between contexts is over HTTP with IAM or through an event (§3.1), never through an `import`.
+The same configuration declares the rules between the projects of §5.1: `memorysmithapp-backend` and `memorysmithapp-frontend` may not import from `memorysmithapp-infra`, and no service may import from another. Communication between contexts is over HTTP with IAM or through an event (§3.1), never through an `import`.
 
 ---
 ## 6. Domain model (tactical DDD)
@@ -335,7 +335,7 @@ The same configuration declares the rules between the projects of §5.1: `memory
 Consistency boundary: the notebook and **its whole folder tree**.
 
 ```typescript
-// memorysmith-backend/services/knowledge/src/domain/notebook/Notebook.ts — zero AWS imports
+// memorysmithapp-backend/services/knowledge/src/domain/notebook/Notebook.ts — zero AWS imports
 export class Notebook {
   private constructor(
     private readonly id: NotebookId,
@@ -918,7 +918,7 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 
 ### 11.0 The notation, declared once as data
 
-**The list of what the product reads is written once**, in the MemorySmith Markdown Specification: the same notation as prose, in the document [`docs/markdown-spec.md`](markdown-spec.md), as data (`spec.json`) and as an executable suite (`tests/conformance.json`), the last two in `memorysmith-backend/packages/markdown-spec/`. It follows the version of the product (RN-AGT-022). **The document is in `docs/` and the rest is a package of the backend**, because the document is what the product publishes and the data and the suite are what it implements with — and what keeps the three moving together, now that no folder does it, is the checker, which reads the document across the repository and fails when it is not there. It used to be a repository of its own, pinned here by a git tag, and changing a notation took a release there and a pin bump here before the first line of implementation. A notation now changes in the same commit as the readers that implement it, and the three files move together.
+**The list of what the product reads is written once**, in the MemorySmith Markdown Specification: the same notation as prose, in the document [`docs/markdown-spec.md`](markdown-spec.md), as data (`spec.json`) and as an executable suite (`tests/conformance.json`), the last two in `memorysmithapp-backend/packages/markdown-spec/`. It follows the version of the product (RN-AGT-022). **The document is in `docs/` and the rest is a package of the backend**, because the document is what the product publishes and the data and the suite are what it implements with — and what keeps the three moving together, now that no folder does it, is the checker, which reads the document across the repository and fails when it is not there. It used to be a repository of its own, pinned here by a git tag, and changing a notation took a release there and a pin bump here before the first line of implementation. A notation now changes in the same commit as the readers that implement it, and the three files move together.
 
 **How it enters the build.** The data and the suite are a package of the workspace, `@memorysmithapp/markdown-spec`, and exactly one package depends on it: `packages/contracts`, which re-exports it. The frontend reads the notation and the cases from the contracts, like everything else it takes from the backend, and dependency-cruiser refuses an import of the specification from anywhere in the frontend. The `test` script of the package is `tools/check-spec.mjs`, which validates `spec.json` against its schema and refuses a notation with no case, so the agreement of the three files is checked wherever the suites run.
 
@@ -930,7 +930,7 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 |---|---|---|
 | **Storage** | The bytes, untouched | Nothing to prove: the product does not interpret content (PP4) |
 | **The two extractors** | `services/discovery`, §11.1 and §11.3 | `test/notation-conformance.test.ts`, running the **published cases**: a case the extractors fail breaks the build |
-| **The reading surface** | `@memorysmithapp/markdown-renderer`, drawn by `memorysmith-frontend` through `NoteContent` | `shared/components/reading-surface-conformance.test.tsx`, running each `reading-surface` entry through `NoteContent` and the real renderer |
+| **The reading surface** | `@memorysmithapp/markdown-renderer`, drawn by `memorysmithapp-frontend` through `NoteContent` | `shared/components/reading-surface-conformance.test.tsx`, running each `reading-surface` entry through `NoteContent` and the real renderer |
 
 **What each layer is asked for, since specification v0.3.0 restated CommonMark and GFM as data.** The declared notation went from 31 entries to 54, and most of the new ones are forms a base parser already produces. The three layers do not answer that the same way, and the difference is a decision recorded here rather than a filter somebody added quietly:
 
@@ -1388,7 +1388,7 @@ They are acceptable and they are declared. If a subscription requires immediate 
 ---
 ## 15. Error taxonomy
 
-One taxonomy only, in `memorysmith-backend/packages/kernel`, defined **before** the first line of a use case. Without it, each service invents its own and the edge becomes ad hoc translation.
+One taxonomy only, in `memorysmithapp-backend/packages/kernel`, defined **before** the first line of a use case. Without it, each service invents its own and the edge becomes ad hoc translation.
 
 ```typescript
 type ErrorCode =
@@ -1615,7 +1615,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 
 ### 20.1 Delivery runs on GitHub Actions
 
-**Delivery is a command, and GitHub Actions is where it runs.** `pnpm -C memorysmith-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
+**Delivery is a command, and GitHub Actions is where it runs.** `pnpm -C memorysmithapp-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
 
 ```
 deliver   the SPA and the bundles built once · synth · the network and the hosting ·
@@ -1645,14 +1645,14 @@ One delivery of an environment runs at a time: a second one waits for the first 
 
 ### 20.2 What still runs from a workstation
 
-**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmith-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It only calls AWS, so it asks nothing of the machine but to stay awake, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17), nor the roles GitHub delivers with. It runs from a workstation on purpose: a role a workflow could assume and that could delete staging would be one condition away from deleting production.
+**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmithapp-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It only calls AWS, so it asks nothing of the machine but to stay awake, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17), nor the roles GitHub delivers with. It runs from a workstation on purpose: a role a workflow could assume and that could delete staging would be one condition away from deleting production.
 
 **So do the bootstrap and the one-time steps**: `cdk bootstrap`, the deploy of the GitHub roles, the activation of the cost allocation tags, the maintenance jobs against production, and the blind agent evaluation (§19). `deliver` still runs from a workstation as well, with the same result, when a person has a reason to.
 
 ### 20.3 The commands of the infrastructure
 
 
-A delivery is made of commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). The workflows call these same scripts, which is what lets delivery move between GitHub and a workstation without changing what is run.
+A delivery is made of commands: scripts of `memorysmithapp-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). The workflows call these same scripts, which is what lets delivery move between GitHub and a workstation without changing what is run.
 
 ```
 deliver           raises an environment: build, synth, the stacks in order, the waits, the smoke
@@ -1717,7 +1717,7 @@ agent-eval        a round of the blind agent evaluation against staging (§19)
 ## 22. Checklist for a new feature
 
 **Before creating the first file**
-- [ ] Is each new file in the right project (§5.1)? A stack or a construct in `memorysmith-infra`; a screen in `memorysmith-frontend`; a rule in `memorysmith-backend`.
+- [ ] Is each new file in the right project (§5.1)? A stack or a construct in `memorysmithapp-infra`; a screen in `memorysmithapp-frontend`; a rule in `memorysmithapp-backend`.
 - [ ] The change does not create a dependency against the single direction between projects.
 
 **Domain**
@@ -1774,7 +1774,7 @@ Adding a tool, adding an optional argument or widening a return is **minor** in 
 
 Every stack of the product carries the tag `app:environment`, `app:version` with the version it serves and `deploy:sha` with the commit it was built from. The stack of the roles GitHub delivers with carries none of the three, because it belongs to the account and delivers every version, and a version or an environment written on it would be false. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
 
-**The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmith-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
+**The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmithapp-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
 
 The interface is two stacks for the same reason. `frontend-hosting.stack` holds the bucket, the distribution and the records, and goes before identity, because Cognito refuses a sign-in domain whose parent resolves no A record (§17). `frontend-release.stack` publishes the bundle and the configuration, and goes last, because the configuration names the API and the app client.
 
@@ -1818,7 +1818,7 @@ section, and still holds today.
 - **The content index is a scan, not an inverted index** (§11.2). A notebook of 2,000 notes costs around 1,000 read units per query, and the scan saves keeping postings up to date on every write. The ceiling of notes that bounded it is gone, and every search is measured instead; the `ContentIndex` port is what makes swapping it for an inverted index, or for a managed service, an adapter change on the day the measurement says so.
 - **Discovery keeps a projection of the notebook structure of its own**, fed by notebook and folder events. The Notebook Context is answered from it, and querying Knowledge to get the notebook name and the folder tree would invert the single direction of §3.1, which is what makes the projections rebuildable.
 - **Discovery gained a sixth route, `GET /notebooks/:v/graph`**, which returns the whole link graph of a notebook. §14.1 declared only the tree from a note, under a depth ceiling, and this one answers a different question: the graph screen draws the whole notebook, with no root. The link projection already held exactly that in the notebook partition, so the route is a query by prefix and nothing new is stored. The edges come back as index pairs over the node list, and the ceiling of 2,000 nodes is declared in the answer, because a truncated graph claiming to be whole is worse than no graph.
-- **The composition of the modular monolith lives in `memorysmith-backend/apps/core-monolith`**, and it is the only place that knows two contexts at once. The services still do not import each other, and the split into six deployables is a swap of that file (§24).
+- **The composition of the modular monolith lives in `memorysmithapp-backend/apps/core-monolith`**, and it is the only place that knows two contexts at once. The services still do not import each other, and the split into six deployables is a swap of that file (§24).
 
 ---
 

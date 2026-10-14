@@ -8,9 +8,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'memorysmith-backend/**'
-      - 'memorysmith-frontend/**'
-      - 'memorysmith-infra/**'
+      - 'memorysmithapp-backend/**'
+      - 'memorysmithapp-frontend/**'
+      - 'memorysmithapp-infra/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
   # To run a delivery of main again, after a failure that was not the code's.
@@ -44,7 +44,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -C memorysmith-infra release-checks
+      - run: pnpm -C memorysmithapp-infra release-checks
 
   quality:
     name: Quality
@@ -96,7 +96,7 @@ jobs:
           # this environment, never a line of cdk.json, because the repository is
           # public. Without it the delivery refuses before it builds anything.
           ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}
-        run: pnpm -C memorysmith-infra deliver --environment production
+        run: pnpm -C memorysmithapp-infra deliver --environment production
 
   release:
     name: Tag and release
@@ -119,4 +119,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT: ${{ github.sha }}
-        run: pnpm -s -C memorysmith-infra publish-release
+        run: pnpm -s -C memorysmithapp-infra publish-release
