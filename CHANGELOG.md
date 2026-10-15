@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-14
+
 ### Added
 
 - **An agent is told where the page will not show what it wrote.** An agent wrote notes whose fence never closed, whose headings skipped a level or whose footnote had no definition, and found out only when the person did. `create_note` and `update_note` now answer `notices`, each with its code, a line and a column: a `notice` where the page will draw the note differently from the text, a `hint` where the note lacks `aliases` or `tags`. `check_notebook` lists the notices of the notebook's latest notes, up to 200, and says how many it read. Nothing is refused for a notice, and the skill `write-notes` teaches fixing one in the same turn (#291, RN-AGT-052).
@@ -738,7 +740,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.8.0...v0.9.0
