@@ -1,0 +1,231 @@
+/**
+ * Onboarding and the session (software-vision.md, sections 4.4 and 4.5).
+ *
+ * Signup creates only the user account. Asking for a subscription is a
+ * separate, explicit act, and it grants no operational access until a platform
+ * admin approves it (RN-SUB-006, RN-SUB-007).
+ */
+
+import {
+  type Authorship,
+  DomainError,
+  err,
+  ok,
+  Role,
+  SubscriptionId,
+  type Result,
+  type SubscriptionContext,
+  type UserId,
+} from '@memorysmithapp/kernel';
+import { Subscription } from '../domain/subscription/Subscription.js';
+import { StorageQuota, SubscriptionType } from '../domain/values.js';
+import type {
+  SubscriptionOnboarding,
+  SubscriptionRepository,
+  UserLinkRepository,
+  UserProfile,
+} from '../domain/ports/index.js';
+
+export class RequestSubscription {
+  constructor(
+    private readonly onboarding: SubscriptionOnboarding,
+    private readonly links: UserLinkRepository,
+  ) {}
+
+  async execute(input: {
+    profile: UserProfile;
+    /** Omitted means the default plan, not an invalid one. */
+    type?: string;
+    quota?: string;
+    by: Authorship;
+  }): Promise<Result<{ subscriptionId: SubscriptionId }, DomainError>> {
+    const existing = await this.onboarding.ownedBy(input.profile.userId);
+    if (existing) {
+      return err(
+        DomainError.conflict('This user already holds a subscription', {
+          subscriptionId: existing.value,
+        }),
+      );
+    }
+
+    const type = input.type ? SubscriptionType.create(input.type) : ok(SubscriptionType.DEFAULT);
+    if (!type.ok) return type;
+    const quota = input.quota ? StorageQuota.create(input.quota) : ok(StorageQuota.DEFAULT);
+    if (!quota.ok) return quota;
+
+    const subscription = Subscription.request({
+      id: SubscriptionId.generate(),
+      ownerId: input.profile.userId,
+      ownerEmail: input.profile.email.value,
+      type: type.value,
+      quota: quota.value,
+      by: input.by,
+    });
+    if (!subscription.ok) return subscription;
+
+    const written = await this.onboarding.create({
+      subscription: subscription.value,
+      link: {
+        userId: input.profile.userId,
+        subscriptionId: subscription.value.id,
+        isOwner: true,
+        isDefault: true,
+        joinedAt: input.by.at.toISOString(),
+      },
+    });
+    if (!written.ok) return err(written.error);
+
+    return ok({ subscriptionId: subscription.value.id });
+  }
+}
+
+/** What the SPA needs to render its shell, in one call. */
+export interface SessionView {
+  readonly user: UserProfile;
+  readonly links: Array<{
+    subscriptionId: string;
+    status: string;
+    type: string;
+    quota: string;
+    quotaBytes: number;
+    isOwner: boolean;
+    isDefault: boolean;
+    joinedAt: string;
+  }>;
+  /** The role in the ACTIVE subscription; NONE when there is none. */
+  readonly role: string;
+  /**
+   * Bytes of live content stored by the ACTIVE subscription (RN-SUB-021), or
+   * null when the session carries none. It is here because the screen that
+   * shows the quota is the screen that has to show what is left of it, and
+   * because the same call already answers everything else the shell needs.
+   */
+  readonly usedBytes: number | null;
+  /**
+   * Whether this person has already been shown what the product is (#167).
+   * False for somebody who never was, and the interface answers that by
+   * opening the welcome surface once, on the sign-in that follows.
+   */
+  readonly welcomeSeen: boolean;
+  /** Where the face beside this person comes from (RN-ACC-022). */
+  readonly avatar: string;
+  /** The uploaded picture as a data URL, or null when there is none. */
+  readonly picture: string | null;
+  /**
+   * The name recorded on the account, which wins over the one in the token
+   * (RN-ACC-021): a token minted before the last edit still carries what it
+   * replaced, and a shell that shows it is a shell that refused the edit it
+   * just accepted.
+   */
+  readonly name: string;
+}
+
+export class GetSession {
+  constructor(
+    private readonly links: UserLinkRepository,
+    private readonly subscriptions: SubscriptionRepository | null,
+    /** Reads the metadata of a link; the only cross-subscription read there is. */
+    private readonly describeLink: (id: SubscriptionId) => Promise<{
+      status: string;
+      type: string;
+      quota: string;
+    } | null>,
+    /**
+     * How much the active subscription is storing. It is a function and not a
+     * repository because the number lives in the Knowledge table, which Access
+     * never reads: the composition root passes the reading in.
+     */
+    private readonly usedBytes: () => Promise<number> = async () => 0,
+    /**
+     * The face of this person inside the ACTIVE subscription, and the name
+     * recorded on their account. Both are functions rather than repositories:
+     * one is scoped to a subscription this use case may not have, and the
+     * other lives in the identity provider, which this context reaches through
+     * a port of its own. The root joins them.
+     */
+    private readonly avatarOf: () => Promise<{
+      source: string;
+      picture: string | null;
+    } | null> = async () => null,
+    private readonly nameOf: () => Promise<string | null> = async () => null,
+  ) {}
+
+  async execute(input: {
+    profile: UserProfile;
+    context: SubscriptionContext | null;
+  }): Promise<Result<SessionView, DomainError>> {
+    const links = await this.links.linksOf(input.profile.userId);
+    const described = [];
+    for (const link of links) {
+      const metadata = await this.describeLink(link.subscriptionId);
+      if (!metadata) continue;
+      const quota = StorageQuota.create(metadata.quota);
+      described.push({
+        subscriptionId: link.subscriptionId.value,
+        status: metadata.status,
+        type: metadata.type,
+        quota: metadata.quota,
+        quotaBytes: (quota.ok ? quota.value : StorageQuota.DEFAULT).bytes,
+        isOwner: link.isOwner,
+        isDefault: link.isDefault,
+        joinedAt: link.joinedAt,
+      });
+    }
+
+    /**
+     * The role only exists for the ACTIVE subscription: no session sees two
+     * subscriptions at once (RN-SUB-003). Without a context there is no
+     * subscription to have a role in, and NONE is the honest answer.
+     */
+    // Read once, before the answer is assembled: a session with no
+    // subscription has no face to read, and gets the default.
+    const face = input.context ? await this.avatarOf() : null;
+
+    let role = Role.NONE;
+    if (input.context && this.subscriptions) {
+      const subscription = await this.subscriptions.find();
+      if (subscription) {
+        role = subscription.isOwner(input.profile.userId)
+          ? Role.OWNER
+          : subscription.memberRole(input.profile.userId);
+      }
+    }
+
+    return ok({
+      user: input.profile,
+      links: described,
+      role: role.name,
+      usedBytes: input.context ? await this.usedBytes() : null,
+      // A person with no link at all has been welcomed by nobody, which is
+      // the honest answer and also the one that welcomes them.
+      welcomeSeen: links.some((link) => link.welcomedAt !== null),
+      avatar: face?.source ?? 'gravatar',
+      picture: face?.picture ?? null,
+      name: (await this.nameOf()) ?? input.profile.name,
+    });
+  }
+}
+
+/**
+ * Switching the active subscription is an explicit user action and takes a
+ * new token afterwards; no business operation ever receives the subscription
+ * as an argument (RN-SUB-013).
+ */
+export class SwitchActiveSubscription {
+  constructor(private readonly links: UserLinkRepository) {}
+
+  async execute(input: {
+    user: UserId;
+    subscriptionId: SubscriptionId;
+  }): Promise<Result<void, DomainError>> {
+    const links = await this.links.linksOf(input.user);
+    const target = links.find((link) => link.subscriptionId.equals(input.subscriptionId));
+    if (!target) {
+      // Not a link of this user: indistinguishable from a subscription that
+      // does not exist (RN-SUB-004).
+      return err(DomainError.notFound('Subscription not found'));
+    }
+    await this.links.setDefault(input.user, input.subscriptionId);
+    return ok();
+  }
+}

@@ -1,0 +1,301 @@
+/**
+ * mv-audit (architecture-guide.md, section 12.2):
+ *
+ *   PK  S#{s}#{subject}#{subjectId}      SK  AT#{timestamp}#{eventUlid}
+ *
+ * One Query by PK returns the complete timeline of any object, in
+ * chronological order, with no scan.
+ *
+ * THE IMMUTABILITY IS NOT IN THIS FILE. The role of this Lambda carries an
+ * explicit IAM Deny on UpdateItem and DeleteItem for this table (PE4), which
+ * is the difference between "we do not alter the log" and "we cannot alter the
+ * log". Only the second one answers a regulator, and only the second one is
+ * what the isolation test in the suite asserts.
+ */
+
+import {
+  BatchWriteCommand,
+  GetCommand,
+  QueryCommand,
+  type DynamoDBDocumentClient,
+} from '@aws-sdk/lib-dynamodb';
+import {
+  AgentIdentity,
+  Authorship,
+  ContentId,
+  ContentRef,
+  type DomainError,
+  Instant,
+  SubscriptionId,
+  UserId,
+  type DomainEventType,
+  type EventSubject,
+  type Result,
+} from '@memorysmithapp/kernel';
+import {
+  AuditEvent,
+  notebookOf,
+  survivesTheNotebook,
+  type AuditTrail,
+  type ClosedTrails,
+} from '../../domain/index.js';
+
+type Item = Record<string, unknown>;
+
+function need<T>(result: Result<T, DomainError>): T {
+  if (!result.ok) throw new Error(`Corrupted item in mv-audit: ${result.error.message}`);
+  return result.value;
+}
+
+function partitionOf(event: AuditEvent): string {
+  return `S#${event.subscriptionId.value}#${event.subject}#${event.subjectId}`;
+}
+
+function sortKeyOf(event: AuditEvent): string {
+  return `AT#${event.occurredAt.toISOString()}#${event.eventId}`;
+}
+
+/**
+ * Where a closed trail is marked (RN-AUD-011). It is a partition of its own and
+ * never an item of the notebook, so every read of the trail stays exactly what
+ * it was: one Query by PK, parsing entries and nothing else.
+ */
+export const closedKeyOf = (
+  subscriptionId: string,
+  notebookId: string,
+): { PK: string; SK: string } => ({
+  PK: `S#${subscriptionId}#TRAILCLOSED#${notebookId}`,
+  SK: 'CLOSED',
+});
+
+/** How many times a batch is offered again what the table handed back unwritten. */
+const UNPROCESSED_ATTEMPTS = 5;
+
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+export class DynamoAuditTrail implements AuditTrail {
+  constructor(
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+    /** The subscription of the reading session; writes take it per event. */
+    private readonly subscriptionId: SubscriptionId | null = null,
+    private readonly sleep: (milliseconds: number) => Promise<void> = wait,
+  ) {}
+
+  /**
+   * BatchWriteItem answers success with the items the table did not write under
+   * load handed back as UnprocessedItems, and ignoring them was a hole in a trail
+   * that exists to have none. They are offered again with a growing pause, and a
+   * batch still unwritten after that throws, so the event is delivered again: an
+   * entry is keyed by the instant and the identifier of its event, so writing it
+   * twice writes the same entry.
+   */
+  async append(events: AuditEvent[]): Promise<void> {
+    for (let index = 0; index < events.length; index += 25) {
+      const chunk = events.slice(index, index + 25);
+      let pending = this.putRequestsOf(chunk);
+      for (let attempt = 0; pending.length > 0; attempt++) {
+        if (attempt === UNPROCESSED_ATTEMPTS) {
+          throw new Error(
+            `${pending.length} audit entries were not written after ${UNPROCESSED_ATTEMPTS} attempts`,
+          );
+        }
+        if (attempt > 0) await this.sleep(50 * 2 ** attempt);
+        const answer = await this.db.send(
+          new BatchWriteCommand({ RequestItems: { [this.tableName]: pending } }),
+        );
+        pending = (answer?.UnprocessedItems?.[this.tableName] ?? []) as typeof pending;
+      }
+    }
+  }
+
+  private putRequestsOf(chunk: AuditEvent[]) {
+    return chunk.map((event) => ({
+      PutRequest: {
+        Item: {
+          PK: partitionOf(event),
+          SK: sortKeyOf(event),
+          entity: 'AUDIT',
+          eventId: event.eventId,
+          subscriptionId: event.subscriptionId.value,
+          subject: event.subject,
+          subjectId: event.subjectId,
+          occurredAt: event.occurredAt.toISOString(),
+          type: event.type,
+          authorship: event.authorship.toJSON(),
+          contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+          payload: event.payload,
+          // Where the line came from, when it was not written here.
+          ...(event.importedBy ? { importedBy: event.importedBy } : {}),
+          // Lets the activity screen ask "what happened in this notebook".
+          ...(notebookOf(event)
+            ? {
+                GSI1PK: `S#${event.subscriptionId.value}#NOTEBOOKACT#${notebookOf(event)}`,
+                GSI1SK: sortKeyOf(event),
+              }
+            : {}),
+        },
+      },
+    }));
+  }
+
+  async timelineOf(subject: EventSubject, subjectId: string): Promise<AuditEvent[]> {
+    if (!this.subscriptionId) throw new Error('Reading the trail requires a subscription');
+    const response = await this.db.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `S#${this.subscriptionId.value}#${subject}#${subjectId}`,
+        },
+        ScanIndexForward: true,
+      }),
+    );
+    return ((response.Items ?? []) as Item[]).map((item) => parse(item));
+  }
+
+  async activityOf(
+    notebookId: string,
+    from: Instant | null,
+    to: Instant | null,
+  ): Promise<AuditEvent[]> {
+    if (!this.subscriptionId) throw new Error('Reading the trail requires a subscription');
+    const response = await this.db.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: 'GSI1',
+        KeyConditionExpression:
+          from && to
+            ? 'GSI1PK = :pk AND GSI1SK BETWEEN :from AND :to'
+            : from
+              ? 'GSI1PK = :pk AND GSI1SK >= :from'
+              : 'GSI1PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `S#${this.subscriptionId.value}#NOTEBOOKACT#${notebookId}`,
+          ...(from ? { ':from': `AT#${from.toISOString()}` } : {}),
+          ...(to ? { ':to': `AT#${to.toISOString()}#~` } : {}),
+        },
+        ScanIndexForward: false,
+      }),
+    );
+    return ((response.Items ?? []) as Item[]).map((item) => parse(item));
+  }
+
+  /**
+   * Whether the purge closed that trail. The consumer asks it before appending
+   * an entry that belongs inside a notebook, because the events of a purge
+   * reach the trail after the purge that wrote them has ended (RN-AUD-011).
+   */
+  async isClosed(subscriptionId: SubscriptionId, notebookId: string): Promise<boolean> {
+    const found = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: closedKeyOf(subscriptionId.value, notebookId),
+      }),
+    );
+    return found.Item !== undefined;
+  }
+}
+
+function parse(item: Item): AuditEvent {
+  const authorshipRaw = (item['authorship'] ?? {}) as {
+    userId: string;
+    agent: { clientId: string; clientName: string } | null;
+    at: string;
+  };
+  const at = need(Instant.fromISO(authorshipRaw.at));
+  const user = need(UserId.create(authorshipRaw.userId));
+  const authorship = authorshipRaw.agent
+    ? Authorship.byAgent(
+        user,
+        need(AgentIdentity.create(authorshipRaw.agent.clientId, authorshipRaw.agent.clientName)),
+        at,
+      )
+    : Authorship.byHuman(user, at);
+
+  const refRaw = item['contentRef'] as {
+    contentId: string;
+    versionId: string;
+    sha256: string;
+    bytes: number;
+  } | null;
+  const contentRef = refRaw
+    ? need(
+        ContentRef.create({
+          contentId: need(ContentId.create(refRaw.contentId)),
+          versionId: refRaw.versionId,
+          sha256: refRaw.sha256,
+          bytes: refRaw.bytes,
+        }),
+      )
+    : null;
+
+  return need(
+    AuditEvent.create({
+      eventId: String(item['eventId']),
+      subscriptionId: need(SubscriptionId.fromClaim(String(item['subscriptionId']))),
+      subject: String(item['subject']) as EventSubject,
+      subjectId: String(item['subjectId']),
+      occurredAt: need(Instant.fromISO(String(item['occurredAt']))),
+      type: String(item['type']) as DomainEventType,
+      authorship,
+      contentRef,
+      payload: (item['payload'] ?? {}) as Record<string, unknown>,
+      importedBy: typeof item['importedBy'] === 'string' ? item['importedBy'] : null,
+    }),
+  );
+}
+
+/**
+ * In-memory trail for tests, honouring the same contracts: it appends, it
+ * answers whether a trail was closed, and closing it erases everything of a
+ * notebook but its life (RN-AUD-011).
+ */
+export class InMemoryAuditTrail implements AuditTrail, ClosedTrails {
+  private readonly events: AuditEvent[] = [];
+  private readonly closed = new Set<string>();
+
+  async append(events: AuditEvent[]): Promise<void> {
+    this.events.push(...events);
+  }
+
+  async isClosed(subscriptionId: SubscriptionId, notebookId: string): Promise<boolean> {
+    return this.closed.has(`${subscriptionId.value}#${notebookId}`);
+  }
+
+  /** What the purge does, through the port only it reaches. */
+  async closeNotebook(subscriptionId: SubscriptionId, notebookId: string): Promise<number> {
+    this.closed.add(`${subscriptionId.value}#${notebookId}`);
+    const doomed = this.events.filter(
+      (event) =>
+        event.subscriptionId.value === subscriptionId.value &&
+        notebookOf(event) === notebookId &&
+        !survivesTheNotebook(event.type),
+    );
+    for (const event of doomed) this.events.splice(this.events.indexOf(event), 1);
+    return doomed.length;
+  }
+
+  async timelineOf(subject: EventSubject, subjectId: string): Promise<AuditEvent[]> {
+    return this.events
+      .filter((event) => event.subject === subject && event.subjectId === subjectId)
+      .sort((left, right) => left.occurredAt.epochMillis - right.occurredAt.epochMillis);
+  }
+
+  async activityOf(
+    notebookId: string,
+    from: Instant | null,
+    to: Instant | null,
+  ): Promise<AuditEvent[]> {
+    return this.events
+      .filter((event) => notebookOf(event) === notebookId)
+      .filter((event) => !from || !event.occurredAt.isBefore(from))
+      .filter((event) => !to || event.occurredAt.isAtOrBefore(to))
+      .sort((left, right) => right.occurredAt.epochMillis - left.occurredAt.epochMillis);
+  }
+
+  get all(): AuditEvent[] {
+    return [...this.events];
+  }
+}

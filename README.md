@@ -182,7 +182,7 @@ The exit lever is worth recording: the proxy exists because Cognito does not spe
 
 This is **one of the two paths** of using the product, and not the only one: whoever prefers not to operate infrastructure uses the hosted service, which runs exactly this code. What follows is for whoever wants the whole backend in their own account.
 
-All the infrastructure lives in [`memorysmith-infra/`](memorysmith-infra/), in AWS CDK with TypeScript, and **an environment is delivered by one command**, `pnpm -C memorysmith-infra deliver`, which builds, deploys the stacks in the order the environment imposes and proves with a smoke which version each surface serves. GitHub Actions runs it: staging when somebody starts it on a branch, production on every merge to `main` that touches what is deployed, with no AWS key stored anywhere ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). One app describes two environments, production and staging, which live in one account and are told apart by the name of everything they create. Staging is optional: an installation that wants only production leaves its entry out.
+All the infrastructure lives in [`memorysmithapp-infra/`](memorysmithapp-infra/), in AWS CDK with TypeScript, and **an environment is delivered by one command**, `pnpm -C memorysmithapp-infra deliver`, which builds, deploys the stacks in the order the environment imposes and proves with a smoke which version each surface serves. GitHub Actions runs it: staging when somebody starts it on a branch, production on every merge to `main` that touches what is deployed, with no AWS key stored anywhere ([`docs/architecture-guide.md`](docs/architecture-guide.md) §17 and §20). One app describes two environments, production and staging, which live in one account and are told apart by the name of everything they create. Staging is optional: an installation that wants only production leaves its entry out.
 
 ### What goes up
 
@@ -206,7 +206,7 @@ The interface is built once and configured at runtime, so one bundle serves eith
 
 The product answers on four names under a domain of your own — `yourdomain.app` for the site, `api.yourdomain.app` for the API, `mcp.yourdomain.app` for the connector and `auth.yourdomain.app` for the sign-in screen — and all of them are born from a public hosted zone in Route 53. Staging answers on the same four names one level down, under `stg.yourdomain.app`, from a zone of its own in the same account.
 
-What differs between the two environments is written once, in [`memorysmith-infra/cdk.json`](memorysmith-infra/cdk.json):
+What differs between the two environments is written once, in [`memorysmithapp-infra/cdk.json`](memorysmithapp-infra/cdk.json):
 
 ```json
 "environments": {
@@ -296,27 +296,32 @@ What follows happens once, and from then on a delivery is one command.
 1. **Bootstrap the account** for the CDK, with its credentials:
    ```
    pnpm install
-   pnpm -C memorysmith-infra exec cdk bootstrap aws://<account>/us-east-1 --profile <profile>
+   pnpm -C memorysmithapp-infra exec cdk bootstrap aws://<account>/us-east-1 --profile <profile>
    ```
 2. **Deploy the roles GitHub delivers with**, from a synth of production:
    ```
-   pnpm -C memorysmith-infra exec cdk deploy MemorysmithGithubDelivery -c environment=production -c alarmEmail=<address> --profile <profile>
+   pnpm -C memorysmithapp-infra exec cdk deploy MemorysmithGithubDelivery -c environment=production -c alarmEmail=<address> --profile <profile>
    ```
    It creates the OIDC provider of GitHub in the account — an account holds one per issuer, so if one exists already, delete it first or the deploy fails on it — and the roles `memorysmith-github-production` and `memorysmith-github-staging`.
 3. **In GitHub, tell the workflows where to go.** In **Settings → Secrets and variables → Actions → Variables**, the repository variables `AWS_PRODUCTION_ROLE_ARN` and `AWS_STAGING_ROLE_ARN`, with the ARNs of the two roles; they are not secrets, because knowing one grants nothing. In **Settings → Environments**, the environments `staging` and `production`, with `production` limited to the branch `main`: a role trusts only a run in the environment of its own name. In the environment `production`, the variable `ALARM_EMAIL`, with the address the alarms of production notify: it is never written into `cdk.json`, because the repository is public, and without it a delivery of production refuses before it builds anything. The first delivery of production subscribes that address to the topic of the alarms, and AWS sends it a message, *AWS Notification - Subscription Confirmation*: follow its link, or no alarm reaches anybody. Nothing to create for the release: the tag and the GitHub Release are written by the token GitHub issues to the run.
 4. **In GitHub, protect `main`**: a pull request is required, the check `Quality` of the CI must pass, and a force push and a deletion are refused, because `main` is what a delivery of production is taken from. A second ruleset over `v*` tags is worth it as soon as more than one person can push: what it buys is that a version tag can only be written by the identity that publishes releases, and what refuses a wrong tag until then is `publish-release`, which annotates it, takes the notes from the section of that version and refuses a tag already pointing at another commit.
-5. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. A budget alert costs nothing and says when something runs that should not.
+5. **Ask for room.** A new account usually comes with 10 concurrent Lambda executions, which the product exhausts on its first calls, and production and staging share them, so request the increase. Nothing to do for the cost budgets: the first delivery of production creates them, alerting the address of `ALARM_EMAIL` — one for the whole account and one for staging, which needs the tags of the next step.
+6. **Group the bill by environment.** Every stack carries the tags `app:project` and `app:environment`, but Cost Explorer and the budgets read a tag only once it is activated as a cost allocation tag, which no stack can declare:
+   ```
+   AWS_PROFILE=<profile> pnpm -C memorysmithapp-infra activate-cost-tags
+   ```
+   Billing lists a tag only after a resource carrying it has been billed, so run it again a day after the first delivery if it says a tag is not listed yet; it activates only what is inactive, and running it twice changes nothing. Activation is not retroactive: a month reads by environment from the day the tags are active, unless a backfill is asked for in the console of Cost Explorer. `app:version` is left inactive on purpose, because it changes on every release and would split each resource into a line per version.
 
 ### Delivering
 
 **Staging**: in the **Actions** tab, the workflow **Staging** → **Run workflow**, on the branch to deliver, choosing whether the adapter tests, the functional suite and a maintenance job run after it. **Production**: merging a pull request into `main` that touches what is deployed. The same command runs from a workstation, with credentials of the account, when a person has a reason to:
 
 ```
-pnpm -C memorysmith-infra deliver                            # staging
-pnpm -C memorysmith-infra deliver --environment production
+pnpm -C memorysmithapp-infra deliver                            # staging
+pnpm -C memorysmithapp-infra deliver --environment production
 ```
 
-It refuses any account but the one `cdk.json` names for the environment, and, for production, a run without `ALARM_EMAIL` in its environment (`ALARM_EMAIL=you@example.com pnpm -C memorysmith-infra deliver --environment production` from a workstation). It builds the interface once, synthesises, deploys the network and the hosting, waits for DNS and for the sending identity, deploys every other stack, and closes with a read-only smoke asking each surface which version it serves. On a `release/vX.Y.Z` branch staging serves `X.Y.Z-rc.N+sha7`, and production serves the version of the packages. After a delivery of staging, the workflow runs the adapter tests against its own tables and bucket and the functional suite against it, unless whoever starts it unticks them; its report is an artifact of the run. A delivery from a workstation ends at the smoke, and the two suites are then run by hand, with the commands in [Running it on your machine](#running-it-on-your-machine).
+It refuses any account but the one `cdk.json` names for the environment, and, for production, a run without `ALARM_EMAIL` in its environment (`ALARM_EMAIL=you@example.com pnpm -C memorysmithapp-infra deliver --environment production` from a workstation). It builds the interface once, synthesises, deploys the network and the hosting, waits for DNS and for the sending identity, deploys every other stack, and closes with a read-only smoke asking each surface which version it serves. On a `release/vX.Y.Z` branch staging serves `X.Y.Z-rc.N+sha7`, and production serves the version of the packages. After a delivery of staging, the workflow runs the adapter tests against its own tables and bucket and the functional suite against it, unless whoever starts it unticks them; its report is an artifact of the run. A delivery from a workstation ends at the smoke, and the two suites are then run by hand, with the commands in [Running it on your machine](#running-it-on-your-machine).
 
 A release is the production workflow, three steps in this order: `release-checks`, which refuses a version that disagrees across `CLAUDE.md`, the manifests and `CHANGELOG.md` or whose tag exists already; the delivery of production; and `publish-release`, which writes the annotated tag and the GitHub Release of what production now serves. A pull request states what was exercised on staging, and nothing blocks a merge on it.
 
@@ -341,14 +346,14 @@ Every surface of staging says where it is: the connector tells the agent the env
 A freshly delivered environment has nobody inside: the pool is empty and there is no subscription, because a subscription is requested by a person and authorised by a platform administrator. The onboarding command closes that whole loop, with credentials of the account of the environment, always through the API of the product and never writing into the database by hand:
 
 ```
-pnpm -C memorysmith-infra onboard --environment production --profile memorysmith
+pnpm -C memorysmithapp-infra onboard --environment production --profile memorysmith
 ```
 
 It asks what it needs to know and then creates the account in Cognito, requests the subscription with the chosen quota (the subscription has no name: what identifies it is its owner) and puts the subscription in the chosen status. **The account starts with no notebook**: designing one is the work of whoever uses it, or of an agent following the skills the MCP connector serves.
 
 **The first account of an empty pool becomes a platform administrator, and only the first.** Somebody has to authorise the first subscription, and in a new environment there is nobody. Once the group has a member, a later run asks for the credentials of an existing administrator instead of handing the platform to whoever runs the command.
 
-**The account is handed over with a temporary password.** Requesting the subscription happens as the account, so the command has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, leave from `no-reply@` the domain of the environment, dressed in the brand and written in the language of the account**, which `--locale` sets when the account is created and the person changes by choosing a language in the interface. They go through SES, and **a new AWS account keeps SES in its sandbox**, where a message reaches only an address verified in SES: until the account is granted production access (step 6 of *Bringing the account up*), an invitation to anybody else is not delivered. Whoever runs the command never learns the password of somebody else's account. `--set-password` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
+**The account is handed over with a temporary password.** Requesting the subscription happens as the account, so the command has to sign in as it, and it does so with a password of its own that nobody ever sees. At the end it leaves the account waiting for its first password: Cognito sends an invitation by e-mail with a temporary password, and the sign-in screen asks for a password of their own on first access. **That message, and the code sent for a forgotten password, leave from `no-reply@` the domain of the environment, dressed in the brand and written in the language of the account**, which `--locale` sets when the account is created and the person changes by choosing a language in the interface. They go through SES, and **a new AWS account keeps SES in its sandbox**, where a message reaches only an address verified in SES: until the account is granted production access, which is asked of AWS in the SES console (*Request production access*), an invitation to anybody else is not delivered. Whoever runs the command never learns the password of somebody else's account. `--set-password` inverts that, setting a definitive password here and sending no e-mail at all, which is what the first account of a new environment wants: it is the only one that cannot depend on an e-mail arriving.
 
 | Option | What it is for |
 | --- | --- |
@@ -370,7 +375,7 @@ Two things the command does that are worth understanding:
 On staging, clean up first. The functional suite deletes what each run writes, and the runs before it did not, so staging holds notebooks of accounts that no longer exist:
 
 ```
-pnpm -C memorysmith-infra cleanup-staging
+pnpm -C memorysmithapp-infra cleanup-staging
 ```
 
 `cleanup-staging` deletes the notebooks of every subscription whose owner is an `@example.com` account the pool no longer holds, through the same deletion a person makes, so the purge takes them in the background. It reports first and deletes only with `--apply`, and it refuses every environment but staging. Run it before any job below on staging, because each of them scans every notebook of the environment.
@@ -378,8 +383,8 @@ pnpm -C memorysmith-infra cleanup-staging
 Every number and every graph the product derives owes an answer to how it remakes itself when it is wrong, and two of those answers are jobs an operator runs against the tables of an environment, with credentials of its account:
 
 ```
-pnpm -C memorysmith-infra recount-storage --environment production
-pnpm -C memorysmith-infra reproject-links --environment production
+pnpm -C memorysmithapp-infra recount-storage --environment production
+pnpm -C memorysmithapp-infra reproject-links --environment production
 ```
 
 `recount-storage` adds up the content each subscription holds and rewrites its storage counter; run it with the accounts idle, because a write that lands during the scan can be counted by it and by the relay. It also lists the files of notebooks that no longer exist, which it counts in nothing and destroys never. `reproject-links` forgets the link graph of every notebook and resolves every link again, from the notes themselves and the files each notebook keeps. Both are the product's own code, both report first and write only with `--apply`, and `reproject-links` exits with `2` when an edge was lost. On staging, both run after `cleanup-staging`.
@@ -387,13 +392,13 @@ pnpm -C memorysmith-infra reproject-links --environment production
 ## Tearing staging down
 
 ```
-pnpm -C memorysmith-infra destroy-staging      # with credentials of the account
+pnpm -C memorysmithapp-infra destroy-staging      # with credentials of the account
 ```
 
 It deletes every stack of staging, in the reverse of a delivery, and then what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It refuses every environment but staging before it looks at a credential, and any account but the one `cdk.json` names for staging after. Production lives in the same account, so it deletes only what the stacks of staging list. It holds the terminal until it ends, and deleting the sign-in domain alone takes over half an hour. It runs from a workstation on purpose: no role a workflow assumes may delete anything. It leaves the hosted zone, so the next delivery raises staging from zero. To see what it would delete, and delete nothing:
 
 ```
-pnpm -C memorysmith-infra destroy-staging --preview
+pnpm -C memorysmithapp-infra destroy-staging --preview
 ```
 
 **Production has no destroy path.** Its tables, its content bucket and its user pool retain by policy, and nothing in this repository deletes them.
@@ -423,17 +428,17 @@ KNOWLEDGE_TABLE=mv-knowledge-staging ACCESS_TABLE=mv-access-staging CONTENT_BUCK
 The functional suite runs after the adapter tests, against the deployed staging, with credentials of the account:
 
 ```
-pnpm -C memorysmith-infra exec playwright install chromium
-FUNCTIONAL_ENVIRONMENT=staging pnpm -C memorysmith-infra functional
+pnpm -C memorysmithapp-infra exec playwright install chromium
+FUNCTIONAL_ENVIRONMENT=staging pnpm -C memorysmithapp-infra functional
 ```
 
-The blind agent evaluation runs from a workstation, against staging, before the pull request of a release is merged. It needs Claude Code signed in, credentials of the account and Chromium, and it spends tokens of the models it plays. Its transcripts and scorecard land in `memorysmith-infra/agent-eval/runs/`, which git ignores:
+The blind agent evaluation runs from a workstation, against staging, before the pull request of a release is merged. It needs Claude Code signed in, credentials of the account and Chromium, and it spends tokens of the models it plays. Its transcripts and scorecard land in `memorysmithapp-infra/agent-eval/runs/`, which git ignores:
 
 ```
-pnpm -C memorysmith-infra agent-eval --environment staging [--models sonnet,haiku] [--runs 3] [--cases AE-01,AE-03]
+pnpm -C memorysmithapp-infra agent-eval --environment staging [--models sonnet,haiku] [--runs 3] [--cases AE-01,AE-03]
 ```
 
-**The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. It reads where that environment is at runtime, from `/config.json`, and the dev server answers that file from `memorysmith-frontend/config.local.json`, which is untracked. Copy `config.example.json` to it and point it at the environment:
+**The interface.** It reads and writes through the API of the product and has no offline mode, so it needs a live environment to run. It reads where that environment is at runtime, from `/config.json`, and the dev server answers that file from `memorysmithapp-frontend/config.local.json`, which is untracked. Copy `config.example.json` to it and point it at the environment:
 
 ```json
 {
@@ -447,7 +452,7 @@ pnpm -C memorysmith-infra agent-eval --environment staging [--models sonnet,haik
 
 ```
 pnpm install
-pnpm -C memorysmith-frontend dev
+pnpm -C memorysmithapp-frontend dev
 ```
 
 Without that file the application refuses to start and says which field it is missing. It once had a bundled seed answering in place of the API, and it was removed: a second source answering silently with other data makes the screen look right while showing something else.
@@ -465,7 +470,7 @@ Without that file the application refuses to start and says which field it is mi
 | An alarm of production fires and no e-mail arrives | The subscription of the topic `memorysmith-alarms-production` was never confirmed: the confirmation AWS sent to `ALARM_EMAIL` has a link to follow, and the SNS console sends it again |
 | `release-checks` refuses the release | The version disagrees between `CLAUDE.md`, a manifest and `CHANGELOG.md`, or its tag already exists. It names each reason |
 | An intermittent `503 Service Unavailable` on the first calls | A new account usually comes with 10 concurrent Lambda executions. Ask AWS for a quota increase |
-| `This CDK CLI is not compatible...` | Some old global `cdk` on the PATH. Run the CLI pinned in the project, `pnpm -C memorysmith-infra exec cdk` |
+| `This CDK CLI is not compatible...` | Some old global `cdk` on the PATH. Run the CLI pinned in the project, `pnpm -C memorysmithapp-infra exec cdk` |
 
 ## How to report a problem, or ask for something
 
@@ -485,9 +490,9 @@ What happens to your issue after it is opened, including how it is triaged and w
 
 ```
 core/
-├── memorysmith-backend/     # the six bounded contexts, the shared kernel and the event contracts
-├── memorysmith-frontend/    # the web interface in React
-├── memorysmith-infra/       # all the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with and the commands
+├── memorysmithapp-backend/     # the six bounded contexts, the shared kernel and the event contracts
+├── memorysmithapp-frontend/    # the web interface in React
+├── memorysmithapp-infra/       # all the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with and the commands
 └── docs/                    # the canonical documentation, and the Markdown specification
 ```
 
@@ -496,7 +501,7 @@ core/
 | [`docs/software-vision.md`](docs/software-vision.md) | What the product does and under which rule: the vision, the ubiquitous language, roles, entities, business rules, the MCP catalogue and the screens |
 | [`docs/architecture-guide.md`](docs/architecture-guide.md) | How it is built: tactical DDD, hexagonal, single-table DynamoDB, the outbox, MCP and OAuth, infrastructure and tests |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | The domain it operates in: Markdown, knowledge management, MCP, retrieval, auditing and data protection law |
-| [`docs/markdown-spec.md`](docs/markdown-spec.md) | The notation a note is written in: what each form means and produces. Its data and its conformance suite are the package the product implements it with, `memorysmith-backend/packages/markdown-spec` |
+| [`docs/markdown-spec.md`](docs/markdown-spec.md) | The notation a note is written in: what each form means and produces. Its data and its conformance suite are the package the product implements it with, `memorysmithapp-backend/packages/markdown-spec` |
 | [`docs/development-process.md`](docs/development-process.md) | How work flows: from the issue of whoever uses it to the merge, with triage, roadmap and what each commit has to touch |
 | [`CLAUDE.md`](CLAUDE.md) | The working rules of the repository, including the thirteen non-negotiable design decisions |
 | [`SECURITY.md`](SECURITY.md) | How to report an isolation failure or a vulnerability, in private |

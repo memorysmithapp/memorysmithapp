@@ -112,7 +112,7 @@ Six contexts (the map of responsibilities is in `software-vision.md` §6), **eac
 - `svc-knowledge` → `svc-access`: **Customer/Supplier**. Knowledge consumes authorisation decisions; Access does not know Knowledge.
 - `svc-agent` → the rest: **Anticorruption Layer**. MCP vocabulary never leaks into the domain (RN-AGT-008).
 - `svc-discovery`, `svc-audit`, `svc-portability` ← everyone: **Published Language** through EventBridge events. None of them is consulted by the core, they only feed on it.
-- **Shared Kernel** (`memorysmith-backend/packages/kernel`): only primitives with no rules, such as `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` and the error taxonomy. Deliberately tiny, because a large shared kernel is coupling in disguise.
+- **Shared Kernel** (`memorysmithapp-backend/packages/kernel`): only primitives with no rules, such as `SubscriptionId`, `Ulid`, `Slug`, `Authorship`, `Result`, `DomainEvent` and the error taxonomy. Deliberately tiny, because a large shared kernel is coupling in disguise.
 
 ### 3.2 Deployment shape
 
@@ -137,7 +137,7 @@ The target design is six deployables (D5). **0.1.0 ships as a modular monolith w
 | Identity | An Amazon Cognito user pool with a *pre-token-generation* trigger | MCP client registration through a CIMD proxy (§13.3) |
 | Validation | Zod, at the edge and in the event contracts | Never inside the domain |
 | Observability | AWS Lambda Powertools | One line per operation, identifiers only, the `subscriptionId` on it (§17) |
-| IaC | AWS CDK (TypeScript) | A project of its own, `memorysmith-infra` (§5.1, §5.4) |
+| IaC | AWS CDK (TypeScript) | A project of its own, `memorysmithapp-infra` (§5.1, §5.4) |
 
 ### 4.2 Frontend
 
@@ -149,6 +149,7 @@ The target design is six deployables (D5). **0.1.0 ships as a modular monolith w
 | Client state | Zustand |
 | i18n | `en_US` canonical, `pt_BR` required (`CLAUDE.md` § Language policy) |
 | Editor | A Markdown editor with side-by-side preview |
+| Reading surface | `@memorysmithapp/markdown-renderer`, the latest `0.x`, drawn through `NoteContent` (§5.3) |
 
 ### 4.3 Tooling
 
@@ -159,13 +160,13 @@ pnpm (workspaces) · Vitest · `dependency-cruiser` (§5.5) · ESLint + Prettier
 
 ### 5.1 Three top-level projects
 
-The repository is a pnpm monorepo with **three first-level projects**, named after the project identifier (`CLAUDE.md` → Project identifier):
+The repository is a pnpm monorepo with **three first-level projects**, named after the organisation, `memorysmithapp`. The project identifier (`CLAUDE.md` → Project identifier) stays in the physical names of everything deployed, because renaming a table, a bucket or the user pool makes CloudFormation replace it, with what it holds (#293):
 
 | Project | Holds | Does **not** hold |
 |---|---|---|
-| **`memorysmith-backend/`** | The six bounded contexts, the shared kernel and the event contracts. All the domain, application and adapter code | Not a line of CDK, no stack name, no reference to an account or a region |
-| **`memorysmith-frontend/`** | The React SPA: screens, state, i18n, HTTP client | Business rules; no decision that belongs to the domain |
-| **`memorysmith-infra/`** | All the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with | No business rule, no handler |
+| **`memorysmithapp-backend/`** | The six bounded contexts, the shared kernel and the event contracts. All the domain, application and adapter code | Not a line of CDK, no stack name, no reference to an account or a region |
+| **`memorysmithapp-frontend/`** | The React SPA: screens, state, i18n, HTTP client | Business rules; no decision that belongs to the domain |
+| **`memorysmithapp-infra/`** | All the CDK: stacks, constructs, IAM policies, the roles GitHub delivers with | No business rule, no handler |
 
 > **Why infrastructure is a project of its own, and not a folder inside the backend.** Three reasons, in the order they show up in practice:
 >
@@ -176,18 +177,18 @@ The repository is a pnpm monorepo with **three first-level projects**, named aft
 **The dependency rule between projects, in one direction:**
 
 ```
-memorysmith-infra      →  references backend and frontend artifacts (bundling, deploy)
-memorysmith-backend    →  knows nothing about infra, knows nothing about frontend
-memorysmith-frontend   →  consumes @memorysmith/contracts (its types, and the constants
+memorysmithapp-infra      →  references backend and frontend artifacts (bundling, deploy)
+memorysmithapp-backend    →  knows nothing about infra, knows nothing about frontend
+memorysmithapp-frontend   →  consumes @memorysmithapp/contracts (its types, and the constants
                           derived from the Markdown specification) and the API at runtime
 ```
 
-An `import` of `memorysmith-infra` inside `memorysmith-backend` is an architecture error, not a matter of taste: it would mean the service code knows the AWS account, the same leak PE1 prevents one layer below.
+An `import` of `memorysmithapp-infra` inside `memorysmithapp-backend` is an architecture error, not a matter of taste: it would mean the service code knows the AWS account, the same leak PE1 prevents one layer below.
 
-### 5.2 `memorysmith-backend/`
+### 5.2 `memorysmithapp-backend/`
 
 ```
-memorysmith-backend/
+memorysmithapp-backend/
 ├── packages/
 │   ├── kernel/              # SubscriptionId, Ulid, Slug, Authorship, Result, DomainEvent, errors
 │   ├── contracts/           # Zod schemas of the events and the DTOs: the only package the frontend imports
@@ -222,10 +223,10 @@ memorysmith-backend/
 
 Every service has exactly the same internal four-layer structure. Uniformity here is not aesthetics: it is what lets the dependency rule of §5.5 be a single configuration, valid for all six.
 
-### 5.3 `memorysmith-frontend/`
+### 5.3 `memorysmithapp-frontend/`
 
 ```
-memorysmith-frontend/
+memorysmithapp-frontend/
 ├── public/
 ├── src/
 │   ├── main.tsx                        # bootstrap: auth, i18n, query client
@@ -257,20 +258,20 @@ memorysmith-frontend/
 └── .env.example
 ```
 
-**A write invalidates what it wrote, and what somebody else wrote reaches the screen on its own.** A write of the interface invalidates its own queries at once, on success and on conflict alike (`WritableContent`, the editor, the card of a notebook). But the interface is not the only writer: an agent writes through the connector and an import writes in the background, and the earlier policy — `staleTime: Infinity`, on the premise that nothing changes without somebody writing it here — left their writes invisible until a reload. So a read is fresh for 30 seconds; the window regaining focus and the network coming back read again what went stale; the queries a screen shows (the list of notebooks, the space of the subscription, the structure, names and files of the open notebook, the open note, its history, the Templates) are read again every 30 seconds while the tab is visible (`shared/api/live.ts`); and a transfer that ends invalidates the list of notebooks and the space. **Never while a write of the page is waiting or in flight**, and never the note being edited: a read landing between a tick and its write would take the tick off the screen and base the next write on a revision nobody saw. A note that changes under its reader says so rather than swapping the text in silence. A push from the server over the events already on EventBridge is the next step if half a minute proves too slow. `retry: false` stays: a failed read is information, and retrying it silently turns a message into a wait.
+**A write invalidates what it wrote, and what somebody else wrote reaches the screen on its own.** A write of the interface invalidates its own queries at once, on success and on conflict alike (`NoteContent`, the editor, the card of a notebook). But the interface is not the only writer: an agent writes through the connector and an import writes in the background, and the earlier policy — `staleTime: Infinity`, on the premise that nothing changes without somebody writing it here — left their writes invisible until a reload. So a read is fresh for 30 seconds; the window regaining focus and the network coming back read again what went stale; the queries a screen shows (the list of notebooks, the space of the subscription, the structure, names and files of the open notebook, the open note, its history, the Templates) are read again every 30 seconds while the tab is visible (`shared/api/live.ts`); and a transfer that ends invalidates the list of notebooks and the space. **Never while a write of the page is waiting or in flight**, and never the note being edited: a read landing between a tick and its write would take the tick off the screen and base the next write on a revision nobody saw. A note that changes under its reader says so rather than swapping the text in silence. A push from the server over the events already on EventBridge is the next step if half a minute proves too slow. `retry: false` stays: a failed read is information, and retrying it silently turns a message into a wait.
 
-**Every reading surface resolves its wikilinks before rendering.** `NoteContent`, `WritableContent` and `Transclusion` all do, and the third one did not: a `[[link]]` inside transcluded content reached the page with its brackets. It matters most for the link the one-level rule creates itself, since an embed found inside embedded content is demoted to a wikilink and §13.2 says it is drawn as a link to its target.
+**Every reading surface draws a note through one component, `NoteContent`, and the note is drawn by `@memorysmithapp/markdown-renderer`.** The note, the Guidance, the Template of a folder, the preview and the print all hand `NoteContent` the bytes of a Content Slot; it gives the package's `NoteBody` what belongs to this application — the names the notebook resolves (`resolve`, `reaches`, `choose` through Discovery for an alias), the files it keeps, the router a link follows, the cache an embed reads through, the words of the locale and the scheme of the page — and applies a ticked box with `toggleTaskAt` through the grouped writer, which sends the original bytes with the revision they were read at. The frontmatter stays the page's: the theme `NoteContent` passes draws no properties, because a note shows them above its body and a print on a cover or a last page. The package is the mechanism the reading page used to carry, extracted and published (memorysmithapp/memorysmithapp-markdown), so a fix to the notation is made once; the application follows its latest release, with a range that admits every `0.x` and a lockfile that a pull request opened by Dependabot moves, scoped to `@memorysmithapp/*`. Nothing outside `.markdown` is the package's: the page behind the choice a link opens stops scrolling by a rule of this application.
 
-**A response is typed by the DTO the API publishes, never by a shape retyped beside it.** `@memorysmith/contracts` is the only thing the frontend takes from the backend (§5.1), and it is taken for exactly this: a hand-written mirror of a contract is a claim the compiler cannot check. One such mirror declared a note's `revision` as a `string` where the contract says `ContentRef`, so the whole object was echoed back as `baseRevision`, every task-box write was refused at validation, and the screen reported a conflict. Where a route answers something the DTO does not describe — `{ content: null }` for a folder with no template — the union is written as a union, and not as a shape with every field made optional, which is how the first one drifted.
+**A response is typed by the DTO the API publishes, never by a shape retyped beside it.** `@memorysmithapp/contracts` is the only thing the frontend takes from the backend (§5.1), and it is taken for exactly this: a hand-written mirror of a contract is a claim the compiler cannot check. One such mirror declared a note's `revision` as a `string` where the contract says `ContentRef`, so the whole object was echoed back as `baseRevision`, every task-box write was refused at validation, and the screen reported a conflict. Where a route answers something the DTO does not describe — `{ content: null }` for a folder with no template — the union is written as a union, and not as a shape with every field made optional, which is how the first one drifted.
 
 The mapping from error to message lives in `shared/api/error-mapper.ts` and covers the whole taxonomy of §15. In particular, `FORBIDDEN` arrives as a `404` (§14.2) and the UI shows "not found": the interface may not be more informative than the API, or the leak the `404` prevents comes back through the screen.
 
 **The token lifecycle has exactly two rules, and both are enforced in one place each.** `shared/auth/oauth.ts` is the only module that speaks to the identity provider, and what it persists after a token exchange **keeps the refresh token when the answer carries none**: Cognito returns `refresh_token` on the authorization-code exchange and never on a refresh, so a missing field means the held credential is still valid and not that it was revoked. `shared/api/http.ts` is the only module that reacts to a session that cannot authenticate: a token that cannot be renewed and a `401` from the API are the same fact, and both call the `onUnauthenticated` handler the bootstrap wires to `app/session-expiry.ts`, which discards the credential, empties the session store and returns the browser to the sign-in screen with the reason (RN-SUB-022). **No screen carries any part of that**, and no screen may present a query that has failed as a query still loading: `shared/api/query-state.ts` separates the three states, because `isLoading || !data` collapses two of them whenever retries are off.
 
-### 5.4 `memorysmith-infra/`
+### 5.4 `memorysmithapp-infra/`
 
 ```
-memorysmith-infra/
+memorysmithapp-infra/
 ├── bin/app.ts
 ├── stacks/
 │   ├── network.stack.ts             # Route 53 (hosted zone), CloudFront, ACM certificates (§17)
@@ -283,7 +284,7 @@ memorysmith-infra/
 │   ├── audit.stack.ts               # the mv-audit table + Lambda with an APPEND-ONLY role (§12.2)
 │   ├── agent.stack.ts               # MCP server + OAuth resource server + CIMD proxy (§13.3)
 │   ├── portability.stack.ts
-│   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC for memorysmith-frontend
+│   ├── frontend-hosting.stack.ts    # S3 + CloudFront OAC for memorysmithapp-frontend
 │   └── github-delivery.stack.ts     # the roles GitHub Actions delivers with (§20)
 ├── constructs/
 │   ├── service-lambda.ts            # Lambda + Powertools + mandatory alarms (§17)
@@ -301,7 +302,7 @@ Beside `stacks/` and `constructs/`, two folders that are not infrastructure them
 - **`functional/`**, the functional suite, in Playwright Test, which tests a deployed environment from outside (§19).
 - **`agent-eval/`**, the blind agent evaluation: its cases, the clean room an agent runs them in, and the checks and the scorecard of a round (§19).
 
-Two rules of `dependency-cruiser` keep `commands/`, `functional/` and `agent-eval/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports any of them, so a synth never loads what operates or tests the product; and none of them imports anything of the backend, the frontend or the infrastructure but `@memorysmith/contracts`, because all three reach the product the way anybody outside does.
+Two rules of `dependency-cruiser` keep `commands/`, `functional/` and `agent-eval/` apart: nothing in `bin/`, `config/`, `stacks/` or `constructs/` imports any of them, so a synth never loads what operates or tests the product; and none of them imports anything of the backend, the frontend or the infrastructure but `@memorysmithapp/contracts`, because all three reach the product the way anybody outside does.
 
 Three constructs carry an architectural guarantee, not a convenience:
 
@@ -313,7 +314,7 @@ Three constructs carry an architectural guarantee, not a convenience:
 
 ### 5.5 The dependency rule between layers (checked in CI)
 
-Inside each service of `memorysmith-backend/services/*`:
+Inside each service of `memorysmithapp-backend/services/*`:
 
 ```
 domain/       →  imports only from itself and from packages/kernel
@@ -324,7 +325,7 @@ main/         →  imports from everything (it is the only place that knows the 
 
 Configured in `dependency-cruiser` and run on every pull request. **The build breaks if `domain/` imports an AWS SDK.** Without that check, hexagonal becomes folder naming in three sprints (PE1).
 
-The same configuration declares the rules between the projects of §5.1: `memorysmith-backend` and `memorysmith-frontend` may not import from `memorysmith-infra`, and no service may import from another. Communication between contexts is over HTTP with IAM or through an event (§3.1), never through an `import`.
+The same configuration declares the rules between the projects of §5.1: `memorysmithapp-backend` and `memorysmithapp-frontend` may not import from `memorysmithapp-infra`, and no service may import from another. Communication between contexts is over HTTP with IAM or through an event (§3.1), never through an `import`.
 
 ---
 ## 6. Domain model (tactical DDD)
@@ -334,7 +335,7 @@ The same configuration declares the rules between the projects of §5.1: `memory
 Consistency boundary: the notebook and **its whole folder tree**.
 
 ```typescript
-// memorysmith-backend/services/knowledge/src/domain/notebook/Notebook.ts — zero AWS imports
+// memorysmithapp-backend/services/knowledge/src/domain/notebook/Notebook.ts — zero AWS imports
 export class Notebook {
   private constructor(
     private readonly id: NotebookId,
@@ -893,9 +894,11 @@ Three projections over the same events. All of them **derived** (PE5): deleting 
 
 **And for the link graph it is a command, not a plan.** `reproject-links` runs `reproject.ts` of the core against an environment: it forgets every edge, backlink, pending link and alias edge of a notebook, restates what the notebook answers to from the notes themselves and from the files it keeps, and lets the ordinary write path resolve every target again — deliberately the product's own code, because a rebuild taking its own path to the table would be a second implementation of the projection, and the day the two disagreed the rebuild would be the one nobody tested. It reports first and writes only with `--apply`. It exists because 0.6.0 retired the rule the graph in the table had been built by, and it stays because that is what PE5 costs.
 
-**There are three sanctioned readers of content, and the third one is not here.** `noteName`, in `packages/kernel`, reads the name of a note: the `name:` of its frontmatter, and nothing else (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
+**There are four sanctioned readers of content, and the last two are not here.** `noteName`, in `packages/kernel`, reads the name of a note: the `name:` of its frontmatter, and nothing else (RN-KNW-035). It lives in the kernel because **Knowledge needs it synchronously, on the write** — a listing cannot wait for a projection to know what a note is called — and Discovery needs the same answer when it resolves a link. One function, two contexts, and no way for them to disagree.
 
 That amends the rule "only the two extractors read content", deliberately and in the open, and it is a smaller amendment than it looks: what the third reader reads is **one key of the same frontmatter block §11.3 already reads**, and no heading at all. The reason of the rule is untouched — what is read is the notation the specification declares and nothing else, never a notebook convention and never a vocabulary this backend holds a list of (PP4).
+
+**The fourth reader is the connector's, and it reads nothing for itself.** `create_note` and `update_note` answer the notices of what they wrote, and `check_notebook` the notices of the notebook's latest notes (RN-AGT-052): `src/mcp/notices.ts`, in the agent service, hands the bytes to `diagnose` from `@memorysmithapp/markdown-renderer/diagnose` — the reader the reading page draws with, published — and gives its answer back to the agent that wrote them. It is admitted on the same terms as the third. It reads only the notation the specification declares, by the code §7.13 of the specification gives each notice; it decides nothing, changes no byte and never refuses a write, because there is no invalid note; and what it reads is never stored, projected or used to route anything. It reads without diagrams, so Mermaid, which the renderer imports on demand, is kept out of the bundle of the function (`externalModules`), and without links, which the answer of a write and the sweep already carry. The sweep reads at most 200 notes, the most recently written first, and stops at a budget of eight seconds, saying how far it got: the function lives fifteen.
 
 The frontmatter block and the YAML subset of §6.2 live in the kernel with it, and `FacetExtractor` reads them from there. **There is exactly one function in this repository that finds the frontmatter of a body**, which is the property `slugify` lost by being written twice.
 
@@ -905,7 +908,7 @@ The frontmatter block and the YAML subset of §6.2 live in the kernel with it, a
 
 Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads the aggregate, so a notebook with two thousand files loads exactly as fast as one with none.
 
-**Which types are accepted is injected, not transcribed.** The list is published in `@memorysmith/contracts` and the composition root hands it to the use case as a port, the way the reserved vocabulary already is: the domain and the application of a context import the kernel and nothing else, and what the product decided to accept is a decision, not a rule of the domain.
+**Which types are accepted is injected, not transcribed.** The list is published in `@memorysmithapp/contracts` and the composition root hands it to the use case as a port, the way the reserved vocabulary already is: the domain and the application of a context import the kernel and nothing else, and what the product decided to accept is a decision, not a rule of the domain.
 
 **The bytes are served from the object store**, through a link minted per request and signed, and never proxied by the API: an `<img>` cannot carry a bearer token, and a file somebody uploaded has no business running inside the origin of the product. What is drawn is served `inline` and everything else `attachment`. **The link is answered on `files.{zone}`, not on the name of the bucket** (#255), the way the parts of an upload are answered on `uploads.{zone}` (§16): the API signs the `GET` for the bucket's own host and rewrites only the host, and a CloudFront distribution that forwards everything but Host hands S3 the very request it signed, so the link expires when it always did and an altered one is refused by S3. The tab, the download bar and a copied link show a host of the product, and nothing of the bucket, the region or the credential that signed it. That host is still an origin apart from the product's, and it says so by header too: the distribution allows only `GET`, `HEAD` and `OPTIONS`, and answers with `X-Content-Type-Options: nosniff` and a `Content-Security-Policy` that sandboxes the document and allows no script, so an SVG opened in a tab of its own runs nothing while a picture, a PDF and a recording still show where they are opened. It is a distribution of its own, with a certificate of its own, rather than a second name on the uploads one: a read allows only a read, and the headers belong to what a browser renders. Its cache policy is not `CachingDisabled`, as the uploads one is: under it CloudFront drops `response-content-type` and `response-content-disposition` from the query while forwarding every other parameter, and S3 refuses the request it never signed, which is what a PDF opened from a card met on staging. A policy that names every query string forwards them whole; naming them needs a maximum TTL above zero, so it is one second, with the default at zero and no `Cache-Control` from S3, and nothing is kept. The link of a kept export is signed and answered the same way.
 
@@ -915,9 +918,9 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 
 ### 11.0 The notation, declared once as data
 
-**The list of what the product reads is written once**, in the MemorySmith Markdown Specification: the same notation as prose, in the document [`docs/markdown-spec.md`](markdown-spec.md), as data (`spec.json`) and as an executable suite (`tests/conformance.json`), the last two in `memorysmith-backend/packages/markdown-spec/`. It follows the version of the product (RN-AGT-022). **The document is in `docs/` and the rest is a package of the backend**, because the document is what the product publishes and the data and the suite are what it implements with — and what keeps the three moving together, now that no folder does it, is the checker, which reads the document across the repository and fails when it is not there. It used to be a repository of its own, pinned here by a git tag, and changing a notation took a release there and a pin bump here before the first line of implementation. A notation now changes in the same commit as the readers that implement it, and the three files move together.
+**The list of what the product reads is written once**, in the MemorySmith Markdown Specification: the same notation as prose, in the document [`docs/markdown-spec.md`](markdown-spec.md), as data (`spec.json`) and as an executable suite (`tests/conformance.json`), the last two in `memorysmithapp-backend/packages/markdown-spec/`. It follows the version of the product (RN-AGT-022). **The document is in `docs/` and the rest is a package of the backend**, because the document is what the product publishes and the data and the suite are what it implements with — and what keeps the three moving together, now that no folder does it, is the checker, which reads the document across the repository and fails when it is not there. It used to be a repository of its own, pinned here by a git tag, and changing a notation took a release there and a pin bump here before the first line of implementation. A notation now changes in the same commit as the readers that implement it, and the three files move together.
 
-**How it enters the build.** The data and the suite are a package of the workspace, `@memorysmith/markdown-spec`, and exactly one package depends on it: `packages/contracts`, which re-exports it. The frontend reads the notation and the cases from the contracts, like everything else it takes from the backend, and dependency-cruiser refuses an import of the specification from anywhere in the frontend. The `test` script of the package is `tools/check-spec.mjs`, which validates `spec.json` against its schema and refuses a notation with no case, so the agreement of the three files is checked wherever the suites run.
+**How it enters the build.** The data and the suite are a package of the workspace, `@memorysmithapp/markdown-spec`, and exactly one package depends on it: `packages/contracts`, which re-exports it. The frontend reads the notation and the cases from the contracts, like everything else it takes from the backend, and dependency-cruiser refuses an import of the specification from anywhere in the frontend. The `test` script of the package is `tools/check-spec.mjs`, which validates `spec.json` against its schema and refuses a notation with no case, so the agreement of the three files is checked wherever the suites run.
 
 `RECOGNISED_NOTATION` in `packages/contracts` is a **projection of `spec.json`**, not a list beside it, and it lives there for the reason it always did: two contexts need it and may never import each other. Discovery reads the notation, in its two sanctioned extractors; Agent Access teaches it, in the skill. The third reader, `noteName` in the kernel, reads one key of the same table (§11).
 
@@ -927,7 +930,7 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 |---|---|---|
 | **Storage** | The bytes, untouched | Nothing to prove: the product does not interpret content (PP4) |
 | **The two extractors** | `services/discovery`, §11.1 and §11.3 | `test/notation-conformance.test.ts`, running the **published cases**: a case the extractors fail breaks the build |
-| **The reading surface** | `memorysmith-frontend`, the components | `shared/components/reading-surface-conformance.test.tsx`, running each `reading-surface` entry through the real renderer |
+| **The reading surface** | `@memorysmithapp/markdown-renderer`, drawn by `memorysmithapp-frontend` through `NoteContent` | `shared/components/reading-surface-conformance.test.tsx`, running each `reading-surface` entry through `NoteContent` and the real renderer |
 
 **What each layer is asked for, since specification v0.3.0 restated CommonMark and GFM as data.** The declared notation went from 31 entries to 54, and most of the new ones are forms a base parser already produces. The three layers do not answer that the same way, and the difference is a decision recorded here rather than a filter somebody added quietly:
 
@@ -941,14 +944,7 @@ Both sort **before** `FOLDER#`, which is the lower bound of the Query that loads
 
 **The crossings are proved, and not only read.** Each layer carries a block of cases named after them: `a base notation that means something different here`, in the extractor suite and again on the reading surface. They are where reading the inherited entries paid for itself — three defects, all of them shipped, none of them reachable from a test somebody wrote about their own code.
 
-**The reading surface is a stack of remark plugins, and each is a plugin rather than a pass over the string for one reason:** a `==` inside a code fence is not a highlight, and only the parser can tell the difference. `remark-callouts.ts` holds the callout; `remark-memorysmith-ring.ts` holds marked text, comments, block identifiers and the dollar rule. Three of them are worth naming here because each carries a decision:
-
-- **`singleTilde: false` on `remark-gfm`.** GFM specifies strikethrough as `~~x~~`; GitHub also accepts one tilde, outside its own specification. Left on, it strikes the middle of `H~2~O` — a subscript is not notation here, so the characters are meant to stay on the page, and a form that renders wrongly is a worse answer than one that renders as itself. The profile stated the same conclusion from its side in v0.4.0, where `~~` became the only declared form.
-- **`remarkMathDollarRule`, after `remark-math`.** The library opens a formula at any `$` and closes it at the next one, so two prices in one paragraph become mathematics. The plugin gives back to the text any inline formula whose delimiters break the profile's rule, reading the source through the node's position, because the delimiters are gone from the node by then.
-- **No `rehype-raw`, and that absence is the boundary.** Raw HTML is escaped and shown as text, so a note carrying `<script>` is characters on a page. It is asserted with that payload rather than with a `<b>`.
-- **Syntax highlighting, in `shared/api/highlight.ts`.** It is the one thing on this surface the profile does not ask for: a rendering rule is attached to exactly one info string, `mermaid`, and §8 leaves every other undescribed form to the implementation to draw as it likes. What the profile does constrain is the four things around it, and each is asserted: the bytes never change, an unknown language falls through to plain code rather than to nothing, `mermaid` is checked first so a highlighter cannot swallow a diagram, and **the tokens arrive as elements**. That last one is the §7.9 boundary held where a highlighter would otherwise breach it — a library returning an HTML string to be injected takes the body of a note as its input. `refractor` produces a hast tree and `toJsxRuntime` builds React from it, so nothing note-derived is ever parsed as markup. The grammars are enumerated rather than bundled, because Prism carries close to three hundred and a notebook writes in a handful.
-- **The remote-image disclosure, in `WritableContent` (RN-DSC-040).** §7.10 of the profile is the one section about what a Reader may *fetch* rather than what it renders, and it forbids exactly one answer: saying nothing. The destination of an image reaches `<img src>` and React preloads it, so this surface fetches, and the notice at the foot of a note that does is what makes that an answer instead of a silence. `remoteImageHosts` reads it off the raw body, outside code, because an image inside a fence is an example and asks nobody for anything.
-- **`urlTransform` is `followable`, in `shared/api/address.ts` (RN-DSC-039).** It was the identity — the stock filter switched off — because an unresolved wikilink is rendered as `[text](pending:target)` and the stock filter does not know `pending:`, so it erased the pending link from the page. A whole protection had been traded for one scheme, and every other scheme reached the `href` with it: `javascript:` was stopped only by React itself, and `data:text/html` was not stopped at all. The list now says what passes, and a refused address keeps its text and loses its affordance.
+**The decisions of the reading surface are the package's now, and the conformance test is what holds them here.** A notation is read by remark plugins rather than by a pass over the string, because only the parser tells a `==` inside a fence from a highlight; one tilde strikes nothing (`singleTilde: false`), so `H~2~O` stays characters; a `$` opens a formula only under the profile's rule, so two prices stay prices; raw HTML is text, with no `rehype-raw`; a highlighted fence arrives as elements and never as HTML to inject; a note that fetches an image from another site says so, naming the hosts (§7.10, RN-DSC-040); and an address is followed only when it is the web, a person, a note or one of the renderer's own schemes (RN-DSC-039). Each is written down, with its reason, in the package's `ARCHITECTURE.md`, and each is asserted here by `reading-surface-conformance.test.tsx` through `NoteContent`, so a release of the package that drops one fails this repository's build before it reaches a screen.
 
 A block embed resolves through `blockOf` in `transclusion.ts`, told apart from a section anchor by the `^` marker rather than by trying one and falling back — a section named `^x` and a block called `x` would otherwise answer for each other.
 
@@ -1392,7 +1388,7 @@ They are acceptable and they are declared. If a subscription requires immediate 
 ---
 ## 15. Error taxonomy
 
-One taxonomy only, in `memorysmith-backend/packages/kernel`, defined **before** the first line of a use case. Without it, each service invents its own and the edge becomes ad hoc translation.
+One taxonomy only, in `memorysmithapp-backend/packages/kernel`, defined **before** the first line of a use case. Without it, each service invents its own and the edge becomes ad hoc translation.
 
 ```typescript
 type ErrorCode =
@@ -1572,6 +1568,10 @@ Powertools adds its own `level`, `message` (always `operation`), `timestamp` and
 
 **Mandatory alarms, in production:** per Lambda, errors, throttles and p99 duration (a projector, asynchronous by design, has no latency alarm), and the depth of every dead-letter queue — the outbox relay, the purge, the transfers, the prints and the Discovery projector. An alarm exists to reach a person, so **every one of them notifies one SNS topic**, `memorysmith-alarms-production`, which `network.stack` declares, the first stack a delivery deploys, with the address of whoever operates the product subscribed to it by e-mail. The alarms name it by the ARN its fixed name gives, so no stack takes a reference on the network stack. The address is **not in `cdk.json`**, because the repository is public: it is the variable `ALARM_EMAIL` of the `production` environment of GitHub Actions, which `deliver` passes to the synthesis as `-c alarmEmail=`, and a synthesis of production without it fails, so an alarm is never created with nowhere to go. AWS sends that address a confirmation, and the topic delivers nothing until it is confirmed.
 
+**The bill is read by environment.** Both environments live in one account, so the bill tells them apart by the tags every stack carries, `app:project` and `app:environment`, activated as **cost allocation tags** so Cost Explorer groups a day by environment and a budget filters on one. CloudFormation cannot declare an activation, so it is a step of bringing an account up, `activate-cost-tags` (§20.3), and not of a delivery, which keeps every role a run assumes away from billing; it activates only what is inactive, and `app:version` stays inactive, because it changes on every release and would split one table into a line per version. What carries no tag lands in an *untagged* remainder of a known size: the two hosted zones, created by hand, and the queries they answer; the tax; account-wide charges with no resource behind them; and what a stack of an environment does not create — the resources of `cdk bootstrap`, and the roles GitHub delivers with, which carry `app:project` alone because they belong to the account.
+
+**The budgets of the account.** Two cost budgets, declared by `constructs/budgets.ts` in the `network.stack` of production, beside the topic of the alarms: a budget belongs to the account and production owns it, so a delivery of production creates them and staging declares none. One holds **the whole account at US$ 12 a month**, above the floor of about US$ 6–7 it costs standing still, alerting at 80% and 100% of the actual spend and at 100% of the forecast; the other holds **staging alone at US$ 3**, read through `app:environment`, alerting at 100% of the actual spend and of the forecast, so a runaway staging is told apart from the use of production. Both alert by e-mail **the same address as the alarms**, `ALARM_EMAIL`, passed as `-c alarmEmail=` and never written in the repository, and a synthesis of production without it fails before either exists. No budget is made by hand in the console.
+
 **Staging carries no alarm.** It is disposable and proved by the smoke and the functional suite (§19), never watched, so an alarm there would reach nobody and only cost money. Each environment declares it in `cdk.json`, `"alarms": true` or `false`, and the choice is never assumed: an entry without it fails the synthesis. `ServiceLambda` and the stacks create every alarm through `mandatoryAlarm`, which attaches the topic or creates nothing, and an aspect over the whole app refuses the synthesis of an alarm without an action in production and of any alarm in staging (§5.4).
 
 ---
@@ -1615,7 +1615,7 @@ Initial numbers, so they become tests and not folklore. The thesis of the produc
 
 ### 20.1 Delivery runs on GitHub Actions
 
-**Delivery is a command, and GitHub Actions is where it runs.** `pnpm -C memorysmith-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
+**Delivery is a command, and GitHub Actions is where it runs.** `pnpm -C memorysmithapp-infra deliver` raises an environment from the checkout it runs in: it refuses any account but the one `cdk.json` names for the environment, computes the version that environment serves (§23.3), and then does what the order of the environment demands rather than what is convenient.
 
 ```
 deliver   the SPA and the bundles built once · synth · the network and the hosting ·
@@ -1645,14 +1645,14 @@ One delivery of an environment runs at a time: a second one waits for the first 
 
 ### 20.2 What still runs from a workstation
 
-**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmith-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It only calls AWS, so it asks nothing of the machine but to stay awake, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17), nor the roles GitHub delivers with. It runs from a workstation on purpose: a role a workflow could assume and that could delete staging would be one condition away from deleting production.
+**Staging is torn down from a workstation, and production cannot be.** `pnpm -C memorysmithapp-infra destroy-staging` refuses any account but the one `cdk.json` names for staging, and because production lives in that same account it deletes only what the stacks of staging list. It lists what the stacks retain before they go, deletes them one at a time in the reverse of a delivery, joining an operation already running instead of racing it, and then purges what no removal policy deletes: the five tables, the audit trail included, the content bucket with every version, the user pool and the log groups of functions that are gone. It only calls AWS, so it asks nothing of the machine but to stay awake, and the sign-in domain alone takes over half an hour. Nothing deletes the hosted zone of staging, whose name servers the delegation in production names (§17), nor the roles GitHub delivers with. It runs from a workstation on purpose: a role a workflow could assume and that could delete staging would be one condition away from deleting production.
 
-**So do the bootstrap and the one-time steps**: `cdk bootstrap`, the deploy of the GitHub roles, the maintenance jobs against production, and the blind agent evaluation (§19). `deliver` still runs from a workstation as well, with the same result, when a person has a reason to.
+**So do the bootstrap and the one-time steps**: `cdk bootstrap`, the deploy of the GitHub roles, the activation of the cost allocation tags, the maintenance jobs against production, and the blind agent evaluation (§19). `deliver` still runs from a workstation as well, with the same result, when a person has a reason to.
 
 ### 20.3 The commands of the infrastructure
 
 
-A delivery is made of commands: scripts of `memorysmith-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). The workflows call these same scripts, which is what lets delivery move between GitHub and a workstation without changing what is run.
+A delivery is made of commands: scripts of `memorysmithapp-infra`, written in TypeScript under `commands/`, which reach the product only through its surfaces and its contracts (§5.4). The workflows call these same scripts, which is what lets delivery move between GitHub and a workstation without changing what is run.
 
 ```
 deliver           raises an environment: build, synth, the stacks in order, the waits, the smoke
@@ -1665,6 +1665,7 @@ smoke             every surface serves the version and the environment of the de
 publish-release   the annotated tag and the GitHub Release of a version, signed by the token of the run
 destroy-staging   tears staging down, and refuses every other environment
 onboard           an account and its subscription, through the API
+activate-cost-tags  activates app:project and app:environment as cost allocation tags, once per account (§17)
 cleanup-staging   deletes the notebooks the functional suite abandoned in staging, and refuses every other environment (§19)
 recount-storage   rebuilds the storage counters of every subscription, and what fills them (§10.3)
 reproject-links   rebuilds the link graph of every notebook (§11)
@@ -1716,7 +1717,7 @@ agent-eval        a round of the blind agent evaluation against staging (§19)
 ## 22. Checklist for a new feature
 
 **Before creating the first file**
-- [ ] Is each new file in the right project (§5.1)? A stack or a construct in `memorysmith-infra`; a screen in `memorysmith-frontend`; a rule in `memorysmith-backend`.
+- [ ] Is each new file in the right project (§5.1)? A stack or a construct in `memorysmithapp-infra`; a screen in `memorysmithapp-frontend`; a rule in `memorysmithapp-backend`.
 - [ ] The change does not create a dependency against the single direction between projects.
 
 **Domain**
@@ -1773,7 +1774,7 @@ Adding a tool, adding an optional argument or widening a return is **minor** in 
 
 Every stack of the product carries the tag `app:environment`, `app:version` with the version it serves and `deploy:sha` with the commit it was built from. The stack of the roles GitHub delivers with carries none of the three, because it belongs to the account and delivers every version, and a version or an environment written on it would be false. That is what makes it possible to answer "what was in production when this happened" from the environment itself.
 
-**The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmith-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
+**The environment and the version are configuration, never a constant of the build.** A deploy declares them as CDK context (`environment`, `version`, `commit`), and a deploy that declares nothing is production serving the version of the packages. Every function receives the three as `APP_ENVIRONMENT`, `APP_VERSION` and `APP_COMMIT`, through `ServiceLambda`, and the interface reads them from `/config.json`, which `frontend-release.stack` publishes beside the bundle together with the origin of the API, the sign-in domain and the app client. The artefact built from a commit therefore does not depend on the environment it goes to. `memorysmithapp-frontend/.env.local` does not exist: for `vite dev`, the dev server answers `/config.json` from an untracked `config.local.json`.
 
 The interface is two stacks for the same reason. `frontend-hosting.stack` holds the bucket, the distribution and the records, and goes before identity, because Cognito refuses a sign-in domain whose parent resolves no A record (§17). `frontend-release.stack` publishes the bundle and the configuration, and goes last, because the configuration names the API and the app client.
 
@@ -1817,7 +1818,7 @@ section, and still holds today.
 - **The content index is a scan, not an inverted index** (§11.2). A notebook of 2,000 notes costs around 1,000 read units per query, and the scan saves keeping postings up to date on every write. The ceiling of notes that bounded it is gone, and every search is measured instead; the `ContentIndex` port is what makes swapping it for an inverted index, or for a managed service, an adapter change on the day the measurement says so.
 - **Discovery keeps a projection of the notebook structure of its own**, fed by notebook and folder events. The Notebook Context is answered from it, and querying Knowledge to get the notebook name and the folder tree would invert the single direction of §3.1, which is what makes the projections rebuildable.
 - **Discovery gained a sixth route, `GET /notebooks/:v/graph`**, which returns the whole link graph of a notebook. §14.1 declared only the tree from a note, under a depth ceiling, and this one answers a different question: the graph screen draws the whole notebook, with no root. The link projection already held exactly that in the notebook partition, so the route is a query by prefix and nothing new is stored. The edges come back as index pairs over the node list, and the ceiling of 2,000 nodes is declared in the answer, because a truncated graph claiming to be whole is worse than no graph.
-- **The composition of the modular monolith lives in `memorysmith-backend/apps/core-monolith`**, and it is the only place that knows two contexts at once. The services still do not import each other, and the split into six deployables is a swap of that file (§24).
+- **The composition of the modular monolith lives in `memorysmithapp-backend/apps/core-monolith`**, and it is the only place that knows two contexts at once. The services still do not import each other, and the split into six deployables is a swap of that file (§24).
 
 ---
 

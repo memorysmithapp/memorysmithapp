@@ -1,17 +1,23 @@
 packages:
-  - memorysmith-frontend
-  - memorysmith-backend
-  - memorysmith-backend/packages/*
-  - memorysmith-backend/services/*
-  - memorysmith-backend/apps/*
-  - memorysmith-infra
+  - memorysmithapp-frontend
+  - memorysmithapp-backend
+  - memorysmithapp-backend/packages/*
+  - memorysmithapp-backend/services/*
+  - memorysmithapp-backend/apps/*
+  - memorysmithapp-infra
   # The Markdown specification the product reads, declared once as data. It is
   # a package so the contracts can derive the notation from it and so its own
   # check runs with every other suite; it follows the version of the product.
-  - memorysmith-backend/packages/markdown-spec
+  - memorysmithapp-backend/packages/markdown-spec
 
 allowBuilds:
   # Dependencies of pagedjs whose install scripts only print a message.
   core-js: false
   es5-ext: false
   esbuild: true
+
+# The organisation's own packages arrive the day they are published (#291):
+# the release age protects against a package somebody else took over, and
+# these are released by this organisation.
+minimumReleaseAgeExclude:
+  - '@memorysmithapp/*'

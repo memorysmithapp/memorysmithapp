@@ -273,12 +273,12 @@ precisely what may not be done.
 | Changes the contract of an MCP tool: name, argument or return shape | Infrastructure change with no visible effect |
 | Changes a declared limit, an entity or the ubiquitous language | A fix that **restores** the behaviour the document already describes |
 | Changes a recorded architecture decision | Intermediate work that has not changed anything assertable yet |
-| Changes the install procedure, the prerequisites or a command of `memorysmith-infra` | |
+| Changes the install procedure, the prerequisites or a command of `memorysmithapp-infra` | |
 | A capability the `README.md` mentions enters or leaves | |
 
 The last three rows of the left column are specifically the responsibility of `README.md`,
 and it is the only document that is **executable in practice**: someone follows its steps
-in a real AWS account. When a command of `memorysmith-infra` changes and the `README` does
+in a real AWS account. When a command of `memorysmithapp-infra` changes and the `README` does
 not, the defect only shows up at the next install, when it has already cost dearly.
 
 On `main`, document and code never diverge. Inside the branch they may be ahead of what is
@@ -421,11 +421,11 @@ Run in this exact order:
 
 ```
 1. Update  CLAUDE.md                                       ← bump "Base version" under Project identity
-2. Update  memorysmith-backend/package.json
-           memorysmith-backend/packages/*/package.json
-           memorysmith-backend/services/*/package.json     ← every service package
-3. Update  memorysmith-frontend/package.json
-4. Update  memorysmith-infra/package.json
+2. Update  memorysmithapp-backend/package.json
+           memorysmithapp-backend/packages/*/package.json
+           memorysmithapp-backend/services/*/package.json     ← every service package
+3. Update  memorysmithapp-frontend/package.json
+4. Update  memorysmithapp-infra/package.json
 5. Update  CHANGELOG.md                                    ← rename [Unreleased] to [X.Y.Z] with the cut date,
                                                              open a fresh empty [Unreleased] above it, and add
                                                              the compare links at the bottom of the file

@@ -9,11 +9,11 @@
  * The build breaks if domain/ imports the AWS SDK.
  */
 
-const DOMAIN = '^memorysmith-backend/services/[^/]+/src/domain/';
-const APPLICATION = '^memorysmith-backend/services/[^/]+/src/application/';
-const ADAPTERS = '^memorysmith-backend/services/[^/]+/src/adapters/';
-const KERNEL = '^memorysmith-backend/packages/kernel/';
-const CONTRACTS = '^memorysmith-backend/packages/contracts/';
+const DOMAIN = '^memorysmithapp-backend/services/[^/]+/src/domain/';
+const APPLICATION = '^memorysmithapp-backend/services/[^/]+/src/application/';
+const ADAPTERS = '^memorysmithapp-backend/services/[^/]+/src/adapters/';
+const KERNEL = '^memorysmithapp-backend/packages/kernel/';
+const CONTRACTS = '^memorysmithapp-backend/packages/contracts/';
 
 module.exports = {
   forbidden: [
@@ -53,10 +53,10 @@ module.exports = {
         'Communication between contexts is HTTP with IAM auth or an event, never an import ' +
         '(architecture-guide.md, section 3.1).',
       severity: 'error',
-      from: { path: '^memorysmith-backend/services/([^/]+)/' },
+      from: { path: '^memorysmithapp-backend/services/([^/]+)/' },
       to: {
-        path: '^memorysmith-backend/services/([^/]+)/',
-        pathNot: '^memorysmith-backend/services/$1/',
+        path: '^memorysmithapp-backend/services/([^/]+)/',
+        pathNot: '^memorysmithapp-backend/services/$1/',
       },
     },
     {
@@ -65,26 +65,26 @@ module.exports = {
         'Service code knowing the AWS account is the same leak PE1 prevents one layer down ' +
         '(architecture-guide.md, section 5.1).',
       severity: 'error',
-      from: { path: '^memorysmith-backend/' },
-      to: { path: '^memorysmith-infra/' },
+      from: { path: '^memorysmithapp-backend/' },
+      to: { path: '^memorysmithapp-infra/' },
     },
     {
       name: 'frontend-never-imports-infra',
       comment: 'The SPA knows the API at runtime and nothing about the account.',
       severity: 'error',
-      from: { path: '^memorysmith-frontend/' },
-      to: { path: '^memorysmith-infra/' },
+      from: { path: '^memorysmithapp-frontend/' },
+      to: { path: '^memorysmithapp-infra/' },
     },
     {
       name: 'frontend-imports-contracts-only',
       comment:
-        'The frontend imports @memorysmith/contracts — its types, and the constants it derives ' +
+        'The frontend imports @memorysmithapp/contracts — its types, and the constants it derives ' +
         'from the Markdown specification — and nothing else from the backend: not the kernel, ' +
         'not a service (architecture-guide.md, section 5.1).',
       severity: 'error',
-      from: { path: '^memorysmith-frontend/' },
+      from: { path: '^memorysmithapp-frontend/' },
       to: {
-        path: '^memorysmith-backend/',
+        path: '^memorysmithapp-backend/',
         pathNot: CONTRACTS,
       },
     },
@@ -93,15 +93,15 @@ module.exports = {
       comment:
         'The Markdown specification is data the contracts derive from, in the package of the ' +
         'backend that holds it beside the document it belongs to (#162). The ' +
-        'frontend reads the notation and its cases from @memorysmith/contracts, so the ' +
+        'frontend reads the notation and its cases from @memorysmithapp/contracts, so the ' +
         'specification has one door into the interface and not two (architecture-guide.md, ' +
         'section 11.0).',
       severity: 'error',
-      from: { path: '^memorysmith-frontend/' },
+      from: { path: '^memorysmithapp-frontend/' },
       // Both shapes: the package name, which is what an import the frontend does
       // not declare resolves to, and the real path, which is what a relative import
       // or a declared dependency resolves to.
-      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmith/markdown-spec(/|$)' },
+      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmithapp/markdown-spec(/|$)' },
     },
     {
       name: 'infrastructure-never-loads-what-operates-it',
@@ -111,20 +111,20 @@ module.exports = {
         'from outside, through its surfaces, and a synth that loaded them would load their ' +
         'dependencies too (architecture-guide.md, section 5.4).',
       severity: 'error',
-      from: { path: '^memorysmith-infra/(bin|config|stacks|constructs)/' },
-      to: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },
+      from: { path: '^memorysmithapp-infra/(bin|config|stacks|constructs)/' },
+      to: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
     },
     {
       name: 'operations-reach-the-product-through-its-contracts',
       comment:
         'The commands, the functional suite and the agent evaluation reach the product the way ' +
         'anybody outside does, through its surfaces: of ' +
-        'this repository they import @memorysmith/contracts and nothing else, not a service and ' +
+        'this repository they import @memorysmithapp/contracts and nothing else, not a service and ' +
         'not a stack (architecture-guide.md, section 5.4).',
       severity: 'error',
-      from: { path: '^memorysmith-infra/(commands|functional|agent-eval)/' },
+      from: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
       to: {
-        path: '^memorysmith-(backend|frontend)/|^memorysmith-infra/(bin|config|stacks|constructs)/',
+        path: '^memorysmith-(backend|frontend)/|^memorysmithapp-infra/(bin|config|stacks|constructs)/',
         pathNot: CONTRACTS,
       },
     },

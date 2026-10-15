@@ -43,7 +43,7 @@ export default tseslint.config(
   },
   {
     // The SPA runs in a browser and knows nothing about Node.
-    files: ['memorysmith-frontend/**/*.{ts,tsx}'],
+    files: ['memorysmithapp-frontend/**/*.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.browser },
     },

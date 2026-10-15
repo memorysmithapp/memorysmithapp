@@ -1,0 +1,18 @@
+{
+  "name": "@memorysmithapp/contracts",
+  "version": "0.12.0",
+  "private": true,
+  "type": "module",
+  "description": "Zod schemas of the domain events and of the API DTOs: the only backend package the frontend imports, and it imports types only.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@memorysmithapp/markdown-spec": "workspace:*",
+    "zod": "^4.0.0"
+  }
+}
