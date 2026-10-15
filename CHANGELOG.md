@@ -18,6 +18,7 @@ issues each entry cites.
 ### Fixed
 
 - **A callout whose title holds bold text draws its title as one sentence beside the icon.** Each run of the title, the bold one and the plain text around it, was drawn as a column of its own, so a sentence with one bold word read as a table of three narrow columns. The note is drawn by `@memorysmithapp/markdown-renderer` 0.3.1, which keeps the words of a title in one element, and with it an empty code block no longer reads *undefined*, a link to a block keeps its `^identifier` in its label, and an embed of a section is no longer cut at a `# ` line inside a code block (#296, #297).
+- **A link in a callout title reads as a link.** In a blue callout — `note`, `info`, `todo` and every type the theme does not name, such as `[!regra]` — the title is drawn in the accent at the weight of a wikilink, so a link in it could not be told from the title around it. The note is drawn by `@memorysmithapp/markdown-renderer` 0.3.2, which underlines a link in a callout title, while a pending link keeps its dashed rule (memorysmithapp/memorysmithapp-markdown#45).
 - **The preview of a section keeps its code whole.** `preview_note` and the preview of a part ended a section at the first line starting with `#`, a shell comment inside a code block included, and drew that block empty. A line inside a code block is code now, read by the same fences the renderer uses for an embed, so the preview and the embed cut a section in the same place (#292).
 
 ## [0.12.0] - 2026-10-14
