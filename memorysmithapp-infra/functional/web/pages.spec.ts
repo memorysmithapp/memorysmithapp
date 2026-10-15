@@ -1405,7 +1405,11 @@ A note to rename.
       body: await app.screenshot(),
       contentType: 'image/png',
     });
-    await app.keyboard.press('Escape');
+    // Closed by its own button before the window narrows: an Escape may land on
+    // the select that last held the focus, and the dialog would come back as a
+    // sheet over the bar.
+    await refusing.getByRole('button', { name: words.cancel, exact: true }).click();
+    await expect(refusing).toHaveCount(0);
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
 
     // On a phone it rises as a sheet from the foot of the screen.
