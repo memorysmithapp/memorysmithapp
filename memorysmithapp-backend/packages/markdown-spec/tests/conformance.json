@@ -446,6 +446,18 @@
       "facets": {}
     },
     {
+      "id": "callout/a-type-outside-a-z-is-a-type",
+      "notation": "callout",
+      "markdown": "> [!atenção] Veja [[Lei 14.133]]\n> O corpo do aviso.\n",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "facets": {}
+    },
+    {
       "id": "highlight/carries-no-index-entry",
       "notation": "highlight",
       "markdown": "The exception is ==only for the cases listed in article 75==.",
@@ -664,6 +676,23 @@
       "notation": "note-name",
       "markdown": "---\nname: C# basics\n---\n\nNotes on the language.\n",
       "name": null
+    },
+    {
+      "id": "name/a-hash-after-a-space-is-part-of-the-name",
+      "notation": "note-name",
+      "markdown": "---\nname: Incident #4711 · Region loss\n---\n\n# Title\n",
+      "name": null
+    },
+    {
+      "id": "frontmatter/a-hash-is-part-of-the-value-and-opens-no-comment",
+      "notation": "frontmatter-enum",
+      "markdown": "---\nname: Note\nstatus: draft # to review\n---\n\nBody.",
+      "facets": {
+        "status": {
+          "kind": "enum",
+          "values": ["draft # to review"]
+        }
+      }
     },
     {
       "id": "name/a-slash-is-an-ordinary-character",

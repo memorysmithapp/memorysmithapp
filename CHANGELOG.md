@@ -11,6 +11,14 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The specification says a callout type is a word of any script, and that the frontmatter has no comments.** `> [!atenção]` is a callout as `> [!warning]` is, and a ` #` inside a frontmatter value is part of the value, so `name: Incident #4711 · Region loss` names nothing, as a `#` in a name never did. Both are held by conformance cases the Discovery extractors and the kernel pass, and they bring `docs/markdown-spec.md` §6.2 and §7.1 to the MemorySmith Markdown Specification 0.3.1 (#297).
+
+### Fixed
+
+- **A callout whose title holds bold text draws its title as one sentence beside the icon.** Each run of the title, the bold one and the plain text around it, was drawn as a column of its own, so a sentence with one bold word read as a table of three narrow columns. The note is drawn by `@memorysmithapp/markdown-renderer` 0.3.1, which keeps the words of a title in one element, and with it an empty code block no longer reads *undefined*, a link to a block keeps its `^identifier` in its label, and an embed of a section is no longer cut at a `# ` line inside a code block (#296, #297).
+
 ## [0.12.0] - 2026-10-14
 
 ### Added

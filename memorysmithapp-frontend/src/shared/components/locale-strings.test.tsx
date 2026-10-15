@@ -88,18 +88,25 @@ describe('the notice before a rename', () => {
 describe('a callout written without a title', () => {
   it('is titled by its type in the locale of the reader', async () => {
     await i18n.changeLanguage('pt_BR');
-    expect(render('> [!note]\n> O corpo.')).toContain('<div class="callout-title">Nota</div>');
-    expect(render('> [!warning]\n> O corpo.')).toContain('<div class="callout-title">Aviso</div>');
+    expect(render('> [!note]\n> O corpo.')).toContain('<div class="callout-title"><span class="callout-title-text">Nota</span></div>');
+    expect(render('> [!warning]\n> O corpo.')).toContain('<div class="callout-title"><span class="callout-title-text">Aviso</span></div>');
 
     await i18n.changeLanguage('en_US');
-    expect(render('> [!note]\n> The body.')).toContain('<div class="callout-title">Note</div>');
+    expect(render('> [!note]\n> The body.')).toContain('<div class="callout-title"><span class="callout-title-text">Note</span></div>');
   });
 
   it('keeps a title the author wrote, and titles a type nobody translated by itself', async () => {
     await i18n.changeLanguage('pt_BR');
     expect(render('> [!note] Leia antes\n> O corpo.')).toContain('Leia antes');
     expect(render('> [!receita]\n> O corpo.')).toContain(
-      '<div class="callout-title">Receita</div>',
+      '<div class="callout-title"><span class="callout-title-text">Receita</span></div>',
+    );
+  });
+
+  it('keeps a title holding bold text as one run of text beside the icon (#296)', async () => {
+    await i18n.changeLanguage('pt_BR');
+    expect(render('> [!regra] O software é **meio**, não fim.\n> O corpo.')).toContain(
+      '<div class="callout-title"><span class="callout-title-text">O software é <strong>meio</strong>, não fim.</span></div>',
     );
   });
 });

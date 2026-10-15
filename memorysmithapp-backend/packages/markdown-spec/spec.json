@@ -380,7 +380,7 @@
       "reader": "reading-surface",
       "syntax": "> [!type] Optional title",
       "example": "> [!warning] What can go wrong\n> The body of the notice.\n",
-      "effect": "A blockquote whose first line begins with `[!type]` is drawn as a callout, not as a quotation with a marker in front of it. The five GitHub alert types are recognised and the vocabulary is open. A `[!type]` inside a code fence is not a callout.",
+      "effect": "A blockquote whose first line begins with `[!type]` is drawn as a callout, not as a quotation with a marker in front of it. The five GitHub alert types are recognised and the vocabulary is open, a word of any script. A `[!type]` inside a code fence is not a callout.",
       "spec": "7.1"
     },
     {
