@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-15
+
 ### Changed
 
 - **The specification says a callout type is a word of any script, and that the frontmatter has no comments.** `> [!atenção]` is a callout as `> [!warning]` is, and a ` #` inside a frontmatter value is part of the value, so `name: Incident #4711 · Region loss` names nothing, as a `#` in a name never did. Both are held by conformance cases the Discovery extractors and the kernel pass, and they bring `docs/markdown-spec.md` §6.2 and §7.1 to the MemorySmith Markdown Specification 0.3.1 (#297).
@@ -750,7 +752,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...v0.10.0

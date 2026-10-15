@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/observability",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "private": true,
   "type": "module",
   "description": "The one line every function writes per operation: who, through what, which operation, how it ended and how long it took, with identifiers only and never content (architecture-guide.md, section 17). Imported by main/, adapters/ and the handlers, never by domain/ or application/.",
