@@ -4,6 +4,7 @@
  * by @memorysmithapp/markdown-renderer (#291), and never here.
  */
 
+import { fenceRegions } from '@memorysmithapp/markdown-renderer';
 import { headingKey } from './markdown';
 
 const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
@@ -52,14 +53,24 @@ function escapeRegExp(value: string): string {
  * matches the anchor to the next heading of equal or higher level. No notebook
  * convention takes part in this, which is what keeps it on the right side of
  * PP4.
+ *
+ * A line inside a code fence is code, never a heading: a shell comment such as
+ * `# Step 1` used to end the section and leave its code block empty (#292).
+ * The fences are the renderer's, so the preview cuts where an embed does.
  */
 export function sectionOf(markdown: string, anchor: string): string | null {
   const wanted = headingKey(anchor);
   const lines = markdown.split('\n');
+  const fences = fenceRegions(markdown);
   let start = -1;
   let level = 0;
+  let offset = 0;
 
   for (let index = 0; index < lines.length; index++) {
+    const at = offset;
+    offset += (lines[index] ?? '').length + 1;
+    if (fences.some(([from, to]) => at >= from && at < to)) continue;
+
     const heading = HEADING.exec(lines[index] ?? '');
     if (!heading) continue;
 

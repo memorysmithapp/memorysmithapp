@@ -529,7 +529,7 @@ block:
 ---
 ```
 
-Scalars, inline lists and dash lists. One layer of matching quotes around a value is stripped. Nesting, anchors, multi-line scalars and typed tags are **not** part of this specification: an implementation MAY store them, and MUST NOT derive anything from them.
+Scalars, inline lists and dash lists. One layer of matching quotes around a value is stripped. **The subset has no comments**: a `#` is a character of the value it is written in, wherever it stands, so `name: Incident #4711 · Region loss` has the value `Incident #4711 · Region loss` — which carries a `#`, and so names nothing (§5.3). Nesting, anchors, multi-line scalars and typed tags are **not** part of this specification: an implementation MAY store them, and MUST NOT derive anything from them.
 
 ### 6.3 The shape of the value decides indexing
 
@@ -644,7 +644,7 @@ Callouts, marked text, comments, block identifiers and footnotes were establishe
 > The body of the notice.
 ```
 
-A blockquote whose first line begins with `[!type]` is a **callout**. The type is the word between `[!` and `]`, case-insensitive; the rest of that line, if any, is its title. A Reader MUST render it as a callout rather than as a quotation with a marker in front of it, and MUST NOT render the marker as text.
+A blockquote whose first line begins with `[!type]` is a **callout**. The type is the word between `[!` and `]`, case-insensitive; the rest of that line, if any, is its title. The word is one of any script: a letter, followed by letters, combining marks, digits, `_` or `-`, so `[!atenção]` and `[!注意]` are types as `[!warning]` is, and two spellings of a type are the same type once both are normalised to NFC and case-folded. A Reader MUST render it as a callout rather than as a quotation with a marker in front of it, and MUST NOT render the marker as text.
 
 An optional `+` or `-` immediately after `]` marks the callout as foldable, expanded or collapsed respectively. A Reader MAY honour it.
 

@@ -11,6 +11,18 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-15
+
+### Changed
+
+- **The specification says a callout type is a word of any script, and that the frontmatter has no comments.** `> [!atenção]` is a callout as `> [!warning]` is, and a ` #` inside a frontmatter value is part of the value, so `name: Incident #4711 · Region loss` names nothing, as a `#` in a name never did. Both are held by conformance cases the Discovery extractors and the kernel pass, and they bring `docs/markdown-spec.md` §6.2 and §7.1 to the MemorySmith Markdown Specification 0.3.1 (#297).
+
+### Fixed
+
+- **A callout whose title holds bold text draws its title as one sentence beside the icon.** Each run of the title, the bold one and the plain text around it, was drawn as a column of its own, so a sentence with one bold word read as a table of three narrow columns. The note is drawn by `@memorysmithapp/markdown-renderer` 0.3.1, which keeps the words of a title in one element, and with it an empty code block no longer reads *undefined*, a link to a block keeps its `^identifier` in its label, and an embed of a section is no longer cut at a `# ` line inside a code block (#296, #297).
+- **A link in a callout title reads as a link.** In a blue callout — `note`, `info`, `todo` and every type the theme does not name, such as `[!regra]` — the title is drawn in the accent at the weight of a wikilink, so a link in it could not be told from the title around it. The note is drawn by `@memorysmithapp/markdown-renderer` 0.3.2, which underlines a link in a callout title, while a pending link keeps its dashed rule (#298, memorysmithapp/memorysmithapp-markdown#45).
+- **The preview of a section keeps its code whole.** `preview_note` and the preview of a part ended a section at the first line starting with `#`, a shell comment inside a code block included, and drew that block empty. A line inside a code block is code now, read by the same fences the renderer uses for an embed, so the preview and the embed cut a section in the same place (#292).
+
 ## [0.12.0] - 2026-10-14
 
 ### Added
@@ -740,7 +752,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.9.0...v0.10.0

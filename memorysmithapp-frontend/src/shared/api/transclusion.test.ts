@@ -50,4 +50,29 @@ describe('cutting a section', () => {
   it('answers null when the section is not there, instead of guessing', () => {
     expect(sectionOf(document, 'Revogação')).toBeNull();
   });
+
+  it('keeps a code fence whole, reading a "# " line inside it as code (#292)', () => {
+    const runbook = [
+      '# Failing over',
+      '',
+      '## The commands',
+      '',
+      '```bash',
+      '# Step 1: promote the replica',
+      'aws rds promote-read-replica',
+      '## Step 2: point the service at it',
+      '```',
+      '',
+      '## Afterwards',
+      '',
+      'Watch the alarms.',
+    ].join('\n');
+
+    const cut = sectionOf(runbook, 'The commands') ?? '';
+
+    expect(cut).toContain('aws rds promote-read-replica');
+    expect(cut).toContain('## Step 2: point the service at it\n```');
+    expect(cut).not.toContain('Afterwards');
+    expect(sectionOf(runbook, 'Step 1: promote the replica')).toBeNull();
+  });
 });
