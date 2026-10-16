@@ -867,6 +867,7 @@
     "imageWidth": "Width, in pixels",
     "imageOwnSize": "Its own size",
     "imageResize": "Drag to resize",
+    "chooseToEdit": "Choose what to do with it to keep writing",
     "language": "Language",
     "plainText": "Plain text",
     "mermaidDiagram": "Mermaid diagram",
