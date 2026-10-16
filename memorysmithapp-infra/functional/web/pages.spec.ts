@@ -701,8 +701,12 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
-    // Closed before the window narrows, or it would come back as a sheet.
+    // Closed before the window narrows, or it would come back as a sheet. The
+    // native dialog leaves the screen on Escape and tells the page a moment
+    // later; narrowing in between swaps it for a sheet that never heard it
+    // closed, so the case waits for the element to leave the page itself.
     await expect(refusing).toHaveCount(0);
+    await expect(app.locator('dialog.move-dialog')).toHaveCount(0);
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
       `Proposals ${suffix}`,
     );
