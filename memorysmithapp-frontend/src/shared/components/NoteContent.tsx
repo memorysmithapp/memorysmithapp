@@ -415,9 +415,10 @@ export function NoteContent({
         theme={READING_THEME}
         scheme={scheme}
         actions={actions}
-        // A word beside each icon on a wide note and the icon alone on a
-        // narrow one, the rule of every action of the product (#300).
-        buttons="responsive"
+        // Icons alone, in reading and in edit mode, the word kept as each
+        // button's name and title: beside the tools of the editor the words
+        // took the whole width of its bar (#300).
+        buttons="icon"
         {...(editing
           ? {
               editable: true,
