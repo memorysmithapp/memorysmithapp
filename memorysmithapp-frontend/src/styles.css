@@ -6484,3 +6484,10 @@ body.has-sheet .app-main {
   justify-content: flex-end;
   margin: 0 0 0.75rem;
 }
+
+/* The toolbar of the editor (#300) sticks to the top of what scrolls, where
+   the bar of the notebook sticks too and covers it: it sticks under the bar,
+   so its tools stay whole while the note scrolls under both. */
+.content-pane > .markdown .edit-bar {
+  top: var(--bar-h);
+}

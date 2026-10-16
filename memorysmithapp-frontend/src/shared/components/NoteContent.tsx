@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -381,9 +381,9 @@ export function NoteContent({
         keeps={(name) => isAttachmentName(notebookId, name)}
         fileOf={fileOf}
         renderLink={({ href, className, children }) => (
-          <Link to={href} className={className}>
+          <RouterFreeLink href={href} className={className} navigate={navigate}>
             {children}
-          </Link>
+          </RouterFreeLink>
         )}
         writable={writable}
         onToggleTask={onToggleTask}
@@ -404,6 +404,49 @@ export function NoteContent({
           : {})}
       />
     </NoteHeader.Provider>
+  );
+}
+
+/**
+ * A link inside the product that needs no router around it (#300). The editor
+ * draws a callout, a table or an embed in a React root of its own, outside the
+ * router of the page, where `<Link>` throws on its missing context and the
+ * whole block is left empty: every block holding a resolved wikilink vanished
+ * from the editor. The `navigate` of the page is handed in instead, and a
+ * click that opens a new tab or window is left to the browser.
+ */
+function RouterFreeLink({
+  href,
+  className,
+  navigate,
+  children,
+}: {
+  href: string;
+  className?: string | undefined;
+  navigate: (to: string) => void | Promise<void>;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className={className}
+      onClick={(event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        void navigate(href);
+      }}
+    >
+      {children}
+    </a>
   );
 }
 

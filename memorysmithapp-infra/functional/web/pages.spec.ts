@@ -854,10 +854,19 @@ test.describe('the pages of an account', () => {
     // content would see this one's edits.
     const path = `/knowledge/notebooks/${notebook.notebookId}`;
     const name = `In place ${randomBytes(3).toString('hex')}`;
+    // A wikilink that resolves, in a callout and in a table: the editor draws
+    // both in a React root of its own, outside the router of the page (#300).
+    const target = `${name} target`;
+    await owner.ok('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${target}\n---\n\nReached.\n`,
+    });
     const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
       folderId: notebook.folderId,
-      content: `---\nname: ${name}\nstatus: draft\n---\n\n| a  | b |\n|---|:-:|\n| 1 | 2 |\n\nFirst take.\n`,
+      content: `---\nname: ${name}\nstatus: draft\n---\n\n> [!abstract] Who\n> A callout reaching [[${target}]].\n\n| a  | b |\n|---|:-:|\n| 1 | [[${target}]] |\n\nFirst take.\n`,
     });
+    const crashes: string[] = [];
+    app.on('pageerror', (error) => crashes.push(error.message));
     const stored = () =>
       owner.ok<{ content: string; revision: { versionId: string } }>(
         'GET',
@@ -875,6 +884,10 @@ test.describe('the pages of an account', () => {
     // is never rewritten (RN-KNW-028).
     await toEdit.click();
     await expect(editor).toBeVisible();
+    // Every block is drawn, the ones holding a resolved link included.
+    await expect(editor.locator('.callout')).toContainText('A callout reaching');
+    await expect(editor.locator('table')).toContainText(target);
+    expect(crashes).toEqual([]);
     await toRead.click();
     await expect(editor).toHaveCount(0);
     expect(await stored()).toEqual(opened);
