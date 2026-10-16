@@ -6483,6 +6483,9 @@ body.has-sheet .app-main {
   display: flex;
   justify-content: flex-end;
   margin: 0 0 0.75rem;
+  /* It stays in view while the note scrolls, under the bar of the notebook
+     that sticks to the same top. */
+  top: var(--bar-h);
 }
 
 /* The toolbar of the editor (#300) sticks to the top of what scrolls, where

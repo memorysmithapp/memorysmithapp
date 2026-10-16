@@ -415,6 +415,9 @@ export function NoteContent({
         theme={READING_THEME}
         scheme={scheme}
         actions={actions}
+        // A word beside each icon on a wide note and the icon alone on a
+        // narrow one, the rule of every action of the product (#300).
+        buttons="responsive"
         {...(editing
           ? {
               editable: true,
