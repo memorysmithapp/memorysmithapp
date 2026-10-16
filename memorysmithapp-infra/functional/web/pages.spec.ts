@@ -949,6 +949,69 @@ test.describe('the pages of an account', () => {
     });
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] keeps the line being typed where it is on the screen, across a save (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    // A long note with blocks above the line typed: the editor draws each of
+    // them in a root of its own, and a block drawn again is empty for an
+    // instant, which shrank the note under the caret and scrolled the pane by
+    // hundreds of pixels on the first key and on the first after each save.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const filler = (word: string) =>
+      Array.from(
+        { length: 8 },
+        (_, i) => `${word} paragraph ${i}, long enough to fill a line of the note.`,
+      ).join('\n\n');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Steady ${randomBytes(3).toString('hex')}\nstatus: draft\n---\n\n${filler('Upper')}\n\n> [!note] A callout\n> Inside it.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n$$\nE = mc^2\n$$\n\nThe line typed here.\n\n${filler('Lower')}\n`,
+    });
+    await app.setViewportSize({ width: 1280, height: 800 });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    const editor = app.locator('.markdown-editor .cm-content');
+    await expect(editor).toBeVisible();
+
+    // The editor draws only the lines near the screen: the pane is scrolled by
+    // the wheel, as a person does, until the line is in the middle of it.
+    const line = editor.locator('.cm-line', { hasText: 'The line typed here.' });
+    await app.mouse.move(780, 400);
+    await expect(async () => {
+      const box = (await line.count()) ? await line.boundingBox() : null;
+      if (!box || box.y > 600) await app.mouse.wheel(0, 200);
+      else if (box.y < 300) await app.mouse.wheel(0, -100);
+      expect(box !== null && box.y >= 300 && box.y <= 600).toBe(true);
+    }).toPass({ intervals: [150], timeout: 30_000 });
+    await line.click();
+    await app.keyboard.press('End');
+    // Where the caret stands on the screen, which is what a person typing watches.
+    const caretY = () =>
+      app.evaluate(() => {
+        const page = globalThis as unknown as {
+          getSelection: () => {
+            getRangeAt: (index: number) => { getBoundingClientRect: () => { top: number } };
+          };
+        };
+        return Math.round(page.getSelection().getRangeAt(0).getBoundingClientRect().top);
+      });
+    const before = await caretY();
+
+    const save = app.locator('.edit-save');
+    await app.keyboard.type(' First', { delay: 50 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    await app.keyboard.type(' and after the save.', { delay: 50 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    expect(
+      (await owner.ok<{ content: string }>('GET', `${path}/notes/${noteId}`)).content,
+    ).toContain('The line typed here. First and after the save.');
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, with its properties on a page of their own, its tables inside the margins and either orientation (#258)', async ({
     app,
     owner,

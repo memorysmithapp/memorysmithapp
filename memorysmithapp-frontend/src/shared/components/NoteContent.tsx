@@ -368,23 +368,47 @@ export function NoteContent({
     [notebookId],
   );
 
+  /**
+   * Every function the package is handed keeps its identity across renders
+   * (#300). The editor redraws each block of the note when one of them
+   * changes, and a block redrawn is empty for an instant: the note shrinks
+   * under the caret and the pane scrolls on its own, which a person typing
+   * saw on the first key and on the first key after each save, the two
+   * renders the save status causes (memorysmithapp/memorysmithapp-markdown#99).
+   */
+  const resolve = useCallback((name: string) => resolveNoteUrl(notebookId, name), [notebookId]);
+  const reaches = useCallback(
+    (name: string) => notesReaching(notebookId, name).length,
+    [notebookId],
+  );
+  const targetAddress = useCallback(
+    (name: string) => linkTargetAddress(notebookId, name),
+    [notebookId],
+  );
+  const follow = useCallback((address: string) => void navigate(address), [navigate]);
+  const keeps = useCallback((name: string) => isAttachmentName(notebookId, name), [notebookId]);
+  const renderLink = useCallback(
+    ({ href, className, children }: { href: string; className?: string; children: ReactNode }) => (
+      <RouterFreeLink href={href} className={className} navigate={navigate}>
+        {children}
+      </RouterFreeLink>
+    ),
+    [navigate],
+  );
+
   return (
     <NoteHeader.Provider value={header ?? null}>
       <NoteBody
         markdown={editing?.mode === 'edit' ? editing.markdown : text}
-        resolve={(name) => resolveNoteUrl(notebookId, name)}
-        reaches={(name) => notesReaching(notebookId, name).length}
+        resolve={resolve}
+        reaches={reaches}
         choose={choose}
-        targetAddress={(name) => linkTargetAddress(notebookId, name)}
-        navigate={(address) => void navigate(address)}
+        targetAddress={targetAddress}
+        navigate={follow}
         loadNote={loadNote}
-        keeps={(name) => isAttachmentName(notebookId, name)}
+        keeps={keeps}
         fileOf={fileOf}
-        renderLink={({ href, className, children }) => (
-          <RouterFreeLink href={href} className={className} navigate={navigate}>
-            {children}
-          </RouterFreeLink>
-        )}
+        renderLink={renderLink}
         writable={writable}
         onToggleTask={onToggleTask}
         strings={strings}
