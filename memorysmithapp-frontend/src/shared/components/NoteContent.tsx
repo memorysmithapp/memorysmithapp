@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -42,13 +42,25 @@ import { useWriteStatus } from '../store/write-status';
 import { fileKindKey } from './file-kind';
 import { useTaskWrite, type TaskWriter } from './TaskListWriter';
 
+/** What the page draws where the renderer draws the frontmatter (#300). */
+const NoteHeader = createContext<ReactNode>(null);
+
+function NoteHeaderSlot() {
+  return <>{useContext(NoteHeader)}</>;
+}
+
 /**
  * MemorySmith's look, with the frontmatter left to the page (#291). Every page
  * that draws a Content Slot shows its name and its properties where the page
  * decides — above the body on a note, on a cover or a last page in print — so
- * the renderer draws the body alone.
+ * the renderer draws in their place only what the page hands it as `header`:
+ * after the corner of the note, so *Show Markdown*, *Copy* and *Edit* stand
+ * above the name and not between the properties and the text (#300).
  */
-const READING_THEME = defineTheme({ name: 'memorysmith', components: { properties: () => null } });
+const READING_THEME = defineTheme({
+  name: 'memorysmith',
+  components: { properties: NoteHeaderSlot },
+});
 
 /** The callout kinds the interface has a word for (#188). */
 const CALLOUT_KINDS = [
@@ -201,6 +213,7 @@ export function NoteContent({
   invalidates,
   actions = true,
   editing,
+  header,
 }: {
   raw: string;
   notebookId: string;
@@ -222,6 +235,8 @@ export function NoteContent({
   actions?: boolean;
   /** The editor, where the page offers one (#300). */
   editing?: NoteEditing;
+  /** The name and the properties the page draws under the corner of the note, in reading. */
+  header?: ReactNode;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -354,39 +369,41 @@ export function NoteContent({
   );
 
   return (
-    <NoteBody
-      markdown={editing?.mode === 'edit' ? editing.markdown : text}
-      resolve={(name) => resolveNoteUrl(notebookId, name)}
-      reaches={(name) => notesReaching(notebookId, name).length}
-      choose={choose}
-      targetAddress={(name) => linkTargetAddress(notebookId, name)}
-      navigate={(address) => void navigate(address)}
-      loadNote={loadNote}
-      keeps={(name) => isAttachmentName(notebookId, name)}
-      fileOf={fileOf}
-      renderLink={({ href, className, children }) => (
-        <Link to={href} className={className}>
-          {children}
-        </Link>
-      )}
-      writable={writable}
-      onToggleTask={onToggleTask}
-      strings={strings}
-      theme={READING_THEME}
-      scheme={scheme}
-      actions={actions}
-      {...(editing
-        ? {
-            editable: true,
-            mode: editing.mode,
-            onModeChange: editing.onModeChange,
-            onChange: editing.onChange,
-            attach: editing.attach,
-            files,
-            suggest,
-          }
-        : {})}
-    />
+    <NoteHeader.Provider value={header ?? null}>
+      <NoteBody
+        markdown={editing?.mode === 'edit' ? editing.markdown : text}
+        resolve={(name) => resolveNoteUrl(notebookId, name)}
+        reaches={(name) => notesReaching(notebookId, name).length}
+        choose={choose}
+        targetAddress={(name) => linkTargetAddress(notebookId, name)}
+        navigate={(address) => void navigate(address)}
+        loadNote={loadNote}
+        keeps={(name) => isAttachmentName(notebookId, name)}
+        fileOf={fileOf}
+        renderLink={({ href, className, children }) => (
+          <Link to={href} className={className}>
+            {children}
+          </Link>
+        )}
+        writable={writable}
+        onToggleTask={onToggleTask}
+        strings={strings}
+        theme={READING_THEME}
+        scheme={scheme}
+        actions={actions}
+        {...(editing
+          ? {
+              editable: true,
+              mode: editing.mode,
+              onModeChange: editing.onModeChange,
+              onChange: editing.onChange,
+              attach: editing.attach,
+              files,
+              suggest,
+            }
+          : {})}
+      />
+    </NoteHeader.Provider>
   );
 }
 

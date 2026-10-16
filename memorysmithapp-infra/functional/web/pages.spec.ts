@@ -1350,7 +1350,12 @@ A note to rename.
      * is also what every `[[…]]` resolves against, so a rename that does not
      * reach it leaves the whole notebook painting by the old name.
      */
-    await expect(app.locator('article.content-pane > h1')).toHaveText(after);
+    await expect(app.locator('article.content-pane .note-title')).toHaveText(after);
+    // The corner of the note stands above its name, never under its properties.
+    await expect(app.locator('article.content-pane .markdown > :first-child')).toHaveClass(
+      /note-corner/,
+    );
+    await expect(app.locator('article.content-pane .note-corner + .note-title')).toHaveText(after);
     await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });

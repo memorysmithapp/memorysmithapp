@@ -21,7 +21,7 @@ issues each entry cites.
 ### Changed
 
 - **The note is drawn by `@memorysmithapp/markdown-renderer` 0.5.0.** A callout marked `+` or `-` folds from its title. A code block in any language Prism carries is highlighted, the 282 outside MemorySmith's fifteen loaded the first time a note names one. A kept file is drawn by the package, by its type: an image, an audio or video player, or a card with *Open* and *Download*. A ticked box shows *Updating…* on the item until its write lands, and is written at once rather than after two seconds (#300).
-- ***Show Markdown* and *Copy Markdown* moved to the top right of the note**, for every role, a reader included. They replace the copy button of the bar; a preview and a print show neither (#300).
+- ***Show Markdown* and *Copy Markdown* moved to the top right of the note**, above its name and its properties, for every role, a reader included. They replace the copy button of the bar; a preview and a print show neither (#300).
 
 ### Removed
 

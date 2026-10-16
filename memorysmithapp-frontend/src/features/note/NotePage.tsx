@@ -136,6 +136,62 @@ export function NotePage({ noteId }: { noteId: string }) {
   );
   const lists = new Set(data.listProperties);
 
+  const header = (
+    <>
+      {/**
+       * The frame draws the name of the note, ALWAYS, and every heading of
+       * the body is an ordinary heading of the note, always (RN-DSC-054).
+       * A heading never names a note, so there is nothing to decide here:
+       * when the frontmatter states no name, the frame says so where the
+       * name would be (RN-KNW-036).
+       */}
+      {/* In edit mode the editor draws the name as its title field. */}
+      {reading ? (
+        <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>
+          {data.name ?? t('note.unnamed')}
+        </h1>
+      ) : null}
+
+      {movedTo ? (
+        <p className="note-changed" role="status">
+          <span>{t('move.moved', { folder: movedTo })}</span>
+          <button type="button" className="link-button" onClick={() => setMovedTo(null)}>
+            {t('note.changedElsewhereDismiss')}
+          </button>
+        </p>
+      ) : null}
+
+      {changedElsewhere && reading && (
+        <p className="note-changed" role="status">
+          <span>{t('note.changedElsewhere')}</span>
+          <button type="button" className="link-button" onClick={() => setChangedElsewhere(false)}>
+            {t('note.changedElsewhereDismiss')}
+          </button>
+        </p>
+      )}
+
+      {reading && properties.length > 0 && (
+        <details className="properties-box" open>
+          <summary>{t('note.properties')}</summary>
+          <div className="metadata-container">
+            {properties.map(([key, value]) => (
+              <div
+                className="metadata-property"
+                data-property-type={propertyType(value, lists.has(key))}
+                key={key}
+              >
+                <span className="metadata-property-key">{propertyLabel(key, t)}</span>
+                <span className="metadata-property-value">
+                  <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </>
+  );
+
   return (
     <>
       <NotebookBar crumbs={crumbs}>
@@ -169,62 +225,6 @@ export function NotePage({ noteId }: { noteId: string }) {
         ) : null}
       </NotebookBar>
       <article className="content-pane">
-        {/**
-         * The frame draws the name of the note, ALWAYS, and every heading of
-         * the body is an ordinary heading of the note, always (RN-DSC-054).
-         * A heading never names a note, so there is nothing to decide here:
-         * when the frontmatter states no name, the frame says so where the
-         * name would be (RN-KNW-036).
-         */}
-        {/* In edit mode the editor draws the name as its title field. */}
-        {reading ? (
-          <h1 className={data.name === null ? 'note-unnamed' : undefined}>
-            {data.name ?? t('note.unnamed')}
-          </h1>
-        ) : null}
-
-        {movedTo ? (
-          <p className="note-changed" role="status">
-            <span>{t('move.moved', { folder: movedTo })}</span>
-            <button type="button" className="link-button" onClick={() => setMovedTo(null)}>
-              {t('note.changedElsewhereDismiss')}
-            </button>
-          </p>
-        ) : null}
-
-        {changedElsewhere && reading && (
-          <p className="note-changed" role="status">
-            <span>{t('note.changedElsewhere')}</span>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setChangedElsewhere(false)}
-            >
-              {t('note.changedElsewhereDismiss')}
-            </button>
-          </p>
-        )}
-
-        {reading && properties.length > 0 && (
-          <details className="properties-box" open>
-            <summary>{t('note.properties')}</summary>
-            <div className="metadata-container">
-              {properties.map(([key, value]) => (
-                <div
-                  className="metadata-property"
-                  data-property-type={propertyType(value, lists.has(key))}
-                  key={key}
-                >
-                  <span className="metadata-property-key">{propertyLabel(key, t)}</span>
-                  <span className="metadata-property-value">
-                    <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-
         <NoteContent
           raw={data.raw}
           notebookId={notebookId}
@@ -240,6 +240,7 @@ export function NotePage({ noteId }: { noteId: string }) {
           }
           invalidates={queryKeys.note(notebookId, noteId)}
           {...(editing ? { editing } : {})}
+          header={header}
         />
       </article>
       <NoteHistoryDialog

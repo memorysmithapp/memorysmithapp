@@ -1699,7 +1699,8 @@ a:hover {
   color: var(--text-soft);
 }
 
-.content-pane > h1 {
+.content-pane > h1,
+.content-pane .note-title {
   margin-block: 0 0.6rem;
 }
 .content-pane > h2 {
@@ -6474,9 +6475,9 @@ body.has-sheet .app-main {
 
 /* The corner of a note — Show and Copy Markdown, and Edit for whoever writes
    (#300) — floats at the top right of the body, where the renderer puts it.
-   The page draws the name of the note above the body, so floating there it
-   squeezed the first paragraph, on a phone to a column of a few words: it
-   takes a row of its own, under the name. */
+   Floating there it squeezed the name of the note, which the page hands the
+   renderer to draw under it, and on a phone the first paragraph to a column
+   of a few words: it takes a row of its own, above the name. */
 .content-pane > .markdown > .note-corner {
   float: none;
   display: flex;
