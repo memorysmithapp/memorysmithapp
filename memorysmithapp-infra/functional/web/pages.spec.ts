@@ -888,7 +888,8 @@ test.describe('the pages of an account', () => {
     await app.keyboard.type(' And a second pause.');
     await expect
       .poll(async () => (await stored()).content, { timeout: 15_000 })
-      .toContain('First take. A sentence this case typed. And a second pause.');
+      // The end of the note is the empty line after its last line break.
+      .toContain('First take.\n A sentence this case typed. And a second pause.');
     await testInfo.attach('editor.png', { body: await app.screenshot(), contentType: 'image/png' });
     await toRead.click();
     await expect(app.getByText('And a second pause.')).toBeVisible();
