@@ -6471,3 +6471,15 @@ body.has-sheet .app-main {
   margin: 0;
   padding: 24px 30px 32px;
 }
+
+/* The corner of a note — Show and Copy Markdown, and Edit for whoever writes
+   (#300) — floats at the top right of the body, where the renderer puts it.
+   The page draws the name of the note above the body, so floating there it
+   squeezed the first paragraph, on a phone to a column of a few words: it
+   takes a row of its own, under the name. */
+.content-pane > .markdown > .note-corner {
+  float: none;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.75rem;
+}
