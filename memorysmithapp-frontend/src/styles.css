@@ -6485,14 +6485,6 @@ body.has-sheet .app-main {
   margin: 0 0 0.75rem;
 }
 
-/* The note holds what it draws. The renderer announces a ticked box through a
-   paragraph laid out of the flow at its foot, which with no positioned box
-   around it hung from the page instead of from what scrolls, and stretched the
-   page under the pane: a second scrollbar beside the one of the pane. */
-.content-pane > .markdown {
-  position: relative;
-}
-
 /* The toolbar of the editor (#300) sticks to the top of what scrolls, where
    the bar of the notebook sticks too and covers it: it sticks under the bar,
    so its tools stay whole while the note scrolls under both. */

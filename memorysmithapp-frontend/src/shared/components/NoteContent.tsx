@@ -394,9 +394,6 @@ export function NoteContent({
         {...(editing
           ? {
               editable: true,
-              // An icon, like the two actions beside it: three buttons of one
-              // corner, and only the switch would carry a word.
-              modeButton: 'icon' as const,
               mode: editing.mode,
               onModeChange: editing.onModeChange,
               onChange: editing.onChange,

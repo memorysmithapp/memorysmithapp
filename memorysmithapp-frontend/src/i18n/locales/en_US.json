@@ -863,6 +863,7 @@
     "attach": "Attach a file",
     "attaching": "Attaching…",
     "attachFailed": "The file was not attached",
+    "blockFailed": "This block could not be drawn; its Markdown is below",
     "language": "Language",
     "plainText": "Plain text",
     "mermaidDiagram": "Mermaid diagram",

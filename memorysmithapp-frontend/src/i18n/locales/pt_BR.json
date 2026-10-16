@@ -866,6 +866,7 @@
     "attach": "Anexar arquivo",
     "attaching": "Anexando…",
     "attachFailed": "O arquivo não foi anexado",
+    "blockFailed": "Não foi possível desenhar este bloco; o Markdown dele está abaixo",
     "language": "Linguagem",
     "plainText": "Texto simples",
     "mermaidDiagram": "Diagrama Mermaid",
