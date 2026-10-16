@@ -201,10 +201,15 @@ test.describe('the graph of a notebook', () => {
         }>('GET', `${discovery(notebook)}/notes/${citing.noteId}/links`),
       // What the case asserts is that both notes are reached, and the name of
       // each is projected on its own: waiting for two links answered the
-      // moment one target had resolved and the other was still pending.
+      // moment one target had resolved and the other was still pending. The
+      // source is reached by its alias and by its name, each projected on its
+      // own, so the case also waits for the name to hold the pair.
       (answer) =>
         [source.noteId, other.noteId].every((noteId) =>
           answer.links.some((link) => link.notes.some((note) => note.noteId === noteId)),
+        ) &&
+        answer.links.some(
+          (link) => link.by === 'name' && link.notes.some((note) => note.noteId === source.noteId),
         ),
     );
 
