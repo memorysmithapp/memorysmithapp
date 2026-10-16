@@ -1365,10 +1365,21 @@ A note to rename.
      */
     await expect(app.locator('article.content-pane .note-title')).toHaveText(after);
     // The corner of the note stands above its name, never under its properties.
-    await expect(app.locator('article.content-pane .markdown > :first-child')).toHaveClass(
+    await expect(app.locator('article.content-pane > .markdown > :first-child')).toHaveClass(
       /note-corner/,
     );
     await expect(app.locator('article.content-pane .note-corner + .note-title')).toHaveText(after);
+    // What the note lays out of the flow hangs from the note, never from the
+    // page, where it stretched the page under the pane into a second scrollbar.
+    expect(
+      await app.locator('article.content-pane > .markdown > p.visually-hidden').evaluate((hidden) =>
+        (
+          hidden as unknown as {
+            offsetParent: { classList: { contains(name: string): boolean } } | null;
+          }
+        ).offsetParent?.classList.contains('markdown'),
+      ),
+    ).toBe(true);
     await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });
