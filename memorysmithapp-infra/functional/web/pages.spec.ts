@@ -951,6 +951,43 @@ test.describe('the pages of an account', () => {
     });
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] keeps the bar and the corner of a long note in view while it is read, on a computer and on a phone (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const lines = Array.from(
+      { length: 40 },
+      (_, i) => `Paragraph ${i}, long enough to fill a line of the note.`,
+    ).join('\n\n');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Long ${randomBytes(3).toString('hex')}\n---\n\n${lines}\n`,
+    });
+    const edit = app.getByRole('button', { name: words.editNote, exact: true });
+    const bar = app.locator('.notebook-bar').first();
+    for (const [width, height] of [
+      [1280, 800],
+      [390, 844],
+    ] as const) {
+      await app.setViewportSize({ width, height });
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      await expect(edit).toBeVisible();
+      // Read down the note, as a person does, far past its top.
+      await app.mouse.move(width - 40, height / 2);
+      for (let step = 0; step < 10; step++) await app.mouse.wheel(0, 300);
+      await expect(app.getByText('Paragraph 0,', { exact: false })).not.toBeInViewport();
+      // The bar stays at the top, and the corner of the note under it.
+      const barBox = await bar.boundingBox();
+      const editBox = await edit.boundingBox();
+      expect(barBox!.y).toBeGreaterThanOrEqual(0);
+      expect(editBox!.y).toBeGreaterThanOrEqual(barBox!.y + barBox!.height - 1);
+      expect(editBox!.y).toBeLessThan(barBox!.y + barBox!.height + 40);
+    }
+  });
+
   test('[page:/notebooks/:notebookId/notes/:noteId] keeps the line being typed where it is on the screen, across a save (#300)', async ({
     app,
     owner,

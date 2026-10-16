@@ -6030,8 +6030,14 @@ body.has-sheet .app-main {
 
 /* The note scrolls up and down and never sideways: a block wider than the
    column scrolls inside itself, as code and tables do, and never drags the
-   reading and its bar with it. */
-.notebook-content,
+   reading and its bar with it. The middle clips rather than hides: `hidden`
+   on one axis turns the other into `auto`, and on a phone, where the row
+   scrolls and the middle does not, that made the middle a box that scrolled
+   nothing, which the bar of the notebook and the corner of the note stuck to
+   instead of the row, so both scrolled away with the note. */
+.notebook-content {
+  overflow-x: clip;
+}
 .app-main:has(> .notebook-layout) {
   overflow-x: hidden;
 }
