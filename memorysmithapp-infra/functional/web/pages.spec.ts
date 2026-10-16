@@ -932,8 +932,10 @@ test.describe('the pages of an account', () => {
     await app.keyboard.press('ControlOrMeta+End');
     await app.keyboard.type(' And one more.');
     await expect(save).toHaveAttribute('data-save', 'failed', { timeout: 15_000 });
-    await save.getByRole('button', { name: words.conflict }).click();
+    // The choice opens by itself, without a click on the status: the person
+    // typing is told, and the note is held until they choose (#300).
     const notice = app.getByRole('dialog', { name: words.conflict });
+    await expect(notice).toBeVisible();
     await testInfo.attach('editor-conflict.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
@@ -1409,8 +1411,8 @@ A note to rename.
     // name as an alias, so the links to it keep arriving (RN-KNW-052).
     const save = app.locator('.edit-save');
     await expect(save).toHaveAttribute('data-save', 'alert', { timeout: 15_000 });
-    await save.getByRole('button', { name: words.renamedTitle }).click();
     const notice = app.getByRole('dialog', { name: words.renamedTitle });
+    await expect(notice).toBeVisible();
     await notice.getByRole('button', { name: words.keepAlias.replace('{name}', before) }).click();
     await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
     const kept = await api.ok<{ content: string }>(
