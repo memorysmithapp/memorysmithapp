@@ -527,7 +527,8 @@ export class DynamoLinkGraph implements LinkGraph {
     const mine = (item: Item): boolean =>
       String(item['fromNoteId']) === noteId || String(item['toNoteId']) === noteId;
     const pending = (await this.query(notebookId, 'PENDING#', true)).filter(mine);
-    const aliasEdges = (await this.query(notebookId, 'ALIAS#', true)).filter(mine);
+    const allAliasEdges = await this.query(notebookId, 'ALIAS#', true);
+    const aliasEdges = allAliasEdges.filter(mine);
 
     await this.remove(notebookId, [
       `NOTE#${noteId}`,
@@ -548,19 +549,46 @@ export class DynamoLinkGraph implements LinkGraph {
       const answer = resolveTarget(name, names);
       const writes: Item[] = [];
 
+      /**
+       * Who already reaches each new end by a name: an edge into it with no
+       * alias mark. A spelling that lands on a pair a name holds does not mark
+       * it, and neither does a second note carrying the same name, which is a
+       * name answering (RN-DSC-042, RN-DSC-053, #304).
+       */
+      const reachedByName = new Map<string, Set<string>>();
+      if (answer.kind === 'note' && answer.by === 'alias') {
+        for (const toNoteId of answer.noteIds) {
+          const marked = new Set(
+            allAliasEdges
+              .filter((each) => String(each['toNoteId']) === toNoteId && !mine(each))
+              .map((each) => String(each['fromNoteId'])),
+          );
+          const into = await this.query(notebookId, `IN#${toNoteId}#`, true);
+          reachedByName.set(
+            toNoteId,
+            new Set(
+              into.map((each) => String(each['fromNoteId'])).filter((from) => !marked.has(from)),
+            ),
+          );
+        }
+      }
+
       for (const item of incoming) {
         const from = String(item['fromNoteId']);
         if (answer.kind === 'note') {
           for (const toNoteId of answer.noteIds) {
             if (toNoteId === from) continue;
-            writes.push(...this.edgeItems(notebookId, from, toNoteId), {
-              PK: this.pk(notebookId),
-              SK: `ALIAS#${name}#${from}#${toNoteId}`,
-              entity: 'ALIASEDGE',
-              fromNoteId: from,
-              toNoteId,
-              name,
-            });
+            writes.push(...this.edgeItems(notebookId, from, toNoteId));
+            if (answer.by === 'alias' && !reachedByName.get(toNoteId)?.has(from)) {
+              writes.push({
+                PK: this.pk(notebookId),
+                SK: `ALIAS#${name}#${from}#${toNoteId}`,
+                entity: 'ALIASEDGE',
+                fromNoteId: from,
+                toNoteId,
+                name,
+              });
+            }
           }
         } else {
           writes.push({
@@ -629,16 +657,41 @@ export class DynamoLinkGraph implements LinkGraph {
       },
     ];
 
+    /**
+     * The notes that reach this one BY NAME once this runs, which an alias
+     * may not mark as its own (RN-DSC-053, #304). The write of a note asks the
+     * same question of its own links; here the answer has two halves, because
+     * the order the projector meets the writes is nobody's to choose: a note
+     * quoting a source by its name and by its alias, projected before the
+     * source, has both targets waiting, and both resolve in this one call. The
+     * other half is an edge a name already holds, which a spelling resolved
+     * later finds in place: an edge with no alias mark is held by a name.
+     */
+    const [incoming, aliasMarks] = await Promise.all([
+      this.query(notebookId, `IN#${note.noteId}#`),
+      this.query(notebookId, 'ALIAS#'),
+    ]);
+    const marksHere = aliasMarks.filter((item) => String(item['toNoteId']) === note.noteId);
+    const heldByAlias = new Set(marksHere.map((item) => String(item['fromNoteId'])));
+    const resolvedByName = new Set(
+      byName.map((item) => String(item['fromNoteId'])).filter((from) => from !== note.noteId),
+    );
+    const reachedByName = new Set([
+      ...resolvedByName,
+      ...incoming
+        .map((item) => String(item['fromNoteId']))
+        .filter((from) => !heldByAlias.has(from)),
+    ]);
+
     await this.put([
-      ...byName.flatMap((item) => {
-        const from = String(item['fromNoteId']);
-        return from === note.noteId ? [] : edgeFrom(from);
-      }),
+      ...[...resolvedByName].flatMap(edgeFrom),
       // An edge an alias answered for is marked, because a note written later
-      // under that name takes it away (RN-DSC-053).
+      // under that name takes it away (RN-DSC-053) — unless a name reaches it
+      // too, and then it is not the alias's to lose.
       ...byAlias.flatMap(({ item, alias }) => {
         const from = String(item['fromNoteId']);
         if (from === note.noteId) return [];
+        if (reachedByName.has(from)) return edgeFrom(from);
         return [
           ...edgeFrom(from),
           {
@@ -652,10 +705,14 @@ export class DynamoLinkGraph implements LinkGraph {
         ];
       }),
     ]);
-    await this.remove(
-      notebookId,
-      waiting.map((item) => String(item['SK'])),
-    );
+    await this.remove(notebookId, [
+      ...waiting.map((item) => String(item['SK'])),
+      // A pair a spelling was holding, now reached by the name as well: the
+      // mark goes, and the edge it marked is the name's.
+      ...marksHere
+        .filter((item) => resolvedByName.has(String(item['fromNoteId'])))
+        .map((item) => String(item['SK'])),
+    ]);
     return waiting.length;
   }
 
