@@ -227,6 +227,22 @@ function noteIdsNamed(notebookId: string, wanted: string): string[] {
 }
 
 /**
+ * Every name a link of this notebook can reach a note by, in the order of the
+ * tree, and then the aliases (#300): what the editor offers after `[[`.
+ */
+export function noteNamesIn(notebookId: string): string[] {
+  const names: string[] = [];
+  const walk = (nodes: NotebookStructure['folders']): void => {
+    for (const node of nodes) {
+      for (const note of node.notes) if (note.name) names.push(note.name);
+      walk(node.children);
+    }
+  };
+  walk(loaded.get(notebookId)?.folders ?? []);
+  return [...names, ...(spellings.get(notebookId)?.keys() ?? [])];
+}
+
+/**
  * How many notes of the loaded structure carry that name. One is a link, none
  * is pending, and several is the choice.
  */
@@ -320,6 +336,8 @@ export function updateNote(
     baseRevision: string;
     /** One line about this change, recorded in the trail (RN-AUD-012). */
     message?: string;
+    /** The session of the page the write belongs to, which groups the history (RN-AUD-013). */
+    session?: string;
   },
   options: { keepalive?: boolean } = {},
 ): Promise<string> {

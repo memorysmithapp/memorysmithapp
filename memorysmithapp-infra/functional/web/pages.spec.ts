@@ -807,40 +807,6 @@ test.describe('the pages of an account', () => {
     await look('renderer-phone.png');
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId] says in the editor where the page will not show the note as typed (#291)', async ({
-    app,
-    owner,
-    notebook,
-    words,
-  }, testInfo) => {
-    const path = `/knowledge/notebooks/${notebook.notebookId}`;
-    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
-      folderId: notebook.folderId,
-      content: `---\nname: Notices ${randomBytes(3).toString('hex')}\n---\n\n# Notices\n`,
-    });
-    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
-    await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    const area = app.locator('textarea.note-editor-area');
-    await area.fill(`${await area.inputValue()}\n### Skipped\n\n\`\`\`\nnever closed\n`);
-
-    const notices = app.locator('.note-notices');
-    await expect(notices.getByRole('heading', { name: words.noticesHeading })).toBeVisible();
-    const fence = notices.getByRole('button', { name: new RegExp(words.noticeFenceUnclosed) });
-    await expect(fence).toBeVisible();
-    // A notice takes the cursor to where it is.
-    await fence.click();
-    const selected = await area.evaluate((field) =>
-      (field as unknown as { value: string; selectionStart: number }).value.slice(
-        (field as unknown as { selectionStart: number }).selectionStart,
-      ),
-    );
-    expect(selected.startsWith('```')).toBe(true);
-    await testInfo.attach('editor-notices.png', {
-      body: await app.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
-  });
-
   test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
     app,
     notebook,
@@ -878,62 +844,95 @@ test.describe('the pages of an account', () => {
     await expect(box('second')).toBeChecked();
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId] writes a note from the interface with a line, which the history answers, and conflicts with a write it did not see', async ({
+  test('[page:/notebooks/:notebookId/notes/:noteId] edits a note in place, saving as it goes, shows the session as one entry of the history, and lets a write it did not see be kept or overwritten (#300)', async ({
     app,
+    owner,
     notebook,
-    state,
     words,
-  }) => {
-    await app.goto(
-      `${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
-    );
+  }, testInfo) => {
+    // Its own note: the cases of this run that read the fixture's note by its
+    // content would see this one's edits.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `In place ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${name}\nstatus: draft\n---\n\n| a  | b |\n|---|:-:|\n| 1 | 2 |\n\nFirst take.\n`,
+    });
+    const stored = () =>
+      owner.ok<{ content: string; revision: { versionId: string } }>(
+        'GET',
+        `${path}/notes/${noteId}`,
+      );
+    const opened = await stored();
 
-    // The toggle is there because this account writes in this notebook.
-    await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    const area = app.locator('textarea.note-editor-area');
-    // What is typed is WHAT WAS TYPED: the frontmatter is in the box, not the
-    // properties the reading surface drew out of it (RN-KNW-052).
-    await expect(area).toHaveValue(/^---/);
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    const toEdit = app.getByRole('button', { name: words.editNote, exact: true });
+    const toRead = app.getByRole('button', { name: words.readNote, exact: true });
+    const editor = app.locator('.markdown-editor .cm-content');
+    const save = app.locator('.edit-save');
 
-    const line = `Written by a functional case at ${new Date().toISOString()}`;
-    await area.fill(`${await area.inputValue()}\n\nA paragraph this case wrote.\n`);
-    await app.getByRole('button', { name: words.confirmEdit }).click();
-    await app.getByLabel(words.messageLabel).fill(line);
-    await app.getByRole('button', { name: words.writeIt }).click();
+    // Opening the editor and leaving it writes nothing: a byte nobody touched
+    // is never rewritten (RN-KNW-028).
+    await toEdit.click();
+    await expect(editor).toBeVisible();
+    await toRead.click();
+    await expect(editor).toHaveCount(0);
+    expect(await stored()).toEqual(opened);
 
-    // Back to reading, with the paragraph in it.
-    await expect(app.getByText('A paragraph this case wrote.')).toBeVisible();
+    // Typing saves after a pause, a revision per pause and never per key.
+    await toEdit.click();
+    await editor.click();
+    await app.keyboard.press('ControlOrMeta+End');
+    await app.keyboard.type(' A sentence this case typed.');
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    await app.keyboard.type(' And a second pause.');
+    await expect
+      .poll(async () => (await stored()).content, { timeout: 15_000 })
+      .toContain('First take. A sentence this case typed. And a second pause.');
+    await testInfo.attach('editor.png', { body: await app.screenshot(), contentType: 'image/png' });
+    await toRead.click();
+    await expect(app.getByText('And a second pause.')).toBeVisible();
+    // The table keeps the spacing it was typed with: only the edited line changed.
+    expect((await stored()).content).toContain('| a  | b |\n|---|:-:|');
 
-    // And the line is in the history, which is the whole reason the field
-    // exists: a message written into a drawer nobody opens is a form.
-    // It opens from the bar of the note, as the modal of the Controles (#226).
+    // The saves of the session are one entry of the history (RN-AUD-013).
     await app.getByRole('button', { name: words.historyButton, exact: true }).click();
     const history = app.getByRole('dialog', { name: words.historyHeading });
-    await expect(history.getByText(line)).toBeVisible();
+    await expect(history.locator('.history-session')).toHaveCount(1, { timeout: 15_000 });
+    await expect(history.locator('.history-session')).toContainText(words.editSession);
     await app.keyboard.press('Escape');
-    await expect(history).toHaveCount(0);
 
     /**
-     * A write the screen did not see: the API writes the same note directly,
-     * so the revision the page is holding is retired. The next write from the
-     * interface must say somebody else wrote, and not overwrite them.
+     * A write the screen did not see, made while the editor is open: the next
+     * save is refused, and the person chooses — here, to save anyway, which
+     * writes on the revision that now exists and keeps theirs in the history.
      */
-    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
-    const read = await api.ok<{ raw: string; revision: { versionId: string } }>(
-      'GET',
-      `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
-    );
-    await api.ok('PUT', `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`, {
-      content: `${read.raw}\n\nWritten around the interface.\n`,
-      baseRevision: read.revision.versionId,
+    await toEdit.click();
+    const before = await stored();
+    await owner.ok('PUT', `${path}/notes/${noteId}`, {
+      content: `${before.content}\nWritten around the interface.\n`,
+      baseRevision: before.revision.versionId,
       message: 'A write the screen never saw',
     });
-
-    await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    await app.locator('textarea.note-editor-area').fill(`${read.raw}\n\nAnd one more.\n`);
-    await app.getByRole('button', { name: words.confirmEdit }).click();
-    await app.getByRole('button', { name: words.writeIt }).click();
-    await expect(app.locator('.editor-refusal')).toContainText(words.conflict);
+    await editor.click();
+    await app.keyboard.press('ControlOrMeta+End');
+    await app.keyboard.type(' And one more.');
+    await expect(save).toHaveAttribute('data-save', 'failed', { timeout: 15_000 });
+    await save.getByRole('button', { name: words.conflict }).click();
+    const notice = app.getByRole('dialog', { name: words.conflict });
+    await testInfo.attach('editor-conflict.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await notice.getByRole('button', { name: words.saveAnyway }).click();
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    const after = (await stored()).content;
+    expect(after).toContain('And one more.');
+    expect(after).not.toContain('Written around the interface.');
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    await expect(history.getByText('A write the screen never saw')).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test('[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, with its properties on a page of their own, its tables inside the margins and either orientation (#258)', async ({
@@ -1323,11 +1322,27 @@ A note to rename.
     await app.goto(`${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${made.noteId}`);
     await expect(app.locator('.tree-note', { hasText: before })).toBeVisible();
 
+    // The name is the title field of the editor's frontmatter form (#300).
     await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    const area = app.locator('textarea.note-editor-area');
-    await area.fill((await area.inputValue()).replace(`name: ${before}`, `name: ${after}`));
-    await app.getByRole('button', { name: words.confirmEdit }).click();
-    await app.getByRole('button', { name: words.writeIt }).click();
+    const title = app.getByRole('textbox', { name: words.noteTitle, exact: true });
+    await title.fill(after);
+    await title.press('Tab');
+
+    // The save that renamed it says so once it landed, and offers the old
+    // name as an alias, so the links to it keep arriving (RN-KNW-052).
+    const save = app.locator('.edit-save');
+    await expect(save).toHaveAttribute('data-save', 'alert', { timeout: 15_000 });
+    await save.getByRole('button', { name: words.renamedTitle }).click();
+    const notice = app.getByRole('dialog', { name: words.renamedTitle });
+    await notice.getByRole('button', { name: words.keepAlias.replace('{name}', before) }).click();
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    const kept = await api.ok<{ content: string }>(
+      'GET',
+      `/knowledge/notebooks/${notebook.notebookId}/notes/${made.noteId}`,
+    );
+    expect(kept.content).toContain(`name: ${after}`);
+    expect(kept.content).toContain(before);
+    await app.getByRole('button', { name: words.readNote, exact: true }).click();
 
     /**
      * No reload anywhere in this case (#170). The structure draws the tree and

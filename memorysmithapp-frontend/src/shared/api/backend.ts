@@ -547,7 +547,14 @@ export async function createNote(
 export async function updateNote(
   notebookId: string,
   noteId: string,
-  input: { content: string; baseRevision: string; name?: string; message?: string },
+  input: {
+    content: string;
+    baseRevision: string;
+    name?: string;
+    message?: string;
+    /** The edit session of the interface the save belongs to (RN-AUD-013). */
+    session?: string;
+  },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
   // The answer carries the revision this write produced, which is what the
@@ -616,6 +623,8 @@ export interface HistoryEntryDto {
   contentRef: { versionId: string } | null;
   /** The line its author left about the change, or null (RN-AUD-012). */
   message: string | null;
+  /** The edit session of the interface the write belonged to, or null (RN-AUD-013). */
+  session?: string | null;
 }
 
 export async function noteHistory(notebookId: string, noteId: string): Promise<HistoryEntryDto[]> {

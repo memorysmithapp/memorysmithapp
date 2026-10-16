@@ -54,7 +54,7 @@ import type {
   UpdateNote,
 } from '../../../application/notes.js';
 import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
-import { NOTE_MESSAGE_MAX_LENGTH } from '@memorysmithapp/contracts';
+import { NOTE_MESSAGE_MAX_LENGTH, ulidSchema } from '@memorysmithapp/contracts';
 import {
   fileToDto,
   folderToDto,
@@ -589,8 +589,13 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       content?: string;
       baseRevision?: string;
       message?: string;
+      session?: string;
     };
     const content = String(body.content ?? '');
+    // The edit session of the interface, when the write belongs to one
+    // (RN-AUD-013). Anything that is not an identifier is no session at all:
+    // it groups the history and decides nothing else.
+    const session = ulidSchema.safeParse(body.session);
     const updated = await useCases.updateNote(request).execute({
       ctx: request.ctx,
       notebookId: notebookId.value,
@@ -601,6 +606,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       // the instant and the authorship (RN-AUD-012). Never required.
       message:
         typeof body.message === 'string' ? body.message.slice(0, NOTE_MESSAGE_MAX_LENGTH) : null,
+      session: session.success ? session.data : null,
       by: author.value,
     });
     /**

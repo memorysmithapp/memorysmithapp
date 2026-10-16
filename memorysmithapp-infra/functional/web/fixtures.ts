@@ -105,11 +105,15 @@ export interface Words {
   /** What the password screen says before it changes anything. */
   readonly endsOtherSessions: string;
   readonly cancel: string;
-  /** Writing a note from the interface (#169). */
+  /** Editing a note in place, on the page that draws it (#300). */
   readonly editNote: string;
-  readonly confirmEdit: string;
-  readonly messageLabel: string;
-  readonly writeIt: string;
+  readonly readNote: string;
+  /** The name of the note, the title field of the editor's frontmatter form. */
+  readonly noteTitle: string;
+  readonly saveAnyway: string;
+  readonly renamedTitle: string;
+  readonly keepAlias: string;
+  readonly editSession: string;
   readonly historyHeading: string;
   /** The button of the bar that opens the history (#226). */
   readonly historyButton: string;
@@ -138,8 +142,6 @@ export interface Words {
   readonly folderEditDescription: string;
   readonly folderEditSave: string;
   readonly folderEditNameTaken: string;
-  readonly noticesHeading: string;
-  readonly noticeFenceUnclosed: string;
   /** The kind the history gives the move. */
   readonly historyMoved: string;
 }
@@ -206,9 +208,12 @@ export const WORDS: Record<AppLocale, Words> = {
     endsOtherSessions: 'Changing your password ends every other session',
     cancel: 'Cancel',
     editNote: 'Edit',
-    confirmEdit: 'Confirm',
-    messageLabel: 'A line about this change',
-    writeIt: 'Write it',
+    readNote: 'Read',
+    noteTitle: 'Title',
+    saveAnyway: 'Save anyway',
+    renamedTitle: 'The note was renamed',
+    keepAlias: 'Keep “{name}” as an alias',
+    editSession: 'Edited',
     historyHeading: 'History of this note',
     historyButton: 'History',
     printNote: 'Print',
@@ -231,8 +236,6 @@ export const WORDS: Record<AppLocale, Words> = {
     folderEditDescription: 'Description',
     folderEditSave: 'Save',
     folderEditNameTaken: 'already exists at this level',
-    noticesHeading: 'What the page will not show as typed',
-    noticeFenceUnclosed: 'This code block is never closed',
     historyMoved: 'Moved',
   },
   pt_BR: {
@@ -296,14 +299,17 @@ export const WORDS: Record<AppLocale, Words> = {
     endsOtherSessions: 'Trocar a senha encerra todas as outras sessões',
     cancel: 'Cancelar',
     editNote: 'Editar',
-    confirmEdit: 'Confirmar',
-    messageLabel: 'Uma linha sobre esta mudança',
-    writeIt: 'Gravar',
+    readNote: 'Ler',
+    noteTitle: 'Título',
+    saveAnyway: 'Salvar mesmo assim',
+    renamedTitle: 'A nota foi renomeada',
+    keepAlias: 'Manter “{name}” como alias',
+    editSession: 'Editada',
     historyHeading: 'Histórico desta nota',
     historyButton: 'Histórico',
     printNote: 'Imprimir',
     downloadPdf: 'Baixar PDF',
-    conflict: 'Outra pessoa gravou esta nota',
+    conflict: 'Outra pessoa escreveu nesta nota',
     noteOrderHint: 'O que a ordem das notas faz',
     noteOrderHintManual:
       'As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.',
@@ -321,8 +327,6 @@ export const WORDS: Record<AppLocale, Words> = {
     folderEditDescription: 'Descrição',
     folderEditSave: 'Salvar',
     folderEditNameTaken: 'existe uma pasta chamada',
-    noticesHeading: 'O que a página não vai mostrar como foi digitado',
-    noticeFenceUnclosed: 'Este bloco de código nunca é fechado',
     historyMoved: 'Movida',
   },
 };

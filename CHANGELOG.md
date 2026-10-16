@@ -11,6 +11,23 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **A note is edited on the page that draws it.** The pencil opened a text area of raw Markdown, with a confirmation that asked what changed before writing. Now *Edit*, at the top right of the note, turns the page itself into the editor of `@memorysmithapp/markdown-renderer` 0.5.0. It covers every construct of the specification: marks, headings, lists and tasks, links and wikilinks (with the notebook's names offered after `[[`), callouts, tables cell by cell, code with its language, formulas and diagrams drawn live, the frontmatter as a form, footnotes and comments. A byte the person did not touch is never rewritten. The note saves as the person types, after a pause, and the save status beside the switch says *Saving…*, *Saved* or *Not saved*. Going back to reading waits for the save in flight. Leaving the page sends what is waiting, and closing the tab asks first (#300, RN-KNW-052).
+- **A save that finds somebody else's write says so, and lets the person choose.** The status opens a dialog with two choices: discard this edit and read their version, or save anyway on the revision that now exists, which keeps theirs in the history. A rename is said once it lands, with how many links went pending and how many resolve, and with the offer to keep the old name as an alias (#300, RN-KNW-052).
+- **An edit session is one entry of the history of a note.** Every save is still a revision of its own, reachable by `read_note(asOf)`, and carries the identifier of its session. The history shows the saves of one session as one entry that opens into each of them. `note_history` answers the same grouping, as an entry of type `EditSession` with its revisions. The ticks of task boxes during one visit to a note are one session too (#300, RN-AUD-013).
+- **A file is attached from the editor's toolbar.** The paperclip attaches a file from the computer under a name and a description, embeds a file the notebook already keeps, or writes an image at a web address; a file pasted or dropped onto the note is attached too. While a file is kept the paperclip says each step, and when it is refused it says why. The file still goes up in parts, hashed a slice at a time and resumed after a dropped connection (#300, RN-KNW-054).
+
+### Changed
+
+- **The note is drawn by `@memorysmithapp/markdown-renderer` 0.5.0.** A callout marked `+` or `-` folds from its title. A code block in any language Prism carries is highlighted, the 282 outside MemorySmith's fifteen loaded the first time a note names one. A kept file is drawn by the package, by its type: an image, an audio or video player, or a card with *Open* and *Download*. A ticked box shows *Updating…* on the item until its write lands, and is written at once rather than after two seconds (#300).
+- ***Show Markdown* and *Copy Markdown* moved to the top right of the note**, for every role, a reader included. They replace the copy button of the bar; a preview and a print show neither (#300).
+
+### Removed
+
+- **The notices of the note editor.** The list under the text area of where the page would not show the note as typed is gone, because the editor draws the note as it is typed. The connector still hands the notices to an agent, which never sees the page (#300, RN-KNW-059, RN-AGT-052).
+- **The line about a change asked before a write from the interface.** A save is made at each pause, where nobody stops to write one. An agent still sends a line with `update_note`, and the history still shows it (#300, RN-AUD-012).
+
 ## [0.12.1] - 2026-10-15
 
 ### Changed

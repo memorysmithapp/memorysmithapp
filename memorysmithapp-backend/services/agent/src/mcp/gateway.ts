@@ -205,6 +205,11 @@ export interface HistoryEntry {
    * the same way whoever wrote it.
    */
   readonly message: string | null;
+  /**
+   * The edit session of the interface the write belonged to (RN-AUD-013), or
+   * null for a write made outside one, which is every write of an agent.
+   */
+  readonly session: string | null;
 }
 
 export interface FolderListing {

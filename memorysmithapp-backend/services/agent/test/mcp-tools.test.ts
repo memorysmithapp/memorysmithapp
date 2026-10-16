@@ -7,7 +7,7 @@ import {
   toolSignature,
 } from '../src/mcp/catalog.js';
 import { clientKind } from '../src/mcp/refresh.js';
-import { McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
+import { historyAnswer, McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import {
@@ -2684,5 +2684,41 @@ describe('the agent is told what a notice is before it meets one (RN-AGT-052)', 
     expect(describe('update_note')).toContain('The answer carries `notices`');
     expect(describe('check_notebook')).toContain('`noticesRead`');
     expect(skillNamed('write-notes')?.body).toContain('**Read the notices a write answers.**');
+  });
+});
+
+describe('note_history groups an edit session (RN-AUD-013)', () => {
+  const entry = (occurredAt: string, revision: string, session: string | null) => ({
+    occurredAt,
+    type: 'NoteUpdated',
+    userId: 'user-1',
+    agentName: null,
+    agentClientId: null,
+    revision,
+    message: null,
+    session,
+  });
+
+  it('answers a run of saves of one session as one entry, with each revision', () => {
+    const answer = historyAnswer([
+      { ...entry('2026-10-01T10:00:00.000Z', 'v1', null), agentName: 'Claude' },
+      entry('2026-10-01T10:05:00.000Z', 'v2', 'S1'),
+      entry('2026-10-01T10:06:00.000Z', 'v3', 'S1'),
+      entry('2026-10-01T10:07:00.000Z', 'v4', 'S1'),
+    ]) as Array<Record<string, unknown>>;
+
+    expect(answer).toHaveLength(2);
+    expect(answer[0]).not.toHaveProperty('session');
+    expect(answer[1]).toMatchObject({
+      type: 'EditSession',
+      session: 'S1',
+      saves: 3,
+      startedAt: '2026-10-01T10:05:00.000Z',
+      occurredAt: '2026-10-01T10:07:00.000Z',
+      revision: 'v4',
+    });
+    expect((answer[1]!['revisions'] as Array<{ revision: string }>).map((r) => r.revision)).toEqual(
+      ['v2', 'v3', 'v4'],
+    );
   });
 });

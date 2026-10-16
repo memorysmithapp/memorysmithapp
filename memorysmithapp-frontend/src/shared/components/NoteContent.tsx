@@ -4,18 +4,30 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
+  ENGLISH,
   NoteBody,
   defineTheme,
   toggleTaskAt,
+  type AttachAttributes,
+  type AttachProgress,
+  type EditorWords,
   type EmbeddedNote,
+  type KeptFile,
+  type KeptFileEntry,
   type LinkChoices,
+  type NoteMode,
   type NoteStrings,
 } from '@memorysmithapp/markdown-renderer';
+import { FILE_MIME_TYPES, rendersAs, type NotebookFileDto } from '@memorysmithapp/contracts';
 import '@memorysmithapp/markdown-renderer/styles.css';
 import 'katex/dist/katex.min.css';
 import {
+  fileKept,
   folderOfNote,
   getNote,
+  getNotebookFiles,
+  linkToFile,
+  noteNamesIn,
   notesReaching,
   resolveLinkTarget,
   resolveNoteId,
@@ -27,8 +39,8 @@ import { queryKeys, type InterfaceQueryKey } from '../api/query-keys';
 import { intlLocale } from '../../i18n/intl-locale';
 import { effectiveTheme, usePreferences } from '../store/preferences';
 import { useWriteStatus } from '../store/write-status';
-import { Attachment } from './Attachment';
-import { useGroupedWrite, type TaskWriter } from './TaskListWriter';
+import { fileKindKey } from './file-kind';
+import { useTaskWrite, type TaskWriter } from './TaskListWriter';
 
 /**
  * MemorySmith's look, with the frontmatter left to the page (#291). Every page
@@ -103,11 +115,67 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     targetAliased: (target, count) => t('note.targetAliased', { target, count }),
     embedSectionMissing: (section) => t('note.embedSectionMissing', { section }),
     unnamedNote: t('note.unnamed'),
+    attachmentOpen: t('note.attachmentOpen'),
+    attachmentDownload: t('note.attachmentDownload'),
+    fileKinds: Object.fromEntries(
+      FILE_MIME_TYPES.map((mimeType) => [mimeType, t(fileKindKey(mimeType))]),
+    ),
+    updating: t('noteEditor.updating'),
+    saved: t('write.saved'),
+    notSaved: t('noteEditor.notSaved'),
+    edit: t('editor.editShort'),
+    view: t('editor.readShort'),
+    editUnavailable: t('noteEditor.editUnavailable'),
+    editor: editorWords(t),
     loading: t('common.loading'),
     failed: t('errors.unexpected'),
     close: t('common.close'),
     cancel: t('common.cancel'),
   };
+}
+
+/**
+ * The words of the editor (#300), each under `noteEditor` in the locales. The
+ * package names every one it needs, so the list is read from its English and
+ * a word added to it reaches a locale test before it reaches a person in
+ * English.
+ */
+export function editorWords(t: TFunction): EditorWords {
+  const words: Record<string, unknown> = {};
+  for (const key of Object.keys(ENGLISH.editor)) {
+    words[key] = key === 'attachQueued' ? undefined : t(`noteEditor.${key}`);
+  }
+  return {
+    ...(words as unknown as EditorWords),
+    attachQueued: (count: number) => t('noteEditor.attachQueued', { count }),
+  };
+}
+
+/** The keys of the editor's words, which every locale carries (#300). */
+export const EDITOR_WORD_KEYS = Object.keys(ENGLISH.editor);
+
+/**
+ * What the note page gives the editor (#300): the mode it controls, and where
+ * each change goes. Without it a surface is read only, as every other surface
+ * that draws a Content Slot is.
+ */
+export interface NoteEditing {
+  readonly mode: NoteMode;
+  readonly onModeChange: (mode: NoteMode) => void;
+  /** Each change of the text; answered with the promise of its save. */
+  readonly onChange: (markdown: string) => unknown;
+  /**
+   * The text the editor starts from and the host's own changes to it — their
+   * version after a conflict, the note with an alias — which the editor takes
+   * in as changes. Never the echo of what was typed.
+   */
+  readonly markdown: string;
+  /** Keeps a file the author attached, and answers its name. */
+  readonly attach: (
+    file: File,
+    attributes: AttachAttributes,
+    progress: (report: AttachProgress) => void,
+  ) => Promise<string>;
 }
 
 /**
@@ -131,6 +199,8 @@ export function NoteContent({
   writable,
   write,
   invalidates,
+  actions = true,
+  editing,
 }: {
   raw: string;
   notebookId: string;
@@ -143,6 +213,15 @@ export function NoteContent({
    * a silent no-op.
    */
   invalidates: InterfaceQueryKey;
+  /**
+   * Whether the note offers *Show Markdown* and *Copy Markdown* at its top
+   * right (#300): reading a note's Markdown and copying it are reading, so
+   * every role has them. A preview and a print, which are pictures of the
+   * note, turn them off.
+   */
+  actions?: boolean;
+  /** The editor, where the page offers one (#300). */
+  editing?: NoteEditing;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -166,7 +245,7 @@ export function NoteContent({
    */
   useEffect(() => () => useWriteStatus.getState().clear(), []);
 
-  const { text, toggle } = useGroupedWrite({
+  const { text, toggle } = useTaskWrite({
     raw,
     baseRevision,
     write,
@@ -174,10 +253,14 @@ export function NoteContent({
     onConflict: reload,
   });
 
+  /**
+   * The promise of the write, which the item waits on under *Updating…*
+   * (#300). The package asks for the next tick only once this one settled.
+   */
   const onToggleTask = useCallback(
-    (ordinal: number) => {
+    (ordinal: number): Promise<void> | undefined => {
       const next = toggleTaskAt(text, ordinal);
-      if (next !== null) toggle(next);
+      return next === null ? undefined : toggle(next);
     },
     [text, toggle],
   );
@@ -227,9 +310,52 @@ export function NoteContent({
     [client, notebookId],
   );
 
+  /**
+   * A kept file, described for the package to draw it by its type (#300): an
+   * image, a player or a card. The bytes come from a link minted for it, which
+   * points at the files host and never at the API.
+   */
+  const fileOf = useCallback(
+    async (name: string): Promise<KeptFile | null> => {
+      const file = fileKept(notebookId, name);
+      if (!file) return null;
+      return keptFile(file, await linkOf(client, notebookId, file));
+    },
+    [client, notebookId],
+  );
+
+  /**
+   * The files the attach dialog lists. Only a picture is shown there, so only
+   * a picture is given an address: minting one for every recording and
+   * document of a notebook to draw a list of names would be a request each.
+   */
+  const files = useCallback(async (): Promise<KeptFileEntry[]> => {
+    const kept = await client.fetchQuery({
+      queryKey: queryKeys.notebookFiles(notebookId),
+      queryFn: () => getNotebookFiles(notebookId),
+    });
+    return Promise.all(
+      kept.map(async (file) => ({
+        name: file.name,
+        ...keptFile(
+          file,
+          rendersAs(file.mimeType) === 'image'
+            ? await linkOf(client, notebookId, file).catch(() => null)
+            : null,
+        ),
+      })),
+    );
+  }, [client, notebookId]);
+
+  /** The names offered after `[[`: those that start with what was typed, then those that hold it. */
+  const suggest = useCallback(
+    (query: string): string[] => suggestNames(noteNamesIn(notebookId), query),
+    [notebookId],
+  );
+
   return (
     <NoteBody
-      markdown={text}
+      markdown={editing?.mode === 'edit' ? editing.markdown : text}
       resolve={(name) => resolveNoteUrl(notebookId, name)}
       reaches={(name) => notesReaching(notebookId, name).length}
       choose={choose}
@@ -237,9 +363,7 @@ export function NoteContent({
       navigate={(address) => void navigate(address)}
       loadNote={loadNote}
       keeps={(name) => isAttachmentName(notebookId, name)}
-      renderAttachment={({ name, width, height }) => (
-        <Attachment notebookId={notebookId} name={name} width={width} height={height} />
-      )}
+      fileOf={fileOf}
       renderLink={({ href, className, children }) => (
         <Link to={href} className={className}>
           {children}
@@ -250,6 +374,70 @@ export function NoteContent({
       strings={strings}
       theme={READING_THEME}
       scheme={scheme}
+      actions={actions}
+      {...(editing
+        ? {
+            editable: true,
+            mode: editing.mode,
+            onModeChange: editing.onModeChange,
+            onChange: editing.onChange,
+            attach: editing.attach,
+            files,
+            suggest,
+          }
+        : {})}
     />
   );
+}
+
+/** How many names `[[` offers at most. */
+const SUGGESTIONS = 12;
+
+/**
+ * The names of notes that start with what was typed, then those that hold it,
+ * each group in the order of the notebook; compared after NFC and without
+ * regard to case, so *ata* finds *Ata 12*.
+ */
+export function suggestNames(names: readonly string[], query: string): string[] {
+  const wanted = query.normalize('NFC').trim().toLocaleLowerCase();
+  const unique = [...new Set(names)];
+  if (wanted.length === 0) return unique.slice(0, SUGGESTIONS);
+  const key = (name: string) => name.normalize('NFC').toLocaleLowerCase();
+  const starting = unique.filter((name) => key(name).startsWith(wanted));
+  const holding = unique.filter(
+    (name) => !key(name).startsWith(wanted) && key(name).includes(wanted),
+  );
+  return [...starting, ...holding].slice(0, SUGGESTIONS);
+}
+
+/** The link to a kept file, through the cache every surface reads it from. */
+function linkOf(
+  client: ReturnType<typeof useQueryClient>,
+  notebookId: string,
+  file: NotebookFileDto,
+) {
+  return client.fetchQuery({
+    queryKey: queryKeys.fileLink(notebookId, file.fileId),
+    queryFn: () => linkToFile(notebookId, file.fileId),
+    // A link lasts an hour; asking again halfway through is cheaper than
+    // finding out it expired while somebody was reading.
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+/**
+ * A kept file as the package draws it, by its type; the package offers *Open*
+ * only for a type a browser shows (#171), as this page did.
+ */
+function keptFile(
+  file: NotebookFileDto,
+  link: { url: string; downloadUrl: string } | null,
+): KeptFile {
+  return {
+    mimeType: file.mimeType,
+    bytes: file.bytes,
+    url: link?.url ?? '',
+    ...(link ? { downloadUrl: link.downloadUrl } : {}),
+    ...(file.description.length > 0 ? { description: file.description } : {}),
+  };
 }

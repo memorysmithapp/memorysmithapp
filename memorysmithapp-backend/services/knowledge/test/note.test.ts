@@ -90,6 +90,23 @@ describe('Note: editing', () => {
     expect(note.pullEvents()[0]?.payload['name']).toBeNull();
   });
 
+  it('carries the edit session of the interface in its event, and none without one', () => {
+    // RN-AUD-013: every save of a session is a revision of its own; the
+    // session is what lets the history show them as one entry.
+    const notebook = newNotebook();
+    const note = newNote(notebook, folderId);
+    note.pullEvents();
+
+    const session = '01JBQ2X00000000000000000S1';
+    unwrap(
+      note.replaceBody(contentRef('e'.repeat(64), 50), noteBody('Um'), authorship(), null, session),
+    );
+    expect(note.pullEvents()[0]?.payload['session']).toBe(session);
+
+    unwrap(note.replaceBody(contentRef('c'.repeat(64), 60), noteBody('Dois'), authorship()));
+    expect(note.pullEvents()[0]?.payload).not.toHaveProperty('session');
+  });
+
   it('keeps the two events of a move and a reorder apart', () => {
     // Only NoteUpdated is a snapshot. A transition is a fact of its own, and
     // collapsing two of those would lose one.

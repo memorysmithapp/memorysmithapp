@@ -933,6 +933,7 @@ export class HttpAuditGateway implements AuditGateway {
         authorship: { userId: string; agent: { clientId: string; clientName: string } | null };
         contentRef: { versionId: string } | null;
         message: string | null;
+        session?: string | null;
       }>;
     }>(this.origin, caller, `/audit/notebooks/${notebookId}/notes/${noteId}/history`);
 
@@ -944,6 +945,7 @@ export class HttpAuditGateway implements AuditGateway {
       agentClientId: entry.authorship.agent?.clientId ?? null,
       revision: entry.contentRef?.versionId ?? null,
       message: entry.message ?? null,
+      session: entry.session ?? null,
     }));
   }
 

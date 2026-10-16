@@ -60,27 +60,27 @@ beforeAll(async () => {
 }, LOADING_THE_PIPELINE_MS);
 
 const renamed = (losing: number, gaining: number): string =>
-  i18n.t('editor.willBeRenamed', {
+  i18n.t('editor.renamed', {
     from: 'Antigo',
     to: 'Novo',
     losing: i18n.t('editor.renameLosing', { count: losing }),
     gaining: i18n.t('editor.renameGaining', { count: gaining }),
   });
 
-describe('the notice before a rename', () => {
+describe('the notice of a rename, once it is saved', () => {
   it('says one link, not "1 links", in both locales', async () => {
     await i18n.changeLanguage('pt_BR');
     expect(renamed(1, 0)).toBe(
-      'Isto renomeia a nota de “Antigo” para “Novo”. 1 link para o nome antigo fica pendente, ' +
-        'e nenhum link espera pelo novo. Nada mais é reescrito.',
+      'A nota foi renomeada de “Antigo” para “Novo”. 1 link para o nome antigo fica pendente, ' +
+        'e nenhum link espera pelo novo. Nada mais foi reescrito.',
     );
     expect(renamed(2, 1)).toContain('2 links para o nome antigo ficam pendentes');
     expect(renamed(2, 1)).toContain('1 link para o novo passa a resolver');
 
     await i18n.changeLanguage('en_US');
     expect(renamed(1, 3)).toBe(
-      'This renames the note from “Antigo” to “Novo”. 1 link to the old name goes pending, ' +
-        'and 3 links to the new one resolve. Nothing else is rewritten.',
+      'The note was renamed from “Antigo” to “Novo”. 1 link to the old name goes pending, ' +
+        'and 3 links to the new one resolve. Nothing else was rewritten.',
     );
   });
 });

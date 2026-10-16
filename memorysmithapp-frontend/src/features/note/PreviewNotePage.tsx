@@ -127,6 +127,7 @@ export function NotePreview({
       writable={false}
       write={() => Promise.reject(new Error('A preview writes nothing.'))}
       invalidates={invalidates}
+      actions={false}
     />
   );
   if (drawing.kind === 'part') return content;

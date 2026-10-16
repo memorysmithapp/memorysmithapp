@@ -13,6 +13,7 @@
  */
 
 import {
+  groupHistory,
   ulidSchema,
   type Deployment,
   type PreviewDto,
@@ -32,6 +33,7 @@ import {
   type AgentCaller,
   type AuditGateway,
   type DiscoveryGateway,
+  type HistoryEntry,
   type KnowledgeGateway,
   type NoteContent,
   type RelatedNode,
@@ -359,6 +361,41 @@ function previewAnswer(preview: PreviewDto): ToolResult {
     ],
     isError: false,
   };
+}
+
+/**
+ * The history as the screen shows it (RN-AUD-013): a run of saves of one edit
+ * session of the interface is one entry, with how many saves it made, from
+ * when to when, and each of its revisions, which `read_note` takes as `asOf`.
+ * A write outside a session, every write of an agent included, is an entry of
+ * its own, as it always was.
+ */
+export function historyAnswer(entries: readonly HistoryEntry[]): unknown[] {
+  return groupHistory(entries).map((group) => {
+    if (group.kind === 'entry') {
+      const { session: _none, ...entry } = group.entry;
+      return entry;
+    }
+    const first = group.entries[0]!;
+    const last = group.entries.at(-1)!;
+    return {
+      type: 'EditSession',
+      session: group.session,
+      saves: group.entries.length,
+      startedAt: first.occurredAt,
+      occurredAt: last.occurredAt,
+      userId: last.userId,
+      agentName: last.agentName,
+      agentClientId: last.agentClientId,
+      revision: last.revision,
+      revisions: group.entries.map((entry) => ({
+        occurredAt: entry.occurredAt,
+        type: entry.type,
+        revision: entry.revision,
+        message: entry.message,
+      })),
+    };
+  });
 }
 
 function renderRelated(node: RelatedNode, indent = 0): string {
@@ -1162,10 +1199,12 @@ export class McpToolAdapter {
 
       case 'note_history':
         return json(
-          await audit.noteHistory(
-            caller,
-            requireString(args, 'notebook', 'note_history'),
-            requireString(args, 'note', 'note_history'),
+          historyAnswer(
+            await audit.noteHistory(
+              caller,
+              requireString(args, 'notebook', 'note_history'),
+              requireString(args, 'note', 'note_history'),
+            ),
           ),
         );
 

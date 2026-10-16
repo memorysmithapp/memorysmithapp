@@ -1088,7 +1088,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'note changing folder and notebook, because it is keyed by the note identifier. It ' +
       'answers a list of entries, each with occurredAt, type, userId, agentName, ' +
       'agentClientId (null for a write the person made without a connector) and revision ' +
-      '(null for an event that wrote no content), which read_note takes as asOf.',
+      '(null for an event that wrote no content), which read_note takes as asOf. A person ' +
+      'editing in the interface saves as they type, so a run of saves of one edit session is ' +
+      'one entry of type EditSession, with its session, saves, startedAt, occurredAt and its ' +
+      'revisions, each a revision of its own that read_note takes as asOf.',
     inputSchema: object(
       { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
       ['notebook', 'note'],

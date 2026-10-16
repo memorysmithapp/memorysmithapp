@@ -38,6 +38,22 @@ vi.stubGlobal('localStorage', memoryStorage());
 
 const ENTRIES = [
   {
+    occurredAt: '2026-09-21T10:00:00.000Z',
+    type: 'NoteUpdated',
+    authorship: { userId: 'u1', agent: null },
+    contentRef: { versionId: 'v2' },
+    message: null,
+    session: '01J8X2K9QZ3M4N5P6R7S8T9VS1',
+  },
+  {
+    occurredAt: '2026-09-21T10:02:00.000Z',
+    type: 'NoteUpdated',
+    authorship: { userId: 'u1', agent: null },
+    contentRef: { versionId: 'v3' },
+    message: null,
+    session: '01J8X2K9QZ3M4N5P6R7S8T9VS1',
+  },
+  {
     occurredAt: '2026-09-20T17:33:42.000Z',
     type: 'NoteUpdated',
     authorship: { userId: 'u1', agent: null },
@@ -110,5 +126,15 @@ describe('the history of a note', () => {
     expect(html).toContain('history-message is-empty');
     // And who wrote: the connector when an agent did.
     expect(html).toContain('Claude');
+  });
+});
+
+describe('an edit session of the interface (RN-AUD-013)', () => {
+  it('is one entry of the history, opening into each of its saves', async () => {
+    const html = await draw('en_US');
+
+    expect((html.match(/class="history-session"/g) ?? []).length).toBe(1);
+    expect(html).toContain('Edited');
+    expect(html).toContain('2 saves, since');
   });
 });

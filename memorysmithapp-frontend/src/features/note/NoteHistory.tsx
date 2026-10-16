@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
 import { useTranslation } from 'react-i18next';
-import { noteHistory } from '../../shared/api/backend';
+import { groupHistory } from '@memorysmithapp/contracts';
+import { noteHistory, type HistoryEntryDto } from '../../shared/api/backend';
 import { intlLocale } from '../../i18n';
 import { queryKeys } from '../../shared/api/query-keys';
 import type { RefObject } from 'react';
@@ -25,6 +26,11 @@ const CATCH_UP_WINDOW_MS = 60_000;
  * It is the smallest honest reader: each entry with its instant, who wrote it
  * and the line they left. Putting an old body back is another delivery, with
  * its own rule about what that write is.
+ *
+ * An edit session of the interface is one entry (#300, RN-AUD-013): the editor
+ * saves as the person types, a pause at a time, and each save is a revision;
+ * the entry says who, how many saves and from when to when, and opens into
+ * them.
  */
 export function NoteHistory({
   notebookId,
@@ -64,7 +70,9 @@ export function NoteHistory({
 
   // Newest first: what somebody opening a history wants is the last thing that
   // happened, and the trail is answered in the order it was written.
-  const entries = [...data].reverse();
+  const groups = groupHistory(
+    data.map((entry) => ({ ...entry, session: entry.session ?? null })),
+  ).reverse();
   // `intlLocale` and not `i18n.language`: the interface names its locales
   // `en_US` and `pt_BR`, and `Intl` takes a BCP 47 tag and throws on anything
   // else. This is the fourth surface to need it and the helper is why it is
@@ -74,29 +82,65 @@ export function NoteHistory({
     timeStyle: 'short',
   });
 
+  const author = (entry: HistoryEntryDto) =>
+    // Who wrote: the connector when an agent did, and the person otherwise.
+    // An agent writes AS somebody, so the name of the connector is what tells
+    // the two apart on the screen.
+    entry.authorship.agent?.clientName ?? t('history.aPerson');
+
   return (
     <ol className="history-list">
-      {entries.map((entry, index) => (
-        <li key={`${entry.occurredAt}-${index}`}>
-          <div className="history-head">
-            <time dateTime={entry.occurredAt}>{when.format(new Date(entry.occurredAt))}</time>
-            {/*
-              Who wrote: the connector when an agent did, and the person
-              otherwise. An agent writes AS somebody, so the name of the
-              connector is what tells the two apart on the screen.
-            */}
-            <span className="history-author">
-              {entry.authorship.agent?.clientName ?? t('history.aPerson')}
-            </span>
-            <span className="chip history-kind">{t(`history.kind.${entry.type}`, entry.type)}</span>
-          </div>
-          {entry.message ? (
-            <p className="history-message">{entry.message}</p>
-          ) : (
-            <p className="history-message is-empty">{t('history.noMessage')}</p>
-          )}
-        </li>
-      ))}
+      {groups.map((group, index) => {
+        if (group.kind === 'entry') {
+          const entry = group.entry;
+          return (
+            <li key={`${entry.occurredAt}-${index}`}>
+              <div className="history-head">
+                <time dateTime={entry.occurredAt}>{when.format(new Date(entry.occurredAt))}</time>
+                <span className="history-author">{author(entry)}</span>
+                <span className="chip history-kind">
+                  {t(`history.kind.${entry.type}`, entry.type)}
+                </span>
+              </div>
+              {entry.message ? (
+                <p className="history-message">{entry.message}</p>
+              ) : (
+                <p className="history-message is-empty">{t('history.noMessage')}</p>
+              )}
+            </li>
+          );
+        }
+        const first = group.entries[0]!;
+        const last = group.entries.at(-1)!;
+        const saves = [...group.entries].reverse();
+        return (
+          <li key={group.session} className="history-session">
+            <div className="history-head">
+              <time dateTime={last.occurredAt}>{when.format(new Date(last.occurredAt))}</time>
+              <span className="history-author">{author(last)}</span>
+              <span className="chip history-kind">{t('history.kind.EditSession')}</span>
+            </div>
+            <details className="history-saves">
+              <summary>
+                {t('history.sessionSaves', {
+                  count: group.entries.length,
+                  from: when.format(new Date(first.occurredAt)),
+                })}
+              </summary>
+              <ol>
+                {saves.map((entry) => (
+                  <li key={entry.contentRef?.versionId ?? entry.occurredAt}>
+                    <time dateTime={entry.occurredAt}>
+                      {when.format(new Date(entry.occurredAt))}
+                    </time>
+                    {entry.message ? <span> · {entry.message}</span> : null}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </li>
+        );
+      })}
     </ol>
   );
 }

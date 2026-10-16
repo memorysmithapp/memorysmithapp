@@ -332,6 +332,8 @@ export class UpdateNote {
     baseRevision: string;
     /** What the author said about this change, or nothing (RN-AUD-012). */
     message?: string | null;
+    /** The edit session of the interface this save belongs to, or nothing (RN-AUD-013). */
+    session?: string | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
@@ -384,7 +386,13 @@ export class UpdateNote {
       if (!admitted.ok) return admitted;
 
       const ref = await this.deps.content.overwrite(note.bodyRef.contentId, input.content);
-      const replaced = note.replaceBody(ref, input.content, input.by, input.message ?? null);
+      const replaced = note.replaceBody(
+        ref,
+        input.content,
+        input.by,
+        input.message ?? null,
+        input.session ?? null,
+      );
       if (!replaced.ok) return replaced;
       if (!note.hasChanges) return ok(note); // identical bytes (RN-KNW-028)
 

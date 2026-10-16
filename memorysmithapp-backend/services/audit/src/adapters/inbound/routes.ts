@@ -62,6 +62,7 @@ function entryToDto(event: AuditEvent): Record<string, unknown> {
     authorship: event.authorship.toJSON(),
     contentRef: event.contentRef ? event.contentRef.toJSON() : null,
     message: typeof event.payload['message'] === 'string' ? event.payload['message'] : null,
+    session: typeof event.payload['session'] === 'string' ? event.payload['session'] : null,
     payload: event.payload,
   };
 }
