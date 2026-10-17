@@ -198,6 +198,14 @@ export class LinkReprojection {
    * it sits in. A notebook that keeps files and no note yet is included, since
    * the note written tomorrow resolves against them.
    *
+   * **Live is decided the way Knowledge decides it**, by inheritance
+   * (RN-KNW-046): deleting a notebook writes its `META` item and nothing under
+   * it, and removing a folder takes the folder and leaves its notes as they
+   * were, so a note with no `deletedAt` of its own may still be gone — and the
+   * purge destroys its bytes. Reading only the note's own mark made the rebuild
+   * of staging stop at the first such note, on a version the store no longer
+   * holds. A note is live when it, its notebook and its folder are.
+   *
    * A Scan, deliberately, and for the reason the recount scans: there is no
    * index that lists notebooks, and inventing one to serve a maintenance job would
    * put a cost on every write to save a job that runs by hand. It projects the
@@ -208,7 +216,12 @@ export class LinkReprojection {
   > {
     const byPartition = new Map<
       string,
-      { notes: Array<Record<string, unknown>>; files: string[] }
+      {
+        notes: Array<Record<string, unknown>>;
+        files: string[];
+        folders: Set<string>;
+        deleted: boolean;
+      }
     >();
     let startKey: Record<string, unknown> | undefined;
 
@@ -216,27 +229,52 @@ export class LinkReprojection {
       const page = await this.deps.db.send(
         new ScanCommand({
           TableName: this.deps.knowledgeTable,
-          FilterExpression: '#entity IN (:note, :file)',
+          FilterExpression: '#entity IN (:note, :file, :folder, :notebook)',
           ExpressionAttributeNames: { '#entity': 'entity', '#name': 'name' },
-          ExpressionAttributeValues: { ':note': 'NOTE', ':file': 'FILE' },
+          ExpressionAttributeValues: {
+            ':note': 'NOTE',
+            ':file': 'FILE',
+            ':folder': 'FOLDER',
+            ':notebook': 'NOTEBOOK',
+          },
           ProjectionExpression: 'PK, #entity, noteId, folderId, bodyRef, #name, deletedAt',
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
       for (const item of page.Items ?? []) {
+        const partition = String(item['PK'] ?? '');
+        const held = byPartition.get(partition) ?? {
+          notes: [],
+          files: [],
+          folders: new Set<string>(),
+          deleted: false,
+        };
+        byPartition.set(partition, held);
+        if (item['entity'] === 'NOTEBOOK') {
+          if (item['deletedAt']) held.deleted = true;
+          continue;
+        }
+        if (item['entity'] === 'FOLDER') {
+          held.folders.add(String(item['folderId']));
+          continue;
+        }
         // A deleted note takes no part in the graph, exactly as its delete
         // event took it out (RN-DSC-013), and a deleted file answers nothing.
         if (item['deletedAt']) continue;
-        const partition = String(item['PK'] ?? '');
-        const held = byPartition.get(partition) ?? { notes: [], files: [] };
         if (item['entity'] === 'FILE') held.files.push(String(item['name']));
         else held.notes.push(item);
-        byPartition.set(partition, held);
       }
       startKey = page.LastEvaluatedKey;
     } while (startKey);
 
-    return byPartition;
+    const live = new Map<string, { notes: Array<Record<string, unknown>>; files: string[] }>();
+    for (const [partition, held] of byPartition) {
+      if (held.deleted) continue;
+      const notes = held.notes.filter((note) => held.folders.has(String(note['folderId'])));
+      if (notes.length === 0 && held.files.length === 0) continue;
+      live.set(partition, { notes, files: held.files });
+    }
+    return live;
   }
 
   /** What each note is called, answers to and points at, read from its bytes. */
