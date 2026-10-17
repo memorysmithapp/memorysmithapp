@@ -16,6 +16,7 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { NotebookId, SubscriptionId } from '@memorysmithapp/kernel';
 import { DynamoLinkGraph, DynamoProjectedVersions } from '../../src/adapters/aws.js';
 import type { NoteRef } from '../../src/domain/ports.js';
+import { describeAttachmentForms } from '../attachment-forms.js';
 
 const table = process.env['DISCOVERY_TABLE'];
 if (!table)
@@ -401,3 +402,8 @@ describe('DynamoLinkGraph: a file kept or deleted after the note that embeds it'
     await graph.removeNotebook(notebookId);
   });
 });
+
+describeAttachmentForms('DynamoLinkGraph', () => ({
+  graph: new DynamoLinkGraph(SubscriptionId.generate(), db, table),
+  notebookId: NotebookId.generate().value,
+}));

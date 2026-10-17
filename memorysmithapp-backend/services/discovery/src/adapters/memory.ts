@@ -21,9 +21,15 @@ import {
   type ResolvedTarget,
   type NotebookGraph,
   type OutgoingTarget,
+  type AttachmentUse,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
-import { resolveTarget, notebookNames, type NotebookNames } from '../domain/LinkResolver.js';
+import {
+  resolveReference,
+  resolveTarget,
+  notebookNames,
+  type NotebookNames,
+} from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
 
@@ -123,7 +129,7 @@ export class InMemoryLinkGraph implements LinkGraph {
     for (const [fromNoteId, links] of state.outgoing) {
       if (!state.notes.has(fromNoteId)) continue;
       for (const link of links) {
-        const answer = resolveTarget(link.name, names);
+        const answer = resolveReference(link.name, names, link.form);
         if (answer.kind === 'note') {
           // Every note whose name matches becomes an edge (RN-DSC-042): two
           // notes with one name are two edges, never the first one.
@@ -172,13 +178,14 @@ export class InMemoryLinkGraph implements LinkGraph {
     const state = this.notebook(notebookId);
     if (!state.notes.has(noteId)) return [];
     const names = this.names(notebookId);
-    const seen = new Set<string>();
-    const targets: OutgoingTarget[] = [];
+    const targets = new Map<string, OutgoingTarget>();
     for (const link of state.outgoing.get(noteId) ?? []) {
-      if (seen.has(link.name)) continue;
-      seen.add(link.name);
-      const answer = resolveTarget(link.name, names);
-      targets.push({
+      const answer = resolveReference(link.name, names, link.form);
+      // One entry per target, and the one that reaches further is the truth:
+      // `[[curva.png]]` beside `![Curva](curva.png)` is a note showing a file.
+      const held = targets.get(link.name);
+      if (held && !(held.kind === 'pending' && answer.kind !== 'pending')) continue;
+      targets.set(link.name, {
         target: link.name,
         // A file the notebook keeps is an attachment: it renders, it is no
         // edge, and it is not a target that reaches nothing (#166).
@@ -191,7 +198,7 @@ export class InMemoryLinkGraph implements LinkGraph {
           .filter((note): note is NoteRef => note !== undefined),
       });
     }
-    return targets;
+    return [...targets.values()];
   }
 
   async resolveTarget(notebookId: string, target: string): Promise<ResolvedTarget> {
@@ -258,15 +265,30 @@ export class InMemoryLinkGraph implements LinkGraph {
   }
 
   async unshownAttachments(notebookId: string): Promise<string[]> {
+    return (await this.attachmentUses(notebookId))
+      .filter((use) => use.notes.length === 0)
+      .map((use) => use.name);
+  }
+
+  async attachmentUses(notebookId: string): Promise<AttachmentUse[]> {
     const state = this.notebook(notebookId);
-    const named = new Set<string>();
+    const names = this.names(notebookId);
+    const showing = new Map<string, NoteRef[]>();
     for (const [fromNoteId, links] of state.outgoing) {
-      if (!state.notes.has(fromNoteId)) continue;
-      for (const link of links) named.add(link.name.normalize('NFC'));
+      const from = state.notes.get(fromNoteId);
+      if (!from) continue;
+      for (const link of links) {
+        if (resolveReference(link.name, names, link.form).kind !== 'attachment') continue;
+        const key = link.name.normalize('NFC');
+        const notes = showing.get(key) ?? [];
+        if (!notes.some((note) => note.noteId === fromNoteId)) notes.push(from);
+        showing.set(key, notes);
+      }
     }
-    return (await this.attachmentsOf(notebookId)).filter(
-      (name) => !named.has(name.normalize('NFC')),
-    );
+    return (await this.attachmentsOf(notebookId)).map((name) => ({
+      name,
+      notes: showing.get(name.normalize('NFC')) ?? [],
+    }));
   }
 
   async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {

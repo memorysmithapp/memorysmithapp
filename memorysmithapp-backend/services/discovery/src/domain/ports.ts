@@ -27,6 +27,22 @@ export interface LinkTarget {
   /** The name the author addressed, literal and NFC (RN-DSC-043). */
   readonly name: string;
   readonly anchor: string | null;
+  /**
+   * How the note named it (#305, RN-DSC-065), which decides what it may reach:
+   * a `link` reaches notes alone, an `embed` notes and then a kept file, and
+   * an `image` by path a kept file alone, never a note. Absent on what was
+   * projected before the form was kept, which is read as an embed, the
+   * answer every target got then.
+   */
+  readonly form?: ReferenceForm;
+}
+
+export type ReferenceForm = 'link' | 'embed' | 'image';
+
+/** A file the notebook keeps, with the notes that show it (#307, RN-DSC-066). */
+export interface AttachmentUse {
+  readonly name: string;
+  readonly notes: readonly NoteRef[];
 }
 
 export interface GraphNode {
@@ -161,6 +177,12 @@ export interface LinkGraph {
    * of what a reading surface has to know to draw a link.
    */
   attachmentsOf(notebookId: string): Promise<string[]>;
+  /**
+   * Every file the notebook keeps, each with the notes that show it — by an
+   * embed or by an image, never by a plain link (§5.8) — in one read for the
+   * whole notebook (#307, RN-DSC-066).
+   */
+  attachmentUses(notebookId: string): Promise<AttachmentUse[]>;
   /** The notebook keeps a file under this name, or stopped keeping one. */
   keepAttachment(notebookId: string, name: string): Promise<void>;
   forgetAttachment(notebookId: string, name: string): Promise<void>;

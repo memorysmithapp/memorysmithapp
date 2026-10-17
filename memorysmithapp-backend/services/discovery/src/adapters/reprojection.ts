@@ -34,10 +34,10 @@
 import { ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { noteName, SubscriptionId } from '@memorysmithapp/kernel';
 
-import { extractLinks } from '../domain/LinkExtractor.js';
+import { extractReferences } from '../domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
-import { resolveTarget, notebookNames } from '../domain/LinkResolver.js';
-import type { NoteRef } from '../domain/ports.js';
+import { resolveReference, notebookNames } from '../domain/LinkResolver.js';
+import type { LinkTarget, NoteRef } from '../domain/ports.js';
 import type { ContentReader } from '../application/projections.js';
 import type { DynamoLinkGraph } from './aws.js';
 
@@ -54,7 +54,8 @@ export interface ReprojectionDependencies {
 
 /** One note, as the rebuild reads it: what it answers to and what it points at. */
 export interface ReadNote extends NoteRef {
-  readonly targets: readonly string[];
+  /** Each with the form it was written in, which decides what it reaches (#305). */
+  readonly targets: readonly LinkTarget[];
 }
 
 /** An edge, and the target that produced it. */
@@ -188,11 +189,7 @@ export class LinkReprojection {
     await graph.seedAttachments(plan.notebookId, plan.files);
     for (const note of plan.notes) {
       const { targets, ...ref } = note;
-      await graph.replaceOutgoing(
-        plan.notebookId,
-        ref,
-        targets.map((name) => ({ name, anchor: null })),
-      );
+      await graph.replaceOutgoing(plan.notebookId, ref, [...targets]);
     }
   }
 
@@ -260,7 +257,7 @@ export class LinkReprojection {
         folderId: String(item['folderId']),
         name: noteName(markdown) ?? '',
         aliases: extractFrontmatterAliases(markdown),
-        targets: extractLinks(markdown).map((link) => link.name),
+        targets: extractReferences(markdown),
       });
     }
     return notes;
@@ -284,8 +281,8 @@ export function resolveAll(
   let pending = 0;
 
   for (const note of notes) {
-    for (const target of note.targets) {
-      const answer = resolveTarget(target, names);
+    for (const { name: target, form } of note.targets) {
+      const answer = resolveReference(target, names, form);
       if (answer.kind === 'pending') {
         pending += 1;
         continue;

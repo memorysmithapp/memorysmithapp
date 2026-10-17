@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { noteName } from '@memorysmithapp/kernel';
-import { extractLinks } from '../src/domain/LinkExtractor.js';
+import { extractReferences } from '../src/domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 import { distinctEdges, resolveAll, type ReadNote } from '../src/adapters/reprojection.js';
 
@@ -21,7 +21,7 @@ function read(noteId: string, markdown: string): ReadNote {
     folderId: 'folder',
     name: noteName(markdown) ?? '',
     aliases: extractFrontmatterAliases(markdown),
-    targets: extractLinks(markdown).map((link) => link.name),
+    targets: extractReferences(markdown),
   };
 }
 

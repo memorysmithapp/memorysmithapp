@@ -122,6 +122,29 @@ export function resolveTarget(
   return { target: key, kind: 'pending', by: null, noteIds: [] };
 }
 
+/**
+ * One reference, resolved by the form it was written in (#305, RN-DSC-065).
+ *
+ * A link and an embed are `resolveTarget`, the embed alone reaching a file. An
+ * image by path names a file and nothing else: a note called `curva.png` is
+ * not what `![Curva](curva.png)` draws, so it never becomes an edge, and with
+ * no file of that name it is pending the way `![[curva.png]]` is.
+ */
+export function resolveReference(
+  target: string,
+  names: NotebookNames,
+  form: 'link' | 'embed' | 'image' = 'embed',
+): Resolution {
+  if (form !== 'image') return resolveTarget(target, names, form === 'embed');
+  const key = asName(target);
+  return {
+    target: key,
+    kind: names.attachments.has(key) ? 'attachment' : 'pending',
+    by: null,
+    noteIds: [],
+  };
+}
+
 /** Every target of one note, resolved against the same notebook. */
 export function resolveTargets(
   targets: readonly string[],
