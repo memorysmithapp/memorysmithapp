@@ -1358,13 +1358,24 @@ describe('skills: the method, indexed by whoami', () => {
   it('says what nesting one form in another costs, and leaves the choice to the agent', () => {
     // #259: agents put tables in callouts and long code in cells. Both are
     // valid and both render; the skill helps decide, and forbids neither.
+    // #310: what read as a table squeezed into a callout was a callout title
+    // drawn as columns (#296), so the skill no longer warns against the table.
     const body = skillNamed('write-notes')?.body ?? '';
     expect(body).toContain('## Putting one form inside another');
     expect(body).toContain('A table inside a callout.');
-    expect(body).toContain('the callout stating the rule in a sentence or two');
+    expect(body).toContain('It is drawn as any table is');
+    expect(body).not.toContain('dilutes');
     expect(body).toContain('Code inside a table cell.');
     expect(body).toContain('the block goes after the table');
     expect(body).toContain('It is your call');
+  });
+
+  it('teaches the title of a callout: a few words, and the rule in the body (#310)', () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+    expect(body).toContain('## The title of a callout');
+    expect(body).toContain('> [!rule] A means, not an end\n> The software is **a means**');
+    expect(body).toContain('a callout whose title is a whole sentence');
+    expect(body).not.toContain('the rules of a table inside a callout');
   });
 
   it('names each source of the notation, and survives one without a version', () => {

@@ -620,6 +620,22 @@ ${silence()}
   other: the vocabulary belongs to the guidance of the notebook you are writing in.
   Read it before inventing a field.
 
+## The title of a callout
+
+Everything after \`[!type]\` on the first line of a callout is its **title**,
+and the page draws it large and in bold. Write a few words there and what the
+callout says on the lines after it; a callout needs no title at all, and
+\`> [!note]\` alone on its line opens one without.
+
+\`\`\`markdown
+> [!rule] A means, not an end
+> The software is **a means**, not an end. What the service sells is the analysis behind the decision.
+\`\`\`
+
+A whole sentence on the \`[!type]\` line is a title of two lines over an empty
+callout: what you meant as the rule reads as a heading. Keep the rule in the
+body, where it reads as one.
+
 ## Putting one form inside another
 
 Every form has one job: a table compares, a callout makes a rule or a warning
@@ -628,11 +644,10 @@ another, and the page draws what you nest — but nesting pays only when the inn
 form serves the job of the outer one. It is your call, and these are the costs
 to weigh.
 
-- **A table inside a callout.** The callout is the one thing a reader must not
-  miss, and a whole table inside it dilutes that. What usually reads better is
-  the callout stating the rule in a sentence or two, and the table right after
-  it. A table belongs inside when the table *is* the warning, such as a short
-  table of limits.
+- **A table inside a callout.** It is drawn as any table is, rules and all. It
+  belongs inside when it is part of what the callout says — the limits a rule
+  sets, the options a decision weighed — and after it when it is a reference the
+  callout only points at.
 - **Code inside a table cell.** A short code span — the name of a field, a short
   command — sits well in a cell. A long one widens its column until the table
   scrolls sideways. A block of several lines does not fit at all: a cell of a
@@ -734,8 +749,8 @@ a note of that name refuses the move, naming it.
 ## Seeing what you wrote
 
 You write Markdown and the person reads a page, and some forms are drawn in
-ways the Markdown does not show: the rules of a table inside a callout, a code
-span that widens a column until the table scrolls, a diagram that does not
+ways the Markdown does not show: a callout whose title is a whole sentence, a
+code span that widens a column until the table scrolls, a diagram that does not
 read. \`preview_note\` draws a note as the person will see it, and
 \`get_preview\` answers the image a few seconds later — ask again while it says
 it is still being drawn.
