@@ -3,13 +3,12 @@ import { useLiveInterval } from '../../shared/api/live';
 import { useQueries } from '@tanstack/react-query';
 import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
-import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
+import { canWrite, getTemplate } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { TemplateBody } from './TemplateBody';
 import { ChevronRightIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { FolderNode } from '../../shared/types/api';
@@ -97,28 +96,12 @@ export function TemplatesPage() {
               </summary>
               {template ? (
                 <div className="template-card-body">
-                  <NoteContent
-                    raw={template.body}
+                  <TemplateBody
                     notebookId={notebookId}
-                    baseRevision={template.revision}
+                    folder={folder}
+                    template={template}
                     writable={canWrite(structure.effectiveRole)}
-                    write={({ raw, baseRevision, keepalive }) =>
-                      putTemplate(notebookId, folder.id, raw, baseRevision, {
-                        keepalive: keepalive ?? false,
-                      })
-                    }
-                    invalidates={queryKeys.template(notebookId, folder.id)}
                   />
-                  {canWrite(structure.effectiveRole) && (
-                    <DeleteContentSlot
-                      label={t('folder.deleteTemplate')}
-                      confirmation={t('folder.deleteTemplateConfirm')}
-                      remove={() => deleteTemplate(notebookId, folder.id)}
-                      // The list of folders with a Template comes from the
-                      // structure, so the card leaves the page with the slot.
-                      invalidates={queryKeys.notebookStructure(notebookId)}
-                    />
-                  )}
                 </div>
               ) : failed ? (
                 <p className="status">{t(messageKeyOf(query?.error))}</p>

@@ -21,7 +21,7 @@ const nameOf = (raw: string) => /^name: (.+)$/m.exec(raw)?.[1] ?? null;
 
 function ports(overrides: Partial<SavePorts> = {}) {
   let revision = 1;
-  const writes: Array<{ content: string; baseRevision: string; session: string }> = [];
+  const writes: Array<{ content: string; baseRevision: string | null; session: string }> = [];
   const replaced: string[] = [];
   const port: SavePorts = {
     write: vi.fn(async (input) => {
@@ -62,6 +62,22 @@ describe('the saves of an edit session (RN-KNW-052, RN-AUD-013)', () => {
       [named('A', 'olá'), 'v1', 'S1'],
       [named('A', 'olá!'), 'v2', 'S1'],
     ]);
+  });
+
+  it('creates a slot that did not exist on no revision, then writes on the one it produced (#301)', async () => {
+    const renamed = vi.fn();
+    const { port, writes } = ports({ nameOf: () => null, written: renamed });
+    const saves = new NoteSaves(port, { raw: '', revision: null }, 'S1', 1000);
+
+    const first = saves.change('# Guidance');
+    await vi.advanceTimersByTimeAsync(1000);
+    // A Guidance has no name a link reaches, so no save says it renamed anything.
+    expect(await first).toBeUndefined();
+    saves.change('# Guidance\n\nOne rule.');
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(writes.map((write) => write.baseRevision)).toEqual([null, 'v2']);
+    expect(renamed.mock.calls).toEqual([[false], [false]]);
   });
 
   it('holds the editor in Saving until the pause ends, and writes at once when flushed', async () => {

@@ -71,10 +71,13 @@ export interface SaveWords {
 }
 
 export interface SavePorts {
-  /** Writes the note on a revision, in a session; `keepalive` when the page is going away. */
+  /**
+   * Writes the document on a revision, in a session; `keepalive` when the page
+   * is going away. The revision is `null` for a slot the first save creates.
+   */
   write(input: {
     content: string;
-    baseRevision: string;
+    baseRevision: string | null;
     session: string;
     keepalive: boolean;
   }): Promise<WrittenNote>;
@@ -96,7 +99,7 @@ export interface SavePorts {
 }
 
 export class NoteSaves {
-  private revision: string;
+  private revision: string | null;
   /** The last text the editor handed, written or not. */
   private latest: string;
   /** The last text that reached the server. */
@@ -115,7 +118,7 @@ export class NoteSaves {
 
   constructor(
     private readonly ports: SavePorts,
-    opened: { raw: string; revision: string },
+    opened: { raw: string; revision: string | null },
     readonly session: string,
     private readonly pauseMs: number = SAVE_PAUSE_MS,
   ) {

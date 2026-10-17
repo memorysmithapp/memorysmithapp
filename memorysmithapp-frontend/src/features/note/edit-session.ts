@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { AttachProgress, NoteMode } from '@memorysmithapp/markdown-renderer';
 import { getNotebookGraph, updateNote } from '../../shared/api/backend';
@@ -13,32 +12,76 @@ import type { NoteEditing } from '../../shared/components/NoteContent';
 import { AttachRefusal, attachFile } from './attach';
 import { ATTACH_PORTS } from './attach-ports';
 import { NoteSaves, newSessionId, type RenameCost, type SaveWords } from './note-saves';
+import { useEditSessions } from '../../shared/store/edit-sessions';
 
 /**
- * An edit session of the note page (#300, RN-KNW-052, RN-AUD-013).
+ * A document an edit session writes (#300, #301): a note, the Guidance of a
+ * notebook or the Template of a folder — the three Content Slots, each written
+ * whole on a revision.
+ */
+export interface EditedDocument {
+  /** What the session belongs to; another one ends it. */
+  readonly id: string;
+  readonly raw: string;
+  /** `null` while the slot does not exist yet, which the first save creates. */
+  readonly revision: string | null;
+  /** What a file attached from the editor says it was attached to. */
+  readonly purpose: string;
+}
+
+/** Where the saves of a session go, and what the page reads again after them. */
+export interface EditTarget {
+  write(input: {
+    content: string;
+    baseRevision: string | null;
+    session: string;
+    keepalive: boolean;
+  }): Promise<string>;
+  reload(): Promise<{ raw: string; revision: string }>;
+  /** A save landed; `renamed` when it changed the name the text states. */
+  written(renamed: boolean): void;
+  /** The session ended with everything written. */
+  closed(): void;
+  /**
+   * What a rename of a note does to the links of the notebook. A Guidance and
+   * a Template have no name a link reaches, so they have none, and a save
+   * of theirs never says it renamed anything.
+   */
+  readonly rename?: {
+    nameOf(raw: string): string | null;
+    withAlias(raw: string, alias: string): string;
+    cost(from: string | null, to: string | null): Promise<RenameCost>;
+  };
+}
+
+/**
+ * An edit session of a reading surface (#300, #301, RN-KNW-052, RN-AUD-013).
  *
- * The pencil of the note opens one: the editor of the reading surface takes the
- * place of the page, every change it hands is saved after a pause, each save a
- * revision carrying the identifier of the session, and going back to reading
- * ends it. A note always opens in reading, and a new click on the pencil opens
- * a new session. Nothing finalises a session, because there is no draft: what
- * was saved is already a revision.
+ * The pencil at the top right of the document opens one: the editor of the
+ * reading surface takes the place of the page, every change it hands is saved
+ * after a pause, each save a revision carrying the identifier of the session,
+ * and going back to reading ends it. A document always opens in reading, and
+ * a new click on the pencil opens a new session. Nothing finalises a session,
+ * because there is no draft: what was saved is already a revision.
  *
- * While it is open the page stops reading the note again (#206): the editor
- * holds the text, and a read landing under it would replace what the person
- * is typing with somebody else's text without a word. A divergence reaches the
- * person only through the save that finds it.
+ * While it is open the page stops reading the document again (#206): the
+ * editor holds the text, and a read landing under it would replace what the
+ * person is typing with somebody else's text without a word. A divergence
+ * reaches the person only through the save that finds it.
  *
  * The last pause is not lost: leaving the page sends what is waiting with
  * `keepalive`, the browser asks before closing a tab with a save waiting, and
- * a link inside the product asks first too.
+ * a link inside the product asks first too, through the one guard of the
+ * notebook (`useEditSessions`).
  */
 export function useEditSession({
   notebookId,
-  note,
+  document,
+  target,
 }: {
   notebookId: string;
-  note: NoteDetail | undefined;
+  document: EditedDocument | undefined;
+  target: EditTarget;
 }): { editing: NoteEditing | undefined; open: boolean } {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -47,8 +90,12 @@ export function useEditSession({
   const [markdown, setMarkdown] = useState('');
   const [pending, setPending] = useState(false);
   const saves = useRef<NoteSaves | null>(null);
-  const noteRef = useRef(note);
-  noteRef.current = note;
+  const documentRef = useRef(document);
+  documentRef.current = document;
+  const targetRef = useRef(target);
+  targetRef.current = target;
+  const sessionKey = useId();
+  const hold = useEditSessions((state) => state.hold);
 
   const words: SaveWords = {
     conflictTitle: t('editor.conflictTitle'),
@@ -82,28 +129,26 @@ export function useEditSession({
     if (!ending) return;
     void ending.flush().finally(() => {
       ending.dispose();
-      const current = noteRef.current;
-      if (!current) return;
-      void client.invalidateQueries({ queryKey: queryKeys.note(notebookId, current.id) });
-      void client.invalidateQueries({ queryKey: queryKeys.noteHistory(notebookId, current.id) });
+      targetRef.current.closed();
     });
-  }, [client, notebookId]);
+  }, []);
 
   const onModeChange = useCallback(
     (next: NoteMode) => {
-      const current = noteRef.current;
+      const current = documentRef.current;
       if (next === 'edit' && current) {
+        const named = targetRef.current.rename;
         saves.current = new NoteSaves(
           {
             write: async ({ content, baseRevision, session, keepalive }) => {
               setPending(true);
-              const written = await updateNote(
-                notebookId,
-                current.id,
-                { content, baseRevision, session },
-                { keepalive },
-              );
-              return { revision: written.revision.versionId };
+              const revision = await targetRef.current.write({
+                content,
+                baseRevision,
+                session,
+                keepalive,
+              });
+              return { revision };
             },
             refusalOf: (error) => ({
               code: error instanceof ApiError ? error.code : null,
@@ -115,27 +160,16 @@ export function useEditSession({
                   ? error.message
                   : t(messageKeyOf(error)),
             }),
-            reload: async () => {
-              const fresh = await getNote(notebookId, current.id);
-              return { raw: fresh.raw, revision: fresh.revision };
-            },
+            reload: () => targetRef.current.reload(),
             replace: setMarkdown,
-            nameOf: noteNameOf,
-            withAlias,
-            renameCost: (from, to) => renameCost(notebookId, current.id, from, to),
+            nameOf: named ? (raw) => named.nameOf(raw) : () => null,
+            withAlias: named ? (raw, alias) => named.withAlias(raw, alias) : (raw) => raw,
+            renameCost: named
+              ? (from, to) => named.cost(from, to)
+              : async () => ({ losing: 0, gaining: 0 }),
             written: (renamed) => {
               setPending(saves.current?.pending ?? false);
-              void client.invalidateQueries({
-                queryKey: queryKeys.noteHistory(notebookId, current.id),
-              });
-              if (!renamed) return;
-              /**
-               * The name of a note is the INDEX of the notebook (#170): the
-               * tree, the outline, the breadcrumb and every `[[…]]` read it,
-               * and so does the alias the rename notice offers to keep.
-               */
-              void client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) });
-              void client.invalidateQueries({ queryKey: queryKeys.notebookNames(notebookId) });
+              targetRef.current.written(renamed);
             },
             get words() {
               return wordsRef.current;
@@ -150,7 +184,7 @@ export function useEditSession({
       }
       setMode(next);
     },
-    [client, close, notebookId, t],
+    [close, t],
   );
 
   const onChange = useCallback((text: string) => {
@@ -172,7 +206,6 @@ export function useEditSession({
       attributes: { name: string; description: string },
       progress: (report: AttachProgress) => void,
     ): Promise<string> => {
-      const current = noteRef.current;
       try {
         const kept = await attachFile(
           ATTACH_PORTS,
@@ -181,9 +214,7 @@ export function useEditSession({
             file,
             name: attributes.name,
             description: attributes.description,
-            purpose: current?.name
-              ? t('editor.attachPurpose', { note: current.name })
-              : t('editor.attachPurposeUnnamed'),
+            purpose: documentRef.current?.purpose ?? t('editor.attachPurposeUnnamed'),
           },
           undefined,
           (phase) =>
@@ -222,12 +253,12 @@ export function useEditSession({
     [client, notebookId, t],
   );
 
-  // Another note, or the page closing: the session ends with what is waiting.
-  const noteId = note?.id;
+  // Another document, or the page closing: the session ends with what is waiting.
+  const documentId = document?.id;
   useEffect(() => {
     setMode('view');
     return () => close();
-  }, [noteId, close]);
+  }, [documentId, close]);
 
   /**
    * Leaving the page with a save waiting. `pagehide` fires on a reload, a
@@ -247,21 +278,79 @@ export function useEditSession({
     };
   }, [pending]);
 
-  /** A link inside the product, which never reaches `beforeunload`, asks too. */
-  const blocker = useBlocker(pending);
+  /**
+   * A link inside the product, which never reaches `beforeunload`, asks too:
+   * the session says it is waiting, and the notebook asks once for all.
+   */
   useEffect(() => {
-    if (blocker.state !== 'blocked') return;
-    if (window.confirm(t('editor.leaveWarning'))) {
-      void saves.current?.flush();
-      blocker.proceed();
-    } else blocker.reset();
-  }, [blocker, t]);
+    hold(sessionKey, pending ? () => saves.current?.flush() ?? Promise.resolve() : null);
+    return () => hold(sessionKey, null);
+  }, [hold, pending, sessionKey]);
 
-  if (!note) return { editing: undefined, open: false };
+  if (!document) return { editing: undefined, open: false };
   return {
     open: mode === 'edit' || pending,
     editing: { mode, onModeChange, onChange, markdown, attach },
   };
+}
+
+/** The edit session of the note page (#300): a rename says what it did to the links. */
+export function useNoteEditSession({
+  notebookId,
+  note,
+}: {
+  notebookId: string;
+  note: NoteDetail | undefined;
+}): { editing: NoteEditing | undefined; open: boolean } {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const noteId = note?.id ?? '';
+  return useEditSession({
+    notebookId,
+    document: note && {
+      id: note.id,
+      raw: note.raw,
+      revision: note.revision,
+      purpose: note.name
+        ? t('editor.attachPurpose', { note: note.name })
+        : t('editor.attachPurposeUnnamed'),
+    },
+    target: {
+      write: async ({ content, baseRevision, session, keepalive }) => {
+        const written = await updateNote(
+          notebookId,
+          noteId,
+          { content, baseRevision: baseRevision ?? '', session },
+          { keepalive },
+        );
+        return written.revision.versionId;
+      },
+      reload: async () => {
+        const fresh = await getNote(notebookId, noteId);
+        return { raw: fresh.raw, revision: fresh.revision };
+      },
+      written: (renamed) => {
+        void client.invalidateQueries({ queryKey: queryKeys.noteHistory(notebookId, noteId) });
+        if (!renamed) return;
+        /**
+         * The name of a note is the INDEX of the notebook (#170): the tree, the
+         * outline, the breadcrumb and every `[[…]]` read it, and so does the
+         * alias the rename notice offers to keep.
+         */
+        void client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) });
+        void client.invalidateQueries({ queryKey: queryKeys.notebookNames(notebookId) });
+      },
+      closed: () => {
+        void client.invalidateQueries({ queryKey: queryKeys.note(notebookId, noteId) });
+        void client.invalidateQueries({ queryKey: queryKeys.noteHistory(notebookId, noteId) });
+      },
+      rename: {
+        nameOf: noteNameOf,
+        withAlias,
+        cost: (from, to) => renameCost(notebookId, noteId, from, to),
+      },
+    },
+  });
 }
 
 function capitalised(text: string): string {

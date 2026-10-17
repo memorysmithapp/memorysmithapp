@@ -20,7 +20,7 @@ import { HistoryIcon, MoveIcon, PrinterIcon } from '../../shared/components/icon
 import { NoteHistoryDialog } from './NoteHistory';
 import { MoveNoteDialog } from './MoveNote';
 import { queryKeys } from '../../shared/api/query-keys';
-import { useEditSession } from './edit-session';
+import { useNoteEditSession } from './edit-session';
 import { newSessionId } from './note-saves';
 import { folderTrailForNote } from '../structure/trail';
 import { BarButton, BarLink, NotebookBar, folderCrumbs } from '../structure/NotebookBreadcrumb';
@@ -67,7 +67,10 @@ export function NotePage({ noteId }: { noteId: string }) {
    * *Copy Markdown* there and no switch.
    */
   const writable = canWrite(structure.effectiveRole);
-  const { editing, open } = useEditSession({ notebookId, note: writable ? data : undefined });
+  const { editing, open } = useNoteEditSession({
+    notebookId,
+    note: writable ? data : undefined,
+  });
   sessionOpen.current = open;
   /**
    * The session the ticks of this visit carry (RN-AUD-013): ticking five boxes

@@ -422,6 +422,59 @@ test.describe('the pages of an account', () => {
     );
   });
 
+  test('writes the Guidance in place, and a Template a folder did not have (#301)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const typeAtEnd = async (scope: ReturnType<Page['locator']>, text: string) => {
+      const editor = scope.locator('.markdown-editor .cm-content');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await app.keyboard.press('Control+End');
+      await app.keyboard.type(text, { delay: 20 });
+    };
+
+    await app.goto(notebook.page('/guidance'));
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    await typeAtEnd(app.locator('article.content-pane'), '\n\nOne more rule, typed on the page.');
+    await expect
+      .poll(
+        async () =>
+          (await owner.ok<{ guidance: { content: string } | null }>('GET', path)).guidance
+            ?.content ?? '',
+        { timeout: 20_000 },
+      )
+      .toContain('One more rule, typed on the page.');
+
+    // A folder with no Template is offered an empty one, which the first save creates.
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: `No Template ${Date.now()}`,
+      description: 'A folder for the case',
+    });
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    const card = app.locator('details.template-card');
+    await card.locator('summary').click();
+    await card.getByRole('button', { name: words.editNote, exact: true }).click();
+    await typeAtEnd(card, '## Context\n\nWhat led here.');
+    await expect
+      .poll(
+        async () =>
+          (
+            await owner.ok<{ content: string | null }>(
+              'GET',
+              `${path}/folders/${folderId}/template`,
+            )
+          ).content ?? '',
+        { timeout: 20_000 },
+      )
+      .toContain('What led here.');
+    // The editor stays open through the save that created the Template.
+    await expect(card.locator('.markdown-editor .cm-content')).toBeVisible();
+  });
+
   test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, opens one and deletes it', async ({
     app,
     notebook,
