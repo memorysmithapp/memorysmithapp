@@ -14,6 +14,7 @@ import { bodyWithoutFrontmatter, noteName } from '@memorysmithapp/kernel';
 import { extractReferences } from '../domain/LinkExtractor.js';
 import { extractFacets } from '../domain/FacetExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
+import { spellingsLost } from '../domain/LinkResolver.js';
 import { normalize } from '../domain/SearchQuery.js';
 import type {
   ContentIndex,
@@ -194,12 +195,21 @@ export class ProjectNote {
     const markdown = event.contentRef ? await this.deps.content.read(event.contentRef) : '';
     const name = noteName(markdown) ?? '';
     const note = refOf(event, name, extractFrontmatterAliases(markdown));
+    // A name or an alias the note drops may be what another note's link
+    // reached it by (RN-DSC-053, #316). Who links here is read before the
+    // write, which is the graph those links were resolved in.
+    const before = await this.deps.graph.noteOf(event.notebookId, event.noteId);
+    const linking =
+      spellingsLost(before, note).length > 0
+        ? await this.deps.graph.backlinks(event.notebookId, event.noteId)
+        : [];
 
     // 1. Links. A target that does not exist yet becomes PENDING and resolves
     // on its own when the note is created (RN-DSC-004). Each goes with the
     // form it was written in, which decides what it may reach (#305).
     await this.deps.graph.replaceOutgoing(event.notebookId, note, extractReferences(markdown));
     await this.deps.graph.resolvePending(event.notebookId, note);
+    await this.resolveAgain(event.notebookId, event.noteId, linking);
 
     // 2. Facets, from the frontmatter block and nothing else.
     const facets = extractFacets(markdown);
@@ -232,6 +242,36 @@ export class ProjectNote {
         Object.entries(facets ?? {}).map(([name, facet]) => [normalize(name), facet.kind]),
       ),
     });
+  }
+
+  /**
+   * Every note that links to this one, resolved again from the content last
+   * projected of it (#316).
+   *
+   * An edge does not say which spelling it was written in when a name held it,
+   * so the graph alone cannot tell a link that reached a renamed note by its
+   * old name from one that reached it by an alias it kept. The note that wrote
+   * the link can, and it is resolved the way its own write resolves it: every
+   * target against what the notebook answers to now, so a spelling nobody
+   * carries goes back to pending and one another note carries lands there.
+   * It runs only when a spelling was lost, which a rename or a dropped alias
+   * is, and costs one read of content per note linking here. A note last
+   * projected before versions were kept (0.6.0) has no content to be read from
+   * here, and keeps its edge until `reproject-links` rebuilds the notebook.
+   */
+  private async resolveAgain(
+    notebookId: string,
+    noteId: string,
+    linking: readonly NoteRef[],
+  ): Promise<void> {
+    for (const source of linking) {
+      if (source.noteId === noteId) continue;
+      const projected = await this.deps.versions.current(source.noteId);
+      if (!projected || projected.gone || !projected.contentRef) continue;
+      if (projected.notebookId !== notebookId) continue;
+      const markdown = await this.deps.content.read(projected.contentRef);
+      await this.deps.graph.replaceOutgoing(notebookId, source, extractReferences(markdown));
+    }
   }
 
   /**

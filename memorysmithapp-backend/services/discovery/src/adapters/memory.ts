@@ -104,6 +104,10 @@ export class InMemoryLinkGraph implements LinkGraph {
     return [...this.notebook(notebookId).notes.values()];
   }
 
+  async noteOf(notebookId: string, noteId: string): Promise<NoteRef | null> {
+    return this.notebook(notebookId).notes.get(noteId) ?? null;
+  }
+
   /** The names of the files the notebook keeps (#166). */
   async attachmentsOf(notebookId: string): Promise<string[]> {
     return [...(this.attachments.get(notebookId) ?? new Set<string>())];

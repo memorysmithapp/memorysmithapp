@@ -83,6 +83,26 @@ export function notebookNames(
 }
 
 /**
+ * The spellings a note answered to and answers to no more: its old name when
+ * it was renamed, and every alias it stopped declaring (RN-DSC-053, #316).
+ *
+ * A link that reached the note by one of them reached it by a spelling the
+ * notebook may no longer hold, and nothing in the note that wrote the link
+ * changed, so that note has to be resolved again for the edge to go back to
+ * pending, or to land on whoever carries the spelling now.
+ */
+export function spellingsLost(
+  before: { readonly name: string | null; readonly aliases?: readonly string[] } | null,
+  after: { readonly name: string | null; readonly aliases?: readonly string[] },
+): string[] {
+  if (!before) return [];
+  const spellings = (note: typeof after): string[] =>
+    [note.name ?? '', ...(note.aliases ?? [])].map(asName).filter((each) => each.length > 0);
+  const kept = new Set(spellings(after));
+  return [...new Set(spellings(before))].filter((each) => !kept.has(each));
+}
+
+/**
  * One target, resolved by the order the specification fixes: every note whose
  * NAME matches, then — only if none did — every note whose ALIAS matches,
  * then an attachment, then nothing.

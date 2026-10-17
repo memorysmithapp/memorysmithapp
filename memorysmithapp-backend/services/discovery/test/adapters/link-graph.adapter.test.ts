@@ -16,6 +16,13 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { NotebookId, SubscriptionId } from '@memorysmithapp/kernel';
 import { DynamoLinkGraph, DynamoProjectedVersions } from '../../src/adapters/aws.js';
 import type { NoteRef } from '../../src/domain/ports.js';
+import {
+  InMemoryContentIndex,
+  InMemoryFacetIndex,
+  InMemoryProjectedVersions,
+  InMemoryStructureProjection,
+} from '../../src/adapters/memory.js';
+import { ProjectNote } from '../../src/application/projections.js';
 import { describeAttachmentForms } from '../attachment-forms.js';
 
 const table = process.env['DISCOVERY_TABLE'];
@@ -319,6 +326,106 @@ describe('DynamoLinkGraph: a pair reached by a name and by a spelling, in any or
     expect(
       (await partitionOf(subscription, notebookId)).some((sk) => sk.startsWith('ALIAS#')),
     ).toBe(false);
+
+    await graph.removeNotebook(notebookId);
+  });
+});
+
+/**
+ * The edge a link made by a spelling its target no longer carries (#316). The
+ * first report of `reproject-links` in production lost two of them: a note that
+ * dropped the alias a link reached it by, and one renamed away from the name a
+ * link wrote. Both edges stayed, because the write of the target re-resolved
+ * only what reached it and never what had stopped reaching it.
+ */
+describe('DynamoLinkGraph: a spelling the target stopped carrying, through the projector', () => {
+  const projector = (subscription: SubscriptionId) => {
+    const graph = new DynamoLinkGraph(subscription, db, table);
+    const content = new Map<string, string>();
+    const project = new ProjectNote({
+      graph,
+      facets: new InMemoryFacetIndex(),
+      index: new InMemoryContentIndex(),
+      structure: new InMemoryStructureProjection(),
+      content: { read: async (ref) => content.get(`${ref.contentId}#${ref.versionId}`) ?? '' },
+      versions: new InMemoryProjectedVersions(),
+    });
+    let version = 0;
+    const write = async (notebookId: string, noteId: string, markdown: string): Promise<void> => {
+      version += 1;
+      const ref = { contentId: `c-${noteId}`, versionId: `v-${version}` };
+      content.set(`${ref.contentId}#${ref.versionId}`, markdown);
+      await project.project({
+        kind: 'written',
+        notebookId,
+        noteId,
+        folderId: 'f1',
+        contentRef: ref,
+        version,
+      });
+    };
+    return { graph, write };
+  };
+
+  it('returns to pending a link that reached a note by an alias it dropped', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const { graph, write } = projector(subscription);
+
+    await write(notebookId, 'n2', '---\nname: Orquestração\naliases: [Máquina de estados]\n---\n');
+    await write(notebookId, 'n1', '---\nname: Origem\n---\n\n[[Máquina de estados]]');
+    expect((await graph.backlinks(notebookId, 'n2')).map((each) => each.noteId)).toEqual(['n1']);
+
+    await write(notebookId, 'n2', '---\nname: Orquestração\naliases: [Saga orquestrada]\n---\n');
+
+    expect(await graph.outgoingOf(notebookId, 'n1')).toEqual([
+      { target: 'Máquina de estados', kind: 'pending', by: null, notes: [] },
+    ]);
+    expect(await graph.backlinks(notebookId, 'n2')).toEqual([]);
+    const left = await partitionOf(subscription, notebookId);
+    expect(left.filter((sk) => /^(OUT|IN|ALIAS)#/.test(sk))).toEqual([]);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('returns to pending a link that wrote the old name of a note renamed', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const { graph, write } = projector(subscription);
+
+    await write(notebookId, 'n2', '---\nname: TRB-001 Guia\n---\n');
+    await write(notebookId, 'n1', '---\nname: Origem\n---\n\n[[TRB-001 Guia]]');
+
+    await write(notebookId, 'n2', '---\nname: Trabalho 1 Guia\n---\n');
+
+    expect(await graph.outgoingOf(notebookId, 'n1')).toEqual([
+      { target: 'TRB-001 Guia', kind: 'pending', by: null, notes: [] },
+    ]);
+    expect(await graph.backlinks(notebookId, 'n2')).toEqual([]);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('keeps the edge a spelling the note kept still holds, and lands one another note carries', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const { graph, write } = projector(subscription);
+
+    await write(notebookId, 'n2', '---\nname: Lei antiga\naliases: [LGL]\n---\n');
+    await write(notebookId, 'n3', '---\nname: Parecer\naliases: [Lei antiga]\n---\n');
+    await write(notebookId, 'n1', '---\nname: Achado\n---\n\n[[Lei antiga]] e [[LGL]]');
+
+    // Renamed: its old name is now answered by the alias of another note, and
+    // the alias it kept still reaches it.
+    await write(notebookId, 'n2', '---\nname: Lei 14.133\naliases: [LGL]\n---\n');
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(
+      targets.map((each) => [each.target, each.by, each.notes.map((note) => note.noteId)]).sort(),
+    ).toEqual([
+      ['LGL', 'alias', ['n2']],
+      ['Lei antiga', 'alias', ['n3']],
+    ]);
 
     await graph.removeNotebook(notebookId);
   });
