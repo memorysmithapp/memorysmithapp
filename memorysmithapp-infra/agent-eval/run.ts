@@ -175,7 +175,9 @@ async function play(
     finalText: finalText ?? '',
     absent: variant.absent ?? [],
     leaks,
-    ...(handed ? { handed: { bytes: handed.bytes, sha256: handed.sha256 } } : {}),
+    ...(handed
+      ? { handed: { bytes: handed.bytes, sha256: handed.sha256, whole: handed.whole } }
+      : {}),
   });
 
   writeFileSync(join(folder, 'transcript.jsonl'), `${stream.join('\n')}\n`);

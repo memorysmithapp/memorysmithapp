@@ -121,16 +121,35 @@ export function personaOf(evaluationCase: EvaluationCase, variant: CaseVariant):
     : null;
 }
 
-/** The file a variant hands the executor, read as bytes: its text, its size and its SHA-256. */
-export function handedFile(
-  variant: CaseVariant,
-): { readonly text: string; readonly bytes: number; readonly sha256: string } | null {
+/**
+ * The file a variant hands the executor, read as bytes: its text, its size and
+ * its SHA-256, and every SHA-256 that is the same file as the person handed it.
+ *
+ * A file pasted into the request is the text the message shows, and the line
+ * break that closes it on disk is the last character of the message, which no
+ * reader of it can see. So a pasted file is whole with that one line break or
+ * without it, and a change anywhere else in the text is still a slip (#309).
+ */
+export function handedFile(variant: CaseVariant): {
+  readonly text: string;
+  readonly bytes: number;
+  readonly sha256: string;
+  readonly whole: readonly string[];
+} | null {
   if (!variant.hands) return null;
   const bytes = readFileSync(join(REPOSITORY_ROOT, variant.hands));
+  const sha256 = (of: Buffer): string => createHash('sha256').update(of).digest('hex');
+  const text = bytes.toString('utf8');
+  const pasted = variant.request.trimEnd().endsWith('{{file}}');
+  const unclosed = text.replace(/\r?\n$/, '');
   return {
-    text: bytes.toString('utf8'),
+    text,
     bytes: bytes.length,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
+    sha256: sha256(bytes),
+    whole:
+      pasted && unclosed !== text
+        ? [sha256(bytes), sha256(Buffer.from(unclosed, 'utf8'))]
+        : [sha256(bytes)],
   };
 }
 

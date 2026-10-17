@@ -8,6 +8,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { handedFile, loadCases, requestOf } from '../agent-eval/lib/case.js';
 import { runChecks, type NotebookSnapshot } from '../agent-eval/lib/checks.js';
@@ -350,6 +351,21 @@ describe('a file the person hands over (#295)', () => {
     expect(outcomes.map((outcome) => outcome.passed)).toEqual([true, true]);
   });
 
+  it('passes the text without the line break the message cannot show, and nothing else', () => {
+    const transcript = emptyTranscript();
+    const input = (sha256: string) => ({
+      transcript,
+      before: [notebook()],
+      after: [notebook({ files: [kept(sha256, 668)], notes: [shown] })],
+      finalText: '',
+      absent: [],
+      leaks: [],
+      handed: { bytes: 669, sha256: 'a'.repeat(64), whole: ['a'.repeat(64), 'c'.repeat(64)] },
+    });
+    expect(runChecks(['file-kept-whole'], input('c'.repeat(64)))[0]?.passed).toBe(true);
+    expect(runChecks(['file-kept-whole'], input('d'.repeat(64)))[0]?.passed).toBe(false);
+  });
+
   it('fails a file retyped with one slip, or kept and shown by no note', () => {
     const outcomes = check(notebook({ files: [kept('b'.repeat(64), 668)] }));
     expect(outcomes.map((outcome) => outcome.passed)).toEqual([false, false]);
@@ -363,6 +379,15 @@ describe('a file the person hands over (#295)', () => {
     if (!variant) throw new Error('AE-07 has no pt_BR variant');
     const handed = handedFile(variant);
     expect(handed?.bytes).toBe(669);
+    // Its last byte, the line break, is the last character of the message,
+    // which nobody reading it sees: the file is whole with it or without it,
+    // and only so (#309).
+    expect(handed?.whole).toHaveLength(2);
+    expect(handed?.whole[0]).toBe(handed?.sha256);
+    const unclosed = createHash('sha256')
+      .update(Buffer.from((handed?.text ?? '').slice(0, -1), 'utf8'))
+      .digest('hex');
+    expect(handed?.whole[1]).toBe(unclosed);
     expect(requestOf(variant)).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
     expect(requestOf(variant)).not.toContain('{{file}}');
   });

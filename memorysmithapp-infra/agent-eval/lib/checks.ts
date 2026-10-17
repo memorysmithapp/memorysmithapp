@@ -51,7 +51,12 @@ export interface CheckInput {
   readonly absent: readonly string[];
   readonly leaks: readonly string[];
   /** The file the person handed over, when the case hands one (#295). */
-  readonly handed?: { readonly bytes: number; readonly sha256: string };
+  readonly handed?: {
+    readonly bytes: number;
+    readonly sha256: string;
+    /** Every SHA-256 that is the file as the person handed it, when it is more than one. */
+    readonly whole?: readonly string[];
+  };
 }
 
 export interface CheckOutcome {
@@ -167,7 +172,8 @@ const FILE_CHECKS = {
     if (!input.handed) return outcome('file-kept-whole', null, 'the case hands no file');
     const kept = keptFiles(input);
     if (kept.length === 0) return outcome('file-kept-whole', false, 'no file was kept');
-    const whole = kept.find(({ file }) => file.sha256 === input.handed?.sha256);
+    const accepted = input.handed.whole ?? [input.handed.sha256];
+    const whole = kept.find(({ file }) => accepted.includes(file.sha256));
     return outcome(
       'file-kept-whole',
       whole !== undefined,
