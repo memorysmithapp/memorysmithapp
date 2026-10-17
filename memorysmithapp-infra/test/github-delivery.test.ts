@@ -151,6 +151,23 @@ describe('what a role may do', () => {
     expect(reach).toContain('memorysmithstagingdata-contentbucket*');
   });
 
+  it('starts and follows the run that rebuilds the link graph of staging, and no other (#311)', () => {
+    const statements = policiesOf(synth(), 'StagingRole').filter((statement) =>
+      actionsOf([statement]).some((action) => action.startsWith('states:')),
+    );
+    expect(actionsOf(statements).sort()).toEqual([
+      'states:DescribeExecution',
+      'states:DescribeMapRun',
+      'states:ListMapRuns',
+      'states:ListMapRuns',
+      'states:StartExecution',
+    ]);
+    const reach = JSON.stringify(statements.map((statement) => statement.Resource));
+    expect(reach).toContain('stateMachine:mv-reproject-links-staging');
+    expect(reach).toContain('execution:mv-reproject-links-staging:*');
+    expect(reach).not.toMatch(/production/);
+  });
+
   it('touches the accounts of a user pool only when the pool says it is staging', () => {
     const cognito = policiesOf(synth(), 'StagingRole').find((statement) =>
       actionsOf([statement]).includes('cognito-idp:AdminCreateUser'),

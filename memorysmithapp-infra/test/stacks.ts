@@ -120,6 +120,7 @@ export function stacksOf(app: App) {
     network,
     api,
     agent,
+    projections,
     all: [network, data, identity, api, projections, agent] as Stack[],
   };
 }

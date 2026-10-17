@@ -18,7 +18,8 @@
  * created, which deploy, and read whether the sending identity is verified.
  * Staging may also do what its suites do after the deploy — the adapter tests
  * against its tables and bucket, the functional suite's accounts in its pool,
- * and the maintenance jobs — and every one of those permissions names staging.
+ * and the maintenance jobs, the run that rebuilds its link graph included —
+ * and every one of those permissions names staging.
  * The price is the one the AWS pipeline paid (section 20.1): both roles deploy
  * through the same bootstrap roles, which can change anything in the account,
  * so what keeps a branch away from production is who may assume which role.
@@ -146,6 +147,25 @@ export class GithubDeliveryStack extends Stack {
       new iam.PolicyStatement({
         actions: ['s3:ListBucket', 's3:ListBucketVersions'],
         resources: [content],
+      }),
+    );
+
+    // The run that rebuilds the link graph of staging, started and followed
+    // by the command (#311): the run itself acts under a role of its own.
+    const reprojection = physicalName(env, 'mv-reproject-links');
+    staging.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['states:StartExecution', 'states:ListMapRuns'],
+        resources: [arn('states', `stateMachine:${reprojection}`)],
+      }),
+    );
+    staging.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['states:DescribeExecution', 'states:ListMapRuns', 'states:DescribeMapRun'],
+        resources: [
+          arn('states', `execution:${reprojection}:*`),
+          arn('states', `mapRun:${reprojection}/*`),
+        ],
       }),
     );
 

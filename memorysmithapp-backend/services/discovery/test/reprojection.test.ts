@@ -12,7 +12,13 @@ import { describe, expect, it } from 'vitest';
 import { noteName } from '@memorysmithapp/kernel';
 import { extractReferences } from '../src/domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
-import { distinctEdges, resolveAll, type ReadNote } from '../src/adapters/reprojection.js';
+import {
+  distinctEdges,
+  resolveAll,
+  summarise,
+  type NotebookResult,
+  type ReadNote,
+} from '../src/adapters/reprojection.js';
 
 /** A note as the rebuild reads it: from its bytes, by the current rules. */
 function read(noteId: string, markdown: string): ReadNote {
@@ -135,5 +141,63 @@ describe('rebuilding the graph of a notebook that keeps files', () => {
 
   it('never makes a kept file an edge', () => {
     expect(resolveAll(notebook, ['simbolo.svg']).edges).toEqual([]);
+  });
+});
+
+/**
+ * A run is split by notebook (#311), and its summary is the sum of what each
+ * notebook answered: a notebook that failed is named and the others still
+ * count, and the run is good only when nothing failed and no edge was lost.
+ */
+describe('the summary of a run over every notebook', () => {
+  const rebuilt = (notebookId: string, gained: number, lost = 0): NotebookResult => ({
+    subscriptionId: 'sub',
+    notebookId,
+    notes: 3,
+    files: 1,
+    before: 4,
+    after: 4 + gained - lost,
+    gained,
+    gainedByAlias: gained,
+    lost: Array.from({ length: lost }, (_, index) => ({ from: `a${index}`, to: `b${index}` })),
+    pending: 2,
+  });
+
+  it('sums the notebooks and names the ones whose graph changes', () => {
+    const summary = summarise('report', [rebuilt('one', 0), rebuilt('two', 2)]);
+    expect(summary).toMatchObject({
+      notebooks: 2,
+      rebuilt: 2,
+      notes: 6,
+      edgesBefore: 8,
+      edgesAfter: 10,
+      gained: 2,
+      lost: 0,
+      pending: 4,
+      good: true,
+    });
+    expect(summary.changed).toEqual([
+      { subscriptionId: 'sub', notebookId: 'two', gained: 2, lost: 0 },
+    ]);
+  });
+
+  it('names a notebook that failed, counts the others, and is not good', () => {
+    const summary = summarise('apply', [
+      rebuilt('one', 1),
+      { subscriptionId: 'sub', notebookId: 'broken', failed: true, error: 'NoSuchVersion' },
+      { subscriptionId: 'sub', notebookId: 'deleted', gone: true },
+    ]);
+    expect(summary).toMatchObject({ notebooks: 3, rebuilt: 1, gone: 1, gained: 1, good: false });
+    expect(summary.failed).toEqual([
+      { subscriptionId: 'sub', notebookId: 'broken', failed: true, error: 'NoSuchVersion' },
+    ]);
+  });
+
+  it('is not good when an edge was lost, and names the edge', () => {
+    const summary = summarise('apply', [rebuilt('one', 0, 1)]);
+    expect(summary.good).toBe(false);
+    expect(summary.lostEdges).toEqual([
+      { subscriptionId: 'sub', notebookId: 'one', from: 'a0', to: 'b0' },
+    ]);
   });
 });

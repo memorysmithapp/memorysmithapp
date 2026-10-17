@@ -13,6 +13,10 @@ import {
   environmentRefusal,
   jobVariables,
   MAINTENANCE_JOBS,
+  progressLine,
+  runExitCode,
+  summaryLines,
+  type ReprojectionSummary,
 } from '../commands/lib/maintenance.js';
 import { REPOSITORY_ROOT } from '../commands/lib/repository.js';
 import { physicalName } from '../config/environments.js';
@@ -23,6 +27,7 @@ describe('a maintenance job', () => {
       jobVariables({ environment: 'staging', contentBucket: 'b', userPoolId: 'p' }),
     );
     for (const job of Object.values(MAINTENANCE_JOBS)) {
+      if (!('entry' in job)) continue;
       const path = join(REPOSITORY_ROOT, job.entry);
       expect(existsSync(path)).toBe(true);
       const required = [...readFileSync(path, 'utf8').matchAll(/required\('([A-Z_]+)'\)/g)].map(
@@ -31,6 +36,16 @@ describe('a maintenance job', () => {
       expect(required).not.toHaveLength(0);
       for (const variable of required) expect(provided).toContain(variable);
     }
+  });
+
+  it('that runs in AWS names the state machine the projections stack creates (#311)', () => {
+    const job = MAINTENANCE_JOBS['reproject-links'];
+    expect('entry' in job).toBe(false);
+    const stack = readFileSync(
+      join(REPOSITORY_ROOT, 'memorysmithapp-infra/stacks/projections.stack.ts'),
+      'utf8',
+    );
+    expect(stack).toContain(`physicalName(props.environment, '${job.stateMachine}')`);
   });
 
   it('names the tables the data stack creates for the environment', () => {
@@ -88,5 +103,48 @@ describe('a maintenance job', () => {
         environmentAccount: '111111111111',
       }),
     ).toBeNull();
+  });
+});
+
+describe('the report of a reprojection run (#311)', () => {
+  const summary: ReprojectionSummary = {
+    mode: 'report',
+    notebooks: 3,
+    rebuilt: 2,
+    gone: 0,
+    notes: 40,
+    files: 2,
+    edgesBefore: 10,
+    edgesAfter: 11,
+    gained: 1,
+    gainedByAlias: 1,
+    lost: 0,
+    pending: 4,
+    changed: [{ subscriptionId: 'sub', notebookId: 'nb1', gained: 1, lost: 0 }],
+    lostEdges: [],
+    failed: [{ subscriptionId: 'sub', notebookId: 'nb3', error: 'NoSuchVersion' }],
+    good: false,
+  };
+
+  it('names where the graph changes and which notebook failed, by identifier only', () => {
+    const report = summaryLines(summary).join('\n');
+    expect(report).toContain('edges gained          1 (1 answered by an alias)');
+    expect(report).toContain('sub / nb1  +1 -0');
+    expect(report).toContain('NOTEBOOKS THAT FAILED after their retries, the others finished:');
+    expect(report).toContain('sub / nb3  NoSuchVersion');
+    expect(report).toContain('A report: nothing was written.');
+  });
+
+  it('exits 2 when an edge was lost, 1 when a notebook failed or no summary came back', () => {
+    expect(runExitCode({ ...summary, failed: [], good: true })).toBe(0);
+    expect(runExitCode(summary)).toBe(1);
+    expect(runExitCode({ ...summary, failed: [], lost: 1 })).toBe(2);
+    expect(runExitCode(null)).toBe(1);
+  });
+
+  it('counts what is done while it runs', () => {
+    expect(progressLine({ total: 707, succeeded: 300, failed: 1, running: 20 })).toBe(
+      '  301/707 notebook(s) done, 20 running',
+    );
   });
 });
