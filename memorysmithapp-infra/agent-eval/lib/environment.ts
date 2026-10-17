@@ -266,6 +266,9 @@ export async function snapshot(
       ...names.attachments.map((name) => ({ name, kind: 'file' as const })),
     ];
     const targets = [...new Set(health.pendingLinks.map((link) => link.targetName))];
+    const kept = await api.call<{
+      files: { name: string; mimeType: string; bytes: number; sha256: string }[];
+    }>('GET', `/knowledge/notebooks/${notebookId}/files`, token);
     notebooks.push({
       notebookId,
       name: detail.name,
@@ -278,6 +281,12 @@ export async function snapshot(
         const meant = likelyMeant(target, candidates);
         return meant ? [`[[${target}]] → ${meant.name}`] : [];
       }),
+      files: kept.files.map(({ name, mimeType, bytes, sha256 }) => ({
+        name,
+        mimeType,
+        bytes,
+        sha256,
+      })),
     });
   }
   return notebooks;

@@ -26,7 +26,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { REPOSITORY_ROOT } from '../commands/lib/repository.js';
-import { loadCases, personaOf, type CaseVariant, type EvaluationCase } from './lib/case.js';
+import {
+  handedFile,
+  loadCases,
+  personaOf,
+  requestOf,
+  type CaseVariant,
+  type EvaluationCase,
+} from './lib/case.js';
 import { runChecks } from './lib/checks.js';
 import { skillsAnnounced, uncoveredSkills } from './lib/coverage.js';
 import {
@@ -120,7 +127,7 @@ async function play(
   const dialogue: string[] = [`# ${evaluationCase.id} · ${variant.id} · ${model}`, ''];
   let executor: string | null = null;
   let user: string | null = null;
-  let prompt = variant.request;
+  let prompt = requestOf(variant);
   let turn = 0;
   let finalText: string | undefined;
   try {
@@ -160,6 +167,7 @@ async function play(
 
   const after = await snapshot(env, account);
   const leaks = leaksIn(transcript);
+  const handed = handedFile(variant);
   const outcomes = runChecks(evaluationCase.checks, {
     transcript,
     before,
@@ -167,6 +175,7 @@ async function play(
     finalText: finalText ?? '',
     absent: variant.absent ?? [],
     leaks,
+    ...(handed ? { handed: { bytes: handed.bytes, sha256: handed.sha256 } } : {}),
   });
 
   writeFileSync(join(folder, 'transcript.jsonl'), `${stream.join('\n')}\n`);

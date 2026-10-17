@@ -1,0 +1,31 @@
+{
+  "id": "AE-07",
+  "title": "A small drawing the person hands over, kept as it is and shown in the note it belongs to",
+  "exercises": "The skill that keeps files: the way the bytes go for a file of a few kilobytes, kept whole and shown by a note.",
+  "skills": ["keep-files"],
+  "turns": 4,
+  "checks": [
+    "room-held",
+    "whoami-before-first-write",
+    "file-kept-whole",
+    "file-shown",
+    "no-duplicate-writes",
+    "checked-before-done"
+  ],
+  "rubric": [
+    "The executor keeps the drawing exactly as the person gave it: no line of it is reformatted, simplified or redrawn.",
+    "It keeps it in one call fit for a file of a few kilobytes, rather than starting an upload in parts it has no way to hash.",
+    "The note of the kitchen shows the drawing, and the rest of the note is left as it was.",
+    "It tells the person under which name the drawing was kept and where it shows."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "carla",
+      "request": "Desenhei a planta da cozinha num SVG pequeno, o código está aqui embaixo. Guarda esse desenho no meu caderno da reforma e coloca ele na nota da cozinha?\n\n{{file}}",
+      "persona": "persona-pt_BR.md",
+      "setup": { "kind": "tree", "path": "memorysmithapp-infra/agent-eval/fixtures/reforma" },
+      "hands": "memorysmithapp-infra/agent-eval/fixtures/handed/planta-da-cozinha.svg"
+    }
+  ]
+}

@@ -9,7 +9,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadCases } from '../agent-eval/lib/case.js';
+import { handedFile, loadCases, requestOf } from '../agent-eval/lib/case.js';
 import { runChecks, type NotebookSnapshot } from '../agent-eval/lib/checks.js';
 import { skillsAnnounced, uncoveredSkills } from '../agent-eval/lib/coverage.js';
 import { leaksIn } from '../agent-eval/lib/leaks.js';
@@ -102,6 +102,7 @@ const notebook = (overrides: Partial<NotebookSnapshot> = {}): NotebookSnapshot =
   notes: [],
   pendingLinks: 0,
   brokenLinks: [],
+  files: [],
   ...overrides,
 });
 
@@ -317,11 +318,68 @@ describe('the clean room', () => {
   });
 });
 
+describe('a file the person hands over (#295)', () => {
+  const kept = (sha256: string, bytes = 669) => ({
+    name: 'planta-da-cozinha.svg',
+    mimeType: 'image/svg+xml',
+    bytes,
+    sha256,
+  });
+  const shown = {
+    noteId: 'x1',
+    folderId: 'f1',
+    name: 'Reforma da cozinha',
+    content: '---\nname: Reforma da cozinha\n---\n\nTexto.\n\n![[planta-da-cozinha.svg]]\n',
+  };
+  const check = (after: NotebookSnapshot) => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'keep_file', input: {}, turn: 0 });
+    return runChecks(['file-kept-whole', 'file-shown'], {
+      transcript,
+      before: [notebook()],
+      after: [after],
+      finalText: '',
+      absent: [],
+      leaks: [],
+      handed: { bytes: 669, sha256: 'a'.repeat(64) },
+    });
+  };
+
+  it('passes the very bytes handed, shown by a note that embeds them', () => {
+    const outcomes = check(notebook({ files: [kept('a'.repeat(64))], notes: [shown] }));
+    expect(outcomes.map((outcome) => outcome.passed)).toEqual([true, true]);
+  });
+
+  it('fails a file retyped with one slip, or kept and shown by no note', () => {
+    const outcomes = check(notebook({ files: [kept('b'.repeat(64), 668)] }));
+    expect(outcomes.map((outcome) => outcome.passed)).toEqual([false, false]);
+    expect(outcomes[0]?.detail).toContain('668 bytes where 669 were handed');
+  });
+
+  it('pastes the file into the request and holds the run to its hash', () => {
+    const variant = loadCases()
+      .find((each) => each.id === 'AE-07')
+      ?.variants.find((each) => each.id === 'pt_BR');
+    if (!variant) throw new Error('AE-07 has no pt_BR variant');
+    const handed = handedFile(variant);
+    expect(handed?.bytes).toBe(669);
+    expect(requestOf(variant)).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(requestOf(variant)).not.toContain('{{file}}');
+  });
+});
+
 describe('the catalogue', () => {
   const cases = loadCases();
 
-  it('holds AE-00 to AE-03 and AE-06, each with a variant, a check and a rubric', () => {
-    expect(cases.map((each) => each.id)).toEqual(['AE-00', 'AE-01', 'AE-02', 'AE-03', 'AE-06']);
+  it('holds AE-00 to AE-03, AE-06 and AE-07, each with a variant, a check and a rubric', () => {
+    expect(cases.map((each) => each.id)).toEqual([
+      'AE-00',
+      'AE-01',
+      'AE-02',
+      'AE-03',
+      'AE-06',
+      'AE-07',
+    ]);
     for (const each of cases) {
       expect(each.variants.length).toBeGreaterThan(0);
       expect(each.checks.length).toBeGreaterThan(0);
