@@ -220,6 +220,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Replaces the guidance of a notebook, which is the document that declares how THIS notebook ' +
       'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
       'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
+      'open it with the paragraph that says what the notebook is, never with a heading: the ' +
+      'Notebook Context prints the name of the notebook as one right above it. Then ' +
       'read the current one with get_guidance, which also gives you the baseRevision. The ' +
       'answer is the revision this write produced: pass it as baseRevision to write again, and ' +
       'read the result with get_notebook_context to see it as the next agent will. When the ' +
@@ -557,8 +559,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel inline, base64, in this one call, so it suits a file small enough to ' +
-      'write out whole without a slip \u2014 a few kilobytes. A photo, a recording or a document ' +
+      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG as ' +
+      'its text in `content`, copied exactly as you were given it, and any other type in ' +
+      '`contentBase64`, which you write without a slip only when code encodes it \u2014 base64 ' +
+      'written by hand slips even on a small file. A photo, a recording or a document ' +
       'of any real size is sent with begin_file_upload instead, whole and at its own ' +
       `resolution, as the skill \`${KEEP_FILES_SKILL}\` describes. Keep what the person gave you: ` +
       'when the bytes you hold are fewer than what they sent — a chat that recompresses ' +
@@ -596,9 +600,18 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: where it sits, written like a path, `/desenhos/arquitetura`. It ' +
             'organises and never addresses: the name is what a note writes.',
         },
-        contentBase64: { type: 'string', description: 'The bytes of the file, base64.' },
+        content: {
+          type: 'string',
+          description:
+            'The file as text, for an SVG: every character exactly as you were given it, ' +
+            'nothing reformatted. Give this or contentBase64, never both.',
+        },
+        contentBase64: {
+          type: 'string',
+          description: 'The bytes of the file, base64. Give this or content, never both.',
+        },
       },
-      ['notebook', 'name', 'mimeType', 'contentBase64'],
+      ['notebook', 'name', 'mimeType'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
@@ -1088,7 +1101,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'note changing folder and notebook, because it is keyed by the note identifier. It ' +
       'answers a list of entries, each with occurredAt, type, userId, agentName, ' +
       'agentClientId (null for a write the person made without a connector) and revision ' +
-      '(null for an event that wrote no content), which read_note takes as asOf.',
+      '(null for an event that wrote no content), which read_note takes as asOf. A person ' +
+      'editing in the interface saves as they type, so a run of saves of one edit session is ' +
+      'one entry of type EditSession, with its session, saves, startedAt, occurredAt and its ' +
+      'revisions, each a revision of its own that read_note takes as asOf.',
     inputSchema: object(
       { notebook: notebookArgument, note: { type: 'string', description: 'Note identifier.' } },
       ['notebook', 'note'],

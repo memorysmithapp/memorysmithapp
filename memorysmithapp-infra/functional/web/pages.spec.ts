@@ -422,6 +422,59 @@ test.describe('the pages of an account', () => {
     );
   });
 
+  test('writes the Guidance in place, and a Template a folder did not have (#301)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const typeAtEnd = async (scope: ReturnType<Page['locator']>, text: string) => {
+      const editor = scope.locator('.markdown-editor .cm-content');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await app.keyboard.press('Control+End');
+      await app.keyboard.type(text, { delay: 20 });
+    };
+
+    await app.goto(notebook.page('/guidance'));
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    await typeAtEnd(app.locator('article.content-pane'), '\n\nOne more rule, typed on the page.');
+    await expect
+      .poll(
+        async () =>
+          (await owner.ok<{ guidance: { content: string } | null }>('GET', path)).guidance
+            ?.content ?? '',
+        { timeout: 20_000 },
+      )
+      .toContain('One more rule, typed on the page.');
+
+    // A folder with no Template is offered an empty one, which the first save creates.
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: `No Template ${Date.now()}`,
+      description: 'A folder for the case',
+    });
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    const card = app.locator('details.template-card');
+    await card.locator('summary').click();
+    await card.getByRole('button', { name: words.editNote, exact: true }).click();
+    await typeAtEnd(card, '## Context\n\nWhat led here.');
+    await expect
+      .poll(
+        async () =>
+          (
+            await owner.ok<{ content: string | null }>(
+              'GET',
+              `${path}/folders/${folderId}/template`,
+            )
+          ).content ?? '',
+        { timeout: 20_000 },
+      )
+      .toContain('What led here.');
+    // The editor stays open through the save that created the Template.
+    await expect(card.locator('.markdown-editor .cm-content')).toBeVisible();
+  });
+
   test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, opens one and deletes it', async ({
     app,
     notebook,
@@ -492,6 +545,66 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.closeGraphControls })).toHaveCount(0);
     await gear.click();
     await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
+  });
+
+  test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const name = `curva-${randomBytes(3).toString('hex')}.png`;
+    await owner.ok('POST', `${path}/files`, {
+      name,
+      description: 'A curva do relatório',
+      mimeType: 'image/png',
+      contentBase64: png,
+    });
+    const shows = `Mostra ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${shows}\n---\n\n![Curva|50%](../assets/${name})\n`,
+    });
+    await eventually(
+      'the note showing the file',
+      () =>
+        owner.ok<{ attachments: Array<{ name: string; notes: Array<{ noteId: string }> }> }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/attachments`,
+        ),
+      (found) => found.attachments.some((each) => each.name === name && each.notes.length === 1),
+    );
+
+    await app.goto(notebook.page('/graph'));
+    // The entry sits right above the graph in the navigation, and opens the page.
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    await expect(nav.filter({ hasText: words.graph })).toBeVisible();
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
+    expect(labels.indexOf(words.attachments)).toBe(labels.indexOf(words.graph) - 1);
+    await nav.filter({ hasText: words.attachments }).click();
+    await expect(app).toHaveURL(notebook.page('/attachments'));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(words.attachments);
+
+    const row = app.locator('.attachment-row', { hasText: name });
+    await expect(row).toContainText('A curva do relatório');
+    await expect(row.getByRole('link', { name: `${words.download}: ${name}` })).toHaveAttribute(
+      'href',
+      /^https:\/\//,
+    );
+    // An image is previewed, and opens larger.
+    await expect(row.locator('.attachment-thumb img')).toBeVisible();
+    await row.locator('button.attachment-thumb').click();
+    const dialog = app.getByRole('dialog', { name });
+    await expect(dialog.locator('img.attachment-zoom')).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+
+    // The note that shows it is a link to the note.
+    await row.getByRole('link', { name: shows }).click();
+    await expect(app).toHaveURL(notebook.page(`/notes/${noteId.toLowerCase()}`));
   });
 
   test('opens the tree on the top-level folders, with no Root above them (#196)', async ({
@@ -701,8 +814,12 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
-    // Closed before the window narrows, or it would come back as a sheet.
+    // Closed before the window narrows, or it would come back as a sheet. The
+    // native dialog leaves the screen on Escape and tells the page a moment
+    // later; narrowing in between swaps it for a sheet that never heard it
+    // closed, so the case waits for the element to leave the page itself.
     await expect(refusing).toHaveCount(0);
+    await expect(app.locator('dialog.move-dialog')).toHaveCount(0);
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
       `Proposals ${suffix}`,
     );
@@ -807,40 +924,6 @@ test.describe('the pages of an account', () => {
     await look('renderer-phone.png');
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId] says in the editor where the page will not show the note as typed (#291)', async ({
-    app,
-    owner,
-    notebook,
-    words,
-  }, testInfo) => {
-    const path = `/knowledge/notebooks/${notebook.notebookId}`;
-    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
-      folderId: notebook.folderId,
-      content: `---\nname: Notices ${randomBytes(3).toString('hex')}\n---\n\n# Notices\n`,
-    });
-    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
-    await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    const area = app.locator('textarea.note-editor-area');
-    await area.fill(`${await area.inputValue()}\n### Skipped\n\n\`\`\`\nnever closed\n`);
-
-    const notices = app.locator('.note-notices');
-    await expect(notices.getByRole('heading', { name: words.noticesHeading })).toBeVisible();
-    const fence = notices.getByRole('button', { name: new RegExp(words.noticeFenceUnclosed) });
-    await expect(fence).toBeVisible();
-    // A notice takes the cursor to where it is.
-    await fence.click();
-    const selected = await area.evaluate((field) =>
-      (field as unknown as { value: string; selectionStart: number }).value.slice(
-        (field as unknown as { selectionStart: number }).selectionStart,
-      ),
-    );
-    expect(selected.startsWith('```')).toBe(true);
-    await testInfo.attach('editor-notices.png', {
-      body: await app.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
-  });
-
   test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
     app,
     notebook,
@@ -878,62 +961,211 @@ test.describe('the pages of an account', () => {
     await expect(box('second')).toBeChecked();
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId] writes a note from the interface with a line, which the history answers, and conflicts with a write it did not see', async ({
+  test('[page:/notebooks/:notebookId/notes/:noteId] edits a note in place, saving as it goes, shows the session as one entry of the history, and lets a write it did not see be kept or overwritten (#300)', async ({
     app,
+    owner,
     notebook,
-    state,
     words,
-  }) => {
-    await app.goto(
-      `${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
-    );
+  }, testInfo) => {
+    // Its own note: the cases of this run that read the fixture's note by its
+    // content would see this one's edits.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `In place ${randomBytes(3).toString('hex')}`;
+    // A wikilink that resolves, in a callout and in a table: the editor draws
+    // both in a React root of its own, outside the router of the page (#300).
+    const target = `${name} target`;
+    await owner.ok('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${target}\n---\n\nReached.\n`,
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${name}\nstatus: draft\n---\n\n> [!abstract] Who\n> A callout reaching [[${target}]].\n\n| a  | b |\n|---|:-:|\n| 1 | [[${target}]] |\n\nFirst take.\n`,
+    });
+    const crashes: string[] = [];
+    app.on('pageerror', (error) => crashes.push(error.message));
+    const stored = () =>
+      owner.ok<{ content: string; revision: { versionId: string } }>(
+        'GET',
+        `${path}/notes/${noteId}`,
+      );
+    const opened = await stored();
 
-    // The toggle is there because this account writes in this notebook.
-    await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    const area = app.locator('textarea.note-editor-area');
-    // What is typed is WHAT WAS TYPED: the frontmatter is in the box, not the
-    // properties the reading surface drew out of it (RN-KNW-052).
-    await expect(area).toHaveValue(/^---/);
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    const toEdit = app.getByRole('button', { name: words.editNote, exact: true });
+    const toRead = app.getByRole('button', { name: words.readNote, exact: true });
+    const editor = app.locator('.markdown-editor .cm-content');
+    const save = app.locator('.edit-save');
 
-    const line = `Written by a functional case at ${new Date().toISOString()}`;
-    await area.fill(`${await area.inputValue()}\n\nA paragraph this case wrote.\n`);
-    await app.getByRole('button', { name: words.confirmEdit }).click();
-    await app.getByLabel(words.messageLabel).fill(line);
-    await app.getByRole('button', { name: words.writeIt }).click();
+    // Opening the editor and leaving it writes nothing: a byte nobody touched
+    // is never rewritten (RN-KNW-028).
+    await toEdit.click();
+    await expect(editor).toBeVisible();
+    // Every block is drawn, the ones holding a resolved link included.
+    await expect(editor.locator('.callout')).toContainText('A callout reaching');
+    await expect(editor.locator('table')).toContainText(target);
+    expect(crashes).toEqual([]);
+    await toRead.click();
+    await expect(editor).toHaveCount(0);
+    expect(await stored()).toEqual(opened);
 
-    // Back to reading, with the paragraph in it.
-    await expect(app.getByText('A paragraph this case wrote.')).toBeVisible();
+    // Typing saves after a pause, a revision per pause and never per key.
+    await toEdit.click();
+    await editor.click();
+    await app.keyboard.press('ControlOrMeta+End');
+    await app.keyboard.type(' A sentence this case typed.');
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    await app.keyboard.type(' And a second pause.');
+    await expect
+      .poll(async () => (await stored()).content, { timeout: 15_000 })
+      // The end of the note is the empty line after its last line break.
+      .toContain('First take.\n A sentence this case typed. And a second pause.');
+    await testInfo.attach('editor.png', { body: await app.screenshot(), contentType: 'image/png' });
+    await toRead.click();
+    await expect(app.getByText('And a second pause.')).toBeVisible();
+    // The table keeps the spacing it was typed with: only the edited line changed.
+    expect((await stored()).content).toContain('| a  | b |\n|---|:-:|');
 
-    // And the line is in the history, which is the whole reason the field
-    // exists: a message written into a drawer nobody opens is a form.
-    // It opens from the bar of the note, as the modal of the Controles (#226).
+    // The saves of the session are one entry of the history (RN-AUD-013).
     await app.getByRole('button', { name: words.historyButton, exact: true }).click();
     const history = app.getByRole('dialog', { name: words.historyHeading });
-    await expect(history.getByText(line)).toBeVisible();
+    await expect(history.locator('.history-session')).toHaveCount(1, { timeout: 15_000 });
+    await expect(history.locator('.history-session')).toContainText(words.editSession);
     await app.keyboard.press('Escape');
-    await expect(history).toHaveCount(0);
 
     /**
-     * A write the screen did not see: the API writes the same note directly,
-     * so the revision the page is holding is retired. The next write from the
-     * interface must say somebody else wrote, and not overwrite them.
+     * A write the screen did not see, made while the editor is open: the next
+     * save is refused, and the person chooses — here, to save anyway, which
+     * writes on the revision that now exists and keeps theirs in the history.
      */
-    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
-    const read = await api.ok<{ raw: string; revision: { versionId: string } }>(
-      'GET',
-      `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
-    );
-    await api.ok('PUT', `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`, {
-      content: `${read.raw}\n\nWritten around the interface.\n`,
-      baseRevision: read.revision.versionId,
+    await toEdit.click();
+    const before = await stored();
+    await owner.ok('PUT', `${path}/notes/${noteId}`, {
+      content: `${before.content}\nWritten around the interface.\n`,
+      baseRevision: before.revision.versionId,
       message: 'A write the screen never saw',
     });
+    await editor.click();
+    await app.keyboard.press('ControlOrMeta+End');
+    await app.keyboard.type(' And one more.');
+    await expect(save).toHaveAttribute('data-save', 'failed', { timeout: 15_000 });
+    // The choice opens by itself, without a click on the status: the person
+    // typing is told, and the note is held until they choose (#300).
+    const notice = app.getByRole('dialog', { name: words.conflict });
+    await expect(notice).toBeVisible();
+    await testInfo.attach('editor-conflict.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await notice.getByRole('button', { name: words.saveAnyway }).click();
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    const after = (await stored()).content;
+    expect(after).toContain('And one more.');
+    expect(after).not.toContain('Written around the interface.');
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    await expect(history.getByText('A write the screen never saw')).toBeVisible({
+      timeout: 15_000,
+    });
+  });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId] keeps the bar and the corner of a long note in view while it is read, on a computer and on a phone (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const lines = Array.from(
+      { length: 40 },
+      (_, i) => `Paragraph ${i}, long enough to fill a line of the note.`,
+    ).join('\n\n');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Long ${randomBytes(3).toString('hex')}\n---\n\n${lines}\n`,
+    });
+    const edit = app.getByRole('button', { name: words.editNote, exact: true });
+    const bar = app.locator('.notebook-bar').first();
+    for (const [width, height] of [
+      [1280, 800],
+      [390, 844],
+    ] as const) {
+      await app.setViewportSize({ width, height });
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      await expect(edit).toBeVisible();
+      // Read down the note, as a person does, far past its top.
+      await app.mouse.move(width - 40, height / 2);
+      for (let step = 0; step < 10; step++) await app.mouse.wheel(0, 300);
+      await expect(app.getByText('Paragraph 0,', { exact: false })).not.toBeInViewport();
+      // The bar stays at the top, and the corner of the note under it.
+      const barBox = await bar.boundingBox();
+      const editBox = await edit.boundingBox();
+      expect(barBox!.y).toBeGreaterThanOrEqual(0);
+      expect(editBox!.y).toBeGreaterThanOrEqual(barBox!.y + barBox!.height - 1);
+      expect(editBox!.y).toBeLessThan(barBox!.y + barBox!.height + 40);
+    }
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] keeps the line being typed where it is on the screen, across a save (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    // A long note with blocks above the line typed: the editor draws each of
+    // them in a root of its own, and a block drawn again is empty for an
+    // instant, which shrank the note under the caret and scrolled the pane by
+    // hundreds of pixels on the first key and on the first after each save.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const filler = (word: string) =>
+      Array.from(
+        { length: 8 },
+        (_, i) => `${word} paragraph ${i}, long enough to fill a line of the note.`,
+      ).join('\n\n');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Steady ${randomBytes(3).toString('hex')}\nstatus: draft\n---\n\n${filler('Upper')}\n\n> [!note] A callout\n> Inside it.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n$$\nE = mc^2\n$$\n\nThe line typed here.\n\n${filler('Lower')}\n`,
+    });
+    await app.setViewportSize({ width: 1280, height: 800 });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
     await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    await app.locator('textarea.note-editor-area').fill(`${read.raw}\n\nAnd one more.\n`);
-    await app.getByRole('button', { name: words.confirmEdit }).click();
-    await app.getByRole('button', { name: words.writeIt }).click();
-    await expect(app.locator('.editor-refusal')).toContainText(words.conflict);
+    const editor = app.locator('.markdown-editor .cm-content');
+    await expect(editor).toBeVisible();
+
+    // The editor draws only the lines near the screen: the pane is scrolled by
+    // the wheel, as a person does, until the line is in the middle of it.
+    const line = editor.locator('.cm-line', { hasText: 'The line typed here.' });
+    await app.mouse.move(780, 400);
+    await expect(async () => {
+      const box = (await line.count()) ? await line.boundingBox() : null;
+      if (!box || box.y > 600) await app.mouse.wheel(0, 200);
+      else if (box.y < 300) await app.mouse.wheel(0, -100);
+      expect(box !== null && box.y >= 300 && box.y <= 600).toBe(true);
+    }).toPass({ intervals: [150], timeout: 30_000 });
+    await line.click();
+    await app.keyboard.press('End');
+    // Where the caret stands on the screen, which is what a person typing watches.
+    const caretY = () =>
+      app.evaluate(() => {
+        const page = globalThis as unknown as {
+          getSelection: () => {
+            getRangeAt: (index: number) => { getBoundingClientRect: () => { top: number } };
+          };
+        };
+        return Math.round(page.getSelection().getRangeAt(0).getBoundingClientRect().top);
+      });
+    const before = await caretY();
+
+    const save = app.locator('.edit-save');
+    await app.keyboard.type(' First', { delay: 50 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    await app.keyboard.type(' and after the save.', { delay: 50 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    expect(
+      (await owner.ok<{ content: string }>('GET', `${path}/notes/${noteId}`)).content,
+    ).toContain('The line typed here. First and after the save.');
   });
 
   test('[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, with its properties on a page of their own, its tables inside the margins and either orientation (#258)', async ({
@@ -1323,18 +1555,50 @@ A note to rename.
     await app.goto(`${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${made.noteId}`);
     await expect(app.locator('.tree-note', { hasText: before })).toBeVisible();
 
+    // The name is the title field of the editor's frontmatter form (#300).
     await app.getByRole('button', { name: words.editNote, exact: true }).click();
-    const area = app.locator('textarea.note-editor-area');
-    await area.fill((await area.inputValue()).replace(`name: ${before}`, `name: ${after}`));
-    await app.getByRole('button', { name: words.confirmEdit }).click();
-    await app.getByRole('button', { name: words.writeIt }).click();
+    const title = app.getByRole('textbox', { name: words.noteTitle, exact: true });
+    await title.fill(after);
+    await title.press('Tab');
+
+    // The save that renamed it says so once it landed, and offers the old
+    // name as an alias, so the links to it keep arriving (RN-KNW-052).
+    const save = app.locator('.edit-save');
+    await expect(save).toHaveAttribute('data-save', 'alert', { timeout: 15_000 });
+    const notice = app.getByRole('dialog', { name: words.renamedTitle });
+    await expect(notice).toBeVisible();
+    await notice.getByRole('button', { name: words.keepAlias.replace('{name}', before) }).click();
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    const kept = await api.ok<{ content: string }>(
+      'GET',
+      `/knowledge/notebooks/${notebook.notebookId}/notes/${made.noteId}`,
+    );
+    expect(kept.content).toContain(`name: ${after}`);
+    expect(kept.content).toContain(before);
+    await app.getByRole('button', { name: words.readNote, exact: true }).click();
 
     /**
      * No reload anywhere in this case (#170). The structure draws the tree and
      * is also what every `[[…]]` resolves against, so a rename that does not
      * reach it leaves the whole notebook painting by the old name.
      */
-    await expect(app.locator('article.content-pane > h1')).toHaveText(after);
+    await expect(app.locator('article.content-pane .note-title')).toHaveText(after);
+    // The corner of the note stands above its name, never under its properties.
+    await expect(app.locator('article.content-pane > .markdown > :first-child')).toHaveClass(
+      /note-corner/,
+    );
+    await expect(app.locator('article.content-pane .note-corner + .note-title')).toHaveText(after);
+    // What the note lays out of the flow hangs from the note, never from the
+    // page, where it stretched the page under the pane into a second scrollbar.
+    expect(
+      await app.locator('article.content-pane > .markdown > p.visually-hidden').evaluate((hidden) =>
+        (
+          hidden as unknown as {
+            offsetParent: { classList: { contains(name: string): boolean } } | null;
+          }
+        ).offsetParent?.classList.contains('markdown'),
+      ),
+    ).toBe(true);
     await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });

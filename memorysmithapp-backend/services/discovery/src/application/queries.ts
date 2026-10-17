@@ -194,6 +194,22 @@ export class NotebookNames {
   }
 }
 
+/**
+ * The files of a notebook with the notes that show each one (#307,
+ * RN-DSC-066), in one read: what a page listing them needs, and nothing a
+ * person could not already reach by opening every note.
+ */
+export class AttachmentUses {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: {
+    notebookId: string;
+  }): Promise<Result<{ attachments: Array<{ name: string; notes: NoteRef[] }> }, DomainError>> {
+    const uses = await this.deps.graph.attachmentUses(input.notebookId);
+    return ok({ attachments: uses.map((use) => ({ name: use.name, notes: [...use.notes] })) });
+  }
+}
+
 export class ResolveLinkTarget {
   constructor(private readonly deps: QueryDependencies) {}
 

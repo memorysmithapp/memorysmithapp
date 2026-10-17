@@ -431,6 +431,10 @@ export const noteUpdatedPayload = z.object({
   noteId: ulidSchema,
   folderId: ulidSchema,
   name: z.string().min(1).nullable(),
+  /** The line its author left about the change (RN-AUD-012). */
+  message: z.string().optional(),
+  /** The edit session of the interface the save belongs to (RN-AUD-013). */
+  session: ulidSchema.optional(),
   version: noteVersionSchema,
 });
 

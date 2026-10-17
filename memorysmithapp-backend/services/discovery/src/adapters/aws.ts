@@ -57,12 +57,24 @@ import type {
   NoteRef,
   ResolvedTarget,
   NotebookGraph,
+  AttachmentUse,
 } from '../domain/ports.js';
 import { GRAPH_LIMITS } from '../domain/ports.js';
 import { facetDelta, valuesOf, type FacetSnapshot } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
 
 type Item = Record<string, unknown>;
+
+/**
+ * Whether a `PENDING#` or `IMAGE#` item is a note showing a file the notebook
+ * keeps (§5.8): an image by path always names a file, an embed may, and a
+ * plain link never does (#305). A `PENDING#` item written before the form was
+ * kept carries no `embed`, and is read as the embed every target was then.
+ */
+function showsFile(item: Item, kept: ReadonlySet<string>): boolean {
+  if (!kept.has(String(item['name']).normalize('NFC'))) return false;
+  return item['entity'] === 'IMAGE' || item['embed'] !== false;
+}
 
 const MAX_DISTINCT_VALUES = 40;
 
@@ -309,10 +321,11 @@ export class DynamoLinkGraph implements LinkGraph {
    * nothing yet (RN-AGT-034).
    */
   async outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]> {
-    const [edges, aliases, pending, noteItems, attachments] = await Promise.all([
+    const [edges, aliases, pending, images, noteItems, attachments] = await Promise.all([
       this.query(notebookId, `OUT#${noteId}#`),
       this.query(notebookId, 'ALIAS#'),
       this.query(notebookId, 'PENDING#'),
+      this.query(notebookId, 'IMAGE#'),
       this.query(notebookId, 'NOTE#'),
       this.attachmentsOf(notebookId),
     ]);
@@ -344,6 +357,19 @@ export class DynamoLinkGraph implements LinkGraph {
       entry.notes.push(to);
       targets.set(target, entry);
     }
+    /**
+     * A target no note answers may still be a FILE the notebook keeps: it
+     * renders, it is no edge, and it is not nothing (§5.8, #166) — when it was
+     * embedded or drawn as an image, and never when it was a plain link
+     * (#174, #305). One entry per target, the one reaching further kept.
+     */
+    const files = new Map<string, 'attachment' | 'pending'>();
+    for (const item of [...pending, ...images]) {
+      if (String(item['fromNoteId']) !== noteId) continue;
+      const target = String(item['name']);
+      const kind = showsFile(item, kept) ? 'attachment' : 'pending';
+      if (files.get(target) !== 'attachment') files.set(target, kind);
+    }
     return [
       ...[...targets].map(([target, entry]) => ({
         target,
@@ -351,21 +377,9 @@ export class DynamoLinkGraph implements LinkGraph {
         by: entry.by,
         notes: entry.notes,
       })),
-      // A target no note answers may still be a FILE the notebook keeps: it
-      // renders, it is no edge, and it is not nothing (§5.8, #166).
-      ...pending
-        .filter((item) => String(item['fromNoteId']) === noteId)
-        .map((item) => {
-          const target = String(item['name']);
-          return {
-            target,
-            kind: kept.has(target.normalize('NFC'))
-              ? ('attachment' as const)
-              : ('pending' as const),
-            by: null,
-            notes: [],
-          };
-        }),
+      ...[...files]
+        .filter(([target]) => !targets.has(target))
+        .map(([target, kind]) => ({ target, kind, by: null, notes: [] })),
     ];
   }
 
@@ -379,11 +393,12 @@ export class DynamoLinkGraph implements LinkGraph {
 
     const existing = await this.query(notebookId, `OUT#${note.noteId}#`);
     const pending = await this.query(notebookId, 'PENDING#');
+    const images = await this.query(notebookId, 'IMAGE#');
     const aliasEdges = await this.query(notebookId, 'ALIAS#');
     const stale = [
       ...existing.map((item) => String(item['SK'])),
       ...existing.map((item) => `IN#${String(item['toNoteId'])}#${note.noteId}`),
-      ...pending
+      ...[...pending, ...images]
         .filter((item) => String(item['fromNoteId']) === note.noteId)
         .map((item) => String(item['SK'])),
       ...aliasEdges
@@ -404,6 +419,7 @@ export class DynamoLinkGraph implements LinkGraph {
      */
     const byName = new Set<string>();
     for (const link of links) {
+      if (link.form === 'image') continue;
       const answer = resolveTarget(link.name, names);
       if (answer.kind === 'note' && answer.by === 'name') {
         for (const targetId of answer.noteIds) byName.add(targetId);
@@ -411,6 +427,22 @@ export class DynamoLinkGraph implements LinkGraph {
     }
 
     for (const link of links) {
+      if (link.form === 'image') {
+        /**
+         * An image by path names a file and never a note (RN-DSC-065), so it
+         * is kept apart from what a note written later under that name would
+         * take: a `PENDING#` item resolves into an edge, and this never does.
+         * Whether the file is kept is read when it is read, as for an embed.
+         */
+        writes.push({
+          PK: this.pk(notebookId),
+          SK: `IMAGE#${link.name}#${note.noteId}`,
+          entity: 'IMAGE',
+          fromNoteId: note.noteId,
+          name: link.name,
+        });
+        continue;
+      }
       const answer = resolveTarget(link.name, names);
       if (answer.kind === 'note') {
         // Every note whose name matches becomes an edge (RN-DSC-042), so a
@@ -443,6 +475,10 @@ export class DynamoLinkGraph implements LinkGraph {
          * and one written after it was never pending again once the picture
          * was deleted. The in-memory graph resolves on every read, and this is
          * the same answer.
+         *
+         * Whether it was embedded is kept with it, because only an embed may
+         * name a file: a plain `[[curva.png]]` stays pending beside the file
+         * it does not draw (§5.8, #305).
          */
         writes.push({
           PK: this.pk(notebookId),
@@ -450,6 +486,7 @@ export class DynamoLinkGraph implements LinkGraph {
           entity: 'PENDING',
           fromNoteId: note.noteId,
           name: link.name,
+          embed: link.form !== 'link',
         });
       }
     }
@@ -527,7 +564,9 @@ export class DynamoLinkGraph implements LinkGraph {
     const mine = (item: Item): boolean =>
       String(item['fromNoteId']) === noteId || String(item['toNoteId']) === noteId;
     const pending = (await this.query(notebookId, 'PENDING#', true)).filter(mine);
-    const aliasEdges = (await this.query(notebookId, 'ALIAS#', true)).filter(mine);
+    const images = (await this.query(notebookId, 'IMAGE#', true)).filter(mine);
+    const allAliasEdges = await this.query(notebookId, 'ALIAS#', true);
+    const aliasEdges = allAliasEdges.filter(mine);
 
     await this.remove(notebookId, [
       `NOTE#${noteId}`,
@@ -536,6 +575,7 @@ export class DynamoLinkGraph implements LinkGraph {
       ...incoming.map((item) => String(item['SK'])),
       ...incoming.map((item) => `OUT#${String(item['fromNoteId'])}#${noteId}`),
       ...pending.map((item) => String(item['SK'])),
+      ...images.map((item) => String(item['SK'])),
       ...aliasEdges.map((item) => String(item['SK'])),
     ]);
 
@@ -548,19 +588,46 @@ export class DynamoLinkGraph implements LinkGraph {
       const answer = resolveTarget(name, names);
       const writes: Item[] = [];
 
+      /**
+       * Who already reaches each new end by a name: an edge into it with no
+       * alias mark. A spelling that lands on a pair a name holds does not mark
+       * it, and neither does a second note carrying the same name, which is a
+       * name answering (RN-DSC-042, RN-DSC-053, #304).
+       */
+      const reachedByName = new Map<string, Set<string>>();
+      if (answer.kind === 'note' && answer.by === 'alias') {
+        for (const toNoteId of answer.noteIds) {
+          const marked = new Set(
+            allAliasEdges
+              .filter((each) => String(each['toNoteId']) === toNoteId && !mine(each))
+              .map((each) => String(each['fromNoteId'])),
+          );
+          const into = await this.query(notebookId, `IN#${toNoteId}#`, true);
+          reachedByName.set(
+            toNoteId,
+            new Set(
+              into.map((each) => String(each['fromNoteId'])).filter((from) => !marked.has(from)),
+            ),
+          );
+        }
+      }
+
       for (const item of incoming) {
         const from = String(item['fromNoteId']);
         if (answer.kind === 'note') {
           for (const toNoteId of answer.noteIds) {
             if (toNoteId === from) continue;
-            writes.push(...this.edgeItems(notebookId, from, toNoteId), {
-              PK: this.pk(notebookId),
-              SK: `ALIAS#${name}#${from}#${toNoteId}`,
-              entity: 'ALIASEDGE',
-              fromNoteId: from,
-              toNoteId,
-              name,
-            });
+            writes.push(...this.edgeItems(notebookId, from, toNoteId));
+            if (answer.by === 'alias' && !reachedByName.get(toNoteId)?.has(from)) {
+              writes.push({
+                PK: this.pk(notebookId),
+                SK: `ALIAS#${name}#${from}#${toNoteId}`,
+                entity: 'ALIASEDGE',
+                fromNoteId: from,
+                toNoteId,
+                name,
+              });
+            }
           }
         } else {
           writes.push({
@@ -582,6 +649,7 @@ export class DynamoLinkGraph implements LinkGraph {
       'OUT#',
       'IN#',
       'PENDING#',
+      'IMAGE#',
       'ALIAS#',
     ]);
   }
@@ -629,16 +697,41 @@ export class DynamoLinkGraph implements LinkGraph {
       },
     ];
 
+    /**
+     * The notes that reach this one BY NAME once this runs, which an alias
+     * may not mark as its own (RN-DSC-053, #304). The write of a note asks the
+     * same question of its own links; here the answer has two halves, because
+     * the order the projector meets the writes is nobody's to choose: a note
+     * quoting a source by its name and by its alias, projected before the
+     * source, has both targets waiting, and both resolve in this one call. The
+     * other half is an edge a name already holds, which a spelling resolved
+     * later finds in place: an edge with no alias mark is held by a name.
+     */
+    const [incoming, aliasMarks] = await Promise.all([
+      this.query(notebookId, `IN#${note.noteId}#`),
+      this.query(notebookId, 'ALIAS#'),
+    ]);
+    const marksHere = aliasMarks.filter((item) => String(item['toNoteId']) === note.noteId);
+    const heldByAlias = new Set(marksHere.map((item) => String(item['fromNoteId'])));
+    const resolvedByName = new Set(
+      byName.map((item) => String(item['fromNoteId'])).filter((from) => from !== note.noteId),
+    );
+    const reachedByName = new Set([
+      ...resolvedByName,
+      ...incoming
+        .map((item) => String(item['fromNoteId']))
+        .filter((from) => !heldByAlias.has(from)),
+    ]);
+
     await this.put([
-      ...byName.flatMap((item) => {
-        const from = String(item['fromNoteId']);
-        return from === note.noteId ? [] : edgeFrom(from);
-      }),
+      ...[...resolvedByName].flatMap(edgeFrom),
       // An edge an alias answered for is marked, because a note written later
-      // under that name takes it away (RN-DSC-053).
+      // under that name takes it away (RN-DSC-053) — unless a name reaches it
+      // too, and then it is not the alias's to lose.
       ...byAlias.flatMap(({ item, alias }) => {
         const from = String(item['fromNoteId']);
         if (from === note.noteId) return [];
+        if (reachedByName.has(from)) return edgeFrom(from);
         return [
           ...edgeFrom(from),
           {
@@ -652,10 +745,14 @@ export class DynamoLinkGraph implements LinkGraph {
         ];
       }),
     ]);
-    await this.remove(
-      notebookId,
-      waiting.map((item) => String(item['SK'])),
-    );
+    await this.remove(notebookId, [
+      ...waiting.map((item) => String(item['SK'])),
+      // A pair a spelling was holding, now reached by the name as well: the
+      // mark goes, and the edge it marked is the name's.
+      ...marksHere
+        .filter((item) => resolvedByName.has(String(item['fromNoteId'])))
+        .map((item) => String(item['SK'])),
+    ]);
     return waiting.length;
   }
 
@@ -692,12 +789,15 @@ export class DynamoLinkGraph implements LinkGraph {
    * moment of reading, against the files kept now.
    */
   private async unanswered(notebookId: string): Promise<Item[]> {
-    const [pending, attachments] = await Promise.all([
+    const [pending, images, attachments] = await Promise.all([
       this.query(notebookId, 'PENDING#'),
+      this.query(notebookId, 'IMAGE#'),
       this.attachmentsOf(notebookId),
     ]);
     const kept = new Set(attachments.map((name) => name.normalize('NFC')));
-    return pending.filter((item) => !kept.has(String(item['name']).normalize('NFC')));
+    // An image of a file the notebook does not keep is pending the way
+    // `![[curva.png]]` is, and waits for the same upload (RN-DSC-065).
+    return [...pending, ...images].filter((item) => !showsFile(item, kept));
   }
 
   /** The names of the files the notebook keeps (#166). */
@@ -831,12 +931,49 @@ export class DynamoLinkGraph implements LinkGraph {
    * file when it is read (#185); a file no such item names is shown nowhere.
    */
   async unshownAttachments(notebookId: string): Promise<string[]> {
-    const [pending, attachments] = await Promise.all([
+    return (await this.attachmentUses(notebookId))
+      .filter((use) => use.notes.length === 0)
+      .map((use) => use.name);
+  }
+
+  /**
+   * Every kept file with the notes that show it (#307, RN-DSC-066): four
+   * prefix queries in the partition of the notebook, whatever its size, and
+   * the `PENDING#` and `IMAGE#` items that a file answers grouped by name.
+   */
+  async attachmentUses(notebookId: string): Promise<AttachmentUse[]> {
+    const [pending, images, noteItems, attachments] = await Promise.all([
       this.query(notebookId, 'PENDING#'),
+      this.query(notebookId, 'IMAGE#'),
+      this.query(notebookId, 'NOTE#'),
       this.attachmentsOf(notebookId),
     ]);
-    const named = new Set(pending.map((item) => String(item['name']).normalize('NFC')));
-    return attachments.filter((name) => !named.has(name.normalize('NFC')));
+    const kept = new Set(attachments.map((name) => name.normalize('NFC')));
+    const notes = new Map(
+      noteItems.map((item) => [
+        String(item['noteId']),
+        {
+          noteId: String(item['noteId']),
+          name: item['name'] === undefined ? '' : String(item['name']),
+          aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
+          folderId: String(item['folderId'] ?? ''),
+        } satisfies NoteRef,
+      ]),
+    );
+    const showing = new Map<string, NoteRef[]>();
+    for (const item of [...pending, ...images]) {
+      if (!showsFile(item, kept)) continue;
+      const from = notes.get(String(item['fromNoteId']));
+      if (!from) continue;
+      const key = String(item['name']).normalize('NFC');
+      const held = showing.get(key) ?? [];
+      if (!held.some((note) => note.noteId === from.noteId)) held.push(from);
+      showing.set(key, held);
+    }
+    return attachments.map((name) => ({
+      name,
+      notes: showing.get(name.normalize('NFC')) ?? [],
+    }));
   }
 
   async orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]> {
@@ -909,7 +1046,7 @@ export class DynamoLinkGraph implements LinkGraph {
    * would make the first note of the rebuild resolve against an empty notebook.
    */
   async forgetLinks(notebookId: string): Promise<void> {
-    for (const prefix of ['OUT#', 'IN#', 'PENDING#', 'ALIAS#']) {
+    for (const prefix of ['OUT#', 'IN#', 'PENDING#', 'IMAGE#', 'ALIAS#']) {
       const items = await this.query(notebookId, prefix);
       await this.remove(
         notebookId,

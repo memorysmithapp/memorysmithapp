@@ -1,0 +1,71 @@
+# Rebuilds the link graph of production, started by hand (architecture-guide.md,
+# sections 11 and 20.2). The run is a Step Functions execution in AWS under a
+# role of its own: this workflow only starts it, follows it and prints its
+# summary, so the role of production reaches no table and no bucket for it. It
+# reports unless `apply` is chosen, and only `main` may run it, which is what the
+# environment `production` admits.
+name: Production maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Report what a rebuild would change, or apply it
+        type: choice
+        default: report
+        options: [report, apply]
+
+permissions:
+  contents: read
+  id-token: write
+
+# Never beside a delivery of production, which may be changing the rule a link
+# is resolved by.
+concurrency:
+  group: deliver-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  reproject-links:
+    name: Rebuild the link graph of production
+    runs-on: ubuntu-26.04
+    environment: production
+    # The run outlives this job: stopped here, it goes on in AWS, and
+    # `reproject-links --environment production --follow <execution>` joins it.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PRODUCTION_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: production-maintenance-${{ github.run_id }}
+          role-duration-seconds: 7200
+
+      - name: Rebuild the link graph
+        # bash as GitHub names it runs with pipefail, so the exit code of the
+        # command, and not of tee, decides the job: a run not good fails it.
+        shell: bash
+        run: pnpm -C memorysmithapp-infra reproject-links --environment production ${{ inputs.mode == 'apply' && '--apply' || '' }} | tee reprojection.txt
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Production maintenance"
+            echo ""
+            echo "- \`reproject-links\` as a ${{ inputs.mode }}, from \`$GITHUB_REF_NAME\` at \`${GITHUB_SHA::7}\`"
+            echo ""
+            echo '```'
+            cat reprojection.txt 2>/dev/null || echo "The command printed nothing."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -3,21 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  canWrite,
-  deleteTemplate,
-  getTemplate,
-  putTemplate,
-  setNoteOrder,
-} from '../../shared/api/source';
+import { canWrite, getTemplate, setNoteOrder } from '../../shared/api/source';
 import { Segmented } from '../../shared/components/Segmented';
 import { Hint } from '../../shared/components/Hint';
-import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { identifierOf, noteAddress } from '../../shared/api/note-address';
 import { ChevronRightIcon, PencilIcon } from '../../shared/components/icons';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { FolderRows } from './FolderRows';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { TemplateBody } from './TemplateBody';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrailOf } from './trail';
@@ -102,7 +95,7 @@ export function FolderPage() {
       <article className="content-pane folder-page">
         <p className="folder-description">{folder.description}</p>
 
-        {folder.hasTemplate && (
+        {(folder.hasTemplate || writable) && (
           <details className="template-card">
             <summary>
               <ChevronRightIcon className="template-card-chevron" />
@@ -110,31 +103,15 @@ export function FolderPage() {
               <span className="template-card-hint">{t('folder.templateCardHint')}</span>
             </summary>
             <div className="template-card-body">
-              {template ? (
-                <>
-                  <NoteContent
-                    raw={template.body}
-                    notebookId={notebookId}
-                    baseRevision={template.revision}
-                    writable={writable}
-                    write={({ raw, baseRevision, keepalive }) =>
-                      putTemplate(notebookId, folder.id, raw, baseRevision, {
-                        keepalive: keepalive ?? false,
-                      })
-                    }
-                    invalidates={queryKeys.template(notebookId, folder.id)}
-                  />
-                  {writable && (
-                    <DeleteContentSlot
-                      label={t('folder.deleteTemplate')}
-                      confirmation={t('folder.deleteTemplateConfirm')}
-                      remove={() => deleteTemplate(notebookId, folder.id)}
-                      // The tree carries which folders have a Template, so the
-                      // structure is read again and not only this Template.
-                      invalidates={queryKeys.notebookStructure(notebookId)}
-                    />
-                  )}
-                </>
+              {/* A folder with no Template offers an empty one to whoever may
+                  write, which its first save creates (#301). */}
+              {template || !folder.hasTemplate ? (
+                <TemplateBody
+                  notebookId={notebookId}
+                  folder={folder}
+                  template={template ?? null}
+                  writable={writable}
+                />
               ) : (
                 <TemplateSkeleton />
               )}

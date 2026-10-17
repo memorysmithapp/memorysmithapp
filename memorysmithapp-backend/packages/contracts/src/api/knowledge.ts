@@ -172,6 +172,14 @@ export const updateNoteRequestSchema = z.object({
    * fills with `.`.
    */
   message: z.string().max(NOTE_MESSAGE_MAX_LENGTH).optional(),
+  /**
+   * The edit session of the interface this save belongs to (RN-AUD-013): the
+   * page opens one when the person starts editing, and every save until they
+   * go back to reading carries it. Each save is still a revision of its own;
+   * the session is what lets the history show them as one entry. A write with
+   * none, which is every write of an agent, is an entry of its own.
+   */
+  session: ulidSchema.optional(),
 });
 
 export const reorderNoteRequestSchema = z.object({

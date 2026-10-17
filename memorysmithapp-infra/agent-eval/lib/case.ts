@@ -8,9 +8,11 @@
  * changes only in a commit of its own.
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { REPOSITORY_ROOT } from '../../commands/lib/repository.js';
 
 export const CASES_DIRECTORY = join(dirname(fileURLToPath(import.meta.url)), '..', 'cases');
 
@@ -32,6 +34,8 @@ export const CHECK_NAMES = [
   'embeds-and-ticks',
   'bodies-untouched',
   'wrote-after-acceptance',
+  'file-kept-whole',
+  'file-shown',
 ] as const;
 
 export type CheckName = (typeof CHECK_NAMES)[number];
@@ -55,6 +59,12 @@ export interface CaseVariant {
   readonly setup: Setup;
   /** Strings the executor must not produce, for a case that asks what only the repository knows. */
   readonly absent?: readonly string[];
+  /**
+   * The file the person hands the executor (#295), by its path from the root of
+   * the repository: its text takes the place of `{{file}}` in the request, and
+   * what is kept is held to its bytes.
+   */
+  readonly hands?: string;
 }
 
 export interface EvaluationCase {
@@ -109,4 +119,42 @@ export function personaOf(evaluationCase: EvaluationCase, variant: CaseVariant):
   return variant.persona
     ? readFileSync(join(evaluationCase.directory, variant.persona), 'utf8')
     : null;
+}
+
+/**
+ * The file a variant hands the executor, read as bytes: its text, its size and
+ * its SHA-256, and every SHA-256 that is the same file as the person handed it.
+ *
+ * A file pasted into the request is the text the message shows, and the line
+ * break that closes it on disk is the last character of the message, which no
+ * reader of it can see. So a pasted file is whole with that one line break or
+ * without it, and a change anywhere else in the text is still a slip (#309).
+ */
+export function handedFile(variant: CaseVariant): {
+  readonly text: string;
+  readonly bytes: number;
+  readonly sha256: string;
+  readonly whole: readonly string[];
+} | null {
+  if (!variant.hands) return null;
+  const bytes = readFileSync(join(REPOSITORY_ROOT, variant.hands));
+  const sha256 = (of: Buffer): string => createHash('sha256').update(of).digest('hex');
+  const text = bytes.toString('utf8');
+  const pasted = variant.request.trimEnd().endsWith('{{file}}');
+  const unclosed = text.replace(/\r?\n$/, '');
+  return {
+    text,
+    bytes: bytes.length,
+    sha256: sha256(bytes),
+    whole:
+      pasted && unclosed !== text
+        ? [sha256(bytes), sha256(Buffer.from(unclosed, 'utf8'))]
+        : [sha256(bytes)],
+  };
+}
+
+/** What the person first says, with the file they hand pasted where `{{file}}` stands. */
+export function requestOf(variant: CaseVariant): string {
+  const handed = handedFile(variant);
+  return handed ? variant.request.replace('{{file}}', handed.text) : variant.request;
 }

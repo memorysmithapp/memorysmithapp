@@ -13,6 +13,7 @@
  */
 
 import {
+  groupHistory,
   ulidSchema,
   type Deployment,
   type PreviewDto,
@@ -32,6 +33,7 @@ import {
   type AgentCaller,
   type AuditGateway,
   type DiscoveryGateway,
+  type HistoryEntry,
   type KnowledgeGateway,
   type NoteContent,
   type RelatedNode,
@@ -300,6 +302,40 @@ function optionalString(args: Record<string, unknown>, name: string): string | u
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/**
+ * The types whose bytes are text, which `keep_file` takes as `content` (#309).
+ * An agent with no code writes base64 by hand, and a round of the evaluation
+ * kept a 669-byte drawing as 678 bytes that way: copying characters it already
+ * holds is what it does without a slip, encoding them is not.
+ */
+const TEXT_FILE_TYPES: ReadonlySet<string> = new Set(['image/svg+xml']);
+
+/** The bytes of keep_file, base64, from exactly one of `content` and `contentBase64`. */
+function keptBytes(args: Record<string, unknown>, mimeType: string): string {
+  const text = args['content'];
+  const encoded = args['contentBase64'];
+  const hasText = typeof text === 'string' && text.length > 0;
+  const hasEncoded = typeof encoded === 'string' && encoded.length > 0;
+  if (hasText === hasEncoded) {
+    throw new GatewayError(
+      'VALIDATION',
+      'keep_file takes the bytes once: as "content", the text of an SVG, or as "contentBase64".',
+    );
+  }
+  if (hasText) {
+    if (!TEXT_FILE_TYPES.has(mimeType.trim().toLowerCase())) {
+      throw new GatewayError(
+        'VALIDATION',
+        `"content" is the text of a file whose type is text (${[...TEXT_FILE_TYPES].join(', ')}); ` +
+          `the bytes of ${mimeType} travel as "contentBase64".`,
+      );
+    }
+    // Exactly the characters written, as UTF-8: nothing trimmed, no line ending changed.
+    return Buffer.from(text, 'utf8').toString('base64');
+  }
+  return encoded as string;
+}
+
 function optionalStrings(args: Record<string, unknown>, name: string): string[] | undefined {
   const value = args[name];
   return Array.isArray(value) ? value.map((each) => String(each)) : undefined;
@@ -359,6 +395,41 @@ function previewAnswer(preview: PreviewDto): ToolResult {
     ],
     isError: false,
   };
+}
+
+/**
+ * The history as the screen shows it (RN-AUD-013): a run of saves of one edit
+ * session of the interface is one entry, with how many saves it made, from
+ * when to when, and each of its revisions, which `read_note` takes as `asOf`.
+ * A write outside a session, every write of an agent included, is an entry of
+ * its own, as it always was.
+ */
+export function historyAnswer(entries: readonly HistoryEntry[]): unknown[] {
+  return groupHistory(entries).map((group) => {
+    if (group.kind === 'entry') {
+      const { session: _none, ...entry } = group.entry;
+      return entry;
+    }
+    const first = group.entries[0]!;
+    const last = group.entries.at(-1)!;
+    return {
+      type: 'EditSession',
+      session: group.session,
+      saves: group.entries.length,
+      startedAt: first.occurredAt,
+      occurredAt: last.occurredAt,
+      userId: last.userId,
+      agentName: last.agentName,
+      agentClientId: last.agentClientId,
+      revision: last.revision,
+      revisions: group.entries.map((entry) => ({
+        occurredAt: entry.occurredAt,
+        type: entry.type,
+        revision: entry.revision,
+        message: entry.message,
+      })),
+    };
+  });
 }
 
 function renderRelated(node: RelatedNode, indent = 0): string {
@@ -775,18 +846,23 @@ export class McpToolAdapter {
        */
       case 'keep_file': {
         const notebook = requireString(args, 'notebook', 'keep_file');
+        const mimeType = requireString(args, 'mimeType', 'keep_file');
         const kept = await knowledge.keepFile(caller, notebook, {
           name: requireString(args, 'name', 'keep_file'),
           description: optionalString(args, 'description') ?? '',
-          mimeType: requireString(args, 'mimeType', 'keep_file'),
+          mimeType,
           tags: optionalStrings(args, 'tags') ?? [],
           path: optionalString(args, 'path') ?? '/',
-          contentBase64: requireString(args, 'contentBase64', 'keep_file'),
+          contentBase64: keptBytes(args, mimeType),
         });
         return json({
           ...kept,
           reference: `![[${kept.name}]]`,
-          note: 'Write that reference in a note and the page draws this file.',
+          note:
+            'Write that reference in a note and the page draws this file. bytes and sha256 are ' +
+            'what was kept: when you know the size or the hash of the file you were given and ' +
+            'they differ, tell the person before anything else, since what was kept is not ' +
+            'their file.',
         });
       }
 
@@ -1162,10 +1238,12 @@ export class McpToolAdapter {
 
       case 'note_history':
         return json(
-          await audit.noteHistory(
-            caller,
-            requireString(args, 'notebook', 'note_history'),
-            requireString(args, 'note', 'note_history'),
+          historyAnswer(
+            await audit.noteHistory(
+              caller,
+              requireString(args, 'notebook', 'note_history'),
+              requireString(args, 'note', 'note_history'),
+            ),
           ),
         );
 

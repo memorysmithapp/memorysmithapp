@@ -1,7 +1,7 @@
 /**
  * Entrypoint of the staging cleanup (#276).
  *
- * A fifth entrypoint on this bundle, next to `recount.ts` and `reproject.ts`,
+ * A fifth entrypoint on this bundle, next to `recount.ts` and `reproject.handler.ts`,
  * and for the same reason they are separate: an operator triggers it, not a
  * request or a stream. Run it with `pnpm -C memorysmithapp-infra cleanup-staging`.
  *

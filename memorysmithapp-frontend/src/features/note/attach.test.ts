@@ -7,15 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { TransferDto, UploadStatusDto } from '@memorysmithapp/contracts';
-import {
-  ATTACH_PART_BYTES,
-  AttachRefusal,
-  attachFile,
-  hexOf,
-  insertAt,
-  referenceOf,
-  type AttachPorts,
-} from './attach';
+import { ATTACH_PART_BYTES, AttachRefusal, attachFile, hexOf, type AttachPorts } from './attach';
 
 const HASH = 'ab'.repeat(32);
 const UPLOAD = '01JBQ2X0000000000000000VP1';
@@ -205,14 +197,29 @@ describe('giving a file from the interface', () => {
     expect(calls).toEqual([]);
   });
 
-  it('writes the reference on a line of its own, where the cursor is', () => {
-    const reference = referenceOf('quadro.jpg');
-    expect(reference).toBe('![[quadro.jpg]]');
-    expect(insertAt('Ata\n', 4, reference)).toEqual({
-      text: 'Ata\n![[quadro.jpg]]\n',
-      cursor: 20,
+  it('keeps the file under the name and with the description the person gave it (#300)', async () => {
+    const begun: Array<{ name: string; description?: string | undefined }> = [];
+    const { port } = ports(1, {
+      begin: async (input) => {
+        begun.push({ name: input.name, description: input.description });
+        return status(1);
+      },
     });
-    expect(insertAt('Antes depois', 5, reference).text).toBe('Antes\n![[quadro.jpg]]\n depois');
+    await attachFile(port, {
+      notebookId: 'nb',
+      file: file(10),
+      purpose: 'x',
+      name: ' Quadro da reunião ',
+      description: 'O quadro depois da reunião',
+    });
+    await attachFile(port, { notebookId: 'nb', file: file(10), purpose: 'x', name: '  ' });
+    expect(begun).toEqual([
+      { name: 'Quadro da reunião', description: 'O quadro depois da reunião' },
+      { name: 'quadro.jpg', description: undefined },
+    ]);
+  });
+
+  it('reads a digest as the lowercase hex the API reads', () => {
     expect(hexOf(new Uint8Array([0, 15, 255]).buffer)).toBe('000fff');
   });
 });

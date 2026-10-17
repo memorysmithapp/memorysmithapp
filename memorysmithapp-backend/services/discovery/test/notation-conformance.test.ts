@@ -26,9 +26,9 @@ import {
   type ConformanceCase,
 } from '@memorysmithapp/contracts';
 import { noteName } from '@memorysmithapp/kernel';
-import { extractLinks } from '../src/domain/LinkExtractor.js';
+import { extractImages, extractLinks, extractReferences } from '../src/domain/LinkExtractor.js';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
-import { resolveTarget, notebookNames } from '../src/domain/LinkResolver.js';
+import { resolveReference, notebookNames } from '../src/domain/LinkResolver.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 
 const withLinks = CONFORMANCE_CASES.filter((each) => each.links !== undefined);
@@ -84,9 +84,10 @@ describe('the conformance suite of the specification', () => {
       // These cannot run against an extractor alone: a target becomes something
       // only once there is a notebook to answer it, so the case carries one.
       const names = notebookOf(each);
-      const resolved = extractLinks(each.markdown).map((link) => {
-        // The form matters: only an embed may name a file (§5.8, #174).
-        const answer = resolveTarget(link.name, names, link.embed);
+      const resolved = extractReferences(each.markdown).map((reference) => {
+        // The form matters: a link reaches notes alone, an embed a file too,
+        // and an image by path a file alone (§5.8, #174, #305).
+        const answer = resolveReference(reference.name, names, reference.form);
         return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
       });
 
@@ -221,6 +222,28 @@ describe('a base notation that means something different here', () => {
     // does the embed, which may never stop (RN-DSC-029).
     expect(extractLinks('[The curve](./lei-14133.md)').map((l) => l.name)).toEqual(['lei-14133']);
     expect(extractLinks('![[Lei 14.133]]').map((l) => l.name)).toEqual(['Lei 14.133']);
+  });
+
+  it('reads the file an image by path draws, by the name the renderer reads (#305)', () => {
+    const names = (markdown: string) => extractImages(markdown).map((image) => image.name);
+    // The last segment, its extension kept, and never a note's `.md` removed.
+    expect(names('![Curva|50%](../assets/curva.png)')).toEqual(['curva.png']);
+    expect(names('![Ata](./atas/ata.md)')).toEqual(['ata.md']);
+    // Decoded, between angle brackets, behind a backslash, with a title.
+    expect(names('![x](../assets/esquema%20final.png)')).toEqual(['esquema final.png']);
+    expect(names('![x](<../assets/esquema final.png>)')).toEqual(['esquema final.png']);
+    expect(names('![x](assets\\capa.jpg)')).toEqual(['capa.jpg']);
+    expect(names('![x](capa.jpg "A capa")')).toEqual(['capa.jpg']);
+    // The query and the fragment are not part of a name.
+    expect(names('![x](capa.jpg?v=2#topo)')).toEqual(['capa.jpg']);
+    // The reference forms, once each name.
+    expect(names('![x][c] ![c][] ![c]\n\n[c]: ./capa.jpg\n')).toEqual(['capa.jpg']);
+    // The world, an empty name, code, and a wikilink are not images by path.
+    expect(names('![x](https://example.org/capa.jpg) ![y](//cdn/capa.jpg)')).toEqual([]);
+    expect(names('![x](data:image/png;base64,AAAA)')).toEqual([]);
+    expect(names('![x](../assets/)')).toEqual([]);
+    expect(names('`![x](capa.jpg)`\n\n```\n![y](fundo.jpg)\n```\n')).toEqual([]);
+    expect(names('![[capa.jpg]]')).toEqual([]);
   });
 
   it('reads a link indented as code, and says so rather than guessing', () => {

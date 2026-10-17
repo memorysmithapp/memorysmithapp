@@ -14,9 +14,17 @@
  *
  * The simulated user is another process of the same kind with no MCP server at
  * all, reading only the sheet of its persona.
+ *
+ * What none of those flags removes is the account Claude Code is signed in
+ * with: a session of a claude.ai account is handed the e-mail address of that
+ * account as context, whatever it loads (#313). Both processes therefore run
+ * under the configuration directory `AGENT_EVAL_CLAUDE_CONFIG_DIR` names, when
+ * it is set, which is a directory signed in with an account kept for the
+ * evaluation, and `accountInRoom` says before a round which address, if any,
+ * the room carries, so the leak check can hold the executor to it.
  */
 
-import { spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -48,6 +56,9 @@ export const SIMULATED_USER_PREAMBLE = [
   'You are the person described below, talking to an assistant that is helping you.',
   'Reply to the last message of the assistant as that person would: briefly, and in the language of the description.',
   'Give only the material the description gives you; when asked for something it does not have, say you do not have it.',
+  // The connector of staging tells the executor that what it writes there is
+  // disposable, and a careful executor asks first (#312).
+  'You are trying the service out: if the assistant warns that it is a test environment, or that what it writes may be discarded, say that is fine and ask it to go ahead.',
   'Never say that you are playing a role.',
   '',
   '',
@@ -58,7 +69,54 @@ export interface Room {
   readonly executorConfig: string;
   readonly userConfig: string;
   readonly userPrompt: string | null;
+  /** The configuration directory of Claude Code both processes run under, or null for the operator's own. */
+  readonly claudeConfigDir?: string | null;
   dispose(): void;
+}
+
+/** The configuration directory a room runs under, from the environment of the round. */
+export function roomConfigDir(env: NodeJS.ProcessEnv = process.env): string | null {
+  return env['AGENT_EVAL_CLAUDE_CONFIG_DIR']?.trim() || null;
+}
+
+/** The environment of a process of the room. */
+export function roomEnvironment(
+  claudeConfigDir: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  return claudeConfigDir ? { ...env, CLAUDE_CONFIG_DIR: claudeConfigDir } : env;
+}
+
+/**
+ * The e-mail address of the account a process of the room is signed in with,
+ * which Claude Code hands it as context, or null when it carries none.
+ */
+export function accountInRoom(claudeConfigDir: string | null): string | null {
+  let printed: string;
+  try {
+    printed = execFileSync('claude', ['auth', 'status'], {
+      encoding: 'utf8',
+      env: roomEnvironment(claudeConfigDir),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    // Signed in to nothing, it exits non-zero and still prints its status.
+    printed = String((error as { stdout?: unknown }).stdout ?? '');
+  }
+  let status: { loggedIn?: boolean; email?: unknown } = {};
+  try {
+    status = JSON.parse(printed) as typeof status;
+  } catch {
+    // Read as signed in to nothing below.
+  }
+  if (!status.loggedIn) {
+    throw new Error(
+      claudeConfigDir
+        ? `${claudeConfigDir} is signed in to no account: sign it in with CLAUDE_CONFIG_DIR=${claudeConfigDir} claude auth login.`
+        : 'Claude Code is signed in to no account.',
+    );
+  }
+  return typeof status.email === 'string' && status.email ? status.email : null;
 }
 
 export function openRoom(input: {
@@ -66,6 +124,7 @@ export function openRoom(input: {
   readonly mcpUrl: string;
   readonly token: string;
   readonly persona: string | null;
+  readonly claudeConfigDir?: string | null;
 }): Room {
   const base = mkdtempSync(join(input.root, 'room-'));
   const workdir = join(base, 'workdir');
@@ -90,6 +149,7 @@ export function openRoom(input: {
     executorConfig,
     userConfig,
     userPrompt: input.persona ? `${SIMULATED_USER_PREAMBLE}${input.persona}` : null,
+    claudeConfigDir: input.claudeConfigDir ?? null,
     dispose: () => rmSync(base, { recursive: true, force: true }),
   };
 }
@@ -167,7 +227,11 @@ export function claudeArguments(request: TurnRequest): { args: string[]; cwd: st
 export function runClaude(request: TurnRequest, timeoutMs = 20 * 60_000): Promise<string[]> {
   const { args, cwd } = claudeArguments(request);
   return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn('claude', args, {
+      cwd,
+      env: roomEnvironment(request.room.claudeConfigDir),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let out = '';
     let err = '';
     child.stdout.setEncoding('utf8').on('data', (chunk: string) => (out += chunk));

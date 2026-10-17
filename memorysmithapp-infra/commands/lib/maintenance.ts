@@ -9,8 +9,13 @@
  */
 
 export interface MaintenanceJob {
-  /** The entrypoint of the core, from the root of the repository. */
-  readonly entry: string;
+  /** The entrypoint of the core, from the root of the repository, for a job run as a process. */
+  readonly entry?: string;
+  /**
+   * The state machine a job runs as in AWS, for a job that is not a process
+   * (#311), by the base of its physical name.
+   */
+  readonly stateMachine?: string;
   /** What it rebuilds, as a person reads it, or what it deletes, for a job that deletes. */
   readonly rebuilds?: string;
   readonly deletes?: string;
@@ -30,8 +35,9 @@ export const MAINTENANCE_JOBS = {
     rebuilds:
       'the storage counters of every subscription: what fills it, by kind and by notebook, and its kept exports',
   },
+  // A run in AWS, one notebook per iteration, which holds no workstation (#311).
   'reproject-links': {
-    entry: 'memorysmithapp-backend/apps/core-monolith/src/reproject.ts',
+    stateMachine: 'mv-reproject-links',
     rebuilds: 'the link graph of every notebook',
   },
   'migrate-slots': {
@@ -95,4 +101,105 @@ export function accountRefusal(input: {
     );
   }
   return null;
+}
+
+/** The progress of a run, as the map of its notebooks counts it. */
+export interface RunProgress {
+  readonly total: number;
+  readonly succeeded: number;
+  readonly failed: number;
+  readonly running: number;
+}
+
+export function progressLine(progress: RunProgress): string {
+  const done = progress.succeeded + progress.failed;
+  return `  ${done}/${progress.total} notebook(s) done, ${progress.running} running`;
+}
+
+/** What a run of the reprojection answers, as `summarise` of the core writes it. */
+export interface ReprojectionSummary {
+  readonly mode: 'report' | 'apply';
+  readonly notebooks: number;
+  readonly rebuilt: number;
+  readonly gone: number;
+  readonly notes: number;
+  readonly files: number;
+  readonly edgesBefore: number;
+  readonly edgesAfter: number;
+  readonly gained: number;
+  readonly gainedByAlias: number;
+  readonly lost: number;
+  readonly pending: number;
+  readonly changed: ReadonlyArray<{
+    subscriptionId: string;
+    notebookId: string;
+    gained: number;
+    lost: number;
+  }>;
+  readonly lostEdges: ReadonlyArray<{
+    subscriptionId: string;
+    notebookId: string;
+    from: string;
+    to: string;
+  }>;
+  readonly failed: ReadonlyArray<{ subscriptionId: string; notebookId: string; error: string }>;
+  readonly good: boolean;
+}
+
+/**
+ * The report a person reads at the end of a run. It names notebooks and notes
+ * by identifier only, because the summary is the output of an execution and
+ * the console keeps it (architecture-guide.md §17).
+ */
+export function summaryLines(summary: ReprojectionSummary): string[] {
+  const lines = [
+    `${summary.notebooks} notebook(s), ${summary.notes} note(s) and ${summary.files} kept file(s)` +
+      (summary.gone > 0 ? `; ${summary.gone} stopped being live during the run` : ''),
+    `  edges before          ${summary.edgesBefore}`,
+    `  edges after           ${summary.edgesAfter}`,
+    `  edges gained          ${summary.gained} (${summary.gainedByAlias} answered by an alias)`,
+    `  edges lost            ${summary.lost}`,
+    `  links left pending    ${summary.pending}`,
+  ];
+  if (summary.changed.length > 0) {
+    lines.push('', 'Notebooks whose graph changes:');
+    for (const notebook of summary.changed) {
+      lines.push(
+        `  ${notebook.subscriptionId} / ${notebook.notebookId}  +${notebook.gained} -${notebook.lost}`,
+      );
+    }
+  }
+  if (summary.lostEdges.length > 0) {
+    // Not a warning that can be waved through: an entry here is a link that
+    // stopped resolving, because a note stopped stating the name the link was
+    // written against.
+    lines.push('', 'EDGES LOST, links that stopped resolving:');
+    for (const edge of summary.lostEdges) {
+      lines.push(`  ${edge.subscriptionId} / ${edge.notebookId}  ${edge.from} -> ${edge.to}`);
+    }
+  }
+  if (summary.failed.length > 0) {
+    lines.push('', 'NOTEBOOKS THAT FAILED after their retries, the others finished:');
+    for (const notebook of summary.failed) {
+      lines.push(`  ${notebook.subscriptionId} / ${notebook.notebookId}  ${notebook.error}`);
+    }
+  }
+  lines.push(
+    '',
+    summary.mode === 'apply'
+      ? `Rebuilt the link graph of ${summary.rebuilt} notebook(s).`
+      : 'A report: nothing was written. Pass --apply to rebuild these graphs.',
+  );
+  return lines;
+}
+
+/**
+ * The exit code of a run: 2 when an edge was lost, which is the one number
+ * whoever ran it has to look at, 1 when a notebook failed or the run did not
+ * finish, and 0 otherwise.
+ */
+export function runExitCode(summary: ReprojectionSummary | null): number {
+  if (!summary) return 1;
+  if (summary.lost > 0) return 2;
+  return summary.failed.length > 0 ? 1 : 0;
 }

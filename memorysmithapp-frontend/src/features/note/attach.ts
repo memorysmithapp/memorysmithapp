@@ -60,28 +60,6 @@ export class AttachRefusal extends Error {
   }
 }
 
-/** The reference a note writes to show a file, by the name it is kept under. */
-export function referenceOf(name: string): string {
-  return `![[${name}]]`;
-}
-
-/**
- * Where the reference goes: at the cursor, on a line of its own, so it is an
- * embed and not a word in the middle of a sentence.
- */
-export function insertAt(
-  text: string,
-  at: number,
-  reference: string,
-): { text: string; cursor: number } {
-  const before = text.slice(0, at);
-  const after = text.slice(at);
-  const lead = before.length === 0 || before.endsWith('\n') ? '' : '\n';
-  const tail = after.startsWith('\n') ? '' : '\n';
-  const inserted = `${lead}${reference}${tail}`;
-  return { text: `${before}${inserted}${after}`, cursor: before.length + inserted.length };
-}
-
 /** Lowercase hex, as the API reads a hash. */
 export function hexOf(digest: ArrayBuffer): string {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -109,6 +87,12 @@ export async function attachFile(
     notebookId: string;
     file: File;
     purpose: string;
+    /**
+     * The name and the description the person gave it in the editor's attach
+     * dialog (#300); without them the file is kept under its own name.
+     */
+    name?: string | undefined;
+    description?: string | undefined;
     request?: { transferId: string; mimeType: string } | undefined;
   },
   progress: AttachProgress = () => undefined,
@@ -126,9 +110,10 @@ export async function attachFile(
     resumed ??
     (await ports.begin({
       notebookId: input.notebookId,
-      name: file.name,
+      name: input.name?.trim() || file.name,
       mimeType,
       purpose: input.purpose,
+      ...(input.description?.trim() ? { description: input.description.trim() } : {}),
       size: file.size,
       sha256,
       transport: 'url',

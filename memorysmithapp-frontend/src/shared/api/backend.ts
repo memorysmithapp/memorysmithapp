@@ -33,6 +33,7 @@ import type {
   NotebookDetailDto,
   NotebookGraphDto,
   NotebookNamesDto,
+  NotebookAttachmentsDto,
   NotebookFileDto,
   FileLinkDto,
   FileListDto,
@@ -177,6 +178,20 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
 export async function getNotebookNames(notebookId: string): Promise<NoteRefDto[]> {
   const answer = await request<NotebookNamesDto>(`/discovery/notebooks/${notebookId}/names`);
   return answer.notes;
+}
+
+/**
+ * Every file the notebook keeps with the notes that show it, by an embed or an
+ * image (#307, RN-DSC-066). What a file is comes from Knowledge; which notes
+ * show it is read by Discovery, which reads the notes.
+ */
+export async function getNotebookAttachments(
+  notebookId: string,
+): Promise<NotebookAttachmentsDto['attachments']> {
+  const answer = await request<NotebookAttachmentsDto>(
+    `/discovery/notebooks/${notebookId}/attachments`,
+  );
+  return answer.attachments;
 }
 
 /** The files a notebook keeps beside its notes (#166). */
@@ -547,7 +562,14 @@ export async function createNote(
 export async function updateNote(
   notebookId: string,
   noteId: string,
-  input: { content: string; baseRevision: string; name?: string; message?: string },
+  input: {
+    content: string;
+    baseRevision: string;
+    name?: string;
+    message?: string;
+    /** The edit session of the interface the save belongs to (RN-AUD-013). */
+    session?: string;
+  },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
   // The answer carries the revision this write produced, which is what the
@@ -616,6 +638,8 @@ export interface HistoryEntryDto {
   contentRef: { versionId: string } | null;
   /** The line its author left about the change, or null (RN-AUD-012). */
   message: string | null;
+  /** The edit session of the interface the write belonged to, or null (RN-AUD-013). */
+  session?: string | null;
 }
 
 export async function noteHistory(notebookId: string, noteId: string): Promise<HistoryEntryDto[]> {

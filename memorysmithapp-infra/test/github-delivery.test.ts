@@ -136,9 +136,27 @@ describe('what a role may do', () => {
     }
   });
 
-  it('lets production deliver and nothing more: no table, bucket or pool of either environment', () => {
+  it('lets production deliver and start its reprojection, and nothing more: no table, bucket or pool', () => {
     const actions = actionsOf(policiesOf(synth(), 'ProductionRole'));
-    expect(actions.sort()).toEqual(['ses:GetEmailIdentity', 'sts:AssumeRole']);
+    expect([...new Set(actions)].sort()).toEqual([
+      'ses:GetEmailIdentity',
+      'states:DescribeExecution',
+      'states:DescribeMapRun',
+      'states:ListMapRuns',
+      'states:StartExecution',
+      'sts:AssumeRole',
+    ]);
+  });
+
+  it('starts and follows the run that rebuilds the link graph of production, and no other', () => {
+    const statements = policiesOf(synth(), 'ProductionRole').filter((statement) =>
+      actionsOf([statement]).some((action) => action.startsWith('states:')),
+    );
+    const reach = JSON.stringify(statements.map((statement) => statement.Resource));
+    expect(reach).toContain('stateMachine:mv-reproject-links-production');
+    expect(reach).toContain('execution:mv-reproject-links-production:*');
+    expect(reach).toContain('mapRun:mv-reproject-links-production/*');
+    expect(reach).not.toMatch(/staging/);
   });
 
   it('names staging in every table, bucket and stack its suites reach', () => {
@@ -149,6 +167,23 @@ describe('what a role may do', () => {
     expect(reach).not.toMatch(/[Pp]roduction/);
     expect(reach).toContain('mv-*-staging');
     expect(reach).toContain('memorysmithstagingdata-contentbucket*');
+  });
+
+  it('starts and follows the run that rebuilds the link graph of staging, and no other (#311)', () => {
+    const statements = policiesOf(synth(), 'StagingRole').filter((statement) =>
+      actionsOf([statement]).some((action) => action.startsWith('states:')),
+    );
+    expect(actionsOf(statements).sort()).toEqual([
+      'states:DescribeExecution',
+      'states:DescribeMapRun',
+      'states:ListMapRuns',
+      'states:ListMapRuns',
+      'states:StartExecution',
+    ]);
+    const reach = JSON.stringify(statements.map((statement) => statement.Resource));
+    expect(reach).toContain('stateMachine:mv-reproject-links-staging');
+    expect(reach).toContain('execution:mv-reproject-links-staging:*');
+    expect(reach).not.toMatch(/production/);
   });
 
   it('touches the accounts of a user pool only when the pool says it is staging', () => {

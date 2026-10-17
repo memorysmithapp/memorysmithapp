@@ -8,14 +8,22 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { loadCases } from '../agent-eval/lib/case.js';
+import { handedFile, loadCases, requestOf } from '../agent-eval/lib/case.js';
 import { runChecks, type NotebookSnapshot } from '../agent-eval/lib/checks.js';
 import { skillsAnnounced, uncoveredSkills } from '../agent-eval/lib/coverage.js';
 import { leaksIn } from '../agent-eval/lib/leaks.js';
-import { claudeArguments, type Room } from '../agent-eval/lib/room.js';
+import {
+  claudeArguments,
+  roomConfigDir,
+  roomEnvironment,
+  SIMULATED_USER_PREAMBLE,
+  type Room,
+} from '../agent-eval/lib/room.js';
 import { scorecard } from '../agent-eval/lib/scorecard.js';
 import { emptyTranscript, readTurn } from '../agent-eval/lib/transcript.js';
+import { waitsForPerson } from '../agent-eval/lib/turns.js';
 
 const event = (value: unknown): string => JSON.stringify(value);
 
@@ -60,6 +68,62 @@ describe('a leak into the clean room', () => {
     transcript.toolResults.push('Notes may share a name (RN-KNW-037).');
     expect(leaksIn(transcript)).toEqual(['bounded context']);
   });
+
+  it('names a folder of the repository by its name since #293', () => {
+    const transcript = emptyTranscript();
+    transcript.texts.push({ turn: 0, text: 'It lives in memorysmithapp-backend.' });
+    expect(leaksIn(transcript)).toEqual(['a path of the repository']);
+  });
+
+  it('is an e-mail address the server never sent, without saying which (#313)', () => {
+    const transcript = emptyTranscript();
+    transcript.toolResults.push('Person: marina.dbfab0@example.com');
+    transcript.texts.push({
+      turn: 0,
+      text: 'Authorised by marina.dbfab0@example.com, and not by your address (someone@gmail.com).',
+    });
+    expect(leaksIn(transcript)).toEqual(['an e-mail address']);
+  });
+
+  it('lets an address the server sent, or one of an example domain, through', () => {
+    const transcript = emptyTranscript();
+    transcript.toolResults.push('Person: Marina.Dbfab0@example.com, shared by owner@clinic.com.br');
+    transcript.toolUses.push({
+      tool: 'create_note',
+      input: { content: 'Contact: owner@clinic.com.br, front desk at desk@consultorio.test' },
+      turn: 0,
+    });
+    transcript.texts.push({ turn: 0, text: 'Done for marina.dbfab0@example.com.' });
+    expect(leaksIn(transcript)).toEqual([]);
+  });
+});
+
+describe('a message that waits for the person (#312)', () => {
+  it('waits when it asks, with a question mark or without one', () => {
+    const transcript = emptyTranscript();
+    expect(waitsForPerson('Shall I go ahead?', transcript, 0)).toBe(true);
+    expect(
+      waitsForPerson(
+        'Se essa estrutura estiver boa, me confirme e diga se a criação é de teste.',
+        transcript,
+        0,
+      ),
+    ).toBe(true);
+  });
+
+  it('is done when its turn wrote and it asks nothing', () => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'whoami', input: {}, turn: 1 });
+    transcript.toolUses.push({ tool: 'create_note', input: {}, turn: 1 });
+    expect(waitsForPerson('The notebook is ready.', transcript, 1)).toBe(false);
+  });
+
+  it('reads only the writes of its own turn', () => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'create_notebook', input: {}, turn: 0 });
+    transcript.toolUses.push({ tool: 'list_notes', input: {}, turn: 1 });
+    expect(waitsForPerson('Paste the examples here.', transcript, 1)).toBe(true);
+  });
 });
 
 describe('the coverage of the skills', () => {
@@ -102,6 +166,7 @@ const notebook = (overrides: Partial<NotebookSnapshot> = {}): NotebookSnapshot =
   notes: [],
   pendingLinks: 0,
   brokenLinks: [],
+  files: [],
   ...overrides,
 });
 
@@ -302,6 +367,20 @@ describe('the clean room', () => {
     expect(args[args.indexOf('--resume') + 1]).toBe('s2');
   });
 
+  it("runs under the configuration directory the round names, and the operator's otherwise (#313)", () => {
+    expect(roomConfigDir({ AGENT_EVAL_CLAUDE_CONFIG_DIR: ' /eval/claude ' })).toBe('/eval/claude');
+    expect(roomConfigDir({ AGENT_EVAL_CLAUDE_CONFIG_DIR: '' })).toBeNull();
+    expect(roomEnvironment('/eval/claude', { PATH: '/bin' })).toEqual({
+      PATH: '/bin',
+      CLAUDE_CONFIG_DIR: '/eval/claude',
+    });
+    expect(roomEnvironment(null, { PATH: '/bin' })).toEqual({ PATH: '/bin' });
+  });
+
+  it('tells the simulated user a test environment is fine (#312)', () => {
+    expect(SIMULATED_USER_PREAMBLE).toMatch(/test environment.*go ahead/);
+  });
+
   it('is opened only when asked, in the repository, with tools to read it', () => {
     const { args, cwd } = claudeArguments({
       room,
@@ -317,11 +396,92 @@ describe('the clean room', () => {
   });
 });
 
+describe('a file the person hands over (#295)', () => {
+  const kept = (sha256: string, bytes = 669) => ({
+    name: 'planta-da-cozinha.svg',
+    mimeType: 'image/svg+xml',
+    bytes,
+    sha256,
+  });
+  const shown = {
+    noteId: 'x1',
+    folderId: 'f1',
+    name: 'Reforma da cozinha',
+    content: '---\nname: Reforma da cozinha\n---\n\nTexto.\n\n![[planta-da-cozinha.svg]]\n',
+  };
+  const check = (after: NotebookSnapshot) => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'keep_file', input: {}, turn: 0 });
+    return runChecks(['file-kept-whole', 'file-shown'], {
+      transcript,
+      before: [notebook()],
+      after: [after],
+      finalText: '',
+      absent: [],
+      leaks: [],
+      handed: { bytes: 669, sha256: 'a'.repeat(64) },
+    });
+  };
+
+  it('passes the very bytes handed, shown by a note that embeds them', () => {
+    const outcomes = check(notebook({ files: [kept('a'.repeat(64))], notes: [shown] }));
+    expect(outcomes.map((outcome) => outcome.passed)).toEqual([true, true]);
+  });
+
+  it('passes the text without the line break the message cannot show, and nothing else', () => {
+    const transcript = emptyTranscript();
+    const input = (sha256: string) => ({
+      transcript,
+      before: [notebook()],
+      after: [notebook({ files: [kept(sha256, 668)], notes: [shown] })],
+      finalText: '',
+      absent: [],
+      leaks: [],
+      handed: { bytes: 669, sha256: 'a'.repeat(64), whole: ['a'.repeat(64), 'c'.repeat(64)] },
+    });
+    expect(runChecks(['file-kept-whole'], input('c'.repeat(64)))[0]?.passed).toBe(true);
+    expect(runChecks(['file-kept-whole'], input('d'.repeat(64)))[0]?.passed).toBe(false);
+  });
+
+  it('fails a file retyped with one slip, or kept and shown by no note', () => {
+    const outcomes = check(notebook({ files: [kept('b'.repeat(64), 668)] }));
+    expect(outcomes.map((outcome) => outcome.passed)).toEqual([false, false]);
+    expect(outcomes[0]?.detail).toContain('668 bytes where 669 were handed');
+  });
+
+  it('pastes the file into the request and holds the run to its hash', () => {
+    const variant = loadCases()
+      .find((each) => each.id === 'AE-07')
+      ?.variants.find((each) => each.id === 'pt_BR');
+    if (!variant) throw new Error('AE-07 has no pt_BR variant');
+    const handed = handedFile(variant);
+    expect(handed?.bytes).toBe(669);
+    // Its last byte, the line break, is the last character of the message,
+    // which nobody reading it sees: the file is whole with it or without it,
+    // and only so (#309).
+    expect(handed?.whole).toHaveLength(2);
+    expect(handed?.whole[0]).toBe(handed?.sha256);
+    const unclosed = createHash('sha256')
+      .update(Buffer.from((handed?.text ?? '').slice(0, -1), 'utf8'))
+      .digest('hex');
+    expect(handed?.whole[1]).toBe(unclosed);
+    expect(requestOf(variant)).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(requestOf(variant)).not.toContain('{{file}}');
+  });
+});
+
 describe('the catalogue', () => {
   const cases = loadCases();
 
-  it('holds AE-00 to AE-03 and AE-06, each with a variant, a check and a rubric', () => {
-    expect(cases.map((each) => each.id)).toEqual(['AE-00', 'AE-01', 'AE-02', 'AE-03', 'AE-06']);
+  it('holds AE-00 to AE-03, AE-06 and AE-07, each with a variant, a check and a rubric', () => {
+    expect(cases.map((each) => each.id)).toEqual([
+      'AE-00',
+      'AE-01',
+      'AE-02',
+      'AE-03',
+      'AE-06',
+      'AE-07',
+    ]);
     for (const each of cases) {
       expect(each.variants.length).toBeGreaterThan(0);
       expect(each.checks.length).toBeGreaterThan(0);

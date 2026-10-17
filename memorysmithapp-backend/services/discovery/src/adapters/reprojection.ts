@@ -31,13 +31,13 @@
  * under IAM.
  */
 
-import { ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { noteName, SubscriptionId } from '@memorysmithapp/kernel';
 
-import { extractLinks } from '../domain/LinkExtractor.js';
+import { extractReferences } from '../domain/LinkExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
-import { resolveTarget, notebookNames } from '../domain/LinkResolver.js';
-import type { NoteRef } from '../domain/ports.js';
+import { resolveReference, notebookNames } from '../domain/LinkResolver.js';
+import type { LinkTarget, NoteRef } from '../domain/ports.js';
 import type { ContentReader } from '../application/projections.js';
 import type { DynamoLinkGraph } from './aws.js';
 
@@ -54,7 +54,8 @@ export interface ReprojectionDependencies {
 
 /** One note, as the rebuild reads it: what it answers to and what it points at. */
 export interface ReadNote extends NoteRef {
-  readonly targets: readonly string[];
+  /** Each with the form it was written in, which decides what it reaches (#305). */
+  readonly targets: readonly LinkTarget[];
 }
 
 /** An edge, and the target that produced it. */
@@ -123,45 +124,159 @@ function subscriptionOf(raw: string): SubscriptionId {
   return parsed.value;
 }
 
+/** A notebook the rebuild reaches, by the partition its notes sit in. */
+export interface NotebookAddress {
+  readonly subscriptionId: string;
+  readonly notebookId: string;
+}
+
+/** What one partition holds, as the rebuild decides what is live in it. */
+interface HeldPartition {
+  notes: Array<Record<string, unknown>>;
+  files: string[];
+  folders: Set<string>;
+  deleted: boolean;
+}
+
+const emptyPartition = (): HeldPartition => ({
+  notes: [],
+  files: [],
+  folders: new Set<string>(),
+  deleted: false,
+});
+
+/** Sorts one item into what its partition holds. */
+function hold(held: HeldPartition, item: Record<string, unknown>): void {
+  if (item['entity'] === 'NOTEBOOK') {
+    if (item['deletedAt']) held.deleted = true;
+    return;
+  }
+  if (item['entity'] === 'FOLDER') {
+    held.folders.add(String(item['folderId']));
+    return;
+  }
+  // A deleted note takes no part in the graph, exactly as its delete
+  // event took it out (RN-DSC-013), and a deleted file answers nothing.
+  if (item['deletedAt']) return;
+  if (item['entity'] === 'FILE') held.files.push(String(item['name']));
+  else held.notes.push(item);
+}
+
+/**
+ * What of a partition is live, or null when nothing in it takes part in a graph.
+ *
+ * **Live is decided the way Knowledge decides it**, by inheritance
+ * (RN-KNW-046): deleting a notebook writes its `META` item and nothing under
+ * it, and removing a folder takes the folder and leaves its notes as they
+ * were, so a note with no `deletedAt` of its own may still be gone — and the
+ * purge destroys its bytes. Reading only the note's own mark made the rebuild
+ * of staging stop at the first such note, on a version the store no longer
+ * holds. A note is live when it, its notebook and its folder are. A notebook
+ * that keeps files and no note yet is included, since the note written
+ * tomorrow resolves against them.
+ */
+function liveOf(
+  held: HeldPartition,
+): { notes: Array<Record<string, unknown>>; files: string[] } | null {
+  if (held.deleted) return null;
+  const notes = held.notes.filter((note) => held.folders.has(String(note['folderId'])));
+  if (notes.length === 0 && held.files.length === 0) return null;
+  return { notes, files: held.files };
+}
+
+const ENTITIES = {
+  FilterExpression: '#entity IN (:note, :file, :folder, :notebook)',
+  ExpressionAttributeValues: {
+    ':note': 'NOTE',
+    ':file': 'FILE',
+    ':folder': 'FOLDER',
+    ':notebook': 'NOTEBOOK',
+  },
+} as const;
+
+/**
+ * The rebuild, split by notebook (#311): the graph of a notebook is rebuilt
+ * from that notebook alone, so a run lists the notebooks once and plans and
+ * writes each one on its own, wherever and in whatever order it is run.
+ */
 export class LinkReprojection {
   constructor(private readonly deps: ReprojectionDependencies) {}
 
   /**
-   * What every notebook will hold, worked out without writing anything.
+   * Every live notebook of every subscription.
+   *
+   * A Scan, deliberately, and for the reason the recount scans: there is no
+   * index that lists notebooks, and inventing one to serve a maintenance job
+   * would put a cost on every write to save a job that runs by hand. It
+   * projects only what decides whether a notebook is live; its notes are read
+   * again, whole, by the plan of each one.
+   */
+  async notebooks(): Promise<NotebookAddress[]> {
+    const byPartition = new Map<string, HeldPartition>();
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const page = await this.deps.db.send(
+        new ScanCommand({
+          TableName: this.deps.knowledgeTable,
+          ...ENTITIES,
+          ExpressionAttributeNames: { '#entity': 'entity' },
+          ProjectionExpression: 'PK, #entity, folderId, deletedAt',
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      for (const item of page.Items ?? []) {
+        const partition = String(item['PK'] ?? '');
+        if (!NOTEBOOK_PARTITION.test(partition)) continue;
+        const held = byPartition.get(partition) ?? emptyPartition();
+        byPartition.set(partition, held);
+        hold(held, item);
+      }
+      startKey = page.LastEvaluatedKey;
+    } while (startKey);
+
+    const addresses: NotebookAddress[] = [];
+    for (const [partition, held] of byPartition) {
+      if (!liveOf(held)) continue;
+      const match = NOTEBOOK_PARTITION.exec(partition);
+      addresses.push({
+        subscriptionId: subscriptionOf(match?.[1] ?? '').value,
+        notebookId: match?.[2] ?? '',
+      });
+    }
+    return addresses;
+  }
+
+  /**
+   * What one notebook will hold, worked out without writing anything, or null
+   * when it stopped being live between the listing and now.
    *
    * The after-state is computed here with the same two functions the adapter
    * resolves with, so the report and the write cannot disagree about what the
    * rule says: what differs is only who performs it.
    */
-  async plan(): Promise<NotebookPlan[]> {
-    const plans: NotebookPlan[] = [];
-    for (const [partition, { notes, files }] of await this.liveItems()) {
-      const match = NOTEBOOK_PARTITION.exec(partition);
-      if (!match) continue;
-      const subscriptionId = subscriptionOf(match[1] ?? '');
-      const notebookId = match[2] ?? '';
+  async planNotebook(address: NotebookAddress): Promise<NotebookPlan | null> {
+    const subscriptionId = subscriptionOf(address.subscriptionId);
+    const live = await this.partition(subscriptionId, address.notebookId);
+    if (!live) return null;
 
-      const read = await this.readNotes(subscriptionId, notes);
-      const after = resolveAll(read, files);
-      const before = await this.deps.graphFor(subscriptionId).currentEdges(notebookId);
+    const read = await this.readNotes(subscriptionId, live.notes);
+    const after = resolveAll(read, live.files);
+    const before = await this.deps.graphFor(subscriptionId).currentEdges(address.notebookId);
+    const edges = distinctEdges(after.edges);
 
-      const edges = distinctEdges(after.edges);
-
-      const held = new Set(before.map(edgeKey));
-      const found = new Set(edges.map(edgeKey));
-      plans.push({
-        subscriptionId: subscriptionId.value,
-        notebookId,
-        notes: read,
-        files,
-        before: before.length,
-        after: edges,
-        gained: edges.filter((edge) => !held.has(edgeKey(edge))),
-        lost: before.filter((edge) => !found.has(edgeKey(edge))),
-        pending: after.pending,
-      });
-    }
-    return plans;
+    const held = new Set(before.map(edgeKey));
+    const found = new Set(edges.map(edgeKey));
+    return {
+      subscriptionId: subscriptionId.value,
+      notebookId: address.notebookId,
+      notes: read,
+      files: live.files,
+      before: before.length,
+      after: edges,
+      gained: edges.filter((edge) => !held.has(edgeKey(edge))),
+      lost: before.filter((edge) => !found.has(edgeKey(edge))),
+      pending: after.pending,
+    };
   }
 
   /**
@@ -188,58 +303,36 @@ export class LinkReprojection {
     await graph.seedAttachments(plan.notebookId, plan.files);
     for (const note of plan.notes) {
       const { targets, ...ref } = note;
-      await graph.replaceOutgoing(
-        plan.notebookId,
-        ref,
-        targets.map((name) => ({ name, anchor: null })),
-      );
+      await graph.replaceOutgoing(plan.notebookId, ref, [...targets]);
     }
   }
 
-  /**
-   * Every live note and every kept file of every notebook, by the partition
-   * it sits in. A notebook that keeps files and no note yet is included, since
-   * the note written tomorrow resolves against them.
-   *
-   * A Scan, deliberately, and for the reason the recount scans: there is no
-   * index that lists notebooks, and inventing one to serve a maintenance job would
-   * put a cost on every write to save a job that runs by hand. It projects the
-   * attributes it reads.
-   */
-  private async liveItems(): Promise<
-    Map<string, { notes: Array<Record<string, unknown>>; files: string[] }>
-  > {
-    const byPartition = new Map<
-      string,
-      { notes: Array<Record<string, unknown>>; files: string[] }
-    >();
+  /** The live notes and kept files of one notebook, read from its own partition. */
+  private async partition(
+    subscriptionId: SubscriptionId,
+    notebookId: string,
+  ): Promise<{ notes: Array<Record<string, unknown>>; files: string[] } | null> {
+    const held = emptyPartition();
     let startKey: Record<string, unknown> | undefined;
-
     do {
       const page = await this.deps.db.send(
-        new ScanCommand({
+        new QueryCommand({
           TableName: this.deps.knowledgeTable,
-          FilterExpression: '#entity IN (:note, :file)',
+          KeyConditionExpression: 'PK = :pk',
+          ...ENTITIES,
           ExpressionAttributeNames: { '#entity': 'entity', '#name': 'name' },
-          ExpressionAttributeValues: { ':note': 'NOTE', ':file': 'FILE' },
+          ExpressionAttributeValues: {
+            ...ENTITIES.ExpressionAttributeValues,
+            ':pk': `S#${subscriptionId.value}#NOTEBOOK#${notebookId}`,
+          },
           ProjectionExpression: 'PK, #entity, noteId, folderId, bodyRef, #name, deletedAt',
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
-      for (const item of page.Items ?? []) {
-        // A deleted note takes no part in the graph, exactly as its delete
-        // event took it out (RN-DSC-013), and a deleted file answers nothing.
-        if (item['deletedAt']) continue;
-        const partition = String(item['PK'] ?? '');
-        const held = byPartition.get(partition) ?? { notes: [], files: [] };
-        if (item['entity'] === 'FILE') held.files.push(String(item['name']));
-        else held.notes.push(item);
-        byPartition.set(partition, held);
-      }
+      for (const item of page.Items ?? []) hold(held, item);
       startKey = page.LastEvaluatedKey;
     } while (startKey);
-
-    return byPartition;
+    return liveOf(held);
   }
 
   /** What each note is called, answers to and points at, read from its bytes. */
@@ -260,7 +353,7 @@ export class LinkReprojection {
         folderId: String(item['folderId']),
         name: noteName(markdown) ?? '',
         aliases: extractFrontmatterAliases(markdown),
-        targets: extractLinks(markdown).map((link) => link.name),
+        targets: extractReferences(markdown),
       });
     }
     return notes;
@@ -284,8 +377,8 @@ export function resolveAll(
   let pending = 0;
 
   for (const note of notes) {
-    for (const target of note.targets) {
-      const answer = resolveTarget(target, names);
+    for (const { name: target, form } of note.targets) {
+      const answer = resolveReference(target, names, form);
       if (answer.kind === 'pending') {
         pending += 1;
         continue;
@@ -300,4 +393,123 @@ export function resolveAll(
     }
   }
   return { edges, pending };
+}
+
+/**
+ * What the rebuild of one notebook answers, in identifiers and counts only:
+ * the answer travels through the history of a run and lands in its summary,
+ * and neither may carry what a note is called (architecture-guide.md §17).
+ */
+export interface NotebookOutcome extends NotebookAddress {
+  readonly notes: number;
+  readonly files: number;
+  readonly before: number;
+  readonly after: number;
+  readonly gained: number;
+  /** Of the edges gained, the ones an alias answered and no name did. */
+  readonly gainedByAlias: number;
+  readonly lost: ReadonlyArray<{ from: string; to: string }>;
+  readonly pending: number;
+}
+
+/** A notebook whose rebuild kept failing after its retries. */
+export interface NotebookFailure extends NotebookAddress {
+  readonly failed: true;
+  readonly error: string;
+}
+
+/**
+ * A notebook that stopped being live between the listing and its turn, which
+ * is not a failure: there is no graph left to rebuild.
+ */
+export interface NotebookGone extends NotebookAddress {
+  readonly gone: true;
+}
+
+export type NotebookResult = NotebookOutcome | NotebookFailure | NotebookGone;
+
+export function outcomeOf(plan: NotebookPlan): NotebookOutcome {
+  return {
+    subscriptionId: plan.subscriptionId,
+    notebookId: plan.notebookId,
+    notes: plan.notes.length,
+    files: plan.files.length,
+    before: plan.before,
+    after: plan.after.length,
+    gained: plan.gained.length,
+    gainedByAlias: plan.gained.filter((edge) => edge.by === 'alias').length,
+    lost: plan.lost.map(({ from, to }) => ({ from, to })),
+    pending: plan.pending,
+  };
+}
+
+/** What a whole run found, summed from the answer of every notebook. */
+export interface RunSummary {
+  readonly mode: 'report' | 'apply';
+  readonly notebooks: number;
+  readonly rebuilt: number;
+  readonly gone: number;
+  readonly notes: number;
+  readonly files: number;
+  readonly edgesBefore: number;
+  readonly edgesAfter: number;
+  readonly gained: number;
+  readonly gainedByAlias: number;
+  readonly lost: number;
+  readonly pending: number;
+  /** Every notebook that gained or lost an edge, so the report names where the difference is. */
+  readonly changed: ReadonlyArray<NotebookAddress & { gained: number; lost: number }>;
+  readonly lostEdges: ReadonlyArray<NotebookAddress & { from: string; to: string }>;
+  readonly failed: readonly NotebookFailure[];
+  /**
+   * A run is good when no notebook failed and no edge was lost. A lost edge is
+   * not a reason to refuse the rebuild — the projection was already wrong —
+   * but it IS the one number whoever ran it has to look at.
+   */
+  readonly good: boolean;
+}
+
+export function summarise(
+  mode: 'report' | 'apply',
+  results: readonly NotebookResult[],
+): RunSummary {
+  const outcomes = results.filter(
+    (result): result is NotebookOutcome => !('failed' in result) && !('gone' in result),
+  );
+  const failed = results.filter((result): result is NotebookFailure => 'failed' in result);
+  const sum = (pick: (outcome: NotebookOutcome) => number): number =>
+    outcomes.reduce((total, outcome) => total + pick(outcome), 0);
+  const lost = sum((outcome) => outcome.lost.length);
+  return {
+    mode,
+    notebooks: results.length,
+    rebuilt: outcomes.length,
+    gone: results.length - outcomes.length - failed.length,
+    notes: sum((outcome) => outcome.notes),
+    files: sum((outcome) => outcome.files),
+    edgesBefore: sum((outcome) => outcome.before),
+    edgesAfter: sum((outcome) => outcome.after),
+    gained: sum((outcome) => outcome.gained),
+    gainedByAlias: sum((outcome) => outcome.gainedByAlias),
+    lost,
+    pending: sum((outcome) => outcome.pending),
+    changed: outcomes
+      .filter((outcome) => outcome.gained > 0 || outcome.lost.length > 0)
+      .map(({ subscriptionId, notebookId, gained, lost: edges }) => ({
+        subscriptionId,
+        notebookId,
+        gained,
+        lost: edges.length,
+      })),
+    lostEdges: outcomes.flatMap(({ subscriptionId, notebookId, lost: edges }) =>
+      edges.map((edge) => ({ subscriptionId, notebookId, ...edge })),
+    ),
+    failed: failed.map(({ subscriptionId, notebookId, error }) => ({
+      subscriptionId,
+      notebookId,
+      failed: true as const,
+      error,
+    })),
+    good: failed.length === 0 && lost === 0,
+  };
 }

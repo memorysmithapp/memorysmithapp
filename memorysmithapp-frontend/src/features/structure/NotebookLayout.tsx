@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNotebookFiles, getNotebookNames, getNotebookStructure } from '../../shared/api/source';
 import type { NotebookStructure } from '../../shared/types/api';
@@ -19,6 +19,7 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useNotebookId } from './route-ids';
 import { leaveNotebook } from './arrival';
 import { queryKeys } from '../../shared/api/query-keys';
+import { flushEverySession, useEditSessions } from '../../shared/store/edit-sessions';
 
 export interface NotebookOutletContext {
   structure: NotebookStructure;
@@ -94,6 +95,7 @@ export function NotebookLayout() {
 
   return (
     <NotebookIdProvider notebookId={notebookId}>
+      <LeaveGuard />
       <div className="notebook-layout">
         {narrow ? (
           <NotebookSheet notebookId={notebookId} structure={data} />
@@ -135,4 +137,23 @@ export function NotebookLayout() {
       </div>
     </NotebookIdProvider>
   );
+}
+
+/**
+ * Leaving a notebook page with a save of an editor waiting (#300, #301): a
+ * link inside the product never reaches `beforeunload`, so the router asks —
+ * once, for every session of the screen, because a router holds one blocker.
+ */
+function LeaveGuard() {
+  const { t } = useTranslation();
+  const waiting = useEditSessions((state) => state.waiting.size > 0);
+  const blocker = useBlocker(waiting);
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (window.confirm(t('editor.leaveWarning'))) {
+      void flushEverySession();
+      blocker.proceed();
+    } else blocker.reset();
+  }, [blocker, t]);
+  return null;
 }

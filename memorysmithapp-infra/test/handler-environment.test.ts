@@ -72,6 +72,10 @@ const HANDLERS: ReadonlyArray<{ entry: string; description: string }> = [
     entry: 'memorysmithapp-backend/services/discovery/src/main/handler.ts',
     description: 'Maintains the link graph, the vector index and the curation facets.',
   },
+  {
+    entry: 'memorysmithapp-backend/apps/core-monolith/src/reproject.handler.ts',
+    description: 'Rebuilds the link graph: lists the notebooks, rebuilds one, sums a run.',
+  },
 ];
 
 /** The names a source insists on, as it insists on them. */

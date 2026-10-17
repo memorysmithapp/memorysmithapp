@@ -9,10 +9,11 @@
  *
  * The discovery projector sits behind a queue with a dead-letter queue: the
  * queue absorbs a batch ingestion burst, and a retry or a failure there never
- * touches the hot path of the write.
+ * touches the hot path of the write. Beside it, the run that rebuilds the
+ * link graph from zero when it is found wrong (PE5, #311).
  */
 
-import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction, SqsQueue } from 'aws-cdk-lib/aws-events-targets';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -23,6 +24,7 @@ import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ServiceLambda } from '../constructs/service-lambda.js';
+import { LinkReprojection } from '../constructs/link-reprojection.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
@@ -132,6 +134,19 @@ export class ProjectionsStack extends Stack {
       evaluationPeriods: 1,
       comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
       treatMissingData: TreatMissingData.NOT_BREACHING,
+    });
+
+    // ---- The rebuild of the link graph (#311) -------------------------------
+
+    const reprojection = new LinkReprojection(this, 'LinkReprojection', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'reproject.handler.ts'),
+      stateMachineName: physicalName(props.environment, 'mv-reproject-links'),
+      knowledgeTable: props.data.knowledgeTable.table,
+      discoveryTable: props.data.discoveryTable.table,
+      contentBucket: props.data.contentBucket,
+    });
+    new CfnOutput(this, 'ReprojectionStateMachineArn', {
+      value: reprojection.stateMachine.stateMachineArn,
     });
   }
 }

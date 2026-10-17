@@ -190,6 +190,12 @@ export class Note {
      * is no line at all: the entry is written without it.
      */
     message: string | null = null,
+    /**
+     * The edit session of the interface this write belongs to (RN-AUD-013),
+     * carried in the payload beside the message so the history can show every
+     * save of one session as one entry. Each save is still a revision.
+     */
+    session: string | null = null,
   ): Result<boolean, DomainError> {
     if (this.isDeleted) return err(DomainError.notFound('This note is deleted'));
     if (this._bodyRef.hasSameContentAs(ref)) return ok(false);
@@ -210,6 +216,7 @@ export class Note {
         folderId: this._folderId.value,
         name: this._name,
         ...(message && message.trim().length > 0 ? { message: message.trim() } : {}),
+        ...(session ? { session } : {}),
       },
       ref,
       delta,

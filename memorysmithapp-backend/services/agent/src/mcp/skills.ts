@@ -163,10 +163,10 @@ folders or templates of a shared one does.
 3. **The properties and tags** that classify the notes.
 4. **The maps of content** that gather a context.
 5. **A template for every folder that receives notes.**
-6. **Create it, in this order:** the notebook, its guidance, and the folders
-   that receive notes now, in reading order, each with its template and one real
-   note that follows it. A subfolder the structure names is created when its
-   first note arrives.
+6. **Create it, in this order:** the notebook, its guidance — whose first line
+   is its first paragraph, never a heading — and the folders that receive notes
+   now, in reading order, each with its template and one real note that follows
+   it. A subfolder the structure names is created when its first note arrives.
 7. **Read it back** with \`get_notebook_context\`, as the next agent will.
 
 ## The guidance
@@ -174,8 +174,10 @@ folders or templates of a shared one does.
 The guidance is what the next agent reads before writing. Write it for that
 reader, and state each convention once.
 
-- **Open with the paragraph that says what the notebook is.** The Notebook
-  Context prints the name of the notebook as a heading right above it.
+- **Open with the paragraph that says what the notebook is, and never with a
+  heading.** Its first line is that paragraph, not \`# \` and the name: the
+  Notebook Context prints the name of the notebook as a heading right above it,
+  so a heading of your own shows the name twice to every reader.
 - **Say what belongs, and where the rest goes.**
 - **Name the vocabulary.** If the owner says "finding" and not "issue", write it
   down: the words of the notebook become the words of its search.
@@ -620,6 +622,22 @@ ${silence()}
   other: the vocabulary belongs to the guidance of the notebook you are writing in.
   Read it before inventing a field.
 
+## The title of a callout
+
+Everything after \`[!type]\` on the first line of a callout is its **title**,
+and the page draws it large and in bold. Write a few words there and what the
+callout says on the lines after it; a callout needs no title at all, and
+\`> [!note]\` alone on its line opens one without.
+
+\`\`\`markdown
+> [!rule] A means, not an end
+> The software is **a means**, not an end. What the service sells is the analysis behind the decision.
+\`\`\`
+
+A whole sentence on the \`[!type]\` line is a title of two lines over an empty
+callout: what you meant as the rule reads as a heading. Keep the rule in the
+body, where it reads as one.
+
 ## Putting one form inside another
 
 Every form has one job: a table compares, a callout makes a rule or a warning
@@ -628,11 +646,10 @@ another, and the page draws what you nest — but nesting pays only when the inn
 form serves the job of the outer one. It is your call, and these are the costs
 to weigh.
 
-- **A table inside a callout.** The callout is the one thing a reader must not
-  miss, and a whole table inside it dilutes that. What usually reads better is
-  the callout stating the rule in a sentence or two, and the table right after
-  it. A table belongs inside when the table *is* the warning, such as a short
-  table of limits.
+- **A table inside a callout.** It is drawn as any table is, rules and all. It
+  belongs inside when it is part of what the callout says — the limits a rule
+  sets, the options a decision weighed — and after it when it is a reference the
+  callout only points at.
 - **Code inside a table cell.** A short code span — the name of a field, a short
   command — sits well in a cell. A long one widens its column until the table
   scrolls sideways. A block of several lines does not fit at all: a cell of a
@@ -734,8 +751,8 @@ a note of that name refuses the move, naming it.
 ## Seeing what you wrote
 
 You write Markdown and the person reads a page, and some forms are drawn in
-ways the Markdown does not show: the rules of a table inside a callout, a code
-span that widens a column until the table scrolls, a diagram that does not
+ways the Markdown does not show: a callout whose title is a whole sentence, a
+code span that widens a column until the table scrolls, a diagram that does not
 read. \`preview_note\` draws a note as the person will see it, and
 \`get_preview\` answers the image a few seconds later — ask again while it says
 it is still being drawn.
@@ -809,7 +826,18 @@ that fits your situation is the one to use.
    \`send_file_part\`. Every byte passes through what you write, so this suits
    what you write out whole without a slip: a few tens of kilobytes.
 3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
-   takes it in one call.
+   takes it in one call: an SVG as its text in \`content\`, copied character
+   for character as you were given it, and any other type in
+   \`contentBase64\`, encoded by code. **Never write base64 by hand**: it slips
+   even on a few hundred bytes, and a file with one byte changed is not the
+   person's file. With no code to encode it and a type that is not text, ask
+   the person for it, as below.
+
+\`keep_file\` answers the size and the SHA-256 of what was kept. When you know
+either of the file you were given and they differ, say so to the person before
+anything else: never tell them the file is theirs on a size you did not
+compare. An upload in parts needs no such look, since its finish keeps only a
+whole that hashes to what you declared.
 
 Anything larger that you cannot send by URL, **ask the person for**: see *When
 you cannot send it* below.

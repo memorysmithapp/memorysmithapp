@@ -23,6 +23,14 @@ export interface NoteSnapshot {
   readonly content: string;
 }
 
+/** A file a notebook keeps, as the API lists it. */
+export interface FileSnapshot {
+  readonly name: string;
+  readonly mimeType: string;
+  readonly bytes: number;
+  readonly sha256: string;
+}
+
 export interface NotebookSnapshot {
   readonly notebookId: string;
   readonly name: string;
@@ -32,6 +40,7 @@ export interface NotebookSnapshot {
   readonly pendingLinks: number;
   /** Pending links that almost reach a note or a file, each with what it meant (#217). */
   readonly brokenLinks: readonly string[];
+  readonly files: readonly FileSnapshot[];
 }
 
 export interface CheckInput {
@@ -41,6 +50,13 @@ export interface CheckInput {
   readonly finalText: string;
   readonly absent: readonly string[];
   readonly leaks: readonly string[];
+  /** The file the person handed over, when the case hands one (#295). */
+  readonly handed?: {
+    readonly bytes: number;
+    readonly sha256: string;
+    /** Every SHA-256 that is the file as the person handed it, when it is more than one. */
+    readonly whole?: readonly string[];
+  };
 }
 
 export interface CheckOutcome {
@@ -50,7 +66,7 @@ export interface CheckOutcome {
   readonly detail: string;
 }
 
-const WRITES = new Set([
+export const WRITES: ReadonlySet<string> = new Set([
   'create_notebook',
   'delete_notebook',
   'set_guidance',
@@ -62,6 +78,12 @@ const WRITES = new Set([
   'update_note',
   'move_note',
   'delete_note',
+  'keep_file',
+  'begin_file_upload',
+  'send_file_part',
+  'finish_file_upload',
+  'request_file',
+  'delete_file',
 ]);
 
 const RESERVED = new Set<string>(RESERVED_FRONTMATTER_KEYS);
@@ -98,6 +120,20 @@ const outcome = (check: CheckName, passed: boolean | null, detail = ''): CheckOu
   detail,
 });
 
+/** The files kept during the run: a name no notebook kept before, or new bytes under one. */
+function keptFiles(input: CheckInput): { file: FileSnapshot; notebook: NotebookSnapshot }[] {
+  const earlier = new Set(
+    input.before.flatMap((notebook) =>
+      notebook.files.map((file) => `${notebook.notebookId}/${file.name}/${file.sha256}`),
+    ),
+  );
+  return input.after.flatMap((notebook) =>
+    notebook.files
+      .filter((file) => !earlier.has(`${notebook.notebookId}/${file.name}/${file.sha256}`))
+      .map((file) => ({ file, notebook })),
+  );
+}
+
 function created(input: CheckInput): NotebookSnapshot[] {
   const existed = new Set(input.before.map((notebook) => notebook.notebookId));
   return input.after.filter((notebook) => !existed.has(notebook.notebookId));
@@ -124,6 +160,52 @@ function touched(input: CheckInput): NotebookSnapshot[] {
 
 const firstUse = (input: CheckInput, matches: (tool: string, values: unknown[]) => boolean) =>
   input.transcript.toolUses.findIndex((use) => matches(use.tool, Object.values(use.input)));
+
+/**
+ * The two checks of keeping a file (#295). The skill asks for the file the
+ * person gave, as it is: kept whole means its very bytes, by size and SHA-256,
+ * so a file shrunk, cropped, re-encoded or retyped with one slip fails, and
+ * the detail says what was kept instead.
+ */
+const FILE_CHECKS = {
+  'file-kept-whole': (input: CheckInput): CheckOutcome => {
+    if (!input.handed) return outcome('file-kept-whole', null, 'the case hands no file');
+    const kept = keptFiles(input);
+    if (kept.length === 0) return outcome('file-kept-whole', false, 'no file was kept');
+    const accepted = input.handed.whole ?? [input.handed.sha256];
+    const whole = kept.find(({ file }) => accepted.includes(file.sha256));
+    return outcome(
+      'file-kept-whole',
+      whole !== undefined,
+      whole
+        ? ''
+        : kept
+            .map(
+              ({ file }) =>
+                `${file.name}: ${file.bytes} bytes where ${input.handed?.bytes} were handed`,
+            )
+            .join('; '),
+    );
+  },
+
+  'file-shown': (input: CheckInput): CheckOutcome => {
+    const kept = keptFiles(input);
+    if (kept.length === 0) return outcome('file-shown', false, 'no file was kept');
+    const unshown = kept.filter(
+      ({ file, notebook }) =>
+        !notebook.notes.some((note) =>
+          [...note.content.matchAll(/!\[\[([^\]|#]+)/g)].some(
+            (match) => (match[1] ?? '').trim().normalize('NFC') === file.name.normalize('NFC'),
+          ),
+        ),
+    );
+    return outcome(
+      'file-shown',
+      unshown.length === 0,
+      unshown.map(({ file }) => `no note embeds ${file.name}`).join('; '),
+    );
+  },
+};
 
 const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
   'room-held': (input) => {
@@ -354,6 +436,8 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
       changed.map((note) => note.name ?? note.noteId).join(', '),
     );
   },
+
+  ...FILE_CHECKS,
 
   'wrote-after-acceptance': (input) => {
     const write = input.transcript.toolUses.find((use) => WRITES.has(use.tool));

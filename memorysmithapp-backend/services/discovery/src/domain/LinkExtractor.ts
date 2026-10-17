@@ -175,6 +175,114 @@ export function extractLinks(markdown: string): ExtractedLink[] {
 }
 
 /**
+ * Everything a note names, each with the form it was named in (#305): its
+ * links and embeds, and the files it draws as images by path. This is what a
+ * projection keeps of a note; the two readers above are what it is made of.
+ */
+export function extractReferences(
+  markdown: string,
+): Array<{ name: string; anchor: string | null; form: 'link' | 'embed' | 'image' }> {
+  return [
+    ...extractLinks(markdown).map((link) => ({
+      name: link.name,
+      anchor: link.anchor,
+      form: link.embed ? ('embed' as const) : ('link' as const),
+    })),
+    ...extractImages(markdown).map((image) => ({
+      name: image.name,
+      anchor: null,
+      form: 'image' as const,
+    })),
+  ];
+}
+
+/**
+ * An image, in its inline form: the description, which may carry the
+ * dimensions after a pipe, and a destination written bare or between angle
+ * brackets, the second being how a name with a space is written.
+ */
+const IMAGE =
+  /!\[(?:[^\]\\\n]|\\.)*\]\(\s*(<[^>\n]*>|[^)\s]+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'))?\s*\)/g;
+/** `![alt][label]` and the collapsed `![label][]`. */
+const REFERENCE_IMAGE = /!\[([^\]\n]*)\]\[([^\]\n]*)\]/g;
+/** `![label]` on its own, an image only when the label is defined. */
+const SHORTCUT_IMAGE = /!\[([^\]\n]+)\](?![[(:])/g;
+
+/**
+ * The files a note draws as IMAGES BY PATH, one entry per name (RN-DSC-065).
+ *
+ * An image is not a link and never an edge (RN-DSC-038), which is why these
+ * are not among what `extractLinks` answers. But an image whose destination
+ * names no host is the file the notebook keeps under the last segment of that
+ * path (§5.8): `![Curva|50%](../assets/curva.png)` draws `curva.png`, and the
+ * page has drawn it so since renderer 0.8.0. A reader that skipped it told an
+ * agent the file was shown by no note while a note was showing it.
+ *
+ * The name is read as the renderer reads it (`keptImageName`): the query and
+ * the fragment dropped, `/` and `\` both separating, percent-decoded where an
+ * escape is one, NFC, and nothing removed — an extension is part of the name
+ * of a file, which is the opposite of what the link form does with `.md`. A
+ * destination with a scheme or a host is the world (RN-DSC-003).
+ */
+export function extractImages(markdown: string): ExtractedLink[] {
+  const body = stripCodeBlocks(markdown);
+  const found = new Map<string, ExtractedLink>();
+  const add = (destination: string): void => {
+    const name = keptImageName(destination);
+    if (name !== null && !found.has(name)) {
+      found.set(name, { name, anchor: null, raw: destination, embed: true });
+    }
+  };
+
+  for (const match of body.matchAll(IMAGE)) add(unbracketed(match[1] ?? ''));
+
+  const defined = definitions(body);
+  if (defined.size > 0) {
+    for (const match of body.matchAll(REFERENCE_IMAGE)) {
+      const label = (match[2] ?? '').trim() || (match[1] ?? '');
+      const destination = defined.get(labelKey(label));
+      if (destination) add(destination);
+    }
+    for (const match of body.matchAll(SHORTCUT_IMAGE)) {
+      const destination = defined.get(labelKey(match[1] ?? ''));
+      if (destination) add(destination);
+    }
+  }
+  return [...found.values()];
+}
+
+/** A destination written between angle brackets, without them. */
+function unbracketed(destination: string): string {
+  return destination.startsWith('<') && destination.endsWith('>')
+    ? destination.slice(1, -1)
+    : destination;
+}
+
+/**
+ * The name of the kept file a destination names, or `null` when it names a
+ * host, has a scheme, or ends in no name at all.
+ */
+function keptImageName(destination: string): string | null {
+  const trimmed = destination.trim();
+  if (trimmed === '' || HAS_SCHEME.test(trimmed) || trimmed.startsWith('//')) return null;
+  const path = trimmed.split(/[?#]/, 1)[0] ?? '';
+  const segments = path.replace(/%5c/gi, '\\').split(/[/\\]/);
+  const name = leniently(segments[segments.length - 1] ?? '')
+    .trim()
+    .normalize('NFC');
+  return name.length > 0 ? name : null;
+}
+
+/** Every escape that is one decoded, and the rest left as written. */
+function leniently(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text.replace(/(?:%[0-9a-f]{2})+/gi, (run) => percentDecode(run));
+  }
+}
+
+/**
  * The reference form of a link, which is the same link written apart from its
  * destination. The three forms are equivalent once resolved, and the
  * destination decides the edge exactly as it does inline, so reading only the

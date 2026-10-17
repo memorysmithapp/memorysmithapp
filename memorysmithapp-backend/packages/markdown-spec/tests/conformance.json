@@ -952,6 +952,106 @@
       ]
     },
     {
+      "id": "resolution/a-percentage-is-a-dimension-of-an-attachment",
+      "notation": "image-dimensions",
+      "notebook": {
+        "attachments": ["engelbart.jpg"]
+      },
+      "markdown": "![[engelbart.jpg|50%]]",
+      "links": [
+        {
+          "name": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-image-by-path-is-an-attachment",
+      "notation": "attachment",
+      "notebook": {
+        "attachments": ["curva.png"]
+      },
+      "markdown": "![Curva|50%](../assets/curva.png)",
+      "links": [],
+      "resolution": [
+        {
+          "target": "curva.png",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-image-by-path-is-named-by-its-last-segment-decoded",
+      "notation": "attachment",
+      "notebook": {
+        "attachments": ["esquema de blocos.png"]
+      },
+      "markdown": "![Esquema](./figuras/esquema%20de%20blocos.png)",
+      "links": [],
+      "resolution": [
+        {
+          "target": "esquema de blocos.png",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/an-image-by-path-never-reaches-a-note",
+      "notation": "attachment",
+      "notebook": {
+        "notes": ["---\nname: curva.png\n---\n"]
+      },
+      "markdown": "![Curva](curva.png)",
+      "links": [],
+      "resolution": [
+        {
+          "target": "curva.png",
+          "kind": "pending",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-remote-image-names-nothing-in-the-notebook",
+      "notation": "attachment",
+      "notebook": {
+        "attachments": ["curva.png"]
+      },
+      "markdown": "![Curva](https://example.org/curva.png)",
+      "links": [],
+      "resolution": []
+    },
+    {
+      "id": "resolution/a-percentage-after-a-note-is-an-alias",
+      "notation": "wikilink-alias",
+      "notebook": {
+        "notes": ["---\nname: Lei 14.133\n---\n"]
+      },
+      "markdown": "See [[Lei 14.133|50%]].",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
       "id": "resolution/the-markdown-form-reaches-the-same-note",
       "notation": "markdown-relative-link",
       "notebook": {

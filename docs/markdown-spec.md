@@ -307,13 +307,18 @@ An image is a link with `!` in front of it.
 ![alt text](image.png "a title")
 ![Engelbart|100x145](engelbart.jpg)
 ![Engelbart|100](engelbart.jpg)
+![Engelbart|50%](engelbart.jpg)
 ```
 
 The alt text is the description of the image and a Reader MUST NOT drop it.
 
-**A `|` inside the alt text separates the description from the image's dimensions.** What precedes it is the description and MUST NOT be dropped; what follows it is not description and MUST NOT be rendered as text. The dimensions are `width` or `width x height`, in CSS pixels, written as digits and nothing else: `100` sets the width and keeps the aspect ratio, `100x145` sets both. A value after the pipe that is neither is **not a dimension** — it stays part of the description, because silently deleting what an author wrote into an accessibility label is the worse of the two failures.
+**A `|` inside the alt text separates the description from the image's dimensions.** What precedes it is the description and MUST NOT be dropped; what follows it is not description and MUST NOT be rendered as text. The dimensions are `width` or `width x height`, in CSS pixels, written as digits and nothing else: `100` sets the width and keeps the aspect ratio, `100x145` sets both.
 
-A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7, and there the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]`. The same pipe means the alias of §5.1 when the target is a note, and that crossing is §5.8.
+**A width may also be a share of the page**, `N%`, where `N` is a whole number from 1 to 100 written as digits and nothing else. It is a share of the width the note is read at — the column of the page, or the cell or the callout the image stands in — and the height follows the image's own ratio. It is a **maximum**: the image is drawn at its own width when that is narrower, so `|100%` fills the column with a large picture and never enlarges a small one, which would blur it. There is no height in percent and no mixed pair: a share of the height means nothing on a page that scrolls, and a fixed height under a relative width distorts the image, so `50%x180` and `300x50%` are not dimensions, and neither are `0%`, `150%`, `33.3%` or `50 %`.
+
+A value after the pipe that is none of these is **not a dimension** — it stays part of the description, because silently deleting what an author wrote into an accessibility label is the worse of the two failures.
+
+A `!` in front of a **wikilink** is a different thing entirely: `![[target]]` is the embed of §5.7, and there the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]`, `![[engelbart.jpg|50%]]`. The same pipe means the alias of §5.1 when the target is a note, and that crossing is §5.8.
 
 Where an image that is not remote is found is §5.8. A destination naming a host makes this image a request to that host when the note is opened, and what a Reader may and may not do about that is §7.10.
 
@@ -495,11 +500,13 @@ The comparison is the one §5.3 states for the name of a note — normalised to 
 
 A note and an attachment are both addressed by a name, and the two are keys of the same shape for the same reason: an address that survives the file being moved, and that two implementations cannot read differently.
 
-**Only an embed names an attachment.** A `[[target]]` is resolved by §5.2 and by nothing else — the names of the notes, then their aliases, then nothing — and an attachment appears in none of its steps: a link whose target only a file carries is a **pending link**, reported as §5.5 asks, and it is not an error. The two forms differ here and nowhere else: what they produce for the graph is the same, which is nothing.
+**Only an embed or an image names an attachment.** A `[[target]]` is resolved by §5.2 and by nothing else — the names of the notes, then their aliases, then nothing — and an attachment appears in none of its steps: a link whose target only a file carries is a **pending link**, reported as §5.5 asks, and it is not an error. The two forms differ here and nowhere else: what they produce for the graph is the same, which is nothing.
 
-**An attachment reference is never an edge.** The graph is between notes (§5.1). An embed of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is (§5.5), and MUST NOT be an error.
+**An image whose destination names no host names an attachment and nothing else.** `![Curve|50%](../assets/curve.png)` names the attachment `curve.png`: the last segment of the path, `/` and `\` both separating, once the query and the fragment are dropped, percent-decoded and compared as above, its extension kept because it is part of the name. It never names a note — a note called `curve.png` is not what the image draws — so it resolves to the attachment of that name or to nothing, and with nothing it is reported the way `![[curve.png]]` naming no file is. A destination with a scheme or a host names no attachment: it is the remote image of §3.14.
 
-**`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14. When the target resolves to neither — the common case while a notebook is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.
+**An attachment reference is never an edge.** The graph is between notes (§5.1). An embed or an image of an attachment renders, it is deduplicated like anything else, and it appears in no graph and generates no backlink. A name that matches nothing in the notebook is reported the way a pending link is (§5.5), and MUST NOT be an error.
+
+**`![[target|value]]` is read by what the target is.** When the target is a note, the pipe is the alias of §5.1. When it is an attachment, the pipe carries the dimensions of §3.14, a width as a percentage included. When the target resolves to neither — the common case while a notebook is being written — **the pipe is an alias**, because a reference to a note that does not exist yet is what §5.5 exists to keep visible, and reading it as a dimension would discard the text an author wrote.
 
 Whichever it is, **the pipe never changes the target**: `[[Lei 14.133|100]]` and `![[engelbart.jpg|100]]` address `Lei 14.133` and `engelbart.jpg`, and what follows the pipe is display in both.
 
@@ -889,7 +896,7 @@ Every form this document declares, in one table. The last column is the section 
 | Inline link | `[text](url)` | An edge when the target is internal | 3.13, 5.2 |
 | Reference link | `[text][label]` | An edge when the target is internal | 3.13, 5.2 |
 | Image | `![alt](image.png)` | A remote destination is a request when the note opens | 3.14, 7.10 |
-| Image dimensions | `![alt\|100x145](image.png)` | Sizes the image; not part of the description | 3.14 |
+| Image dimensions | `![alt\|100x145](image.png)`, `![alt\|50%](image.png)` | Sizes the image, in pixels or as a share of the page at most; not part of the description | 3.14 |
 | Attachment | `![[diagram.png]]` | Resolved by name; never an edge | 5.8 |
 | Autolink | `<https://example.org>` | Never an edge | 3.15, 5.2 |
 | Raw inline HTML | `<abbr>…</abbr>` | Kept in the bytes, shown as text | 3.16, 7.10 |

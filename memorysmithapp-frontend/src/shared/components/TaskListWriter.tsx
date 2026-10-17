@@ -4,23 +4,21 @@ import { revisionChain } from '../api/revision-chain';
 import { useWriteStatus } from '../store/write-status';
 
 /**
- * The write behind a task box: optimistic on the screen, grouped in flight.
+ * The write behind a task box: optimistic on the screen, one write per tick.
  *
- * Ticking five items of a checklist should leave ONE entry in the history and
- * not five, so clicks inside a short window collapse into a single write. The
- * grouping is entirely of the client: the server sees an ordinary write, with
- * baseRevision, authorship and a new revision, and nothing about it leaks into
- * the domain.
- *
- * Ticking and unticking the same box inside the window sends nothing at all,
- * because the content went back to being identical (RN-KNW-028).
+ * The reading surface queues the ticks and asks for the next one only once the
+ * last one settled, showing *Updating…* on the item meanwhile (#300): so a tick
+ * is written at once, and its promise is what the item waits on. Ticking five
+ * items is five revisions, and the history still shows them as one entry,
+ * because every write of one visit to the note carries the same session
+ * (RN-AUD-013) — the grouping is made where the history is read, never by
+ * holding a click back.
  */
-const WINDOW_MS = 2000;
 
 export interface TaskWrite {
   /** The text as it stands now, with every pending toggle applied. */
   readonly raw: string;
-  /** The revision the whole group is based on. */
+  /** The revision the write is based on. */
   readonly baseRevision: string | null;
   /**
    * True when the page is going away. The request has to be made in a way the
@@ -35,7 +33,7 @@ export interface TaskWrite {
  */
 export type TaskWriter = (input: TaskWrite) => Promise<string>;
 
-export function useGroupedWrite({
+export function useTaskWrite({
   raw,
   baseRevision,
   write,
@@ -60,19 +58,12 @@ export function useGroupedWrite({
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   /**
-   * The four states go to the FRAME of the screen and not to the content.
-   *
-   * A grouped write is a property of the document — five ticks are one
-   * transaction — so its status cannot belong to a box. Rendered at the top of
-   * the content it became a paragraph of the note, scrolled away with the
-   * text, and was never seen from where the click happened. What it says is
-   * still the same discipline: a failure names the failure it was, because a
-   * message that invents a cause sends the reader looking for a person who
-   * was never there.
+   * The item says *Updating…* and *Not saved* where the click happened; the
+   * frame of the screen says what a failure was, in the words of the error
+   * taxonomy, because a message that invents a cause sends the reader looking
+   * for a person who was never there.
    */
   const status = useWriteStatus();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pending = useRef<string | null>(null);
   const committed = useRef(raw);
   /**
    * The callbacks, held in refs and called THROUGH them.
@@ -114,73 +105,32 @@ export function useGroupedWrite({
     chain.current.reset(baseRevision);
   }, [baseRevision]);
 
-  const flush = useCallback(
-    async (options: { keepalive?: boolean } = {}) => {
-      const next = pending.current;
-      pending.current = null;
-      if (timer.current) {
-        clearTimeout(timer.current);
-        timer.current = null;
-      }
+  /**
+   * A tick, written at once; the promise settles when the write did, and
+   * rejects when it did not, which returns the box to what its source holds.
+   */
+  const toggle = useCallback(
+    async (next: string): Promise<void> => {
+      setDraft(next);
       // Identical bytes are not a write: no revision, no event, no reindexing.
-      if (next === null || next === committed.current) return;
-
+      if (next === committed.current) return;
       try {
         status.saving();
-        await chain.current.write(next, options);
+        await chain.current.write(next);
         committed.current = next;
         status.saved();
       } catch (error) {
-        // A conflict is information, not a system error: the screen goes back to
-        // what the server says and the person is told someone wrote first. Any
-        // other failure says what it was, in the words of the error taxonomy.
+        // A conflict is information, not a system error: the screen goes back
+        // to what the server says and the person is told someone wrote first.
         setDraft(null);
         const conflict = (error as { code?: string })?.code === 'CONFLICT';
         status.failed(conflict ? 'note.writeConflict' : messageKeyOf(error));
         if (conflict) onConflict();
+        throw error;
       }
     },
     [onConflict, status],
   );
-
-  const toggle = useCallback(
-    (next: string) => {
-      status.changed();
-      setDraft(next);
-      pending.current = next;
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => void flush(), WINDOW_MS);
-    },
-    [flush, status],
-  );
-
-  // Leaving the SCREEN before the window closes must not lose the click.
-  useEffect(() => {
-    return () => {
-      if (pending.current !== null) void flush();
-    };
-  }, [flush]);
-
-  /**
-   * Leaving the PAGE must not lose it either, and that is a different event.
-   *
-   * The cleanup above runs when React unmounts the component. `F5`, closing
-   * the tab and switching to another application are none of those: the
-   * browser leaves, the effect never runs, and a click inside the two-second
-   * window is gone. That is what made reloading to check whether it saved a
-   * gamble — the very reload used to find out could be what destroyed it.
-   *
-   * `pagehide` fires on all three, including the phone case that
-   * `beforeunload` misses, and the request goes out with `keepalive` so the
-   * browser finishes it after the page is gone.
-   */
-  useEffect(() => {
-    const leaving = (): void => {
-      if (pending.current !== null) void flush({ keepalive: true });
-    };
-    window.addEventListener('pagehide', leaving);
-    return () => window.removeEventListener('pagehide', leaving);
-  }, [flush]);
 
   return { text: draft ?? raw, toggle };
 }

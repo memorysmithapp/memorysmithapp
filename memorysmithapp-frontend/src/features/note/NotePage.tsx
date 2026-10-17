@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useWriteStatus } from '../../shared/store/write-status';
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNote } from '../../shared/api/source';
-import { copyText } from '../../shared/lib/clipboard';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -17,23 +16,12 @@ import {
   propertyLabel,
   propertyType,
 } from '../../shared/components/PropertyValue';
-import {
-  BookIcon,
-  CheckIcon,
-  CopyIcon,
-  HistoryIcon,
-  MoveIcon,
-  PencilIcon,
-  PrinterIcon,
-} from '../../shared/components/icons';
-import { NoteEditor, type EditOutcome } from './NoteEditor';
+import { HistoryIcon, MoveIcon, PrinterIcon } from '../../shared/components/icons';
 import { NoteHistoryDialog } from './NoteHistory';
 import { MoveNoteDialog } from './MoveNote';
-import { withAlias } from '../../shared/api/markdown';
-import { ApiError } from '../../shared/api/error-mapper';
-import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../shared/api/query-keys';
-import { useBlocker } from 'react-router-dom';
+import { useNoteEditSession } from './edit-session';
+import { newSessionId } from './note-saves';
 import { folderTrailForNote } from '../structure/trail';
 import { BarButton, BarLink, NotebookBar, folderCrumbs } from '../structure/NotebookBreadcrumb';
 import { printAddress } from '../../shared/api/note-address';
@@ -42,19 +30,10 @@ import { useNotebookId } from '../structure/route-ids';
 
 export function NotePage({ noteId }: { noteId: string }) {
   const { t } = useTranslation();
+  /** Whether an edit session is open, which pauses the reading of the note (#206). */
+  const sessionOpen = useRef(false);
   const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
-  const [copied, setCopied] = useState(false);
-  /**
-   * Reading or writing (#169). An open book means "you are editing, go back to
-   * reading"; a pencil means "you are reading, go and edit". Only somebody
-   * whose effective role in this notebook writes ever sees it: a reader gets
-   * the copy button alone, never a pencil that would refuse them.
-   */
-  const [editing, setEditing] = useState(false);
-  const [writing, setWriting] = useState(false);
-  const [refusal, setRefusal] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
   /**
    * Whether the history is open (#226). The history is mounted only while it
    * is: mounted eagerly, it asked the trail for every note anybody opened,
@@ -70,21 +49,7 @@ export function NotePage({ noteId }: { noteId: string }) {
   const [moveOpen, setMoveOpen] = useState(false);
   const [movedTo, setMovedTo] = useState<string | null>(null);
   const moveButton = useRef<HTMLButtonElement>(null);
-  const client = useQueryClient();
 
-  /**
-   * Leaving with typing still in hand asks once (#169). The browser asks its
-   * own question when the tab is closing; this is the other half, for a link
-   * inside the product, which never reaches `beforeunload` at all. Losing
-   * twenty minutes of typing to a misclicked link is the kind of loss that
-   * never gets reported as a defect and never gets forgiven either.
-   */
-  const blocker = useBlocker(dirty);
-  useEffect(() => {
-    if (blocker.state !== 'blocked') return;
-    if (window.confirm(t('editor.leaveWarning'))) blocker.proceed();
-    else blocker.reset();
-  }, [blocker, t]);
   /**
    * The note follows what somebody else writes (#206) — an agent through the
    * connector, most of the time — except while it is being edited here: the
@@ -94,18 +59,37 @@ export function NotePage({ noteId }: { noteId: string }) {
   const { data, isPending, isError } = useQuery({
     queryKey: queryKeys.note(notebookId, noteId),
     queryFn: () => getNote(notebookId, noteId),
-    refetchInterval: useLiveInterval(editing || dirty),
+    refetchInterval: useLiveInterval(sessionOpen.current),
   });
+  /**
+   * Editing the note in place (#300): the switch at the top right of the note
+   * opens an edit session for whoever may write, and a reader gets *Show* and
+   * *Copy Markdown* there and no switch.
+   */
+  const writable = canWrite(structure.effectiveRole);
+  const { editing, open } = useNoteEditSession({
+    notebookId,
+    note: writable ? data : undefined,
+  });
+  sessionOpen.current = open;
+  /**
+   * The session the ticks of this visit carry (RN-AUD-013): ticking five boxes
+   * is five revisions, and the history shows them as one entry.
+   */
+  const tickSession = useMemo(() => newSessionId(), [noteId]);
 
   /**
    * And when it does change under the reader, the page says so instead of
-   * swapping the text silently. A revision this page wrote itself — the editor
-   * or a ticked box — is not news: the editor marks its own write, and a box
-   * leaves the write status saying it saved.
+   * swapping the text silently. A revision this page wrote itself — an edit
+   * session or a ticked box — is not news: a session marks its saves, and a
+   * box leaves the write status saying it saved.
    */
   const seenRevision = useRef<string | null>(null);
   const ownWrite = useRef(false);
   const [changedElsewhere, setChangedElsewhere] = useState(false);
+  useEffect(() => {
+    if (open) ownWrite.current = true;
+  }, [open]);
   useEffect(() => {
     seenRevision.current = null;
     setChangedElsewhere(false);
@@ -124,65 +108,6 @@ export function NotePage({ noteId }: { noteId: string }) {
   // The tab names the note, with the same unnamed label the listing shows when
   // the note states no name (RN-DSC-058, RN-KNW-036).
   useDocumentTitle(data ? (data.name ?? t('note.unnamed')) : null, structure.notebook.name);
-
-  async function copyNote() {
-    if (!data) return;
-    await copyText(data.raw);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  /**
-   * The write the editor confirms. It goes through the door that already
-   * exists and was paid for twice this cycle (#153, #154): the revision the
-   * screen loaded with travels with it, and a divergence means somebody else
-   * wrote — which is a sentence and an offer to read it again, not a failure.
-   *
-   * A rename into a name the folder already holds is refused NAMING the note
-   * that holds it (RN-KNW-042), and that refusal is shown as it arrives.
-   */
-  async function writeNote(outcome: EditOutcome) {
-    if (!data) return;
-    setWriting(true);
-    setRefusal(null);
-    const content =
-      outcome.keepAlias && data.name ? withAlias(outcome.content, data.name) : outcome.content;
-    try {
-      await updateNote(notebookId, data.id, {
-        content,
-        baseRevision: data.revision,
-        message: outcome.message.trim(),
-      });
-      ownWrite.current = true;
-      setEditing(false);
-      await client.invalidateQueries({ queryKey: queryKeys.note(notebookId, noteId) });
-      await client.invalidateQueries({ queryKey: queryKeys.noteHistory(notebookId, noteId) });
-      /**
-       * The name of a note is the INDEX of the notebook (#170). The structure
-       * is what draws the tree, the outline and the breadcrumb, and it is also
-       * what `notesReaching` answers out of — so a rename that does not reach
-       * here leaves every `[[…]]` in the notebook painting by the name the
-       * note used to have: the new one pending though it resolves, the old one
-       * resolved though it reaches nothing.
-       *
-       * The aliases go with it, because the editor offers keeping the old name
-       * as one, and that is precisely the case where those links must keep
-       * resolving.
-       */
-      await client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) });
-      await client.invalidateQueries({ queryKey: queryKeys.notebookNames(notebookId) });
-    } catch (error) {
-      setRefusal(
-        error instanceof ApiError
-          ? error.code === 'CONFLICT'
-            ? t('editor.conflict')
-            : error.message
-          : t('editor.failed'),
-      );
-    } finally {
-      setWriting(false);
-    }
-  }
 
   // The trail of a note stops at the folder that holds it: the name of the
   // note is the title of the page, and the bar never repeats it (#225).
@@ -208,21 +133,71 @@ export function NotePage({ noteId }: { noteId: string }) {
   // The reserved keys first, in the order of the specification, then what the
   // notebook invented, in the order the note wrote it (RN-DSC-051). `name` is
   // drawn above as the name of the note and never as a property.
-  const writable = canWrite(structure.effectiveRole);
+  const reading = editing?.mode !== 'edit';
   const properties = orderedProperties(
     Object.entries(data.frontmatter).filter(([, value]) => value !== ''),
   );
   const lists = new Set(data.listProperties);
 
+  const header = (
+    <>
+      {/**
+       * The frame draws the name of the note, ALWAYS, and every heading of
+       * the body is an ordinary heading of the note, always (RN-DSC-054).
+       * A heading never names a note, so there is nothing to decide here:
+       * when the frontmatter states no name, the frame says so where the
+       * name would be (RN-KNW-036).
+       */}
+      {/* In edit mode the editor draws the name as its title field. */}
+      {reading ? (
+        <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>
+          {data.name ?? t('note.unnamed')}
+        </h1>
+      ) : null}
+
+      {movedTo ? (
+        <p className="note-changed" role="status">
+          <span>{t('move.moved', { folder: movedTo })}</span>
+          <button type="button" className="link-button" onClick={() => setMovedTo(null)}>
+            {t('note.changedElsewhereDismiss')}
+          </button>
+        </p>
+      ) : null}
+
+      {changedElsewhere && reading && (
+        <p className="note-changed" role="status">
+          <span>{t('note.changedElsewhere')}</span>
+          <button type="button" className="link-button" onClick={() => setChangedElsewhere(false)}>
+            {t('note.changedElsewhereDismiss')}
+          </button>
+        </p>
+      )}
+
+      {reading && properties.length > 0 && (
+        <details className="properties-box" open>
+          <summary>{t('note.properties')}</summary>
+          <div className="metadata-container">
+            {properties.map(([key, value]) => (
+              <div
+                className="metadata-property"
+                data-property-type={propertyType(value, lists.has(key))}
+                key={key}
+              >
+                <span className="metadata-property-key">{propertyLabel(key, t)}</span>
+                <span className="metadata-property-value">
+                  <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </>
+  );
+
   return (
     <>
       <NotebookBar crumbs={crumbs}>
-        <BarButton
-          icon={copied ? <CheckIcon /> : <CopyIcon />}
-          label={copied ? t('note.copied') : t('note.copy')}
-          title={copied ? t('note.copied') : t('note.copyHint')}
-          onClick={() => void copyNote()}
-        />
         {/* What happened to this note, and the line each author left about
             it (RN-AUD-012): a question somebody asks, so it opens on demand. */}
         <BarButton
@@ -251,105 +226,25 @@ export function NotePage({ noteId }: { noteId: string }) {
             onClick={() => setMoveOpen(true)}
           />
         ) : null}
-        {/* Only a role that writes ever sees it: a reader gets the copy button
-            alone, never a pencil that would refuse them. */}
-        {writable ? (
-          <BarButton
-            icon={editing ? <BookIcon /> : <PencilIcon />}
-            label={editing ? t('editor.readShort') : t('editor.editShort')}
-            title={editing ? t('editor.read') : t('editor.edit')}
-            onClick={() => {
-              setRefusal(null);
-              setEditing((on) => !on);
-            }}
-          />
-        ) : null}
       </NotebookBar>
       <article className="content-pane">
-        {/**
-         * The frame draws the name of the note, ALWAYS, and every heading of
-         * the body is an ordinary heading of the note, always (RN-DSC-054).
-         * A heading never names a note, so there is nothing to decide here:
-         * when the frontmatter states no name, the frame says so where the
-         * name would be (RN-KNW-036).
-         */}
-        <h1 className={data.name === null ? 'note-unnamed' : undefined}>
-          {data.name ?? t('note.unnamed')}
-        </h1>
-
-        {refusal ? <p className="editor-refusal">{refusal}</p> : null}
-
-        {movedTo ? (
-          <p className="note-changed" role="status">
-            <span>{t('move.moved', { folder: movedTo })}</span>
-            <button type="button" className="link-button" onClick={() => setMovedTo(null)}>
-              {t('note.changedElsewhereDismiss')}
-            </button>
-          </p>
-        ) : null}
-
-        {changedElsewhere && !editing && (
-          <p className="note-changed" role="status">
-            <span>{t('note.changedElsewhere')}</span>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setChangedElsewhere(false)}
-            >
-              {t('note.changedElsewhereDismiss')}
-            </button>
-          </p>
-        )}
-
-        {editing ? (
-          <NoteEditor
-            initial={data.raw}
-            currentName={data.name}
-            notebookId={notebookId}
-            busy={writing}
-            onCancel={() => setEditing(false)}
-            onConfirm={(outcome) => void writeNote(outcome)}
-            onDirty={setDirty}
-          />
-        ) : null}
-
-        {!editing && properties.length > 0 && (
-          <details className="properties-box" open>
-            <summary>{t('note.properties')}</summary>
-            <div className="metadata-container">
-              {properties.map(([key, value]) => (
-                <div
-                  className="metadata-property"
-                  data-property-type={propertyType(value, lists.has(key))}
-                  key={key}
-                >
-                  <span className="metadata-property-key">{propertyLabel(key, t)}</span>
-                  <span className="metadata-property-value">
-                    <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-
-        {editing ? null : (
-          <NoteContent
-            raw={data.raw}
-            notebookId={notebookId}
-            baseRevision={data.revision}
-            writable={writable}
-            write={({ raw, baseRevision, keepalive }) =>
-              updateNote(
-                notebookId,
-                data.id,
-                { content: raw, baseRevision: baseRevision ?? '' },
-                { keepalive: keepalive ?? false },
-              )
-            }
-            invalidates={queryKeys.note(notebookId, noteId)}
-          />
-        )}
+        <NoteContent
+          raw={data.raw}
+          notebookId={notebookId}
+          baseRevision={data.revision}
+          writable={writable}
+          write={({ raw, baseRevision, keepalive }) =>
+            updateNote(
+              notebookId,
+              data.id,
+              { content: raw, baseRevision: baseRevision ?? '', session: tickSession },
+              { keepalive: keepalive ?? false },
+            )
+          }
+          invalidates={queryKeys.note(notebookId, noteId)}
+          {...(editing ? { editing } : {})}
+          header={header}
+        />
       </article>
       <NoteHistoryDialog
         open={historyOpen}

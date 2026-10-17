@@ -16,6 +16,7 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { NotebookId, SubscriptionId } from '@memorysmithapp/kernel';
 import { DynamoLinkGraph, DynamoProjectedVersions } from '../../src/adapters/aws.js';
 import type { NoteRef } from '../../src/domain/ports.js';
+import { describeAttachmentForms } from '../attachment-forms.js';
 
 const table = process.env['DISCOVERY_TABLE'];
 if (!table)
@@ -206,6 +207,123 @@ describe('DynamoLinkGraph: what was waiting for a name, and for a spelling', () 
   });
 });
 
+/**
+ * A pair a name reaches is the name's, whatever order the projector meets the
+ * writes in (RN-DSC-053, #304). The write of a note already asked; what was
+ * waiting did not, so a note quoting a source by its name and its alias,
+ * projected before the source, had the pair held by the alias.
+ */
+describe('DynamoLinkGraph: a pair reached by a name and by a spelling, in any order', () => {
+  const quoting = [
+    { name: 'Lei 14.133', anchor: null },
+    { name: 'LGL', anchor: null },
+  ];
+
+  it('holds the pair by the name when both were waiting for the source', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), quoting);
+    const source = note('n2', 'Lei 14.133', ['LGL']);
+    await graph.replaceOutgoing(notebookId, source, []);
+    await graph.resolvePending(notebookId, source);
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(targets.map((each) => [each.target, each.by])).toEqual([['Lei 14.133', 'name']]);
+    expect(
+      (await partitionOf(subscription, notebookId)).some((sk) => sk.startsWith('ALIAS#')),
+    ).toBe(false);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('leaves the pair to the name when the spelling arrives after it', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    // The source exists under its name alone: the name links, the spelling waits.
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei 14.133'), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), quoting);
+    // Then the source declares the spelling.
+    const spelled = note('n2', 'Lei 14.133', ['LGL']);
+    await graph.replaceOutgoing(notebookId, spelled, []);
+    await graph.resolvePending(notebookId, spelled);
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(targets.map((each) => [each.target, each.by])).toEqual([['Lei 14.133', 'name']]);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('gives the pair to the name when the name arrives after the spelling held it', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    // The source answers the spelling under another name: the spelling holds
+    // the pair, and the name waits.
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei antiga', ['LGL']), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), quoting);
+    expect(
+      (await graph.outgoingOf(notebookId, 'n1')).find((each) => each.target === 'LGL')?.by,
+    ).toBe('alias');
+    // Then it is renamed to the name the note was waiting for.
+    const renamed = note('n2', 'Lei 14.133', ['LGL']);
+    await graph.replaceOutgoing(notebookId, renamed, []);
+    await graph.resolvePending(notebookId, renamed);
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(targets.map((each) => [each.target, each.by])).toEqual([['Lei 14.133', 'name']]);
+    expect((await graph.backlinks(notebookId, 'n2')).map((each) => each.noteId)).toEqual(['n1']);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('leaves the pair to the name when a deletion lands a link on a spelling of a note already named', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    // `Lei` is a note of its own and a spelling of `Parecer`, which the note
+    // also links by name.
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei'), []);
+    await graph.replaceOutgoing(notebookId, note('n3', 'Parecer', ['Lei']), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), [
+      { name: 'Lei', anchor: null },
+      { name: 'Parecer', anchor: null },
+    ]);
+    // Deleting `Lei` lands its link on the spelling, on a pair the name holds.
+    await graph.removeNote(notebookId, 'n2');
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(targets.map((each) => [each.target, each.by])).toEqual([['Parecer', 'name']]);
+
+    await graph.removeNotebook(notebookId);
+  });
+
+  it('does not mark as a spelling a link a second note of the same name answers after a deletion', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+
+    // Two notes carry one name, and the link reaches both (RN-DSC-042).
+    await graph.replaceOutgoing(notebookId, note('n2', 'Lei'), []);
+    await graph.replaceOutgoing(notebookId, note('n3', 'Lei'), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Achado'), [{ name: 'Lei', anchor: null }]);
+    await graph.removeNote(notebookId, 'n2');
+
+    const targets = await graph.outgoingOf(notebookId, 'n1');
+    expect(targets.map((each) => [each.target, each.by])).toEqual([['Lei', 'name']]);
+    expect(
+      (await partitionOf(subscription, notebookId)).some((sk) => sk.startsWith('ALIAS#')),
+    ).toBe(false);
+
+    await graph.removeNotebook(notebookId);
+  });
+});
+
 describe('DynamoProjectedVersions: the marker of a note that is gone', () => {
   it('carries a deadline, and the marker of a live note does not', async () => {
     const subscription = SubscriptionId.generate();
@@ -284,3 +402,8 @@ describe('DynamoLinkGraph: a file kept or deleted after the note that embeds it'
     await graph.removeNotebook(notebookId);
   });
 });
+
+describeAttachmentForms('DynamoLinkGraph', () => ({
+  graph: new DynamoLinkGraph(SubscriptionId.generate(), db, table),
+  notebookId: NotebookId.generate().value,
+}));

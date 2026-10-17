@@ -7,7 +7,7 @@ import {
   toolSignature,
 } from '../src/mcp/catalog.js';
 import { clientKind } from '../src/mcp/refresh.js';
-import { McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
+import { historyAnswer, McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import {
@@ -1260,6 +1260,10 @@ describe('skills: the method, indexed by whoami', () => {
     // guidance opening with the heading the Notebook Context already prints,
     // and a folder that receives notes with no template.
     expect(body).toContain('Open with the paragraph that says what the notebook is');
+    // Said both ways, since a smaller model read it as "the paragraph after the
+    // title" (#314), and again in the order of the work.
+    expect(body).toContain('and never with a\n  heading.**');
+    expect(body).toContain('whose first line\n   is its first paragraph, never a heading');
     expect(body).toContain('Every folder that receives notes has its own template');
     expect(body).toContain('Open the template with the frontmatter block');
     expect(body).toContain('headings from `#`');
@@ -1358,13 +1362,24 @@ describe('skills: the method, indexed by whoami', () => {
   it('says what nesting one form in another costs, and leaves the choice to the agent', () => {
     // #259: agents put tables in callouts and long code in cells. Both are
     // valid and both render; the skill helps decide, and forbids neither.
+    // #310: what read as a table squeezed into a callout was a callout title
+    // drawn as columns (#296), so the skill no longer warns against the table.
     const body = skillNamed('write-notes')?.body ?? '';
     expect(body).toContain('## Putting one form inside another');
     expect(body).toContain('A table inside a callout.');
-    expect(body).toContain('the callout stating the rule in a sentence or two');
+    expect(body).toContain('It is drawn as any table is');
+    expect(body).not.toContain('dilutes');
     expect(body).toContain('Code inside a table cell.');
     expect(body).toContain('the block goes after the table');
     expect(body).toContain('It is your call');
+  });
+
+  it('teaches the title of a callout: a few words, and the rule in the body (#310)', () => {
+    const body = skillNamed('write-notes')?.body ?? '';
+    expect(body).toContain('## The title of a callout');
+    expect(body).toContain('> [!rule] A means, not an end\n> The software is **a means**');
+    expect(body).toContain('a callout whose title is a whole sentence');
+    expect(body).not.toContain('the rules of a table inside a callout');
   });
 
   it('names each source of the notation, and survives one without a version', () => {
@@ -2243,6 +2258,44 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     });
   });
 
+  /**
+   * An SVG as its text (#309): a round of the evaluation kept a 669-byte
+   * drawing as 678 bytes, because the agent wrote its base64 by hand.
+   */
+  it('keeps an SVG from its text, byte for byte, and refuses the text of any other type', async () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg">\n  <text>Cozinha 3,2 × 2,1 m</text>\n</svg>\n';
+    let sent: { contentBase64: string } | undefined;
+    const tools = gateways({
+      knowledge: {
+        keepFile: async (_caller: unknown, _notebook: unknown, file: { contentBase64: string }) => {
+          sent = file;
+          return { name: 'planta.svg', bytes: 1, sha256: 'c'.repeat(64) };
+        },
+      },
+    });
+    const base = { notebook: '01JBQ2X00000000000000000V1', name: 'planta.svg' };
+
+    const answer = await tools.call(
+      'keep_file',
+      { ...base, mimeType: 'image/svg+xml', content: svg },
+      caller,
+    );
+    expect(Buffer.from(sent?.contentBase64 ?? '', 'base64').toString('utf8')).toBe(svg);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
+      reference: '![[planta.svg]]',
+    });
+
+    for (const args of [
+      { ...base, mimeType: 'image/png', content: 'not text' },
+      { ...base, mimeType: 'image/svg+xml', content: svg, contentBase64: 'AAAA' },
+      { ...base, mimeType: 'image/svg+xml' },
+    ]) {
+      const refused = await tools.call('keep_file', args, caller);
+      expect(refused.isError).toBe(true);
+    }
+  });
+
   it('lists the open uploads with the hash an agent resumes one by', async () => {
     const answer = await gateways({
       knowledge: { listFileUploads: async () => [transfer({ received: [1, 2] })] },
@@ -2684,5 +2737,41 @@ describe('the agent is told what a notice is before it meets one (RN-AGT-052)', 
     expect(describe('update_note')).toContain('The answer carries `notices`');
     expect(describe('check_notebook')).toContain('`noticesRead`');
     expect(skillNamed('write-notes')?.body).toContain('**Read the notices a write answers.**');
+  });
+});
+
+describe('note_history groups an edit session (RN-AUD-013)', () => {
+  const entry = (occurredAt: string, revision: string, session: string | null) => ({
+    occurredAt,
+    type: 'NoteUpdated',
+    userId: 'user-1',
+    agentName: null,
+    agentClientId: null,
+    revision,
+    message: null,
+    session,
+  });
+
+  it('answers a run of saves of one session as one entry, with each revision', () => {
+    const answer = historyAnswer([
+      { ...entry('2026-10-01T10:00:00.000Z', 'v1', null), agentName: 'Claude' },
+      entry('2026-10-01T10:05:00.000Z', 'v2', 'S1'),
+      entry('2026-10-01T10:06:00.000Z', 'v3', 'S1'),
+      entry('2026-10-01T10:07:00.000Z', 'v4', 'S1'),
+    ]) as Array<Record<string, unknown>>;
+
+    expect(answer).toHaveLength(2);
+    expect(answer[0]).not.toHaveProperty('session');
+    expect(answer[1]).toMatchObject({
+      type: 'EditSession',
+      session: 'S1',
+      saves: 3,
+      startedAt: '2026-10-01T10:05:00.000Z',
+      occurredAt: '2026-10-01T10:07:00.000Z',
+      revision: 'v4',
+    });
+    expect((answer[1]!['revisions'] as Array<{ revision: string }>).map((r) => r.revision)).toEqual(
+      ['v2', 'v3', 'v4'],
+    );
   });
 });

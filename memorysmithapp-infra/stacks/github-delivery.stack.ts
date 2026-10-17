@@ -18,7 +18,11 @@
  * created, which deploy, and read whether the sending identity is verified.
  * Staging may also do what its suites do after the deploy — the adapter tests
  * against its tables and bucket, the functional suite's accounts in its pool,
- * and the maintenance jobs — and every one of those permissions names staging.
+ * and the maintenance jobs, the run that rebuilds its link graph included —
+ * and every one of those permissions names staging. Production may do one
+ * thing besides delivering: start and follow the run that rebuilds its link
+ * graph, which reads and writes under a role of its own, so the role of
+ * production still reaches no table, bucket or pool.
  * The price is the one the AWS pipeline paid (section 20.1): both roles deploy
  * through the same bootstrap roles, which can change anything in the account,
  * so what keeps a branch away from production is who may assume which role.
@@ -94,6 +98,36 @@ export class GithubDeliveryStack extends Stack {
     const staging = roleOf(props.staging);
     this.roles = { production, staging };
 
+    /**
+     * Start and follow the run that rebuilds the link graph of one
+     * environment, and nothing else: the run reads and writes under a role of
+     * its own (#311), so a role that starts it reaches no table and no bucket.
+     */
+    const followReprojection = (role: iam.Role, environment: EnvironmentConfig): void => {
+      const reprojection = physicalName(environment, 'mv-reproject-links');
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['states:StartExecution', 'states:ListMapRuns'],
+          resources: [arn('states', `stateMachine:${reprojection}`)],
+        }),
+      );
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['states:DescribeExecution', 'states:ListMapRuns', 'states:DescribeMapRun'],
+          resources: [
+            arn('states', `execution:${reprojection}:*`),
+            arn('states', `mapRun:${reprojection}/*`),
+          ],
+        }),
+      );
+    };
+
+    // ---- What production runs besides a delivery ---------------------------
+
+    // The rebuild of its link graph, which a person starts by hand from the
+    // workflow of production maintenance, a report unless they ask to apply.
+    followReprojection(production, props.production);
+
     // ---- What only staging runs after its deploy ---------------------------
 
     const env = props.staging;
@@ -148,6 +182,10 @@ export class GithubDeliveryStack extends Stack {
         resources: [content],
       }),
     );
+
+    // The run that rebuilds the link graph of staging, started and followed
+    // by the command (#311): the run itself acts under a role of its own.
+    followReprojection(staging, env);
 
     // The document that names the functional suite to the connector, on the site of staging.
     staging.addToPolicy(

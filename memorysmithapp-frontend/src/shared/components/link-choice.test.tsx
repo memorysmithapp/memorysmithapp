@@ -127,7 +127,9 @@ describe('a wikilink on the reading surface', () => {
     expect(html).toContain(
       'href="/notebooks/01j8x2k9qz3m4n5p6r7s8t9v0a/notes/01j8x2k9qz3m4n5p6r7s8t9vn3"',
     );
-    expect(html).not.toContain('aria-haspopup');
+    // The link itself opens nothing; *Show Markdown* at the corner is a dialog of its own.
+    const link = /<a class="wikilink"[^>]*>/.exec(html)?.[0] ?? '';
+    expect(link).not.toContain('aria-haspopup');
   });
 
   it('is drawn pending when no name answers, and can still be clicked', () => {

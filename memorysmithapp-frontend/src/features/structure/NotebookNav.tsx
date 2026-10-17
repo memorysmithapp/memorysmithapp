@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  attachmentsAddress,
   foldersAddress,
   graphAddress,
   guidanceAddress,
@@ -14,12 +15,14 @@ import {
   FolderIcon,
   GraphIcon,
   GuidanceIcon,
+  PaperclipIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
 
 /**
  * The navigation of a notebook (#228): the Notebook Context, with its three
- * parts nested under it on the guide line of the tree, and the graph. What is
+ * parts nested under it on the guide line of the tree, the attachments (#307)
+ * and the graph. What is
  * open is told by weight alone — 600 and a thicker icon among rows at 400 —
  * never by a rule and never in blue; the fill is only the cursor.
  */
@@ -70,6 +73,9 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
           </NavItem>
         </div>
       ) : null}
+      <NavItem to={attachmentsAddress(notebookId)} icon={<PaperclipIcon />}>
+        {t('attachments.navLabel')}
+      </NavItem>
       <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
         {t('graph.navLabel')}
       </NavItem>

@@ -15,6 +15,7 @@ import { ProfilePage } from '../features/profile/ProfilePage';
 import { PasswordPage } from '../features/profile/PasswordPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
+import { AttachmentsPage } from '../features/attachments/AttachmentsPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
@@ -80,6 +81,7 @@ export const router = createBrowserRouter([
                   { index: true, element: <ResumeReading /> },
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
+                  { path: 'attachments', element: <AttachmentsPage /> },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'folders', element: <FoldersPage /> },
                   { path: 'folders/:folderId', element: <FolderPage /> },

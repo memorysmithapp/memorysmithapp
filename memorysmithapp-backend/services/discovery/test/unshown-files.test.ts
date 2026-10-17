@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryLinkGraph } from '../src/adapters/memory.js';
+import { describeAttachmentForms } from './attachment-forms.js';
 
 const NOTEBOOK = '01JBQ2X00000000000000000V1';
 const note = (noteId: string, name: string) => ({
@@ -34,3 +35,8 @@ describe('the files a notebook keeps and no note names (#253, RN-DSC-064)', () =
     expect(await graph.unshownAttachments(NOTEBOOK)).toEqual(['capa.jpg']);
   });
 });
+
+describeAttachmentForms('InMemoryLinkGraph', () => ({
+  graph: new InMemoryLinkGraph(),
+  notebookId: NOTEBOOK,
+}));

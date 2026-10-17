@@ -27,6 +27,12 @@ export const auditEntrySchema = z.object({
    * the history should not have to know which key it sits under.
    */
   message: z.string().nullable(),
+  /**
+   * The edit session of the interface the write belonged to (RN-AUD-013), or
+   * null for a write made outside one — every write of an agent. The history
+   * shows the saves of one session as one entry; each is still a revision.
+   */
+  session: z.string().nullable(),
   payload: z.record(z.string(), z.unknown()),
 });
 

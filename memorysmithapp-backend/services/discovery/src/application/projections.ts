@@ -11,7 +11,7 @@
 
 import { bodyWithoutFrontmatter, noteName } from '@memorysmithapp/kernel';
 
-import { extractLinks } from '../domain/LinkExtractor.js';
+import { extractReferences } from '../domain/LinkExtractor.js';
 import { extractFacets } from '../domain/FacetExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
 import { normalize } from '../domain/SearchQuery.js';
@@ -196,12 +196,9 @@ export class ProjectNote {
     const note = refOf(event, name, extractFrontmatterAliases(markdown));
 
     // 1. Links. A target that does not exist yet becomes PENDING and resolves
-    // on its own when the note is created (RN-DSC-004).
-    await this.deps.graph.replaceOutgoing(
-      event.notebookId,
-      note,
-      extractLinks(markdown).map((link) => ({ name: link.name, anchor: link.anchor })),
-    );
+    // on its own when the note is created (RN-DSC-004). Each goes with the
+    // form it was written in, which decides what it may reach (#305).
+    await this.deps.graph.replaceOutgoing(event.notebookId, note, extractReferences(markdown));
     await this.deps.graph.resolvePending(event.notebookId, note);
 
     // 2. Facets, from the frontmatter block and nothing else.

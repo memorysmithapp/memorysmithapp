@@ -1699,7 +1699,8 @@ a:hover {
   color: var(--text-soft);
 }
 
-.content-pane > h1 {
+.content-pane > h1,
+.content-pane .note-title {
   margin-block: 0 0.6rem;
 }
 .content-pane > h2 {
@@ -3277,6 +3278,121 @@ input[type='radio'] {
   .folder-row {
     padding: 12px 14px;
     padding-left: calc(14px + var(--depth, 0) * 14px);
+  }
+}
+/* ── The attachments of a notebook (#307) ────────────────────────────────────
+   One row per file: a preview or the shape of a file, what it is and which
+   notes show it, and its download on the right. */
+.attachment-count {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.attachment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+}
+.attachment-thumb {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--track);
+  color: var(--text-soft);
+}
+button.attachment-thumb {
+  cursor: zoom-in;
+}
+button.attachment-thumb:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.attachment-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.attachment-name {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.attachment-meta,
+.attachment-notes-label,
+.attachment-notes-none {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.attachment-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.attachment-notes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+.attachment-note-links {
+  display: contents;
+  list-style: none;
+}
+.attachment-note-links li {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.attachment-download {
+  flex: none;
+  gap: 6px;
+}
+.attachment-zoom-dialog {
+  width: min(960px, calc(100vw - 32px));
+}
+.attachment-zoom {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 0 auto;
+  object-fit: contain;
+}
+@media (max-width: 860px) {
+  .attachment-row {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  /* The icon alone on a phone, the word kept as its accessible name. */
+  .attachment-download {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .attachment-download-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 .form-error {
@@ -5383,159 +5499,11 @@ body.has-sheet .app-main {
   user-select: none;
 }
 
-/* Writing a note (#169). The text area is the note: same measure, same type
-   as the reading surface, so what is typed sits where what is read sat. */
 .note-tools {
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
 }
-.note-editor {
-  margin-top: 1rem;
-}
-.note-editor-area {
-  width: 100%;
-  min-height: 60vh;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 0.9rem;
-  line-height: 1.7;
-  tab-size: 2;
-  resize: vertical;
-}
-.note-editor-area:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.note-editor-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.85rem;
-}
-/* Keeping a file is not one of the two verbs of the edit: it sits apart,
-   at the far end of the row (#242). */
-.note-editor-attach {
-  margin-left: auto;
-}
-.note-editor-attaching {
-  margin: 0.6rem 0 0;
-  font-size: 0.8125rem;
-  color: var(--text-soft);
-}
-.note-editor-attaching.is-failure {
-  color: var(--danger);
-}
-/* What the write will do, said before it is confirmed. The pending colour is
-   the one a link to nothing already wears, so the two read as one fact. */
-/* The notices of the note being written (#291): under the text, each a line
-   that takes the cursor to where it is. What differs from the text is said
-   in the signal colour of capture; what the note could still declare is
-   folded, in the soft text, because it is advice and not a difference. */
-.note-notices {
-  margin: 0.75rem 0 0;
-  font-size: 0.8125rem;
-}
-/* Under the page's own heading rule, which would make it a section title. */
-.content-pane .note-notices-heading {
-  margin: 0 0 0.4rem;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.8125rem;
-  color: var(--text);
-}
-.note-notices-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.note-notice {
-  display: flex;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.35rem 0.6rem;
-  border: 0;
-  border-left: 3px solid var(--signal);
-  border-radius: 0 6px 6px 0;
-  background: color-mix(in srgb, var(--signal) 10%, transparent);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.note-notice[data-severity='hint'] {
-  border-left-color: var(--border);
-  background: transparent;
-  color: var(--text-soft);
-}
-.note-notice:hover {
-  background: color-mix(in srgb, var(--signal) 18%, transparent);
-}
-.note-notice[data-severity='hint']:hover {
-  background: var(--hover);
-}
-.note-notice:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-.note-notice-at {
-  flex: 0 0 auto;
-  min-width: 4.5rem;
-  color: var(--text-soft);
-  font-variant-numeric: tabular-nums;
-}
-.note-notices-hints {
-  margin-top: 0.5rem;
-}
-.note-notices-hints > summary {
-  cursor: pointer;
-  color: var(--text-soft);
-  margin-bottom: 0.3rem;
-}
-.note-notices-count {
-  font-variant-numeric: tabular-nums;
-}
-
-.editor-notice {
-  margin: 0 0 0.9rem;
-  padding: 0.7rem 0.85rem;
-  border-left: 3px solid var(--accent);
-  background: var(--accent-soft);
-  border-radius: 0 6px 6px 0;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-.editor-notice.is-pending {
-  border-left-color: var(--signal);
-  background: color-mix(in srgb, var(--signal) 12%, transparent);
-}
-.editor-alias {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  cursor: pointer;
-}
-.editor-refusal {
-  margin: 0.75rem 0 0;
-  padding: 0.7rem 0.85rem;
-  border-left: 3px solid var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
-  border-radius: 0 6px 6px 0;
-  color: var(--danger);
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
 /* A short question over whatever is behind it. It is a sentence and two
    buttons, so it is sized like one. */
 .ask-dialog {
@@ -5651,6 +5619,19 @@ body.has-sheet .app-main {
 .history-message.is-empty {
   color: var(--text-soft);
   font-style: italic;
+}
+/* An edit session (#300): one entry, opening into its saves. */
+.history-saves > summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--text-soft);
+}
+.history-saves ol {
+  margin: 0.4rem 0 0;
+  padding-left: 1rem;
+  font-size: 13px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
 }
 /* The modal: 560 px, its head set apart by a rule, and the list scrolling
    under a head that stays. */
@@ -6164,8 +6145,14 @@ body.has-sheet .app-main {
 
 /* The note scrolls up and down and never sideways: a block wider than the
    column scrolls inside itself, as code and tables do, and never drags the
-   reading and its bar with it. */
-.notebook-content,
+   reading and its bar with it. The middle clips rather than hides: `hidden`
+   on one axis turns the other into `auto`, and on a phone, where the row
+   scrolls and the middle does not, that made the middle a box that scrolled
+   nothing, which the bar of the notebook and the corner of the note stuck to
+   instead of the row, so both scrolled away with the note. */
+.notebook-content {
+  overflow-x: clip;
+}
 .app-main:has(> .notebook-layout) {
   overflow-x: hidden;
 }
@@ -6605,4 +6592,26 @@ body.has-sheet .app-main {
   max-width: none;
   margin: 0;
   padding: 24px 30px 32px;
+}
+
+/* The corner of a note — Show and Copy Markdown, and Edit for whoever writes
+   (#300) — floats at the top right of the body, where the renderer puts it.
+   Floating there it squeezed the name of the note, which the page hands the
+   renderer to draw under it, and on a phone the first paragraph to a column
+   of a few words: it takes a row of its own, above the name. */
+.content-pane > .markdown > .note-corner {
+  float: none;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.75rem;
+  /* It stays in view while the note scrolls, under the bar of the notebook
+     that sticks to the same top. */
+  top: var(--bar-h);
+}
+
+/* The toolbar of the editor (#300) sticks to the top of what scrolls, where
+   the bar of the notebook sticks too and covers it: it sticks under the bar,
+   so its tools stay whole while the note scrolls under both. */
+.content-pane > .markdown .edit-bar {
+  top: var(--bar-h);
 }

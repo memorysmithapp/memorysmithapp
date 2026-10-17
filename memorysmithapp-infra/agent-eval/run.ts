@@ -18,6 +18,11 @@
  *
  * `--open-room` runs the executor in the repository with its tools, which is how
  * AE-00 is shown to fail when the room leaks.
+ *
+ * The room runs under the Claude Code configuration directory named by
+ * `AGENT_EVAL_CLAUDE_CONFIG_DIR`, signed in once with an account kept for the
+ * evaluation (`CLAUDE_CONFIG_DIR=<dir> claude auth login`), because a session
+ * is handed the e-mail address of the account it runs under (#313).
  */
 
 import { chromium } from '@playwright/test';
@@ -26,7 +31,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { REPOSITORY_ROOT } from '../commands/lib/repository.js';
-import { loadCases, personaOf, type CaseVariant, type EvaluationCase } from './lib/case.js';
+import {
+  handedFile,
+  loadCases,
+  personaOf,
+  requestOf,
+  type CaseVariant,
+  type EvaluationCase,
+} from './lib/case.js';
 import { runChecks } from './lib/checks.js';
 import { skillsAnnounced, uncoveredSkills } from './lib/coverage.js';
 import {
@@ -42,9 +54,10 @@ import {
   type EvaluationEnvironment,
 } from './lib/environment.js';
 import { leaksIn } from './lib/leaks.js';
-import { openRoom, roomsRoot, runClaude } from './lib/room.js';
+import { accountInRoom, openRoom, roomConfigDir, roomsRoot, runClaude } from './lib/room.js';
 import { scorecard, type RunResult } from './lib/scorecard.js';
 import { emptyTranscript, readTurn } from './lib/transcript.js';
+import { waitsForPerson } from './lib/turns.js';
 
 const RUNS = join(dirname(fileURLToPath(import.meta.url)), 'runs');
 
@@ -75,6 +88,16 @@ const runs = Number(values.runs);
 // exiting, so the finally below always closes the browser and deletes the
 // accounts the round created.
 const root = roomsRoot();
+const claudeConfigDir = roomConfigDir();
+// Claude Code hands every session the address of the account it is signed in
+// with, and no flag of the room removes it (#313): the round says which one
+// the room carries, and a run whose executor writes it is discarded as a leak.
+const roomAccount = accountInRoom(claudeConfigDir);
+if (roomAccount && !claudeConfigDir) {
+  say(
+    'The room runs under your own Claude Code account, whose e-mail address every session is handed. Set AGENT_EVAL_CLAUDE_CONFIG_DIR to a configuration directory signed in with an account kept for the evaluation; until then, a run whose executor writes that address is discarded.',
+  );
+}
 const browser = await chromium.launch();
 const environment = await openEnvironment(values.environment).catch(async (error: unknown) => {
   await browser.close();
@@ -113,14 +136,14 @@ async function play(
   const token = await connectorToken(env, account, browser);
   const before = await snapshot(env, account);
   const persona = personaOf(evaluationCase, variant);
-  const room = openRoom({ root, mcpUrl: `${env.mcp}/mcp`, token, persona });
+  const room = openRoom({ root, mcpUrl: `${env.mcp}/mcp`, token, persona, claudeConfigDir });
 
   const transcript = emptyTranscript();
   const stream: string[] = [];
   const dialogue: string[] = [`# ${evaluationCase.id} · ${variant.id} · ${model}`, ''];
   let executor: string | null = null;
   let user: string | null = null;
-  let prompt = variant.request;
+  let prompt = requestOf(variant);
   let turn = 0;
   let finalText: string | undefined;
   try {
@@ -139,7 +162,12 @@ async function play(
       executor = answer.sessionId ?? executor;
       finalText = answer.text;
       dialogue.push('## Executor', '', answer.text, '');
-      if (!room.userPrompt || !answer.text.includes('?') || turn + 1 >= evaluationCase.turns) break;
+      if (
+        !room.userPrompt ||
+        !waitsForPerson(answer.text, transcript, turn) ||
+        turn + 1 >= evaluationCase.turns
+      )
+        break;
 
       const replies = await runClaude({
         room,
@@ -160,6 +188,7 @@ async function play(
 
   const after = await snapshot(env, account);
   const leaks = leaksIn(transcript);
+  const handed = handedFile(variant);
   const outcomes = runChecks(evaluationCase.checks, {
     transcript,
     before,
@@ -167,6 +196,9 @@ async function play(
     finalText: finalText ?? '',
     absent: variant.absent ?? [],
     leaks,
+    ...(handed
+      ? { handed: { bytes: handed.bytes, sha256: handed.sha256, whole: handed.whole } }
+      : {}),
   });
 
   writeFileSync(join(folder, 'transcript.jsonl'), `${stream.join('\n')}\n`);
