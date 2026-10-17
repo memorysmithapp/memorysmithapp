@@ -528,7 +528,8 @@ test.describe('the pages of an account', () => {
     await app.goto(notebook.page('/graph'));
     // The entry sits right above the graph in the navigation, and opens the page.
     const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
-    const labels = await nav.allInnerTexts();
+    await expect(nav.filter({ hasText: words.graph })).toBeVisible();
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
     expect(labels.indexOf(words.attachments)).toBe(labels.indexOf(words.graph) - 1);
     await nav.filter({ hasText: words.attachments }).click();
     await expect(app).toHaveURL(notebook.page('/attachments'));

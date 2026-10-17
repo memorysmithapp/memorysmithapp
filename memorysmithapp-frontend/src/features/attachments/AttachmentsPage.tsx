@@ -18,6 +18,7 @@ import { formatBytes } from '../../shared/components/StorageBar';
 import { Modal } from '../../shared/components/Modal';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
 import { DownloadIcon, FileIcon } from '../../shared/components/icons';
+import { intlLocale } from '../../i18n/intl-locale';
 
 /**
  * The files a notebook keeps, together (#307, RN-DSC-066).
@@ -35,6 +36,8 @@ import { DownloadIcon, FileIcon } from '../../shared/components/icons';
  */
 export function AttachmentsPage() {
   const { t, i18n } = useTranslation();
+  // The language of the interface is `pt_BR`; `Intl` reads `pt-BR`.
+  const locale = intlLocale(i18n.language);
   const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
   const live = useLiveInterval();
@@ -60,10 +63,8 @@ export function AttachmentsPage() {
   );
   const sorted = useMemo(
     () =>
-      [...(files.data ?? [])].sort((left, right) =>
-        left.name.localeCompare(right.name, i18n.language),
-      ),
-    [files.data, i18n.language],
+      [...(files.data ?? [])].sort((left, right) => left.name.localeCompare(right.name, locale)),
+    [files.data, locale],
   );
 
   return (
@@ -100,7 +101,7 @@ export function AttachmentsPage() {
                   file={file}
                   notes={uses.data ? (showing.get(file.name.normalize('NFC')) ?? []) : null}
                   usesFailed={uses.isError}
-                  locale={i18n.language}
+                  locale={locale}
                   onZoom={(url) => setZoom({ file, url })}
                 />
               ))}
