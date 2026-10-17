@@ -952,6 +952,48 @@
       ]
     },
     {
+      "id": "resolution/a-percentage-is-a-dimension-of-an-attachment",
+      "notation": "image-dimensions",
+      "notebook": {
+        "attachments": ["engelbart.jpg"]
+      },
+      "markdown": "![[engelbart.jpg|50%]]",
+      "links": [
+        {
+          "name": "engelbart.jpg",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "engelbart.jpg",
+          "kind": "attachment",
+          "edges": 0
+        }
+      ]
+    },
+    {
+      "id": "resolution/a-percentage-after-a-note-is-an-alias",
+      "notation": "wikilink-alias",
+      "notebook": {
+        "notes": ["---\nname: Lei 14.133\n---\n"]
+      },
+      "markdown": "See [[Lei 14.133|50%]].",
+      "links": [
+        {
+          "name": "Lei 14.133",
+          "anchor": null
+        }
+      ],
+      "resolution": [
+        {
+          "target": "Lei 14.133",
+          "kind": "note",
+          "edges": 1
+        }
+      ]
+    },
+    {
       "id": "resolution/the-markdown-form-reaches-the-same-note",
       "notation": "markdown-relative-link",
       "notebook": {

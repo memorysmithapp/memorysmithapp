@@ -155,11 +155,16 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
 export function editorWords(t: TFunction): EditorWords {
   const words: Record<string, unknown> = {};
   for (const key of Object.keys(ENGLISH.editor)) {
-    words[key] = key === 'attachQueued' ? undefined : t(`noteEditor.${key}`);
+    words[key] =
+      typeof ENGLISH.editor[key as keyof EditorWords] === 'function'
+        ? undefined
+        : t(`noteEditor.${key}`);
   }
   return {
     ...(words as unknown as EditorWords),
     attachQueued: (count: number) => t('noteEditor.attachQueued', { count }),
+    imageOutOfRange: (min: number, max: number, unit: string) =>
+      t('noteEditor.imageOutOfRange', { min, max, unit }),
   };
 }
 

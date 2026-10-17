@@ -290,9 +290,9 @@
     {
       "id": "image-dimensions",
       "reader": "reading-surface",
-      "syntax": "![alt text|100x145](image.png)",
-      "example": "![Engelbart|100x145](engelbart.jpg)",
-      "effect": "A `|` separates the description of an image from its dimensions: `100` sets the width and keeps the aspect ratio, `100x145` sets both, in CSS pixels. What precedes the pipe is the description and a Reader MUST NOT drop it; what follows it is not description and MUST NOT be rendered as text. A value that is neither form is not a dimension and stays part of the description, since deleting what an author wrote into an accessibility label is the worse failure. In a wikilink the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]` — and the same pipe means the alias of §5.1 when the target is a note.",
+      "syntax": "![alt text|100x145](image.png)  ·  ![alt text|50%](image.png)",
+      "example": "![Engelbart|100x145](https://example.org/engelbart.jpg)",
+      "effect": "A `|` separates the description of an image from its dimensions: `100` sets the width and keeps the aspect ratio, `100x145` sets both, in CSS pixels. `50%` sets the width as a share of the width the note is read at, from `1%` to `100%`, as a maximum: the height follows the ratio and a narrower image keeps its own width. A height in percent, a mixed pair and any other percentage are not dimensions. What precedes the pipe is the description and a Reader MUST NOT drop it; what follows it is not description and MUST NOT be rendered as text. A value that is neither form is not a dimension and stays part of the description, since deleting what an author wrote into an accessibility label is the worse failure. In a wikilink the dimensions go inside the brackets — `![[engelbart.jpg|100x145]]`, `![[engelbart.jpg|50%]]` — and the same pipe means the alias of §5.1 when the target is a note.",
       "spec": "3.14, 5.8"
     },
     {
