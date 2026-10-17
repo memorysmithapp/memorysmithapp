@@ -220,6 +220,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Replaces the guidance of a notebook, which is the document that declares how THIS notebook ' +
       'wants to be written: its conventions, its vocabulary, what belongs in it and what does ' +
       'not. It is read by every agent that writes here, so write it for one, in Markdown, and ' +
+      'open it with the paragraph that says what the notebook is, never with a heading: the ' +
+      'Notebook Context prints the name of the notebook as one right above it. Then ' +
       'read the current one with get_guidance, which also gives you the baseRevision. The ' +
       'answer is the revision this write produced: pass it as baseRevision to write again, and ' +
       'read the result with get_notebook_context to see it as the next agent will. When the ' +

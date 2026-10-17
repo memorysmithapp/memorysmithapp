@@ -1260,6 +1260,10 @@ describe('skills: the method, indexed by whoami', () => {
     // guidance opening with the heading the Notebook Context already prints,
     // and a folder that receives notes with no template.
     expect(body).toContain('Open with the paragraph that says what the notebook is');
+    // Said both ways, since a smaller model read it as "the paragraph after the
+    // title" (#314), and again in the order of the work.
+    expect(body).toContain('and never with a\n  heading.**');
+    expect(body).toContain('whose first line\n   is its first paragraph, never a heading');
     expect(body).toContain('Every folder that receives notes has its own template');
     expect(body).toContain('Open the template with the frontmatter block');
     expect(body).toContain('headings from `#`');

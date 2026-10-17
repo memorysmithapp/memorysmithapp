@@ -163,10 +163,10 @@ folders or templates of a shared one does.
 3. **The properties and tags** that classify the notes.
 4. **The maps of content** that gather a context.
 5. **A template for every folder that receives notes.**
-6. **Create it, in this order:** the notebook, its guidance, and the folders
-   that receive notes now, in reading order, each with its template and one real
-   note that follows it. A subfolder the structure names is created when its
-   first note arrives.
+6. **Create it, in this order:** the notebook, its guidance — whose first line
+   is its first paragraph, never a heading — and the folders that receive notes
+   now, in reading order, each with its template and one real note that follows
+   it. A subfolder the structure names is created when its first note arrives.
 7. **Read it back** with \`get_notebook_context\`, as the next agent will.
 
 ## The guidance
@@ -174,8 +174,10 @@ folders or templates of a shared one does.
 The guidance is what the next agent reads before writing. Write it for that
 reader, and state each convention once.
 
-- **Open with the paragraph that says what the notebook is.** The Notebook
-  Context prints the name of the notebook as a heading right above it.
+- **Open with the paragraph that says what the notebook is, and never with a
+  heading.** Its first line is that paragraph, not \`# \` and the name: the
+  Notebook Context prints the name of the notebook as a heading right above it,
+  so a heading of your own shows the name twice to every reader.
 - **Say what belongs, and where the rest goes.**
 - **Name the vocabulary.** If the owner says "finding" and not "issue", write it
   down: the words of the notebook become the words of its search.
