@@ -90,8 +90,8 @@ export class LinkReprojection extends Construct {
       lambdaFunction: steps.function,
       payload: TaskInput.fromObject({
         step: 'notebook',
-        mode,
-        run,
+        mode: JsonPath.stringAt('$.mode'),
+        run: JsonPath.stringAt('$.run'),
         subscriptionId: JsonPath.stringAt('$.subscriptionId'),
         notebookId: JsonPath.stringAt('$.notebookId'),
       }),
@@ -117,6 +117,15 @@ export class LinkReprojection extends Construct {
 
     const map = new DistributedMap(this, 'Every notebook', {
       itemsPath: '$.notebooks',
+      // Each iteration is an execution of its own, whose `$$.Execution` is not
+      // the run's: what it needs of the run is handed to it here, where the
+      // context is still the run's.
+      itemSelector: {
+        subscriptionId: JsonPath.stringAt('$$.Map.Item.Value.subscriptionId'),
+        notebookId: JsonPath.stringAt('$$.Map.Item.Value.notebookId'),
+        mode,
+        run,
+      },
       maxConcurrency: REPROJECTION_CONCURRENCY,
       label: 'notebooks',
     });

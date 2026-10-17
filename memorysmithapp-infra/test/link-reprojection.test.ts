@@ -19,6 +19,7 @@ interface State {
   End?: boolean;
   MaxConcurrency?: number;
   ItemsPath?: string;
+  ItemSelector?: Record<string, unknown>;
   ItemProcessor?: { StartAt: string; States: Record<string, State> };
   Retry?: Array<{ ErrorEquals: string[]; MaxAttempts: number }>;
   Catch?: Array<{ ErrorEquals: string[]; Next: string; ResultPath: string }>;
@@ -67,6 +68,22 @@ describe('the run that rebuilds the link graph', () => {
     const map = states['Every notebook'];
     expect(map?.ItemsPath).toBe('$.notebooks');
     expect(map?.MaxConcurrency).toBe(REPROJECTION_CONCURRENCY);
+  });
+
+  it('hands every iteration the mode and the name of the run, which its own context lacks', () => {
+    // An iteration is an execution of its own: `$$.Execution.Input` inside it
+    // is the item, and reading the mode there failed every notebook of the
+    // first run on staging.
+    const map = states['Every notebook'];
+    expect(map?.ItemSelector).toEqual({
+      'subscriptionId.$': '$$.Map.Item.Value.subscriptionId',
+      'notebookId.$': '$$.Map.Item.Value.notebookId',
+      'mode.$': '$$.Execution.Input.mode',
+      'run.$': '$$.Execution.Name',
+    });
+    const inner = map?.ItemProcessor;
+    const payload = JSON.stringify(inner?.States[inner.StartAt]?.Parameters);
+    expect(payload).not.toContain('$$.Execution');
   });
 
   it('retries a notebook on its own, and answers one that keeps failing as failed', () => {
