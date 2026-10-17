@@ -136,9 +136,27 @@ describe('what a role may do', () => {
     }
   });
 
-  it('lets production deliver and nothing more: no table, bucket or pool of either environment', () => {
+  it('lets production deliver and start its reprojection, and nothing more: no table, bucket or pool', () => {
     const actions = actionsOf(policiesOf(synth(), 'ProductionRole'));
-    expect(actions.sort()).toEqual(['ses:GetEmailIdentity', 'sts:AssumeRole']);
+    expect([...new Set(actions)].sort()).toEqual([
+      'ses:GetEmailIdentity',
+      'states:DescribeExecution',
+      'states:DescribeMapRun',
+      'states:ListMapRuns',
+      'states:StartExecution',
+      'sts:AssumeRole',
+    ]);
+  });
+
+  it('starts and follows the run that rebuilds the link graph of production, and no other', () => {
+    const statements = policiesOf(synth(), 'ProductionRole').filter((statement) =>
+      actionsOf([statement]).some((action) => action.startsWith('states:')),
+    );
+    const reach = JSON.stringify(statements.map((statement) => statement.Resource));
+    expect(reach).toContain('stateMachine:mv-reproject-links-production');
+    expect(reach).toContain('execution:mv-reproject-links-production:*');
+    expect(reach).toContain('mapRun:mv-reproject-links-production/*');
+    expect(reach).not.toMatch(/staging/);
   });
 
   it('names staging in every table, bucket and stack its suites reach', () => {
