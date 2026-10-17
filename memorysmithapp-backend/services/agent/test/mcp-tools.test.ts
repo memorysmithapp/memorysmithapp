@@ -2243,6 +2243,44 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     });
   });
 
+  /**
+   * An SVG as its text (#309): a round of the evaluation kept a 669-byte
+   * drawing as 678 bytes, because the agent wrote its base64 by hand.
+   */
+  it('keeps an SVG from its text, byte for byte, and refuses the text of any other type', async () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg">\n  <text>Cozinha 3,2 × 2,1 m</text>\n</svg>\n';
+    let sent: { contentBase64: string } | undefined;
+    const tools = gateways({
+      knowledge: {
+        keepFile: async (_caller: unknown, _notebook: unknown, file: { contentBase64: string }) => {
+          sent = file;
+          return { name: 'planta.svg', bytes: 1, sha256: 'c'.repeat(64) };
+        },
+      },
+    });
+    const base = { notebook: '01JBQ2X00000000000000000V1', name: 'planta.svg' };
+
+    const answer = await tools.call(
+      'keep_file',
+      { ...base, mimeType: 'image/svg+xml', content: svg },
+      caller,
+    );
+    expect(Buffer.from(sent?.contentBase64 ?? '', 'base64').toString('utf8')).toBe(svg);
+    expect(JSON.parse(answer.content[0]?.text ?? '')).toMatchObject({
+      reference: '![[planta.svg]]',
+    });
+
+    for (const args of [
+      { ...base, mimeType: 'image/png', content: 'not text' },
+      { ...base, mimeType: 'image/svg+xml', content: svg, contentBase64: 'AAAA' },
+      { ...base, mimeType: 'image/svg+xml' },
+    ]) {
+      const refused = await tools.call('keep_file', args, caller);
+      expect(refused.isError).toBe(true);
+    }
+  });
+
   it('lists the open uploads with the hash an agent resumes one by', async () => {
     const answer = await gateways({
       knowledge: { listFileUploads: async () => [transfer({ received: [1, 2] })] },

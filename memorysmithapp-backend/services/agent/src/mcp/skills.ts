@@ -809,7 +809,18 @@ that fits your situation is the one to use.
    \`send_file_part\`. Every byte passes through what you write, so this suits
    what you write out whole without a slip: a few tens of kilobytes.
 3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
-   takes it in one call.
+   takes it in one call: an SVG as its text in \`content\`, copied character
+   for character as you were given it, and any other type in
+   \`contentBase64\`, encoded by code. **Never write base64 by hand**: it slips
+   even on a few hundred bytes, and a file with one byte changed is not the
+   person's file. With no code to encode it and a type that is not text, ask
+   the person for it, as below.
+
+\`keep_file\` answers the size and the SHA-256 of what was kept. When you know
+either of the file you were given and they differ, say so to the person before
+anything else: never tell them the file is theirs on a size you did not
+compare. An upload in parts needs no such look, since its finish keeps only a
+whole that hashes to what you declared.
 
 Anything larger that you cannot send by URL, **ask the person for**: see *When
 you cannot send it* below.
