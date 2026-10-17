@@ -33,6 +33,7 @@ import type {
   NotebookDetailDto,
   NotebookGraphDto,
   NotebookNamesDto,
+  NotebookAttachmentsDto,
   NotebookFileDto,
   FileLinkDto,
   FileListDto,
@@ -177,6 +178,20 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
 export async function getNotebookNames(notebookId: string): Promise<NoteRefDto[]> {
   const answer = await request<NotebookNamesDto>(`/discovery/notebooks/${notebookId}/names`);
   return answer.notes;
+}
+
+/**
+ * Every file the notebook keeps with the notes that show it, by an embed or an
+ * image (#307, RN-DSC-066). What a file is comes from Knowledge; which notes
+ * show it is read by Discovery, which reads the notes.
+ */
+export async function getNotebookAttachments(
+  notebookId: string,
+): Promise<NotebookAttachmentsDto['attachments']> {
+  const answer = await request<NotebookAttachmentsDto>(
+    `/discovery/notebooks/${notebookId}/attachments`,
+  );
+  return answer.attachments;
 }
 
 /** The files a notebook keeps beside its notes (#166). */

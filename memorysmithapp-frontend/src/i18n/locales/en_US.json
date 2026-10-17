@@ -400,6 +400,20 @@
       "reading": "Reading the archive…"
     }
   },
+  "attachments": {
+    "heading": "Attachments",
+    "navLabel": "Attachments",
+    "intro": "The files this notebook keeps, and the notes that show each one.",
+    "none": "This notebook keeps no files yet. A file attached in the editor, or kept by an agent, appears here.",
+    "count_one": "{{count}} file",
+    "count_other": "{{count}} files",
+    "shownBy_one": "Shown in {{count}} note:",
+    "shownBy_other": "Shown in {{count}} notes:",
+    "shownByNone": "No note shows this file.",
+    "notesUnknown": "Could not read which notes show this file.",
+    "download": "Download",
+    "enlarge": "Enlarge"
+  },
   "graph": {
     "heading": "Notebook graph",
     "navLabel": "Notebook graph",

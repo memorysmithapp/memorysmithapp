@@ -24,6 +24,7 @@
   "GET /audit/notebooks/:v/notes/:n/history",
   "GET /audit/notebooks/:v/notes/:n/revisions",
   "GET /audit/notebooks/:v/notes/:n/revisions/:versionId",
+  "GET /discovery/notebooks/:v/attachments",
   "GET /discovery/notebooks/:v/facets",
   "GET /discovery/notebooks/:v/graph",
   "GET /discovery/notebooks/:v/health",

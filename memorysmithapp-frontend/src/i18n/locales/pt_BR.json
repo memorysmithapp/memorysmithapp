@@ -403,6 +403,20 @@
       "reading": "Lendo o arquivo…"
     }
   },
+  "attachments": {
+    "heading": "Anexos",
+    "navLabel": "Anexos",
+    "intro": "Os arquivos que este caderno guarda e as notas que mostram cada um.",
+    "none": "Este caderno ainda não guarda arquivos. Um arquivo anexado no editor, ou guardado por um agente, aparece aqui.",
+    "count_one": "{{count}} arquivo",
+    "count_other": "{{count}} arquivos",
+    "shownBy_one": "Aparece em {{count}} nota:",
+    "shownBy_other": "Aparece em {{count}} notas:",
+    "shownByNone": "Nenhuma nota mostra este arquivo.",
+    "notesUnknown": "Não foi possível ler quais notas mostram este arquivo.",
+    "download": "Baixar",
+    "enlarge": "Ampliar"
+  },
   "graph": {
     "heading": "Grafo do caderno",
     "navLabel": "Grafo do caderno",

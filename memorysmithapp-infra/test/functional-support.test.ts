@@ -54,6 +54,7 @@ describe('the pages of the interface', () => {
       '/notebooks/:notebookId',
       '/notebooks/:notebookId/guidance',
       '/notebooks/:notebookId/templates',
+      '/notebooks/:notebookId/attachments',
       '/notebooks/:notebookId/graph',
       '/notebooks/:notebookId/folders',
       '/notebooks/:notebookId/folders/:folderId',

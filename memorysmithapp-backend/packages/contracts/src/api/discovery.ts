@@ -51,6 +51,16 @@ export const notebookNamesSchema = z.object({
   attachments: z.array(z.string()),
 });
 
+/**
+ * Every file the notebook keeps, by its name, with the notes that show it —
+ * by an embed or by an image, never by a plain link (#307, RN-DSC-066). What
+ * the file is, its type, size and description, is Knowledge's, and a screen
+ * reads it from there.
+ */
+export const notebookAttachmentsSchema = z.object({
+  attachments: z.array(z.object({ name: z.string().min(1), notes: z.array(noteRefSchema) })),
+});
+
 /** BFS from a note: depth capped at 3, 200 nodes, cycles deduplicated. */
 export const graphNodeSchema: z.ZodType<{
   note: z.infer<typeof noteRefSchema>;
@@ -174,6 +184,7 @@ export const facetStatsSchema = z.object({
 
 export type NoteRefDto = z.infer<typeof noteRefSchema>;
 export type NotebookNamesDto = z.infer<typeof notebookNamesSchema>;
+export type NotebookAttachmentsDto = z.infer<typeof notebookAttachmentsSchema>;
 export type ResolvedTargetDto = z.infer<typeof resolvedTargetSchema>;
 export type GraphNodeDto = z.infer<typeof graphNodeSchema>;
 export type GraphNoteRefDto = z.infer<typeof graphNoteRefSchema>;

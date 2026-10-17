@@ -1305,6 +1305,9 @@ svc-discovery    GET  /notebooks/:v/links/:target   what one wikilink target res
                     what it REACHES; an alias is read by this context and by no
                     other, so the structure the page is drawn from cannot carry
                     one (rule 5, RN-DSC-046)
+                 GET  /notebooks/:v/attachments   every kept file with the notes that
+                    show it, by an embed or an image, read from the `PENDING#` and
+                    `IMAGE#` items in one pass over the partition (RN-DSC-066)
                  GET  /notebooks/:v/graph   (the whole notebook graph, edges from the index)
                  GET  /notebooks/:v/notes/:n/graph?depth= · GET /notebooks/:v/notes/:n/backlinks
                  GET  /notebooks/:v/notes/:n/links   every target a note writes and the

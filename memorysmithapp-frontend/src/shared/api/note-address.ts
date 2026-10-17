@@ -82,6 +82,11 @@ export function templatesAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/templates`;
 }
 
+/** The files the notebook keeps, with the notes that show each (#307). */
+export function attachmentsAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/attachments`;
+}
+
 export function graphAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/graph`;
 }

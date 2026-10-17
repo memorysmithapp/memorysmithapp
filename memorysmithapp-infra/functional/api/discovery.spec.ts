@@ -254,6 +254,63 @@ test.describe('the graph of a notebook', () => {
     );
     expect(health).not.toHaveProperty('brokenLinks');
   });
+
+  /**
+   * A file is shown by the notes that embed it or draw it as an image by path,
+   * and by no plain link (#305, #307, RN-DSC-065, RN-DSC-066).
+   */
+  test('[route:GET /discovery/notebooks/:v/attachments] lists each kept file with the notes that show it', async ({
+    owner,
+    notebook,
+  }) => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const keep = (name: string) =>
+      owner.ok('POST', `/knowledge/notebooks/${notebook.notebookId}/files`, {
+        name,
+        description: 'Kept by a functional case',
+        mimeType: 'image/png',
+        contentBase64: png,
+      });
+    const write = (content: string) =>
+      owner.ok<{ noteId: string }>('POST', `/knowledge/notebooks/${notebook.notebookId}/notes`, {
+        folderId: notebook.folderId,
+        content,
+      });
+    await keep('curva final.png');
+    await keep('nunca mostrada.png');
+    const drawn = await write(
+      '---\nname: Desenha\n---\n\n![Curva|50%](../assets/curva%20final.png)\n\n![Falta](falta.png)\n',
+    );
+    const embedded = await write('---\nname: Embute\n---\n\n![[curva final.png]]\n');
+    await write('---\nname: Só cita\n---\n\nVer [[nunca mostrada.png]].\n');
+
+    type Uses = { attachments: Array<{ name: string; notes: NoteRef[] }> };
+    const answer = await eventually(
+      'both notes showing curva final.png',
+      () => owner.ok<Uses>('GET', `${discovery(notebook)}/attachments`),
+      (found) =>
+        found.attachments.find((each) => each.name === 'curva final.png')?.notes.length === 2,
+    );
+    const shown = (name: string) =>
+      answer.attachments
+        .find((each) => each.name === name)
+        ?.notes.map((note) => note.noteId)
+        .sort();
+    expect(shown('curva final.png')).toEqual([drawn.noteId, embedded.noteId].sort());
+    // A plain link names a note, never a file (§5.8).
+    expect(shown('nunca mostrada.png')).toEqual([]);
+
+    // The image of a file the notebook does not keep is pending, as an embed of one is.
+    const health = await owner.ok<{
+      pendingLinks: Array<{ fromNote: NoteRef; targetName: string }>;
+      unshownFiles: string[];
+    }>('GET', `${discovery(notebook)}/health`);
+    expect(health.pendingLinks).toContainEqual(
+      expect.objectContaining({ targetName: 'falta.png' }),
+    );
+    expect(health.unshownFiles).toEqual(['nunca mostrada.png']);
+  });
 });
 
 test.describe('facets and search', () => {

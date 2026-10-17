@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { NotebookStructure } from '../../shared/types/api';
 import {
+  attachmentsAddress,
   foldersAddress,
   graphAddress,
   guidanceAddress,
@@ -15,6 +16,7 @@ import {
   FolderIcon,
   GraphIcon,
   GuidanceIcon,
+  PaperclipIcon,
   SearchIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
@@ -31,7 +33,8 @@ import { FolderTree } from './FolderTree';
  * raises it to 88 % of the height, over a dimmed page.
  *
  * Under its handle, a bar of icons that stays: the search, the Context, its
- * three parts and the graph, the one of the open page filled in Tinta. Below
+ * three parts, the attachments and the graph, the one of the open page filled
+ * in Tinta. Below
  * it scroll the way back to every notebook, the name and the tree. It closes
  * by dragging the handle down, a tap outside, Esc, and by opening a page.
  */
@@ -134,6 +137,9 @@ export function NotebookSheet({
               </SheetTab>
               <SheetTab to={foldersAddress(notebookId)} label={t('structure.folders')}>
                 <FolderIcon />
+              </SheetTab>
+              <SheetTab to={attachmentsAddress(notebookId)} label={t('attachments.navLabel')}>
+                <PaperclipIcon />
               </SheetTab>
               <SheetTab to={graphAddress(notebookId)} label={t('graph.navLabel')}>
                 <GraphIcon />

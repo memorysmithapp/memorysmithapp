@@ -494,6 +494,65 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
   });
 
+  test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const name = `curva-${randomBytes(3).toString('hex')}.png`;
+    await owner.ok('POST', `${path}/files`, {
+      name,
+      description: 'A curva do relatório',
+      mimeType: 'image/png',
+      contentBase64: png,
+    });
+    const shows = `Mostra ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${shows}\n---\n\n![Curva|50%](../assets/${name})\n`,
+    });
+    await eventually(
+      'the note showing the file',
+      () =>
+        owner.ok<{ attachments: Array<{ name: string; notes: Array<{ noteId: string }> }> }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/attachments`,
+        ),
+      (found) => found.attachments.some((each) => each.name === name && each.notes.length === 1),
+    );
+
+    await app.goto(notebook.page('/graph'));
+    // The entry sits right above the graph in the navigation, and opens the page.
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    const labels = await nav.allInnerTexts();
+    expect(labels.indexOf(words.attachments)).toBe(labels.indexOf(words.graph) - 1);
+    await nav.filter({ hasText: words.attachments }).click();
+    await expect(app).toHaveURL(notebook.page('/attachments'));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(words.attachments);
+
+    const row = app.locator('.attachment-row', { hasText: name });
+    await expect(row).toContainText('A curva do relatório');
+    await expect(row.getByRole('link', { name: `${words.download}: ${name}` })).toHaveAttribute(
+      'href',
+      /^https:\/\//,
+    );
+    // An image is previewed, and opens larger.
+    await expect(row.locator('.attachment-thumb img')).toBeVisible();
+    await row.locator('button.attachment-thumb').click();
+    const dialog = app.getByRole('dialog', { name });
+    await expect(dialog.locator('img.attachment-zoom')).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+
+    // The note that shows it is a link to the note.
+    await row.getByRole('link', { name: shows }).click();
+    await expect(app).toHaveURL(notebook.page(`/notes/${noteId.toLowerCase()}`));
+  });
+
   test('opens the tree on the top-level folders, with no Root above them (#196)', async ({
     app,
     notebook,
