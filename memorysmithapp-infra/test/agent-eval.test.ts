@@ -14,9 +14,16 @@ import { handedFile, loadCases, requestOf } from '../agent-eval/lib/case.js';
 import { runChecks, type NotebookSnapshot } from '../agent-eval/lib/checks.js';
 import { skillsAnnounced, uncoveredSkills } from '../agent-eval/lib/coverage.js';
 import { leaksIn } from '../agent-eval/lib/leaks.js';
-import { claudeArguments, type Room } from '../agent-eval/lib/room.js';
+import {
+  claudeArguments,
+  roomConfigDir,
+  roomEnvironment,
+  SIMULATED_USER_PREAMBLE,
+  type Room,
+} from '../agent-eval/lib/room.js';
 import { scorecard } from '../agent-eval/lib/scorecard.js';
 import { emptyTranscript, readTurn } from '../agent-eval/lib/transcript.js';
+import { waitsForPerson } from '../agent-eval/lib/turns.js';
 
 const event = (value: unknown): string => JSON.stringify(value);
 
@@ -60,6 +67,62 @@ describe('a leak into the clean room', () => {
     transcript.texts.push({ turn: 0, text: 'Per RN-KNW-037 and the bounded context of Access…' });
     transcript.toolResults.push('Notes may share a name (RN-KNW-037).');
     expect(leaksIn(transcript)).toEqual(['bounded context']);
+  });
+
+  it('names a folder of the repository by its name since #293', () => {
+    const transcript = emptyTranscript();
+    transcript.texts.push({ turn: 0, text: 'It lives in memorysmithapp-backend.' });
+    expect(leaksIn(transcript)).toEqual(['a path of the repository']);
+  });
+
+  it('is an e-mail address the server never sent, without saying which (#313)', () => {
+    const transcript = emptyTranscript();
+    transcript.toolResults.push('Person: marina.dbfab0@example.com');
+    transcript.texts.push({
+      turn: 0,
+      text: 'Authorised by marina.dbfab0@example.com, and not by your address (someone@gmail.com).',
+    });
+    expect(leaksIn(transcript)).toEqual(['an e-mail address']);
+  });
+
+  it('lets an address the server sent, or one of an example domain, through', () => {
+    const transcript = emptyTranscript();
+    transcript.toolResults.push('Person: Marina.Dbfab0@example.com, shared by owner@clinic.com.br');
+    transcript.toolUses.push({
+      tool: 'create_note',
+      input: { content: 'Contact: owner@clinic.com.br, front desk at desk@consultorio.test' },
+      turn: 0,
+    });
+    transcript.texts.push({ turn: 0, text: 'Done for marina.dbfab0@example.com.' });
+    expect(leaksIn(transcript)).toEqual([]);
+  });
+});
+
+describe('a message that waits for the person (#312)', () => {
+  it('waits when it asks, with a question mark or without one', () => {
+    const transcript = emptyTranscript();
+    expect(waitsForPerson('Shall I go ahead?', transcript, 0)).toBe(true);
+    expect(
+      waitsForPerson(
+        'Se essa estrutura estiver boa, me confirme e diga se a criação é de teste.',
+        transcript,
+        0,
+      ),
+    ).toBe(true);
+  });
+
+  it('is done when its turn wrote and it asks nothing', () => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'whoami', input: {}, turn: 1 });
+    transcript.toolUses.push({ tool: 'create_note', input: {}, turn: 1 });
+    expect(waitsForPerson('The notebook is ready.', transcript, 1)).toBe(false);
+  });
+
+  it('reads only the writes of its own turn', () => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'create_notebook', input: {}, turn: 0 });
+    transcript.toolUses.push({ tool: 'list_notes', input: {}, turn: 1 });
+    expect(waitsForPerson('Paste the examples here.', transcript, 1)).toBe(true);
   });
 });
 
@@ -302,6 +365,20 @@ describe('the clean room', () => {
     expect(args[args.indexOf('--mcp-config') + 1]).toBe('U');
     expect(args[args.indexOf('--system-prompt') + 1]).toBe('persona');
     expect(args[args.indexOf('--resume') + 1]).toBe('s2');
+  });
+
+  it("runs under the configuration directory the round names, and the operator's otherwise (#313)", () => {
+    expect(roomConfigDir({ AGENT_EVAL_CLAUDE_CONFIG_DIR: ' /eval/claude ' })).toBe('/eval/claude');
+    expect(roomConfigDir({ AGENT_EVAL_CLAUDE_CONFIG_DIR: '' })).toBeNull();
+    expect(roomEnvironment('/eval/claude', { PATH: '/bin' })).toEqual({
+      PATH: '/bin',
+      CLAUDE_CONFIG_DIR: '/eval/claude',
+    });
+    expect(roomEnvironment(null, { PATH: '/bin' })).toEqual({ PATH: '/bin' });
+  });
+
+  it('tells the simulated user a test environment is fine (#312)', () => {
+    expect(SIMULATED_USER_PREAMBLE).toMatch(/test environment.*go ahead/);
   });
 
   it('is opened only when asked, in the repository, with tools to read it', () => {

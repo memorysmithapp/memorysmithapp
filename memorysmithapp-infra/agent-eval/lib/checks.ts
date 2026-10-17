@@ -66,7 +66,7 @@ export interface CheckOutcome {
   readonly detail: string;
 }
 
-const WRITES = new Set([
+export const WRITES: ReadonlySet<string> = new Set([
   'create_notebook',
   'delete_notebook',
   'set_guidance',
