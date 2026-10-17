@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-17
+
 ### Added
 
 - **A note is edited on the page that draws it.** The pencil opened a text area of raw Markdown, with a confirmation that asked what changed before writing. Now *Edit*, an icon at the top right of the note beside *Show Markdown* and *Copy Markdown*, turns the page itself into the editor of `@memorysmithapp/markdown-renderer` 0.8.3. It covers every construct of the specification: marks, headings, lists and tasks, links and wikilinks (with the notebook's names offered after `[[`), callouts, tables cell by cell, code with its language, formulas and diagrams drawn live, the frontmatter as a form, footnotes and comments. A byte the person did not touch is never rewritten. The note saves as the person types, after a pause, and the save status beside the switch says *Saving…*, *Saved* or *Not saved*. The line being typed stays where it is on the screen, through every save. Going back to reading waits for the save in flight. Leaving the page sends what is waiting, and closing the tab asks first (#300, RN-KNW-052).
@@ -784,7 +786,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.10.0...v0.11.0
