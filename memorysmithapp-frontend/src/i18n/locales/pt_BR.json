@@ -264,6 +264,8 @@
       "keep": "Manter",
       "deleteForGood": "Apagar de vez",
       "deleting": "Apagando…",
+      "confirmExports_one": "1 exportação guardada dele fica em Transferências.",
+      "confirmExports_other": "{{count}} exportações guardadas dele ficam em Transferências.",
       "confirmUploads_one": "1 envio do agente em andamento fica em Transferências, sem caderno.",
       "confirmUploads_other": "{{count}} envios do agente em andamento ficam em Transferências, sem caderno."
     },

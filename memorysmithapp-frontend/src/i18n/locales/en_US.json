@@ -264,6 +264,8 @@
       "keep": "Keep",
       "deleteForGood": "Delete for good",
       "deleting": "Deleting…",
+      "confirmExports_one": "1 kept export of it stays in Transfers.",
+      "confirmExports_other": "{{count}} kept exports of it stay in Transfers.",
       "confirmUploads_one": "1 open upload of an agent stays in Transfers, with no notebook.",
       "confirmUploads_other": "{{count}} open uploads of an agent stay in Transfers, with no notebook."
     },

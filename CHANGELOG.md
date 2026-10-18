@@ -35,6 +35,7 @@ issues each entry cites.
 - **The history an agent reads of a note no longer promises it survives a move to another notebook**, which no client offers: it survives a move to another folder. (#330)
 - **Changing your password keeps the session you changed it from open**, as the screen says: every other session still ends, and this one no longer did too an hour later, at its first refresh. (#331)
 - **Removing a member of a subscription also removes the ceilings they had on its notebooks**, so somebody removed and later added again starts with the role they are given, not with a limit nobody sees. (#332)
+- **Deleting a notebook on the web says how many of its kept exports stay in Transfers**, as the connector already did, so nobody deletes a notebook believing its exports go with it. (#333)
 
 ### Security
 

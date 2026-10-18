@@ -395,7 +395,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-018 | An import is a job with status and progress, ending `ready`, `failed` or `cancelled`; failing or cancelling removes the notebook whole. |  |
 | RN-PRT-019 | An export is a job with status and progress, ending ready or failed, downloaded through a link issued at each download. | |
 | RN-PRT-020 | An export is kept until its creator deletes it, seen only by them, survives its notebook, can be imported in place, and counts against storage. | |
-| RN-PRT-021 | Deleting a notebook through the connector answers how many kept exports of it the caller holds, and that they stay. |  |
+| RN-PRT-021 | Deleting a notebook says how many kept exports of it the person holds, and that they stay: the connector answers it, and the interface says it where the deletion is confirmed. |  |
 | RN-PRT-022 | An export may carry the notebook's history, every trail entry and the revision content it names, filtered to what a selection carries. | |
 | RN-PRT-023 | An import reproduces a carried history as entries of the subscription, keeping person and instant, re-keyed, and recording the transfer that brought them. | |
 | RN-PRT-024 | An export may write part of a notebook by the same selection as an import, files included; no selection means the whole notebook with its whole history. | |
