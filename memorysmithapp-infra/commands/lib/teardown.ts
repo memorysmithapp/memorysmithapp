@@ -19,6 +19,8 @@ export const DELIVERY_ORDER = [
   'Projections',
   'Agent',
   'FrontendRelease',
+  // Last: it watches what every other stack declared (#270).
+  'Observability',
 ] as const;
 
 /** The only environment that is ever torn down. */

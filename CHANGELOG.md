@@ -14,6 +14,7 @@ issues each entry cites.
 ### Added
 
 - **Every call can be followed through X-Ray**, from the connector to the core and from a write to the relay, the projector and the trail it caused: each operation is a subsegment searchable by its business flow (`write`, `file-upload`, `share`, `export`, `import`, `print`, `onboarding`, `connect-agent`), its operation and its correlation id, with identifiers only, as the log. (#271)
+- **Three dashboards say how the product is used, whether its flows reach their end, and whether it is healthy**, for whoever operates it: active people of a day, a week and a month, agents by client and MCP tools by calls and refusals; the steps of onboarding, connecting an agent, writing, uploading a file, sharing, exporting, importing and printing; and the latency, traffic, errors and saturation of every function. The active people are counted once a day and kept fifteen months, and no number is ever kept per person or per subscription. (#270)
 
 ### Changed
 

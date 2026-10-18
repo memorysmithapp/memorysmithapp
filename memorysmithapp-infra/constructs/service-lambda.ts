@@ -57,6 +57,8 @@ export interface ServiceLambdaProps {
 
 export class ServiceLambda extends Construct {
   readonly function: NodejsFunction;
+  /** Where its operation lines go, which the dashboards of #270 query. */
+  readonly logGroup: LogGroup;
 
   constructor(scope: Construct, id: string, props: ServiceLambdaProps) {
     super(scope, id);
@@ -67,10 +69,11 @@ export class ServiceLambda extends Construct {
      * `cdk destroy` leaves it behind, and without retention it never expires
      * and is billed forever.
      */
-    const logGroup = new LogGroup(this, 'Logs', {
+    this.logGroup = new LogGroup(this, 'Logs', {
       retention: RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    const logGroup = this.logGroup;
 
     this.function = new NodejsFunction(this, 'Function', {
       entry: props.entry,

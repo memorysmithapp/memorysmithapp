@@ -16,6 +16,7 @@ import { ApiStack } from '../stacks/api.stack.js';
 import { DataStack } from '../stacks/data.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
+import { ObservabilityStack } from '../stacks/observability.stack.js';
 import { ProjectionsStack } from '../stacks/projections.stack.js';
 
 export const ENVIRONMENTS = {
@@ -115,12 +116,19 @@ export function stacksOf(app: App) {
     coreApi: api.httpApi,
     siteOrigin: `https://${network.siteDomainName}`,
   });
+  const observability = new ObservabilityStack(app, id('Observability'), {
+    env,
+    environment,
+    data,
+    sources: [identity, api, projections, agent],
+  });
   guardAlarms(app, environment);
   return {
     network,
     api,
     agent,
     projections,
-    all: [network, data, identity, api, projections, agent] as Stack[],
+    observability,
+    all: [network, data, identity, api, projections, agent, observability] as Stack[],
   };
 }

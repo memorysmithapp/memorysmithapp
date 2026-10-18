@@ -31,6 +31,8 @@ const HANDLERS = [
   'memorysmithapp-backend/apps/core-monolith/src/print.handler.ts',
   // The steps of the run that rebuilds the link graph (#311).
   'memorysmithapp-backend/apps/core-monolith/src/reproject.handler.ts',
+  // The daily count of active people (#270).
+  'memorysmithapp-backend/apps/core-monolith/src/active-people.handler.ts',
   'memorysmithapp-backend/services/audit/src/main/handler.ts',
   'memorysmithapp-backend/services/discovery/src/main/handler.ts',
   // The connector, which answers an image now (#260).

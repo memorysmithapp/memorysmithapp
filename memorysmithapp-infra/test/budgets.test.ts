@@ -55,9 +55,9 @@ describe('the budgets of production', () => {
     }
   });
 
-  it('hold the whole account at US$ 12, above the floor it costs standing still', () => {
+  it('hold the whole account at US$ 20, above the floor it costs standing still', () => {
     const account = named('memorysmith-account-monthly');
-    expect(account.Properties.Budget.BudgetLimit).toEqual({ Amount: 12, Unit: 'USD' });
+    expect(account.Properties.Budget.BudgetLimit).toEqual({ Amount: 20, Unit: 'USD' });
     expect(account.Properties.Budget.CostFilters).toBeUndefined();
     expect(alerts(account)).toEqual(['ACTUAL 80', 'ACTUAL 100', 'FORECASTED 100']);
   });
