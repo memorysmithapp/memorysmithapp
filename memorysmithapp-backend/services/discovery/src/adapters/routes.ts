@@ -13,7 +13,7 @@
  *   POST /notebooks/:v/search   { query }   lexical, over names and folders
  *
  * Every route reads a projection. None of them touches a note, and none of
- * them is consulted by the Knowledge context (RN-DSC-017).
+ * them is consulted by the Knowledge context (ADR-013).
  */
 
 import { Hono, type Context } from 'hono';

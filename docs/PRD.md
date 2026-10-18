@@ -106,16 +106,16 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-SUB-006 | Signup creates only the user account; no subscription and no operational access are created automatically. | |
 | RN-SUB-007 | A subscription in `pending_approval`, `rejected`, `suspended` or `canceled` grants operational access to nobody, its `OWNER` and MCP included. | |
 | RN-SUB-008 | Only a `PLATFORM_ADMIN` approves, rejects, suspends or reactivates subscriptions. | |
-| RN-SUB-009 | Rejecting a subscription requires a reason, communicated to the requester, who may request again. | |
+| RN-SUB-009 | Rejecting a subscription requires a reason, kept with the subscription. |  |
 | RN-SUB-010 | Approval sets the status to `trial` or `active`, at the discretion of the `PLATFORM_ADMIN`. | |
 | RN-SUB-011 | A user may be linked to several subscriptions, and exactly one is the active subscription of the session. | |
-| RN-SUB-012 | One link is marked as default and is assumed when no valid active subscription is found. | |
+| RN-SUB-012 | The active subscription of a session is the link marked as default, and switching moves that mark. |  |
 | RN-SUB-013 | Switching the active subscription is an explicit user action, and no business operation takes the subscription as an argument. | |
 | RN-SUB-014 | An authorised MCP connector operates on the subscription fixed at consent for the whole life of that authorisation. | |
 | RN-SUB-015 | Derived indexes (search, graph, facets, cache) respect the same subscription boundary as the source data. | |
 | RN-SUB-016 | A `PLATFORM_ADMIN` session carries no active subscription and therefore reaches no notebook or note data. | |
 | RN-SUB-017 | Covered what accepting an invitation created. | Removed (v0.6.0): member invitations left the product |
-| RN-SUB-018 | Every subscription declares a `type`, currently only `individual`; only a `PLATFORM_ADMIN` changes it or sets a status directly, recorded as its own event, rejection still requiring a reason. | |
+| RN-SUB-018 | Every subscription declares a `type`, currently only `individual`; only a `PLATFORM_ADMIN` changes it or sets a status directly, each recorded as its own event. |  |
 | RN-SUB-019 | Every subscription declares a storage `quota` of `500MB`, `1GB` or `2GB`, chosen at request time and changeable by a `PLATFORM_ADMIN`. | |
 | RN-SUB-020 | A subscription has no name: it is identified by its `SubscriptionId` and recognised by the owner's e-mail. | |
 | RN-SUB-021 | The quota is enforced over current content and kept exports: a write that would push the total above it is refused with `LIMIT_EXCEEDED`, while a write that does not increase it always succeeds. | |
@@ -142,12 +142,12 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-ACC-012 | The only admitted ceiling value is `VIEWER`; no ceiling hides a notebook. | |
 | RN-ACC-013 | The notebook ceiling does not apply to the `OWNER`. | |
 | RN-ACC-014 | Removing a member from the subscription also removes all their notebook ceilings. | |
-| RN-ACC-015 | Every authorisation decision is taken by the service owning the resource, combining the subscription role with the notebook ceiling. | |
+| RN-ACC-015 | Said every authorisation decision was taken by the service owning the resource. | Removed: how authorisation is built, not a guarantee; what a role reaches is RN-ACC-010 to RN-ACC-013 |
 | RN-ACC-016 | Role changes, ceiling changes and removals may take up to 5 minutes to reach already authenticated sessions. | |
 | RN-ACC-017 | Every message sent to an account comes from `no-reply@` the environment's domain, wears the brand, uses the account's language and states how long its credential lasts. | |
 | RN-ACC-018 | An account's language is `pt_BR` or `en_US`: the one given at creation, `pt_BR` by default, then the last one chosen in the interface. | |
-| RN-ACC-019 | An account is shown what the product is once, on its first sign-in reaching the dashboard, and afterwards from the user menu; the date is recorded on the account. | |
-| RN-ACC-020 | The welcome surface states the connector address of its environment, how to add it to a client, and what sending a file through each assistant requires. | |
+| RN-ACC-019 | An account is shown what the product is once, on its first sign-in reaching the dashboard, and afterwards from the user menu; the date is recorded on the server, not in the browser. |  |
+| RN-ACC-020 | The welcome surface states the connector address of its environment, how to add it to each client as a custom connector and what to answer in each field, and what sending a file through each assistant requires. |  |
 | RN-ACC-021 | A person edits their name and picture while the e-mail stays read-only, and what they typed is never overwritten by the identity provider or Gravatar. | |
 | RN-ACC-022 | A profile picture comes from Gravatar, drawn initials or an upload; an upload is bounded in size, type-checked against its bytes and counts against no quota. | |
 | RN-ACC-023 | A person changes their password by stating the current one; a refusal never says which half failed, and the change ends every other session. | |
@@ -155,15 +155,15 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-ACC-025 | Sharing answers the same whatever the e-mail, so it cannot reveal who has an account; an e-mail with no account keeps and sends nothing. | |
 | RN-ACC-026 | A share takes effect only once its grantee accepts it; until then only the notebook's name and description are visible, and the grantee may accept or reject. | |
 | RN-ACC-027 | An accepted share lets its grantee read and export the whole notebook and write nothing, a write answering `403` naming the owner. | |
-| RN-ACC-028 | A share ends when the owner revokes it, the grantee leaves, or the owner's subscription grants no access; every change of a share is recorded in the notebook's trail. | |
-| RN-ACC-029 | Every change of a share is told to the other side in the interface notifications, never by e-mail; a departure is told only if the grantee chose to. | |
-| RN-ACC-030 | A notebook shared with a person appears only on their Home, marked with its owner, and a pending share is a card offering **Accept** and **Decline**. | |
+| RN-ACC-028 | A share ends when the owner revokes it, the grantee leaves or the notebook is deleted, and reaches nothing while the owner's subscription grants no access; while the notebook exists, every change of a share is recorded in its trail. |  |
+| RN-ACC-029 | Sharing, revoking, accepting, declining and leaving are told to the other side in the interface notifications, never by e-mail; a departure is told only if the grantee chose to. |  |
+| RN-ACC-030 | In the interface, a notebook shared with a person appears only on their Home, marked with its owner, and a pending share is a card offering **Accept** and **Decline**. |  |
 
 ### Knowledge
 
 | Code | Rule | Status |
 |---|---|---|
-| RN-KNW-001 | Every notebook belongs to exactly one subscription. | |
+| RN-KNW-001 | Said every notebook belonged to exactly one subscription. | Removed: the same as RN-SUB-001 |
 | RN-KNW-002 | A folder's `slug` is unique among its siblings. | |
 | RN-KNW-003 | The folder tree is at most 6 levels deep. | |
 | RN-KNW-004 | Moving a folder may never create a cycle: the destination cannot descend from the source. | |
@@ -172,31 +172,31 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-007 | Removing a non-empty folder requires an explicit policy, `CASCADE` or `REJECT_IF_NOT_EMPTY`, with no implicit default. | |
 | RN-KNW-008 | A notebook has at most one Guidance and a folder at most one Template, both optional. | |
 | RN-KNW-009 | Renaming, reordering or moving a folder or a note never changes stored content, only pointers and order. | |
-| RN-KNW-010 | A notebook holds up to 200 folders, beyond which the Notebook Context is truncated with a notice; notes are bounded only by the storage quota. | |
-| RN-KNW-011 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-012 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-013 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-014 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-015 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-016 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-017 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-018 | Retired before this table recorded what it said. | Removed |
-| RN-KNW-019 | Retired before this table recorded what it said. | Removed |
+| RN-KNW-010 | A notebook holds up to 200 folders, and one more is refused with `LIMIT_EXCEEDED`; notes are bounded only by the storage quota. |  |
+| RN-KNW-011 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-012 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-013 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-014 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-015 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-016 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-017 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-018 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
+| RN-KNW-019 | Never held a rule. | Removed: never assigned; the first numbering went from RN-KNW-010 to RN-KNW-020 at the rules of a note |
 | RN-KNW-020 | Said a note's `slug` was unique within the notebook. | Removed (v0.6.0): notes carry no slug |
 | RN-KNW-021 | Said a note changing folder had to be free of slug conflicts. | Removed (v0.6.0): notes carry no slug |
 | RN-KNW-022 | Gave moving a note between notebooks a conflict policy. | Removed (v0.6.0): a name collides with nothing across notebooks |
-| RN-KNW-023 | Moving a note between notebooks preserves its `NoteId` and its whole timeline. | |
-| RN-KNW-024 | Moving a note out of a notebook breaks every backlink to it in that notebook, which then shows as broken. | |
+| RN-KNW-023 | Said moving a note between notebooks preserved its `NoteId` and its whole timeline. | Removed: no client moves a note between notebooks; a move keeps the note's identifier and history by RN-KNW-057 |
+| RN-KNW-024 | Said moving a note out of a notebook broke every backlink to it there. | Removed: no client moves a note between notebooks (RN-KNW-057) |
 | RN-KNW-025 | A note holds at most 1 MB of content. | |
 | RN-KNW-026 | Every state-changing operation records complete authorship: the responsible human and, when present, the executing agent. | |
 | RN-KNW-027 | Every content change produces a new, immutable revision referenced by its event. | |
 | RN-KNW-028 | Content byte-for-byte identical to the current one produces no revision, no event and no reindexing. | |
-| RN-KNW-029 | Deleting a note is definitive: it leaves every listing and the search at once, nothing restores it, and its item and revisions are purged in the background. | |
+| RN-KNW-029 | Deleting a note is definitive: it answers `404` at once and leaves every listing and the search, nothing restores it, and its item and revisions are purged in the background. |  |
 | RN-KNW-030 | Said deleting a note freed its slug and restoring required it free. | Removed (v0.6.0): notes carry no slug and deletion is definitive |
 | RN-KNW-031 | The backend validates no note against its folder's Template and interprets no frontmatter or content convention. | |
 | RN-KNW-032 | A notebook's `slug` is unique within the subscription; creating or renaming onto a taken one answers `ALREADY_EXISTS` with the existing notebook's identifier. | |
 | RN-KNW-033 | Deleting a notebook is definitive: it and everything under it answer `404` at once and are purged, and its name is free immediately. | |
-| RN-KNW-034 | Writing the Guidance or a Template requires the base revision; a diverging one answers `CONFLICT` with current content, and `null` asserts the slot is empty. | |
+| RN-KNW-034 | Writing the Guidance or a Template requires the base revision its read returned, through the interface and `set_guidance` or `set_template` alike; a diverging one answers `CONFLICT` with current content, and `null` asserts the slot is empty. |  |
 | RN-KNW-035 | A note's name is the single text value of `name:` in its frontmatter, trimmed and NFC-normalised, derived on every write and never given by the caller. | |
 | RN-KNW-036 | A note with no `name:`, or whose name contains `#`, `[`, `]` or `\|`, has no name: it is written and rendered but no link can reach it. | |
 | RN-KNW-037 | No two live notes of one folder carry the same name, compared trimmed, NFC and case-exact; notes in different folders may share a name. | |
@@ -215,8 +215,8 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-050 | Files are limited to a closed list of image, PDF, audio, video and Office types, checked against the bytes, and served from `files.memorysmith.app`, never the product's origin. | |
 | RN-KNW-051 | Deleting a file is definitive: its name is freed at once, its bytes are purged, and notes referencing it render it as pending. | |
 | RN-KNW-052 | A note is edited in place on its page, rewriting no untouched byte and saving as the person types; a save that finds another write offers their version or saving anyway. | |
-| RN-KNW-053 | A file kept through the connector inline travels base64 up to 4 MB; anything larger is refused with the ceiling stated. | |
-| RN-KNW-054 | A person keeps a file from the note editor's toolbar, from the computer, the notebook's files or a web address, through the checked upload in parts, writing `![[name]]` at the cursor. | |
+| RN-KNW-053 | A file kept in one call through the connector (`keep_file`) goes up to 4 MB, and a larger one is refused with the ceiling stated; a larger file travels in parts (RN-PRT-027). |  |
+| RN-KNW-054 | A person brings a file into a note from the editor's toolbar: from the computer, kept through the checked upload in parts, or from the notebook's files, either written as `![[name]]` at the cursor; an image at a web address is written as `![name](address)` and keeps nothing. |  |
 | RN-KNW-055 | A person gives a file by choosing, dragging or pasting it; the browser hashes it in slices and resumes a dropped upload from the parts received, up to 100 MB. | |
 | RN-KNW-056 | Each folder orders its notes `manual` (by position, the default) or `alphabetical` (by name, one collation everywhere); a reorder is refused in an alphabetical folder. | |
 | RN-KNW-057 | A note moves to another folder of its notebook keeping its identifier, history and links; a destination holding its name refuses the move. | |
@@ -228,36 +228,36 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 
 | Code | Rule | Status |
 |---|---|---|
-| RN-DSC-001 | The path segments of a Markdown-form link are discarded, so an edge joins notes regardless of folder; a wikilink target is literal. | |
+| RN-DSC-001 | Said the path segments of a Markdown-form link were discarded, so an edge joins notes regardless of folder. | Removed: the same as RN-DSC-043 |
 | RN-DSC-002 | An anchor (`#section`) is dropped in resolution and preserved in display. | |
 | RN-DSC-003 | A link with a scheme or host is external and never becomes an edge. | |
 | RN-DSC-004 | A link to a target that does not exist yet becomes a pending link, resolving on its own when a note with that name or alias is written. | |
 | RN-DSC-005 | Deleting a note removes its edges and returns the backlinks that pointed at it to pending. | |
-| RN-DSC-006 | There are no links between notebooks; moving a note to another notebook prunes its edges in the source. | |
-| RN-DSC-007 | Graph traversal is limited to depth 3 and 200 nodes, with cycles deduplicated. | |
-| RN-DSC-008 | Retired before this table recorded what it said. | Removed |
-| RN-DSC-009 | Retired before this table recorded what it said. | Removed |
+| RN-DSC-006 | There are no links between notebooks. |  |
+| RN-DSC-007 | `related_notes` traverses at most depth 3 and 200 nodes, visiting each note once. |  |
+| RN-DSC-008 | Never held a rule. | Removed: never assigned; the first numbering went from RN-DSC-007 to RN-DSC-010 at the rules of search |
+| RN-DSC-009 | Never held a rule. | Removed: never assigned; the first numbering went from RN-DSC-007 to RN-DSC-010 at the rules of search |
 | RN-DSC-010 | Search returns the source note with each result, the heading the passage falls under, and the passage as written. | |
 | RN-DSC-011 | Enriched each chunk with its context before vectorising. | Removed (v0.2.0): semantic search was withdrawn |
 | RN-DSC-012 | Moving a note between folders triggers its reprojection. | |
-| RN-DSC-013 | Deleting a note, or anything above it, removes it immediately from search, graph, facets and counts. | |
+| RN-DSC-013 | Deleting a note, or anything above it, removes it from search, graph, facets and counts as soon as the deletion is projected. |  |
 | RN-DSC-014 | Covered restoring a deleted note in the projections. | Removed (v0.6.0): deletion became definitive |
 | RN-DSC-015 | Isolated the vector index per subscription. | Removed (v0.2.0): semantic search was withdrawn |
-| RN-DSC-016 | The graph, search and facets are derived and may be deleted and rebuilt from the notes at any time. | |
-| RN-DSC-017 | Curation counts come from a derived projection fed by note events; no screen or tool scans notes to count. | |
-| RN-DSC-018 | The facet projector is the only reader of frontmatter, and no facet takes part in a rule, validation or authorisation. | |
-| RN-DSC-019 | `maturity` (`seed`, `growing`, `evergreen`) and `reviewed` (`true`, `false`) are the product's standard facets; only a human sets `reviewed: true`, and any later edit resets it. | |
+| RN-DSC-016 | The graph, search and facets are derived, eventually consistent with the notes, and may be deleted and rebuilt from them at any time. |  |
+| RN-DSC-017 | Said curation counts came from a derived projection and no screen or tool scanned notes to count. | Removed: how counts are computed, an implementation choice (ADR-010, ADR-013) |
+| RN-DSC-018 | No facet takes part in a rule, a validation or an authorisation. |  |
+| RN-DSC-019 | Said `maturity` and `reviewed` were standard facets, `reviewed: true` set only by a human and reset by any later edit. | Removed: never built as stated: both are attributes like any other (RN-DSC-020), and nothing sets or resets `reviewed` |
 | RN-DSC-020 | Other frontmatter attributes are classified by the shape of their values, aggregating dates, booleans, short enumerations and lists, and discarding free text. | |
 | RN-DSC-021 | A note lacking a facet counts as a missing value and is never rejected or corrected. | |
-| RN-DSC-022 | A deleted note leaves the facet counts the instant it is deleted. | |
-| RN-DSC-023 | The facet projection is eventually consistent, deletable and rebuildable from the notes. | |
+| RN-DSC-022 | Said a deleted note left the facet counts the instant it was deleted. | Removed: the same as RN-DSC-013 |
+| RN-DSC-023 | Said the facet projection was eventually consistent, deletable and rebuildable. | Removed: the same as RN-DSC-016 |
 | RN-DSC-024 | An attribute whose distinct values exceed the per-notebook cardinality ceiling stops being aggregated. | |
 | RN-DSC-025 | Search matches a literal substring, ignoring accents and case on both sides. | |
 | RN-DSC-026 | The backend knows only the search fields `name`, `folder`, `content` and `section`; any other prefix is a facet, and one matching none simply matches nothing. | |
-| RN-DSC-027 | Every search scans the whole notebook and logs the notes and bytes read, read units consumed and duration. | |
+| RN-DSC-027 | Said every search scanned the whole notebook and logged what it read. | Removed: how search runs and is measured, an implementation choice (ADR-012) |
 | RN-DSC-028 | Frontmatter is not part of the searchable text. | |
 | RN-DSC-029 | `![[target]]` produces exactly the same edge as `[[target]]`, and an embed of a missing target is a pending link. | |
-| RN-DSC-030 | The reserved vocabulary `name`, `aliases` and `tags` is always en-US and read from the specification; a reserved key of the wrong shape degrades to an ordinary attribute. | |
+| RN-DSC-030 | The reserved vocabulary `name`, `aliases` and `tags` is always en-US and read from the specification; an `aliases` or `tags` of the wrong shape degrades to an ordinary attribute, and `name` never becomes one (RN-DSC-050). |  |
 | RN-DSC-031 | A date facet matches by prefix at year, month or day granularity, on values canonicalised to `YYYY-MM-DD`. | |
 | RN-DSC-032 | `aliases` join the search index as alternative spellings answering wherever the name does, and resolve a wikilink no name matched. | |
 | RN-DSC-033 | An inline `#subject` in a note body is not read: no edge, no facet, rendered as plain text. | |
@@ -266,26 +266,26 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-DSC-036 | A link written inside a fenced block or a code span produces no edge and renders as typed; indented code blocks are a declared exception. | |
 | RN-DSC-037 | Inline, reference and collapsed or shortcut Markdown links produce the same edge, resolving labels case- and spacing-insensitively. | |
 | RN-DSC-038 | An image is not a link and produces no edge in any form. | |
-| RN-DSC-039 | The reading surface follows only `http`, `https`, `mailto`, paths, relative targets and `pending:`; any other scheme, `data:` and `obsidian://` included, renders as text. | |
+| RN-DSC-039 | The reading surface follows only `http`, `https`, `mailto`, paths, relative targets and its own `pending:`, `attachment:` and `choice:`; any other scheme, `data:` and `obsidian://` included, renders as text. |  |
 | RN-DSC-040 | Opening a note fetches images whose destination names a host, and the note discloses which hosts it fetches from. | |
 | RN-DSC-041 | A link resolves against a note's name compared case-exact after NFC, with no other folding; a near miss is pending. | |
 | RN-DSC-042 | Every note whose name matches a target becomes an edge, so one link into two same-named notes is two edges. | |
-| RN-DSC-043 | Path discarding, `.md` dropping and percent-decoding apply only to the Markdown link form, in a fixed order; a wikilink target is literal. | |
+| RN-DSC-043 | Path discarding, `.md` dropping and percent-decoding apply only to the Markdown link form, in a fixed order, so an edge joins notes whatever their folder; a wikilink target is literal. |  |
 | RN-DSC-044 | A reference to an attachment renders but is never an edge; a name matching nothing is reported as pending. | |
 | RN-DSC-045 | The interface addresses notebooks, folders and notes by identifier only, in lower case, read in either case; a non-identifier segment or earlier address form answers not-found. | |
 | RN-DSC-046 | A wikilink is drawn by what its target reaches, pending only when nothing; a target reaching several notes opens a choice dialog listing each by folder trail and name. | |
 | RN-DSC-047 | The graph draws one node per note, never per name; clicking a node opens that note directly. | |
 | RN-DSC-048 | A `\|` in image alt text or a file embed separates the description from dimensions in CSS pixels; a value that is not a dimension stays description. | |
-| RN-DSC-049 | A reference to an attachment the notebook does not hold is reported as pending; the pipe is read as alias for a note and as dimensions for an attachment. | |
+| RN-DSC-049 | Said a reference to an attachment the notebook does not hold was pending, and the pipe read as dimensions for an attachment. | Removed: the same as RN-DSC-044 and RN-DSC-048 |
 | RN-DSC-050 | `name` never becomes an indexed, filterable attribute or facet, while `title` is an ordinary attribute. | |
 | RN-DSC-051 | The reading surface draws `aliases` and `tags` first, labelled in the interface language, then every other attribute under its written key and order. | |
 | RN-DSC-052 | Only when no name matches is a target compared against `aliases`, and every note carrying that alias becomes an edge. | |
 | RN-DSC-053 | An edge held by alias is replaced when a note with that name is written, so the projection re-resolves alias edges whenever a name appears, changes or is removed. | |
 | RN-DSC-054 | The note page always draws the note's name in its frame, says when it has none, and treats every body heading as an ordinary heading. | |
-| RN-DSC-055 | The identifier is the whole address, so nothing in it can be stale and nothing is corrected on load. | |
-| RN-DSC-056 | A link target is percent-decoded, NFC-normalised and compared case-exact; a miss is pending, never a repairing redirect. | |
+| RN-DSC-055 | Said the identifier was the whole address, so nothing in it could be stale. | Removed: follows from RN-DSC-045 and RN-DSC-057 |
+| RN-DSC-056 | A link target's address in the interface is compared as a link is (RN-DSC-041); a miss is pending, never a repairing redirect. |  |
 | RN-DSC-057 | Renaming a notebook, folder or note, or moving a note, changes no address, and an identifier is never reused. | |
-| RN-DSC-058 | A tab's title names what the page shows, then its notebook, then the product. | |
+| RN-DSC-058 | A tab's title names what the page shows, then its notebook, then the product, preceded outside production by the environment. |  |
 | RN-DSC-059 | Reserved for drawing the folder where a note is cited. | Removed (v0.6.0): dropped before it was built |
 | RN-DSC-060 | A pending link remains clickable: the click opens the note an alias answers, offers a choice among several, or says no note carries the name yet. | |
 | RN-DSC-061 | A reading surface tells a file from a note by what the notebook holds; images, audio and video are drawn, other types are a card with Open and Download. | |
@@ -293,16 +293,16 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-DSC-063 | Footnotes are display only, producing no edge, attribute or index entry, though a wikilink inside a definition is an edge. | |
 | RN-DSC-064 | Notebook health lists files no note shows, beside pending links and orphans, and `check_notebook` marks pending links awaiting an open upload or request. | |
 | RN-DSC-065 | An image whose destination names no host names the kept file of its last path segment, never a note, and is pending when no such file exists. | |
-| RN-DSC-066 | A notebook's files are listed with the notes that show each, read from the link projection in one read. | |
+| RN-DSC-066 | A notebook's files are listed with the notes that show each. |  |
 
 ### Audit
 
 | Code | Rule | Status |
 |---|---|---|
 | RN-AUD-001 | No path alters a recorded event, and only the purge removes one, and only as part of a deletion. | |
-| RN-AUD-002 | Every event records complete authorship: the human and, when present, the agent. | |
-| RN-AUD-003 | Every content-changing event references the exact revision at that instant. | |
-| RN-AUD-004 | A note's timeline is indexed by its identifier and survives changes of folder and notebook. | |
+| RN-AUD-002 | Said every event recorded complete authorship. | Removed: the same as RN-KNW-026 |
+| RN-AUD-003 | Said every content-changing event referenced the exact revision at that instant. | Removed: the same as RN-KNW-027 |
+| RN-AUD-004 | A note's timeline is indexed by its identifier and survives a move of the note. |  |
 | RN-AUD-005 | `read_note(asOf)` returns the content in force on a given date, reconstructed from the trail. | |
 | RN-AUD-006 | Said deleting a note never destroyed its content and its history stayed readable. | Removed (v0.6.0): deletion became definitive |
 | RN-AUD-007 | Covered purging as an `OWNER`-only administrative act with a mandatory reason. | Removed (v0.4.0): never built |
@@ -319,31 +319,31 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 |---|---|---|
 | RN-AGT-001 | Every MCP write records the human who owns the authorisation and the agent that executed it. | |
 | RN-AGT-002 | The server does not validate content against the Template, but tool descriptions tell the caller to fetch `get_template` before writing. | |
-| RN-AGT-003 | An error about a missing argument returns what the next attempt needs, the folder's Template included when relevant. | |
+| RN-AGT-003 | An error about a missing or unknown argument returns what the next attempt needs: the tool's served signature. |  |
 | RN-AGT-004 | Had `create_note` answer `ALREADY_EXISTS` on a repeated slug. | Removed (v0.6.0): notes carry no slug |
 | RN-AGT-005 | `update_note` requires `baseRevision`, and a diverging revision answers `CONFLICT` with the current content attached. | |
-| RN-AGT-006 | A `VIEWER` is refused on `create_note` and `update_note`. | |
-| RN-AGT-007 | The connector operates on the subscription fixed at consent, and no tool takes a subscription argument. | |
-| RN-AGT-008 | No MCP vocabulary enters the domain model. | |
+| RN-AGT-006 | Said a `VIEWER` was refused on `create_note` and `update_note`. | Removed: the same as RN-ACC-010, which covers every write |
+| RN-AGT-007 | Said the connector operated on the subscription fixed at consent, with no subscription argument. | Removed: the same as RN-SUB-014 and RN-SUB-002 |
+| RN-AGT-008 | Said no MCP vocabulary entered the domain model. | Removed: how the code is layered, not a guarantee |
 | RN-AGT-009 | Every tool declares a readable title and a read-only or destructive hint. | |
 | RN-AGT-010 | Reading and writing never share a tool, and no generic tool is parameterised by operation. | |
 | RN-AGT-011 | Connector OAuth clients register through a Client ID Metadata Document; dynamic client registration is not offered. | |
-| RN-AGT-012 | Until listed in a client directory, the connector is added as a custom connector and the product documentation explains the form's answers. | |
+| RN-AGT-012 | Said that until listed in a client directory the connector was added as a custom connector, the documentation explaining the form. | Removed: described the future; what holds is RN-ACC-020 |
 | RN-AGT-013 | `whoami` states who the connection represents and how the product expects to be used, derived from the tool catalogue, and that the server does not validate content. | |
 | RN-AGT-014 | The connector writes the whole notebook, its structure, Guidance and Templates included, under the same role rules as the interface. | |
 | RN-AGT-015 | `read_note` returns the body as written and never expands an embed, and an export carries the written bytes. | |
-| RN-AGT-016 | `set_guidance` and `set_template` take `baseRevision`, which `get_guidance` and `get_template` return; an explicit `null` is accepted and checked. | |
+| RN-AGT-016 | Said `set_guidance` and `set_template` took the `baseRevision` their reads returned. | Removed: merged into RN-KNW-034 |
 | RN-AGT-017 | The product serves the agent a skill describing the notation it reads and deliberately does not read, derived from the notation's declaration. | |
 | RN-AGT-018 | `whoami` indexes the available skills, derived from the skill registry. | |
 | RN-AGT-019 | `get_skill(name)` returns a skill's text, and an unknown name answers `NOT_FOUND` listing the existing ones; a skill validates nothing. | |
 | RN-AGT-020 | The Notebook Context carries the identifier of every folder it renders. | |
 | RN-AGT-021 | No text served to an agent cites a business rule code. | |
 | RN-AGT-022 | The notation the product reads is declared in the MemorySmith Markdown Specification, from which the product derives everything it reads and teaches. | |
-| RN-AGT-023 | Every declared notation, reading surface included, is proved by its own conformance test, and an unproved notation fails the build. | |
+| RN-AGT-023 | Said every declared notation was proved by its own conformance test, failing the build otherwise. | Removed: a build check, not a product guarantee (ARCHITECTURE INV-05) |
 | RN-AGT-024 | `create_note` takes the body and no name; a name its folder already holds is refused with `ALREADY_EXISTS` naming the holder. | |
 | RN-AGT-025 | The Notebook Context declares the reserved vocabulary (`name`, `aliases`, `tags`) and points to `note_history` for who wrote a note and when. | |
-| RN-AGT-026 | Outside production the connector declares its environment and exact version in the handshake, the instructions and `whoami`; production shows neither. | |
-| RN-AGT-027 | Retired before this table recorded what it said. | Removed |
+| RN-AGT-026 | Outside production the connector names its environment in the handshake title, and its environment and exact version in the instructions and `whoami`; production names no environment. |  |
+| RN-AGT-027 | Never held a rule. | Removed: never assigned; RN-AGT-028 followed RN-AGT-026, and no commit carries this code with a rule |
 | RN-AGT-028 | The initialisation instructions tell the agent to call `whoami` first and index the skills, and task-starting tool descriptions name the skill to read first. | |
 | RN-AGT-029 | `create_folder` and `create_note` take the sibling to follow, `reorder_folder` and `reorder_note` reposition items, and an anchor that is not a sibling is refused. | |
 | RN-AGT-030 | A taken-name refusal names the holding note and its identifier, says nothing was written, and says what to do next. | |
@@ -354,7 +354,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-035 | The Notebook Context states for every folder the notes it holds directly and those in its subfolders. | |
 | RN-AGT-036 | `next_number(notebook, folder)` issues the next number of a folder as a write, refused to a `VIEWER`. | |
 | RN-AGT-037 | The connector keeps, lists and deletes a notebook's files; `keep_file` answers the `![[name]]` reference, and `read_note` reports file targets as attachments. | |
-| RN-AGT-038 | `update_note` may carry a line about the change, and `note_history` answers it. | |
+| RN-AGT-038 | `update_note` takes the change line of RN-AUD-012 as `message`, and `note_history` answers it. |  |
 | RN-AGT-039 | `check_notebook` reports pending links and links that look broken, and the skills end the work by fixing or naming each. | |
 | RN-AGT-040 | The handshake `serverInfo` declares the connector's name, title, version, description, website and icons, in the protocol revision the client asks for. | |
 | RN-AGT-041 | The connector sends a file in parts through `begin_file_upload`, `send_file_part`, `file_upload_status`, `finish_file_upload` and `list_file_uploads`, the URL route keeping bytes out of the model. | |
@@ -378,29 +378,29 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-001 | Exported only `.md` files readable with no parser. | Removed (v0.6.0): replaced by the document format |
 | RN-PRT-002 | Encoded order as a numeric file-name prefix. | Removed (v0.6.0): order is a field of the document |
 | RN-PRT-003 | Materialised the annotated tree as `STRUCTURE.md`. | Removed (v0.6.0): the tree is data in the document |
-| RN-PRT-004 | A link is exported exactly as written, because the body is copied and never processed. | |
+| RN-PRT-004 | Said a link was exported exactly as written. | Removed: the same as RN-PRT-010 |
 | RN-PRT-005 | Reserved file names and renamed them on export. | Removed (v0.6.0): the export has no file names |
-| RN-PRT-006 | Deleted notes do not enter the export. | |
+| RN-PRT-006 | Deleted notes do not enter the export as notes; a carried history keeps its entries about them (RN-PRT-022). |  |
 | RN-PRT-007 | Converting inline `#tags` into the reserved `tags:` is a skill the agent follows with the person's approval, never an operation the product performs. | |
-| RN-PRT-008 | Retired before this table recorded what it said. | Removed |
+| RN-PRT-008 | Never held a rule. | Removed: never assigned; RN-PRT-009 followed RN-PRT-007, and no commit carries this code with a rule |
 | RN-PRT-009 | A notebook is exported as one JSON document in a `.notebook` zip, carrying the Guidance, folders, Templates, note order and every note with its body. | |
 | RN-PRT-010 | The export document stores nothing derived; each note body is its Markdown byte for byte. | |
 | RN-PRT-011 | The export format is open, fully specified and unobfuscated, and declares the version of its own shape. | |
 | RN-PRT-012 | An import always creates a new notebook under a name given by the importer, and a failed or cancelled import keeps nothing. | |
-| RN-PRT-013 | Every identifier is minted anew at import. | |
-| RN-PRT-014 | An import is refused whole before its first write for a non-archive, a non-conforming document, an unreadable version or an oversized file. | |
-| RN-PRT-015 | An import reports what it actually wrote: the notebook, its Guidance, and how many folders, Templates and notes. | |
+| RN-PRT-013 | Every identifier of the notebook, its folders, notes, files and content is minted anew at import. |  |
+| RN-PRT-014 | An import is refused whole before its first write for a non-archive, a non-conforming document or an unreadable version. |  |
+| RN-PRT-015 | An import reports what it wrote: the notebook it created and how many notes. |  |
 | RN-PRT-016 | The export carries the last number each folder issued, and the import restores it. | |
 | RN-PRT-017 | An import may write part of a document, selecting Guidance, history, folders, Templates and notes, carrying needed parent folders as paths. | |
-| RN-PRT-018 | An import is a job with status and progress, ending imported, failed or cancelled; failing or cancelling removes the notebook whole. | |
+| RN-PRT-018 | An import is a job with status and progress, ending `ready`, `failed` or `cancelled`; failing or cancelling removes the notebook whole. |  |
 | RN-PRT-019 | An export is a job with status and progress, ending ready or failed, downloaded through a link issued at each download. | |
 | RN-PRT-020 | An export is kept until its creator deletes it, seen only by them, survives its notebook, can be imported in place, and counts against storage. | |
-| RN-PRT-021 | Deleting a notebook with kept exports says so at confirmation, with how many there are and that they stay. | |
+| RN-PRT-021 | Deleting a notebook through the connector answers how many kept exports of it the caller holds, and that they stay. |  |
 | RN-PRT-022 | An export may carry the notebook's history, every trail entry and the revision content it names, filtered to what a selection carries. | |
 | RN-PRT-023 | An import reproduces a carried history as entries of the subscription, keeping person and instant, re-keyed, and recording the transfer that brought them. | |
 | RN-PRT-024 | An export may write part of a notebook by the same selection as an import, files included; no selection means the whole notebook with its whole history. | |
 | RN-PRT-025 | An export carries the notebook's files with their bytes and metadata, selectable by name and all by default, and an import brings them back through the upload checks. | |
-| RN-PRT-026 | A finished transfer is deleted by whoever started it; a running one is refused. | |
+| RN-PRT-026 | A finished export or import is deleted by whoever started it, and a running one is refused; an upload or a request is discarded at once. |  |
 | RN-PRT-027 | A file is sent in parts declared with size and SHA-256, by signed address or inline with per-part hashes, and kept only when the whole matches, up to 100 MB by address and 4 MB inline. | |
 | RN-PRT-028 | An upload in parts is an `agent` transfer seen only by its starter, with no deadline, gone once it becomes a file, and left as failed when its bytes are wrong. | |
 | RN-PRT-029 | A transfer whose notebook is out of reach says it is unavailable, never deleted; an open upload may be linked to another notebook the person writes in. | |

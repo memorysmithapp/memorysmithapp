@@ -47,7 +47,7 @@ describe('LinkExtractor: a target is a name', () => {
   });
 
   it('ignores path segments in the Markdown form deliberately', () => {
-    // RN-DSC-001: the edge is between notes, not folders. Honouring the path
+    // RN-DSC-043: the edge is between notes, not folders. Honouring the path
     // would break the link the moment the note changed folder.
     const links = extractLinks('[x](../../normas/2026/Lei%2014.133.md)');
     expect(links[0]?.name).toBe('Lei 14.133');
@@ -961,7 +961,7 @@ describe('Discovery queries', () => {
   });
 
   it('does not search the frontmatter as if it were prose', async () => {
-    // RN-DSC-018: frontmatter belongs to the facet projector. If it leaked
+    // RN-DSC-028: frontmatter belongs to the facet projector. If it leaked
     // into the body every note would match its own metadata.
     const found = await new SearchNotes(deps).execute({ notebookId: NOTEBOOK, query: 'maturity' });
     expect(found.ok).toBe(true);
@@ -1102,7 +1102,7 @@ describe('The Dynamo link graph answers the targets of a note from its items', (
 
 describe('Every search is measured', () => {
   it('records the notes, the items, the bytes, the read units and the time of one search', async () => {
-    // RN-DSC-027: a notebook has no ceiling of notes, and this is what says
+    // ADR-012: a notebook has no ceiling of notes, and this is what says
     // when the scan stops being affordable.
     const recorded: SearchMeasure[] = [];
     const content = {

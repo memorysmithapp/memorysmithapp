@@ -31,7 +31,7 @@ export class AuditEvent {
     readonly occurredAt: Instant,
     readonly type: DomainEventType,
     readonly authorship: Authorship,
-    /** The exact revision of the content at that instant (RN-AUD-003). */
+    /** The exact revision of the content at that instant (RN-KNW-027). */
     readonly contentRef: ContentRef | null,
     readonly payload: Record<string, unknown>,
     /**

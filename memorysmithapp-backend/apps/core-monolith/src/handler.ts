@@ -619,7 +619,7 @@ function discoveryFor(context: SubscriptionContext) {
     structure: built.structure,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
     /**
-     * One line per search, in the logs of the function (RN-DSC-027). A notebook
+     * One line per search, in the logs of the function (ADR-012). A notebook
      * has no ceiling of notes, and this is what says when the scan stops being
      * affordable: a query over the log group finds the notebooks whose search
      * reads the most.

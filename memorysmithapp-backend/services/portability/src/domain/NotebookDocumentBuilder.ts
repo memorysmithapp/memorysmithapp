@@ -14,7 +14,7 @@
  * The name of a note is read from its body wherever it is needed (RN-PRT-010),
  * and the link destinations are never touched — which used to be a rewrite,
  * correct while a link addressed a file and corruption now that it addresses a
- * name (RN-PRT-004).
+ * name (RN-PRT-010).
  *
  * Deleted notes do not enter the export (RN-PRT-006).
  */

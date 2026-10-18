@@ -60,7 +60,7 @@ export const agentIdentitySchema = z.object({
   clientName: z.string().min(1).max(200),
 });
 
-/** Who wrote it: the human, and the agent when there was one (RN-AUD-002). */
+/** Who wrote it: the human, and the agent when there was one (RN-KNW-026). */
 export const authorshipSchema = z.object({
   userId: userIdSchema,
   agent: agentIdentitySchema.nullable(),

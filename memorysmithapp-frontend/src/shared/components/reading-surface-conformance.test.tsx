@@ -1,5 +1,5 @@
 /**
- * The reading surface, run against the specification (RN-AGT-023).
+ * The reading surface, run against the specification (RN-AGT-022).
  *
  * The specification declares a set of notations under the `reading-surface` reader,
  * and the two sanctioned extractors decide none of them: they are behaviour of
@@ -131,7 +131,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
      * A file of the notebook that is not a note. The notebook of this case
      * keeps NONE — the extension of the name decides nothing since #166 — so
      * the reference reaches nothing and is reported the way a pending link is
-     * (§5.8, RN-DSC-049). What it must never be is a link: a reader following
+     * (§5.8, RN-DSC-044). What it must never be is a link: a reader following
      * it would land on a note nobody will ever write.
      *
      * That a target the notebook DOES keep is drawn by its type is the other

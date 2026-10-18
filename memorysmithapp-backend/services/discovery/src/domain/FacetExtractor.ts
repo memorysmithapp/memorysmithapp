@@ -10,9 +10,8 @@
  * paying off.
  *
  * There is no list of keys in the code and no per-notebook configuration: the
- * vocabulary belongs to the guidance, and `maturity` and `reviewed`, the two
- * facets the product declares, are to this extractor attributes like any other
- * (RN-DSC-019, RN-DSC-020).
+ * vocabulary belongs to the guidance, and `maturity` and `reviewed` are to this
+ * extractor attributes like any other (RN-DSC-020).
  *
  * Free text is discarded. An attribute that reveals itself as free text
  * through use is dropped by the cardinality ceiling (RN-DSC-024), which is why

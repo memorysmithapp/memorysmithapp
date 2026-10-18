@@ -3,12 +3,12 @@
  *
  * It translates a tool call into a use case command and back, forwarding the
  * caller's own token, from which the core resolves the Authorship (INV-07). No
- * MCP vocabulary crosses into the core (RN-AGT-008), and no core vocabulary
+ * MCP vocabulary crosses into the core, and no core vocabulary
  * leaks out untranslated.
  *
  * Errors are answered as `isError` with ACTIONABLE text, and a missing
- * argument comes back with the template of the folder when that is what the
- * caller needs to try again (RN-AGT-003).
+ * argument comes back with the signature the tool is served with, which is
+ * what the caller needs to try again (RN-AGT-003).
  */
 
 import {
@@ -137,7 +137,7 @@ function noteOrderArgument(args: Record<string, unknown>, tool: string): NoteOrd
  * The revision a write is based on. Null is a legitimate value and means the
  * slot is empty, so it cannot be defaulted away: a missing argument is a
  * mistake worth an error, and an explicit null is an assertion about the
- * current state (RN-AGT-016).
+ * current state (RN-KNW-034).
  */
 function revisionArgument(args: Record<string, unknown>, tool: string): string | null {
   const value = args['baseRevision'];
@@ -714,7 +714,7 @@ export class McpToolAdapter {
           revisionArgument(args, 'set_guidance'),
         );
         // The revision this write produced, so the next write names it with no
-        // read in between (RN-AGT-016).
+        // read in between (RN-KNW-034).
         return json({ revision });
       }
 
@@ -1056,7 +1056,7 @@ export class McpToolAdapter {
           requireString(args, 'folder', 'get_template'),
         );
         // The revision travels with the content, as it does for the guidance:
-        // it is what the next set_template has to state (RN-AGT-016).
+        // it is what the next set_template has to state (RN-KNW-034).
         return template
           ? json({ content: template.content, revision: template.revision })
           : text('This folder carries no template. Follow the guidance of the notebook instead.');

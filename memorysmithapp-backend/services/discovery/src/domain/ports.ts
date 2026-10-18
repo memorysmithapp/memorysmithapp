@@ -270,7 +270,7 @@ export interface ContentIndex {
 }
 
 /**
- * What one scan of a notebook read (RN-DSC-027). There is no ceiling of notes
+ * What one scan of a notebook read (ADR-012). There is no ceiling of notes
  * any more, so the cost of a search grows with the notebook, and this is what
  * says when it becomes a real reason to change how the search is built.
  */

@@ -68,7 +68,7 @@ export class ReviewSubscription {
     });
   }
 
-  /** Rejecting requires a reason, which is communicated (RN-SUB-009). */
+  /** Rejecting requires a reason, kept with the subscription (RN-SUB-009). */
   async reject(input: {
     actor: PlatformActor;
     subscriptionId: SubscriptionId;

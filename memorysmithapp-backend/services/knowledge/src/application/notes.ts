@@ -453,9 +453,10 @@ export class ReorderNote {
 }
 
 /**
- * Moving between folders costs zero bytes in S3. Moving between notebooks is the
- * only operation that writes into two notebook partitions in one transaction, and
- * it preserves the NoteId, and with it the whole timeline (RN-KNW-023).
+ * Moving between folders costs zero bytes in S3, and preserves the NoteId, and
+ * with it the whole timeline (RN-KNW-057). Moving between notebooks, which this
+ * use case accepts and no client offers, is the only operation that writes into
+ * two notebook partitions in one transaction.
  *
  * Nothing is resolved against the destination on the way in: a name collides
  * with nothing there, so the move carries no policy (RN-KNW-022, removed).

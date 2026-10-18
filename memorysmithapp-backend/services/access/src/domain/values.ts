@@ -64,11 +64,9 @@ export class SubscriptionType {
 /**
  * StorageQuota: how much the subscription may store (RN-SUB-019).
  *
- * DECLARED, NOT ENFORCED. Nothing refuses a write for exceeding it yet, and
- * the value object says so out loud: it exposes `bytes` for whoever will
- * enforce it later, and no adapter reads it today. Keeping it a closed set of
- * named sizes, rather than a number, is what makes the plans comparable and
- * keeps a stray byte count out of the domain.
+ * It is enforced over current content and kept exports (RN-SUB-021). Keeping it
+ * a closed set of named sizes, rather than a number, is what makes the plans
+ * comparable and keeps a stray byte count out of the domain.
  */
 export const STORAGE_QUOTAS = ['500MB', '1GB', '2GB'] as const;
 
@@ -116,7 +114,7 @@ export class StorageQuota {
   }
 }
 
-/** Mandatory on rejection, and communicated to the requester (RN-SUB-009). */
+/** Mandatory on rejection, and kept with the subscription (RN-SUB-009). */
 export class RejectionReason {
   private readonly __rejectionReason!: void;
   private constructor(readonly value: string) {}

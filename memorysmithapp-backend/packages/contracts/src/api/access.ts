@@ -252,7 +252,7 @@ export const approveSubscriptionRequestSchema = z.object({
 });
 
 export const rejectSubscriptionRequestSchema = z.object({
-  /** Mandatory, and communicated to the requester (RN-SUB-009). */
+  /** Mandatory, and kept with the subscription (RN-SUB-009). */
   reason: z.string().min(1).max(1000),
 });
 

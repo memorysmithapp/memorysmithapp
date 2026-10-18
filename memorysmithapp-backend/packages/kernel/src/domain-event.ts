@@ -142,7 +142,7 @@ export interface DomainEvent<TPayload = Record<string, unknown>> {
   readonly subject: EventSubject;
   readonly subjectId: string;
   readonly authorship: Authorship;
-  /** Present on every event that changed content (RN-AUD-003). */
+  /** Present on every event that changed content (RN-KNW-027). */
   readonly contentRef: ContentRef | null;
   /**
    * How many bytes of LIVE content this event added (positive) or released

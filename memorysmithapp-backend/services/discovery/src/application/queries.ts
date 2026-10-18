@@ -1,6 +1,6 @@
 /**
  * Discovery reads. Everything here answers from a projection: no query walks
- * notes, and none of them reaches the Knowledge context (RN-DSC-017).
+ * notes, and none of them reaches the Knowledge context (ADR-013).
  */
 
 import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
@@ -38,7 +38,7 @@ export interface QueryDependencies {
   readonly facets: FacetIndex;
   readonly catalog: NoteCatalog;
   readonly content: ContentIndex;
-  /** Where every search is measured (RN-DSC-027). */
+  /** Where every search is measured (ADR-012). */
   readonly searchLog?: SearchLog | undefined;
   /** The shape of the notebook, which names the folders of a trail. */
   readonly structure?: StructureProjection | undefined;
@@ -243,7 +243,7 @@ export class NotebookHealth {
 /**
  * The shape of the whole notebook, which the graph view draws. It reads one
  * projection and nothing else: Discovery never asks Knowledge for a note
- * (RN-DSC-017), and the notes it names are the ones its own projection knows.
+ * (ADR-013), and the notes it names are the ones its own projection knows.
  */
 export class NotebookGraphQuery {
   constructor(private readonly deps: QueryDependencies) {}
@@ -283,7 +283,7 @@ export class SearchNotes {
    * with every write. A notebook has no ceiling of notes (RN-KNW-010), so the
    * cost grows with the notebook, and every search is measured — notes, items,
    * bytes, read units and time — so the day that cost becomes a real reason is
-   * seen in the logs rather than guessed (RN-DSC-027). What the scan may never
+   * seen in the logs rather than guessed (ADR-012). What the scan may never
    * do is stop early: `scanNotebook` walks every page, and a test proves it.
    */
   async execute(input: {

@@ -109,8 +109,8 @@ export function composeNotebookContext(input: NotebookContextInput): string {
   render(null, '');
 
   if (truncated) {
-    // Above the folder ceiling the context is truncated WITH AN EXPLICIT
-    // WARNING rather than silently (RN-KNW-010).
+    // A write never passes the folder ceiling (RN-KNW-010); a notebook above it
+    // is truncated WITH AN EXPLICIT WARNING rather than silently.
     lines.push(
       '',
       `_Truncated: this notebook holds more than ${NOTEBOOK_LIMITS.maxFolders} folders, ` +

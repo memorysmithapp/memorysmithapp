@@ -1,6 +1,6 @@
 /**
  * The two sanctioned extractors, run against the conformance suite of the
- * MemorySmith Markdown Specification (RN-AGT-022, RN-AGT-023).
+ * MemorySmith Markdown Specification (RN-AGT-022, INV-05).
  *
  * The cases are not written here and they are not a copy of anything written
  * here. They come from the published `@memorysmithapp/markdown-spec`, so a case

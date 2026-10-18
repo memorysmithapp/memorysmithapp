@@ -617,7 +617,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
     unwrap(loaded.delete(authorshipOf(context)));
     await notes.save(loaded);
 
-    // Deleting a note never destroys bytes (RN-AUD-006).
+    // Deleting is one mark and destroys no bytes: only the purge does (INV-08).
     expect(await content.read(bodyRef)).toContain('Lei 14.133');
   });
 

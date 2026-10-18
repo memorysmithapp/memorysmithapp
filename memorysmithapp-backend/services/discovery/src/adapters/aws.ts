@@ -25,7 +25,7 @@
  * they cost 14 KB apiece, ten times the note itself, and scoring them meant
  * reading all of them on every query. TEXT# costs about what the note costs,
  * and every search is measured, because nothing bounds the notebook any more
- * but the storage of its subscription (RN-KNW-010, RN-DSC-027).
+ * but the storage of its subscription (RN-KNW-010, ADR-012).
  */
 
 import { resolveTarget, notebookNames } from '../domain/LinkResolver.js';

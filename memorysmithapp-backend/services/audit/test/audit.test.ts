@@ -258,7 +258,7 @@ describe('read_note(asOf) rebuilds the past', () => {
   });
 
   it('keeps answering after the note is deleted', async () => {
-    // Deleting a note never destroys the content (RN-AUD-006).
+    // Recording a deletion alters no entry: only the purge removes one (RN-AUD-001).
     const { trail, content } = await seedTrail();
     await new AuditEventConsumer(new RecordEvents(trail, trail)).consume([
       envelope({

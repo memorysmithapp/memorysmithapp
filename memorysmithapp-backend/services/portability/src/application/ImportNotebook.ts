@@ -21,9 +21,8 @@
  * from.
  *
  * **It is refused whole, before the first write** (RN-PRT-014): a document
- * that does not match the schema, a version of the format this build does not
- * read, and a size the plan does not allow are each answered with the reason
- * and nothing is created.
+ * that does not match the schema and a version of the format this build does
+ * not read are each answered with the reason and nothing is created.
  *
  * **It may write PART of a document** (RN-PRT-017). A notebook is often wanted
  * for its design rather than for its notes, or for one folder of it, and the
