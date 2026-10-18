@@ -197,7 +197,8 @@ a:hover {
   background: var(--border);
 }
 .tagline {
-  max-width: 320px;
+  /* Two lines of the slogan in either locale: pt_BR is the longer (#334). */
+  max-width: 440px;
   color: var(--text-soft);
   font-size: 0.75rem;
   line-height: 1.35;
@@ -4368,9 +4369,12 @@ body.has-sheet .app-main {
     flex-direction: column;
     align-items: stretch;
   }
+  /* One above the other, each the width of the screen with its word (#325):
+     side by side, a longer word in pt_BR ran past the edge. The panel keeps
+     its own two columns, which wrap their words. */
   .transfers-start {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
   .transfers-rows {
     padding: 0 14px;
