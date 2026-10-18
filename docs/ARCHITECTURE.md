@@ -152,9 +152,7 @@ A status transition changes the subscription's `META` and its place in the platf
 
 ### INV-12 A platform administrator session carries no subscription
 
-The platform routes are reserved to the Cognito group `platform-admin` (`requirePlatformAdmin`), and a token without the claim `subscription_id` yields no `SubscriptionContext`, so no Knowledge repository can be constructed under it.
-
-**Gap:** the pre-token generation trigger adds the claim to anyone with a link, a platform administrator who owns a subscription included, and `onboard` gives the first administrator a subscription; such a session reaches its own subscription and no other (#322).
+The platform routes are reserved to the Cognito group `platform-admin` (`requirePlatformAdmin`), and a token without the claim `subscription_id` yields no `SubscriptionContext`, so no Knowledge repository can be constructed under it. An operator account holds no link to a subscription: `onboard` gives the first account of a pool the group and nothing else, and the pre-token generation trigger never adds `subscription_id` to a member of the group, whatever links it holds, so the group can only take the claim away (`test/pre-token-generation.test.ts` of Access).
 
 ### INV-13 The per-notebook ceiling only lowers a role
 
@@ -232,7 +230,7 @@ Once per account, with the owner supervising each step:
 4. On GitHub: the environments `production` and `staging`, the two role variables, and `ALARM_EMAIL` in `production`.
 5. The first delivery of production, then confirm the subscription of the SNS topic `memorysmith-alarms-production` from the e-mail AWS sends.
 6. `pnpm -C memorysmithapp-infra activate-cost-tags`, once.
-7. `pnpm -C memorysmithapp-infra onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator.
+7. `pnpm -C memorysmithapp-infra onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator, with no subscription; run it again for the account the product is used with, giving the administrator's credentials when it asks.
 
 ### 5.4 Commands
 
@@ -240,7 +238,7 @@ Run from `memorysmithapp-infra` with `pnpm <command>`, credentials from the defa
 
 | Command | Does |
 |---|---|
-| `onboard` | Creates or hands over an account and its subscription, with its quota and status |
+| `onboard` | Creates or hands over an account and its subscription, with its quota and status; the first account of a pool gets the platform and no subscription |
 | `cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
 | `recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
 | `reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |

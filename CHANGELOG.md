@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Security
+
+- **A platform administrator never acts for a subscription.** Its session carries no subscription even if its account holds a link to one, so it reaches no notebook by construction, and `onboard` now gives the first account of a new environment the platform and no subscription: the account somebody uses the product with is a second one. (#322)
+
 ### Changed
 
 - **The documents of the repository are rewritten, shorter, in the structure of `memorysmithapp-template` v0.3.0, and written from the code rather than migrated.** `CLAUDE.md`, about 8,700 words loaded in every session, becomes `.claude/CLAUDE.md`, one line importing `AGENTS.md`: identity, a reading and a writing map, limits, eighteen invariants and the verified commands. `docs/software-vision.md`, `docs/architecture-guide.md` and `docs/development-process.md`, about 75,000 words, become `docs/PRD.md` (the problem, the language and every business rule, one line each), `docs/ARCHITECTURE.md` (the system, the mechanism of each invariant, operation and nineteen decision records) and `docs/SDLC.md`. Each invariant was checked against the code, and the two that do not fully hold say so and name their issue (#321, #322). The README is now for somebody arriving to get to know the project; what it said to an operator is in `docs/ARCHITECTURE.md`. Code cites a rule, an invariant or a decision by its identifier, never by a section number, and a commit touches a document only when it changes one of the three. (#319)
