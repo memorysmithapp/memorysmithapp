@@ -57,7 +57,8 @@ Code comments cite them by code.
 
 ```
 memorysmithapp/
-├── AGENTS.md, .claude/CLAUDE.md   how an agent works here; CLAUDE.md only imports AGENTS.md
+├── AGENTS.md                      how an agent works in this repository
+├── .claude/CLAUDE.md              only imports AGENTS.md (INV-15)
 ├── README.md, CHANGELOG.md, LICENSE
 ├── docs/                          PRD.md, ARCHITECTURE.md, SDLC.md
 ├── scripts/                       quality.mjs: the checks of the documents and the version
