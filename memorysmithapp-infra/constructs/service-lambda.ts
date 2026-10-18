@@ -36,7 +36,11 @@ export interface ServiceLambdaProps {
   readonly environment?: Record<string, string>;
   readonly timeout?: Duration;
   readonly memorySize?: number;
-  /** Alarms are on by default; a projector may opt out of the p99 one. */
+  /**
+   * The p99 alarm, for a function somebody waits on: the core API, the agent
+   * and the trigger of every sign-in. A function that runs a handful of times
+   * a day has a p99 of almost nothing, which is noise and not a signal (#318).
+   */
   readonly latencyAlarm?: boolean;
   readonly bundling?: NodejsFunctionProps['bundling'];
   /**
@@ -117,16 +121,11 @@ export class ServiceLambda extends Construct {
       treatMissingData: TreatMissingData.NOT_BREACHING,
     });
 
-    mandatoryAlarm(this, 'Throttles', {
-      alarmDescription: `${id}: throttled invocations`,
-      metric: this.function.metricThrottles({ period: Duration.minutes(5) }),
-      threshold: 1,
-      evaluationPeriods: 1,
-      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      treatMissingData: TreatMissingData.NOT_BREACHING,
-    });
+    // No alarm on throttles per function: no function reserves concurrency, so
+    // a throttle is the account reaching its limit, and the one alarm of the
+    // account in the network stack says so (#318).
 
-    if (props.latencyAlarm !== false) {
+    if (props.latencyAlarm === true) {
       mandatoryAlarm(this, 'Duration', {
         alarmDescription: `${id}: p99 duration`,
         metric: this.function.metricDuration({

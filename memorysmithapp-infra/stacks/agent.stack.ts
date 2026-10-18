@@ -73,6 +73,7 @@ export class AgentStack extends Stack {
      * this is where that showed up.
      */
     const service = new ServiceLambda(this, 'AgentFunction', {
+      latencyAlarm: true,
       entry: join(
         here,
         '..',

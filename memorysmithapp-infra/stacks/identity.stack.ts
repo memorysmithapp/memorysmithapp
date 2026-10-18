@@ -122,6 +122,7 @@ export class IdentityStack extends Stack {
      * what a platform session is.
      */
     const preTokenGeneration = new ServiceLambda(this, 'PreTokenGeneration', {
+      latencyAlarm: true,
       entry: join(
         here,
         '..',

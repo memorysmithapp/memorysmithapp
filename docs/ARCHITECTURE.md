@@ -248,7 +248,7 @@ Without `--apply`, a maintenance job only reports.
 
 Every function writes one JSON line per operation, with identifiers only and never a name, a path or a body, and one correlation id follows a call from the connector through the core, the relay, the projector and the trail (`packages/observability`). Both HTTP APIs keep access logs. Every log group the stacks declare keeps a month.
 
-In production every function has alarms on errors, throttles and, unless asynchronous by design, p99 duration, and every dead-letter queue an alarm on its depth, all notifying the SNS topic `memorysmith-alarms-production`. Alarms are created only through `mandatoryAlarm`, and an aspect fails the synthesis of an alarm without an action, or of any alarm in staging (`memorysmithapp-infra/constructs/alarms.ts`). Two budgets, declared in the *Network* stack of production: the account at US$ 12 a month and staging, read through `app:environment`, at US$ 3.
+In production every function has an alarm on errors, the three a person or an agent waits on (`CoreApi`, `AgentFunction`, `PreTokenGeneration`) one on p99 duration, the account one on Lambda throttles (no function reserves concurrency, so a throttle is the account at its limit), and every dead-letter queue one on its depth, all notifying the SNS topic `memorysmith-alarms-production`. Alarms are created only through `mandatoryAlarm`, and an aspect fails the synthesis of an alarm without an action, or of any alarm in staging (`memorysmithapp-infra/constructs/alarms.ts`). Two budgets, declared in the *Network* stack of production: the account at US$ 12 a month and staging, read through `app:environment`, at US$ 3.
 
 ## 6. Architecture decision records
 

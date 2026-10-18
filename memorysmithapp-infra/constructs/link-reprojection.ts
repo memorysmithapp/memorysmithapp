@@ -71,7 +71,6 @@ export class LinkReprojection extends Construct {
       // notes reads each one: neither answers a person who is waiting.
       timeout: Duration.minutes(10),
       memorySize: 1024,
-      latencyAlarm: false,
     });
     props.knowledgeTable.grantReadData(steps.function);
     props.discoveryTable.grantReadWriteData(steps.function);

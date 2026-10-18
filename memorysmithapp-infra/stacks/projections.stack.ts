@@ -117,7 +117,6 @@ export class ProjectionsStack extends Stack {
       // Embedding is the slow part, and it is asynchronous by design.
       timeout: Duration.minutes(5),
       memorySize: 1024,
-      latencyAlarm: false,
     });
 
     projector.function.addEventSource(

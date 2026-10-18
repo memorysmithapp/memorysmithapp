@@ -178,6 +178,7 @@ export class ApiStack extends Stack {
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
+      latencyAlarm: true,
       entry: join(backend, 'apps', 'core-monolith', 'src', 'handler.ts'),
       description: 'MemorySmith core API: access, knowledge, discovery and audit reads.',
       environment,
@@ -360,7 +361,6 @@ export class ApiStack extends Stack {
       // the ceiling is what one message should hold open and not what a
       // notebook holds.
       timeout: Duration.minutes(15),
-      latencyAlarm: false,
     });
 
     // One message at a time: each carries a whole deletion, and a batch would
@@ -430,7 +430,6 @@ export class ApiStack extends Stack {
       // store: the ceiling is what one notebook should hold open.
       timeout: Duration.minutes(15),
       memorySize: 1024,
-      latencyAlarm: false,
     });
 
     // One at a time: each message is a whole notebook, and a batch would make

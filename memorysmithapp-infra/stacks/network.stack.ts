@@ -11,11 +11,12 @@
 
 import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import { ComparisonOperator, Metric, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import type { EnvironmentConfig } from '../config/environments.js';
-import { AlarmTopic } from '../constructs/alarms.js';
+import { AlarmTopic, mandatoryAlarm } from '../constructs/alarms.js';
 import { CostBudgets } from '../constructs/budgets.js';
 
 export interface NetworkStackProps extends StackProps {
@@ -158,6 +159,25 @@ export class NetworkStack extends Stack {
      */
     if (props.environment.alarms) {
       new AlarmTopic(this, 'Alarms', { environment: props.environment });
+
+      /**
+       * Throttles of the whole account, in place of one alarm per function
+       * (#318): no function reserves concurrency, so a throttle anywhere is the
+       * account at its limit, and that is one fact, not twelve.
+       */
+      mandatoryAlarm(this, 'AccountThrottles', {
+        alarmDescription: 'Lambda: throttled invocations in the account',
+        metric: new Metric({
+          namespace: 'AWS/Lambda',
+          metricName: 'Throttles',
+          statistic: 'Sum',
+          period: Duration.minutes(5),
+        }),
+        threshold: 1,
+        evaluationPeriods: 1,
+        comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: TreatMissingData.NOT_BREACHING,
+      });
     }
 
     /**
