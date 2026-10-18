@@ -16,7 +16,7 @@ import { TransferDialog } from './TransferDialog';
 import { carriedParts } from './ExportChoice';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { intlLocale } from '../../i18n/intl-locale';
-import { FileIcon } from '../../shared/components/icons';
+import { FileIcon, UploadIcon } from '../../shared/components/icons';
 import {
   countsOf,
   danglingLinks,
@@ -33,6 +33,7 @@ import {
 } from './import-selection';
 import { useRefreshTransfers, useTransfers } from './transfers';
 import { queryKeys } from '../../shared/api/query-keys';
+import { ActionWord } from '../../shared/components/ActionWord';
 
 /**
  * What an import writes, asked in the dialog both sides share (#160).
@@ -432,7 +433,7 @@ export function ImportDialog({
               {/* Choosing another goes back to where the choice is made,
                   from the device or from the kept exports alike. */}
               <button type="button" className="button is-quiet is-small" onClick={startOver}>
-                {t('portability.changeFile')}
+                <ActionWord icon={<UploadIcon />} word={t('portability.changeFile')} />
               </button>
             </>
           ) : (
@@ -445,7 +446,7 @@ export function ImportDialog({
                 className="button is-quiet"
                 onClick={() => input.current?.click()}
               >
-                {t('portability.chooseFile')}
+                <ActionWord icon={<UploadIcon />} word={t('portability.chooseFile')} />
               </button>
             </>
           )}

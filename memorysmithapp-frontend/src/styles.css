@@ -1359,15 +1359,6 @@ a:hover {
     width: 18px;
     height: 18px;
   }
-  .bar-button-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
 }
 /* The page of a folder (#231): what it keeps, then its Template, then its
    subfolders and its notes as two groups with a count each. */
@@ -3145,6 +3136,34 @@ input[type='radio'] {
 /* A form whose one action closes it, and which is as wide as its fields. */
 .button.is-wide {
   width: 100%;
+}
+
+/* An action button that carries an icon (#325), the bar's included: the icon
+   and its word on a computer, the icon alone from 860 px down, a 44 px target
+   whose word stays as the accessible name. After every size of `.button`, so
+   it wins over `.is-small`. */
+.button svg {
+  flex: none;
+}
+@media (max-width: 860px) {
+  .button:has(> .action-word) {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+  .button:has(> .action-word) svg {
+    width: 18px;
+    height: 18px;
+  }
+  .action-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* ── The Notebook Context and its parts (#227) ───────────────────────────────

@@ -5,8 +5,9 @@ import type { NotificationDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { answerShare, dismissRevokedShare, dismissShareAnswer } from '../../shared/api/source';
 import { Menu } from '../../shared/components/Menu';
-import { BellIcon } from '../../shared/components/icons';
+import { BellIcon, CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { sharesChanged, useNotifications } from './shares';
+import { ActionWord } from '../../shared/components/ActionWord';
 
 /**
  * The notifications of the person, beside Transfers and the user menu (#256,
@@ -115,7 +116,7 @@ function Notice({ notice }: { notice: NotificationDto }) {
               disabled={busy}
               onClick={() => void act(() => answerShare(notice.notebookId, false))}
             >
-              {t('sharing.reject')}
+              <ActionWord icon={<CloseIcon />} word={t('sharing.reject')} />
             </button>
             <button
               type="button"
@@ -123,7 +124,7 @@ function Notice({ notice }: { notice: NotificationDto }) {
               disabled={busy}
               onClick={() => void act(() => answerShare(notice.notebookId, true))}
             >
-              {t('sharing.accept')}
+              <ActionWord icon={<CheckIcon />} word={t('sharing.accept')} />
             </button>
           </>
         ) : (
@@ -133,7 +134,7 @@ function Notice({ notice }: { notice: NotificationDto }) {
             disabled={busy}
             onClick={() => void act(dismiss)}
           >
-            {t('notifications.dismiss')}
+            <ActionWord icon={<CloseIcon />} word={t('notifications.dismiss')} />
           </button>
         )}
       </div>

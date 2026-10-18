@@ -424,4 +424,4 @@ Declared so they become tests.
 | Graph traversal | depth 3, at most 200 nodes |
 | Storage quota of a subscription | 500 MB, 1 GB or 2 GB |
 
-**An action button** that carries an icon shows the icon and its word on a wide screen, and from 860 px down the icon alone, the word kept as its accessible name. The buttons around a note (Show and Copy Markdown, Edit and Read) show the icon alone at every width.
+**An action button** that carries an icon shows the icon and its word on a wide screen, and from 860 px down the icon alone, the word kept as its accessible name. The buttons around a note (Show and Copy Markdown, Edit and Read) show the icon alone at every width. The confirmations and cancels of a dialog or of an in-place question carry no icon and keep their word alone at every width, because an icon alone on a phone makes an irreversible answer easier to tap without reading.

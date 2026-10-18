@@ -22,6 +22,7 @@ issues each entry cites.
 - **The version of the product lives in the root `package.json`.** It was read with a regular expression out of `CLAUDE.md`, which is what kept that file from shrinking; `release-checks`, `release-notes` and `publish-release` read the field now, and every other manifest and `CHANGELOG.md` still have to agree with it. (#319)
 - **The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.4.** Nothing a note is drawn or read with changed in it; it is the version whose README and documents point at where they now live. (#320)
 - **The Markdown specification the product reads is the one `memorysmithapp-markdown` publishes**, `@memorysmithapp/markdown-spec` 0.8.4, where this repository kept a copy of it brought over by hand. The extractors now pass its 140 conformance cases, the 35 it gained since the copy included, and an agent sent to read the specification reaches the document of that version. The cases this repository had added for an image written with a path are upstream already, as `image/*`. (#319, #320)
+- **The actions of Transfers, of the notifications, of choosing a file, of the profile and of signing in carry an icon**, like the buttons of the notebook bar: the icon and its word on a computer, the icon alone on a phone, where the word is still what a screen reader says and the target is one a thumb reaches. The confirmations and cancels of a dialog or of an in-place question keep their word alone on a phone too, so an answer that cannot be undone is read before it is tapped. (#325)
 
 ### Removed
 
