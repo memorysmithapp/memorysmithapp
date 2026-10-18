@@ -24,12 +24,18 @@ import type {
 } from '../../../domain/ports/index.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 
+/** Past the second a global sign-out revokes up to, with room for clock skew. */
+const SAME_SECOND_MS = 1_100;
+
 export class CognitoAccountDirectory implements AccountDirectory, AccountLookup {
   constructor(
     private readonly userPoolId: string,
     /** The app client of the interface, which the current password is proved against. */
     private readonly clientId: string,
     private readonly cognito: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({}),
+    /** How the sign-in after a global sign-out waits; a test passes one that does not. */
+    private readonly pause: (ms: number) => Promise<void> = (ms) =>
+      new Promise((resolve) => setTimeout(resolve, ms)),
   ) {}
 
   async setLocale(account: Email, locale: AccountLocale): Promise<void> {
@@ -145,7 +151,13 @@ export class CognitoAccountDirectory implements AccountDirectory, AccountLookup 
      * again with the new password, on the client of the interface, it gets
      * tokens the sign-out never saw. A failure here is the harmless half again:
      * the password is changed, and this session ends at its next refresh.
+     *
+     * Not at once: Cognito revokes, by the second, every token issued up to the
+     * second of the sign-out, so a sign-in in that same second hands out a
+     * refresh token already dead. Measured on staging: refused at 0 ms, kept
+     * at 1,100 ms.
      */
+    await this.pause(SAME_SECOND_MS);
     try {
       const renewed = await this.cognito.send(
         new AdminInitiateAuthCommand({
