@@ -381,7 +381,11 @@ export class DynamoLinkGraph implements LinkGraph {
    * answered every key: a throttled batch answers `UnprocessedKeys` rather
    * than an error, as a batch write answers `UnprocessedItems`.
    */
-  private async getAll(notebookId: string, sortKeys: readonly string[]): Promise<Item[]> {
+  private async getAll(
+    notebookId: string,
+    sortKeys: readonly string[],
+    consistent = false,
+  ): Promise<Item[]> {
     const found: Item[] = [];
     for (const batch of chunk([...new Set(sortKeys)], 100)) {
       let keys: Array<Record<string, unknown>> = batch.map((SK) => ({
@@ -390,7 +394,11 @@ export class DynamoLinkGraph implements LinkGraph {
       }));
       for (let attempt = 0; keys.length > 0 && attempt < 8; attempt++) {
         const answer = await this.db.send(
-          new BatchGetCommand({ RequestItems: { [this.tableName]: { Keys: keys } } }),
+          new BatchGetCommand({
+            RequestItems: {
+              [this.tableName]: { Keys: keys, ...(consistent ? { ConsistentRead: true } : {}) },
+            },
+          }),
         );
         found.push(...((answer.Responses?.[this.tableName] ?? []) as Item[]));
         keys = (answer.UnprocessedKeys?.[this.tableName]?.Keys ?? []) as typeof keys;
@@ -412,6 +420,13 @@ export class DynamoLinkGraph implements LinkGraph {
    * rebuild, so the first write into it marks it. The mark never goes away
    * while the notebook exists, so an answer of yes is kept for the life of
    * this adapter.
+   *
+   * A note found in a partition with no mark is read as the old layout only
+   * once the mark has been asked for again, consistently. Two first notes of
+   * one notebook are projected at once, and the one that marks it writes its
+   * note after the mark: the other, having asked for the mark before it
+   * landed, found that note and wrote the old layout into a marked partition,
+   * with no spelling indexed for a link to reach it by (#328).
    */
   private readonly indexed = new Set<string>();
 
@@ -431,7 +446,17 @@ export class DynamoLinkGraph implements LinkGraph {
           Limit: 1,
         }),
       );
-      if ((any.Items ?? []).length > 0) return false;
+      if ((any.Items ?? []).length > 0) {
+        const again = await this.db.send(
+          new GetCommand({
+            TableName: this.tableName,
+            Key: { PK: this.pk(notebookId), SK: 'GRAPH' },
+            ConsistentRead: true,
+          }),
+        );
+        if (again.Item) this.indexed.add(notebookId);
+        return Boolean(again.Item);
+      }
       await this.markIndexed(notebookId);
       return true;
     }
@@ -492,10 +517,11 @@ export class DynamoLinkGraph implements LinkGraph {
     note: NoteRef,
     spellings: readonly string[],
     indexed: boolean,
+    consistent = false,
   ): Promise<NotebookNames> {
     const others = indexed
-      ? await this.notesAnswering(notebookId, spellings)
-      : await this.query(notebookId, 'NOTE#');
+      ? await this.notesAnswering(notebookId, spellings, consistent)
+      : await this.query(notebookId, 'NOTE#', consistent);
     return this.namesOf(
       [
         ...others.filter((item) => String(item['noteId']) !== note.noteId),
@@ -510,7 +536,11 @@ export class DynamoLinkGraph implements LinkGraph {
     );
   }
 
-  private async notesAnswering(notebookId: string, spellings: readonly string[]): Promise<Item[]> {
+  private async notesAnswering(
+    notebookId: string,
+    spellings: readonly string[],
+    consistent = false,
+  ): Promise<Item[]> {
     const wanted = [...new Set(spellings.map((each) => each.normalize('NFC')))].filter(
       (each) => each.length > 0,
     );
@@ -518,7 +548,7 @@ export class DynamoLinkGraph implements LinkGraph {
       wanted.map(async (spelling) =>
         // A spelling carrying `#` shares a prefix with a longer one, so the
         // spelling is compared whole.
-        (await this.query(notebookId, `NAME#${spelling}#`)).filter(
+        (await this.query(notebookId, `NAME#${spelling}#`, consistent)).filter(
           (item) => item['spelling'] === spelling,
         ),
       ),
@@ -526,6 +556,7 @@ export class DynamoLinkGraph implements LinkGraph {
     return this.getAll(
       notebookId,
       pointers.flat().map((item) => `NOTE#${String(item['noteId'])}`),
+      consistent,
     );
   }
 
@@ -550,15 +581,14 @@ export class DynamoLinkGraph implements LinkGraph {
    * keep a spelling too many, which `namesFor` reads past, and never misses
    * one the note item holds. A note item that did not change still has its
    * spellings looked up, so one a failed write left out is written again.
+   *
+   * It does so in a partition not marked yet as well: a projection that read
+   * no mark a moment before the rebuild or a first note marked it still
+   * leaves the index whole.
    */
-  private async restate(
-    notebookId: string,
-    note: NoteRef,
-    before: NoteRef | null,
-    indexed: boolean,
-  ): Promise<void> {
+  private async restate(notebookId: string, note: NoteRef, before: NoteRef | null): Promise<void> {
     const changed = !sameNote(before, note);
-    if (indexed) {
+    {
       const now = spellingsOf(note);
       const gone = before ? spellingsOf(before).filter((each) => !now.includes(each)) : [];
       await this.remove(
@@ -578,9 +608,7 @@ export class DynamoLinkGraph implements LinkGraph {
           );
       if (changed) await this.putNote(notebookId, note);
       await this.put(items.filter((item) => !held.has(String(item['SK']))));
-      return;
     }
-    if (changed) await this.putNote(notebookId, note);
   }
 
   private async putNote(notebookId: string, note: NoteRef): Promise<void> {
@@ -733,6 +761,28 @@ export class DynamoLinkGraph implements LinkGraph {
    * hold it yet is read whole and written whole, as before.
    */
   async replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void> {
+    await this.replace(notebookId, note, links, false);
+  }
+
+  /**
+   * `settled` is the second pass of a write whose pending targets a note
+   * answers after all, read consistently (#328).
+   *
+   * A target is written pending after the names were read, and a note written
+   * under that name looks for what waits for it after its own spelling is
+   * written. Two notes projected at once could each look before the other
+   * wrote, and the link stayed pending for ever: the note it waited for had
+   * already looked. So each side writes first and then reads, consistently —
+   * `resolvePending` reads the waiting links after the spelling is indexed,
+   * and this reads the spellings again after the pending link is written —
+   * and of two writes racing, at least one sees the other.
+   */
+  private async replace(
+    notebookId: string,
+    note: NoteRef,
+    links: LinkTarget[],
+    settled: boolean,
+  ): Promise<void> {
     const indexed = await this.layoutOf(notebookId, true);
     const [before, existing, mine, names] = await Promise.all([
       this.noteOf(notebookId, note.noteId),
@@ -748,9 +798,10 @@ export class DynamoLinkGraph implements LinkGraph {
         note,
         links.filter((link) => link.form !== 'image').map((link) => link.name),
         indexed,
+        settled,
       ),
     ]);
-    await this.restate(notebookId, note, before, indexed);
+    await this.restate(notebookId, note, before);
 
     /**
      * What the note holds now, by key. The backlink of an edge is not read:
@@ -864,6 +915,17 @@ export class DynamoLinkGraph implements LinkGraph {
       notebookId,
       stale.filter((sk) => !wanted.has(sk)),
     );
+
+    // In a partition read whole the names were read whole too, as before.
+    if (settled || !indexed) return;
+    const waiting = [...wanted.values()]
+      .filter((item) => item['entity'] === 'PENDING')
+      .map((item) => String(item['name']));
+    if (waiting.length === 0) return;
+    const now = await this.namesFor(notebookId, note, waiting, true, true);
+    if (waiting.some((name) => resolveTarget(name, now).kind === 'note')) {
+      await this.replace(notebookId, note, links, true);
+    }
   }
 
   /** The edge, written in BOTH directions so a backlink is a Query. */
@@ -1058,12 +1120,14 @@ export class DynamoLinkGraph implements LinkGraph {
   async resolvePending(notebookId: string, note: NoteRef): Promise<number> {
     if (note.name.length > 0) await this.takeBackFromAliases(notebookId, note);
 
+    // Read consistently, after the spellings were written: a link written
+    // pending a moment ago is the one this must not miss (#328).
     const byName =
-      note.name.length === 0 ? [] : await this.query(notebookId, `PENDING#${note.name}#`);
+      note.name.length === 0 ? [] : await this.query(notebookId, `PENDING#${note.name}#`, true);
     const byAlias: Array<{ item: Item; alias: string }> = [];
     for (const alias of note.aliases ?? []) {
       if (alias.length === 0) continue;
-      for (const item of await this.query(notebookId, `PENDING#${alias}#`)) {
+      for (const item of await this.query(notebookId, `PENDING#${alias}#`, true)) {
         byAlias.push({ item, alias });
       }
     }

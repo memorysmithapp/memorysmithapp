@@ -413,3 +413,105 @@ describeAttachmentForms('DynamoLinkGraph over a table in memory, layout of 0.13'
   table.seed({ PK, ...LEGACY_NOTE });
   return { graph: new DynamoLinkGraph(SUBSCRIPTION, table.db as never, 't'), notebookId: NOTEBOOK };
 });
+
+/**
+ * Two notes of one fresh notebook, projected at once by two instances, the
+ * way staging met them (#328): Beta written, then Alpha linking it, and the
+ * link left pending for ever. Each instance is paused at the one point the
+ * interleaving needs, and the other runs in between.
+ */
+describe('Two notes projected at once keep the link between them (#328)', () => {
+  /** A client that stops before the first command `when` names, until released. */
+  function paused(
+    db: ReturnType<typeof dynamoTable>['db'],
+    when: (command: { constructor: { name: string }; input: Record<string, unknown> }) => boolean,
+  ) {
+    let release = (): void => undefined;
+    let reached = (): void => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const arrived = new Promise<void>((resolve) => (reached = resolve));
+    let stopped = false;
+    const client = {
+      send: async (command: { constructor: { name: string }; input: Record<string, unknown> }) => {
+        if (!stopped && when(command)) {
+          stopped = true;
+          reached();
+          await gate;
+        }
+        return db.send(command as never);
+      },
+    };
+    return { client, arrived, release };
+  }
+
+  const writesPending = (command: {
+    constructor: { name: string };
+    input: Record<string, unknown>;
+  }) =>
+    command.constructor.name === 'BatchWriteCommand' &&
+    JSON.stringify(command.input).includes('"PENDING#Beta#alpha"');
+  const asksForNotes = (command: {
+    constructor: { name: string };
+    input: Record<string, unknown>;
+  }) => command.constructor.name === 'QueryCommand' && command.input['Limit'] === 1;
+
+  const beta = ref('beta', 'Beta');
+  const alpha = ref('alpha', 'Alpha');
+  const alphaLinks = [link('Beta'), link('Gamma')];
+
+  async function linkOf(graph: DynamoLinkGraph): Promise<unknown> {
+    return (await graph.outgoingOf(NOTEBOOK, 'alpha')).find((each) => each.target === 'Beta');
+  }
+
+  it('when Beta decides the layout after Alpha marked the notebook and wrote its note', async () => {
+    const table = dynamoTable();
+    const onBeta = paused(table.db, asksForNotes);
+    const onAlpha = paused(table.db, writesPending);
+    const betaGraph = new DynamoLinkGraph(SUBSCRIPTION, onBeta.client as never, 't');
+    const alphaGraph = new DynamoLinkGraph(SUBSCRIPTION, onAlpha.client as never, 't');
+
+    // Beta finds no mark, and stops before asking whether the notebook holds a note.
+    const betaDone = (async () => {
+      await betaGraph.replaceOutgoing(NOTEBOOK, beta, []);
+      await betaGraph.resolvePending(NOTEBOOK, beta);
+    })();
+    await onBeta.arrived;
+    // Alpha marks the notebook, writes its note, and stops before its pending link.
+    const alphaDone = (async () => {
+      await alphaGraph.replaceOutgoing(NOTEBOOK, alpha, alphaLinks);
+      await alphaGraph.resolvePending(NOTEBOOK, alpha);
+    })();
+    await onAlpha.arrived;
+    // Beta finds Alpha's note and finishes, with nothing yet waiting for it.
+    onBeta.release();
+    await betaDone;
+    onAlpha.release();
+    await alphaDone;
+
+    const graph = new DynamoLinkGraph(SUBSCRIPTION, table.db as never, 't');
+    expect(await linkOf(graph)).toMatchObject({ kind: 'note', notes: [{ noteId: 'beta' }] });
+    expect(table.keysOf(PK)).toContain('NAME#Beta#beta');
+  });
+
+  it('when Beta is written whole between Alpha reading the names and writing its pending link', async () => {
+    const table = dynamoTable();
+    const seeding = new DynamoLinkGraph(SUBSCRIPTION, table.db as never, 't');
+    await seeding.markIndexed(NOTEBOOK);
+    const onAlpha = paused(table.db, writesPending);
+    const alphaGraph = new DynamoLinkGraph(SUBSCRIPTION, onAlpha.client as never, 't');
+
+    const alphaDone = (async () => {
+      await alphaGraph.replaceOutgoing(NOTEBOOK, alpha, alphaLinks);
+      await alphaGraph.resolvePending(NOTEBOOK, alpha);
+    })();
+    await onAlpha.arrived;
+    await seeding.replaceOutgoing(NOTEBOOK, beta, []);
+    await seeding.resolvePending(NOTEBOOK, beta);
+    onAlpha.release();
+    await alphaDone;
+
+    expect(await linkOf(seeding)).toMatchObject({ kind: 'note', notes: [{ noteId: 'beta' }] });
+    expect(table.keysOf(PK)).not.toContain('PENDING#Beta#alpha');
+    expect(table.keysOf(PK)).toContain('PENDING#Gamma#alpha');
+  });
+});
