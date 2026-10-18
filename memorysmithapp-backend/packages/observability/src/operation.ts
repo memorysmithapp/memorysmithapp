@@ -15,6 +15,7 @@ import {
 } from './fields.js';
 import { writeOperation } from './logger.js';
 import { correlationIdFrom, openScope, runInScope, type Annotations } from './scope.js';
+import { startTrace, traceAnnotationsOf } from './tracing.js';
 
 export interface OperationStart extends Annotations {
   readonly operation: string;
@@ -37,6 +38,7 @@ export async function observe<T>(start: OperationStart, work: () => Promise<T>):
   const { correlationId: handed, ...annotations } = start;
   const scope = openScope(correlationIdFrom(handed), annotations);
   const started = now();
+  const trace = startTrace(start.operation);
   const line = (outcome: Outcome): OperationLine => ({
     ...scope.annotations,
     operation: scope.annotations.operation ?? start.operation,
@@ -46,11 +48,15 @@ export async function observe<T>(start: OperationStart, work: () => Promise<T>):
   });
   try {
     const result = await runInScope(scope, work);
-    writeOperation(line(scope.annotations.outcome ?? 'ok'));
+    const written = line(scope.annotations.outcome ?? 'ok');
+    writeOperation(written);
+    trace?.end(traceAnnotationsOf(written));
     return result;
   } catch (error) {
     scope.annotations = { ...scope.annotations, ...errorFieldsOf(error) };
-    writeOperation(line('error'));
+    const written = line('error');
+    writeOperation(written);
+    trace?.end(traceAnnotationsOf(written), error);
     throw error;
   }
 }
@@ -67,25 +73,32 @@ export async function observeBatch<I, T>(
   work: () => Promise<T>,
 ): Promise<T> {
   const started = now();
+  // One subsegment for the batch, and one mark under it per item, so a search
+  // by the correlation id of any of them finds the trace (#271).
+  const trace = startTrace(items.length > 0 ? startOf(items[0] as I).operation : 'batch');
   const lines = (outcome: Outcome, failure: Annotations = {}): void => {
     const durationMs = now() - started;
     for (const item of items) {
       const { correlationId, ...annotations } = startOf(item);
-      writeOperation({
+      const written: OperationLine = {
         ...annotations,
         ...failure,
         outcome,
         durationMs,
         ...(correlationId ? { correlationId } : {}),
-      });
+      };
+      writeOperation(written);
+      trace?.mark(written.operation, traceAnnotationsOf(written));
     }
   };
   try {
     const result = await work();
     lines('ok');
+    trace?.end({ outcome: 'ok' });
     return result;
   } catch (error) {
     lines('error', errorFieldsOf(error));
+    trace?.end({ outcome: 'error' }, error);
     throw error;
   }
 }

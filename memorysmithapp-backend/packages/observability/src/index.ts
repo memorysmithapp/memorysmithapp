@@ -37,6 +37,15 @@ export {
 } from './scope.js';
 export { correlationAttributes, correlationIdOfRecord } from './messages.js';
 export {
+  FLOWS,
+  flowOf,
+  startTrace,
+  traceAnnotationsOf,
+  type Flow,
+  type OperationTrace,
+  type TraceAnnotations,
+} from './tracing.js';
+export {
   observe,
   observeBatch,
   refusedWith,

@@ -11,10 +11,9 @@ issues each entry cites.
 
 ## [Unreleased]
 
-### Security
+### Added
 
-- **A platform administrator never acts for a subscription.** Its session carries no subscription even if its account holds a link to one, so it reaches no notebook by construction, and `onboard` now gives the first account of a new environment the platform and no subscription: the account somebody uses the product with is a second one. (#322)
-- **No principal of staging but the purge can alter or remove an entry of the audit trail, or destroy a revision of somebody's note.** The role GitHub delivers staging with is denied writing over the trail, and destroys a revision only under the subscriptions its own adapter tests create; production was already so. (#321)
+- **Every call can be followed through X-Ray**, from the connector to the core and from a write to the relay, the projector and the trail it caused: each operation is a subsegment searchable by its business flow (`write`, `file-upload`, `share`, `export`, `import`, `print`, `onboarding`, `connect-agent`), its operation and its correlation id, with identifiers only, as the log. (#271)
 
 ### Changed
 
@@ -27,6 +26,11 @@ issues each entry cites.
 ### Removed
 
 - **`docs/knowledge-base.md`, `docs/markdown-spec.md`, `SECURITY.md` and the issue forms.** The specification is the one `memorysmithapp-markdown` publishes; `SECURITY.md` offered a private channel that is not enabled on this repository and described deletion as reversible; an issue opens blank. (#319)
+
+### Security
+
+- **A platform administrator never acts for a subscription.** Its session carries no subscription even if its account holds a link to one, so it reaches no notebook by construction, and `onboard` now gives the first account of a new environment the platform and no subscription: the account somebody uses the product with is a second one. (#322)
+- **No principal of staging but the purge can alter or remove an entry of the audit trail, or destroy a revision of somebody's note.** The role GitHub delivers staging with is denied writing over the trail, and destroys a revision only under the subscriptions its own adapter tests create; production was already so. (#321)
 
 ## [0.13.1] - 2026-10-17
 

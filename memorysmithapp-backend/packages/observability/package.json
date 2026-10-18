@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "2.35.0",
+    "@aws-lambda-powertools/tracer": "2.35.0",
     "hono": "^4.13.3"
   }
 }

@@ -3,6 +3,8 @@
  * mandatory alarms, each with the destination it notifies. Where the
  * environment carries no alarms, as staging does, it creates none (#267).
  *
+ * Every function is also traced through X-Ray, for the same reason (#271).
+ *
  * Forgetting them stops being possible by omission, which is the whole reason
  * this construct exists instead of a helper function someone may skip.
  *
@@ -13,7 +15,7 @@
 
 import { Duration, RemovalPolicy, type Size } from 'aws-cdk-lib';
 import { ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
-import { Architecture, Runtime, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
+import { Architecture, Runtime, Tracing, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
@@ -81,6 +83,11 @@ export class ServiceLambda extends Construct {
       timeout: props.timeout ?? Duration.seconds(15),
       description: props.description,
       logGroup,
+      // Every function is traced (#271), in both environments: Lambda samples
+      // one request a second and 5% of the rest, a rate it does not let a
+      // function change, which at this traffic keeps production inside the
+      // free 100,000 traces a month and traces nearly all of staging.
+      tracing: Tracing.ACTIVE,
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
         // Powertools writes the one line of each operation, named by this
