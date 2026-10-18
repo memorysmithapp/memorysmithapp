@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.4.** Nothing a note is drawn or read with changed in it; it is the version whose README and documents point at where they now live. (#320)
+
 ## [0.13.1] - 2026-10-17
 
 ### Fixed
