@@ -124,9 +124,7 @@ The extractors pass the conformance suite of the published specification on ever
 
 ### INV-06 The audit trail is append-only
 
-No path alters an entry of `mv-audit`, and exactly one principal removes one: the purge worker, as part of a deletion. Every role that touches the table carries an explicit `Deny` on `UpdateItem` and `DeleteItem`; `grantTrailPurge` is the one grant that allows `DeleteItem`, and only the purge holds it (`memorysmithapp-infra/constructs/subscription-table.ts`, [ADR-004](#adr-004-the-audit-trail-is-append-only-by-iam)). `test/transfer-permissions.test.ts` asserts it over the *Api* and *Projections* stacks.
-
-**Gap:** the GitHub delivery role of staging may update and delete items of `mv-audit-staging` for the adapter tests (#321).
+No path alters an entry of `mv-audit`, and exactly one principal removes one: the purge worker, as part of a deletion. Every role that touches the table carries an explicit `Deny` on `UpdateItem` and `DeleteItem`; `grantTrailPurge` is the one grant that allows `DeleteItem`, and only the purge holds it (`memorysmithapp-infra/constructs/subscription-table.ts`, [ADR-004](#adr-004-the-audit-trail-is-append-only-by-iam)). The GitHub delivery role of staging, which runs the adapter tests and the maintenance jobs, carries the same explicit `Deny` on `mv-audit-staging`, `BatchWriteItem` included, and the role of production reaches no table. `test/transfer-permissions.test.ts` asserts it over the *Api* and *Projections* stacks, and `test/github-delivery.test.ts` over the two delivery roles.
 
 ### INV-07 Every mutation takes an Authorship
 
@@ -134,9 +132,7 @@ No path alters an entry of `mv-audit`, and exactly one principal removes one: th
 
 ### INV-08 Deleting is definitive and invalidity is inherited
 
-Deleting writes once, on the unit deleted: the mark on a note, `deletedAt` on a notebook's `META`, the tree for a folder. Everything under it is invalid in the same instant, because every read checks reachability against the tree. A queue-fed purge (`mv-purge`, `services/knowledge/src/adapters/inbound/content-purge.ts`) then destroys the content, the items and the projections, through a port of its own. Nothing restores. Exactly one principal may destroy a revision, the purge: only it holds `s3:DeleteObjectVersion` over the content bucket ([ADR-007](#adr-007-delete-is-one-mark-invalidity-is-inherited-a-purge-destroys)).
-
-**Gap:** the GitHub delivery role of staging holds `s3:DeleteObjectVersion` on the content bucket of staging (#321).
+Deleting writes once, on the unit deleted: the mark on a note, `deletedAt` on a notebook's `META`, the tree for a folder. Everything under it is invalid in the same instant, because every read checks reachability against the tree. A queue-fed purge (`mv-purge`, `services/knowledge/src/adapters/inbound/content-purge.ts`) then destroys the content, the items and the projections, through a port of its own. Nothing restores. Exactly one principal may destroy a revision, the purge: only it holds `s3:DeleteObjectVersion` over the content bucket ([ADR-007](#adr-007-delete-is-one-mark-invalidity-is-inherited-a-purge-destroys)). The GitHub delivery role of staging holds it only under `s/0000000000*`, the subscriptions of time zero the adapter cases mint so the case of the purge can destroy what it wrote, and no real subscription carries; `test/github-delivery.test.ts` asserts it.
 
 ### INV-09 What the requester may not see answers 404
 

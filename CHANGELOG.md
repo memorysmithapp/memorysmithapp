@@ -14,6 +14,7 @@ issues each entry cites.
 ### Security
 
 - **A platform administrator never acts for a subscription.** Its session carries no subscription even if its account holds a link to one, so it reaches no notebook by construction, and `onboard` now gives the first account of a new environment the platform and no subscription: the account somebody uses the product with is a second one. (#322)
+- **No principal of staging but the purge can alter or remove an entry of the audit trail, or destroy a revision of somebody's note.** The role GitHub delivers staging with is denied writing over the trail, and destroys a revision only under the subscriptions its own adapter tests create; production was already so. (#321)
 
 ### Changed
 
