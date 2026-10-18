@@ -33,6 +33,7 @@ issues each entry cites.
 
 - **`keep_file` answers the SHA-256 of what it kept**, as its own note promised: an agent that knows the hash of the file it was given can tell the person when what was kept is not their file. (#329)
 - **The history an agent reads of a note no longer promises it survives a move to another notebook**, which no client offers: it survives a move to another folder. (#330)
+- **Changing your password keeps the session you changed it from open**, as the screen says: every other session still ends, and this one no longer did too an hour later, at its first refresh. (#331)
 
 ### Security
 

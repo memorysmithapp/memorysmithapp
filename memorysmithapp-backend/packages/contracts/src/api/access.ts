@@ -70,6 +70,24 @@ export const changePasswordRequestSchema = z.object({
   next: z.string().min(1),
 });
 
+/**
+ * The session the change hands back (#331). Ending every other session revokes
+ * the refresh token of this one too, so the change signs this session in again
+ * with the new password and answers its tokens, which the screen keeps: the
+ * session the person changed it from stays open, as RN-ACC-023 says. Null when
+ * that sign-in failed, and then this session ends at its next refresh.
+ */
+export const changedPasswordSchema = z.object({
+  session: z
+    .object({
+      accessToken: z.string().min(1),
+      idToken: z.string().min(1),
+      refreshToken: z.string().min(1),
+      expiresIn: z.number().int().positive(),
+    })
+    .nullable(),
+});
+
 /** One link between a user and a subscription (INV-01). */
 export const subscriptionLinkSchema = z.object({
   subscriptionId: ulidSchema,
@@ -397,6 +415,7 @@ export type ProfileDto = z.infer<typeof profileSchema>;
 export type EditProfileRequest = z.infer<typeof editProfileRequestSchema>;
 export type SetPictureRequest = z.infer<typeof setPictureRequestSchema>;
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
+export type ChangedPassword = z.infer<typeof changedPasswordSchema>;
 export type ChooseLanguageRequest = z.infer<typeof chooseLanguageRequestSchema>;
 export type RequestSubscriptionRequest = z.infer<typeof requestSubscriptionRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;

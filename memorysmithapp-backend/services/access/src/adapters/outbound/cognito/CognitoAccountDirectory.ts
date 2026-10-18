@@ -17,7 +17,11 @@ import {
   CognitoIdentityProviderClient,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { DomainError, err, ok, UserId, type Result } from '@memorysmithapp/kernel';
-import type { AccountDirectory, AccountLookup } from '../../../domain/ports/index.js';
+import type {
+  AccountDirectory,
+  AccountLookup,
+  RenewedSession,
+} from '../../../domain/ports/index.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
 
 export class CognitoAccountDirectory implements AccountDirectory, AccountLookup {
@@ -94,7 +98,7 @@ export class CognitoAccountDirectory implements AccountDirectory, AccountLookup 
     account: Email,
     current: string,
     next: string,
-  ): Promise<Result<void, DomainError>> {
+  ): Promise<Result<RenewedSession | null, DomainError>> {
     try {
       await this.cognito.send(
         new AdminInitiateAuthCommand({
@@ -134,6 +138,33 @@ export class CognitoAccountDirectory implements AccountDirectory, AccountLookup 
         Username: account.value,
       }),
     );
-    return ok();
+
+    /**
+     * The sign-out revokes the refresh token of THIS session too, so it would
+     * end an hour later while the screen says it stays open (#331). Signed in
+     * again with the new password, on the client of the interface, it gets
+     * tokens the sign-out never saw. A failure here is the harmless half again:
+     * the password is changed, and this session ends at its next refresh.
+     */
+    try {
+      const renewed = await this.cognito.send(
+        new AdminInitiateAuthCommand({
+          UserPoolId: this.userPoolId,
+          ClientId: this.clientId,
+          AuthFlow: 'ADMIN_USER_PASSWORD_AUTH',
+          AuthParameters: { USERNAME: account.value, PASSWORD: next },
+        }),
+      );
+      const result = renewed.AuthenticationResult;
+      if (!result?.AccessToken || !result.IdToken || !result.RefreshToken) return ok(null);
+      return ok({
+        accessToken: result.AccessToken,
+        idToken: result.IdToken,
+        refreshToken: result.RefreshToken,
+        expiresIn: result.ExpiresIn ?? 3600,
+      });
+    } catch {
+      return ok(null);
+    }
   }
 }

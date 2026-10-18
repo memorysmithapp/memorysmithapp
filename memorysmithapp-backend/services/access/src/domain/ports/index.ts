@@ -148,9 +148,22 @@ export interface AccountDirectory {
    * not satisfy the policy of the pool, and NEVER says which.
    *
    * It ends the other sessions of the account, which is what a password change
-   * means and what the screen says before it happens.
+   * means and what the screen says before it happens, and answers this one
+   * signed in again, or null when that sign-in failed (RN-ACC-023, #331).
    */
-  changePassword(account: Email, current: string, next: string): Promise<Result<void, DomainError>>;
+  changePassword(
+    account: Email,
+    current: string,
+    next: string,
+  ): Promise<Result<RenewedSession | null, DomainError>>;
+}
+
+/** The tokens of a session signed in again, as the identity provider issued them. */
+export interface RenewedSession {
+  readonly accessToken: string;
+  readonly idToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
 }
 
 /**

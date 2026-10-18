@@ -35,6 +35,7 @@ import type {
   SubscriptionOnboarding,
   SubscriptionRepository,
   UserLinkRepository,
+  RenewedSession,
 } from '../../../domain/ports/index.js';
 
 export class InMemoryAccessDatabase {
@@ -261,13 +262,18 @@ export class InMemoryAccountDirectory implements AccountDirectory {
     account: Email,
     current: string,
     next: string,
-  ): Promise<Result<void, DomainError>> {
+  ): Promise<Result<RenewedSession | null, DomainError>> {
     const held = this.passwords.get(account.value);
     if (held !== undefined && held !== current) {
       return { ok: false, error: DomainError.validation('The password could not be changed') };
     }
     this.passwords.set(account.value, next);
-    return ok();
+    return ok({
+      accessToken: `access.${account.value}`,
+      idToken: `id.${account.value}`,
+      refreshToken: `refresh.${account.value}`,
+      expiresIn: 3600,
+    });
   }
 }
 

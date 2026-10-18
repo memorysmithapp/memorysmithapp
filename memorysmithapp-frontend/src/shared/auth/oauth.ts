@@ -152,6 +152,25 @@ function store(payload: unknown): Tokens {
 }
 
 /**
+ * Keeps the session a password change handed back (#331): ending every other
+ * session revoked the refresh token of this one too, so the API signed it in
+ * again and answered its tokens, which take the place of the ones held.
+ */
+export function adoptSession(session: {
+  readonly accessToken: string;
+  readonly idToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
+}): Tokens {
+  return store({
+    access_token: session.accessToken,
+    id_token: session.idToken,
+    refresh_token: session.refreshToken,
+    expires_in: session.expiresIn,
+  });
+}
+
+/**
  * Reads the claims WITHOUT verifying the signature, which is correct here and
  * would not be on the server: the browser is showing them to their own owner,
  * and every decision that matters is taken by the backend against the signed

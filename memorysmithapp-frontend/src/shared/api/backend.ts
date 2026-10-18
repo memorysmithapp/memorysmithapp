@@ -9,6 +9,7 @@
 
 import type {
   AccountLocaleDto,
+  ChangedPassword,
   AvatarSourceDto,
   IncomingShareDto,
   NotificationDto,
@@ -51,6 +52,7 @@ import type {
 } from '../types/api';
 import { splitFrontmatter } from './markdown';
 import { request } from './http';
+import { adoptSession } from '../auth/oauth';
 
 export async function getSession(): Promise<SessionDto> {
   return request<SessionDto>('/access/session');
@@ -90,10 +92,15 @@ export async function setProfilePicture(mime: string, bytes: string): Promise<vo
 
 /**
  * A change and not a recovery, so it states the current password (RN-ACC-023).
- * It ends every other session of the account, which the screen says first.
+ * It ends every other session of the account, which the screen says first, and
+ * this one goes on with the tokens the change hands back (#331).
  */
 export async function changePassword(current: string, next: string): Promise<void> {
-  await request<void>('/access/password', { method: 'POST', body: { current, next } });
+  const changed = await request<ChangedPassword>('/access/password', {
+    method: 'POST',
+    body: { current, next },
+  });
+  if (changed?.session) adoptSession(changed.session);
 }
 
 function toSummary(notebook: NotebookSummaryDto): NotebookSummary {

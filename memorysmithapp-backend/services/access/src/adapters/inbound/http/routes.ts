@@ -356,7 +356,6 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         current: String(body.current ?? ''),
         next: String(body.next ?? ''),
       }),
-      204,
     );
   });
 

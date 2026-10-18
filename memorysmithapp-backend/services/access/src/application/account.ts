@@ -11,6 +11,7 @@ import type {
   PictureTypes,
   UserLinkRepository,
   UserProfile,
+  RenewedSession,
 } from '../domain/ports/index.js';
 
 /**
@@ -221,13 +222,18 @@ export class ChangePassword {
     profile: UserProfile;
     current: string;
     next: string;
-  }): Promise<Result<void, DomainError>> {
+  }): Promise<Result<{ session: RenewedSession | null }, DomainError>> {
     if (!input.current || !input.next) {
       return err(DomainError.validation('Both the current password and the new one are needed'));
     }
     if (input.current === input.next) {
       return err(DomainError.validation('The new password is the current one'));
     }
-    return this.directory.changePassword(input.profile.email, input.current, input.next);
+    const changed = await this.directory.changePassword(
+      input.profile.email,
+      input.current,
+      input.next,
+    );
+    return changed.ok ? ok({ session: changed.value }) : changed;
   }
 }
