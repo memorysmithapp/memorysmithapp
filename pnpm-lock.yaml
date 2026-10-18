@@ -89,15 +89,13 @@ importers:
   memorysmithapp-backend/packages/contracts:
     dependencies:
       '@memorysmithapp/markdown-spec':
-        specifier: workspace:*
-        version: link:../markdown-spec
+        specifier: '>=0.8.4 <1.0.0'
+        version: 0.8.4
       zod:
         specifier: ^4.0.0
         version: 4.4.3
 
   memorysmithapp-backend/packages/kernel: {}
-
-  memorysmithapp-backend/packages/markdown-spec: {}
 
   memorysmithapp-backend/packages/observability:
     dependencies:
@@ -1257,6 +1255,9 @@ packages:
       katex: ^0.18.5
       react: ^19.0.0
       react-dom: ^19.0.0
+
+  '@memorysmithapp/markdown-spec@0.8.4':
+    resolution: {integrity: sha512-PZOdSENgHN3+KG65Njt4+7z8DezfmWgQnBKzLWXE4Y4hbiYOJa1/wkLyS2F2dyeOlF9co41zXMtViuZLroHEXQ==}
 
   '@mermaid-js/parser@1.2.1':
     resolution: {integrity: sha512-n12NohV3mrUyUL2o93IgG/ifeW9FTyeJn3zDxkhwa8MJ9Fxg3HQMlA3RiGmD/3UnJvheztkjjQAjA2T4LmUcpw==}
@@ -4828,6 +4829,8 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
       - supports-color
+
+  '@memorysmithapp/markdown-spec@0.8.4': {}
 
   '@mermaid-js/parser@1.2.1':
     dependencies:

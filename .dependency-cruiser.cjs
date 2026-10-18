@@ -91,17 +91,13 @@ module.exports = {
     {
       name: 'frontend-reads-the-specification-through-contracts',
       comment:
-        'The Markdown specification is data the contracts derive from, in the package of the ' +
-        'backend that holds it beside the document it belongs to (#162). The ' +
-        'frontend reads the notation and its cases from @memorysmithapp/contracts, so the ' +
-        'specification has one door into the interface and not two (architecture-guide.md, ' +
-        'section 11.0).',
+        'The Markdown specification is data the contracts derive from, published as ' +
+        '@memorysmithapp/markdown-spec. The frontend reads the notation and its cases from ' +
+        '@memorysmithapp/contracts, so the specification has one door into the interface and ' +
+        'not two.',
       severity: 'error',
       from: { path: '^memorysmithapp-frontend/' },
-      // Both shapes: the package name, which is what an import the frontend does
-      // not declare resolves to, and the real path, which is what a relative import
-      // or a declared dependency resolves to.
-      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmithapp/markdown-spec(/|$)' },
+      to: { path: '(^|/)@memorysmithapp/markdown-spec(/|$)' },
     },
     {
       name: 'infrastructure-never-loads-what-operates-it',
@@ -124,7 +120,7 @@ module.exports = {
       severity: 'error',
       from: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
       to: {
-        path: '^memorysmith-(backend|frontend)/|^memorysmithapp-infra/(bin|config|stacks|constructs)/',
+        path: '^memorysmithapp-(backend|frontend)/|^memorysmithapp-infra/(bin|config|stacks|constructs)/',
         pathNot: CONTRACTS,
       },
     },
@@ -139,8 +135,8 @@ module.exports = {
       severity: 'error',
       from: { path: CONTRACTS },
       to: {
-        path: '^memorysmith-(backend|frontend|infra)/',
-        pathNot: [CONTRACTS, '(^|/)packages/markdown-spec/'],
+        path: '^memorysmithapp-(backend|frontend|infra)/',
+        pathNot: CONTRACTS,
       },
     },
     {

@@ -14,6 +14,7 @@ issues each entry cites.
 ### Changed
 
 - **The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.4.** Nothing a note is drawn or read with changed in it; it is the version whose README and documents point at where they now live. (#320)
+- **The Markdown specification the product reads is the one `memorysmithapp-markdown` publishes**, `@memorysmithapp/markdown-spec` 0.8.4, where this repository kept a copy of it brought over by hand. The extractors now pass its 140 conformance cases, the 35 it gained since the copy included, and an agent sent to read the specification reaches the document of that version. The cases this repository had added for an image written with a path are upstream already, as `image/*`. (#319, #320)
 
 ## [0.13.1] - 2026-10-17
 

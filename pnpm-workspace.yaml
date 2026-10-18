@@ -5,10 +5,6 @@ packages:
   - memorysmithapp-backend/services/*
   - memorysmithapp-backend/apps/*
   - memorysmithapp-infra
-  # The Markdown specification the product reads, declared once as data. It is
-  # a package so the contracts can derive the notation from it and so its own
-  # check runs with every other suite; it follows the version of the product.
-  - memorysmithapp-backend/packages/markdown-spec
 
 allowBuilds:
   # Dependencies of pagedjs whose install scripts only print a message.
