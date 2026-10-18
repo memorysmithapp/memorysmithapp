@@ -1166,7 +1166,7 @@ describe('The MCP transport', () => {
     const { serverInfo } = await initialize({}, undefined, 'https://memorysmith.app');
     expect(serverInfo.title).toBe('MemorySmith.app');
     expect(serverInfo.description).toBe(
-      'Structured knowledge, natively readable and writable by humans and agents.',
+      'Structured knowledge we build and keep with the AI assistants we already use every day.',
     );
     expect(serverInfo.websiteUrl).toBe('https://memorysmith.app');
     // PNG is what a client that renders icons must accept, served by the site.

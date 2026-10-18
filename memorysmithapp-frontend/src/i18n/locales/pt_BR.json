@@ -16,7 +16,7 @@
   },
   "app": {
     "title": "MemorySmith",
-    "tagline": "Conhecimento estruturado, que humanos e agentes leem e escrevem nativamente.",
+    "tagline": "Conhecimento estruturado, que construímos e mantemos com os assistentes de IA que já usamos no dia a dia.",
     "version": "MemorySmith.app {{version}}"
   },
   "auth": {
@@ -551,7 +551,7 @@
     "menu": "Sobre o MemorySmith.app",
     "title": "Sobre o MemorySmith.app",
     "heading": "Bem-vindo ao MemorySmith.app",
-    "lead": "Conhecimento estruturado, lido e escrito nativamente por pessoas e agentes.",
+    "lead": "Conhecimento estruturado, que construímos e mantemos lado a lado com nossos assistentes de IA, sempre legível por nós e por eles.",
     "what": {
       "heading": "O que é isto",
       "body": "O MemorySmith é onde você e seus agentes de IA constroem conhecimento juntos. Um caderno tem pastas, uma pasta tem notas em Markdown, e as mesmas notas são lidas e escritas pelos dois lados: por você, nesta interface, e pelo agente, pelo conector. Nada fica preso aqui dentro: cada nota continua sendo texto puro e guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",

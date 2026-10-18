@@ -1,6 +1,6 @@
 # MemorySmith.app
 
-**Structured knowledge, natively readable and writable by humans and agents.**
+**Structured knowledge we build and keep with the AI assistants we already use every day.**
 
 MemorySmith hosts knowledge notebooks in Markdown that describe themselves: each notebook declares, as data, its Guidance (what it is for and how its notes are written), its folders and what each keeps, and a Template for the notes of each folder. A person reads and edits them on the web; an AI agent reaches the same notebooks through a remote MCP server and **writes in them**, obeying the notebook's own Guidance and Templates, with every change recording who wrote it and through which agent.
 
