@@ -29,6 +29,10 @@ issues each entry cites.
 
 - **`docs/knowledge-base.md`, `docs/markdown-spec.md`, `SECURITY.md` and the issue forms.** The specification is the one `memorysmithapp-markdown` publishes; `SECURITY.md` offered a private channel that is not enabled on this repository and described deletion as reversible; an issue opens blank. (#319)
 
+### Fixed
+
+- **`keep_file` answers the SHA-256 of what it kept**, as its own note promised: an agent that knows the hash of the file it was given can tell the person when what was kept is not their file. (#329)
+
 ### Security
 
 - **A platform administrator never acts for a subscription.** Its session carries no subscription even if its account holds a link to one, so it reaches no notebook by construction, and `onboard` now gives the first account of a new environment the platform and no subscription: the account somebody uses the product with is a second one. (#322)

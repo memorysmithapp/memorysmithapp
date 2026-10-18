@@ -985,5 +985,6 @@ function fileRefOf(file: NotebookFileDto): NotebookFileRef {
     tags: file.tags,
     path: file.path,
     bytes: file.bytes,
+    sha256: file.sha256,
   };
 }

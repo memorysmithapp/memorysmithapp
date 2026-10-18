@@ -159,6 +159,8 @@ export interface NotebookFileRef {
   readonly tags: string[];
   readonly path: string;
   readonly bytes: number;
+  /** What was kept, so an agent can compare it with the file it was given (RN-AGT-053). */
+  readonly sha256: string;
 }
 
 export interface NoteLink {
