@@ -1,7 +1,7 @@
 /**
  * Value objects of the Knowledge context. All immutable, self-validating in
  * the constructor and compared by value. No raw string crosses the boundary of
- * the domain (architecture-guide.md, section 6.5).
+ * the domain.
  */
 
 import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
@@ -167,7 +167,7 @@ export const FolderNoteOrder = {
   },
 };
 
-/** Product limits, declared so they become tests (software-vision.md, 14). */
+/** Product limits, declared so they become tests. */
 export const NOTEBOOK_LIMITS = {
   maxFolders: 200,
   maxDepth: 6,

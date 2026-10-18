@@ -1,6 +1,5 @@
 /**
- * The version an environment serves and the checks a release passes
- * (architecture-guide.md, sections 20 and 23.3).
+ * The version an environment serves and the checks a release passes.
  */
 
 import { describe, expect, it } from 'vitest';

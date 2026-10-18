@@ -1,5 +1,5 @@
 /**
- * The two environments this app describes (architecture-guide.md, section 17).
+ * The two environments this app describes.
  *
  * `-c environment=production|staging` chooses one, and everything that differs
  * between them is read from `environments` in cdk.json: the account, the
@@ -34,7 +34,7 @@ export interface EnvironmentConfig {
   readonly hostedZoneName: string;
   readonly hostedZoneId: string;
   readonly delegations: readonly Delegation[];
-  /** `owner/name`: the repository GitHub Actions delivers from (section 20). */
+  /** `owner/name`: the repository GitHub Actions delivers from. */
   readonly repository: string;
   /**
    * What the `sub` of a token GitHub signs for that repository starts with.
@@ -44,7 +44,7 @@ export interface EnvironmentConfig {
    */
   readonly repositorySubject: string;
   /**
-   * Whether this environment carries the alarms of section 17 (#267). An alarm
+   * Whether this environment carries its alarms (#267). An alarm
    * exists to reach a person, so production carries them and staging, which is
    * disposable and proved by the smoke and the functional suite rather than
    * watched, carries none. Declared per environment in cdk.json, never assumed.

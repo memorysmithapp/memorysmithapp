@@ -1,7 +1,7 @@
 /**
  * Folder use cases. Every one of them is form A of the transaction: the tree
  * changes, so the aggregate is locked on its version and the guards travel in
- * the same write (architecture-guide.md, section 10.1).
+ * the same write.
  */
 
 import {
@@ -190,7 +190,7 @@ export class RemoveFolder {
  * one is a write of one item and not a mutation of the tree: it contends with
  * another write of the SAME template and with nothing else. The notebook is
  * still loaded, because that is where the authorization decision and the
- * existence of the folder are answered (section 14.2).
+ * existence of the folder are answered (INV-09).
  */
 export class PutTemplate {
   constructor(private readonly deps: NotebookDependencies) {}
@@ -297,7 +297,7 @@ export interface NumberingDependencies extends NotebookDependencies {
 /**
  * The next number of a folder (RN-KNW-043, RN-AGT-036). It is a write: the
  * notebook is authorized for writing and the Authorship is taken like every
- * mutation's (rule 7), and the counter keeps who issued its last number.
+ * mutation's (INV-07), and the counter keeps who issued its last number.
  */
 export class NextNumber {
   constructor(private readonly deps: NumberingDependencies) {}

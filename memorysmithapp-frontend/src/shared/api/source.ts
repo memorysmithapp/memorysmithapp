@@ -41,7 +41,7 @@ const loaded = new Map<string, NotebookStructure>();
 
 /**
  * The spellings each notebook answers to, by target: an alias is read by
- * Discovery and by nothing else (rule 5), so it arrives in a call of its own
+ * Discovery and by nothing else (INV-05), so it arrives in a call of its own
  * and is remembered beside the structure.
  *
  * Until it arrives a target no NAME matches reaches nothing, which is exactly
@@ -407,9 +407,9 @@ export function deleteTemplate(notebookId: string, folderId: string): Promise<vo
 
 /**
  * Who may tick a box: whoever may write in THIS notebook. The effective role is
- * min(subscription role, notebook ceiling), and it is the only thing that decides
- * (section 5.3). Never the role in the subscription, which would let an EDITOR
- * demoted in this notebook write here.
+ * min(subscription role, notebook ceiling), and it is the only thing that
+ * decides (INV-13). Never the role in the subscription, which would let an
+ * EDITOR demoted in this notebook write here.
  */
 export function canWrite(effectiveRole: string): boolean {
   return effectiveRole === 'OWNER' || effectiveRole === 'EDITOR';

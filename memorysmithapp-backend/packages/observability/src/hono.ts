@@ -1,6 +1,6 @@
 /**
  * The edge of an HTTP API: one line per request, written when the answer is
- * known (architecture-guide.md, section 17).
+ * known.
  *
  * The correlation id is the one an upstream hop handed in its header — the
  * connector, when it calls the core on an agent's behalf — or the id API

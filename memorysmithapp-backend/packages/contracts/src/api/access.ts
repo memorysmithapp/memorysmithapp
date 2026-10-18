@@ -1,5 +1,5 @@
 /**
- * DTOs of svc-access (architecture-guide.md, section 14.1).
+ * DTOs of svc-access.
  *
  * No route takes a subscriptionId: it always comes from the token (RN-SUB-002).
  * The one endpoint that names a subscription is the explicit switch of the
@@ -70,7 +70,7 @@ export const changePasswordRequestSchema = z.object({
   next: z.string().min(1),
 });
 
-/** One link between a user and a subscription (architecture-guide.md 8.3). */
+/** One link between a user and a subscription (INV-01). */
 export const subscriptionLinkSchema = z.object({
   subscriptionId: ulidSchema,
   status: subscriptionStatusSchema,
@@ -234,7 +234,7 @@ export const setNotebookRoleLimitRequestSchema = z.object({
 
 /**
  * The platform queue. Metadata only: never a notebook name, never content
- * (software-vision.md, section 4.6). The projection of GSI2 is exactly this
+ * (RN-SUB-003). The projection of GSI2 is exactly this
  * list of fields, and widening it is a privacy decision.
  */
 export const platformSubscriptionSchema = z.object({
@@ -274,7 +274,7 @@ export const changeSubscriptionPlanRequestSchema = z.object({
 
 /**
  * What the connector proxy asks Access to record when it hands out a token
- * (architecture-guide.md, section 13.3, item 4).
+ * (ADR-009).
  *
  * No Cognito token can say which connector it was issued to: every token of the
  * proxy carries the proxy's own app client, and no trigger may change that

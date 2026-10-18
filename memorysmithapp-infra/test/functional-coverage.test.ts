@@ -1,9 +1,9 @@
 /**
  * The functional suite covers every route of the core and every page of the
- * interface (architecture-guide.md, section 19), checked where it costs
- * nothing: in the Quality stage, before anything is deployed. The routes come
- * from the manifest the core keeps equal to its app, and the pages from the
- * router itself. The tools are checked against the live connector, in the suite.
+ * interface, checked where it costs nothing: in the Quality stage, before
+ * anything is deployed. The routes come from the manifest the core keeps equal
+ * to its app, and the pages from the router itself. The tools are checked
+ * against the live connector, in the suite.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';

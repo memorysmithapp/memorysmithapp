@@ -42,7 +42,7 @@ export class InMemoryAccessDatabase {
   readonly links = new Map<string, SubscriptionLink>();
   readonly connectors = new Map<string, { agent: AgentIdentity; expiresAt: Instant }>();
   readonly avatars = new Map<string, MemberAvatar>();
-  /** Both sides of every share, keyed as the table keys them (section 8.3). */
+  /** Both sides of every share, keyed as the table keys them (INV-01). */
   readonly shares = new Map<string, Share>();
 
   clear(): void {

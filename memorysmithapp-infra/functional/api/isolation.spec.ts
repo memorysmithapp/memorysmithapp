@@ -1,6 +1,6 @@
 /**
  * Isolation, whose failure is the one no release can take back
- * (architecture-guide.md, rules 1, 2, 9 and 12).
+ * (INV-01, INV-02, INV-09, INV-12).
  *
  * A subscription asking for the notebook of another finds nothing there, and
  * finds it as a 404 rather than a 403, through every context that reads a
@@ -35,7 +35,7 @@ test.describe('isolation', () => {
     expect(listed.map((each) => each.notebookId)).not.toContain(v);
     // The trail of a note of another subscription is not an empty history: it
     // is a note that does not exist, because the notebook it is addressed
-    // through does not exist here (rule 9).
+    // through does not exist here (INV-09).
     const history = await other.call(
       'GET',
       `/audit/notebooks/${notebook.notebookId}/notes/${notebook.noteId}/history`,

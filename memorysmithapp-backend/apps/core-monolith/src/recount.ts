@@ -70,7 +70,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   /**
    * Files a deleted notebook left behind before its purge took files with it
    * (#202). They are counted in nothing above, and nothing here destroys them:
-   * destroying content is the purge's alone (rule 8), so this says what the
+   * destroying content is the purge's alone (INV-08), so this says what the
    * store still holds for nobody, and a person decides.
    */
   const orphans = usage.flatMap((each) =>

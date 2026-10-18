@@ -1,7 +1,6 @@
 /**
- * The shared kernel: primitives with no business rule of their own
- * (architecture-guide.md, section 3.1). Deliberately tiny, because a large
- * shared kernel is coupling in disguise.
+ * The shared kernel: primitives with no business rule of their own.
+ * Deliberately tiny, because a large shared kernel is coupling in disguise.
  */
 
 export { DomainError, ConcurrencyError, httpStatusFor, type ErrorCode } from './errors.js';

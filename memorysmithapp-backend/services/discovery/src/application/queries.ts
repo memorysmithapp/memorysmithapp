@@ -175,7 +175,7 @@ export class NoteLinks {
  *
  * A reading surface draws a wikilink by what it REACHES, and both halves are
  * read by this context alone: an alias, because Knowledge interprets nothing
- * of a note beyond its `name:` (rule 5), and the name of a file the notebook
+ * of a note beyond its `name:` (INV-05), and the name of a file the notebook
  * keeps, which is the third thing a target can reach (#166). It used to have only the names, from the structure it drew
  * the page with, so a link an alias answered was painted as a link to nothing
  * and an embed of one expanded nothing.

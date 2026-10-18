@@ -1,5 +1,5 @@
 /**
- * HTTP surface of svc-access (architecture-guide.md, section 14.1).
+ * HTTP surface of svc-access.
  *
  * NO ROUTE TAKES A subscriptionId: it always comes from the token. The single
  * exception is POST /session/subscription, which is a session operation, not a
@@ -151,7 +151,7 @@ function notebookIdOf(raw: string): Result<NotebookId, DomainError> {
 
 type Variables = { access: AccessRequest };
 
-/** Translates the taxonomy into HTTP once, for every route (section 15). */
+/** Translates the taxonomy into HTTP once, for every route. */
 export function respond<T>(c: Context, result: Result<T, DomainError>, okStatus = 200): Response {
   if (result.ok) {
     return result.value === undefined
@@ -736,7 +736,7 @@ export interface ConnectorBindingDependencies {
   /** The app client of the connector proxy: the only one whose tokens are bound. */
   readonly connectorClientId: string;
   /**
-   * Whether the gateway authenticated this request with IAM (section 14.1).
+   * Whether the gateway authenticated this request with IAM.
    * The route is authorized by IAM before it reaches the function, and this is
    * the check that it was: without it, whoever holds a token of the proxy could
    * bind it to any connector they liked.
@@ -748,7 +748,7 @@ export interface ConnectorBindingDependencies {
 
 /**
  * `POST /access/connector-bindings`: the connector proxy records which connector
- * a token it has just handed out belongs to (architecture-guide.md, 13.3).
+ * a token it has just handed out belongs to (ADR-009).
  *
  * It is mounted apart from every other route of Access, because no person calls
  * it: it carries no session, it is signed by the proxy, and the token it binds

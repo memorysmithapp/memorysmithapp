@@ -1,6 +1,5 @@
 /**
- * Activates the tags the bill of the account is grouped by (architecture-guide.md,
- * section 17; #280).
+ * Activates the tags the bill of the account is grouped by (#280).
  *
  *   AWS_PROFILE=<profile> pnpm -C memorysmithapp-infra activate-cost-tags
  *

@@ -1,6 +1,5 @@
 /**
- * DTOs of svc-discovery: the projections over the same events
- * (architecture-guide.md, section 11).
+ * DTOs of svc-discovery: the projections over the same events (PE5).
  *
  * A hit always carries the note it came from (RN-DSC-010): whoever consumes it
  * decides with the source in sight, which is the answer to plausible-but-wrong

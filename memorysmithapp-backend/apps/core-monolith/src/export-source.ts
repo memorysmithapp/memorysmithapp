@@ -2,8 +2,7 @@
  * What the Knowledge context hands over for an export. It lives HERE, in the
  * composition root, for the same reason the note catalogue does: the notebook and
  * its notes belong to Knowledge, and having Portability query them directly
- * would invert the one-way arrow between the contexts (architecture-guide.md,
- * section 3.1).
+ * would invert the one-way arrow between the contexts.
  *
  * Deleted notes never reach here: `listByNotebook` already leaves them out, which
  * is what RN-PRT-006 asks for.

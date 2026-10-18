@@ -8,7 +8,7 @@
  * tree ever reads a file.
  *
  * One TransactWriteItems carries the item, the guard of the name and the
- * event, which is the shape every write of this context takes (§10.2). The
+ * event, which is the shape every write of this context takes (ADR-003). The
  * guard is a real item written under a condition and not a read: two uploads
  * of one name arriving together would both find the name free.
  */

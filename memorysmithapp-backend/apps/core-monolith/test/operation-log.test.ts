@@ -1,8 +1,8 @@
 /**
- * The log of the core API, read the way an operator reads it (section 17,
- * #269): one line per request, every key of it inside the allow-list, and not
- * one byte of what a person wrote — no notebook name, no folder name, no note
- * name, no body, no path.
+ * The log of the core API, read the way an operator reads it (#269): one line
+ * per request, every key of it inside the allow-list, and not one byte of what
+ * a person wrote — no notebook name, no folder name, no note name, no body, no
+ * path.
  *
  * The lines are the ones the real app writes through the real middleware,
  * captured as Powertools prints them, so a handler that started logging a new
@@ -108,7 +108,7 @@ function outsideTheAllowList(lines: Line[]): string[] {
   );
 }
 
-describe('the log of the core API (section 17)', () => {
+describe('the log of the core API', () => {
   it('writes one line per request, from the allow-list, and nothing anybody wrote', async () => {
     const notebook = (await (
       await call('/knowledge/notebooks', {

@@ -5,7 +5,7 @@
  * Implemented here rather than pulled from a dependency because the kernel is
  * the one package every service imports, and because sortability is a property
  * the key design relies on: event ULIDs in the outbox and the audit sort keys
- * are ordered by generation time (architecture-guide.md, sections 10.4, 12.2).
+ * are ordered by generation time (ADR-006, INV-06).
  */
 
 const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // Crockford base32: no I, L, O, U

@@ -21,7 +21,7 @@ import { queryKeys } from '../../shared/api/query-keys';
  *
  * An export is started from Transfers, from wherever the person is (#151), so
  * it asks WHICH notebook — among the ones they can see, because a listing must
- * never reveal one they cannot (rule 9).
+ * never reveal one they cannot (INV-09).
  *
  * And it asks what goes in the archive, which is not a detail of the file:
  * **deleting a notebook takes its history with it** (RN-AUD-011), so an archive

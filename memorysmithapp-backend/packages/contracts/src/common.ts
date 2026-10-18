@@ -1,10 +1,9 @@
 /**
  * Primitive schemas shared by the event contracts and the API DTOs.
  *
- * Zod lives on the edge and in the contracts, never inside the domain
- * (architecture-guide.md, section 4.1): the domain validates through its own
- * value objects, and duplicating that here would create two sources of truth
- * for the same rule.
+ * Zod lives on the edge and in the contracts, never inside the domain: the
+ * domain validates through its own value objects, and duplicating that here
+ * would create two sources of truth for the same rule.
  */
 
 import { z } from 'zod';
@@ -39,7 +38,7 @@ export const subscriptionStatusSchema = z.enum([
 
 /**
  * The commercial shape of a subscription: what it is, and how much it may
- * store (software-vision.md, section 4.2). One type exists for now, and the
+ * store (RN-SUB-019). One type exists for now, and the
  * list is an enum rather than free text so a new one is a deliberate change on
  * both ends of the contract.
  */
@@ -48,7 +47,7 @@ export const subscriptionTypeSchema = z.enum(['individual']);
 /** Declared, not enforced yet: no write is refused for exceeding it. */
 export const storageQuotaSchema = z.enum(['500MB', '1GB', '2GB']);
 
-/** The pointer that links DynamoDB to S3 (architecture-guide.md, section 9.2). */
+/** The pointer that links DynamoDB to S3 (INV-04). */
 export const contentRefSchema = z.object({
   contentId: ulidSchema,
   versionId: z.string().min(1),

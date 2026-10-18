@@ -1,12 +1,12 @@
 /**
- * In-memory adapters (architecture-guide.md, section 7.2). They exist so that
+ * In-memory adapters. They exist so that
  * use cases can be tested without DynamoDB Local or MinIO, and they honour the
  * same two properties the production ones do:
  *
  *  - the subscription comes from the SubscriptionContext held by the
  *    repository, never from a method argument (PE2);
  *  - saving state and recording the events is one atomic step, which is what
- *    the outbox buys in production (section 10.4).
+ *    the outbox buys in production (ADR-006).
  */
 
 import {
@@ -458,7 +458,7 @@ export class InMemoryContentSlotRepository implements ContentSlotRepository {
     const events = slot.pullEvents();
     slot.markPersisted();
     // Deleting takes the slot out; the content it pointed at stays in the
-    // store, as it does in production (rule 8).
+    // store, as it does in production (INV-08).
     if (slot.isDeleted) this.db.slots.delete(key);
     else this.db.slots.set(key, { slot, version: slot.version });
     await this.events.publish(events);

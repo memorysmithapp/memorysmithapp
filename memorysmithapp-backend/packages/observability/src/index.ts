@@ -1,10 +1,10 @@
 /**
- * Observability at the edge (architecture-guide.md, section 17): the one line
+ * Observability at the edge: the one line
  * each operation writes, the allow-list it is written from, and the
  * correlation id that ties an operation to everything it caused.
  *
  * Imported by `main/`, by `adapters/` and by the handlers of the composition
- * root, and never by `domain/` or `application/` (rule 3): the inside of the
+ * root, and never by `domain/` or `application/` (INV-03): the inside of the
  * hexagon neither logs nor knows an operation is being observed.
  */
 

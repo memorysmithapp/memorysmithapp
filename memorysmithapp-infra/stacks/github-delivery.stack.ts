@@ -1,5 +1,5 @@
 /**
- * What lets GitHub Actions deliver (architecture-guide.md, section 20).
+ * What lets GitHub Actions deliver.
  *
  * No AWS key is stored anywhere. A run of a workflow asks GitHub for a token
  * signed by GitHub's OIDC provider, which says which repository and which
@@ -23,7 +23,7 @@
  * thing besides delivering: start and follow the run that rebuilds its link
  * graph, which reads and writes under a role of its own, so the role of
  * production still reaches no table, bucket or pool.
- * The price is the one the AWS pipeline paid (section 20.1): both roles deploy
+ * The price is the one the AWS pipeline paid: both roles deploy
  * through the same bootstrap roles, which can change anything in the account,
  * so what keeps a branch away from production is who may assume which role.
  */

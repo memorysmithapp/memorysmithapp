@@ -1,11 +1,11 @@
-// The ONE module that knows the identity provider (architecture-guide.md §5.3).
+// The ONE module that knows the identity provider.
 //
 // It speaks OAuth 2.1 with PKCE directly against the Cognito hosted UI, with
 // no SDK: the flow is three fetches and a redirect, and keeping it explicit is
 // what makes the token lifecycle readable.
 //
 // The subscription_id and subscription_status claims arrive already signed,
-// injected by the pre-token-generation trigger (§8.5). The SPA never sends a
+// injected by the pre-token-generation trigger (INV-02). The SPA never sends a
 // subscription anywhere; it only ever reads what the token says.
 
 export interface AuthConfig {

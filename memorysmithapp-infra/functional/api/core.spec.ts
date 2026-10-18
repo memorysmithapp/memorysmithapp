@@ -1,6 +1,5 @@
 /**
- * What the API says about itself, and what answers before a token is read
- * (architecture-guide.md, sections 14 and 23.3).
+ * What the API says about itself, and what answers before a token is read.
  */
 
 import { expect, test } from './fixtures.js';

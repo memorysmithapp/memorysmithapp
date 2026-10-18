@@ -1,8 +1,8 @@
 /**
  * The published language of the system: event contracts and API DTOs.
- * The frontend imports TYPES from here and nothing else (architecture-guide.md
- * section 5.1); the services import the schemas and validate with them at the
- * edge and on both ends of the event bus.
+ * The frontend imports TYPES from here and nothing else (INV-03); the services
+ * import the schemas and validate with them at the edge and on both ends of the
+ * event bus.
  */
 
 export * from './common.js';

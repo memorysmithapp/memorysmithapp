@@ -1,5 +1,5 @@
 /**
- * DTOs of svc-knowledge, the core context (architecture-guide.md, 14.1).
+ * DTOs of svc-knowledge, the core context.
  *
  * Two shapes deserve attention:
  *  - A folder DTO carries `hasTemplate`, not the template itself: the template

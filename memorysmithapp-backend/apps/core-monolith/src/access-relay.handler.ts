@@ -1,5 +1,5 @@
 /**
- * The outbox relay of mv-access: DynamoDB Streams to EventBridge (section 10.4).
+ * The outbox relay of mv-access: DynamoDB Streams to EventBridge (ADR-006).
  *
  * The same relay as the Knowledge one, over the table of Access. Until 0.10.0
  * nothing drained this stream, so the events Access writes to its outbox —
@@ -48,8 +48,8 @@ export async function handler(event: StreamEvent): Promise<void> {
     .filter((record) => record.eventName === 'INSERT' && record.dynamodb?.NewImage)
     .map((record) => unmarshall(record.dynamodb?.NewImage ?? {}));
 
-  // One line per event published, under the id of the request that wrote it
-  // (section 17). The batch is published as a unit, and fails as one.
+  // One line per event published, under the id of the request that wrote it.
+  // The batch is published as a unit, and fails as one.
   const events = items.filter((item) => item['entity'] === 'EVENT').map(envelopeOf);
   await observeBatch(
     events,

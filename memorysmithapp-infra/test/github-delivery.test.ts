@@ -1,5 +1,5 @@
 /**
- * The roles GitHub Actions delivers with (architecture-guide.md, section 20).
+ * The roles GitHub Actions delivers with.
  * What these cases protect is what would otherwise be found in the account
  * itself: that no run outside this repository and the GitHub environment of the
  * same name can assume a role, and that what staging's suites may touch names

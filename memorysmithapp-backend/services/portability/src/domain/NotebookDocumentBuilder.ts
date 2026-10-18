@@ -1,5 +1,5 @@
 /**
- * A notebook as one document (software-vision.md §12, RN-PRT-009).
+ * A notebook as one document (RN-PRT-009).
  *
  * **This is where file names used to come back into existence**, and they do
  * not any more. The export was a tree of `.md` files: the guidance became

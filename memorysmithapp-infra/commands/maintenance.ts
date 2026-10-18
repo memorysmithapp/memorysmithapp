@@ -1,6 +1,6 @@
 /**
  * Runs a maintenance job of the core against the tables of an environment
- * (architecture-guide.md, sections 10.3 and 11).
+ * (ADR-010, ADR-017).
  *
  *   pnpm -C memorysmithapp-infra cleanup-staging [--apply]
  *   pnpm -C memorysmithapp-infra recount-storage --environment production [--apply]

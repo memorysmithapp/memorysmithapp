@@ -17,7 +17,7 @@ const config = loadConfig();
  * The composition root of svc-agent. In the modular monolith the gateways run
  * the use cases in process; when the contexts become separate deployables they
  * call the internal API over HTTP with IAM auth, and only this line changes
- * (architecture-guide.md, section 24).
+ * (ADR-005).
  */
 export const handler = handle(
   createApp(

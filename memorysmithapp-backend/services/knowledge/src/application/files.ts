@@ -147,7 +147,7 @@ export class KeepFile {
       );
     }
 
-    // Bytes first, pointer second (section 10.5): a pointer to nothing is the
+    // Bytes first, pointer second (ADR-008): a pointer to nothing is the
     // one state this order cannot produce.
     const ref = await this.deps.fileStore.put(input.bytes, type);
 
@@ -296,7 +296,7 @@ export class KeepAssembledFile {
       );
     }
 
-    // Bytes first, pointer second (section 10.5), as a file kept inline.
+    // Bytes first, pointer second (ADR-008), as a file kept inline.
     const ref = await this.deps.fileStore.adoptAssembled({
       key: input.assembled.key,
       versionId: input.assembled.versionId,
@@ -405,7 +405,7 @@ export class DeleteFile {
 
     // Definitive, and the bytes go with it: the purge destroys what this
     // invalidated, and every note that referenced the name renders pending
-    // from this instant (rule 8, RN-KNW-051).
+    // from this instant (INV-08, RN-KNW-051).
     const deleted = file.delete(input.by, Instant.now());
     if (!deleted.ok) return deleted;
     return this.deps.files.save(file);

@@ -1,4 +1,4 @@
-// DTO shapes mirror the future internal API (architecture-guide.md §14.1).
+// DTO shapes mirror the future internal API.
 // The seed adapter fills them today; the HTTP client will fill them tomorrow.
 
 import type { SearchHitDto } from '@memorysmithapp/contracts';

@@ -1,6 +1,5 @@
 /**
- * The alarms reach somebody in production, and do not exist in staging
- * (architecture-guide.md, section 17; #267).
+ * The alarms reach somebody in production, and do not exist in staging (#267).
  *
  * Seventy alarms had been created with no action at all, half of them in an
  * environment nobody watches, and nothing could see it before the bill did.

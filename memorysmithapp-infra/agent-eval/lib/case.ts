@@ -1,5 +1,5 @@
 /**
- * The catalogue of the agent evaluation (architecture-guide.md, section 19).
+ * The catalogue of the agent evaluation.
  *
  * One folder per case under `agent-eval/cases`, holding a `case.json` and the
  * sheets its simulated user reads. The catalogue is repeated every round and

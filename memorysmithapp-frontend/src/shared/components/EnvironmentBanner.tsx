@@ -10,8 +10,7 @@ export function environmentDeclared(
 }
 
 /**
- * The environment and the version, outside production, on every page
- * (architecture-guide.md, 23.3).
+ * The environment and the version, outside production, on every page.
  *
  * Fixed and never dismissable: staging looks exactly like production, and a
  * person who forgets which of the two they are in writes, in the one that is

@@ -2,8 +2,8 @@
  * Bearer-token verification for the MCP resource server.
  *
  * The proxy never issues tokens: every JWT reaching /mcp was minted by Cognito
- * (architecture-guide.md, section 13.3, item 4), so verification is plain
- * JWKS-based validation against the Cognito issuer.
+ * (ADR-009), so verification is plain JWKS-based validation against the Cognito
+ * issuer.
  */
 
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';

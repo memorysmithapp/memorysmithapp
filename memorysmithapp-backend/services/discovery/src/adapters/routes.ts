@@ -1,5 +1,5 @@
 /**
- * HTTP surface of svc-discovery (architecture-guide.md, section 14.1):
+ * HTTP surface of svc-discovery:
  *
  *   GET  /notebooks/:v/graph
  *   GET  /notebooks/:v/notes/:n/graph?depth=
@@ -42,7 +42,7 @@ export interface DiscoveryRequest {
   /**
    * Whether the caller may read that notebook. Discovery holds no notebook, so the
    * decision belongs to the context that owns it, and it arrives as a
-   * question this request can ask (section 14.2).
+   * question this request can ask (INV-09).
    */
   readonly canRead: (notebookId: string) => Promise<boolean>;
 }

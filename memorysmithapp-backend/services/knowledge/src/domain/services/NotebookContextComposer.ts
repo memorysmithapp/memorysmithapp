@@ -1,6 +1,6 @@
 /**
  * NotebookContextComposer builds the Notebook Context: the guidance in full plus the
- * annotated tree, in one document (software-vision.md, section 9.2).
+ * annotated tree, in one document.
  *
  * It lives in the DOMAIN because the shape of this document IS the product,
  * not a presentation detail: it is the exact equivalent of what an agent gets
@@ -28,7 +28,7 @@
  * composition root, which is the one layer allowed to read the specification.
  *
  * The labels are en-US because the MCP surface is the public contract and the
- * canonical locale is en_US (CLAUDE.md, language policy). The notebook content
+ * canonical locale is en_US (AGENTS.md, language policy). The notebook content
  * itself is whatever language its authors write in.
  */
 
@@ -126,7 +126,7 @@ export function composeNotebookContext(input: NotebookContextInput): string {
  * answered.
  *
  * Who wrote a note and when is recorded by the audit trail of every write, with
- * the person and the connector, and nobody types it (non-negotiable rule 7).
+ * the person and the connector, and nobody types it (INV-07).
  * Teaching a frontmatter value for it put the e-mail of the connected account
  * into notes other people produced, so the section teaches none: it says where
  * the answer already is (RN-AGT-025).

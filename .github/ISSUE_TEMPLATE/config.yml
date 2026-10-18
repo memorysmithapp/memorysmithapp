@@ -1,8 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-  - name: An isolation failure or a vulnerability
-    url: https://github.com/memorysmithapp/memorysmithapp/security/advisories/new
-    about: Saw data from another account, or something that looks like a security failure? Report it privately, never in a public issue.
-  - name: How the development process works
-    url: https://github.com/memorysmithapp/memorysmithapp/blob/main/docs/development-process.md
-    about: The path a need travels from here to main, and what happens to your issue after it is opened.

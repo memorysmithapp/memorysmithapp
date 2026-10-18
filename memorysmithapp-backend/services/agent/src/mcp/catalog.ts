@@ -1,8 +1,7 @@
 /**
- * THE TOOL CATALOG IS THE PUBLIC CONTRACT OF THE PRODUCT
- * (software-vision.md, section 9.1). The internal API exists to serve the UI;
- * it is this surface that external clients consume, and it is this surface the
- * versioning policy protects.
+ * THE TOOL CATALOG IS THE PUBLIC CONTRACT OF THE PRODUCT. The internal API
+ * exists to serve the UI; it is this surface that external clients consume, and
+ * it is this surface the versioning policy protects.
  *
  * Two rules shape every entry here, and they are not stylistic:
  *

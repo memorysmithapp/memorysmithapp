@@ -1,7 +1,7 @@
 /**
  * What the functional suite presents to the connector before a browser is
- * involved (architecture-guide.md, section 13.3): the document that names it,
- * the proof of its code, and the two requests of the flow.
+ * involved (ADR-009): the document that names it, the proof of its code, and
+ * the two requests of the flow.
  */
 
 import { describe, expect, it } from 'vitest';

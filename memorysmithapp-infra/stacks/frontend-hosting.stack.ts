@@ -1,8 +1,7 @@
 /**
- * The SPA on S3 behind CloudFront with Origin Access Control
- * (architecture-guide.md, section 17). The bucket, the distribution and the two
- * records, and nothing that is published into them: that is the release stack,
- * which goes last.
+ * The SPA on S3 behind CloudFront with Origin Access Control. The bucket, the
+ * distribution and the two records, and nothing that is published into them:
+ * that is the release stack, which goes last.
  *
  * The bucket is private: only the distribution reads it. `www` is a permanent
  * redirect to the apex, and both records are created here, in code, like every
@@ -48,13 +47,13 @@ export class FrontendHostingStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
-    // Where a functional run publishes the document that names it to the connector (section 19).
+    // Where a functional run publishes the document that names it to the connector.
     new CfnOutput(this, 'SiteBucketName', { value: bucket.bucketName });
 
     /**
      * Two jobs at the edge, both cheap enough to run on every request.
      *
-     * `www` answers with a PERMANENT redirect to the apex (section 17), so the
+     * `www` answers with a PERMANENT redirect to the apex, so the
      * site has one address and not two: two addresses split the cache, split
      * the cookies and turn every absolute link into a coin flip.
      *

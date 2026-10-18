@@ -1,8 +1,8 @@
 /**
- * Memberships (software-vision.md, section 5.4).
+ * Memberships.
  *
  * Members belong to the SUBSCRIPTION. There is no level between it and the
- * notebook (section 4.3), so a member reaches every notebook of the subscription
+ * notebook, so a member reaches every notebook of the subscription
  * with the role they hold, down to whatever ceiling each notebook sets on them
  * (RN-ACC-011).
  *

@@ -217,7 +217,7 @@ const EXPECTED: Record<string, (html: string) => void> = {
     // the capital form, which GFM accepts and which has to leave the page too.
     expect(html).not.toContain('[X]');
     // And what THIS reading surface adds on top of the profile, which the
-    // profile leaves open and software-vision.md 13.2 promises: the box is
+    // profile leaves open and the product promises: the box is
     // ours and it answers to a click where the role allows writing.
     expect((html.match(/class="[^"]*task-item[^"]*"/g) ?? []).length).toBe(3);
     expect(html).not.toContain('disabled=""');
@@ -530,7 +530,7 @@ describe('a base notation that means something different here', () => {
     // rather than the GFM specification, which is `~~x~~`. Honouring the
     // single tilde would strike `H~2~O` — the one form the profile declares
     // ABSENT, in `sub-sup` — so this surface implements the specification and
-    // not the renderer, and says so in `architecture-guide.md` section 14.
+    // not the renderer.
     const html = render('Water is H~2~O, and the rule is ~~revoked~~.');
 
     expect(html).toContain('H~2~O');

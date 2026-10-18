@@ -1,7 +1,7 @@
 /**
  * The parts of the functional suite that decide something without an
- * environment (architecture-guide.md, section 19): what it has to cover, how it
- * waits for a projection, and how it summarizes what it measured.
+ * environment: what it has to cover, how it waits for a projection, and how it
+ * summarizes what it measured.
  */
 
 import { describe, expect, it } from 'vitest';

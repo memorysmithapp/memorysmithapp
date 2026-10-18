@@ -193,7 +193,7 @@ describe('GET /access/usage', () => {
     const owner = await usage(OWNER);
     const stranger = await usage(STRANGER);
 
-    // Every notebook would answer 404 to this requester (rule 9).
+    // Every notebook would answer 404 to this requester (INV-09).
     expect(stranger.notebooks).toEqual([]);
     expect(stranger.byType).toEqual(owner.byType);
     expect(stranger.counts).toEqual(owner.counts);

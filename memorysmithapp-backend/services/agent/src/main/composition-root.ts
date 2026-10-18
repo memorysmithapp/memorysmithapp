@@ -1,7 +1,7 @@
 /**
  * Composition root of svc-agent. It is the only file that knows the other
  * contexts are reachable over HTTP; the tool adapter above it knows only the
- * gateway ports (architecture-guide.md, sections 13.1 and 24).
+ * gateway ports (ADR-005).
  */
 
 import {

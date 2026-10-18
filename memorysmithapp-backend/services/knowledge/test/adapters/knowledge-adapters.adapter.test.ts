@@ -2,8 +2,7 @@
  * Adapter tests against the real DynamoDB and S3 of a deployed environment
  * (see harness.ts).
  *
- * The last two cases are the DONE CRITERIA of delivery 4
- * (architecture-guide.md, section 25):
+ * The last two cases are the DONE CRITERIA of delivery 4:
  *   - 20 concurrent reorders: nothing lost, no undefined ordering;
  *   - 50 notes created in parallel in the same notebook: no retry from contention.
  *
@@ -366,7 +365,7 @@ describe('DynamoNotebookRepository: the aggregate in one Query', () => {
     const types = (outbox.Items ?? []).map((item) => item['type']);
     expect(types).toContain('NotebookCreated');
     expect(types).toContain('FolderAdded');
-    // Retention is a TTL, not a job (section 18).
+    // Retention is a TTL, not a job.
     expect(outbox.Items?.[0]?.['ttl']).toBeGreaterThan(Instant.now().toEpochSeconds());
   });
 
@@ -576,7 +575,7 @@ describe('DynamoNoteRepository: form B, and never a write to META', () => {
   });
 
   it('writes a note without reading its folder, whose existence the use case settles first', async () => {
-    // Architecture-guide.md, section 10.2: a ConditionCheck on the FOLDER item
+    // INV-10 and ADR-003: a ConditionCheck on the FOLDER item
     // would make it part of every note transaction in that folder, and fifty
     // notes written into one folder at once would cancel each other. So the
     // repository writes what it is given, and CreateNote refuses a folder the

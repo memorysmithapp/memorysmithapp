@@ -13,10 +13,15 @@ issues each entry cites.
 
 ### Changed
 
+- **The documents of the repository are rewritten, shorter, in the structure of `memorysmithapp-template` v0.3.0, and written from the code rather than migrated.** `CLAUDE.md`, about 8,700 words loaded in every session, becomes `.claude/CLAUDE.md`, one line importing `AGENTS.md`: identity, a reading and a writing map, limits, eighteen invariants and the verified commands. `docs/software-vision.md`, `docs/architecture-guide.md` and `docs/development-process.md`, about 75,000 words, become `docs/PRD.md` (the problem, the language and every business rule, one line each), `docs/ARCHITECTURE.md` (the system, the mechanism of each invariant, operation and nineteen decision records) and `docs/SDLC.md`. Each invariant was checked against the code, and the two that do not fully hold say so and name their issue (#321, #322). The README is now for somebody arriving to get to know the project; what it said to an operator is in `docs/ARCHITECTURE.md`. Code cites a rule, an invariant or a decision by its identifier, never by a section number, and a commit touches a document only when it changes one of the three. (#319)
+- **Issues carry product labels declared in `docs/SDLC.md`**: `domain:*` names the six bounded contexts (`domain:mcp` is now `domain:agent`, `domain:export` is `domain:portability`, `domain:subscription` joined `domain:access`), and `layer:*` the three projects, `layer:backend` new. GitHub's default labels are back. (#319)
 - **The version of the product lives in the root `package.json`.** It was read with a regular expression out of `CLAUDE.md`, which is what kept that file from shrinking; `release-checks`, `release-notes` and `publish-release` read the field now, and every other manifest and `CHANGELOG.md` still have to agree with it. (#319)
-
 - **The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.4.** Nothing a note is drawn or read with changed in it; it is the version whose README and documents point at where they now live. (#320)
 - **The Markdown specification the product reads is the one `memorysmithapp-markdown` publishes**, `@memorysmithapp/markdown-spec` 0.8.4, where this repository kept a copy of it brought over by hand. The extractors now pass its 140 conformance cases, the 35 it gained since the copy included, and an agent sent to read the specification reaches the document of that version. The cases this repository had added for an image written with a path are upstream already, as `image/*`. (#319, #320)
+
+### Removed
+
+- **`docs/knowledge-base.md`, `docs/markdown-spec.md`, `SECURITY.md` and the issue forms.** The specification is the one `memorysmithapp-markdown` publishes; `SECURITY.md` offered a private channel that is not enabled on this repository and described deletion as reversible; an issue opens blank. (#319)
 
 ## [0.13.1] - 2026-10-17
 

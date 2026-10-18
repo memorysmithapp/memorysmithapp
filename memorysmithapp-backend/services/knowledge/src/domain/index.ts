@@ -1,7 +1,7 @@
 /**
  * The Knowledge domain: aggregates, value objects, domain services and ports.
  * Zero imports of any AWS SDK, and the CI dependency rule is what keeps it
- * that way (architecture-guide.md, section 5.5).
+ * that way (INV-03).
  */
 
 export { Notebook } from './notebook/Notebook.js';

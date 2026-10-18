@@ -1,7 +1,7 @@
 /**
  * Test fixtures for the Knowledge domain. Pure construction, no I/O and no
  * framework mock: if the domain needed an SDK mock to be tested, the hexagon
- * would have leaked (architecture-guide.md, section 19).
+ * would have leaked.
  */
 
 import {
@@ -154,7 +154,7 @@ export function newNote(
 
 /**
  * A notebook as it comes back from storage, with the folder note counters that
- * travel in the same Query (architecture-guide.md, section 9.3).
+ * travel in the same Query.
  */
 export function rehydratedNotebookWithNotes(
   notes: number,

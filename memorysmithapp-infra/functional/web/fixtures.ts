@@ -1,5 +1,5 @@
 /**
- * What every web case starts from (architecture-guide.md, section 19): a locale,
+ * What every web case starts from: a locale,
  * the words the interface says in it, a notebook of the case's own, and a page
  * already signed in as the owner of the run.
  *

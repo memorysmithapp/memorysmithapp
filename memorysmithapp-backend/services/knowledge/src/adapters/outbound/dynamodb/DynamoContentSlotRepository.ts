@@ -1,6 +1,6 @@
 /**
  * DynamoContentSlotRepository: shape B of the transaction applied to the two
- * Content Slots that are not notes (architecture-guide.md, section 10.2).
+ * Content Slots that are not notes (ADR-011).
  *
  * One TransactWriteItems carries:
  *   1. the slot item, with ConditionExpression version = :expected, which is
@@ -96,7 +96,7 @@ export class DynamoContentSlotRepository implements ContentSlotRepository {
     /**
      * Deleting takes the item out. What it does NOT take out is the content:
      * the blob stays in the store, unreferenced, and no path in the product
-     * destroys a revision (rule 8). The event carries the reference that was
+     * destroys a revision (INV-08). The event carries the reference that was
      * live, so the trail still names it.
      */
     const written: NonNullable<TransactWriteCommandInput['TransactItems']>[number] = slot.isDeleted

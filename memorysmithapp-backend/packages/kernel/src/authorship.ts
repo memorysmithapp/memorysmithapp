@@ -5,8 +5,7 @@
  * (PE6, RN-KNW-026): there is no anonymous mutation, because the method
  * signature makes one impossible. The composition root fills it in: a write
  * through the interface leaves the agent null, and a write through the
- * connector carries the connector the proxy bound its token to
- * (architecture-guide.md, section 12.1).
+ * connector carries the connector the proxy bound its token to (INV-07).
  */
 
 import { DomainError } from './errors.js';

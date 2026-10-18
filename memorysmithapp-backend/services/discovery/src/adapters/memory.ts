@@ -355,7 +355,7 @@ export class InMemoryFacetIndex implements FacetIndex {
     const discarded = this.discarded.get(notebookId) as Set<string>;
 
     // The old value is not in the event: it is in the portrait, which is why
-    // the portrait per note exists (section 11.3).
+    // the portrait per note exists.
     const before = portraits.get(noteId) ?? null;
     for (const change of facetDelta(before, facets)) {
       if (discarded.has(change.facet)) continue;

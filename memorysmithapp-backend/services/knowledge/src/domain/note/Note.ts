@@ -6,7 +6,7 @@
  * with notes cannot be removed without a policy" is eventual consistency (via
  * event), not a transactional invariant. It is the most important modelling
  * decision in the system, because it is what keeps note writing cheap and
- * concurrent (architecture-guide.md, section 6.2).
+ * concurrent (ADR-003).
  *
  * Two details follow from it:
  *  - notebookId is NOT readonly: moving between notebooks is a first-class operation

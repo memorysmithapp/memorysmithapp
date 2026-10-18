@@ -1,6 +1,6 @@
 /**
  * The configuration of the environment the page was served from, read at
- * runtime from `/config.json` (architecture-guide.md, 23.3).
+ * runtime from `/config.json`.
  *
  * It used to be compiled in from `.env.local`, which made the bundle of one
  * environment unusable in another, and forced the interface to be built between

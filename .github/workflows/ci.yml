@@ -1,6 +1,6 @@
-# The quality gate (architecture-guide.md, section 20): the sequence a person
-# used to run by hand before pushing, on every pull request and on every push
-# to a release branch. It is the required status check of main.
+# The quality gate: the sequence a person used to run by hand before pushing, on
+# every pull request and on every push to a release branch. It is the required
+# status check of main.
 name: CI
 
 on:
@@ -28,6 +28,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm quality
+      - run: node --test scripts/*.test.mjs
       - run: pnpm lint
       - run: pnpm format
       - run: pnpm typecheck

@@ -34,7 +34,7 @@ import conformance from '@memorysmithapp/markdown-spec/conformance.json' with { 
 
 /**
  * Who decides this notation. The first two are the sanctioned extractors of
- * `architecture-guide.md` §11.3; the third is the reading surface, which is
+ * INV-05; the third is the reading surface, which is
  * behaviour of the interface and is proved by a test of its own kind — a
  * rendering assertion cannot live in a JSON file (RN-AGT-023).
  */

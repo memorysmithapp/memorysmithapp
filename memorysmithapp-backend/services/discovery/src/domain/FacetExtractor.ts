@@ -1,7 +1,7 @@
 /**
- * FacetExtractor: the second sanctioned reader of content
- * (architecture-guide.md, section 11.3). It reads ONLY the frontmatter block
- * and classifies each key-value pair BY THE SHAPE OF THE VALUE.
+ * FacetExtractor: the second sanctioned reader of content (INV-05). It reads
+ * ONLY the frontmatter block and classifies each key-value pair BY THE SHAPE OF
+ * THE VALUE.
  *
  * The block itself and the YAML subset of it are read by the kernel, which is
  * also where the name of a note is read from: there
@@ -117,8 +117,8 @@ export function valuesOf(snapshot: FacetSnapshot): Record<string, string[]> {
 
 /**
  * The delta between the previous portrait and the new one. The old value is
- * NOT in the event, which is exactly why the portrait per note exists
- * (section 11.3): update and deletion have to decrement what was there.
+ * NOT in the event, which is exactly why the portrait per note exists:
+ * update and deletion have to decrement what was there.
  */
 export function facetDelta(
   before: FacetSnapshot | null,

@@ -1,11 +1,11 @@
 /**
- * Where the bytes of a file live (#166; architecture-guide.md §9.2, §10.5).
+ * Where the bytes of a file live (INV-04, ADR-008, #166).
  *
  * The key is `s/{subscriptionId}/f/{contentId}` and it carries **no
  * extension**: the name of a file is a name, not a path, and the extension
  * decides nothing anywhere in this product. It carries no notebook, no path
  * and no name either, for the reason the key of a note carries none — design
- * rule 4 — so renaming a file, moving it between paths and moving its
+ * INV-04 — so renaming a file, moving it between paths and moving its
  * notebook write not one byte here.
  *
  * What the object DOES carry is its type, written at the put and served back
@@ -200,7 +200,7 @@ export class S3FileStore implements FileStore {
     return ref.value;
   }
 
-  /** Only an upload of this subscription may become one of its files (rule 1). */
+  /** Only an upload of this subscription may become one of its files (INV-01). */
   private isUpload(key: string): boolean {
     return key.startsWith(`s/${this.sub.subscriptionId.value}/uploads/`);
   }

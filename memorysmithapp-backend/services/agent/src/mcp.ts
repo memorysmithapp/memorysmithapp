@@ -1,10 +1,10 @@
 /**
  * Stateless MCP server over Streamable HTTP.
  *
- * The catalog it serves is the public contract of the product
- * (software-vision.md, section 9.1); the translation into use cases happens in
- * mcp/tools.ts, which is the anticorruption layer. This file knows JSON-RPC
- * and nothing else, so a change of protocol stops here.
+ * The catalog it serves is the public contract of the product; the translation
+ * into use cases happens in mcp/tools.ts, which is the anticorruption layer.
+ * This file knows JSON-RPC and nothing else, so a change of protocol stops
+ * here.
  */
 
 import type { VerifiedAgentToken } from './auth.js';
@@ -24,8 +24,7 @@ const TOOL_NAMES = new Set(TOOL_CATALOG.map((tool) => tool.name));
 /**
  * What the line of this request is named: the tool, for a call of one in the
  * catalogue, and the method otherwise. A name the client typed that the
- * catalogue does not hold is never written, since it could be anything
- * (section 17).
+ * catalogue does not hold is never written, since it could be anything.
  */
 function operationOf(request: JsonRpcRequest): string {
   if (request.method === 'tools/call') {
@@ -103,7 +102,7 @@ export function callerFrom(
 /**
  * The code a refused call opens its text with — `CONFLICT:`, `VALIDATION:`,
  * `UNKNOWN_TOOL:` — which is all of the refusal its line keeps: the rest of the
- * text may quote a name (section 17).
+ * text may quote a name.
  */
 function refusalCodeOf(answer: ToolResult): string {
   const first = answer.content[0];

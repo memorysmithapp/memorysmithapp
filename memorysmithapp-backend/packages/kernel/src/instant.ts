@@ -1,8 +1,7 @@
 /**
  * A point in time, always UTC and always serialized as ISO 8601.
  * Wrapping Date keeps timezone handling out of aggregates and makes the
- * chronological sort keys of the audit trail unambiguous
- * (architecture-guide.md, section 12.2).
+ * chronological sort keys of the audit trail unambiguous (INV-06).
  */
 
 import { DomainError } from './errors.js';

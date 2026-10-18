@@ -173,7 +173,7 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
  * What the notebook answers to, from the context that reads an alias: the
  * name each note states and the spellings it declares (RN-DSC-046). Knowledge
  * never reads either, so the structure the page is drawn from cannot carry
- * them (rule 5).
+ * them (INV-05).
  */
 export async function getNotebookNames(notebookId: string): Promise<NoteRefDto[]> {
   const answer = await request<NotebookNamesDto>(`/discovery/notebooks/${notebookId}/names`);
@@ -615,7 +615,7 @@ export async function backlinksOf(notebookId: string, noteId: string): Promise<B
 
 /**
  * The search of the Discovery context, which reads the text of the whole notebook
- * and answers the query language of `SearchQuery` (software-vision.md 10.2).
+ * and answers the query language of `SearchQuery` (RN-DSC-026).
  * The screen sends what the person typed, verbatim: the fields, the quotes,
  * the exclusions and the facets are parsed by the backend, not here.
  */

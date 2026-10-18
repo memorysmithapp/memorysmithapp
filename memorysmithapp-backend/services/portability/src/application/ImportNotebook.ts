@@ -1,6 +1,6 @@
 /**
  * Import use case: the product takes a `.notebook` document and writes the notebook
- * it describes (architecture-guide.md §16).
+ * it describes.
  *
  * A `.notebook` file that nothing can read back is a backup nobody has tested.
  * The export became one document precisely so the door swings both ways, and
@@ -251,7 +251,7 @@ const UPLOAD_TTL_SECONDS = 900;
 
 /**
  * A fresh upload key: under the subscription prefix, like everything else this
- * product stores (non-negotiable rule 1), and under `imports/`, which is the
+ * product stores (INV-01), and under `imports/`, which is the
  * one prefix an import reads from and the one its worker may discard.
  */
 function freshUploadKey(subscriptionId: string): string {
@@ -289,7 +289,7 @@ export class PrepareImport {
  * Only the requester's own ready export qualifies, because a kept export is
  * seen by whoever generated it and by nobody else (RN-PRT-020): anything else —
  * somebody else's, one still running or failed, an import, one gone — answers
- * `404` alike, since telling them apart would say what exists (rule 9). The
+ * `404` alike, since telling them apart would say what exists (INV-09). The
  * export is read and never consumed: it stays kept, with its space, and may be
  * imported again.
  */
@@ -311,7 +311,7 @@ export class ImportFromExport {
       found.status !== 'ready' ||
       !found.key ||
       // A key the worker wrote is always under this prefix; one that is not
-      // is not copied, whatever the record says (rule 1).
+      // is not copied, whatever the record says (INV-01).
       !found.key.startsWith(`s/${this.subscriptionId}/exports/`)
     ) {
       return err(DomainError.notFound('Export not found'));
@@ -371,7 +371,7 @@ export class ImportNotebook {
     progress?: ImportProgress | undefined;
   }): Promise<Result<ImportJob, DomainError>> {
     // A key of another subscription is not readable and not addressable: the
-    // prefix is checked before the store is asked (rules 1 and 2).
+    // prefix is checked before the store is asked (INV-01, INV-02).
     if (!input.uploadKey.startsWith(`s/${this.subscriptionId}/imports/`)) {
       return err(DomainError.notFound('Upload not found'));
     }
@@ -472,7 +472,7 @@ export class ImportNotebook {
   /**
    * Writes the notebook, in the order the tree requires: a folder before the
    * folders under it, and a folder before the notes in it. Every write carries
-   * the authorship of whoever imported (non-negotiable rule 7), and the first
+   * the authorship of whoever imported (INV-07), and the first
    * failure — a quota refusal included — takes the whole notebook back down,
    * because an import that stopped halfway is not a notebook anybody asked for.
    */

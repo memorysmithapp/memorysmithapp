@@ -1,11 +1,11 @@
 /**
  * Event contracts, validated on BOTH sides: the producer before publishing and
- * the consumer before projecting (architecture-guide.md, section 19). An event
- * shape that only one side knows is how a projection starts lying quietly.
+ * the consumer before projecting. An event shape that only one side knows is
+ * how a projection starts lying quietly.
  *
  * The envelope always carries the subscriptionId and the Authorship, and every
  * content-changing event carries the COMPLETE ContentRef, which is what makes
- * the audit trail a sufficient recovery index (sections 6.6, 9.2, 12.3).
+ * the audit trail a sufficient recovery index (INV-04).
  */
 
 import { z } from 'zod';
@@ -124,7 +124,7 @@ export const eventEnvelopeSchema = z.object({
   /**
    * The id of the request that caused this event, carried to everything that
    * reads it — the relay, the projector, the audit consumer and the workers —
-   * so one operation is followed across every log it touched (section 17).
+   * so one operation is followed across every log it touched.
    * Optional, so an envelope written before it existed still parses, and so an
    * event no request caused carries none.
    */
@@ -316,7 +316,7 @@ export const folderReorderedPayload = z.object({
 
 /**
  * `noteCount` is what the counters of the removed subtree said at the moment
- * of the removal (§10.3). It is there because the notebook counter has to drop
+ * of the removal (ADR-010). It is there because the notebook counter has to drop
  * by it: nothing under the folder is written, so no note event will say so.
  * Eventually consistent in, eventually consistent out.
  */
@@ -446,7 +446,7 @@ export const noteReorderedPayload = z.object({
   version: noteVersionSchema,
 });
 
-/** Carries BOTH sides, because whoever consumes it needs both (section 6.6). */
+/** Carries BOTH sides, because whoever consumes it needs both. */
 export const noteMovedPayload = z.object({
   noteId: ulidSchema,
   fromNotebookId: ulidSchema,

@@ -1,6 +1,6 @@
 /**
  * Prints the notes of a version, as CHANGELOG.md writes them, for the GitHub
- * Release the production pipeline creates (architecture-guide.md, 20).
+ * Release the production pipeline creates.
  *
  *   pnpm -C memorysmithapp-infra release-notes [X.Y.Z]
  */

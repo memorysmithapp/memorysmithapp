@@ -1,11 +1,11 @@
 /**
- * Ports of the Knowledge context (architecture-guide.md, section 7.1).
+ * Ports of the Knowledge context.
  *
  * None of them takes a subscriptionId as an argument: the subscription belongs
  * to the REPOSITORY, resolved per request from the token claim, and the
  * composition root instantiates repositories per request. There is no code
  * path that builds one without a subscription, and the compiler is what says
- * so (PE2, section 8.2).
+ * so (INV-01, PE2).
  */
 
 import type {
@@ -78,7 +78,7 @@ export interface NoteRepository {
   save(note: Note): Promise<Result<void, ConcurrencyError>>;
   /**
    * The cross-notebook move, the only operation that writes into two notebook
-   * partitions in one transaction (section 9.2). It is its own method because
+   * partitions in one transaction (INV-04). It is its own method because
    * the item key itself changes, so it is a Delete plus a Put and not an
    * Update.
    */
@@ -90,7 +90,7 @@ export interface NoteRepository {
  * (RN-KNW-044). They live in the partition of their notebook, so finding one
  * is a single read of a key the parent identifies, and saving one is a write
  * of one item plus its event: it never touches the `META` item, and therefore
- * never contends with a tree mutation (section 10.2).
+ * never contends with a tree mutation (INV-10).
  *
  * There is one `save` and not two, because what differs between a Guidance and
  * a Template is the key, and the key is the adapter's business.
@@ -104,11 +104,11 @@ export interface ContentSlotRepository {
 }
 
 /**
- * The content port. There is no `purge` here, and the absence is deliberate:
- * no domain use case may destroy a revision, because if it could, deleting a
- * note would quietly break the historical reconstruction that section 12.3
- * promises. Nothing else destroys one either: there is no administrative path
- * to it anywhere in the product (RN-AUD-006, and RN-AUD-007, removed).
+ * The content port. There is no `purge` here, and the absence is deliberate: no
+ * domain use case may destroy a revision, because if it could, deleting a note
+ * would quietly break the historical reconstruction the trail promises. Nothing
+ * else destroys one either: there is no administrative path to it anywhere in
+ * the product (RN-AUD-006, and RN-AUD-007, removed).
  */
 export interface ContentStore {
   /** A new slot with its first revision. */
@@ -125,10 +125,10 @@ export interface ContentStore {
  * and nothing else — no name is checked against it, and a prefix or a padding
  * is a convention of the notebook (PP4).
  *
- * It is not part of any note transaction and never touches `META` (section
- * 10.2): two agents asking one folder at once are served one after the other,
- * and neither is cancelled. Issuing a number is not an audited event: the
- * number enters the record when a note names itself with it, and that write is.
+ * It is not part of any note transaction and never touches `META` (INV-10): two
+ * agents asking one folder at once are served one after the other, and neither
+ * is cancelled. Issuing a number is not an audited event: the number enters the
+ * record when a note names itself with it, and that write is.
  */
 export interface FolderNumbers {
   /** Issues the next number of the folder, in one atomic step. */
@@ -189,7 +189,7 @@ export interface SignedFile {
  *
  * There is no `purge` here either, for the reason the content port has none:
  * destroying a revision belongs to one principal and reaches the store through
- * a port of its own (rule 8).
+ * a port of its own (INV-08).
  */
 /**
  * How the object store is asked to serve the bytes (#171). `inline` is a file

@@ -19,7 +19,7 @@ import {
 /**
  * Appends what the consumer handed over. Validating the envelope against its
  * contract is the job of the inbound adapter: Zod lives on the edge, never in
- * a use case (architecture-guide.md, section 4.1).
+ * a use case.
  *
  * What it does NOT append is an entry that belongs inside a notebook whose
  * trail the purge closed (RN-AUD-011). This is not a second way of removing an
@@ -72,7 +72,7 @@ export class RecordEvents {
  * points at were destroyed, so a history that still listed them would be an
  * index of content nobody can fetch.
  *
- * The entries stay where they are, appended and immutable (rule 6). What this
+ * The entries stay where they are, appended and immutable (INV-06). What this
  * refuses is serving them, with the 404 of a note nobody can see.
  *
  * An EMPTY timeline is not a refusal. The trail is fed by events and follows a

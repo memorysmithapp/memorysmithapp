@@ -1,10 +1,10 @@
 /**
- * Key builders for mv-knowledge (architecture-guide.md, section 9.3).
+ * Key builders for mv-knowledge.
  *
  * EVERY key starts with the subscription, and the builder accepts only a
  * SubscriptionId value object, which can only be produced from a verified
  * token claim. That is what turns "we always scope by subscription" from a
- * code-review rule into a compiler rule (PE2, section 8.2).
+ * code-review rule into a compiler rule (INV-01, PE2).
  *
  * The lexicographic order of the sort keys is CHOSEN, not accidental:
  * FSTAT#, FTPL#, GUIDANCE and LIMIT# fall between FOLDER# and META, so the
@@ -126,7 +126,7 @@ export class KnowledgeKeys {
     return `EVENT#${eventId}`;
   }
 
-  /** Dedup marker that makes a counter update exactly-once (section 10.3). */
+  /** Dedup marker that makes a counter update exactly-once (ADR-010). */
   seen(eventId: string): string {
     return `SEEN#${eventId}`;
   }
@@ -137,7 +137,7 @@ export class KnowledgeKeys {
    * One partition per subscription, which is what listing notebooks asks for now
    * that nothing sits between the subscription and the notebook. It doubles as
    * the table partition of the slug guard below: same string, different table
-   * attribute, and both start with the subscription (rule 1).
+   * attribute, and both start with the subscription (INV-01).
    */
   subscriptionNotebooks(): string {
     return `S#${this.subscriptionId.value}#NOTEBOOKS`;
@@ -177,7 +177,7 @@ export class KnowledgeKeys {
    * subscription's partition and not in the notebook's, for two reasons: the
    * answer that lists every notebook reads them with ONE Query, and a counter
    * in the notebook's partition would be what a note transaction contends with
-   * (rule 10). It goes when the purge of its notebook ends.
+   * (INV-10). It goes when the purge of its notebook ends.
    */
   notebookUsage(notebookId: NotebookId | string): string {
     return `${NOTEBOOK_USAGE_PREFIX}${typeof notebookId === 'string' ? notebookId : notebookId.value}`;
@@ -200,8 +200,7 @@ export class KnowledgeKeys {
 
   /**
    * Sparse on purpose: these attributes only exist while deletedAt does not,
-   * so a deleted note leaves every listing without a filter anywhere
-   * (section 12.4).
+   * so a deleted note leaves every listing without a filter anywhere (INV-08).
    */
   gsi2Note(position: Position, noteId: NoteId): string {
     return `NOTE#${position.value}#${noteId.value}`;

@@ -2,8 +2,8 @@
  * Folder: an ordered node of the notebook tree, part of the Notebook aggregate.
  *
  * It is not a physical directory: nothing on disk or in S3 corresponds to it
- * (software-vision.md, section 3). Renaming, moving or reordering a folder
- * writes zero bytes of content, because the storage key encodes none of it.
+ * (INV-04). Renaming, moving or reordering a folder writes zero bytes of
+ * content, because the storage key encodes none of it.
  *
  * It carries no template either. The Template of a folder is an aggregate of
  * its own, which names the folder rather than living inside it (RN-KNW-044),

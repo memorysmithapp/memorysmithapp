@@ -4,11 +4,10 @@
  * One id follows one request of a person or an agent through everything it
  * causes: the connector's call, the request it makes to the core, the events
  * the core writes to its outbox, and the relay, the projector, the audit
- * consumer and the workers that read them (architecture-guide.md, sections 10
- * and 17). It travels in an asynchronous scope rather than as an argument, so
- * that the inside of the hexagon never sees it: the edge opens the scope, and
- * the adapters that write an outbox item, send a message or call another API
- * read it from here (rule 3).
+ * consumer and the workers that read them. It travels in an asynchronous scope
+ * rather than as an argument, so that the inside of the hexagon never sees it:
+ * the edge opens the scope, and the adapters that write an outbox item, send a
+ * message or call another API read it from here (INV-03).
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';

@@ -1,5 +1,5 @@
 /**
- * THE composition root (architecture-guide.md, sections 24 and 8.2).
+ * THE composition root (ADR-005, INV-01).
  *
  * This is the one file that changes between the modular monolith and six
  * deployables. Contexts, aggregates, ports and folder structure are identical
@@ -106,7 +106,7 @@ export function buildAccess(infra: Infrastructure, context: SubscriptionContext 
         connectors: buildConnectorBindings(infra, context),
         // The face of a person INSIDE this subscription (#168, RN-ACC-022):
         // keyed under the subscription like everything else, which is what
-        // keeps design rule 1 whole and opens no third exception of §8.3.
+        // keeps INV-01 whole and opens no third exception of it.
         avatars: new DynamoAvatarRepository(context, infra.db, infra.accessTable),
       }
     : null;
@@ -305,7 +305,7 @@ export function buildAuthorizer(
 /**
  * The connector of each token of the connector proxy, under the subscription of
  * the token. Access owns it; the core reads it in process, where Access already
- * runs, and the proxy writes it through a route of Access (section 13.3).
+ * runs, and the proxy writes it through a route of Access (ADR-009).
  */
 export function buildConnectorBindings(
   infra: Infrastructure,
@@ -323,7 +323,7 @@ export function roleOf(resolved: ResolvedContext): Role {
  * The shares of notebooks between subscriptions (RN-ACC-024), and what Access
  * asks about the notebooks they open, answered from Knowledge. Built from no
  * context: the owner's side is reached with the owner's own context, and the
- * grantee's side by the person of the token (architecture-guide.md §8.3).
+ * grantee's side by the person of the token (INV-01).
  */
 export function buildShares(infra: Infrastructure) {
   const platform = new DynamoPlatformAdmin(infra.db, infra.accessTable, NULL_OUTBOX_SINK);

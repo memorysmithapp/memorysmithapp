@@ -23,7 +23,7 @@ export class SqsTransferQueue implements TransferQueue {
       new SendMessageCommand({
         QueueUrl: this.queueUrl,
         MessageBody: JSON.stringify(work),
-        // The request that asked for it, which the worker logs (section 17).
+        // The request that asked for it, which the worker logs.
         ...correlationAttributes(),
       }),
     );

@@ -14,7 +14,7 @@
  * It deletes by the use case the API runs, as the owner of the subscription,
  * never by deleting items: the deletion is definitive and the purge takes the
  * content, the items, the projections and the files, as it does for a person
- * (rule 8). The subscriptions stay, because nothing in the product deletes one.
+ * (INV-08). The subscriptions stay, because nothing in the product deletes one.
  *
  * It refuses production by name, whatever credentials it runs under, and it
  * reports before it deletes, deleting only with `--apply`.
@@ -226,7 +226,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         ctx: ctx.value,
         notebookId: notebook.id,
         // The owner of the subscription, as if they had deleted it themselves:
-        // there is no anonymous mutation (rule 7), and nobody else may.
+        // there is no anonymous mutation (INV-07), and nobody else may.
         by: Authorship.byHuman(leftover.owner),
       });
       if (done.ok) deleted += 1;

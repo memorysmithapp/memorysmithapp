@@ -1,6 +1,6 @@
 /**
  * S3ContentStore: the only piece of the system that knows what an S3 key looks
- * like (architecture-guide.md, sections 9.2 and 10.5).
+ * like (INV-04, ADR-008).
  *
  * The key is `s/{subscriptionId}/c/{contentId}.md` and encodes NO notebook, NO
  * folder, NO name and NO role. That is the difference between opaque as an
@@ -73,7 +73,7 @@ export class S3ContentStore implements ContentStore {
     const versionId = response.VersionId;
     if (!versionId) {
       // Without versioning there is no revision to point at, and the whole
-      // historical reconstruction of section 12.3 quietly stops working.
+      // historical reconstruction quietly stops working.
       throw new Error(
         `Bucket ${this.bucket} returned no VersionId: object versioning must be enabled`,
       );

@@ -1,8 +1,7 @@
 /**
- * Every page of the interface, in the locale of the project that runs it
- * (software-vision.md, section 13; architecture-guide.md, section 19). Which
- * pages there are is read from the router, so a page added without a case
- * fails the Quality stage.
+ * Every page of the interface, in the locale of the project that runs it. Which
+ * pages there are is read from the router, so a page added without a case fails
+ * the Quality stage.
  */
 
 import { randomBytes } from 'node:crypto';

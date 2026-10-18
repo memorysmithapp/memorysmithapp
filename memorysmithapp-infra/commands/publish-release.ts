@@ -1,6 +1,6 @@
 /**
  * The last step of a release: the annotated tag and the GitHub Release of the
- * version that was just deployed (architecture-guide.md, §20).
+ * version that was just deployed.
  *
  * It runs **after** the delivery of production, and that order is the whole of
  * what a version tag means here: `v0.6.0` says "this exact commit is what

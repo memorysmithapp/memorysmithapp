@@ -1,6 +1,6 @@
 /**
  * The door through the boundary of a subscription, joined where the contexts
- * meet (RN-ACC-024 to RN-ACC-028, architecture-guide.md section 8.3).
+ * meet (INV-01, RN-ACC-024 to RN-ACC-028).
  *
  * Access keeps the shares and knows nothing of notebooks; Knowledge keeps the
  * notebooks and knows nothing of shares. This module is the only place both

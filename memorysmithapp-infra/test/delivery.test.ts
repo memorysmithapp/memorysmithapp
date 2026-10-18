@@ -1,7 +1,6 @@
 /**
  * What closes a deploy: the smoke that asks every surface which version it
- * serves, and the tag and release the production pipeline writes afterwards
- * (architecture-guide.md, section 20).
+ * serves, and the tag and release the production pipeline writes afterwards.
  */
 
 import { describe, expect, it } from 'vitest';

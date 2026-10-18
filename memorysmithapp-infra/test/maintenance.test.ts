@@ -1,5 +1,5 @@
 /**
- * The maintenance jobs (architecture-guide.md, sections 10.3 and 11): every
+ * The maintenance jobs (ADR-010, ADR-017): every
  * job names an entrypoint of the core that exists, every variable that
  * entrypoint requires is one the command provides, and the tables it names are
  * the ones the data stack creates.

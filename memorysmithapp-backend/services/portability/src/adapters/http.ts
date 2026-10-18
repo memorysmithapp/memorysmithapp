@@ -1,5 +1,5 @@
 /**
- * HTTP surface of svc-portability (architecture-guide.md, sections 14.1, 16):
+ * HTTP surface of svc-portability:
  *
  *   POST   /notebooks/:v/export        ->  starts the job, answers the transfer
  *   GET    /transfers                  ->  the transfers of whoever is asking
@@ -34,7 +34,7 @@
  * an export unreachable a quarter of an hour after it was made.
  *
  * Portability holds no notebook, so whether the caller may read it is answered by
- * the context that owns it, exactly as Discovery does (section 14.2).
+ * the context that owns it, exactly as Discovery does (INV-09).
  */
 
 import { Hono, type Context } from 'hono';
@@ -94,7 +94,7 @@ export interface PortabilityRequest {
   readonly canRead: (notebookId: string) => Promise<boolean>;
   /**
    * Who is importing, or why this session may not write. Every write of an
-   * import carries it (rule 7), and a connector whose token was never bound is
+   * import carries it (INV-07), and a connector whose token was never bound is
    * refused before the first one (RN-AGT-001).
    */
   readonly authorship: Result<Authorship, DomainError>;
@@ -138,7 +138,7 @@ export interface PortabilityUseCases {
   readonly getPreview: (request: PortabilityRequest) => GetPreview;
 }
 
-/** What a transfer looks like on the wire, which is what it is (§16). */
+/** What a transfer looks like on the wire, which is what it is. */
 function transferToDto(transfer: Transfer): Record<string, unknown> {
   return {
     transferId: transfer.transferId,
@@ -369,7 +369,7 @@ export function createPortabilityRoutes(
    * product keeps it, so the bytes do not travel down to the device and back
    * up again (#207, RN-PRT-020). It answers the key `POST /imports` answers,
    * and `POST /imports/apply` takes it unchanged. Only the requester's own
-   * ready export qualifies, and anything else is `404` (rule 9).
+   * ready export qualifies, and anything else is `404` (INV-09).
    */
   app.post('/imports/from-export', async (c) => {
     const request = c.get('portability');
@@ -390,7 +390,7 @@ export function createPortabilityRoutes(
   app.post('/imports/apply', async (c) => {
     const request = c.get('portability');
     // A connector whose token was never bound may not write, and an import is
-    // a write like any other (rule 7, RN-AGT-001).
+    // a write like any other (INV-07, RN-AGT-001).
     const author = request.authorship;
     if (!author.ok) return fail(c, author.error);
 
@@ -414,7 +414,7 @@ export function createPortabilityRoutes(
   /**
    * An upload in parts (RN-PRT-027). It is a write from its first call — it
    * reserves room and will keep a file — so a connector whose token was never
-   * bound is refused before it starts (rule 7, RN-AGT-001).
+   * bound is refused before it starts (INV-07, RN-AGT-001).
    */
   app.post('/uploads', async (c) => {
     const request = c.get('portability');
@@ -490,7 +490,7 @@ export function createPortabilityRoutes(
   /**
    * An agent asks the person for a file instead of sending it (RN-PRT-030),
    * from nothing or from an upload it could not finish. It is a write, of a
-   * record the person acts on, so an unbound connector is refused (rule 7).
+   * record the person acts on, so an unbound connector is refused (INV-07).
    */
   app.post('/requests', async (c) => {
     const request = c.get('portability');

@@ -1,6 +1,6 @@
 /**
  * The discovery projector: EventBridge rule to SQS to this function, with a
- * dead-letter queue (architecture-guide.md, section 11.3).
+ * dead-letter queue.
  *
  * The queue is what absorbs a batch ingestion burst, and it is why a retry or
  * a failure of the projector never touches the hot path of the write.
@@ -95,7 +95,7 @@ export async function handler(event: QueueEvent): Promise<BatchResponse> {
       const parsed = JSON.parse(record.body ?? '{}') as { detail?: unknown };
       await observed(parsed.detail ?? parsed);
     } catch {
-      // The line of the event already says it failed, and how (section 17);
+      // The line of the event already says it failed, and how;
       // the record goes back to the queue alone.
       failures.push({ itemIdentifier: record.messageId ?? '' });
     }
@@ -103,14 +103,14 @@ export async function handler(event: QueueEvent): Promise<BatchResponse> {
   return { batchItemFailures: failures };
 }
 
-/** One line per event projected, under the id of the request that caused it (section 17). */
+/** One line per event projected, under the id of the request that caused it. */
 function observed(each: unknown): Promise<void> {
   return observe(startOfEvent(each), () => projectOne(each));
 }
 
 async function projectOne(each: unknown): Promise<void> {
   // Validated against the contract on this side too: an envelope only the
-  // producer knows is how a projection starts lying quietly (section 19).
+  // producer knows is how a projection starts lying quietly.
   const envelope = parseEvent(each);
   const subscriptionId = SubscriptionId.fromClaim(envelope.subscriptionId);
   if (!subscriptionId.ok) return;

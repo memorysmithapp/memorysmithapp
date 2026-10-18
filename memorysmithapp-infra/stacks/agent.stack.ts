@@ -1,7 +1,7 @@
 /**
  * Agent stack for the CIMD spike: the svc-agent Lambda (resource server +
  * authorization proxy + minimal MCP server) behind an HTTP API on
- * mcp.memorysmith.app (architecture-guide.md, sections 13 and 17).
+ * mcp.memorysmith.app.
  *
  * Transitional by design: when delivery 8 lands, the MCP host moves to the
  * modular-monolith deployable and this stack stops being instantiated.
@@ -37,7 +37,7 @@ export interface AgentStackProps extends StackProps {
    * Where the tools reach the other contexts. svc-agent forwards the caller's
    * own token, so the subscription that arrives at the core is the one fixed
    * at consent, and the connector recorded as the agent is the one the proxy
-   * bound that token to (architecture-guide.md, sections 13.1, 13.3, 14.1).
+   * bound that token to (ADR-009).
    */
   internalApiOrigin: string;
   /** The API of the core, whose connector binding route this function alone may invoke. */
@@ -109,7 +109,7 @@ export class AgentStack extends Stack {
     /**
      * The one call this function signs with its own credentials: at /token it
      * records which connector a token belongs to, through the route of Access
-     * that nothing else may invoke (sections 13.3 and 14.1).
+     * that nothing else may invoke (ADR-009).
      */
     fn.addToRolePolicy(
       new iam.PolicyStatement({
@@ -129,7 +129,7 @@ export class AgentStack extends Stack {
       defaultDomainMapping: { domainName },
     });
 
-    // One line per request the gateway answered, its refusals included (section 17).
+    // One line per request the gateway answered, its refusals included.
     accessLogOf(this, 'McpAccessLogs', api);
 
     new route53.ARecord(this, 'McpAliasRecord', {

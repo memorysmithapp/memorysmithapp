@@ -1,5 +1,5 @@
 /**
- * The vertical slice of delivery 6 (architecture-guide.md, section 25), end to
+ * The vertical slice of delivery 6, end to
  * end over HTTP:
  *
  *   - reordering a folder is ONE write on the folder item;

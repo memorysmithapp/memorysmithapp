@@ -1,6 +1,6 @@
 /**
  * The two event consumers: the audit trail and the discovery projections
- * (architecture-guide.md, sections 11.3, 12.2 and 24).
+ * (INV-05, INV-06, ADR-005).
  *
  * svc-audit IS ITS OWN DEPLOYABLE, and this is the one place where the
  * separation buys something real: its role carries the explicit Deny that

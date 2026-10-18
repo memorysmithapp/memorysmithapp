@@ -1,7 +1,7 @@
 // The notebook search.
 //
 // What it types goes to the source untouched: the whole query language lives
-// in the backend (software-vision.md 10.2), and a box that pre-filtered here
+// in the backend (RN-DSC-026), and a box that pre-filtered here
 // would either duplicate that grammar or quietly break it. The screen's job is
 // to debounce, to show the passage the match came from and to resolve the note
 // identifier of a hit into the URL the reader clicks.

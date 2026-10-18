@@ -1,6 +1,5 @@
 /**
- * Tears staging down, leaving nothing of it but its hosted zone
- * (architecture-guide.md, section 20).
+ * Tears staging down, leaving nothing of it but its hosted zone.
  *
  *   pnpm -C memorysmithapp-infra destroy-staging [--preview]
  *

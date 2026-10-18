@@ -1,5 +1,5 @@
 /**
- * The two table constructs (architecture-guide.md, section 5.4).
+ * The two table constructs.
  *
  * SubscriptionTable is the ordinary shape: single table, on-demand, PITR on,
  * TTL attribute, and the two indexes the designs use.
@@ -44,7 +44,7 @@ export class SubscriptionTable extends Construct {
       billingMode: BillingMode.PAY_PER_REQUEST,
       encryption: TableEncryption.AWS_MANAGED,
       // The bucket is opaque, so losing this table beyond the PITR window
-      // would leave a pile of .md nobody can interpret (section 26).
+      // would leave a pile of .md nobody can interpret.
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       timeToLiveAttribute: 'ttl',
       ...(props.stream ? { stream: StreamViewType.NEW_IMAGE } : {}),
@@ -154,7 +154,7 @@ export class AppendOnlyTable extends Construct {
 
   /**
    * The ONE grant in the system that lets a principal remove an entry, and it
-   * is given to exactly one: the purge worker (rule 6, RN-AUD-011). It is
+   * is given to exactly one: the purge worker (INV-06, RN-AUD-011). It is
    * written by hand, action by action, rather than taken from a grant helper,
    * because every helper that hands out a delete hands out more than this.
    *

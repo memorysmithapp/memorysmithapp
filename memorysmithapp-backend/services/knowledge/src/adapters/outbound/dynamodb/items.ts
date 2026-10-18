@@ -2,8 +2,7 @@
  * Item shapes of mv-knowledge and the translation to and from the aggregates.
  *
  * This file is the only place that knows what an attribute is called. The
- * domain never sees an attribute name, and the item never sees a value object
- * (architecture-guide.md, sections 9.3 and 7.2).
+ * domain never sees an attribute name, and the item never sees a value object.
  */
 
 import {
@@ -279,12 +278,12 @@ export function parseNote(item: Item, subscriptionId: SubscriptionId): Note {
 
 // ---- Outbox -----------------------------------------------------------------
 
-/** Seven days, matching the outbox retention of section 18. */
+/** Seven days, matching the outbox retention. */
 const OUTBOX_TTL_DAYS = 7;
 
 export function outboxItem(event: DomainEvent, pk: string, sk: string): Item {
   // The request that caused the event, read from the scope the edge opened:
-  // the domain never sees it, and every reader of the event logs it (section 17).
+  // the domain never sees it, and every reader of the event logs it.
   const correlationId = currentCorrelationId();
   return {
     PK: pk,

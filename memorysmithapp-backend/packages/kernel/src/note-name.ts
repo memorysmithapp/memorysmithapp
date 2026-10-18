@@ -2,7 +2,7 @@
  * The name of a note (MemorySmith Markdown Specification §5.3). This is the
  * third sanctioned reader of content, and the one Knowledge needs
  * synchronously on the write, because a listing cannot wait for a projection
- * to know what a note is called (architecture-guide.md §11).
+ * to know what a note is called (INV-05).
  *
  * It is a pure function of the kernel, used by Knowledge when a note is
  * written and by Discovery when a link is resolved, so the two can never

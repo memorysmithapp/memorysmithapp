@@ -3,9 +3,9 @@
  * structural questions are answered.
  *
  * It holds no invariant of its own: the Notebook aggregate is the consistency
- * boundary (architecture-guide.md, section 6.1), and this type is what lets it
- * answer "who are the siblings", "how deep is this" and "would this move
- * create a cycle" without walking the whole thing every time.
+ * boundary, and this type is what lets it answer "who are the siblings", "how
+ * deep is this" and "would this move create a cycle" without walking the whole
+ * thing every time.
  */
 
 import type { FolderId, Position } from '@memorysmithapp/kernel';
@@ -44,8 +44,7 @@ export class FolderTree {
 
   /**
    * Children in the DEFINED order. Ties, possible under concurrency, are
-   * broken by the ULID of the folder, so the ordering is never undefined
-   * (architecture-guide.md, section 6.5).
+   * broken by the ULID of the folder, so the ordering is never undefined.
    */
   childrenOf(parentFolderId: FolderId | null): Folder[] {
     return this.all()

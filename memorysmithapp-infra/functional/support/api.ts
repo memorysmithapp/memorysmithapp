@@ -1,6 +1,6 @@
 /**
  * The API of the product as a case calls it: plain HTTP, a bearer token, and
- * nothing of the product imported (architecture-guide.md, section 19).
+ * nothing of the product imported.
  *
  * Every call records how long it took, under the route it reached and not the
  * identifiers it carried, so the report can put the calls of one route together.

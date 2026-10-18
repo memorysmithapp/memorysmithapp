@@ -1,5 +1,5 @@
 /**
- * The search query language (software-vision.md, section 10.2).
+ * The search query language (RN-DSC-026).
  *
  * Pure domain: it parses text into a tree and evaluates that tree against a
  * candidate. It knows nothing about DynamoDB, about how a note is stored or

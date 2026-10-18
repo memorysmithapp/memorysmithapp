@@ -1,6 +1,6 @@
 /**
  * The version an environment serves, and what a release has to agree on before
- * production takes it (architecture-guide.md, sections 20 and 23).
+ * production takes it.
  *
  * Pure functions over text the repository already holds: the manifests, the
  * root one first, and `CHANGELOG.md`. The commands around them only read files and
@@ -96,7 +96,9 @@ export function releaseProblems(input: {
   for (const manifest of input.manifests) {
     // A manifest that declares no version claims none, and follows the product.
     if (manifest.version !== undefined && manifest.version !== base) {
-      problems.push(`${manifest.path} is at ${manifest.version}, and package.json declares ${base}.`);
+      problems.push(
+        `${manifest.path} is at ${manifest.version}, and package.json declares ${base}.`,
+      );
     }
   }
   if (

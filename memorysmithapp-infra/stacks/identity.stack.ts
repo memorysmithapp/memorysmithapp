@@ -2,7 +2,7 @@
  * Identity stack for the CIMD spike: Cognito user pool, hosted-UI domain, the
  * single pre-registered app client used by the authorization proxy, a test
  * user, and a STUB pre-token-generation trigger that injects a fixed
- * subscription_id (architecture-guide.md, sections 8.5 and 13.3).
+ * subscription_id (INV-02, ADR-009).
  *
  * The real trigger, which reads the active_subscription attribute and the
  * user-subscription link, replaces the stub in delivery 5.
@@ -27,7 +27,7 @@ export interface IdentityStackProps extends StackProps {
   readonly environment: EnvironmentConfig;
   /** The host of the interface, where the sign-in page returns to. */
   readonly siteDomainName: string;
-  /** mv-access, where the links of the user live (exception 1 of §8.3). */
+  /** mv-access, where the links of the user live (exception 1 of INV-01). */
   accessTable: ITable;
   /** Public origin of the MCP service, e.g. https://mcp.memorysmith.app */
   mcpOrigin: string;
@@ -109,14 +109,14 @@ export class IdentityStack extends Stack {
   readonly proxyClient: cognito.UserPoolClient;
   /** The app client the SPA authenticates with (authorization code + PKCE). */
   readonly webClient: cognito.UserPoolClient;
-  /** The issuer every service validates tokens against (section 13.2). */
+  /** The issuer every service validates tokens against. */
   readonly issuer: string;
 
   constructor(scope: Construct, id: string, props: IdentityStackProps) {
     super(scope, id, props);
 
     /**
-     * Where the active subscription becomes a signed claim (section 8.5). It
+     * Where the active subscription becomes a signed claim (INV-02). It
      * reads the links of the user from mv-access and the status from the META
      * item, and a user with no link gets no claim at all, which is exactly
      * what a platform session is.
@@ -281,9 +281,9 @@ export class IdentityStack extends Stack {
 
     /**
      * The platform group. A PLATFORM_ADMIN operates the platform and is NOT a
-     * role inside any subscription (software-vision.md, section 4.6): the
-     * group is what the authorizer reads, and a session that carries it still
-     * has no subscription claim, so it reaches no content.
+     * role inside any subscription (INV-12): the group is what the authorizer
+     * reads, and a session that carries it still has no subscription claim, so
+     * it reaches no content.
      */
     new cognito.CfnUserPoolGroup(this, 'PlatformAdminGroup', {
       userPoolId: this.userPool.userPoolId,

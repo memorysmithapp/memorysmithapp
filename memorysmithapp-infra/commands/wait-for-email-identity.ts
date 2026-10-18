@@ -1,6 +1,5 @@
 /**
- * Waits until the sending identity of an environment is verified
- * (architecture-guide.md, sections 17 and 20).
+ * Waits until the sending identity of an environment is verified.
  *
  *   pnpm -C memorysmithapp-infra wait-for-email-identity --identity stg.memorysmith.app
  *

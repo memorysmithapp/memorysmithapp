@@ -44,7 +44,7 @@ export interface Membership {
   readonly joinedAt: Instant;
 }
 
-/** The transition machine of software-vision.md, section 4.4. */
+/** The transition machine of the status of a subscription. */
 const TRANSITIONS: Record<string, readonly string[]> = {
   pending_approval: ['trial', 'active', 'rejected'],
   trial: ['active', 'suspended', 'canceled'],
@@ -367,7 +367,7 @@ export class Subscription {
     return ok();
   }
 
-  // ---- Members (they used to belong to Workspace, section 4.3) ------------
+  // ---- Members (they used to belong to Workspace) -------------------------
 
   get members(): Membership[] {
     return [...this._members.values()];

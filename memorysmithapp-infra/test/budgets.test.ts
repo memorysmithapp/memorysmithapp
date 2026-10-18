@@ -1,5 +1,5 @@
 /**
- * The cost budgets of the account (architecture-guide.md, section 17; #279).
+ * The cost budgets of the account (#279).
  *
  * Two budgets made by hand overlapped, and the smaller one sat below what the
  * account costs standing still, so it alarmed every month. These cases read

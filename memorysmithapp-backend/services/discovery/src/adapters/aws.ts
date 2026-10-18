@@ -1,6 +1,5 @@
 /**
- * AWS adapters of the Discovery projections, over mv-discovery
- * (architecture-guide.md, sections 11.1 and 11.3):
+ * AWS adapters of the Discovery projections, over mv-discovery (INV-05):
  *
  *   OUT#{from}#{to}         outgoing edge         IN#{to}#{from}   backlink
  *   PENDING#{name}#{from}  link waiting for its target to exist
@@ -315,7 +314,7 @@ export class DynamoLinkGraph implements LinkGraph {
 
   /**
    * The targets of one note, out of the projection alone and never out of its
-   * content (rule 5): an `OUT#` edge is a target by name, under the name of the
+   * content (INV-05): an `OUT#` edge is a target by name, under the name of the
    * note it reaches; an `ALIAS#` item turns that edge into a target by alias,
    * under the name the link wrote; a `PENDING#` item is a target that reaches
    * nothing yet (RN-AGT-034).
@@ -1250,7 +1249,7 @@ export class DynamoFacetIndex implements FacetIndex {
     }));
 
     // The new portrait travels with the counters it moved, in the same shape
-    // as the folder counters of section 10.3. A note whose frontmatter holds
+    // as the folder counters (ADR-010). A note whose frontmatter holds
     // more distinct values than one transaction carries used to have the tail
     // of its counters dropped without a word: the portrait was right and the
     // panel counting it was quietly short, forever, because the next write of
@@ -1494,7 +1493,7 @@ const PART_UNITS = 60_000;
 /**
  * Cuts a string into pieces of at most `size` code units, never between the
  * two halves of a surrogate pair: the pieces joined are the string, byte for
- * byte, which is what keeps the positions the excerpt is cut by (§11.2).
+ * byte, which is what keeps the positions the excerpt is cut by (ADR-012).
  */
 export function partsOf(text: string, size = PART_UNITS): string[] {
   const parts: string[] = [];

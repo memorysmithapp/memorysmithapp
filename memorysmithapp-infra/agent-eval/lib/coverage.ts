@@ -1,7 +1,7 @@
 /**
- * Every skill the connector announces has a case (architecture-guide.md,
- * section 19). The index is read live, from what `whoami` serves, so a skill
- * added to the product without a case stops the next round before it starts.
+ * Every skill the connector announces has a case. The index is read live, from
+ * what `whoami` serves, so a skill added to the product without a case stops
+ * the next round before it starts.
  */
 
 /** The skill names of the index `whoami` prints, in the order it prints them. */

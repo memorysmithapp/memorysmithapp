@@ -85,7 +85,7 @@ export const PART_URL_SECONDS = 3600;
 /**
  * Where the parts of an upload are kept, under the upload and never under a
  * notebook (RN-PRT-029). Every key it is given was built from the subscription
- * of the token (rule 1).
+ * of the token (INV-01).
  */
 export interface PartStore {
   /** Opens the multipart upload of an upload by URL, and answers its identifier. */
@@ -241,7 +241,7 @@ async function statusOf(
   };
 }
 
-/** The upload of this person by its identifier, or not found (rule 9). */
+/** The upload of this person by its identifier, or not found (INV-09). */
 async function openUpload(
   transfers: TransferStore,
   userId: string,
@@ -254,7 +254,7 @@ async function openUpload(
   return ok(found as Transfer & { upload: TransferUpload });
 }
 
-/** The open request of this person by its identifier, or not found (rule 9). */
+/** The open request of this person by its identifier, or not found (INV-09). */
 async function openRequest(
   transfers: TransferStore,
   userId: string,

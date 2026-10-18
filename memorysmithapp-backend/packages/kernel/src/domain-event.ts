@@ -1,13 +1,13 @@
 /**
- * Domain events (architecture-guide.md, section 6.6).
+ * Domain events.
  *
  * Every event carries the subscriptionId and the Authorship. Content events
  * carry the COMPLETE ContentRef - contentId, versionId, sha256 and bytes - and
  * not just the versionId: that is what turns the audit trail into a recovery
  * index sufficient to rebuild the mapping between DynamoDB and S3 from scratch
- * (sections 9.2 and 12.3).
+ * (INV-04).
  *
- * Events are published through the transactional outbox (section 10.4), so
+ * Events are published through the transactional outbox (ADR-006), so
  * adding a consumer never touches the core.
  */
 
@@ -27,7 +27,7 @@ export const ACCESS_EVENT_TYPES = [
   /**
    * The platform set the status DIRECTLY, without walking the transition
    * machine, and the plan of a subscription changed. Both are administrative
-   * acts of the platform surface (software-vision.md, section 4.6), and both
+   * acts of the platform surface (RN-SUB-008), and both
    * are events of their own precisely because they did not go through the
    * ordinary path: the trail has to say which one it was.
    */
@@ -35,7 +35,7 @@ export const ACCESS_EVENT_TYPES = [
   'SubscriptionPlanChanged',
   'OwnershipTransferred',
   /**
-   * RETIRED with the workspace level (software-vision.md, section 4.3). It
+   * RETIRED with the workspace level. It
    * stays in the list for the same reason a retired RN code is never reused:
    * the audit trail is append-only, and an event already written has to stay
    * parseable forever.
@@ -121,7 +121,7 @@ export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 
 /**
  * The audit trail is keyed BY SUBJECT, not by notebook, which is what makes the
- * timeline of a note survive it moving folder and notebook (section 12.2).
+ * timeline of a note survive it moving folder and notebook (INV-06).
  */
 export type EventSubject =
   | 'SUBSCRIPTION'

@@ -4,13 +4,12 @@
  *
  * It lives HERE, in the composition root, for the same reason the export
  * source does: the trail belongs to Audit, and having Portability query it
- * directly would invert the one-way arrow between the contexts
- * (architecture-guide.md §3.1).
+ * directly would invert the one-way arrow between the contexts.
  *
  * It answers the entries and the revisions they name. Each revision is fetched
  * by the exact pair its entry carries — the content and the version — and
  * never by listing the versions of an object: listing them belongs to the
- * purge and to nothing else (rule 8). A revision that cannot be fetched is
+ * purge and to nothing else (INV-08). A revision that cannot be fetched is
  * left out rather than failing the export: the entry stays, saying that
  * something was written, and the export of a notebook is not lost over one
  * body whose bytes are already gone.

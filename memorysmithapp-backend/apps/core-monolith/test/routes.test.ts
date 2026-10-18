@@ -1,5 +1,5 @@
 /**
- * The manifest of the routes of the core (architecture-guide.md, section 19).
+ * The manifest of the routes of the core.
  *
  * The functional suite holds a case for every route, and it reads which routes
  * there are from `routes.json`, because it never imports the product. This keeps

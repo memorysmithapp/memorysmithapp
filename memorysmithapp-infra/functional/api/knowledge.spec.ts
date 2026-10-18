@@ -1,7 +1,6 @@
 /**
  * Knowledge: notebooks, the Guidance, folders, Templates, notes and the role
- * limit of a notebook (software-vision.md, section 9; architecture-guide.md,
- * sections 9 and 10).
+ * limit of a notebook (INV-04, INV-10, INV-13).
  */
 
 import type { Api } from '../support/api.js';
@@ -247,9 +246,9 @@ test.describe('folders', () => {
     const path = `${foldersPath(notebook)}/${notebook.folderId}`;
 
     // Whether a folder holds notes is read from its counter, which the outbox
-    // relay keeps after the write and not inside it (architecture-guide.md,
-    // section 10.3). The note of the fixture was written a moment ago, so the
-    // refusal is asked for once the folder counts it, as the design promises.
+    // relay keeps after the write and not inside it (ADR-010). The note of the
+    // fixture was written a moment ago, so the refusal is asked for once the
+    // folder counts it, as the design promises.
     await eventually(
       'the note of the fixture counted in its folder',
       () =>

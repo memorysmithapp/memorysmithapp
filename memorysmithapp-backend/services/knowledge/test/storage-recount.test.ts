@@ -158,7 +158,7 @@ describe('storage recount', () => {
     expect(usage?.byNotebook.has('GONE')).toBe(false);
 
     // Reported, never destroyed: applying writes the counters and nothing of
-    // the files, whose bytes only the purge may take (rule 8).
+    // the files, whose bytes only the purge may take (INV-08).
     await recount.apply(usage ? [usage] : []);
     expect(deleted).toEqual([]);
     expect(written.every((item) => String(item['PK']) === `S#${A}#NOTEBOOKS`)).toBe(true);
@@ -222,7 +222,7 @@ describe('the recount of what fills the space (RN-SUB-024)', () => {
     }).measure();
     expect(counted[0]?.revisions).toBe(12);
 
-    // Listing the versions of an object belongs to the purge alone (rule 8),
+    // Listing the versions of an object belongs to the purge alone (INV-08),
     // so a recount run without the trail leaves the relay's number standing.
     const uncounted = await new StorageRecount({
       db: tableOf(items).db as never,

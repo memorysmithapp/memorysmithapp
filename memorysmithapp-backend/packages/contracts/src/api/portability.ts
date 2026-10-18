@@ -1,5 +1,5 @@
 /**
- * DTOs of svc-portability (architecture-guide.md, section 16).
+ * DTOs of svc-portability.
  *
  * Export is where file names come back into existence: guidance becomes
  * GUIDANCE.md, the annotated tree becomes STRUCTURE.md next to it, template

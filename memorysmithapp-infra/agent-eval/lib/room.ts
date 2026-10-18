@@ -1,5 +1,5 @@
 /**
- * The clean room (architecture-guide.md, section 19).
+ * The clean room.
  *
  * The executor is a separate Claude Code process that knows nothing but the
  * request and what the connector serves it:

@@ -1,5 +1,5 @@
 /**
- * The cost budgets of the account (architecture-guide.md, section 17; #279).
+ * The cost budgets of the account (#279).
  *
  * A budget belongs to the account, not to an environment, and production owns
  * the account, so only production declares them, beside the topic of its

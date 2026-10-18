@@ -1,12 +1,12 @@
 /**
- * The pre-token-generation trigger (architecture-guide.md, section 8.5).
+ * The pre-token-generation trigger (INV-02).
  *
  * It is where the ACTIVE SUBSCRIPTION becomes a signed claim, and it is the
  * only place in the system that decides which subscription a session acts for.
  * Everything downstream reads the claim and never asks again, which is what
  * makes RN-SUB-002 hold: no request can name a subscription.
  *
- * It reads the LINKS of the user, which is exception 1 of section 8.3, and the
+ * It reads the LINKS of the user, which is exception 1 of INV-01, and the
  * status from the META item of the chosen subscription. Two consequences are
  * deliberate:
  *
@@ -33,7 +33,7 @@ const tableName = process.env['ACCESS_TABLE'] ?? '';
 
 /**
  * One line per token issued, named by the trigger that asked for it and
- * carrying the person's identifier and nothing of their attributes (section 17).
+ * carrying the person's identifier and nothing of their attributes.
  */
 export function handler(event: TriggerEvent): Promise<TriggerEvent> {
   const userId = event.request.userAttributes['sub'];

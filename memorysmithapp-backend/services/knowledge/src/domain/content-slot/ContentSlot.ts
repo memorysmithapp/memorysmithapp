@@ -12,8 +12,7 @@
  * on the storage count, because a field is not a unit anything can find.
  *
  * As an aggregate each one is locked on its own item, the way a note is
- * (architecture-guide.md, section 10.2): a write of it contends only with
- * another write of the same slot.
+ * (ADR-011): a write of it contends only with another write of the same slot.
  *
  * What stays true is PP4: the aggregate carries a pointer and never the
  * Markdown. Whoever talks to the ContentStore is the use case.
@@ -78,7 +77,7 @@ export abstract class ContentSlot {
   }
 
   /**
-   * Receives a ContentRef that is ALREADY written (section 10.5). Identical
+   * Receives a ContentRef that is ALREADY written (ADR-008). Identical
    * bytes are not a write: no new revision, no event and no reprojection
    * (RN-KNW-028), and the caller can tell because no event was recorded.
    */
@@ -103,7 +102,7 @@ export abstract class ContentSlot {
    *
    * The event carries the reference that was live, because that is what says
    * WHICH content stopped being pointed at: the trail is the recovery index
-   * (section 9.2) and nothing else would name the slot afterwards.
+   * (INV-04) and nothing else would name the slot afterwards.
    */
   delete(by: Authorship): Result<void, DomainError> {
     if (this._deleted) return err(slotNotFound(this.role));

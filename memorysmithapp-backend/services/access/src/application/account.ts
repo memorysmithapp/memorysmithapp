@@ -1,5 +1,5 @@
 /**
- * The account of the person signed in (software-vision.md, section 5.4).
+ * The account of the person signed in.
  */
 
 import { DomainError, err, Instant, ok, type Result } from '@memorysmithapp/kernel';

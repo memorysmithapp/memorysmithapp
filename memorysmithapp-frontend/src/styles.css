@@ -138,9 +138,8 @@ a:hover {
 }
 
 /*
- * The environment a page is served from, outside production
- * (architecture-guide.md, 23.3). The last row of the window, never
- * dismissable: it reads, it does not ask for anything.
+ * The environment a page is served from, outside production. The last row of
+ * the window, never dismissable: it reads, it does not ask for anything.
  */
 .environment-banner {
   /* In the flow: it used to be fixed over the page, which covered the end of
@@ -3669,7 +3668,7 @@ body.has-sheet .app-main {
 }
 
 /* ── Skeletons ──────────────────────────────────────────────────────────────
-   The shape of what is coming, in the position it will occupy (§13.2).
+   The shape of what is coming, in the position it will occupy.
 
    One primitive, used by every surface: a block with an explicit size and a
    sheen that travels across it. A skeleton that does not occupy the frame of
@@ -3776,7 +3775,7 @@ body.has-sheet .app-main {
    In the header, because the header is already fixed: visible from any scroll
    position, covering no line of the note, needing no overlay. It used to be a
    paragraph at the top of the content, which scrolled away with the text and
-   was never seen from where the box was clicked (§13.2).
+   was never seen from where the box was clicked.
 
    The slot is always in the tree so `aria-live` can announce into it, and it
    reserves no width while idle: a reading surface stays a reading surface. */

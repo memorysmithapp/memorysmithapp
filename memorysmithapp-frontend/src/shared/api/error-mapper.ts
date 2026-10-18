@@ -1,5 +1,5 @@
 // The whole error taxonomy of the backend, turned into something a person can
-// act on (architecture-guide.md section 15, and section 5.3 for this file).
+// act on.
 //
 // FORBIDDEN arrives as 404 in every case but one, so the UI says "not found":
 // the interface cannot be more informative than the API, or the leak the 404

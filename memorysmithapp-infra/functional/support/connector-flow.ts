@@ -1,6 +1,5 @@
 /**
- * Connecting to the connector the way a person connects an agent
- * (architecture-guide.md, section 13.3).
+ * Connecting to the connector the way a person connects an agent (ADR-009).
  *
  * The connector accepts only tokens issued to its proxy client, and that client
  * signs in through the authorization code flow and nothing else, on purpose. So

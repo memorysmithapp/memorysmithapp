@@ -1,8 +1,7 @@
 /**
- * The configuration an environment publishes beside the bundle
- * (architecture-guide.md, 23.3). One build serves any environment, so a
- * missing field has to stop the page at the door, naming the field, rather than
- * reach a screen as an empty origin.
+ * The configuration an environment publishes beside the bundle. One build
+ * serves any environment, so a missing field has to stop the page at the door,
+ * naming the field, rather than reach a screen as an empty origin.
  */
 
 import { describe, expect, it } from 'vitest';

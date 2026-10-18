@@ -1,6 +1,6 @@
 /**
- * The messages the user pool sends, written by the product (RN-ACC-017,
- * RN-ACC-018; architecture-guide.md, section 8.5).
+ * The messages the user pool sends, written by the product (INV-02, RN-ACC-017,
+ * RN-ACC-018).
  *
  * Cognito hands the trigger a placeholder for the credential and never the
  * credential itself, and replaces it after the message leaves here. So nothing

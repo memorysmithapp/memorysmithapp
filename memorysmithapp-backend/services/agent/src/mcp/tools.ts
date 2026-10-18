@@ -1,11 +1,10 @@
 /**
- * McpToolAdapter: the anticorruption layer of the Agent Access context
- * (architecture-guide.md, section 13.1).
+ * McpToolAdapter: the anticorruption layer of the Agent Access context.
  *
  * It translates a tool call into a use case command and back, forwarding the
- * caller's own token, from which the core resolves the Authorship (section
- * 12.1). No MCP vocabulary crosses into the core
- * (RN-AGT-008), and no core vocabulary leaks out untranslated.
+ * caller's own token, from which the core resolves the Authorship (INV-07). No
+ * MCP vocabulary crosses into the core (RN-AGT-008), and no core vocabulary
+ * leaks out untranslated.
  *
  * Errors are answered as `isError` with ACTIONABLE text, and a missing
  * argument comes back with the template of the folder when that is what the
@@ -1025,7 +1024,7 @@ export class McpToolAdapter {
 
       case 'get_notebook_context': {
         // Markdown, not JSON: this document IS the product, and it is meant to
-        // be read (software-vision.md, section 9.2).
+        // be read.
         const notebook = requireString(args, 'notebook', 'get_notebook_context');
         const [context, reach] = await Promise.all([
           knowledge.notebookContext(caller, notebook),

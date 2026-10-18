@@ -3,7 +3,7 @@
  *
  * Under CIMD the OAuth client_id IS an HTTPS URL that serves a JSON document
  * describing the client. Before any redirect, the proxy fetches and validates
- * that document (architecture-guide.md, section 13.3, item 3):
+ * that document (ADR-009):
  *   - the client_id must be an HTTPS URL;
  *   - the URL must not resolve to a private or otherwise non-public address (anti-SSRF);
  *   - the document is capped in size and fetch time;

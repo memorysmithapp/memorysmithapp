@@ -1,6 +1,5 @@
 /**
- * A session of the interface, kept the way the interface keeps it
- * (architecture-guide.md, section 19).
+ * A session of the interface, kept the way the interface keeps it.
  *
  * The web client allows the admin sign-in, so a case signs its account in
  * through the Cognito admin API and writes the tokens where the interface reads

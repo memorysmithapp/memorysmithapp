@@ -1,6 +1,6 @@
 /**
  * The transfers of a person: starting one, reading it, downloading what it
- * produced and deleting it (RN-PRT-019, RN-PRT-020, architecture-guide.md §16).
+ * produced and deleting it (RN-PRT-019, RN-PRT-020).
  *
  * Starting an export is a WRITE of two lines — a record and a message — and
  * nothing else: the work belongs to the worker, which is not bound to the 29
@@ -53,7 +53,7 @@ export interface TransferWork {
   /**
    * Who every write of an import is attributed to, carried in the message
    * because the worker serves no request and has no token to read it from
-   * (rule 7). The connector travels with it, so an import asked for through a
+   * (INV-07). The connector travels with it, so an import asked for through a
    * connector is recorded as that connector wrote it (RN-AGT-001).
    */
   readonly authorship?:
@@ -287,7 +287,7 @@ export class GetTransfer {
   async execute(transferId: string): Promise<Result<Transfer, DomainError>> {
     const found = await this.transfers.get(this.userId, transferId);
     // The transfer of somebody else is a key that does not exist under this
-    // person, so it answers as missing and never as refused (rule 9).
+    // person, so it answers as missing and never as refused (INV-09).
     if (!found) return err(DomainError.notFound('Transfer not found'));
     return ok(found);
   }
@@ -375,7 +375,7 @@ export class DeleteTransfer {
      * export is written once and never overwritten, so its version is the
      * whole object: destroying it leaves no delete marker and no noncurrent
      * version, and it needs no listing of versions — which is what keeps this
-     * within reach of a role that may not touch the revision of a note (rule 8).
+     * within reach of a role that may not touch the revision of a note (INV-08).
      */
     if (found.key && found.versionId) {
       await this.archives.destroy(found.key, found.versionId);
@@ -490,7 +490,7 @@ export class RunExport {
  * mid-word, at `perfo`. The worker serves no request and has nowhere to carry
  * an error out to, so it is handed to whoever runs the worker, whose log line
  * keeps what it was and where it was thrown — and never its message, which
- * may quote what the archive held (architecture-guide.md, section 17).
+ * may quote what the archive held.
  */
 export type UnexpectedFailure = (error: unknown) => void;
 

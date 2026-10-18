@@ -1,6 +1,6 @@
 /**
  * Before any case: the environment the run goes against, and three accounts of
- * its own (architecture-guide.md, section 19).
+ * its own.
  *
  * The accounts are created through the Cognito admin API with passwords nobody
  * keeps, and their subscriptions are asked for and approved through the

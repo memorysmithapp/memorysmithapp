@@ -1,5 +1,5 @@
 /**
- * One app, two environments (architecture-guide.md, section 17). What these
+ * One app, two environments. What these
  * cases protect is what cannot be seen before a deploy: which account a stack
  * is bound to, which names it creates, and what production declares on behalf
  * of staging.

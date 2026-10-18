@@ -5,7 +5,7 @@
  * the requester's own ready export becomes an upload under the key an ordinary
  * upload gets, and everything else — somebody else's, one still running, one
  * that failed, an import, one that is gone — answers the same `404`, because
- * telling them apart would say what exists (rule 9). And the export is read,
+ * telling them apart would say what exists (INV-09). And the export is read,
  * never consumed.
  */
 

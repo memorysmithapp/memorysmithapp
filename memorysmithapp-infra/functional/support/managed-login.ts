@@ -1,6 +1,5 @@
 /**
- * Signing in on the managed login of Cognito, as a person does
- * (architecture-guide.md, section 8.3).
+ * Signing in on the managed login of Cognito, as a person does.
  *
  * The page asks for the e-mail and the password either on one screen or on
  * two, depending on how the pool is set up, and a case should not break when

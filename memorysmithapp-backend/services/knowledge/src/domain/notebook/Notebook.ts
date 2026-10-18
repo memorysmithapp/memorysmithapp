@@ -12,12 +12,11 @@
  * caused it.
  *
  * The Guidance of the notebook and the Template of a folder are NOT here.
- * Each is an Aggregate Root of its own that names its parent (RN-KNW-044,
- * architecture-guide.md section 6.1), so writing one is not a tree mutation
- * and does not lock this aggregate. What stays here is what the tree has to
- * say about them: WHICH folders carry a template and whether the notebook has
- * a guidance, read in the same Query that loads the tree and taking part in no
- * invariant.
+ * Each is an Aggregate Root of its own that names its parent (RN-KNW-044), so
+ * writing one is not a tree mutation and does not lock this aggregate. What
+ * stays here is what the tree has to say about them: WHICH folders carry a
+ * template and whether the notebook has a guidance, read in the same Query that
+ * loads the tree and taking part in no invariant.
  */
 
 import {
@@ -65,9 +64,8 @@ export class Notebook {
     private readonly _limits: Map<string, NotebookRoleLimit>,
     /**
      * Note counts per folder, maintained by the outbox relay OUTSIDE the user
-     * transaction (architecture-guide.md, section 10.3). Eventually consistent
-     * on purpose: the number guides the agent and the UI and takes part in no
-     * invariant.
+     * transaction (ADR-010). Eventually consistent on purpose: the number
+     * guides the agent and the UI and takes part in no invariant.
      */
     private readonly _noteCounts: Map<string, number>,
     private readonly _notebookNoteCount: number,
@@ -481,7 +479,7 @@ export class Notebook {
    * Removing a folder that holds folders or notes requires an explicit policy
    * (RN-KNW-007, I5). "Holds notes" is answered by the eventually consistent
    * counters that arrived with the aggregate, which is deliberate: the rule is
-   * eventual consistency, not a transactional invariant (section 6.2).
+   * eventual consistency, not a transactional invariant (ADR-003).
    *
    * With `CASCADE` this is ONE write and nothing under the folder is touched:
    * every note, every Template and every subfolder of the subtree becomes
@@ -521,7 +519,7 @@ export class Notebook {
       removedFolderIds: removed.map((each) => each.value),
       // What the counters said the subtree held. Nothing under the folder is
       // written, so no note event will ever say these notes are gone, and the
-      // notebook counter has to drop by this number (section 10.3).
+      // notebook counter has to drop by this number (ADR-010).
       noteCount: subtree.reduce((total, each) => total + this.noteCountOf(each.id), 0),
     });
     return ok(removed);

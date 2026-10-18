@@ -1,6 +1,5 @@
 /**
- * The accounts of a run, and the tokens they sign in with
- * (architecture-guide.md, section 19).
+ * The accounts of a run, and the tokens they sign in with.
  *
  * A token for the API comes from the admin sign-in of the web client, which
  * allows it for exactly this. The connector refuses such a token, because it

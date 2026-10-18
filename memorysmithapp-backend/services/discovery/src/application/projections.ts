@@ -1,5 +1,5 @@
 /**
- * The projections, fed by the same events (architecture-guide.md, 11).
+ * The projections, fed by the same events (PE5).
  *
  * Discovery is never consulted by the core: it only ever receives what the
  * core publishes. That one-way direction is what makes every projection

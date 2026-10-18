@@ -2,7 +2,7 @@
  * Reads the stored-bytes counter of the subscription (RN-SUB-021).
  *
  * It only reads. The counter is written by the outbox relay, outside the user
- * transaction (section 10.3), which is what keeps a limit on the whole account
+ * transaction (ADR-010), which is what keeps a limit on the whole account
  * from turning every note write into a fight over one item.
  *
  * The limit itself is not here: it belongs to the subscription, which lives in

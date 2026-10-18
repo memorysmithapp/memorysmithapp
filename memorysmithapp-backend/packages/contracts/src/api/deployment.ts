@@ -1,5 +1,5 @@
 /**
- * What a running environment says about itself (architecture-guide.md, 23.3).
+ * What a running environment says about itself.
  *
  * The environment and the version are configuration, never a constant of the
  * build: the artefact built from a commit is the same whichever environment it

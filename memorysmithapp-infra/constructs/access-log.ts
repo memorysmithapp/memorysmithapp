@@ -1,5 +1,5 @@
 /**
- * The access log of an HTTP API (architecture-guide.md, section 17): one JSON
+ * The access log of an HTTP API: one JSON
  * line per request the gateway answered, a refusal before the function
  * included, to a log group declared here with the retention of every other
  * log of the product.

@@ -1,6 +1,5 @@
 /**
- * Creates an account and gives it a subscription (architecture-guide.md,
- * section 20).
+ * Creates an account and gives it a subscription.
  *
  *   pnpm -C memorysmithapp-infra onboard --environment staging [--email ana@example.com]
  *     [--name Ana] [--quota 1GB] [--status active] [--set-password] [--locale en_US]

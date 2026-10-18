@@ -6,7 +6,7 @@
  *
  * In the modular monolith the implementations call the use cases in process;
  * in the six-deployable shape they call the internal API over HTTP with IAM
- * auth. Either way this file is unchanged (architecture-guide.md, section 24).
+ * auth. Either way this file is unchanged (ADR-005).
  */
 
 import type {

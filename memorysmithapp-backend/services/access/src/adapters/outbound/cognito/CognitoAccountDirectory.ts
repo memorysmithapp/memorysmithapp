@@ -1,5 +1,5 @@
 /**
- * The account as Cognito keeps it (architecture-guide.md, section 8.5).
+ * The account as Cognito keeps it (INV-02).
  *
  * The language is the standard attribute `locale`, because the trigger that
  * writes the messages of the pool receives the attributes of the account with

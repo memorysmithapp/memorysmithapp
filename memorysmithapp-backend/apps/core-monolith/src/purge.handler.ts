@@ -1,6 +1,6 @@
 /**
  * The purge worker: a queue of deletion events, and what each of them left
- * behind stops existing (RN-KNW-047, architecture-guide.md §12.4 and §17).
+ * behind stops existing (INV-08, RN-KNW-047).
  *
  * It is a separate entrypoint on the same bundle for the same reason the relay
  * is: it is triggered by a queue rather than by a request, and its IAM policy
@@ -9,8 +9,8 @@
  *
  * A message whose work does not fit in one invocation is continued by sending
  * the same message back to the queue. The queue delivers with a delay far
- * longer than the window of §10.2, so a note that landed in a folder at the
- * instant of its removal is already there when the purge walks it.
+ * longer than the window ADR-003 leaves open, so a note that landed in a folder
+ * at the instant of its removal is already there when the purge walks it.
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -48,7 +48,7 @@ const purge = new ContentPurge({
   db,
   tableName: required('KNOWLEDGE_TABLE'),
   // Per subscription, from the envelope: the worker serves no request, so
-  // there is no claim to take it from (§8.2).
+  // there is no claim to take it from (INV-02).
   purgerFor: (subscriptionId: SubscriptionId) => new S3ContentPurger(subscriptionId, s3, bucket),
   /**
    * The trail of a purged notebook keeps its life and loses what happened
@@ -70,7 +70,7 @@ export async function handler(event: QueueEvent): Promise<void> {
     const parsed = JSON.parse(body) as { detail?: unknown };
     const envelope = (parsed.detail ?? parsed) as Parameters<ContentPurge['run']>[0];
     // Under the id of the deletion that caused it, which the events of the
-    // purge carry on to the trail (section 17).
+    // purge carry on to the trail.
     await observe(startOfEvent(envelope, `purge ${String(envelope.type)}`), async () => {
       const outcome = await purge.run(envelope);
 

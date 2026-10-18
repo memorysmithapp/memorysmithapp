@@ -3,7 +3,7 @@
  * fills them, by kind and by notebook (RN-SUB-024).
  *
  * The counters are maintained by the outbox relay, one delta at a time and
- * outside the user transaction (section 10.3). That makes them DERIVED
+ * outside the user transaction (ADR-010). That makes them DERIVED
  * numbers, and every derived number in this system owes an answer to the same
  * question: how is it rebuilt when it is wrong or was never built (PE5)? This
  * is that answer for the storage counters, and the one way of recounting them.
@@ -17,7 +17,7 @@
  * retries, a relay bug — and it costs nothing to keep around.
  *
  * WHY THIS IS NOT A ROUTE. A platform session carries no subscription, so no
- * Knowledge repository can be built under it (PE12, RN-SUB-016): an
+ * Knowledge repository can be built under it (INV-12, RN-SUB-016): an
  * administrator CANNOT read another account's notes, by construction, and that
  * is a guarantee rather than an inconvenience to work around. Recounting every
  * account therefore cannot be an authenticated operation at all. It runs as
@@ -37,10 +37,10 @@
  * notebook that no longer exists. Nobody can reach such a file, so it is not
  * live content, and the recount leaves it out of every number and REPORTS it
  * instead (`orphanFiles`), without destroying anything: destroying content is
- * the purge's alone (rule 8), and nothing here holds a port that could.
+ * the purge's alone (INV-08), and nothing here holds a port that could.
  *
  * WHAT IT DOES NOT COUNT is the revisions: a revision is a version of an
- * object in the store, and listing those belongs to the purge alone (rule 8).
+ * object in the store, and listing those belongs to the purge alone (INV-08).
  * How many there are is a question for the trail, which names every one of
  * them, and the entrypoint that runs this job is where the two contexts meet
  * (`revisions` below).

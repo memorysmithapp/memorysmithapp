@@ -1,9 +1,9 @@
 /**
- * The one place in the system that removes an entry of the trail (rule 6,
- * RN-AUD-011, architecture-guide.md §12.2).
+ * The one place in the system that removes an entry of the trail (INV-06,
+ * RN-AUD-011).
  *
  * It is a file of its own, reached through a port of its own, by ONE principal
- * — the purge worker — for the same reason destroying a revision is (rule 8):
+ * — the purge worker — for the same reason destroying a revision is (INV-08):
  * what exists in one place is what nothing else reaches by accident. Every
  * other role of the system carries an explicit `Deny` on removing from this
  * table, and that stays exactly as it was.

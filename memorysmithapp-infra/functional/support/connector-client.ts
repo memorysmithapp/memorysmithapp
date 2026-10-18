@@ -1,6 +1,5 @@
 /**
- * The functional suite as a client of the connector (architecture-guide.md,
- * section 13.3).
+ * The functional suite as a client of the connector (ADR-009).
  *
  * The connector accepts a client by the URL of a Client ID Metadata Document
  * whose `client_id` is that very URL. A document cannot name a commit it is

@@ -1,6 +1,6 @@
 /**
  * Sharing a notebook with a person who holds another subscription
- * (software-vision.md RN-ACC-024 to RN-ACC-030; architecture-guide.md §8.3).
+ * (INV-01, RN-ACC-024 to RN-ACC-030).
  *
  * The owner of the run shares a notebook of its own with the other account of
  * the run, which holds a subscription of its own. Each case shares a notebook

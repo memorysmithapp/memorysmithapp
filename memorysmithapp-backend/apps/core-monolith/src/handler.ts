@@ -235,7 +235,7 @@ const connectorClientId = required('CONNECTOR_CLIENT_ID');
 /**
  * Whether API Gateway authorized this request with IAM. Only a route behind the
  * IAM authorizer carries `authorizer.iam`, and only a principal allowed to
- * invoke that route gets through to carry one (section 14.1).
+ * invoke that route gets through to carry one.
  */
 function signedWithIam(c: Context): boolean {
   const env = c.env as
@@ -642,7 +642,7 @@ function discoveryFor(context: SubscriptionContext) {
 const app = createApp({
   deployment: deploymentFromVariables(process.env),
   verifier,
-  // A token of the proxy's app client is an agent's, and its line says so (section 17).
+  // A token of the proxy's app client is an agent's, and its line says so.
   connectorClientId,
   connectorBindings: {
     verifier,
@@ -685,7 +685,7 @@ const app = createApp({
       ctx: resolved.value,
       subscription: context,
       // The person, and the connector the proxy bound this token to when the
-      // token is the proxy's (RN-AGT-001, section 12.1).
+      // token is the proxy's (INV-07, RN-AGT-001).
       authorship: await new ResolveAuthorship(scoped.connectors, connectorClientId).execute({
         user: context.userId,
         credential: request.credential,

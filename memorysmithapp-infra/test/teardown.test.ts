@@ -1,5 +1,5 @@
 /**
- * Tearing staging down (architecture-guide.md, section 20): what it refuses,
+ * Tearing staging down: what it refuses,
  * the order it deletes in, and what it purges once the stacks are gone. The
  * calls to AWS are the account's; what decides what gets deleted is here.
  */

@@ -1,5 +1,5 @@
 /**
- * The mechanical checks of a run (architecture-guide.md, section 19): what can
+ * The mechanical checks of a run: what can
  * be decided from the transcript and from the notebooks before and after it,
  * with no judgement. What needs judgement is the judge's, read against the
  * rubric of the case, and never mixed into these.

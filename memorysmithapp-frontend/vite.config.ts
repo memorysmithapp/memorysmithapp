@@ -7,10 +7,10 @@ import { defineConfig, type Plugin } from 'vite';
  *
  * In an environment the release publishes that file beside the bundle, with the
  * API, the sign-in page, the app client, the environment and the version it
- * serves (architecture-guide.md, 23.3). On a workstation there is no release,
- * so the dev server answers it from `config.local.json`, which is untracked and
- * points at a live environment. Nothing of it reaches a build: the file is not
- * in `public/`, and the plugin only runs while serving.
+ * serves. On a workstation there is no release, so the dev server answers it
+ * from `config.local.json`, which is untracked and points at a live
+ * environment. Nothing of it reaches a build: the file is not in `public/`, and
+ * the plugin only runs while serving.
  */
 function localRuntimeConfig(): Plugin {
   const local = new URL('./config.local.json', import.meta.url);

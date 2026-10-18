@@ -21,7 +21,7 @@ export type Starting = 'export' | 'import' | null;
  * again and deleted — so it is where one is started (#151).
  *
  * **The export asks which notebook**, among the ones the person can see: a
- * listing must never reveal a notebook somebody cannot see (RN-PRT-020, rule 9
+ * listing must never reveal a notebook somebody cannot see (RN-PRT-020, INV-09
  * of the design), and `listNotebooks` answers exactly those.
  *
  * **Nothing downloads by itself.** An export used to save itself the moment it

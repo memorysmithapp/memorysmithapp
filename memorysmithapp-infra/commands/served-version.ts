@@ -1,5 +1,5 @@
 /**
- * Prints the version a deploy of this commit serves (architecture-guide.md, 23.3).
+ * Prints the version a deploy of this commit serves.
  *
  *   pnpm -C memorysmithapp-infra served-version --environment staging [--branch release/v0.6.0]
  *

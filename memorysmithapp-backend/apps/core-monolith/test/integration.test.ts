@@ -349,7 +349,7 @@ describe('Audit answers over the API', () => {
 
     expect(history.entries.map((entry) => entry.type)).toContain('NoteCreated');
     expect(history.entries[0]?.authorship.userId).toBe('user-owner');
-    // Written through the UI, so no agent (section 12.1).
+    // Written through the UI, so no agent (INV-07).
     expect(history.entries[0]?.authorship.agent).toBeNull();
   });
 
@@ -418,7 +418,7 @@ describe('Audit answers over the API', () => {
     ).toBe(404);
 
     // The activity of the notebook still answers, deletion and all: that is the
-    // one read of the trail a deletion does not take away (rule 6).
+    // one read of the trail a deletion does not take away (INV-06).
     const activity = (await (await call(`/audit/notebooks/${notebookId}/activity`)).json()) as {
       entries: Array<{ type: string }>;
     };
@@ -782,7 +782,7 @@ describe('Portability answers over the API', () => {
       uploadUrl: string;
     };
     expect(prepared.uploadUrl).toContain(prepared.uploadKey);
-    // Under the subscription prefix, like everything else (rule 1).
+    // Under the subscription prefix, like everything else (INV-01).
     expect(prepared.uploadKey).toMatch(
       /^s\/[0-9A-HJKMNP-TV-Z]{26}\/imports\/[0-9A-HJKMNP-TV-Z]{26}\.notebook$/,
     );
@@ -1445,7 +1445,7 @@ describe('Portability answers over the API', () => {
 
   it('answers 404 for a notebook this session cannot read', async () => {
     // A notebook that is not ours is indistinguishable from one that does not
-    // exist: a 403 here would confirm it exists (rule 9).
+    // exist: a 403 here would confirm it exists (INV-09).
     const response = await call('/portability/notebooks/01JBXR8Z5T7QK9M2N4P6R8S0T2/export', {
       method: 'POST',
     });
@@ -1462,7 +1462,7 @@ describe('Deleting a notebook takes it out of reach, for good', () => {
     );
 
     // Out of the listing, and out of Knowledge, Discovery and Portability
-    // alike: a deleted notebook answers like one that never existed (rule 9).
+    // alike: a deleted notebook answers like one that never existed (INV-09).
     const listed = (await (await call('/knowledge/notebooks')).json()) as Array<{
       notebookId: string;
     }>;
@@ -1477,7 +1477,7 @@ describe('Deleting a notebook takes it out of reach, for good', () => {
     ).toBe(404);
 
     // The trail keeps every event of it, which is the one thing a deletion
-    // does not take away (rule 6) — and it stops serving them note by note,
+    // does not take away (INV-06) — and it stops serving them note by note,
     // because what they point at is on its way to being destroyed (RN-AUD-010).
     await drainEvents();
     expect(

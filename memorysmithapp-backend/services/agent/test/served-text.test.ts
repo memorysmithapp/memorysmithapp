@@ -2,7 +2,7 @@
  * No text the product serves to an agent cites a business rule code
  * (RN-AGT-021).
  *
- * The codes address a line of `docs/software-vision.md`, a document whoever
+ * The codes address a line of `docs/PRD.md`, a document whoever
  * reads the MCP surface does not have. Inside a served answer `RN-AGT-020` is
  * a symbol that does not resolve: an agent drops it as noise, or reads it as
  * something addressable — a notebook, a folder, a rule to cite back — and spends

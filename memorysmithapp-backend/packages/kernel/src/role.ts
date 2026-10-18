@@ -1,10 +1,9 @@
 /**
  * Role: an ORDERED enumeration, and the order is the point.
  *
- * It is what lets the notebook ceiling be written as a minimum
- * (architecture-guide.md, section 14.2) instead of a chain of conditionals,
- * and it is what makes it impossible, by type, for a ceiling to promote
- * anyone (RN-ACC-011).
+ * It is what lets the notebook ceiling be written as a minimum (INV-13) instead
+ * of a chain of conditionals, and it is what makes it impossible, by type, for
+ * a ceiling to promote anyone (RN-ACC-011).
  */
 
 import { DomainError } from './errors.js';

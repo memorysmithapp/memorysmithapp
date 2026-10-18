@@ -1,6 +1,5 @@
 /**
- * What a run wrote, deleted the way a person deletes it (#276,
- * architecture-guide.md, section 19).
+ * What a run wrote, deleted the way a person deletes it (#276).
  *
  * Every notebook an account of the run owns is deleted through the API, as
  * that account, before the account itself is: the purge then takes the

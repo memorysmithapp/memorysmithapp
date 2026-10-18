@@ -1,7 +1,7 @@
 /**
  * Network stack: the hosted zone of the environment, its certificates and,
  * where the environment carries alarms, the topic they notify and, in
- * production, the cost budgets of the account (architecture-guide.md, section 17).
+ * production, the cost budgets of the account.
  *
  * The hosted zone already exists, created by hand once per environment, because
  * its name servers are drawn when it is created and recreating it would break
@@ -78,7 +78,7 @@ export class NetworkStack extends Stack {
      * so the envelope is the domain's too. It lives in this stack, the first a
      * delivery deploys, because Cognito sends only from a verified identity and a
      * new one verifies minutes after its records exist: the delivery waits for it
-     * before the identity stack, the way it waits for DNS (section 17).
+     * before the identity stack, the way it waits for DNS.
      */
     this.senderAddress = `no-reply@${zoneName}`;
     this.sendingIdentity = new ses.EmailIdentity(this, 'SendingIdentity', {
@@ -87,7 +87,7 @@ export class NetworkStack extends Stack {
     });
 
     /**
-     * The zones below this one, delegated here, in code (section 17). The name
+     * The zones below this one, delegated here, in code. The name
      * servers are the ones Route 53 drew when that zone was created, written in
      * cdk.json.
      *
@@ -112,9 +112,9 @@ export class NetworkStack extends Stack {
       });
     });
 
-    // One certificate per distribution, with SANs covering its hosts
-    // (section 17). Public ACM certificates cost nothing, and they renew
-    // themselves, which is why none of them is ever handled by hand.
+    // One certificate per distribution, with SANs covering its hosts. Public
+    // ACM certificates cost nothing, and they renew themselves, which is why
+    // none of them is ever handled by hand.
     this.mcpCertificate = new acm.Certificate(this, 'McpCertificate', {
       domainName: this.mcpDomainName,
       validation: acm.CertificateValidation.fromDns(this.hostedZone),

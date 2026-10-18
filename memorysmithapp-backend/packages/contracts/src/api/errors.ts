@@ -1,7 +1,6 @@
 /**
  * The wire shape of an error. The frontend maps it to a message in
- * shared/api/error-mapper.ts and covers the whole taxonomy of
- * architecture-guide.md section 15.
+ * shared/api/error-mapper.ts and covers the whole taxonomy.
  *
  * FORBIDDEN arrives as 404 in every case but one, so the UI says "not found":
  * the interface cannot be more informative than the API, or the leak the 404

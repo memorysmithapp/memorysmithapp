@@ -1,5 +1,5 @@
 /**
- * The first stage of the production pipeline (architecture-guide.md, 20).
+ * The first stage of the production pipeline.
  *
  * A merge to main that touches what is deployed becomes a release, so before
  * anything is built the version has to agree everywhere it is written and must

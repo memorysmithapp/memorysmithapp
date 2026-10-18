@@ -53,7 +53,7 @@ export function NotebookLayout() {
   /**
    * What the notebook answers to besides the names the tree carries: the
    * spellings each note declares, which are read by Discovery and by nothing
-   * else (rule 5). A link is drawn by what it REACHES, and without this a
+   * else (INV-05). A link is drawn by what it REACHES, and without this a
    * target an alias answers was drawn as a target that reaches nothing (#164).
    *
    * It runs beside the structure and never in front of it: nothing on the

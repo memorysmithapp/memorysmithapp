@@ -1,8 +1,7 @@
 /**
  * ServiceLambda: no service reaches production without observability and the
- * mandatory alarms, each with the destination it notifies (architecture-guide.md,
- * sections 5.4 and 17). Where the environment carries no alarms, as staging
- * does, it creates none (#267).
+ * mandatory alarms, each with the destination it notifies. Where the
+ * environment carries no alarms, as staging does, it creates none (#267).
  *
  * Forgetting them stops being possible by omission, which is the whole reason
  * this construct exists instead of a helper function someone may skip.
@@ -81,14 +80,14 @@ export class ServiceLambda extends Construct {
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
         // Powertools writes the one line of each operation, named by this
-        // service, with the subscriptionId on it (section 17). The subscription
+        // service, with the subscriptionId on it. The subscription
         // is never a metric dimension: a question about one subscription is a
         // query of the logs, not a metric per subscription.
         POWERTOOLS_SERVICE_NAME: id,
         POWERTOOLS_LOG_LEVEL: 'INFO',
         POWERTOOLS_METRICS_NAMESPACE: 'MemorySmith',
         // Where it runs and what it is, as configuration and never as a
-        // constant of the bundle (section 23.3).
+        // constant of the bundle.
         ...deploymentVariables(deploymentOf(this)),
         ...props.environment,
       },
@@ -105,7 +104,7 @@ export class ServiceLambda extends Construct {
       },
     });
 
-    // ---- The mandatory alarms (section 17) ---------------------------------
+    // ---- The mandatory alarms ---------------------------------
     // Through mandatoryAlarm, which attaches the topic of the environment and
     // creates nothing where the environment carries no alarms (#267).
 

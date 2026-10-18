@@ -1,6 +1,5 @@
 /**
- * The custom message trigger of the user pool (architecture-guide.md, section
- * 8.5).
+ * The custom message trigger of the user pool (INV-02).
  *
  * Cognito calls it before it sends a message, with the attributes of the account
  * and a placeholder for the credential. It writes the subject and the body in
@@ -32,7 +31,7 @@ const setting = {
 
 /**
  * One line per message composed, named by its trigger; never the address it
- * goes to or the code it carries (section 17).
+ * goes to or the code it carries.
  */
 export function handler(event: CustomMessageEvent): Promise<CustomMessageEvent> {
   return observe({ operation: String(event.triggerSource) }, () => compose(event));
