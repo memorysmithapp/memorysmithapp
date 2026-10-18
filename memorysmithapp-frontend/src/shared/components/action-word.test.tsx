@@ -27,13 +27,31 @@ describe('an action button that carries an icon', () => {
 
   it('hides the word, never removes it, from 860 px down, on a 44 px target', () => {
     const css = read('../../styles.css');
-    const phone = css.slice(css.indexOf('.button:has(> .action-word)') - 40);
+    const phone = css.slice(css.indexOf('.button:has(> .action-word:not(.is-kept))') - 40);
     expect(phone).toMatch(/^[\s\S]*@media \(max-width: 860px\)/);
     expect(phone).toMatch(
-      /\.button:has\(> \.action-word\) \{\s*min-width: 44px;\s*min-height: 44px;/,
+      /\.button:has\(> \.action-word:not\(\.is-kept\)\) \{\s*min-width: 44px;\s*min-height: 44px;/,
     );
-    expect(phone).toMatch(/\.action-word \{\s*position: absolute;[\s\S]*?clip-path: inset\(50%\);/);
-    expect(phone).not.toMatch(/\.action-word \{[^}]*display: none/);
+    expect(phone).toMatch(
+      /\.action-word:not\(\.is-kept\) \{\s*position: absolute;[\s\S]*?clip-path: inset\(50%\);/,
+    );
+    expect(phone).not.toMatch(/\.action-word[^{]*\{[^}]*display: none/);
+  });
+
+  it('keeps the word of a button that spans the width of a phone, which is not short of room', () => {
+    const html = renderToStaticMarkup(
+      <button type="button" className="button is-primary is-wide">
+        <ActionWord icon={<DownloadIcon />} word="Sign in" wide />
+      </button>,
+    );
+    expect(html).toContain('<span class="action-word is-kept">Sign in</span>');
+    for (const path of [
+      '../../features/portability/StartTransfer.tsx',
+      '../../features/profile/ProfilePage.tsx',
+      '../../features/auth/LoginPage.tsx',
+    ]) {
+      expect(read(path)).toMatch(/\bwide\b/);
+    }
   });
 
   it('is the one the bar uses too', () => {

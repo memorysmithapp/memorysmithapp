@@ -3141,21 +3141,25 @@ input[type='radio'] {
 /* An action button that carries an icon (#325), the bar's included: the icon
    and its word on a computer, the icon alone from 860 px down, a 44 px target
    whose word stays as the accessible name. After every size of `.button`, so
-   it wins over `.is-small`. */
+   it wins over `.is-small`. A button that spans the width keeps its word
+   (`.is-kept`), since it is not short of room. */
 .button svg {
   flex: none;
 }
 @media (max-width: 860px) {
-  .button:has(> .action-word) {
+  .button:has(> .action-word:not(.is-kept)) {
     min-width: 44px;
     min-height: 44px;
     padding: 0;
+  }
+  .button:has(> .action-word.is-kept) {
+    min-height: 44px;
   }
   .button:has(> .action-word) svg {
     width: 18px;
     height: 18px;
   }
-  .action-word {
+  .action-word:not(.is-kept) {
     position: absolute;
     width: 1px;
     height: 1px;

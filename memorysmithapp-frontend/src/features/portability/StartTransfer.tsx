@@ -59,10 +59,10 @@ export function TransferActions({ onStart }: { onStart: (starting: Starting) => 
   return (
     <div className="transfers-start">
       <button type="button" className="button is-quiet" onClick={() => onStart('export')}>
-        <ActionWord icon={<DownloadIcon />} word={t('transfers.newExport')} />
+        <ActionWord icon={<DownloadIcon />} word={t('transfers.newExport')} wide />
       </button>
       <button type="button" className="button is-quiet" onClick={() => onStart('import')}>
-        <ActionWord icon={<UploadIcon />} word={t('transfers.newImport')} />
+        <ActionWord icon={<UploadIcon />} word={t('transfers.newImport')} wide />
       </button>
     </div>
   );

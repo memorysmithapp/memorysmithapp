@@ -163,7 +163,11 @@ export function ProfilePage() {
           disabled={saving || name.trim().length === 0}
           onClick={() => void save()}
         >
-          <ActionWord icon={<CheckIcon />} word={saved ? t('profile.saved') : t('profile.save')} />
+          <ActionWord
+            icon={<CheckIcon />}
+            word={saved ? t('profile.saved') : t('profile.save')}
+            wide
+          />
         </button>
         <Link className="button is-quiet" to="/profile/password" state={{ from: '/profile' }}>
           {t('password.heading')}

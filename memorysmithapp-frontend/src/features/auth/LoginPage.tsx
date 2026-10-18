@@ -185,7 +185,7 @@ export function LoginPage() {
               className="button is-primary is-wide"
               onClick={() => void beginSignIn(authConfig())}
             >
-              <ActionWord icon={<SignInIcon />} word={t('auth.signIn')} />
+              <ActionWord icon={<SignInIcon />} word={t('auth.signIn')} wide />
             </button>
           ) : null}
         </div>
