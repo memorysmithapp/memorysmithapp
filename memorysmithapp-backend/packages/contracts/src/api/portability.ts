@@ -1,10 +1,9 @@
 /**
- * DTOs of svc-portability (architecture-guide.md, section 16).
+ * DTOs of svc-portability.
  *
- * Export is where file names come back into existence: guidance becomes
- * GUIDANCE.md, the annotated tree becomes STRUCTURE.md next to it, template
- * becomes TEMPLATE.md, and the order becomes a numeric prefix, which is the
- * only way a file system can carry it (RN-PRT-002).
+ * An export is one JSON document in a `.notebook` zip (RN-PRT-009), and the
+ * order of folders and notes travels in it as a field, never as a numeric
+ * prefix of a file name (RN-PRT-002, removed).
  */
 
 import { z } from 'zod';

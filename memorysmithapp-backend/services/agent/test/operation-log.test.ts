@@ -1,5 +1,5 @@
 /**
- * The log of the connector (section 17, #269): a tool call is one line named
+ * The log of the connector (#269): a tool call is one line named
  * after its tool, and the call it makes to the core carries the same
  * correlation id, so the line of the core and the events it caused are found
  * from the tool call.

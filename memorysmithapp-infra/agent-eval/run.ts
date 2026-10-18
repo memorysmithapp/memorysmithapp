@@ -1,5 +1,5 @@
 /**
- * A round of the blind agent evaluation (architecture-guide.md, section 19).
+ * A round of the blind agent evaluation.
  *
  *   pnpm -C memorysmithapp-infra exec playwright install chromium
  *   pnpm -C memorysmithapp-infra agent-eval --environment staging

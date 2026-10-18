@@ -1,7 +1,6 @@
 /**
- * The tags the bill of the account is grouped by (architecture-guide.md,
- * section 17; #280): which ones the command activates, and that it is safe to
- * run again.
+ * The tags the bill of the account is grouped by (#280): which ones the command
+ * activates, and that it is safe to run again.
  */
 
 import { describe, expect, it } from 'vitest';

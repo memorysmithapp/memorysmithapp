@@ -1,5 +1,5 @@
 /**
- * DTOs of svc-audit (architecture-guide.md, section 12).
+ * DTOs of svc-audit.
  *
  * The timeline of a note is keyed by NoteId and survives the note changing
  * folder and notebook (RN-AUD-004). A revision read is the pair (contentId,

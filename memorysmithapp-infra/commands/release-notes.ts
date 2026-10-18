@@ -1,6 +1,6 @@
 /**
  * Prints the notes of a version, as CHANGELOG.md writes them, for the GitHub
- * Release the production pipeline creates (architecture-guide.md, 20).
+ * Release the production pipeline creates.
  *
  *   pnpm -C memorysmithapp-infra release-notes [X.Y.Z]
  */
@@ -8,7 +8,7 @@
 import { baseVersionOf, changelogSection } from './lib/release.js';
 import { readText } from './lib/repository.js';
 
-const version = process.argv[2] ?? baseVersionOf(readText('CLAUDE.md'));
+const version = process.argv[2] ?? baseVersionOf(readText('package.json'));
 const notes = version ? changelogSection(readText('CHANGELOG.md'), version) : null;
 
 if (!notes) {

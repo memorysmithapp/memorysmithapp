@@ -4,7 +4,7 @@
  * It is deliberately NOT in the product. Remembering across devices would mean
  * a write on every note opened — on the hottest path of the reading surface,
  * against the quota, and carrying an `Authorship` that reading does not have,
- * since design rule 7 requires one for every change of state. The convenience
+ * since INV-07 requires one for every change of state. The convenience
  * does not pay for that. So this lives in `localStorage`, never leaves the
  * machine, is never exported and is never seen by anybody else.
  *

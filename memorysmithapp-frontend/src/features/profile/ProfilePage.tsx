@@ -8,6 +8,8 @@ import { editProfile, setProfilePicture } from '../../shared/api/backend';
 import { useLiveSession } from '../../shared/auth/session';
 import { preparePicture } from '../../shared/lib/picture';
 import { ApiError } from '../../shared/api/error-mapper';
+import { ActionWord } from '../../shared/components/ActionWord';
+import { CheckIcon } from '../../shared/components/icons';
 
 const SOURCES: AvatarSource[] = ['gravatar', 'initials', 'upload'];
 
@@ -161,7 +163,11 @@ export function ProfilePage() {
           disabled={saving || name.trim().length === 0}
           onClick={() => void save()}
         >
-          {saved ? t('profile.saved') : t('profile.save')}
+          <ActionWord
+            icon={<CheckIcon />}
+            word={saved ? t('profile.saved') : t('profile.save')}
+            wide
+          />
         </button>
         <Link className="button is-quiet" to="/profile/password" state={{ from: '/profile' }}>
           {t('password.heading')}

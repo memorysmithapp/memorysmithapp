@@ -1,11 +1,11 @@
-// The ONE module that knows the identity provider (architecture-guide.md §5.3).
+// The ONE module that knows the identity provider.
 //
 // It speaks OAuth 2.1 with PKCE directly against the Cognito hosted UI, with
 // no SDK: the flow is three fetches and a redirect, and keeping it explicit is
 // what makes the token lifecycle readable.
 //
 // The subscription_id and subscription_status claims arrive already signed,
-// injected by the pre-token-generation trigger (§8.5). The SPA never sends a
+// injected by the pre-token-generation trigger (INV-02). The SPA never sends a
 // subscription anywhere; it only ever reads what the token says.
 
 export interface AuthConfig {
@@ -149,6 +149,25 @@ function store(payload: unknown): Tokens {
   };
   localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
   return tokens;
+}
+
+/**
+ * Keeps the session a password change handed back (#331): ending every other
+ * session revoked the refresh token of this one too, so the API signed it in
+ * again and answered its tokens, which take the place of the ones held.
+ */
+export function adoptSession(session: {
+  readonly accessToken: string;
+  readonly idToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
+}): Tokens {
+  return store({
+    access_token: session.accessToken,
+    id_token: session.idToken,
+    refresh_token: session.refreshToken,
+    expires_in: session.expiresIn,
+  });
 }
 
 /**

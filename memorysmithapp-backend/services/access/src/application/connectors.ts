@@ -1,6 +1,6 @@
 /**
- * The connector behind a token of the connector proxy (RN-AGT-001,
- * architecture-guide.md, sections 12.1 and 13.3).
+ * The connector behind a token of the connector proxy (INV-07, ADR-009,
+ * RN-AGT-001).
  *
  * Every token the proxy hands out is issued by Cognito to the proxy's own app
  * client, so nothing inside it says which connector asked for it, and Cognito

@@ -1,6 +1,6 @@
 /**
  * The jobs an operator runs against the tables of an environment
- * (architecture-guide.md, sections 10.3 and 11).
+ * (ADR-010, ADR-017).
  *
  * Every projection of the product owes an answer to how it remakes itself when
  * it is wrong (PE5), and two of the answers are entrypoints of the core, which
@@ -149,7 +149,7 @@ export interface ReprojectionSummary {
 /**
  * The report a person reads at the end of a run. It names notebooks and notes
  * by identifier only, because the summary is the output of an execution and
- * the console keeps it (architecture-guide.md §17).
+ * the console keeps it.
  */
 export function summaryLines(summary: ReprojectionSummary): string[] {
   const lines = [

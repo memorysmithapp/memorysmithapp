@@ -1,7 +1,7 @@
 /**
  * Share: a notebook of one subscription opened to a person of another
  * (RN-ACC-024 to RN-ACC-029), and the one door through the boundary of a
- * subscription (architecture-guide.md, section 8.3).
+ * subscription (INV-01).
  *
  * It needs two consents and keeps both: the owner's, by sharing, and the
  * grantee's, by accepting. Until the second one the grantee reaches the name
@@ -9,7 +9,7 @@
  * closes when either side withdraws its consent — the owner revokes, the
  * grantee leaves — and while the owner's subscription grants no access.
  *
- * It is stored twice, in one transaction (architecture-guide.md, section 9.4):
+ * It is stored twice, in one transaction:
  * under the subscription that owns the notebook, where the owner lists and
  * revokes it, and under the grantee, where their session finds it without the
  * owner's subscription ever coming from a request. This entity is the one

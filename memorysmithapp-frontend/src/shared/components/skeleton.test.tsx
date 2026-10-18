@@ -1,6 +1,6 @@
 /**
  * A screen waiting for data shows the shape of what is coming, in the position
- * it will occupy, and never a blank area or a bare line of text (§13.2).
+ * it will occupy, and never a blank area or a bare line of text.
  *
  * Two properties are asserted here rather than left to care, because both are
  * the kind that disappear quietly. **A skeleton belongs to `isPending` alone**

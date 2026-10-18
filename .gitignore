@@ -1,4 +1,4 @@
-# Dependências
+# Dependencies
 node_modules/
 .pnpm-store/
 
@@ -11,10 +11,10 @@ build/
 cdk.out/
 *.d.ts.map
 
-# Testes
+# Tests
 coverage/
 
-# Ambiente e segredos
+# Environment and secrets
 .env
 .env.*
 !.env.example
@@ -23,13 +23,13 @@ memorysmithapp-frontend/config.local.json
 *.pem
 *.key
 
-# Cache e temporários
+# Cache and temporary files
 .cache/
 .turbo/
 tmp/
 *.log
 
-# Editores
+# Editors
 .obsidian/
 .idea/
 .vscode/
@@ -42,5 +42,7 @@ memorysmithapp-infra/functional/.state/
 # The agent evaluation: the transcripts, snapshots and scorecard of every round
 memorysmithapp-infra/agent-eval/runs/
 
-# Worktrees of the agents of a Claude Code session
+# What Claude Code writes under .claude/ that is personal: the worktrees of its
+# agents and the settings of one person
 .claude/worktrees/
+.claude/settings.local.json

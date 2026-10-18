@@ -1,6 +1,6 @@
 /**
  * S3ArchiveStore: where an export lands, and how the person who asked for it
- * reaches the bytes (architecture-guide.md, section 16).
+ * reaches the bytes.
  *
  * The archive lives under the SAME subscription prefix as everything else,
  * `s/{subscriptionId}/exports/`, so the first rule of the design holds here
@@ -78,7 +78,7 @@ export class S3ArchiveStore implements ArchiveStore {
    * Destroys one revision of one archive. The role that calls this may delete a
    * version under `exports/` and nowhere else, so no revision of a note is
    * within its reach: the one principal allowed to destroy one of those is the
-   * purge worker (rule 8, RN-KNW-047).
+   * purge worker (INV-08, RN-KNW-047).
    */
   async destroy(key: string, versionId: string): Promise<void> {
     await this.s3.send(
@@ -227,7 +227,7 @@ export class S3UploadStore implements UploadStore {
 /**
  * S3PartStore: where the parts of an upload of an agent are kept (RN-PRT-027),
  * under `s/{subscriptionId}/uploads/{transferId}/` — the subscription first,
- * as every key of this system, and no notebook anywhere in it (rule 4).
+ * as every key of this system, and no notebook anywhere in it (INV-04).
  *
  * **Nothing here wears the lifecycle tag, and no rule of the bucket reaches
  * this prefix** (RN-PRT-028): an upload has no deadline, the person sees what

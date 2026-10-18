@@ -42,7 +42,7 @@ export interface Transfer {
   /**
    * Whoever generated it, and the only person who sees it (RN-PRT-020). Other
    * members of the subscription may see less of that notebook than they do, and
-   * a listing must never reveal a notebook somebody cannot see (rule 9).
+   * a listing must never reveal a notebook somebody cannot see (INV-09).
    */
   readonly userId: string;
   readonly notebookId: string | null;
@@ -101,7 +101,7 @@ export interface TransferRequest {
  * size and the hash of the whole, which the finish holds the bytes to.
  *
  * Its parts live under the transfer, `s/{subscriptionId}/uploads/{transferId}/`,
- * and never under the notebook: the key names no notebook (rule 4), so the
+ * and never under the notebook: the key names no notebook (INV-04), so the
  * purge of a deleted notebook does not reach them, and pointing the upload at
  * another notebook moves no byte (RN-PRT-029).
  */

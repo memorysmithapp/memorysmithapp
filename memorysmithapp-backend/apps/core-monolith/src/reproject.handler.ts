@@ -92,7 +92,7 @@ export async function handler(
 ): Promise<{ notebooks: NotebookAddress[] } | NotebookResult | RunSummary> {
   const mode = modeOf(event);
   // Every line of a run carries the name of its execution, which is what
-  // finds a notebook of the summary in the logs (section 17).
+  // finds a notebook of the summary in the logs.
   const correlationId = event.run;
 
   if (event.step === 'list') {

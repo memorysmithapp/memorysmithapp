@@ -1,5 +1,5 @@
 /**
- * The roles GitHub Actions delivers with (architecture-guide.md, section 20).
+ * The roles GitHub Actions delivers with.
  * What these cases protect is what would otherwise be found in the account
  * itself: that no run outside this repository and the GitHub environment of the
  * same name can assume a role, and that what staging's suites may touch names
@@ -10,7 +10,11 @@ import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import { environmentOf } from '../config/environments.js';
-import { GITHUB_ISSUER, GithubDeliveryStack } from '../stacks/github-delivery.stack.js';
+import {
+  ADAPTER_SUBSCRIPTIONS,
+  GITHUB_ISSUER,
+  GithubDeliveryStack,
+} from '../stacks/github-delivery.stack.js';
 
 const ENVIRONMENTS = {
   production: {
@@ -50,6 +54,7 @@ function synth(): Template {
 }
 
 type Statement = {
+  Effect?: string;
   Action: string | string[];
   Resource?: unknown;
   Condition?: Record<string, Record<string, string>>;
@@ -202,6 +207,50 @@ describe('what a role may do', () => {
       'dynamodb:DeleteTable',
       's3:DeleteBucket',
       'cognito-idp:DeleteUserPool',
+    ]) {
+      expect(actions).not.toContain(forbidden);
+    }
+  });
+});
+
+/**
+ * The purge worker is the one principal that removes an entry of the trail
+ * and the one that destroys a revision (INV-06, INV-08). The roles of
+ * delivery are principals too, so the guarantee is proved over them as well:
+ * the template of the Api and the Projections is read by the case of
+ * transfer-permissions, and this one reads the stack the roles live in (#321).
+ */
+describe('the trail and the revisions, for the roles of delivery', () => {
+  const reachOf = (statement: Statement) => JSON.stringify(statement.Resource);
+
+  it('never lets staging alter or remove an entry of the trail', () => {
+    const statements = policiesOf(synth(), 'StagingRole');
+    const denied = statements.find(
+      (statement) => statement.Effect === 'Deny' && reachOf(statement).includes('mv-audit-staging'),
+    );
+    expect(actionsOf(denied ? [denied] : []).sort()).toEqual([
+      'dynamodb:BatchWriteItem',
+      'dynamodb:DeleteItem',
+      'dynamodb:UpdateItem',
+    ]);
+  });
+
+  it('destroys a revision only under the subscriptions the adapter cases mint', () => {
+    const destroying = policiesOf(synth(), 'StagingRole').filter((statement) =>
+      actionsOf([statement]).includes('s3:DeleteObjectVersion'),
+    );
+    expect(destroying).toHaveLength(1);
+    expect(actionsOf(destroying)).toEqual(['s3:DeleteObjectVersion']);
+    expect(reachOf(destroying[0] as Statement)).toContain(`/${ADAPTER_SUBSCRIPTIONS}`);
+  });
+
+  it('gives production neither, since it reaches no table or bucket', () => {
+    const actions = actionsOf(policiesOf(synth(), 'ProductionRole'));
+    for (const forbidden of [
+      'dynamodb:UpdateItem',
+      'dynamodb:DeleteItem',
+      'dynamodb:BatchWriteItem',
+      's3:DeleteObjectVersion',
     ]) {
       expect(actions).not.toContain(forbidden);
     }

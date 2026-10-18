@@ -1,6 +1,6 @@
 /**
  * Access: the session, subscriptions, members and the platform queue
- * (software-vision.md, sections 5 and 8; architecture-guide.md, section 8).
+ * (INV-01, INV-02, INV-11, INV-12).
  *
  * The accounts of the run never become members of each other's subscriptions:
  * a membership would break the isolation another case asserts. A case that

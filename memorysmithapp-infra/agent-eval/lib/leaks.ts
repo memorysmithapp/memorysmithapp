@@ -1,5 +1,5 @@
 /**
- * A leak into the clean room (architecture-guide.md, section 19).
+ * A leak into the clean room.
  *
  * The executor is supposed to know only what the connector served it. A term it
  * uses that the server never sent — a business rule code, a principle of the
@@ -17,12 +17,13 @@ import type { Transcript } from './transcript.js';
 export const LEAK_PATTERNS: readonly { readonly label: string; readonly pattern: RegExp }[] = [
   { label: 'a business rule code', pattern: /\bRN-[A-Z]{3}-\d{3}\b/ },
   { label: 'a principle of the design', pattern: /\b(?:PP|PE)\d{1,2}\b/ },
+  { label: 'an invariant or a decision of the design', pattern: /\b(?:INV|ADR)-\d{2,3}\b/ },
   { label: 'Content Slot', pattern: /\bcontent slots?\b/i },
   { label: 'bounded context', pattern: /\bbounded contexts?\b/i },
   {
     label: 'a path of the repository',
     pattern:
-      /memorysmith(?:app)?-(?:backend|frontend|infra)\b|architecture-guide|software-vision|development-process|agent-eval/i,
+      /memorysmith(?:app)?-(?:backend|frontend|infra)\b|docs\/(?:PRD|ARCHITECTURE|SDLC)\.md|agent-eval/i,
   },
 ];
 

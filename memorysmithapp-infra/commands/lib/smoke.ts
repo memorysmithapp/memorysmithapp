@@ -1,5 +1,5 @@
 /**
- * What a deploy has to prove before it is called done (architecture-guide.md, 20).
+ * What a deploy has to prove before it is called done.
  *
  * Every surface answering is not enough: the site answered 200 with the old
  * bundle after the 0.5.7 deploy, and the only proof that the new one was served

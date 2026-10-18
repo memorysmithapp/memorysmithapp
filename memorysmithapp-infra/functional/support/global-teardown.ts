@@ -1,7 +1,7 @@
 /**
  * After every case: the notebooks of the run are deleted, then its accounts,
  * what the run knew is forgotten, and what it measured is summarized into the
- * report (architecture-guide.md, section 19).
+ * report.
  *
  * The subscriptions of the run stay in the tables, because nothing in the
  * product deletes a subscription; their notebooks do not (#276).

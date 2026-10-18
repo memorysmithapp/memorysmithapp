@@ -1,6 +1,5 @@
 /**
- * DTOs of svc-discovery: the projections over the same events
- * (architecture-guide.md, section 11).
+ * DTOs of svc-discovery: the projections over the same events (PE5).
  *
  * A hit always carries the note it came from (RN-DSC-010): whoever consumes it
  * decides with the source in sight, which is the answer to plausible-but-wrong
@@ -77,7 +76,7 @@ export const graphNodeSchema: z.ZodType<{
 /**
  * A node of the whole-notebook graph: the note, plus the portrait the facet
  * projection keeps of it, so a reader can color the graph by an attribute the
- * notebook itself declares. The values were classified BY SHAPE (RN-DSC-019), so
+ * notebook itself declares. The values were classified BY SHAPE (RN-DSC-020), so
  * the backend still interprets nothing: what an attribute means is a decision
  * of whoever authored the notebook. A note with no frontmatter carries `{}`.
  */

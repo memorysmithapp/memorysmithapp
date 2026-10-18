@@ -1,6 +1,6 @@
 /**
  * Whether the executor is waiting for the person, which is what hands its
- * message to the simulated user (architecture-guide.md, section 19).
+ * message to the simulated user.
  *
  * A question mark is not the test, because a person is asked for something in
  * the imperative as often as in a question: "me confirme e diga se…", "paste

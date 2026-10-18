@@ -1,5 +1,5 @@
 /**
- * Stage 1 of the two-stage authorization (architecture-guide.md, section 14.2).
+ * Stage 1 of the two-stage authorization (INV-09).
  *
  * It validates that the active subscription is in trial or active (RN-SUB-007),
  * resolves ownership and the role in the subscription, and injects all of it

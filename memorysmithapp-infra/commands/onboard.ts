@@ -1,6 +1,6 @@
 /**
- * Creates an account and gives it a subscription (architecture-guide.md,
- * section 20).
+ * Creates an account and gives it a subscription, or, when it is the first
+ * account of an empty pool, the operation of the platform and nothing else.
  *
  *   pnpm -C memorysmithapp-infra onboard --environment staging [--email ana@example.com]
  *     [--name Ana] [--quota 1GB] [--status active] [--set-password] [--locale en_US]
@@ -16,7 +16,11 @@
  * connector serves.
  *
  * THE FIRST ACCOUNT OF AN EMPTY POOL BECOMES A PLATFORM ADMIN, and only the
- * first: somebody has to be able to authorize the very first subscription.
+ * first: somebody has to be able to authorize the very first subscription. It
+ * gets NO subscription (INV-12): an operator account holds no link, so a
+ * session of it reaches no content by construction. The account somebody
+ * uses the product with is a second run, which asks for the credentials of
+ * that admin to approve its subscription.
  *
  * THE ACCOUNT IS HANDED OVER WITH A PROVISIONAL PASSWORD. The subscription is
  * requested as the account, so this signs in with a password of its own that
@@ -130,9 +134,8 @@ const zone =
 
 const email = (values.email ?? (await ask('e-mail of the account'))).toLowerCase();
 if (!email) fail('No account to onboard: pass --email.');
-const quota = values.quota ?? (await choose('storage quota', QUOTAS, '1GB'));
-const status = values.status ?? (await choose('subscription status', STATUSES, 'active'));
-if (!QUOTAS.includes(quota) || !STATUSES.includes(status)) fail('Unknown quota or status.');
+if (values.quota && !QUOTAS.includes(values.quota)) fail(`Unknown quota "${values.quota}".`);
+if (values.status && !STATUSES.includes(values.status)) fail(`Unknown status "${values.status}".`);
 const locale = values.locale ?? 'pt_BR';
 if (!LOCALES.includes(locale)) fail(`"${locale}" is not one of ${LOCALES.join(', ')}.`);
 
@@ -256,45 +259,51 @@ if (!isAdmin) {
 
 // ---- The subscription --------------------------------------------------------
 
-interface Session {
-  user: { isPlatformAdmin: boolean };
-  subscriptions: Array<{ subscriptionId: string; isOwner: boolean }>;
-}
+// A platform admin holds no subscription (INV-12), so the section is skipped
+// for the first account of a pool and for any account already in the group.
+let status: string | null = null;
+if (!isAdmin) {
+  const quota = values.quota ?? (await choose('storage quota', QUOTAS, '1GB'));
+  status = values.status ?? (await choose('subscription status', STATUSES, 'active'));
 
-const token = await signIn(email, password);
-const session = await api.call<Session>('GET', '/access/session', token);
+  interface Session {
+    user: { isPlatformAdmin: boolean };
+    subscriptions: Array<{ subscriptionId: string; isOwner: boolean }>;
+  }
 
-let adminToken = token;
-if (!session.user.isPlatformAdmin) {
+  const token = await signIn(email, password);
+  const session = await api.call<Session>('GET', '/access/session', token);
+
+  // The account is not an admin, so somebody who is approves its subscription.
   const adminEmail = await ask('e-mail of a platform admin');
-  adminToken = await signIn(adminEmail, await askSecret(`password for ${adminEmail}`));
+  const adminToken = await signIn(adminEmail, await askSecret(`password for ${adminEmail}`));
   const adminSession = await api.call<Session>('GET', '/access/session', adminToken);
-  if (!adminSession.user.isPlatformAdmin) fail(`${adminEmail} is not a platform admin either.`);
+  if (!adminSession.user.isPlatformAdmin) fail(`${adminEmail} is not a platform admin.`);
+
+  // A subscription this account already holds is reused: asking twice would
+  // leave two in the queue, and only one would ever be entered.
+  const owned = session.subscriptions.find((link) => link.isOwner);
+  const subscriptionId =
+    owned?.subscriptionId ??
+    (
+      await api.call<{ subscriptionId: string }>('POST', '/access/subscriptions', token, {
+        type: 'individual',
+        quota,
+      })
+    ).subscriptionId;
+
+  // The status is set through the administrative override (RN-SUB-018), which is
+  // what lets it be any of the six, a status the transition machine would refuse
+  // included.
+  await api.call('PUT', `/access/platform/subscriptions/${subscriptionId}/status`, adminToken, {
+    status,
+  });
+  await api.call('PATCH', `/access/platform/subscriptions/${subscriptionId}/plan`, adminToken, {
+    type: 'individual',
+    quota,
+  });
+  say(`Subscription ${subscriptionId}: ${status}, ${quota}.`);
 }
-
-// A subscription this account already holds is reused: asking twice would
-// leave two in the queue, and only one would ever be entered.
-const owned = session.subscriptions.find((link) => link.isOwner);
-const subscriptionId =
-  owned?.subscriptionId ??
-  (
-    await api.call<{ subscriptionId: string }>('POST', '/access/subscriptions', token, {
-      type: 'individual',
-      quota,
-    })
-  ).subscriptionId;
-
-// The status is set through the administrative override (RN-SUB-018), which is
-// what lets it be any of the six, a status the transition machine would refuse
-// included.
-await api.call('PUT', `/access/platform/subscriptions/${subscriptionId}/status`, adminToken, {
-  status,
-});
-await api.call('PATCH', `/access/platform/subscriptions/${subscriptionId}/plan`, adminToken, {
-  type: 'individual',
-  quota,
-});
-say(`Subscription ${subscriptionId}: ${status}, ${quota}.`);
 
 // ---- Handing the account over ------------------------------------------------
 
@@ -331,7 +340,7 @@ if (handOver) {
 }
 
 say(`\n${email}${isAdmin ? ' (platform admin)' : ''} can sign in at https://${zone}.`);
-if (!OPERATIONAL.includes(status)) {
+if (status !== null && !OPERATIONAL.includes(status)) {
   say(`Its subscription is ${status}, which grants no operational access to anyone.`);
 }
 prompts.close();

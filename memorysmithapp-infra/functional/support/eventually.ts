@@ -1,6 +1,5 @@
 /**
- * Waiting for what the product does after it answers (architecture-guide.md,
- * section 18).
+ * Waiting for what the product does after it answers.
  *
  * Search, the graph, backlinks, facets and the audit trail are projections: a
  * write is answered before they see it. A case asks again until the projection
@@ -9,7 +8,7 @@
  * wasted minute on every other day.
  */
 
-/** The reindexing target of section 18, 30 s at p95. */
+/** The reindexing target, 30 s at p95. */
 export const PROJECTION_TARGET_MS = 30_000;
 
 export interface EventuallyOptions {

@@ -1,9 +1,8 @@
 /**
  * Discovery: the graph, backlinks, the resolution of a link, the health of a
- * notebook, facets and search (software-vision.md, section 10;
- * architecture-guide.md, section 11). Every one of them is projected from the
- * events of a write, so every case asks again until the projection shows it,
- * up to the target of section 18.
+ * notebook, facets and search (PE5). Every one of them is projected from the
+ * events of a write, so every case asks again until the projection shows it, up
+ * to the reindexing target.
  */
 
 import type { Api } from '../support/api.js';
@@ -157,7 +156,7 @@ test.describe('the graph of a notebook', () => {
     /**
      * What a reading surface draws a link by: an alias is read by this context
      * and by no other, so the tree the page is drawn from cannot carry one
-     * (rule 5, RN-DSC-046).
+     * (INV-05, RN-DSC-046).
      */
     const answer = await eventually(
       'Delta among the names, with the spelling it declares',

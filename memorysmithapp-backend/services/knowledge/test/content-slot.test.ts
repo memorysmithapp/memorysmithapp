@@ -30,7 +30,7 @@ describe('Guidance: a pointer, never Markdown', () => {
     expect(event?.type).toBe('GuidanceUpdated');
     expect(event?.subject).toBe('NOTEBOOK');
     expect(event?.subjectId).toBe(notebook.id.value);
-    // The complete ref travels inside the event (architecture-guide.md 6.6).
+    // The complete ref travels inside the event.
     expect(event?.contentRef?.sha256).toBe(ref.sha256);
     expect(event?.contentRef?.versionId).toBe(ref.versionId);
     expect(event?.contentRef?.bytes).toBe(ref.bytes);

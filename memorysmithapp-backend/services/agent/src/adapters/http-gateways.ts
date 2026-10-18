@@ -1,7 +1,7 @@
 /**
  * HTTP implementations of the gateways. svc-agent is its own deployable, on
  * its own host (mcp.memorysmith.app), so it reaches the other contexts over
- * the internal API (architecture-guide.md, section 14.1).
+ * the internal API.
  *
  * It forwards THE CALLER'S OWN TOKEN rather than acting as itself. Two things
  * follow, and both are properties we want:
@@ -116,7 +116,7 @@ function inDefinedOrder<T extends { position: string }>(
 /**
  * The headers of every call to the core: the caller's own token, and the id of
  * the request in course, so the line the core writes for it and the events it
- * causes are found by the id of the tool call that asked (section 17).
+ * causes are found by the id of the tool call that asked.
  */
 function headersFor(token: string, json: boolean): Record<string, string> {
   const correlationId = currentCorrelationId();
@@ -149,7 +149,7 @@ async function callApi<T>(
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
     // The taxonomy travels intact, so the tool can say something actionable
-    // instead of "request failed" (section 15).
+    // instead of "request failed".
     throw new GatewayError(
       String(payload['code'] ?? 'INTERNAL'),
       String(payload['message'] ?? `The request to ${path} failed`),
@@ -985,5 +985,6 @@ function fileRefOf(file: NotebookFileDto): NotebookFileRef {
     tags: file.tags,
     path: file.path,
     bytes: file.bytes,
+    sha256: file.sha256,
   };
 }

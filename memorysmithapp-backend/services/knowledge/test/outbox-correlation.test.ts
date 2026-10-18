@@ -17,7 +17,7 @@ function event() {
   });
 }
 
-describe('the outbox writer and the correlation id (section 17)', () => {
+describe('the outbox writer and the correlation id', () => {
   it('writes the id of the request in course on the outbox item, and the relay carries it', () => {
     const item = runInScope(openScope('corr-of-the-request'), () =>
       outboxItem(event(), 'PK', 'SK'),

@@ -1,5 +1,5 @@
 /**
- * The search query language (software-vision.md, section 10.2).
+ * The search query language (RN-DSC-026).
  *
  * Pure domain: it parses text into a tree and evaluates that tree against a
  * candidate. It knows nothing about DynamoDB, about how a note is stored or
@@ -63,8 +63,8 @@ export interface Candidate {
    * (RN-DSC-032). They are searched wherever the name is, because that is
    * what an alias is: a notebook of technical terms lives on acronyms, and
    * requiring the full name in every search is what makes people stop
-   * finding things. They do NOT resolve wikilinks — that is a different
-   * question, decided in the negative, and it stays that way.
+   * finding things. Resolving a wikilink by alias is the resolver's question,
+   * not this one's (RN-DSC-052).
    */
   readonly aliases: string[];
   /** facet name to its values, as the FACET projection holds them. */

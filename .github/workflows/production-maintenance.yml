@@ -1,5 +1,5 @@
-# Rebuilds the link graph of production, started by hand (architecture-guide.md,
-# sections 11 and 20.2). The run is a Step Functions execution in AWS under a
+# Rebuilds the link graph of production, started by hand (ADR-017).
+# The run is a Step Functions execution in AWS under a
 # role of its own: this workflow only starts it, follows it and prints its
 # summary, so the role of production reaches no table and no bucket for it. It
 # reports unless `apply` is chosen, and only `main` may run it, which is what the

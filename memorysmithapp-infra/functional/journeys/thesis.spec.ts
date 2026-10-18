@@ -1,8 +1,8 @@
 /**
- * The thesis of the product, across its surfaces (software-vision.md,
- * section 1): a notebook carries its own instructions, an agent that reads them
- * writes the way its owner would, a person reads what the agent wrote and acts
- * on it, and the record of the note keeps both of them apart.
+ * The thesis of the product, across its surfaces: a notebook carries its own
+ * instructions, an agent that reads them writes the way its owner would, a
+ * person reads what the agent wrote and acts on it, and the record of the note
+ * keeps both of them apart.
  */
 
 import { expect, test } from '@playwright/test';

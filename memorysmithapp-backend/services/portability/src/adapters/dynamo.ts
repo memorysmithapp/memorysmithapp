@@ -1,5 +1,5 @@
 /**
- * Where the transfers of a subscription are kept (architecture-guide.md §16).
+ * Where the transfers of a subscription are kept.
  *
  * The table is `mv-portability`, and it is the first one this context owns: an
  * export used to leave nothing behind but an object in the bucket that nothing
@@ -15,7 +15,7 @@
  * **The partition carries the person**, which is the whole of RN-PRT-020: the
  * transfer of somebody else is a key that does not exist, so asking for one
  * answers as missing rather than as refused, and no listing can reveal a
- * notebook the reader may not see (rule 9). The counter of what the kept
+ * notebook the reader may not see (INV-09). The counter of what the kept
  * exports occupy is of the SUBSCRIPTION, because the quota is (RN-SUB-021),
  * and so is the one of what the open uploads reserve (RN-SUB-025).
  */

@@ -1,6 +1,6 @@
 /**
  * The transfer worker: a queue of jobs, and the work neither the API nor a
- * person should wait on (RN-PRT-019, architecture-guide.md §16 and §17).
+ * person should wait on (RN-PRT-019).
  *
  * It is a separate entrypoint on the same bundle for the same reason the relay
  * and the purge are: it is triggered by a queue rather than by a request, and
@@ -8,7 +8,7 @@
  * archive of a notebook means reading every note of it.
  *
  * Per subscription, FROM THE MESSAGE: the worker serves no request, so there is
- * no claim to take the subscription from (§8.2). The message is written by the
+ * no claim to take the subscription from (INV-02). The message is written by the
  * API, which took it from the token.
  */
 
@@ -119,7 +119,7 @@ function contextOf(work: TransferWork): SubscriptionContext {
 }
 
 /**
- * Who every write of an import is attributed to (rule 7). The worker serves no
+ * Who every write of an import is attributed to (INV-07). The worker serves no
  * request, so it is rebuilt from the message the API wrote, connector included:
  * an import asked for through a connector is recorded as that connector wrote
  * it (RN-AGT-001).
@@ -199,7 +199,7 @@ async function sourceOf(
 /**
  * Who asked for the transfer and under which request, for its log line: the
  * kind of the job is the operation, and nothing of what it carries — no name,
- * no selection — goes on the line (section 17).
+ * no selection — goes on the line.
  */
 function startOf(work: TransferWork, correlationId: string | undefined): OperationStart {
   const agent = work.authorship?.agent ?? null;

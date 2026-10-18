@@ -1,12 +1,12 @@
 /**
  * The ports svc-agent talks to. They are written in the vocabulary of the
  * PRODUCT, never of MCP: no tool name, no JSON-RPC, no protocol version
- * appears below (RN-AGT-008). Swapping protocol tomorrow is swapping the
+ * appears below. Swapping protocol tomorrow is swapping the
  * adapter above these, and the domain does not notice.
  *
  * In the modular monolith the implementations call the use cases in process;
  * in the six-deployable shape they call the internal API over HTTP with IAM
- * auth. Either way this file is unchanged (architecture-guide.md, section 24).
+ * auth. Either way this file is unchanged (ADR-005).
  */
 
 import type {
@@ -159,6 +159,8 @@ export interface NotebookFileRef {
   readonly tags: string[];
   readonly path: string;
   readonly bytes: number;
+  /** What was kept, so an agent can compare it with the file it was given (RN-AGT-053). */
+  readonly sha256: string;
 }
 
 export interface NoteLink {
@@ -423,7 +425,7 @@ export interface KnowledgeGateway {
   ): Promise<NoteListing[]>;
   /**
    * To another folder of its notebook, keeping its identifier and with it its
-   * history (RN-KNW-023, RN-AGT-049): last there with no anchor, or right after
+   * history (RN-KNW-057, RN-AGT-049): last there with no anchor, or right after
    * a note of that folder.
    */
   moveNote(
@@ -452,8 +454,8 @@ export interface AuditGateway {
 
 /**
  * The error a gateway raises. The tool adapter turns it into an MCP error with
- * actionable text, and a missing-argument error carries the template along
- * when that is what the caller needs next (RN-AGT-003).
+ * actionable text, and a missing-argument error carries what the caller
+ * needs next (RN-AGT-003).
  */
 export class GatewayError extends Error {
   constructor(

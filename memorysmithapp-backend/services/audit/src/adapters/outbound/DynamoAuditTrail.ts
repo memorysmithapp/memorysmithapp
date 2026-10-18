@@ -1,5 +1,5 @@
 /**
- * mv-audit (architecture-guide.md, section 12.2):
+ * mv-audit (INV-06):
  *
  *   PK  S#{s}#{subject}#{subjectId}      SK  AT#{timestamp}#{eventUlid}
  *

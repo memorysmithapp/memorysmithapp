@@ -1,5 +1,5 @@
 /**
- * The projections, fed by the same events (architecture-guide.md, 11).
+ * The projections, fed by the same events (PE5).
  *
  * Discovery is never consulted by the core: it only ever receives what the
  * core publishes. That one-way direction is what makes every projection
@@ -26,7 +26,7 @@ import type {
 } from '../domain/ports.js';
 
 /**
- * The frontmatter is the facet projector's business (RN-DSC-018) and has no
+ * The frontmatter is the facet projector's business (RN-DSC-028) and has no
  * place in the searchable body: leaving it in would make every note match its
  * own metadata, and `maturity` would be findable as prose. Where the block
  * ends is the kernel's answer, which is the one reader of it in this
@@ -276,8 +276,8 @@ export class ProjectNote {
 
   /**
    * Deleting a note removes its edges, returns the backlinks that pointed at
-   * it to pending (RN-DSC-005), the moment it is deleted (RN-DSC-013), and
-   * withdraws its facet portrait (RN-DSC-022).
+   * it to pending (RN-DSC-005), and withdraws its facet portrait, the moment
+   * its deletion is projected (RN-DSC-013).
    */
   async onDeleted(event: NoteEvent): Promise<void> {
     await this.deps.graph.removeNote(event.notebookId, event.noteId);
@@ -329,8 +329,9 @@ export class ProjectNote {
   }
 
   /**
-   * A cross-notebook move prunes the edges in the origin notebook (RN-DSC-006) and
-   * re-resolves the outgoing ones against the slugs of the destination.
+   * A cross-notebook move, which the API accepts and no client offers, prunes the
+   * edges in the origin notebook, since no link crosses notebooks (RN-DSC-006), and
+   * re-resolves the outgoing ones against the names of the destination.
    */
   async onMoved(event: NoteEvent & { fromNotebookId: string }): Promise<void> {
     if (event.fromNotebookId !== event.notebookId) {

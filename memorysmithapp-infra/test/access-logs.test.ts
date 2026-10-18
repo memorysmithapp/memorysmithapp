@@ -1,6 +1,6 @@
 /**
  * Both HTTP APIs write access logs, in production and in staging, to a log
- * group kept a month (architecture-guide.md, section 17; #269).
+ * group kept a month (#269).
  *
  * Neither the core API nor the connector wrote one, so a request the gateway
  * refused before the function — a throttle, a bad signature on the binding

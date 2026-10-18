@@ -1,6 +1,6 @@
 /**
  * ContentRef: the pointer that links DynamoDB to S3, and the only such link in
- * the whole system (architecture-guide.md, section 9.2).
+ * the whole system (INV-04).
  *
  * It carries a ContentId, not a path. An S3 key is a concept shaped like S3,
  * and holding one inside a domain value object would scratch PE1 without the
@@ -102,7 +102,6 @@ export class ContentRef {
 
 /**
  * The meaning attached to a slot. A note, a guidance and a template are the
- * SAME kind of thing; what differs is who points at it and with which role
- * (software-vision.md, section 8.1).
+ * SAME kind of thing; what differs is who points at it and with which role.
  */
 export type ContentRole = 'body' | 'guidance' | 'template';

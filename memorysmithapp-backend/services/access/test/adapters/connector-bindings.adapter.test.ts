@@ -1,11 +1,11 @@
 /**
- * The connector bindings against the real DynamoDB of a deployed environment
- * (architecture-guide.md, 9.4), under subscriptions of their own, so nothing
- * they write meets anything the environment holds.
+ * The connector bindings against the real DynamoDB of a deployed environment,
+ * under subscriptions of their own, so nothing they write meets anything the
+ * environment holds.
  *
  * What only the real table can say: that binding a token twice is refused by the
  * condition and not by a read beforehand, that every item starts with the
- * subscription of the token (rule 1), and that it carries the TTL the table
+ * subscription of the token (INV-01), and that it carries the TTL the table
  * expires it by.
  */
 

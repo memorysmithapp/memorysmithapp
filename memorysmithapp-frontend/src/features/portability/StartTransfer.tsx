@@ -7,6 +7,8 @@ import { ImportDialog } from './ImportDialog';
 import { useRefreshTransfers } from './transfers';
 import { selectionOf, type Chosen } from './import-selection';
 import { queryKeys } from '../../shared/api/query-keys';
+import { ActionWord } from '../../shared/components/ActionWord';
+import { DownloadIcon, UploadIcon } from '../../shared/components/icons';
 
 /** Which of the two transfers is being decided, or none. */
 export type Starting = 'export' | 'import' | null;
@@ -21,7 +23,7 @@ export type Starting = 'export' | 'import' | null;
  * again and deleted — so it is where one is started (#151).
  *
  * **The export asks which notebook**, among the ones the person can see: a
- * listing must never reveal a notebook somebody cannot see (RN-PRT-020, rule 9
+ * listing must never reveal a notebook somebody cannot see (RN-PRT-020, INV-09
  * of the design), and `listNotebooks` answers exactly those.
  *
  * **Nothing downloads by itself.** An export used to save itself the moment it
@@ -57,10 +59,10 @@ export function TransferActions({ onStart }: { onStart: (starting: Starting) => 
   return (
     <div className="transfers-start">
       <button type="button" className="button is-quiet" onClick={() => onStart('export')}>
-        {t('transfers.newExport')}
+        <ActionWord icon={<DownloadIcon />} word={t('transfers.newExport')} wide />
       </button>
       <button type="button" className="button is-quiet" onClick={() => onStart('import')}>
-        {t('transfers.newImport')}
+        <ActionWord icon={<UploadIcon />} word={t('transfers.newImport')} wide />
       </button>
     </div>
   );

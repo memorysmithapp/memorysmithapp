@@ -1,5 +1,5 @@
 /**
- * The tag and the GitHub Release of a version (architecture-guide.md, §20).
+ * The tag and the GitHub Release of a version.
  *
  * **Written by whoever runs the command, with a token.** It used to be written
  * by a GitHub App of the organisation, because the only thing that wrote a

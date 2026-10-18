@@ -1,6 +1,6 @@
 /**
  * The rebuild of the link graph of an environment, as a run in AWS rather than
- * a process on somebody's computer (#311; architecture-guide.md §11).
+ * a process on somebody's computer (ADR-017, #311).
  *
  *   list ─► map, one notebook per iteration, a few dozen at once ─► summarise ─► good?
  *
@@ -12,7 +12,7 @@
  * named in the summary without stopping the others.
  *
  * The notebooks travel in the state of the run, and never through a bucket:
- * the content bucket keys everything by subscription (rule 1), and a bucket of
+ * the content bucket keys everything by subscription (INV-01), and a bucket of
  * runs would be the third exception the design says does not exist. What a
  * notebook answers is identifiers and counts, about a hundred bytes, so the
  * 256 KiB a state may carry holds the notebooks of an environment many times
@@ -42,7 +42,7 @@ import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
 import { ServiceLambda } from './service-lambda.js';
 
-/** How many notebooks are rebuilt at once: the concurrency quota is the account's (§20.1). */
+/** How many notebooks are rebuilt at once: the concurrency quota is the account's. */
 export const REPROJECTION_CONCURRENCY = 20;
 
 export interface LinkReprojectionProps {
@@ -71,7 +71,6 @@ export class LinkReprojection extends Construct {
       // notes reads each one: neither answers a person who is waiting.
       timeout: Duration.minutes(10),
       memorySize: 1024,
-      latencyAlarm: false,
     });
     props.knowledgeTable.grantReadData(steps.function);
     props.discoveryTable.grantReadWriteData(steps.function);

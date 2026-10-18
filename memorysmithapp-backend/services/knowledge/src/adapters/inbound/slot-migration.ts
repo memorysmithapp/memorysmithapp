@@ -19,7 +19,7 @@
  *
  *   - **It writes no event.** Nobody wrote anything: the Guidance the trail
  *     names is the one being pointed at again. An event here would say a person
- *     did something they did not do (rule 7).
+ *     did something they did not do (INV-07).
  *   - **It removes no old field.** Until this has run everywhere, the old field
  *     is the only copy of where the content is. A later cycle takes them.
  *   - **It overwrites no new item.** A slot written after the deploy is the
@@ -56,7 +56,7 @@ export interface SlotMigrationDependencies {
   readonly tableName: string;
 }
 
-/** The partition of a notebook carries every item of it (§9.3, rule 1). */
+/** The partition of a notebook carries every item of it (INV-01). */
 interface NotebookPartition {
   readonly pk: string;
   readonly notebookId: string;

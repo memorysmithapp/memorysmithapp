@@ -1,5 +1,5 @@
 /**
- * The product limits of software-vision.md, section 14, exercised where they
+ * The product limits of the PRD, exercised where they
  * are enforced: the use case, not the aggregate.
  *
  * They exist as tests because a declared limit that nothing verifies is a
@@ -149,7 +149,7 @@ describe('removing a folder', () => {
 });
 
 describe('where a note may be written', () => {
-  it('refuses a folder the notebook does not hold, which no repository checks (architecture-guide.md, section 10.2)', async () => {
+  it('refuses a folder the notebook does not hold, which no repository checks (INV-10)', async () => {
     const { notebook } = rehydratedNotebookWithNotes(1);
     const { folderId: elsewhere } = rehydratedNotebookWithNotes(1);
 

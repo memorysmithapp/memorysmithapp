@@ -1,13 +1,13 @@
 /**
  * The two sanctioned extractors, run against the conformance suite of the
- * MemorySmith Markdown Specification (RN-AGT-022, RN-AGT-023).
+ * MemorySmith Markdown Specification (RN-AGT-022, INV-05).
  *
  * The cases are not written here and they are not a copy of anything written
- * here. They come from `packages/markdown-spec/tests/conformance.json`, so a case
+ * here. They come from the published `@memorysmithapp/markdown-spec`, so a case
  * the extractors fail breaks the build: the product cannot quietly stop
- * reading what it says it reads. **Every case runs.** The specification
- * changes in the same commit as the readers that implement it, so there is no
- * later version to be ahead of and no case this build is allowed to fail.
+ * reading what it says it reads. **Every case runs.** Taking a new version of
+ * the specification is the commit that makes the readers pass it, so there is
+ * no case this build is allowed to fail.
  *
  * `RECOGNISED_NOTATION` is the same specification as data, and Agent Access
  * teaches from it. Discovery reads it and never writes it, and the two

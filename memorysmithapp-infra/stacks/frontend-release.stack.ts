@@ -1,6 +1,6 @@
 /**
  * The release of the interface: the bundle and `/config.json`, published into
- * the bucket of the hosting stack (architecture-guide.md, sections 17 and 23.3).
+ * the bucket of the hosting stack.
  *
  * It is a stack of its own because the two halves of the interface want
  * opposite places in the order of a deploy. The distribution and its records go

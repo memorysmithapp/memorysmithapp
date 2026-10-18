@@ -1,7 +1,7 @@
 /**
  * The connector as an agent reaches it: the official MCP SDK over Streamable
- * HTTP, with the token the OAuth flow handed the suite (architecture-guide.md,
- * section 13). Every tool call records how long it took.
+ * HTTP, with the token the OAuth flow handed the suite. Every tool call records
+ * how long it took.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';

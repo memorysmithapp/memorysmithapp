@@ -1,11 +1,10 @@
 /**
- * What a line of the log may say, and nothing else (architecture-guide.md,
- * section 17).
+ * What a line of the log may say, and nothing else.
  *
  * A log is a copy of whatever it holds, kept a month and read by whoever
  * operates the account. So a line carries identifiers and measurements, and
  * never content: no note name, notebook name, file name, path, query text or
- * body ever reaches it, because the backend does not interpret content (rule 5)
+ * body ever reaches it, because the backend does not interpret content (INV-05)
  * and a log would be the one place it kept a copy anyway.
  *
  * The rule is held by code rather than by care: every line is built from the
@@ -80,7 +79,7 @@ export interface OperationLine {
   readonly eventId?: string;
   /** The class of what was thrown, never its message, which may quote content. */
   readonly errorName?: string;
-  /** The code of the error taxonomy (section 15), or of a failure a worker names. */
+  /** The code of the error taxonomy, or of a failure a worker names. */
   readonly errorCode?: string;
   /** Where it was thrown: the frames of the stack, and not the line holding the message. */
   readonly errorFrames?: readonly string[];

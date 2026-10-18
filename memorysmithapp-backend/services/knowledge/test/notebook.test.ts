@@ -329,7 +329,7 @@ describe('Notebook: I5, removing a folder requires an explicit policy', () => {
   it('refuses a folder that holds notes, according to the counters', () => {
     // "Holds notes" is answered by the eventually consistent counters that
     // arrived with the aggregate: the rule is eventual consistency, not a
-    // transactional invariant (architecture-guide.md, section 6.2).
+    // transactional invariant (ADR-003).
     const { notebook, folderId } = rehydratedNotebookWithNotes(3);
     const refused = notebook.removeFolder(
       folderId,

@@ -1,5 +1,5 @@
 /**
- * What every API case starts from (architecture-guide.md, section 19): the
+ * What every API case starts from: the
  * state of the run, the API called as each of its accounts, and a notebook of
  * the case's own, so no case depends on what another one left behind.
  */

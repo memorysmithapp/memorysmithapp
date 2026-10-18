@@ -307,7 +307,7 @@ describe('a notebook keeps files', () => {
     const response = await harness.app.request(`/knowledge/notebooks/${notebookId}/files`, {
       headers: { authorization: 'Bearer token-stranger' },
     });
-    // Never 403: a refusal would confirm the notebook exists (rule 9).
+    // Never 403: a refusal would confirm the notebook exists (INV-09).
     expect(response.status).toBe(404);
   });
 });

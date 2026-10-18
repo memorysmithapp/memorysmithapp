@@ -96,7 +96,7 @@ export async function dispatch(projectors: Projectors, envelope: EventEnvelope):
       break;
 
     case 'NoteMoved':
-      // The folder is part of the embedded prefix, so a move reindexes the
+      // The folder is part of what search reads, so a move reprojects the
       // note even though its words did not change (RN-DSC-012).
       await projectors.note.project({
         kind: 'moved',

@@ -1,7 +1,7 @@
 /**
  * SubscriptionStatus: the state of the subscription as a business object.
  *
- * It governs ACCESS, never ADDRESS (RN-SUB-005, architecture-guide.md 8.1).
+ * It governs ACCESS, never ADDRESS (INV-11, RN-SUB-005).
  * No persistence code may read it to build a key; that is why the type lives
  * in the kernel with no key-building capability whatsoever.
  *

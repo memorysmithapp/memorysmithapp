@@ -1,6 +1,5 @@
 /**
- * The SigV4 signer of the connector binding route (architecture-guide.md,
- * sections 13.3 and 14.1).
+ * The SigV4 signer of the connector binding route (ADR-009).
  *
  * The route of Access is authorized by IAM at the gateway, and only the role of
  * this function may invoke it, so the proxy signs with the credentials the

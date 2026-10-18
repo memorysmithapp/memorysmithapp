@@ -1,5 +1,5 @@
 /**
- * The platform surface (software-vision.md, section 4.6).
+ * The platform surface (INV-12).
  *
  * A platform session carries NO active subscription, so there is no key it can
  * build for a notebook or a note. These use cases take a plain
@@ -68,7 +68,7 @@ export class ReviewSubscription {
     });
   }
 
-  /** Rejecting requires a reason, which is communicated (RN-SUB-009). */
+  /** Rejecting requires a reason, kept with the subscription (RN-SUB-009). */
   async reject(input: {
     actor: PlatformActor;
     subscriptionId: SubscriptionId;

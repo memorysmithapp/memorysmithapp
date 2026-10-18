@@ -1,6 +1,5 @@
 /**
- * Note use cases: form B of the transaction, the hot path
- * (architecture-guide.md, section 10.2).
+ * Note use cases: form B of the transaction, the hot path (INV-10).
  *
  * One rule of the public contract lives here, and it is what makes an agent
  * safe to point at a notebook: update_note requires baseRevision, and a
@@ -292,7 +291,7 @@ export class CreateNote {
       : ok(NotePlacement.append(siblings));
     if (!position.ok) return position;
 
-    // Content first, pointer second (section 10.5).
+    // Content first, pointer second (ADR-008).
     const body = await this.deps.content.create(input.content);
 
     const note = Note.create({
@@ -454,9 +453,10 @@ export class ReorderNote {
 }
 
 /**
- * Moving between folders costs zero bytes in S3. Moving between notebooks is the
- * only operation that writes into two notebook partitions in one transaction, and
- * it preserves the NoteId, and with it the whole timeline (RN-KNW-023).
+ * Moving between folders costs zero bytes in S3, and preserves the NoteId, and
+ * with it the whole timeline (RN-KNW-057). Moving between notebooks, which this
+ * use case accepts and no client offers, is the only operation that writes into
+ * two notebook partitions in one transaction.
  *
  * Nothing is resolved against the destination on the way in: a name collides
  * with nothing there, so the move carries no policy (RN-KNW-022, removed).

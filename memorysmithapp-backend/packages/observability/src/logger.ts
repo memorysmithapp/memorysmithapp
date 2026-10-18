@@ -5,7 +5,7 @@
  * (`POWERTOOLS_SERVICE_NAME`, `POWERTOOLS_LOG_LEVEL`).
  *
  * Every line passes through `sanitize`, so whatever a caller hands in, only the
- * fields of the allow-list are written (section 17).
+ * fields of the allow-list are written.
  */
 
 import { Logger } from '@aws-lambda-powertools/logger';

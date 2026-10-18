@@ -1,6 +1,6 @@
 /**
  * What a run knows once it has started: the environment it runs against and
- * the accounts it created for itself (architecture-guide.md, section 19).
+ * the accounts it created for itself.
  *
  * The global setup writes it once and every worker reads it, because a worker is
  * a process of its own and the accounts have to be the same in all of them. It

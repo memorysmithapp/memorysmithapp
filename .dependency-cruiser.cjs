@@ -1,6 +1,5 @@
 /**
- * Dependency rules of the monorepo, run on every pull request
- * (architecture-guide.md, sections 5.1, 5.5 and 20 step 3).
+ * Dependency rules of the monorepo, run on every pull request (INV-03).
  *
  * These are not style rules. Step 3 of the pipeline is what keeps "hexagonal"
  * from becoming folder naming in three sprints (PE1), and it is also where the
@@ -49,9 +48,7 @@ module.exports = {
     },
     {
       name: 'no-service-to-service',
-      comment:
-        'Communication between contexts is HTTP with IAM auth or an event, never an import ' +
-        '(architecture-guide.md, section 3.1).',
+      comment: 'Communication between contexts is HTTP with IAM auth or an event, never an import.',
       severity: 'error',
       from: { path: '^memorysmithapp-backend/services/([^/]+)/' },
       to: {
@@ -63,7 +60,7 @@ module.exports = {
       name: 'backend-never-imports-infra',
       comment:
         'Service code knowing the AWS account is the same leak PE1 prevents one layer down ' +
-        '(architecture-guide.md, section 5.1).',
+        '(INV-03).',
       severity: 'error',
       from: { path: '^memorysmithapp-backend/' },
       to: { path: '^memorysmithapp-infra/' },
@@ -80,7 +77,7 @@ module.exports = {
       comment:
         'The frontend imports @memorysmithapp/contracts — its types, and the constants it derives ' +
         'from the Markdown specification — and nothing else from the backend: not the kernel, ' +
-        'not a service (architecture-guide.md, section 5.1).',
+        'not a service (INV-03).',
       severity: 'error',
       from: { path: '^memorysmithapp-frontend/' },
       to: {
@@ -91,17 +88,13 @@ module.exports = {
     {
       name: 'frontend-reads-the-specification-through-contracts',
       comment:
-        'The Markdown specification is data the contracts derive from, in the package of the ' +
-        'backend that holds it beside the document it belongs to (#162). The ' +
-        'frontend reads the notation and its cases from @memorysmithapp/contracts, so the ' +
-        'specification has one door into the interface and not two (architecture-guide.md, ' +
-        'section 11.0).',
+        'The Markdown specification is data the contracts derive from, published as ' +
+        '@memorysmithapp/markdown-spec. The frontend reads the notation and its cases from ' +
+        '@memorysmithapp/contracts, so the specification has one door into the interface and ' +
+        'not two.',
       severity: 'error',
       from: { path: '^memorysmithapp-frontend/' },
-      // Both shapes: the package name, which is what an import the frontend does
-      // not declare resolves to, and the real path, which is what a relative import
-      // or a declared dependency resolves to.
-      to: { path: '(^|/)packages/markdown-spec/|(^|/)@memorysmithapp/markdown-spec(/|$)' },
+      to: { path: '(^|/)@memorysmithapp/markdown-spec(/|$)' },
     },
     {
       name: 'infrastructure-never-loads-what-operates-it',
@@ -109,7 +102,7 @@ module.exports = {
         'The stacks, the constructs and the app describe infrastructure. The commands, the ' +
         'functional suite and the agent evaluation operate and test it ' +
         'from outside, through its surfaces, and a synth that loaded them would load their ' +
-        'dependencies too (architecture-guide.md, section 5.4).',
+        'dependencies too.',
       severity: 'error',
       from: { path: '^memorysmithapp-infra/(bin|config|stacks|constructs)/' },
       to: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
@@ -120,11 +113,11 @@ module.exports = {
         'The commands, the functional suite and the agent evaluation reach the product the way ' +
         'anybody outside does, through its surfaces: of ' +
         'this repository they import @memorysmithapp/contracts and nothing else, not a service and ' +
-        'not a stack (architecture-guide.md, section 5.4).',
+        'not a stack.',
       severity: 'error',
       from: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
       to: {
-        path: '^memorysmith-(backend|frontend)/|^memorysmithapp-infra/(bin|config|stacks|constructs)/',
+        path: '^memorysmithapp-(backend|frontend)/|^memorysmithapp-infra/(bin|config|stacks|constructs)/',
         pathNot: CONTRACTS,
       },
     },
@@ -135,19 +128,19 @@ module.exports = {
         'dependency here would drag the backend into the browser bundle. The one exception ' +
         'is the specification, which is DATA and no code: the contracts derive the notation ' +
         'from it rather than transcribing it, and it is the one door the notation has into ' +
-        'the interface (architecture-guide.md, section 11.0, RN-AGT-022).',
+        'the interface (RN-AGT-022).',
       severity: 'error',
       from: { path: CONTRACTS },
       to: {
-        path: '^memorysmith-(backend|frontend|infra)/',
-        pathNot: [CONTRACTS, '(^|/)packages/markdown-spec/'],
+        path: '^memorysmithapp-(backend|frontend|infra)/',
+        pathNot: CONTRACTS,
       },
     },
     {
       name: 'kernel-stays-primitive',
       comment:
         'The shared kernel is primitives with no rule of their own. It imports nothing of ours ' +
-        'and no SDK; a large shared kernel is coupling in disguise (section 3.1).',
+        'and no SDK; a large shared kernel is coupling in disguise.',
       severity: 'error',
       from: { path: KERNEL },
       to: {

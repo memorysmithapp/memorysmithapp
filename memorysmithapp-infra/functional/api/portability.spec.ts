@@ -1,6 +1,6 @@
 /**
  * Portability: a notebook leaves as one open document and comes back as the
- * same notebook (software-vision.md, section 12).
+ * same notebook.
  *
  * The export is a JOB now (RN-PRT-019): the API records it and a worker builds
  * the archive, so every case here waits for the transfer to end rather than
@@ -387,7 +387,7 @@ test.describe('the transfers of a person', () => {
     /**
      * Another member of the subscription may see less of that notebook, so a
      * listing must never carry somebody else's transfer, and addressing one
-     * directly is a key that does not exist (RN-PRT-020, rule 9).
+     * directly is a key that does not exist (RN-PRT-020, INV-09).
      */
     const theirs = await other.ok<{ transfers: TransferDto[] }>('GET', '/portability/transfers');
     expect(theirs.transfers.map((each) => each.transferId)).not.toContain(transfer.transferId);
@@ -460,7 +460,7 @@ test.describe('the transfers of a person', () => {
       204,
     );
 
-    // Somebody else's export is a key that does not exist (rule 9), and so
+    // Somebody else's export is a key that does not exist (INV-09), and so
     // is one that never existed.
     expect(
       (

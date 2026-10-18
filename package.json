@@ -1,12 +1,13 @@
 {
   "name": "memorysmithapp",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "quality": "node scripts/quality.mjs",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "test": "node --test scripts/*.test.mjs && pnpm -r test",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",

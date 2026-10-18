@@ -6,7 +6,7 @@
  * a time; this is how it is rebuilt when it is wrong or was never built (PE5).
  * It is answered HERE, from the trail, and not from the object store, because
  * a revision is a version of an object and listing those belongs to the purge
- * alone (rule 8). The trail names every revision anyway: each write of content
+ * alone (INV-08). The trail names every revision anyway: each write of content
  * records the exact pair — the content and its version — it produced.
  *
  * A revision is kept while its content exists, so the census is every pair a

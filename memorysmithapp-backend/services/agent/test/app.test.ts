@@ -351,7 +351,7 @@ describe('the connector is bound to the token it was issued (item 4 of 13.3)', (
   });
 });
 
-describe('what this host says about itself (architecture-guide.md, 23.3)', () => {
+describe('what this host says about itself', () => {
   it('carries the environment and the version on every answer, the OAuth challenge included', async () => {
     const deployed = createApp(config, resolveStateSecret, tools, recordingBinder().binder, {
       environment: 'staging',

@@ -117,7 +117,7 @@ describe('the document carries the notebook whole', () => {
 
   it('never rewrites a link, because the body is copied and not processed', () => {
     // Rewriting destinations was correct while a link addressed a file, and it
-    // is corruption now that it addresses a name (RN-PRT-004).
+    // is corruption now that it addresses a name (RN-PRT-010).
     expect(document.notes[1]?.body).toContain('[[Lei 14.133]]');
   });
 

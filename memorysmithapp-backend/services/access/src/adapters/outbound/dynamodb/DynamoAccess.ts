@@ -1,10 +1,9 @@
 /**
- * DynamoDB adapters of the Access context, over mv-access
- * (architecture-guide.md, section 9.4).
+ * DynamoDB adapters of the Access context, over mv-access.
  *
  *   S#{s}          / META                  subscription
  *   S#{s}          / MEMBER#{userId}       membership (EDITOR | VIEWER)
- *   USER#{u}       / SUB#{s}               the link, exception 1 of section 8.3
+ *   USER#{u}       / SUB#{s}               the link, exception 1 of INV-01
  *   S#{s}          / CONNECTOR#TOKEN#{jti}      the connector of an access token
  *   S#{s}          / CONNECTOR#REFRESH#{sha256} the connector a refresh token renews
  *   S#{s}          / AVATAR#{userId}       the face of that person in this subscription
@@ -441,7 +440,7 @@ export class DynamoOnboarding implements SubscriptionOnboarding {
 }
 
 /**
- * The connector of each token of the connector proxy (section 13.3, item 4).
+ * The connector of each token of the connector proxy (ADR-009).
  *
  * The access token is bound ONCE, by a conditional put: a token never changes
  * connector, and a second attempt to bind it is refused rather than obeyed.
@@ -526,8 +525,8 @@ export class DynamoConnectorBindingRepository implements ConnectorBindingReposit
 /**
  * The face of one person INSIDE this subscription (RN-ACC-022).
  *
- * Keyed under the subscription like everything else, so design rule 1 holds
- * and no third exception of section 8.3 is opened: a picture is data of the
+ * Keyed under the subscription like everything else, so INV-01 holds
+ * and no third exception of it is opened: a picture is data of the
  * membership. The bytes live on the item, not in the object store, because an
  * avatar is bounded rather than budgeted — the interface draws it down to
  * `avatarSide` pixels before sending it and the use case refuses anything over
@@ -631,7 +630,7 @@ function parseShare(item: Item): Share {
 }
 
 /**
- * Exception 1 widened (architecture-guide.md, section 8.3): a share is kept
+ * Exception 1 widened (INV-01): a share is kept
  * under the owner's subscription and, in the same transaction, under the
  * grantee, beside their links to subscriptions.
  *

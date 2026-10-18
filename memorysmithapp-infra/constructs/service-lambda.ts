@@ -1,8 +1,9 @@
 /**
  * ServiceLambda: no service reaches production without observability and the
- * mandatory alarms, each with the destination it notifies (architecture-guide.md,
- * sections 5.4 and 17). Where the environment carries no alarms, as staging
- * does, it creates none (#267).
+ * mandatory alarms, each with the destination it notifies. Where the
+ * environment carries no alarms, as staging does, it creates none (#267).
+ *
+ * Every function is also traced through X-Ray, for the same reason (#271).
  *
  * Forgetting them stops being possible by omission, which is the whole reason
  * this construct exists instead of a helper function someone may skip.
@@ -14,7 +15,7 @@
 
 import { Duration, RemovalPolicy, type Size } from 'aws-cdk-lib';
 import { ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
-import { Architecture, Runtime, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
+import { Architecture, Runtime, Tracing, type ILayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
@@ -37,7 +38,11 @@ export interface ServiceLambdaProps {
   readonly environment?: Record<string, string>;
   readonly timeout?: Duration;
   readonly memorySize?: number;
-  /** Alarms are on by default; a projector may opt out of the p99 one. */
+  /**
+   * The p99 alarm, for a function somebody waits on: the core API, the agent
+   * and the trigger of every sign-in. A function that runs a handful of times
+   * a day has a p99 of almost nothing, which is noise and not a signal (#318).
+   */
   readonly latencyAlarm?: boolean;
   readonly bundling?: NodejsFunctionProps['bundling'];
   /**
@@ -52,6 +57,8 @@ export interface ServiceLambdaProps {
 
 export class ServiceLambda extends Construct {
   readonly function: NodejsFunction;
+  /** Where its operation lines go, which the dashboards of #270 query. */
+  readonly logGroup: LogGroup;
 
   constructor(scope: Construct, id: string, props: ServiceLambdaProps) {
     super(scope, id);
@@ -62,10 +69,11 @@ export class ServiceLambda extends Construct {
      * `cdk destroy` leaves it behind, and without retention it never expires
      * and is billed forever.
      */
-    const logGroup = new LogGroup(this, 'Logs', {
+    this.logGroup = new LogGroup(this, 'Logs', {
       retention: RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    const logGroup = this.logGroup;
 
     this.function = new NodejsFunction(this, 'Function', {
       entry: props.entry,
@@ -78,17 +86,22 @@ export class ServiceLambda extends Construct {
       timeout: props.timeout ?? Duration.seconds(15),
       description: props.description,
       logGroup,
+      // Every function is traced (#271), in both environments: Lambda samples
+      // one request a second and 5% of the rest, a rate it does not let a
+      // function change, which at this traffic keeps production inside the
+      // free 100,000 traces a month and traces nearly all of staging.
+      tracing: Tracing.ACTIVE,
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
         // Powertools writes the one line of each operation, named by this
-        // service, with the subscriptionId on it (section 17). The subscription
+        // service, with the subscriptionId on it. The subscription
         // is never a metric dimension: a question about one subscription is a
         // query of the logs, not a metric per subscription.
         POWERTOOLS_SERVICE_NAME: id,
         POWERTOOLS_LOG_LEVEL: 'INFO',
         POWERTOOLS_METRICS_NAMESPACE: 'MemorySmith',
         // Where it runs and what it is, as configuration and never as a
-        // constant of the bundle (section 23.3).
+        // constant of the bundle.
         ...deploymentVariables(deploymentOf(this)),
         ...props.environment,
       },
@@ -105,7 +118,7 @@ export class ServiceLambda extends Construct {
       },
     });
 
-    // ---- The mandatory alarms (section 17) ---------------------------------
+    // ---- The mandatory alarms ---------------------------------
     // Through mandatoryAlarm, which attaches the topic of the environment and
     // creates nothing where the environment carries no alarms (#267).
 
@@ -118,16 +131,11 @@ export class ServiceLambda extends Construct {
       treatMissingData: TreatMissingData.NOT_BREACHING,
     });
 
-    mandatoryAlarm(this, 'Throttles', {
-      alarmDescription: `${id}: throttled invocations`,
-      metric: this.function.metricThrottles({ period: Duration.minutes(5) }),
-      threshold: 1,
-      evaluationPeriods: 1,
-      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      treatMissingData: TreatMissingData.NOT_BREACHING,
-    });
+    // No alarm on throttles per function: no function reserves concurrency, so
+    // a throttle is the account reaching its limit, and the one alarm of the
+    // account in the network stack says so (#318).
 
-    if (props.latencyAlarm !== false) {
+    if (props.latencyAlarm === true) {
       mandatoryAlarm(this, 'Duration', {
         alarmDescription: `${id}: p99 duration`,
         metric: this.function.metricDuration({

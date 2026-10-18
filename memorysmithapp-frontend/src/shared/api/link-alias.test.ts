@@ -4,7 +4,7 @@
  *
  * The surface used to ask how many notes were NAMED that, counting the tree it
  * had already drawn. An alias is not in that tree — Knowledge reads nothing of
- * a note beyond its `name:` (rule 5) — so a target an alias answered counted
+ * a note beyond its `name:` (INV-05) — so a target an alias answered counted
  * zero: the link was painted as a link to nothing and an embed of it expanded
  * nothing, while clicking it reached the note. The spellings now arrive from
  * Discovery, which is the context that reads them, and resolution here follows

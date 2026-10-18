@@ -1,8 +1,8 @@
 /**
  * Connects the suite to the connector the way a person connects an agent
- * (architecture-guide.md, section 13.3), once per run and before any MCP case.
- * The flow itself lives in `support/connector-flow.ts`, which the agent
- * evaluation runs too, as a client of its own.
+ * (ADR-009), once per run and before any MCP case. The flow itself lives in
+ * `support/connector-flow.ts`, which the agent evaluation runs too, as a client
+ * of its own.
  */
 
 import { test as setup } from '@playwright/test';

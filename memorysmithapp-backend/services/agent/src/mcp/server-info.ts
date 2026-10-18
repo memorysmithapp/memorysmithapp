@@ -15,7 +15,8 @@ export const SERVER_NAME = 'memorysmith-mcp';
 
 const TITLE = 'MemorySmith.app';
 
-const DESCRIPTION = 'Structured knowledge, natively readable and writable by humans and agents.';
+const DESCRIPTION =
+  'Structured knowledge we build and keep with the AI assistants we already use every day.';
 
 export interface ServerIcon {
   readonly src: string;

@@ -11,6 +11,42 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-18
+
+### Added
+
+- **Every call can be followed through X-Ray**, from the connector to the core and from a write to the relay, the projector and the trail it caused: each operation is a subsegment searchable by its business flow (`write`, `file-upload`, `share`, `export`, `import`, `print`, `onboarding`, `connect-agent`), its operation and its correlation id, with identifiers only, as the log. (#271)
+- **Three dashboards say how the product is used, whether its flows reach their end, and whether it is healthy**, for whoever operates it: active people of a day, a week and a month, agents by client and MCP tools by calls and refusals; the steps of onboarding, connecting an agent, writing, uploading a file, sharing, exporting, importing and printing; and the latency, traffic, errors and saturation of every function. The active people are counted once a day and kept fifteen months, and no number is ever kept per person or per subscription. (#270)
+
+### Changed
+
+- **The documents of the repository are rewritten, shorter, in the structure of `memorysmithapp-template` v0.3.0, and written from the code rather than migrated.** `CLAUDE.md`, about 8,700 words loaded in every session, becomes `.claude/CLAUDE.md`, one line importing `AGENTS.md`: identity, a reading and a writing map, limits, eighteen invariants and the verified commands. `docs/software-vision.md`, `docs/architecture-guide.md` and `docs/development-process.md`, about 75,000 words, become `docs/PRD.md` (the problem, the language and every business rule, one line each), `docs/ARCHITECTURE.md` (the system, the mechanism of each invariant, operation and nineteen decision records) and `docs/SDLC.md`. Each invariant was checked against the code, and the two that do not fully hold say so and name their issue (#321, #322). The README is now for somebody arriving to get to know the project; what it said to an operator is in `docs/ARCHITECTURE.md`. Code cites a rule, an invariant or a decision by its identifier, never by a section number, and a commit touches a document only when it changes one of the three. (#319)
+- **Issues carry product labels declared in `docs/SDLC.md`**: `domain:*` names the six bounded contexts (`domain:mcp` is now `domain:agent`, `domain:export` is `domain:portability`, `domain:subscription` joined `domain:access`), and `layer:*` the three projects, `layer:backend` new. GitHub's default labels are back. (#319)
+- **The version of the product lives in the root `package.json`.** It was read with a regular expression out of `CLAUDE.md`, which is what kept that file from shrinking; `release-checks`, `release-notes` and `publish-release` read the field now, and every other manifest and `CHANGELOG.md` still have to agree with it. (#319)
+- **The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.4.** Nothing a note is drawn or read with changed in it; it is the version whose README and documents point at where they now live. (#320)
+- **The Markdown specification the product reads is the one `memorysmithapp-markdown` publishes**, `@memorysmithapp/markdown-spec` 0.8.4, where this repository kept a copy of it brought over by hand. The extractors now pass its 140 conformance cases, the 35 it gained since the copy included, and an agent sent to read the specification reaches the document of that version. The cases this repository had added for an image written with a path are upstream already, as `image/*`. (#319, #320)
+- **The actions of Transfers, of the notifications, of choosing a file, of the profile and of signing in carry an icon**, like the buttons of the notebook bar: the icon and its word on a computer, the icon alone on a phone, where the word is still what a screen reader says and the target is one a thumb reaches. The confirmations and cancels of a dialog or of an in-place question keep their word alone on a phone too, so an answer that cannot be undone is read before it is tapped, and a button that spans the width of the phone keeps its word beside its icon, since it is not short of room. (#325)
+- **A note write costs a fraction of what it did in Discovery**: an update that keeps a note's links, name and attributes no longer rewrites them, only the edges, pending links and facets that changed are written, and a note of ordinary size keeps its search portrait in one item. (#327)
+- **Reading a note through the connector and writing one cost the same whatever the size of the notebook**: Discovery answers a note's links from what is kept under that note instead of reading every note of the notebook, so bulk-writing a large notebook no longer grows slower and costlier as it grows. Existing notebooks keep working as before, and take the new layout when the link graph is rebuilt. (#328)
+- **A new slogan, said the same way everywhere**: *Structured knowledge we build and keep with the AI assistants we already use every day* (*Conhecimento estruturado, que construímos e mantemos com os assistentes de IA que já usamos no dia a dia*) beside the logo, in the README and in what the connector tells an agent about itself, and a longer sentence opening the About page: *…side by side with our AI assistants, always readable by us and by them*. Our assistants are the ones each person already uses. (#334)
+
+### Removed
+
+- **`docs/knowledge-base.md`, `docs/markdown-spec.md`, `SECURITY.md` and the issue forms.** The specification is the one `memorysmithapp-markdown` publishes; `SECURITY.md` offered a private channel that is not enabled on this repository and described deletion as reversible; an issue opens blank. (#319)
+
+### Fixed
+
+- **`keep_file` answers the SHA-256 of what it kept**, as its own note promised: an agent that knows the hash of the file it was given can tell the person when what was kept is not their file. (#329)
+- **The history an agent reads of a note no longer promises it survives a move to another notebook**, which no client offers: it survives a move to another folder. (#330)
+- **Changing your password keeps the session you changed it from open**, as the screen says: every other session still ends, and this one no longer did too an hour later, at its first refresh. (#331)
+- **Removing a member of a subscription also removes the ceilings they had on its notebooks**, so somebody removed and later added again starts with the role they are given, not with a limit nobody sees. (#332)
+- **Deleting a notebook on the web says how many of its kept exports stay in Transfers**, as the connector already did, so nobody deletes a notebook believing its exports go with it. (#333)
+
+### Security
+
+- **A platform administrator never acts for a subscription.** Its session carries no subscription even if its account holds a link to one, so it reaches no notebook by construction, and `onboard` now gives the first account of a new environment the platform and no subscription: the account somebody uses the product with is a second one. (#322)
+- **No principal of staging but the purge can alter or remove an entry of the audit trail, or destroy a revision of somebody's note.** The role GitHub delivers staging with is denied writing over the trail, and destroys a revision only under the subscriptions its own adapter tests create; production was already so. (#321)
+
 ## [0.13.1] - 2026-10-17
 
 ### Fixed
@@ -792,7 +828,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...v0.12.1

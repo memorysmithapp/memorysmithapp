@@ -10,7 +10,7 @@ import {
  * the specification reserves a place for.
  *
  * This is the fourth sanctioned reader of a note's notation, beside the two
- * extractors of Discovery and `noteName` (architecture-guide.md §11), and the
+ * extractors of Discovery and `noteName` (INV-05), and the
  * narrowest: it decides nothing, changes no byte and never refuses a write —
  * there is no invalid note (§6.4) — and what it reads is handed back to the
  * agent that wrote it, so the agent can correct its own note in the same turn.

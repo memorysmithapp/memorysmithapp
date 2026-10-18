@@ -1,6 +1,6 @@
 /**
  * An in-memory wiring of the whole monolith, for tests that need the two
- * contexts talking to each other: the isolation tests of section 19, and the
+ * contexts talking to each other: the isolation tests, and the
  * vertical slices.
  *
  * It is the same composition root shape as production; only the adapters
@@ -17,6 +17,7 @@ import {
   DomainError,
   NotebookId,
   Role,
+  ok,
   type SubscriptionContext,
   type EventPublisher,
   type DomainEvent,
@@ -91,6 +92,7 @@ import {
   InMemoryNotebookRepository,
 } from '@memorysmithapp/svc-knowledge/adapters/memory';
 import {
+  ClearMemberCeilings,
   ClearNotebookRoleLimit,
   CreateNotebook,
   DeleteGuidance,
@@ -397,7 +399,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
     removeMember: (request) => {
       const scoped = scopedAccess(request);
-      return new RemoveMember(scoped!.subscriptions, links);
+      const context = request.context;
+      return new RemoveMember(scoped!.subscriptions, links, {
+        clearFor: (user, by) =>
+          context
+            ? new ClearMemberCeilings(knowledgeRepos(context)).execute({ userId: user, by })
+            : Promise.resolve(ok()),
+      });
     },
     transferOwnership: (request) => {
       const scoped = scopedAccess(request);
@@ -521,7 +529,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   };
   /**
    * In production the bus drives these; in the test the harness does, which
-   * is the same contract with a shorter wire (section 24).
+   * is the same contract with a shorter wire (ADR-005).
    */
   const projectNote = new ProjectNote({
     graph: discovery.graph,

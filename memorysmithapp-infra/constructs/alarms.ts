@@ -1,6 +1,5 @@
 /**
- * The alarms of an environment and where they go (architecture-guide.md,
- * section 17; #267).
+ * The alarms of an environment and where they go (#267).
  *
  * An alarm exists to reach a person. Production carries the mandatory alarms
  * and every one of them notifies one SNS topic, which the operator's address is
@@ -14,7 +13,7 @@
  * - `mandatoryAlarm`, the only way an alarm is created here: it creates nothing
  *   where the environment carries no alarms, and attaches the topic where it
  *   does, so `ServiceLambda` hands every function a destination exactly as it
- *   hands it an alarm (section 5.4);
+ *   hands it an alarm;
  * - `AlarmPolicy`, an aspect over the whole app, which fails the synthesis on an
  *   alarm in an environment without alarms and on an alarm without an action,
  *   so an `Alarm` created by hand is refused rather than shipped mute.
@@ -74,7 +73,7 @@ function destinationOf(scope: Construct, environment: EnvironmentConfig): ITopic
 }
 
 /**
- * An alarm of section 17: created only where the environment carries alarms,
+ * An alarm of the environment: created only where the environment carries alarms,
  * and always with the topic as its action. Returns nothing where it created
  * nothing.
  */

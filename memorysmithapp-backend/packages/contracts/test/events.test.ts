@@ -43,8 +43,8 @@ const noteCreated = {
 
 describe('event contracts', () => {
   it('parses an envelope written before the correlation id existed, and one carrying it', () => {
-    // The trail is append-only: an event already written has to stay readable
-    // (section 17), and the id is carried on when it is there.
+    // The trail is append-only: an event already written has to stay readable,
+    // and the id is carried on when it is there.
     expect(parseEvent(noteCreated).correlationId).toBeUndefined();
     expect(parseEvent({ ...noteCreated, correlationId: 'Ab1cDEfGhIJKlmN=' }).correlationId).toBe(
       'Ab1cDEfGhIJKlmN=',
@@ -63,7 +63,7 @@ describe('event contracts', () => {
 
   it('rejects a content event whose ContentRef carries only the versionId', () => {
     // Without the full ref the audit trail records "the note changed" without
-    // being able to show what it changed to (architecture-guide.md, 9.2).
+    // being able to show what it changed to (INV-04).
     const truncated = { ...noteCreated, contentRef: { versionId: 'sBcD3' } };
     expect(() => parseEvent(truncated)).toThrow();
   });

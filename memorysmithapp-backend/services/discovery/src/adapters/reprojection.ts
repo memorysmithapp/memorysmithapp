@@ -24,7 +24,7 @@
  *
  * WHY THIS IS NOT A ROUTE, and why it reads the table rather than the API: a
  * platform session carries no subscription, so no repository can be built
- * under it (PE12, RN-SUB-016) and rebuilding every account cannot be an
+ * under it (INV-12, RN-SUB-016) and rebuilding every account cannot be an
  * authenticated operation at all. It also writes nothing a person authored —
  * a projection has no author — so unlike the retitling migration it owes
  * nothing to the audit trail. It runs as maintenance, against the tables,
@@ -300,6 +300,10 @@ export class LinkReprojection {
     }));
     await graph.forgetLinks(plan.notebookId);
     await graph.seedNotes(plan.notebookId, refs);
+    // No link is left and every spelling is indexed: from here on the partition
+    // is in the layout every write below keeps whole, and each note is answered
+    // from what is keyed under it instead of from the whole notebook (#328).
+    await graph.markIndexed(plan.notebookId);
     await graph.seedAttachments(plan.notebookId, plan.files);
     for (const note of plan.notes) {
       const { targets, ...ref } = note;
@@ -398,7 +402,7 @@ export function resolveAll(
 /**
  * What the rebuild of one notebook answers, in identifiers and counts only:
  * the answer travels through the history of a run and lands in its summary,
- * and neither may carry what a note is called (architecture-guide.md §17).
+ * and neither may carry what a note is called.
  */
 export interface NotebookOutcome extends NotebookAddress {
   readonly notes: number;

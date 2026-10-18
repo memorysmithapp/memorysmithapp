@@ -1,5 +1,5 @@
 /**
- * The read-only smoke that closes a deploy (architecture-guide.md, 20).
+ * The read-only smoke that closes a deploy.
  *
  *   pnpm -C memorysmithapp-infra smoke --environment production --version 0.6.0 \
  *     --site https://memorysmith.app --api https://api.memorysmith.app --mcp https://mcp.memorysmith.app

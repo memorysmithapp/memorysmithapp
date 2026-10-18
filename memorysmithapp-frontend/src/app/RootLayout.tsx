@@ -49,8 +49,7 @@ export function RootLayout() {
  * in here, so instead of parking the person on a screen of their own they are
  * signed out and told why on the sign-in screen. Why it says WHICH of the
  * three: "there is nothing here" and "your access is suspended" are different
- * facts, and the second one reads as a defect when it is not spelled out
- * (software-vision.md, section 13.2).
+ * facts, and the second one reads as a defect when it is not spelled out.
  */
 export function RequireSession() {
   const live = useLiveSession((state) => state.session);

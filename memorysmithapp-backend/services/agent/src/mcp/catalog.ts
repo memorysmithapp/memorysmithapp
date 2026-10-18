@@ -1,8 +1,7 @@
 /**
- * THE TOOL CATALOG IS THE PUBLIC CONTRACT OF THE PRODUCT
- * (software-vision.md, section 9.1). The internal API exists to serve the UI;
- * it is this surface that external clients consume, and it is this surface the
- * versioning policy protects.
+ * THE TOOL CATALOG IS THE PUBLIC CONTRACT OF THE PRODUCT. The internal API
+ * exists to serve the UI; it is this surface that external clients consume, and
+ * it is this surface the versioning policy protects.
  *
  * Two rules shape every entry here, and they are not stylistic:
  *
@@ -1098,7 +1097,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Read the history of a note',
     description:
       'The timeline of a note: who changed it, when, and with which agent. It survives the ' +
-      'note changing folder and notebook, because it is keyed by the note identifier. It ' +
+      'note moving to another folder, because it is keyed by the note identifier. It ' +
       'answers a list of entries, each with occurredAt, type, userId, agentName, ' +
       'agentClientId (null for a write the person made without a connector) and revision ' +
       '(null for an event that wrote no content), which read_note takes as asOf. A person ' +

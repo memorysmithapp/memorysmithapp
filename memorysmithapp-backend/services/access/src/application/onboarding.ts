@@ -1,5 +1,5 @@
 /**
- * Onboarding and the session (software-vision.md, sections 4.4 and 4.5).
+ * Onboarding and the session.
  *
  * Signup creates only the user account. Asking for a subscription is a
  * separate, explicit act, and it grants no operational access until a platform

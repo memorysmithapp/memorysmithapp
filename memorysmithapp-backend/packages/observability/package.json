@@ -1,9 +1,9 @@
 {
   "name": "@memorysmithapp/observability",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "private": true,
   "type": "module",
-  "description": "The one line every function writes per operation: who, through what, which operation, how it ended and how long it took, with identifiers only and never content (architecture-guide.md, section 17). Imported by main/, adapters/ and the handlers, never by domain/ or application/.",
+  "description": "The one line every function writes per operation: who, through what, which operation, how it ended and how long it took, with identifiers only and never content. Imported by main/, adapters/ and the handlers, never by domain/ or application/.",
   "exports": {
     ".": "./src/index.ts",
     "./hono": "./src/hono.ts",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "2.35.0",
+    "@aws-lambda-powertools/tracer": "2.35.0",
     "hono": "^4.13.3"
   }
 }

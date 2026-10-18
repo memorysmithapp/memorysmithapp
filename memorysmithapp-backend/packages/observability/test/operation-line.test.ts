@@ -29,7 +29,7 @@ const SUBSCRIPTION = '01JABCDEFGHJKMNPQRSTVWXYZ0';
 const EVENT = '01JABCDEFGHJKMNPQRSTVWXYZ1';
 
 describe('the line of one operation', () => {
-  it('carries the fields of section 17 and the ones Powertools writes, and nothing else', () => {
+  it('carries the fields of the allow-list and the ones Powertools writes, and nothing else', () => {
     writeOperation({
       operation: 'create_note',
       outcome: 'ok',

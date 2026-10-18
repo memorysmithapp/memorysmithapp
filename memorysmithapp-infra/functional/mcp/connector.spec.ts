@@ -1,8 +1,8 @@
 /**
- * The connector, as an agent uses it (software-vision.md, section 9;
- * architecture-guide.md, section 13): what it answers without a token, what it
- * tells an agent in the handshake, and every tool of its catalog, called
- * through the official MCP SDK with the token the OAuth flow handed the suite.
+ * The connector, as an agent uses it (ADR-009): what it answers without a
+ * token, what it tells an agent in the handshake, and every tool of its
+ * catalog, called through the official MCP SDK with the token the OAuth flow
+ * handed the suite.
  *
  * Which tools there are is read from the live `tools/list`, so a tool added to
  * the catalog without a case here fails the suite.

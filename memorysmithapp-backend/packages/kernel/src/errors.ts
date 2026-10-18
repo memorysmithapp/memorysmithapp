@@ -1,7 +1,7 @@
 /**
- * The single error taxonomy of the whole backend (architecture-guide.md,
- * section 15). It is defined before the first use case on purpose: without it
- * every service invents its own and the edge becomes ad-hoc translation.
+ * The single error taxonomy of the whole backend. It is defined before the
+ * first use case on purpose: without it every service invents its own and the
+ * edge becomes ad-hoc translation.
  */
 
 export type ErrorCode =
@@ -24,7 +24,7 @@ export class DomainError {
      * exception is a write refused by a notebook role limit: the member already
      * sees the notebook in their list (RN-ACC-012), so hiding it there would
      * protect nothing and produce a notebook that appears on screen and vanishes
-     * on write (architecture-guide.md, section 14.2).
+     * on write (INV-09).
      */
     readonly revealsExistence: boolean = false,
   ) {}
@@ -67,7 +67,7 @@ export class DomainError {
 /**
  * Optimistic locking lost the race. Raised by repositories, never by the
  * domain, and retried by the use case up to three times before surfacing
- * as CONFLICT (architecture-guide.md, section 10.2).
+ * as CONFLICT.
  */
 export class ConcurrencyError extends DomainError {
   constructor(

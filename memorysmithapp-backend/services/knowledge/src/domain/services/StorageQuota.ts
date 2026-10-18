@@ -5,10 +5,10 @@
  * opposite directions:
  *
  *  - The count cannot be maintained inside the write. A single counter touched
- *    by every note write is precisely the contention PE10 forbids for the notebook
+ *    by every note write is precisely the contention PE8 forbids for the notebook
  *    META item, and a per-subscription counter would be worse, since it is one
  *    item for the whole account. So the count is maintained by the outbox relay,
- *    outside the user transaction (section 10.3), and it is therefore SLIGHTLY
+ *    outside the user transaction (ADR-010), and it is therefore SLIGHTLY
  *    BEHIND: a burst of writes can cross the line before the counter catches up.
  *  - The limit still has to mean something. It does, because the number it
  *    lags behind by is bounded by what is in flight, and the check runs on

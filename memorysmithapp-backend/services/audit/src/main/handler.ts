@@ -4,7 +4,7 @@
  * It is its OWN deployable, and that is the one place where the separation
  * buys something real: the role of this function is what makes the log
  * immutable, and it carries an explicit Deny on UpdateItem and DeleteItem
- * (architecture-guide.md, sections 12.2 and 24).
+ * (INV-06, ADR-005).
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -48,8 +48,8 @@ export async function handler(event: BusEvent): Promise<void> {
       })
     : [event.detail].filter((detail) => detail !== undefined);
 
-  // One line per event appended, under the id of the request that caused it
-  // (section 17). The batch is appended as a unit, and fails as one.
+  // One line per event appended, under the id of the request that caused it.
+  // The batch is appended as a unit, and fails as one.
   await observeBatch(
     envelopes,
     (envelope) => startOfEvent(envelope),

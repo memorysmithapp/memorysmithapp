@@ -2,9 +2,9 @@
  * The HTTP app of the modular monolith. It mounts each bounded context under
  * its own prefix, which is exactly the routing CloudFront does when the
  * contexts become separate deployables: `api.memorysmith.app/knowledge/*` goes
- * on meaning the same thing (architecture-guide.md, sections 14.1 and 24).
+ * on meaning the same thing (ADR-005).
  *
- * The middleware chain is the two-stage authorization of section 14.2:
+ * The middleware chain is the two-stage authorization (INV-09):
  *   1. authenticate  -> claims, and a SubscriptionContext when there is one;
  *   2. resolve       -> ownership and workspace roles, cached five minutes.
  * A third stage does not exist here: the decision about a notebook belongs to the
@@ -84,7 +84,7 @@ export interface AppDependencies {
   readonly notebookWriterFor: (request: KnowledgeRequest) => NotebookWriter;
   /** What an upload in parts becomes a file with, built per request as well (RN-PRT-027). */
   readonly fileKeeperFor: (request: KnowledgeRequest) => FileKeeper;
-  /** Where the connector proxy records the connector of a token (section 13.3). */
+  /** Where the connector proxy records the connector of a token (ADR-009). */
   readonly connectorBindings: ConnectorBindingDependencies;
   /**
    * The door through the boundary (RN-ACC-026): the request on a notebook of
@@ -97,8 +97,8 @@ export interface AppDependencies {
   ) => Promise<KnowledgeRequest | null>;
   /**
    * The app client of the connector proxy: a token issued to it came through
-   * an agent's connector, and its requests are logged on the `mcp` channel
-   * (section 17). Absent, every request is logged as the interface's.
+   * an agent's connector, and its requests are logged on the `mcp` channel.
+   * Absent, every request is logged as the interface's.
    */
   readonly connectorClientId?: string;
 }
@@ -127,7 +127,7 @@ function fail(c: Context, error: DomainError): Response {
 
 /**
  * Who a request is, told to its log line as soon as it is known: identifiers
- * only, never a name or an address (section 17).
+ * only, never a name or an address.
  */
 function annotateCaller(deps: AppDependencies, session: AccessRequest): void {
   const channel: Channel =
@@ -146,8 +146,8 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
 
   /**
    * One line per request, written when its answer is known, under the
-   * correlation id the connector handed or the one the gateway gave
-   * (section 17). First, so a refusal and a preflight are written too.
+   * correlation id the connector handed or the one the gateway gave. First, so
+   * a refusal and a preflight are written too.
    */
   app.use('*', operationLog());
   app.onError(operationErrorHandler);
@@ -155,7 +155,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
   /**
    * Every response says what answered it, a refusal and a preflight included:
    * after a deploy, the version on the wire is the proof that the new artefact
-   * is the one serving (architecture-guide.md, 23.3).
+   * is the one serving.
    */
   app.use('*', async (c, next) => {
     await next();
@@ -187,7 +187,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
   /**
    * Mounted BEFORE the session middleware of Access, which it must never reach:
    * the connector proxy calls it signed with IAM and carries no session of its
-   * own, and the token it binds travels in the body (section 13.3).
+   * own, and the token it binds travels in the body (ADR-009).
    */
   app.route('/access/connector-bindings', createConnectorBindingRoutes(deps.connectorBindings));
 
@@ -247,7 +247,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
       });
       // Portability holds no notebook either, and asks the same question — plus
       // one more, because an import WRITES: whoever is importing is who every
-      // write of it is attributed to (rule 7).
+      // write of it is attributed to (INV-07).
       c.set('portability', {
         subscription: resolved.value.subscription,
         // A notebook shared with this person reads too, for an export: the

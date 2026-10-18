@@ -7,6 +7,7 @@ import {
   SubscriptionId,
   SubscriptionStatus,
   UserId,
+  ok,
   type Result,
 } from '@memorysmithapp/kernel';
 import { Subscription } from '../src/domain/subscription/Subscription.js';
@@ -467,26 +468,41 @@ describe('Members', () => {
     );
     expect((await subscriptions.find())?.memberRole(invitee)).toBe(Role.VIEWER);
 
+    const cleared: string[] = [];
     unwrap(
-      await new RemoveMember(subscriptions, links).execute({
+      await new RemoveMember(subscriptions, links, {
+        clearFor: async (user) => {
+          cleared.push(user.value);
+          return ok();
+        },
+      }).execute({
         context,
         userId: invitee,
         by: Authorship.byHuman(owner),
       }),
     );
     expect((await subscriptions.find())?.hasMember(invitee)).toBe(false);
+    // Their ceilings go with them (RN-ACC-014, #332).
+    expect(cleared).toEqual([invitee.value]);
     // The link goes with the membership: there is nothing left to reach.
     expect(await links.linksOf(invitee)).toHaveLength(0);
   });
 
   it('refuses to remove the owner', async () => {
     const { context, subscriptions, links } = await activeSubscription();
-    const refused = await new RemoveMember(subscriptions, links).execute({
+    const cleared: string[] = [];
+    const refused = await new RemoveMember(subscriptions, links, {
+      clearFor: async (user) => {
+        cleared.push(user.value);
+        return ok();
+      },
+    }).execute({
       context,
       userId: owner,
       by: Authorship.byHuman(owner),
     });
     expect(expectErr(refused).message).toContain('transfer ownership');
+    expect(cleared).toEqual([]);
   });
 
   it('transfers ownership atomically, demoting the previous holder', async () => {

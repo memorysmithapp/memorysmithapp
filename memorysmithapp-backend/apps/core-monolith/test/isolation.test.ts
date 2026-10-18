@@ -1,5 +1,5 @@
 /**
- * The isolation tests of architecture-guide.md section 19. They are not
+ * The isolation tests (INV-01, INV-02, INV-09, INV-12). They are not
  * optional, and they exist from the delivery that makes them possible.
  *
  *  - two subscriptions, A trying to read B, expecting 404 and not 403;
@@ -54,7 +54,7 @@ async function onboard(
   expect(approved.status).toBe(204);
 
   // From here on the token carries the subscription claim, as the Cognito
-  // pre-token-generation trigger injects it in production (section 8.5).
+  // pre-token-generation trigger injects it in production (INV-02).
   app.verifier.issue(input.token, {
     sub: input.sub,
     email: input.email,

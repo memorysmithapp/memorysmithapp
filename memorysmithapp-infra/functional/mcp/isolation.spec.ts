@@ -1,5 +1,5 @@
 /**
- * Isolation through the connector (architecture-guide.md, rules 1, 2 and 9).
+ * Isolation through the connector (INV-01, INV-02, INV-09).
  *
  * The subscription of a connector is fixed when consent is given, and no
  * argument of any tool moves it. A notebook of another subscription is not

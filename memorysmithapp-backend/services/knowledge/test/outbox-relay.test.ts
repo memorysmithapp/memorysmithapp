@@ -64,7 +64,7 @@ describe('OutboxRelay', () => {
     expect(entries[0]?.['EventBusName']).toBe('mv-events');
     const detail = JSON.parse(String(entries[0]?.['Detail'])) as Record<string, unknown>;
     // The complete ContentRef travels with the event, which is what makes the
-    // audit trail a sufficient recovery index (section 9.2).
+    // audit trail a sufficient recovery index (INV-04).
     expect(detail['contentRef']).toMatchObject({ versionId: 'v1', bytes: 12 });
   });
 
@@ -251,7 +251,7 @@ describe('OutboxRelay', () => {
       expect(added(usage)).toEqual({ storedBytes: 12, noteCount: 1, noteBytes: 12, revisions: 1 });
       expect(added(updateOf(writes, `NBUSAGE#${NOTEBOOK}`))).toEqual({ notes: 1, bytes: 12 });
       // Nothing of it touches the notebook's own partition beyond the counters
-      // that were already there, and never its META item (rule 10).
+      // that were already there, and never its META item (INV-10).
       expect(
         writes.some((write) => (write['Update']?.['Key'] as { SK?: string })?.SK === 'META'),
       ).toBe(false);

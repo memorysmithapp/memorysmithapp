@@ -1,8 +1,8 @@
 /**
- * Notebook use cases (architecture-guide.md, section 14.1).
+ * Notebook use cases.
  *
  * FIXED RULE, NO EXCEPTION: every Knowledge use case loads the notebook and calls
- * policy.require BEFORE anything else (section 14.2). The three inputs of that
+ * policy.require BEFORE anything else (INV-09). The three inputs of that
  * decision arrive at no extra cost, because the ceilings came back in the
  * same Query that loaded the notebook.
  */
@@ -101,11 +101,12 @@ export class CreateNotebook {
     if (!description.ok) return description;
 
     /**
-     * Idempotency, the same shape create_note already has (RN-AGT-004): the
-     * slug is the address of the notebook, so a second call with the same name
-     * finds the first notebook instead of creating a twin nobody can reach. The
-     * transaction carries the guard too, which is what settles a race; this
-     * read is what turns the race into a good answer when there is none.
+     * Idempotency, the same shape create_note already has (RN-AGT-024,
+     * RN-KNW-032): the slug is the address of the notebook, so a second call
+     * with the same name finds the first notebook instead of creating a twin
+     * nobody can reach. The transaction carries the guard too, which is what
+     * settles a race; this read is what turns the race into a good answer when
+     * there is none.
      */
     const slug = Slug.from(name.value.value);
     if (!slug.ok) return slug;
@@ -187,7 +188,7 @@ export class RenameNotebook {
     name: string;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    // Renaming and deleting a notebook belong to the OWNER (software-vision 5.2).
+    // Renaming and deleting a notebook belong to the OWNER.
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'administer');
     if (!notebook.ok) return notebook;
 
@@ -222,7 +223,7 @@ export class RenameNotebook {
  * its notes, its Templates and its Guidance leave every listing at once, and
  * what is left of them is purged in the background (RN-KNW-047). It is an
  * OWNER decision, like renaming, because it takes the whole notebook out of
- * reach at once and nothing brings it back (software-vision.md 5.2).
+ * reach at once and nothing brings it back.
  */
 export class DeleteNotebook {
   constructor(private readonly deps: NotebookDependencies) {}
@@ -244,7 +245,7 @@ export class DeleteNotebook {
 }
 
 /**
- * Writes the content FIRST and the pointer second (section 10.5). If the
+ * Writes the content FIRST and the pointer second (ADR-008). If the
  * transaction fails, an unreferenced blob is left in S3: invisible, harmless,
  * collected by the weekly orphan job. The reverse order would produce a
  * pointer to content that does not exist, in the middle of the hot path.
@@ -435,6 +436,28 @@ export class ClearNotebookRoleLimit {
 
     const saved = await this.deps.notebooks.save(notebook.value);
     return saved.ok ? ok() : err(saved.error);
+  }
+}
+
+/**
+ * What removing a member of the subscription leaves behind here: their ceiling
+ * in every notebook (RN-ACC-014, #332). Access decided the removal, under the
+ * owner's authority, so nothing here asks again. Each notebook is read whole,
+ * because its ceilings come with the notebook and not with the listing.
+ */
+export class ClearMemberCeilings {
+  constructor(private readonly deps: Pick<NotebookDependencies, 'notebooks'>) {}
+
+  async execute(input: { userId: UserId; by: Authorship }): Promise<Result<void, DomainError>> {
+    for (const listed of await this.deps.notebooks.listAll()) {
+      const notebook = await this.deps.notebooks.findById(listed.id, { for: 'write' });
+      if (!notebook?.hasLimitFor(input.userId)) continue;
+      const cleared = notebook.clearRoleLimit(input.userId, input.by);
+      if (!cleared.ok) return cleared;
+      const saved = await this.deps.notebooks.save(notebook);
+      if (!saved.ok) return err(saved.error);
+    }
+    return ok();
   }
 }
 

@@ -6,7 +6,7 @@
  * environment variable is stored in plaintext on the function configuration and
  * in the CloudFormation template, so anyone able to describe either can read
  * it. The function is given only the secret's identifier and reads the value
- * itself (architecture-guide.md, section 13.3).
+ * itself (ADR-009).
  *
  * This file deliberately knows nothing about AWS. The Secrets Manager adapter
  * lives in secrets.aws.ts, so the HTTP surface can be tested without the SDK.

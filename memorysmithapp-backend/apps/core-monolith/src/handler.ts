@@ -17,6 +17,7 @@ import {
   DomainError,
   NoteId,
   NotebookId,
+  ok,
   type SubscriptionContext,
   type SubscriptionId,
 } from '@memorysmithapp/kernel';
@@ -58,6 +59,7 @@ import type {
   KnowledgeUseCases,
 } from '@memorysmithapp/svc-knowledge/adapters/http';
 import {
+  ClearMemberCeilings,
   ClearNotebookRoleLimit,
   CreateNotebook,
   DeleteGuidance,
@@ -235,7 +237,7 @@ const connectorClientId = required('CONNECTOR_CLIENT_ID');
 /**
  * Whether API Gateway authorized this request with IAM. Only a route behind the
  * IAM authorizer carries `authorizer.iam`, and only a principal allowed to
- * invoke that route gets through to carry one (section 14.1).
+ * invoke that route gets through to carry one.
  */
 function signedWithIam(c: Context): boolean {
   const env = c.env as
@@ -312,7 +314,14 @@ const accessUseCases: AccessUseCases = {
   changeMemberRole: (request) => new ChangeMemberRole(scopedOrThrow(request).subscriptions),
   removeMember: (request) => {
     const scoped = scopedOrThrow(request);
-    return new RemoveMember(scoped.subscriptions, buildAccess(infra, request.context).links);
+    const context = request.context;
+    return new RemoveMember(scoped.subscriptions, buildAccess(infra, context).links, {
+      // The ceilings of a member live in Knowledge (RN-ACC-014, #332).
+      clearFor: (user, by) =>
+        context
+          ? new ClearMemberCeilings(buildKnowledge(infra, context)).execute({ userId: user, by })
+          : Promise.resolve(ok()),
+    });
   },
   transferOwnership: (request) => {
     const scoped = scopedOrThrow(request);
@@ -619,7 +628,7 @@ function discoveryFor(context: SubscriptionContext) {
     structure: built.structure,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
     /**
-     * One line per search, in the logs of the function (RN-DSC-027). A notebook
+     * One line per search, in the logs of the function (ADR-012). A notebook
      * has no ceiling of notes, and this is what says when the scan stops being
      * affordable: a query over the log group finds the notebooks whose search
      * reads the most.
@@ -642,7 +651,7 @@ function discoveryFor(context: SubscriptionContext) {
 const app = createApp({
   deployment: deploymentFromVariables(process.env),
   verifier,
-  // A token of the proxy's app client is an agent's, and its line says so (section 17).
+  // A token of the proxy's app client is an agent's, and its line says so.
   connectorClientId,
   connectorBindings: {
     verifier,
@@ -685,7 +694,7 @@ const app = createApp({
       ctx: resolved.value,
       subscription: context,
       // The person, and the connector the proxy bound this token to when the
-      // token is the proxy's (RN-AGT-001, section 12.1).
+      // token is the proxy's (INV-07, RN-AGT-001).
       authorship: await new ResolveAuthorship(scoped.connectors, connectorClientId).execute({
         user: context.userId,
         credential: request.credential,

@@ -1,7 +1,7 @@
 /**
- * What the onboarding command reads and how it calls the product
- * (architecture-guide.md, section 20). The calls to Cognito and to a live API
- * are the environment's; what decides what gets written is here.
+ * What the onboarding command reads and how it calls the product. The calls to
+ * Cognito and to a live API are the environment's; what decides what gets
+ * written is here.
  */
 
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';

@@ -1,8 +1,7 @@
 /**
  * Outbox items of mv-access. Same shape as the Knowledge outbox, because the
  * relay that drains them is the same mechanism: state change and publication
- * are atomic, or "wrote but did not publish" happens silently
- * (architecture-guide.md, section 10.4).
+ * are atomic, or "wrote but did not publish" happens silently (ADR-006).
  */
 
 import type { DomainEvent } from '@memorysmithapp/kernel';
@@ -13,7 +12,7 @@ export type Item = Record<string, unknown>;
 const OUTBOX_TTL_DAYS = 7;
 
 export function outboxItemFor(event: DomainEvent, partition: string): Item {
-  // The request that caused the event, as the Knowledge outbox carries it (section 17).
+  // The request that caused the event, as the Knowledge outbox carries it.
   const correlationId = currentCorrelationId();
   return {
     PK: partition,
@@ -44,6 +43,6 @@ export interface OutboxSink {
 
 export const NULL_OUTBOX_SINK: OutboxSink = {
   async published(): Promise<void> {
-    // The DynamoDB stream carries them from here (section 10.4).
+    // The DynamoDB stream carries them from here (ADR-006).
   },
 };

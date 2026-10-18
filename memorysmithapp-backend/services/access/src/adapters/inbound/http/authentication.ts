@@ -1,7 +1,7 @@
 /**
  * Authentication middleware: where the token becomes a SubscriptionContext,
  * and the only place in the whole backend where that conversion happens
- * (RN-SUB-002, architecture-guide.md section 8.2).
+ * (INV-01, RN-SUB-002).
  *
  * Two shapes of session come out of here:
  *
@@ -9,7 +9,7 @@
  *  - a PLATFORM session, which carries no such claim and therefore yields
  *    NULL. Under it, no subscription-scoped repository is constructible, so no
  *    workspace, notebook or note can be reached. The impossibility is the
- *    guarantee; a role check would not be (RN-SUB-016, section 8.4).
+ *    guarantee; a role check would not be (INV-12, RN-SUB-016).
  */
 
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
@@ -94,7 +94,7 @@ export async function authenticate(
 /**
  * Verifies a Cognito access token against the JWKS of the user pool. The
  * subscription_id and subscription_status claims are injected by the
- * pre-token-generation trigger (section 8.5), so they arrive already signed.
+ * pre-token-generation trigger (INV-02), so they arrive already signed.
  */
 export class CognitoTokenVerifier implements TokenVerifier {
   private readonly jwks: ReturnType<typeof createRemoteJWKSet>;

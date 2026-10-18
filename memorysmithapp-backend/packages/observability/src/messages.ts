@@ -1,7 +1,7 @@
 /**
  * The correlation id on a message of a queue: a job the API hands a worker
  * carries the id of the request that asked for it as a message attribute, so
- * the body of the job stays what its contract says (section 17).
+ * the body of the job stays what its contract says.
  *
  * Plain shapes rather than the types of the SDK, which this package does not
  * import: what the SQS client sends and what the Lambda event delivers.

@@ -1,7 +1,7 @@
 /**
  * Network stack: the hosted zone of the environment, its certificates and,
  * where the environment carries alarms, the topic they notify and, in
- * production, the cost budgets of the account (architecture-guide.md, section 17).
+ * production, the cost budgets of the account.
  *
  * The hosted zone already exists, created by hand once per environment, because
  * its name servers are drawn when it is created and recreating it would break
@@ -11,11 +11,12 @@
 
 import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import { ComparisonOperator, Metric, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import type { EnvironmentConfig } from '../config/environments.js';
-import { AlarmTopic } from '../constructs/alarms.js';
+import { AlarmTopic, mandatoryAlarm } from '../constructs/alarms.js';
 import { CostBudgets } from '../constructs/budgets.js';
 
 export interface NetworkStackProps extends StackProps {
@@ -78,7 +79,7 @@ export class NetworkStack extends Stack {
      * so the envelope is the domain's too. It lives in this stack, the first a
      * delivery deploys, because Cognito sends only from a verified identity and a
      * new one verifies minutes after its records exist: the delivery waits for it
-     * before the identity stack, the way it waits for DNS (section 17).
+     * before the identity stack, the way it waits for DNS.
      */
     this.senderAddress = `no-reply@${zoneName}`;
     this.sendingIdentity = new ses.EmailIdentity(this, 'SendingIdentity', {
@@ -87,7 +88,7 @@ export class NetworkStack extends Stack {
     });
 
     /**
-     * The zones below this one, delegated here, in code (section 17). The name
+     * The zones below this one, delegated here, in code. The name
      * servers are the ones Route 53 drew when that zone was created, written in
      * cdk.json.
      *
@@ -112,9 +113,9 @@ export class NetworkStack extends Stack {
       });
     });
 
-    // One certificate per distribution, with SANs covering its hosts
-    // (section 17). Public ACM certificates cost nothing, and they renew
-    // themselves, which is why none of them is ever handled by hand.
+    // One certificate per distribution, with SANs covering its hosts. Public
+    // ACM certificates cost nothing, and they renew themselves, which is why
+    // none of them is ever handled by hand.
     this.mcpCertificate = new acm.Certificate(this, 'McpCertificate', {
       domainName: this.mcpDomainName,
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
@@ -158,6 +159,25 @@ export class NetworkStack extends Stack {
      */
     if (props.environment.alarms) {
       new AlarmTopic(this, 'Alarms', { environment: props.environment });
+
+      /**
+       * Throttles of the whole account, in place of one alarm per function
+       * (#318): no function reserves concurrency, so a throttle anywhere is the
+       * account at its limit, and that is one fact, not twelve.
+       */
+      mandatoryAlarm(this, 'AccountThrottles', {
+        alarmDescription: 'Lambda: throttled invocations in the account',
+        metric: new Metric({
+          namespace: 'AWS/Lambda',
+          metricName: 'Throttles',
+          statistic: 'Sum',
+          period: Duration.minutes(5),
+        }),
+        threshold: 1,
+        evaluationPeriods: 1,
+        comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: TreatMissingData.NOT_BREACHING,
+      });
     }
 
     /**

@@ -76,7 +76,7 @@ async function print(job: PrintJob): Promise<void> {
     else {
       // Why there is no file: the person is told the reason, and the line of
       // the job keeps its code. What the page said on the way is not written:
-      // a message of a page may quote the note it was drawing (section 17).
+      // a message of a page may quote the note it was drawing.
       annotate(refusedWith(rendered.failure));
       await output.fail(job.subscriptionId, job.printId, rendered.failure);
     }
@@ -107,7 +107,7 @@ export async function handler(event: QueueEvent): Promise<void> {
     // A print carries no kind: it was the only job this queue knew.
     const isPreview = 'kind' in job && job.kind === 'preview';
     // The line of the job: its kind and its subscription, never the token it
-    // carries, the note it draws or the choices it was asked with (section 17).
+    // carries, the note it draws or the choices it was asked with.
     await observe(
       {
         operation: isPreview ? 'preview' : 'print',

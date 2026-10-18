@@ -1,6 +1,5 @@
 /**
- * How long each operation took, recorded and never gated
- * (architecture-guide.md, section 18).
+ * How long each operation took, recorded and never gated.
  *
  * A functional run is not a load test: it runs a few calls of each operation,
  * on a cold environment, from one region. Its numbers say where to look, and a

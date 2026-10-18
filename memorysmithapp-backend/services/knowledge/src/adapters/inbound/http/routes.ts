@@ -1,10 +1,10 @@
 /**
- * HTTP surface of svc-knowledge (architecture-guide.md, section 14.1).
+ * HTTP surface of svc-knowledge.
  * Consumed by the UI; the public contract is the MCP surface.
  *
  * No route receives a subscriptionId. The RequestContext on the request was
  * injected by the authorizer, and each use case authorizes against the notebook
- * it just loaded, which is stage 2 of section 14.2.
+ * it just loaded, which is stage 2 of the authorization (INV-09).
  */
 
 import { Hono, type Context } from 'hono';
@@ -230,7 +230,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     );
   });
 
-  /** The composed document the agent reads (software-vision.md, 9.2). */
+  /** The composed document the agent reads. */
   app.get('/notebooks/:v/context', async (c) => {
     const request = c.get('knowledge');
     const notebookId = parseNotebookId(c.req.param('v'));

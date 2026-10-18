@@ -1,8 +1,8 @@
 /**
- * Memberships (software-vision.md, section 5.4).
+ * Memberships.
  *
  * Members belong to the SUBSCRIPTION. There is no level between it and the
- * notebook (section 4.3), so a member reaches every notebook of the subscription
+ * notebook, so a member reaches every notebook of the subscription
  * with the role they hold, down to whatever ceiling each notebook sets on them
  * (RN-ACC-011).
  *
@@ -26,7 +26,11 @@ import {
 } from '@memorysmithapp/kernel';
 import type { Subscription } from '../domain/subscription/Subscription.js';
 import { Email } from '../domain/values.js';
-import type { SubscriptionRepository, UserLinkRepository } from '../domain/ports/index.js';
+import type {
+  MemberCeilings,
+  SubscriptionRepository,
+  UserLinkRepository,
+} from '../domain/ports/index.js';
 
 /**
  * Loads the subscription and confirms the caller holds it, in one step, so no
@@ -89,6 +93,7 @@ export class RemoveMember {
   constructor(
     private readonly subscriptions: SubscriptionRepository,
     private readonly links: UserLinkRepository,
+    private readonly ceilings: MemberCeilings,
   ) {}
 
   async execute(input: {
@@ -109,6 +114,12 @@ export class RemoveMember {
 
     const removed = owned.value.removeMember(input.userId, input.by);
     if (!removed.ok) return removed;
+
+    // RN-ACC-014: their ceilings go with them, and BEFORE the removal is
+    // saved, so a failure leaves the member where they were and the removal
+    // can simply be asked again (#332).
+    const cleared = await this.ceilings.clearFor(input.userId, input.by);
+    if (!cleared.ok) return cleared;
 
     const saved = await this.subscriptions.save(owned.value);
     if (!saved.ok) return err(saved.error);

@@ -1,5 +1,5 @@
 /**
- * The vertical slice of delivery 6 (architecture-guide.md, section 25), end to
+ * The vertical slice of delivery 6, end to
  * end over HTTP:
  *
  *   - reordering a folder is ONE write on the folder item;
@@ -660,7 +660,7 @@ describe('Note lifecycle', () => {
       404,
     );
 
-    // The slug came back to the notebook (RN-KNW-030), and restoring works.
+    // The folder takes a new note after the deletion, which nothing restores (RN-KNW-029).
     const reused = await call(`/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',
       body: { folderId, content: '# Lei 14.133\n\nOutra nota' },
@@ -701,7 +701,7 @@ describe('Events reach the outbox for every state change', () => {
     for (const event of harness.events.published) {
       expect(event.authorship.user.value).toBeTruthy();
     }
-    // And the content events carry the complete ref (RN-AUD-003).
+    // And the content events carry the complete ref (RN-KNW-027).
     const noteCreated = harness.events.ofType('NoteCreated')[0];
     expect(noteCreated?.contentRef?.sha256).toHaveLength(64);
     expect(noteCreated?.contentRef?.bytes).toBeGreaterThan(0);

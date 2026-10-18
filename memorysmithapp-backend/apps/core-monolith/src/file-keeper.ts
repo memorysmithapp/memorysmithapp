@@ -24,7 +24,7 @@ export class KnowledgeFileKeeper implements FileKeeper {
     mimeType: string;
   }): Promise<Result<{ notebookName: string; mimeType: string }, DomainError>> {
     const notebookId = NotebookId.create(input.notebookId);
-    // An identifier that is not one names nothing this caller may see (rule 9).
+    // An identifier that is not one names nothing this caller may see (INV-09).
     if (!notebookId.ok) return { ok: false, error: DomainError.notFound('Notebook not found') };
     return this.useCases.destination.execute({
       ctx: this.ctx,

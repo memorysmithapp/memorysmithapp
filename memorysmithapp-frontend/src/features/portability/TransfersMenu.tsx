@@ -9,6 +9,8 @@ import { formatBytes } from '../../shared/components/StorageBar';
 import { intlLocale } from '../../i18n/intl-locale';
 import { KindMark, TransferState, TransferTitle } from './TransferParts';
 import { TransferActions, TransferDialogs, type Starting } from './StartTransfer';
+import { ActionWord } from '../../shared/components/ActionWord';
+import { ChevronRightIcon, DownloadIcon, UploadIcon } from '../../shared/components/icons';
 
 /**
  * Transfers, beside the user menu (RN-PRT-019, RN-PRT-020).
@@ -194,7 +196,7 @@ function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: (
             void saveArchive(transfer.transferId);
           }}
         >
-          {t('transfers.download')}
+          <ActionWord icon={<DownloadIcon />} word={t('transfers.download')} />
         </button>
       )}
       {transfer.status === 'ready' &&
@@ -205,14 +207,14 @@ function TransferLine({ transfer, onClose }: { transfer: TransferDto; onClose: (
             to={notebookAddress(transfer.notebookId)}
             onClick={onClose}
           >
-            {t('transfers.open')}
+            <ActionWord icon={<ChevronRightIcon />} word={t('transfers.open')} />
           </Link>
         )}
       {/* A file waiting for the person is given on the page, where there is
           room to choose, drag or paste it (#253). */}
       {isWaitingRequest(transfer) && (
         <Link className="button is-primary is-small" to="/transfers" onClick={onClose}>
-          {t('transfers.fulfil')}
+          <ActionWord icon={<UploadIcon />} word={t('transfers.fulfil')} />
         </Link>
       )}
     </div>

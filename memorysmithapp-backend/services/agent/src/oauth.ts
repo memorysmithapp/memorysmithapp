@@ -1,6 +1,5 @@
 /**
- * OAuth 2.1 discovery documents served by the proxy
- * (architecture-guide.md, section 13.3, items 1, 2 and 5).
+ * OAuth 2.1 discovery documents served by the proxy (ADR-009).
  *
  * The Protected Resource Metadata points at the proxy itself as the
  * authorization server; the RFC 8414 document advertises CIMD support and

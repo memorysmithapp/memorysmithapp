@@ -1,10 +1,10 @@
 /**
  * The core deployable: the modular monolith behind api.memorysmith.app, plus
- * the outbox relay that drains its stream (architecture-guide.md, 17 and 24).
+ * the outbox relay that drains its stream (ADR-005).
  *
  * Splitting into six deployables later means instantiating six of these and
  * changing the composition root; the tables, the bucket and the bus do not
- * move (section 24).
+ * move (ADR-005).
  */
 
 import { Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
@@ -73,15 +73,14 @@ const chromiumBinaries = join(
 
 /**
  * Where the connector proxy records which connector a token belongs to
- * (architecture-guide.md, section 13.3). The one route of the API authorized
- * by IAM instead of by a token: no session calls it, and only the role of
- * svc-agent may invoke it.
+ * (ADR-009). The one route of the API authorized by IAM instead of by a token:
+ * no session calls it, and only the role of svc-agent may invoke it.
  */
 export const CONNECTOR_BINDING_ROUTE = '/access/connector-bindings';
 
 /**
  * How long a deletion waits before the purge walks what it invalidated. It is
- * far longer than the window of section 10.2, which is the point: a note
+ * far longer than the window ADR-003 leaves open, which is the point: a note
  * written into a folder at the instant of its removal has to be in the table
  * before the walk, or its bytes would be the one thing a deletion left behind.
  */
@@ -179,6 +178,7 @@ export class ApiStack extends Stack {
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
+      latencyAlarm: true,
       entry: join(backend, 'apps', 'core-monolith', 'src', 'handler.ts'),
       description: 'MemorySmith core API: access, knowledge, discovery and audit reads.',
       environment,
@@ -220,7 +220,7 @@ export class ApiStack extends Stack {
      * versioned bucket that means deleting a VERSION. It is scoped to
      * `exports/` and to nothing else, so no revision of a note is within its
      * reach: the one principal allowed to destroy one of those is the purge
-     * worker below (rule 8). The version is the one the worker recorded when
+     * worker below (INV-08). The version is the one the worker recorded when
      * it wrote the archive, so nothing is listed to find it.
      */
     api.function.addToRolePolicy(
@@ -296,7 +296,7 @@ export class ApiStack extends Stack {
     props.data.eventBus.grantPutEventsTo(accessRelay.function);
 
     // The depth of the relay dead-letter queue is one of the four mandatory
-    // alarms (section 17): a message sitting there is an event that never
+    // alarms: a message sitting there is an event that never
     // reached the trail.
     mandatoryAlarm(this, 'RelayDeadLetterDepth', {
       alarmDescription: 'Outbox relay: messages in the dead-letter queue',
@@ -312,7 +312,7 @@ export class ApiStack extends Stack {
     /**
      * What a deletion invalidated stops existing (RN-KNW-047). The queue is
      * fed by the deletion events themselves and delivers with a DELAY, which
-     * is what closes the window of section 10.2: a note that landed in a
+     * is what closes the window ADR-003 leaves open: a note that landed in a
      * folder at the instant of its removal is already in the table when the
      * worker walks it.
      */
@@ -361,7 +361,6 @@ export class ApiStack extends Stack {
       // the ceiling is what one message should hold open and not what a
       // notebook holds.
       timeout: Duration.minutes(15),
-      latencyAlarm: false,
     });
 
     // One message at a time: each carries a whole deletion, and a batch would
@@ -393,7 +392,7 @@ export class ApiStack extends Stack {
     );
 
     /**
-     * And the one principal that may remove an entry of the trail (rule 6,
+     * And the one principal that may remove an entry of the trail (INV-06,
      * RN-AUD-011). It is the same worker for the same reason: what destroys is
      * one thing, reached through a port of its own. Every other role of the
      * system keeps its explicit Deny.
@@ -431,7 +430,6 @@ export class ApiStack extends Stack {
       // store: the ceiling is what one notebook should hold open.
       timeout: Duration.minutes(15),
       memorySize: 1024,
-      latencyAlarm: false,
     });
 
     // One at a time: each message is a whole notebook, and a batch would make
@@ -456,7 +454,7 @@ export class ApiStack extends Stack {
      * It is a delete of the current object under `imports/` and nowhere else,
      * and never of a version: on a versioned bucket it leaves a marker, the
      * lifecycle rule of the tag expires what is left, and no revision of a
-     * note is within its reach (rule 8).
+     * note is within its reach (INV-08).
      */
     transfers.function.addToRolePolicy(
       new PolicyStatement({
@@ -469,7 +467,7 @@ export class ApiStack extends Stack {
      * the history of a notebook and an import writes one back, keeping the
      * person and the instant each entry carried (RN-PRT-022, RN-PRT-023).
      * Altering an entry is denied here as everywhere, and removing one belongs
-     * to the purge alone (rule 6).
+     * to the purge alone (INV-06).
      */
     props.data.auditTable.grantReadAndAppend(transfers.function);
 
@@ -553,19 +551,19 @@ export class ApiStack extends Stack {
           CorsHttpMethod.OPTIONS,
         ],
         allowHeaders: ['authorization', 'content-type'],
-        // What answered, readable by the interface and by a test (section 23.3),
-        // and the id its log lines are found by (section 17).
+        // What answered, readable by the interface and by a test,
+        // and the id its log lines are found by.
         exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version', 'x-correlation-id'],
         maxAge: Duration.hours(1),
       },
       defaultDomainMapping: { domainName: domain },
     });
 
-    // One line per request the gateway answered, its refusals included (section 17).
+    // One line per request the gateway answered, its refusals included.
     accessLogOf(this, 'ApiAccessLogs', this.httpApi);
 
     // The gateway refuses an unsigned request before it reaches the function,
-    // and the function checks that the gateway did (section 14.1).
+    // and the function checks that the gateway did.
     this.httpApi.addRoutes({
       path: CONNECTOR_BINDING_ROUTE,
       methods: [HttpMethod.POST],

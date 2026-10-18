@@ -1,6 +1,5 @@
 /**
- * DynamoNoteRepository: form B of the transaction, the note mutation
- * (architecture-guide.md, section 10.2).
+ * DynamoNoteRepository: form B of the transaction, the note mutation (INV-10).
  *
  * One TransactWriteItems carries:
  *   1. the NOTE item with ConditionExpression version = :expected, so the lock
@@ -181,7 +180,7 @@ export class DynamoNoteRepository implements NoteRepository {
 
   /**
    * The cross-notebook move: the only operation that writes into two notebook
-   * partitions in one transaction (section 9.2). Both items are the note's own,
+   * partitions in one transaction (INV-04). Both items are the note's own,
    * the one it leaves and the one it becomes, so it locks no notebook and
    * includes nothing another note transaction could include.
    */

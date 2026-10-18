@@ -1,9 +1,9 @@
 /**
  * The version an environment serves, and what a release has to agree on before
- * production takes it (architecture-guide.md, sections 20 and 23).
+ * production takes it.
  *
- * Pure functions over text the repository already holds: `CLAUDE.md`, the
- * manifests and `CHANGELOG.md`. The commands around them only read files and
+ * Pure functions over text the repository already holds: the manifests, the
+ * root one first, and `CHANGELOG.md`. The commands around them only read files and
  * ask git, so what decides is testable without either.
  */
 
@@ -45,10 +45,14 @@ export function servedVersion(input: {
     : `${input.packageVersion}-dev.${input.commitsAhead}+${sha}`;
 }
 
-/** The canonical version, from `CLAUDE.md` § Project identity → Base version. */
-export function baseVersionOf(claudeMd: string): string | null {
-  const found = /^### Base version\s*\n\s*(\S+)/m.exec(claudeMd);
-  return found?.[1] ?? null;
+/** The canonical version: the `version` field of the root `package.json`, given as its text. */
+export function baseVersionOf(rootManifest: string): string | null {
+  try {
+    const { version } = JSON.parse(rootManifest) as { version?: unknown };
+    return typeof version === 'string' ? version : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The notes of one version, as `CHANGELOG.md` writes them, or null when there is no section. */
@@ -75,7 +79,7 @@ export function changelogSection(changelog: string, version: string): string | n
  * deploy different bytes under a number that already names others.
  */
 export function releaseProblems(input: {
-  readonly claudeMd: string;
+  readonly rootManifest: string;
   readonly manifests: ReadonlyArray<{
     readonly path: string;
     readonly version: string | undefined;
@@ -84,16 +88,17 @@ export function releaseProblems(input: {
   readonly tagExists: boolean;
 }): string[] {
   const problems: string[] = [];
-  const base = baseVersionOf(input.claudeMd);
+  const base = baseVersionOf(input.rootManifest);
   if (!base || !SEMVER.test(base)) {
-    return ['CLAUDE.md declares no Base version of the form X.Y.Z.'];
+    return ['package.json declares no version of the form X.Y.Z.'];
   }
 
   for (const manifest of input.manifests) {
-    // A manifest that declares no version claims none: the specification in
-    // docs/markdown-spec follows the version of the product and has no field.
+    // A manifest that declares no version claims none, and follows the product.
     if (manifest.version !== undefined && manifest.version !== base) {
-      problems.push(`${manifest.path} is at ${manifest.version}, and CLAUDE.md declares ${base}.`);
+      problems.push(
+        `${manifest.path} is at ${manifest.version}, and package.json declares ${base}.`,
+      );
     }
   }
   if (

@@ -1,5 +1,5 @@
 # Delivers staging from the branch chosen when it is started, by hand
-# (architecture-guide.md, section 20; development-process.md, section 8.1).
+# (docs/SDLC.md).
 # It runs `deliver` exactly as a workstation did, and then, as chosen, the
 # adapter tests against the tables and the bucket of staging, the functional
 # suite, and the maintenance jobs a version may need.

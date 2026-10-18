@@ -22,6 +22,8 @@ import {
   type Species,
   type TwinNames,
 } from './import-selection';
+import { ActionWord } from '../../shared/components/ActionWord';
+import { PencilIcon, SearchIcon } from '../../shared/components/icons';
 
 /**
  * What a transfer carries, chosen the same way on both sides (#156, #161).
@@ -613,7 +615,7 @@ function ConflictsPanel({
               </span>
               {onFixName && (
                 <button type="button" className="button is-quiet is-small" onClick={onFixName}>
-                  {t('portability.changeName')}
+                  <ActionWord icon={<PencilIcon />} word={t('portability.changeName')} />
                 </button>
               )}
             </li>
@@ -633,7 +635,7 @@ function ConflictsPanel({
                   className="button is-quiet is-small"
                   onClick={() => onFindNote(twin.name)}
                 >
-                  {t('portability.findTwin')}
+                  <ActionWord icon={<SearchIcon />} word={t('portability.findTwin')} />
                 </button>
               )}
             </li>

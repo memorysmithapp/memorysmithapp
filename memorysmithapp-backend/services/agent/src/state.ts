@@ -1,6 +1,5 @@
 /**
- * HMAC-signed values the proxy hands to a client and reads back
- * (architecture-guide.md, section 13.3, items 3 and 4).
+ * HMAC-signed values the proxy hands to a client and reads back (ADR-009).
  *
  * The proxy is stateless: everything needed to finish a leg travels inside what
  * the client carries, signed so it cannot be forged, and stamped so it expires.

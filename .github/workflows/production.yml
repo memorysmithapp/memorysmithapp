@@ -1,7 +1,6 @@
 # Delivers production on every merge to main that touches what is deployed
-# (architecture-guide.md, section 20; development-process.md, section 9.1),
-# and writes the tag and the GitHub Release of the version once production
-# serves it. A merge of documentation or governance starts nothing.
+# (docs/SDLC.md), and writes the tag and the GitHub Release of the version once
+# production serves it. A merge of documentation or governance starts nothing.
 name: Production
 
 on:
@@ -59,6 +58,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm quality
+      - run: node --test scripts/*.test.mjs
       - run: pnpm lint
       - run: pnpm format
       - run: pnpm typecheck
@@ -92,7 +93,7 @@ jobs:
           role-duration-seconds: 7200
       - name: Deliver
         env:
-          # Who the alarms of production notify (section 17, #267): a variable of
+          # Who the alarms of production notify (#267): a variable of
           # this environment, never a line of cdk.json, because the repository is
           # public. Without it the delivery refuses before it builds anything.
           ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}

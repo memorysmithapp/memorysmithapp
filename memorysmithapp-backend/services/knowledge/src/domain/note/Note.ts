@@ -6,12 +6,12 @@
  * with notes cannot be removed without a policy" is eventual consistency (via
  * event), not a transactional invariant. It is the most important modelling
  * decision in the system, because it is what keeps note writing cheap and
- * concurrent (architecture-guide.md, section 6.2).
+ * concurrent (ADR-003).
  *
  * Two details follow from it:
- *  - notebookId is NOT readonly: moving between notebooks is a first-class operation
- *    and the NoteId is preserved (RN-KNW-023), which is what keeps the audit
- *    timeline intact, since its key is by subject and not by notebook.
+ *  - notebookId is NOT readonly: the use case accepts a move between notebooks,
+ *    which no client offers, and a move preserves the NoteId (RN-KNW-057), which
+ *    keeps the audit timeline intact, since its key is by subject and not by notebook.
  *  - replaceBody takes an ALREADY written ContentRef: whoever talks to S3 is
  *    the use case, never the aggregate.
  *
@@ -244,7 +244,7 @@ export class Note {
 
   /**
    * Moving preserves the NoteId, and with it the whole timeline of the note
-   * (RN-KNW-023). Implementing it as delete plus create would lose the history
+   * (RN-KNW-057). Implementing it as delete plus create would lose the history
    * exactly where it matters.
    *
    * A destination folder that already holds the name refuses the move

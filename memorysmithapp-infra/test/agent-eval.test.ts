@@ -1,5 +1,5 @@
 /**
- * The blind agent evaluation (architecture-guide.md, section 19). What these
+ * The blind agent evaluation. What these
  * cases protect is the instrument itself: that a transcript is read as it was
  * printed, that a leak is told from what the server sent, that a skill without a
  * case stops a round, that each check decides what it says it decides, and that

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { beginSignIn } from '../../shared/auth/oauth';
 import { authConfig, type WithoutSubscription } from '../../shared/auth/session';
+import { ActionWord } from '../../shared/components/ActionWord';
+import { SignInIcon } from '../../shared/components/icons';
 
 /**
  * Marks that this browser already handed itself over to the identity
@@ -183,7 +185,7 @@ export function LoginPage() {
               className="button is-primary is-wide"
               onClick={() => void beginSignIn(authConfig())}
             >
-              {t('auth.signIn')}
+              <ActionWord icon={<SignInIcon />} word={t('auth.signIn')} wide />
             </button>
           ) : null}
         </div>

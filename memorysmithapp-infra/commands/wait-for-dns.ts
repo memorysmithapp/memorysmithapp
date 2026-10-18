@@ -1,6 +1,5 @@
 /**
- * Waits until a name resolves an A record on the public internet
- * (architecture-guide.md, sections 17 and 20).
+ * Waits until a name resolves an A record on the public internet.
  *
  *   pnpm -C memorysmithapp-infra wait-for-dns --name stg.memorysmith.app
  *

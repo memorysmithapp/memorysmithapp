@@ -1,6 +1,6 @@
 /**
  * The edge of an HTTP API: one line per request, written when the answer is
- * known (architecture-guide.md, section 17).
+ * known.
  *
  * The correlation id is the one an upstream hop handed in its header — the
  * connector, when it calls the core on an agent's behalf — or the id API
@@ -15,6 +15,7 @@ import { routePath } from 'hono/route';
 import { errorFieldsOf, outcomeOfStatus, type Channel } from './fields.js';
 import { writeOperation } from './logger.js';
 import { CORRELATION_HEADER, annotate, correlationIdFrom, openScope, runInScope } from './scope.js';
+import { startTrace, traceAnnotationsOf } from './tracing.js';
 
 /** The id API Gateway gave this request, when the function runs behind one. */
 function gatewayRequestId(c: Context): unknown {
@@ -47,17 +48,21 @@ export function operationLog(options: OperationLogOptions = {}): MiddlewareHandl
       options.channel ? { channel: options.channel } : {},
     );
     const started = performance.now();
+    const trace = startTrace(`${c.req.method} request`);
     await runInScope(scope, next);
     const status = c.res.status;
     c.res.headers.set(CORRELATION_HEADER, scope.correlationId);
-    writeOperation({
+    const line = {
       ...scope.annotations,
       operation: scope.annotations.operation ?? routeTemplate(c),
-      outcome: status >= 500 ? 'error' : (scope.annotations.outcome ?? outcomeOfStatus(status)),
+      outcome:
+        status >= 500 ? ('error' as const) : (scope.annotations.outcome ?? outcomeOfStatus(status)),
       durationMs: performance.now() - started,
       correlationId: scope.correlationId,
       status,
-    });
+    };
+    writeOperation(line);
+    trace?.end(traceAnnotationsOf(line));
   };
 }
 

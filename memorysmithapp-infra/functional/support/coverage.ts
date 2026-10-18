@@ -1,6 +1,5 @@
 /**
- * What the functional suite has to cover, and what it declares it covers
- * (architecture-guide.md, section 19).
+ * What the functional suite has to cover, and what it declares it covers.
  *
  * A case declares what it covers in its title — `[tool:create_note]`,
  * `[route:POST /knowledge/notebooks/:v/notes]`,

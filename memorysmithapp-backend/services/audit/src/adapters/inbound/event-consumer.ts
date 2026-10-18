@@ -3,7 +3,7 @@
  *
  * It validates every envelope against its contract before anything else, on
  * this side of the bus as well as on the producing side, because an envelope
- * only one end knows is how a projection starts lying quietly (section 19).
+ * only one end knows is how a projection starts lying quietly.
  *
  * The Audit context consumes EVERY event of EVERY service, and the only thing
  * it does with them is append (RN-AUD-001).

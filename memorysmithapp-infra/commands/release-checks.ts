@@ -1,5 +1,5 @@
 /**
- * The first stage of the production pipeline (architecture-guide.md, 20).
+ * The first stage of the production pipeline.
  *
  * A merge to main that touches what is deployed becomes a release, so before
  * anything is built the version has to agree everywhere it is written and must
@@ -11,11 +11,11 @@
 import { baseVersionOf, releaseProblems } from './lib/release.js';
 import { manifests, readText, tagExists } from './lib/repository.js';
 
-const claudeMd = readText('CLAUDE.md');
-const version = baseVersionOf(claudeMd);
+const rootManifest = readText('package.json');
+const version = baseVersionOf(rootManifest);
 
 const problems = releaseProblems({
-  claudeMd,
+  rootManifest,
   manifests: manifests(),
   changelog: readText('CHANGELOG.md'),
   tagExists: version ? tagExists(`v${version}`) : false,

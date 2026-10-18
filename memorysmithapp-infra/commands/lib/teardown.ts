@@ -1,6 +1,5 @@
 /**
- * What tearing staging down deletes, in which order, and what it refuses
- * (architecture-guide.md, section 20).
+ * What tearing staging down deletes, in which order, and what it refuses.
  *
  * Nothing here calls AWS. The command does, and every question it has to answer
  * before it deletes something is answered here, where a test can ask it too.
@@ -20,6 +19,8 @@ export const DELIVERY_ORDER = [
   'Projections',
   'Agent',
   'FrontendRelease',
+  // Last: it watches what every other stack declared (#270).
+  'Observability',
 ] as const;
 
 /** The only environment that is ever torn down. */

@@ -3,11 +3,10 @@
  * specification rather than transcribed from it.
  *
  * The notation is declared once: the MemorySmith Markdown Specification,
- * carrying the same list as prose, in the document `docs/markdown-spec.md`,
- * as data (`spec.json`) and as an executable suite (`tests/conformance.json`),
- * the last two in the package this file reads them from. It has no version of its own — it follows the
- * version of the product — and a notation changes in the same commit as the
- * readers that implement it.
+ * published by `memorysmithapp-markdown` as `@memorysmithapp/markdown-spec`,
+ * as prose (`SPEC.md`), as data (`spec.json`) and as an executable suite
+ * (`tests/conformance.json`), the last two read here. Taking a new version of
+ * it is the commit that makes the readers pass it.
  *
  * That is the whole reason this file holds no list. A specification and an
  * implementation that keep separate copies of the same list drift apart on the
@@ -35,9 +34,9 @@ import conformance from '@memorysmithapp/markdown-spec/conformance.json' with { 
 
 /**
  * Who decides this notation. The first two are the sanctioned extractors of
- * `architecture-guide.md` §11.3; the third is the reading surface, which is
+ * INV-05; the third is the reading surface, which is
  * behaviour of the interface and is proved by a test of its own kind — a
- * rendering assertion cannot live in a JSON file (RN-AGT-023).
+ * rendering assertion cannot live in a JSON file.
  */
 export type NotationReader = 'links' | 'frontmatter' | 'reading-surface';
 

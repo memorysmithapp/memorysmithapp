@@ -12,7 +12,7 @@
  *    about, and they are the same whoever asks.
  *  - **The lines per notebook are about the requester**: only a notebook they
  *    may read is listed, by the same rule that answers `404` for one they may
- *    not (rule 9). A notebook deleted and waiting for its purge still holds its
+ *    not (INV-09). A notebook deleted and waiting for its purge still holds its
  *    bytes, so it stays listed until the purge ends, for whoever could read it.
  *
  * The kept exports are not here: they belong to Portability, and the

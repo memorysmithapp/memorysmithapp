@@ -742,7 +742,7 @@ describe('The connector authors the notebook, and not only its notes', () => {
   });
 
   it('passes a refusal by role through, instead of pretending it wrote', async () => {
-    // RN-AGT-006 generalized: a VIEWER is refused on every write tool, and the
+    // RN-ACC-010: a VIEWER is refused on every write tool, and the
     // refusal reaches the agent as an error with text it can act on.
     const adapter = gateways({
       knowledge: {
@@ -1166,7 +1166,7 @@ describe('The MCP transport', () => {
     const { serverInfo } = await initialize({}, undefined, 'https://memorysmith.app');
     expect(serverInfo.title).toBe('MemorySmith.app');
     expect(serverInfo.description).toBe(
-      'Structured knowledge, natively readable and writable by humans and agents.',
+      'Structured knowledge we build and keep with the AI assistants we already use every day.',
     );
     expect(serverInfo.websiteUrl).toBe('https://memorysmith.app');
     // PNG is what a client that renders icons must accept, served by the site.
@@ -1439,7 +1439,7 @@ describe('the connector hands over the Markdown the author wrote (RN-AGT-015)', 
   });
 });
 
-describe('writing guidance and template carries the revision (RN-AGT-016)', () => {
+describe('writing guidance and template carries the revision (RN-KNW-034)', () => {
   it('refuses set_guidance with no baseRevision, and says what is missing', async () => {
     const result = await gateways().call(
       'set_guidance',

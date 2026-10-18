@@ -1,6 +1,5 @@
 /**
- * The alarms reach somebody in production, and do not exist in staging
- * (architecture-guide.md, section 17; #267).
+ * The alarms reach somebody in production, and do not exist in staging (#267).
  *
  * Seventy alarms had been created with no action at all, half of them in an
  * environment nobody watches, and nothing could see it before the bill did.
@@ -46,6 +45,24 @@ describe('the alarms of production', () => {
     for (const queue of ['Relay', 'Purge', 'Transfer', 'Print', 'Projection']) {
       expect(names).toContain(`${queue}DeadLetterDepth`);
     }
+  });
+
+  /**
+   * The set, as #318 trimmed it: an alarm on errors for every function, p99
+   * only where somebody waits, and the throttles of the account once.
+   */
+  it('watch errors everywhere, p99 only on the request path, and throttles once', () => {
+    const names = alarms.map(([name]) => name);
+    const errors = names.filter((name) => /Errors/.test(name));
+    const durations = names.filter((name) => /Duration/.test(name));
+    const throttles = names.filter((name) => /Throttles/.test(name));
+    expect(errors.length).toBeGreaterThanOrEqual(12);
+    expect(durations).toHaveLength(3);
+    for (const waited of ['CoreApi', 'AgentFunction', 'PreTokenGeneration']) {
+      expect(durations.join(' ')).toContain(waited);
+    }
+    expect(throttles).toHaveLength(1);
+    expect(throttles[0]).toContain('AccountThrottles');
   });
 
   it('notify one topic, with the address of the operator subscribed to it', () => {

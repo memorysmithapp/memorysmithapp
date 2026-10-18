@@ -262,7 +262,7 @@ describe('deleting a transfer', () => {
     if (!started.ok) throw new Error('the export did not start');
 
     // Addressed under another person it is a key that does not exist, which is
-    // what makes it a 404 and never a 403 (RN-PRT-020, rule 9).
+    // what makes it a 404 and never a 403 (RN-PRT-020, INV-09).
     const deleted = await new DeleteTransfer(
       transfers,
       {

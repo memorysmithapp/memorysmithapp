@@ -1,5 +1,5 @@
 /**
- * Ports of the Discovery context (architecture-guide.md, section 11.4).
+ * Ports of the Discovery context.
  *
  * The domain here knows Edge, Depth and Facet, and never knows AWS. Every
  * projection is DERIVED (PE5): deleting and rebuilding it from the notes is a
@@ -170,7 +170,7 @@ export interface LinkGraph {
    * states and the spellings it declares, which is what a target is resolved
    * against (§5.2). A reading surface reads it to draw a link by WHAT IT
    * REACHES rather than by how many notes carry the name — an alias is read
-   * by this context and by no other (rule 5, RN-DSC-046).
+   * by this context and by no other (INV-05, RN-DSC-046).
    */
   notesOf(notebookId: string): Promise<NoteRef[]>;
   /**
@@ -270,7 +270,7 @@ export interface ContentIndex {
 }
 
 /**
- * What one scan of a notebook read (RN-DSC-027). There is no ceiling of notes
+ * What one scan of a notebook read (ADR-012). There is no ceiling of notes
  * any more, so the cost of a search grows with the notebook, and this is what
  * says when it becomes a real reason to change how the search is built.
  */

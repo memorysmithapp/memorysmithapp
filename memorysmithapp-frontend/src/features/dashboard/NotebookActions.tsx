@@ -54,6 +54,12 @@ export function NotebookActions({
   const openUploads = (transfers.data?.transfers ?? []).filter(
     (transfer) => isOpenUpload(transfer) && transfer.notebookId === notebook.id,
   ).length;
+  const keptExports = (transfers.data?.transfers ?? []).filter(
+    (transfer) =>
+      transfer.kind === 'export' &&
+      transfer.status === 'ready' &&
+      transfer.notebookId === notebook.id,
+  ).length;
 
   function exportIt() {
     setOpen(false);
@@ -162,6 +168,9 @@ export function NotebookActions({
                 }}
               />
             )}
+            {phase !== 'failed' && keptExports > 0 ? (
+              <> {t('dashboard.card.confirmExports', { count: keptExports })}</>
+            ) : null}
             {phase !== 'failed' && openUploads > 0 ? (
               <> {t('dashboard.card.confirmUploads', { count: openUploads })}</>
             ) : null}

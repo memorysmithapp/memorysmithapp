@@ -5,7 +5,7 @@
  * A folder holds zero or one, guaranteed by the key of the item and not by a
  * check the aggregate runs: the template of a folder has exactly one address.
  *
- * It names its folder the way a `Note` names its own (section 6.2), which is
+ * It names its folder the way a `Note` names its own (ADR-003), which is
  * what lets writing it be a single item write instead of a tree mutation.
  */
 

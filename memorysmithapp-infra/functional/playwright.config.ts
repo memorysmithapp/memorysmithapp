@@ -1,6 +1,5 @@
 /**
- * The functional suite of the product, against a deployed environment
- * (architecture-guide.md, section 19).
+ * The functional suite of the product, against a deployed environment.
  *
  *   FUNCTIONAL_ENVIRONMENT=staging FUNCTIONAL_VERSION=<served> pnpm -C memorysmithapp-infra functional
  *

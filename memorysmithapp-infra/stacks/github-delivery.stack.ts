@@ -1,5 +1,5 @@
 /**
- * What lets GitHub Actions deliver (architecture-guide.md, section 20).
+ * What lets GitHub Actions deliver.
  *
  * No AWS key is stored anywhere. A run of a workflow asks GitHub for a token
  * signed by GitHub's OIDC provider, which says which repository and which
@@ -23,7 +23,7 @@
  * thing besides delivering: start and follow the run that rebuilds its link
  * graph, which reads and writes under a role of its own, so the role of
  * production still reaches no table, bucket or pool.
- * The price is the one the AWS pipeline paid (section 20.1): both roles deploy
+ * The price is the one the AWS pipeline paid: both roles deploy
  * through the same bootstrap roles, which can change anything in the account,
  * so what keeps a branch away from production is who may assume which role.
  */
@@ -35,6 +35,9 @@ import { physicalName, stackId, type EnvironmentConfig } from '../config/environ
 
 /** The issuer of the tokens GitHub Actions signs. */
 export const GITHUB_ISSUER = 'token.actions.githubusercontent.com';
+
+/** Where the adapter cases of staging write: subscriptions of time zero. */
+export const ADAPTER_SUBSCRIPTIONS = 's/0000000000*';
 
 export interface GithubDeliveryStackProps extends StackProps {
   /** `owner/name`: the one repository whose runs may assume the roles. */
@@ -143,6 +146,10 @@ export class GithubDeliveryStack extends Stack {
      * bucket of staging: every case writes under a subscription of its own,
      * and a job writes only with `--apply`. Delete too, because the case of
      * the purge destroys what it wrote (RN-KNW-047).
+     *
+     * Never on the trail (INV-06): no case and no job alters or removes an
+     * entry of it, so the Deny below holds in staging what the tables hold in
+     * production, and a Deny cannot be undone by a grant written later.
      */
     const tables = arn('dynamodb', `table/mv-*-${env.name}`);
     staging.addToPolicy(
@@ -163,17 +170,28 @@ export class GithubDeliveryStack extends Stack {
         resources: [tables, `${tables}/index/*`],
       }),
     );
+    const trail = arn('dynamodb', `table/mv-audit-${env.name}`);
+    staging.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.DENY,
+        actions: ['dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:BatchWriteItem'],
+        resources: [trail, `${trail}/index/*`],
+      }),
+    );
     const content = `arn:${this.partition}:s3:::${stackId(env, 'Data').toLowerCase()}-contentbucket*`;
     staging.addToPolicy(
       new iam.PolicyStatement({
-        actions: [
-          's3:GetObject',
-          's3:GetObjectVersion',
-          's3:PutObject',
-          's3:DeleteObject',
-          's3:DeleteObjectVersion',
-        ],
+        actions: ['s3:GetObject', 's3:GetObjectVersion', 's3:PutObject', 's3:DeleteObject'],
         resources: [`${content}/*`],
+      }),
+    );
+    // Destroying a revision only under the subscriptions the adapter cases
+    // mint, whose identifier is a ULID of time zero (INV-08): the purge worker
+    // is the one principal that destroys a revision of anybody else.
+    staging.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:DeleteObjectVersion'],
+        resources: [`${content}/${ADAPTER_SUBSCRIPTIONS}`],
       }),
     );
     staging.addToPolicy(

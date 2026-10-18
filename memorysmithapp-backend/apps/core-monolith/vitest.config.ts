@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 /**
  * The operation lines every request writes stay out of the output of a run;
- * the test that reads them turns them back on (section 17).
+ * the test that reads them turns them back on.
  */
 export default defineConfig({
   test: {

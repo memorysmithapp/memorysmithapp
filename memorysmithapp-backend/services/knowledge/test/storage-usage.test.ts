@@ -5,7 +5,7 @@
  * event moves which counter, and that a note, its bytes and its revisions go
  * in and out together — because a counter that is wrong looks exactly like one
  * that is right. And WHO SEES WHICH LINE, because the totals are about the
- * subscription and the lines are about the requester (rule 9).
+ * subscription and the lines are about the requester (INV-09).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -216,7 +216,7 @@ describe('who sees which line', () => {
       }),
     );
 
-    // Every notebook would answer 404 to this requester (rule 9), so none is
+    // Every notebook would answer 404 to this requester (INV-09), so none is
     // listed; the totals are about the subscription, and they hold for anyone.
     expect(answer.notebooks).toEqual([]);
     expect(answer.subscription).toMatchObject({ notebooks: 2, noteCount: 1 });

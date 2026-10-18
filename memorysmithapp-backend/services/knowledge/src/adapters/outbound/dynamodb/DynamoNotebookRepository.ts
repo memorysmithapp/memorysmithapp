@@ -1,6 +1,5 @@
 /**
- * DynamoNotebookRepository: form A of the transaction, the tree mutation
- * (architecture-guide.md, section 10.1).
+ * DynamoNotebookRepository: form A of the transaction, the tree mutation.
  *
  * One TransactWriteItems carries:
  *   1. the META item with ConditionExpression version = :expected, which is
@@ -63,8 +62,7 @@ export class DynamoNotebookRepository implements NotebookRepository {
 
   /**
    * ONE Query brings the whole aggregate back: folders, counters, ceilings and
-   * the META item, because the sort keys were chosen to sit in that order
-   * (section 9.3).
+   * the META item, because the sort keys were chosen to sit in that order.
    */
   async findById(
     id: NotebookId,
@@ -325,7 +323,7 @@ export class DynamoNotebookRepository implements NotebookRepository {
     }
 
     // Role ceilings, which live in this partition so that the authorization
-    // decision costs no extra read (section 9.3).
+    // decision costs no extra read.
     const limitsBefore = snapshot?.limits ?? new Set<string>();
     const limitsNow = new Set(notebook.limitedUserIds);
     for (const userId of limitsNow) {

@@ -1,5 +1,5 @@
 /**
- * The scorecard of a round (architecture-guide.md, section 19): per case and
+ * The scorecard of a round: per case and
  * per model, how many runs passed each mechanical check, and the place where
  * the judge writes what needs judgement. It is posted on the issue of the cycle
  * as a dated record.

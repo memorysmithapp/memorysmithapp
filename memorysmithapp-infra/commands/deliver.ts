@@ -1,5 +1,5 @@
 /**
- * Delivers an environment from a workstation (architecture-guide.md, §20).
+ * Delivers an environment from a workstation.
  *
  *   pnpm -C memorysmithapp-infra deliver [--environment staging] [--skip-build]
  *
@@ -8,16 +8,16 @@
  * to resolve an A record before Cognito accepts a sign-in domain below it, and
  * the pool sends only from a verified identity. So the network and the hosting
  * go first, then the wait on DNS and on the sending identity, then every other
- * stack, and the read-only smoke closes it (§17).
+ * stack, and the read-only smoke closes it.
  *
  * The version comes from the checkout, exactly as it came from the clone of a
- * build (§23.3), and the commit it records is the one checked out: a working
+ * build, and the commit it records is the one checked out: a working
  * tree with uncommitted changes is said out loud, because `deploy:sha` would
  * otherwise name a commit that never held what is being served.
  *
  * It refuses any account but the one cdk.json names for the environment, and an
  * environment that carries alarms when `ALARM_EMAIL` names nobody for them to
- * notify (§17): the address is a variable of the GitHub environment, handed to
+ * notify: the address is a variable of the GitHub environment, handed to
  * the synthesis as context, and never written into cdk.json, because the
  * repository is public.
  */

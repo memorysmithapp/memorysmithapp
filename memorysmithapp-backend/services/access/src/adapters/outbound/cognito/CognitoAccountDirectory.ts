@@ -1,5 +1,5 @@
 /**
- * The account as Cognito keeps it (architecture-guide.md, section 8.5).
+ * The account as Cognito keeps it (INV-02).
  *
  * The language is the standard attribute `locale`, because the trigger that
  * writes the messages of the pool receives the attributes of the account with
@@ -17,8 +17,15 @@ import {
   CognitoIdentityProviderClient,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { DomainError, err, ok, UserId, type Result } from '@memorysmithapp/kernel';
-import type { AccountDirectory, AccountLookup } from '../../../domain/ports/index.js';
+import type {
+  AccountDirectory,
+  AccountLookup,
+  RenewedSession,
+} from '../../../domain/ports/index.js';
 import type { AccountLocale, Email, PersonName } from '../../../domain/values.js';
+
+/** Past the second a global sign-out revokes up to, with room for clock skew. */
+const SAME_SECOND_MS = 1_100;
 
 export class CognitoAccountDirectory implements AccountDirectory, AccountLookup {
   constructor(
@@ -26,6 +33,9 @@ export class CognitoAccountDirectory implements AccountDirectory, AccountLookup 
     /** The app client of the interface, which the current password is proved against. */
     private readonly clientId: string,
     private readonly cognito: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({}),
+    /** How the sign-in after a global sign-out waits; a test passes one that does not. */
+    private readonly pause: (ms: number) => Promise<void> = (ms) =>
+      new Promise((resolve) => setTimeout(resolve, ms)),
   ) {}
 
   async setLocale(account: Email, locale: AccountLocale): Promise<void> {
@@ -94,7 +104,7 @@ export class CognitoAccountDirectory implements AccountDirectory, AccountLookup 
     account: Email,
     current: string,
     next: string,
-  ): Promise<Result<void, DomainError>> {
+  ): Promise<Result<RenewedSession | null, DomainError>> {
     try {
       await this.cognito.send(
         new AdminInitiateAuthCommand({
@@ -134,6 +144,39 @@ export class CognitoAccountDirectory implements AccountDirectory, AccountLookup 
         Username: account.value,
       }),
     );
-    return ok();
+
+    /**
+     * The sign-out revokes the refresh token of THIS session too, so it would
+     * end an hour later while the screen says it stays open (#331). Signed in
+     * again with the new password, on the client of the interface, it gets
+     * tokens the sign-out never saw. A failure here is the harmless half again:
+     * the password is changed, and this session ends at its next refresh.
+     *
+     * Not at once: Cognito revokes, by the second, every token issued up to the
+     * second of the sign-out, so a sign-in in that same second hands out a
+     * refresh token already dead. Measured on staging: refused at 0 ms, kept
+     * at 1,100 ms.
+     */
+    await this.pause(SAME_SECOND_MS);
+    try {
+      const renewed = await this.cognito.send(
+        new AdminInitiateAuthCommand({
+          UserPoolId: this.userPoolId,
+          ClientId: this.clientId,
+          AuthFlow: 'ADMIN_USER_PASSWORD_AUTH',
+          AuthParameters: { USERNAME: account.value, PASSWORD: next },
+        }),
+      );
+      const result = renewed.AuthenticationResult;
+      if (!result?.AccessToken || !result.IdToken || !result.RefreshToken) return ok(null);
+      return ok({
+        accessToken: result.AccessToken,
+        idToken: result.IdToken,
+        refreshToken: result.RefreshToken,
+        expiresIn: result.ExpiresIn ?? 3600,
+      });
+    } catch {
+      return ok(null);
+    }
   }
 }

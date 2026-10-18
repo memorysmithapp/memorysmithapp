@@ -1,10 +1,10 @@
 /**
  * Ports of the Access context.
  *
- * Two of them take a SubscriptionContext in their constructor, like every
- * other repository in the system. The other three are THE TWO NAMED EXCEPTIONS
- * of architecture-guide.md section 8.3, plus onboarding, and they are declared
- * apart precisely so they stay countable:
+ * Two of them take a SubscriptionContext in their constructor, like every other
+ * repository in the system. The other three are THE TWO NAMED EXCEPTIONS of
+ * INV-01, plus onboarding, and they are declared apart precisely so they stay
+ * countable:
  *
  *  - UserLinkRepository answers "which subscriptions do I take part in?" and
  *    nothing else. Identity is global; a subscription is a link (RN-SUB-011).
@@ -17,6 +17,7 @@
 
 import type {
   AgentIdentity,
+  Authorship,
   ConcurrencyError,
   DomainError,
   Instant,
@@ -51,6 +52,15 @@ export interface SubscriptionLink {
    * exception 1 names a key shape, and this adds none.
    */
   readonly welcomedAt: string | null;
+}
+
+/**
+ * What another context keeps about a member of the subscription, cleared when
+ * they leave it: the ceilings Knowledge holds on them, notebook by notebook
+ * (RN-ACC-014). The composition root is where the two contexts meet.
+ */
+export interface MemberCeilings {
+  clearFor(user: UserId, by: Authorship): Promise<Result<void, DomainError>>;
 }
 
 export interface UserLinkRepository {
@@ -96,12 +106,11 @@ export interface SubscriptionOnboarding {
 }
 
 /**
- * Which connector each token of the connector proxy was issued to
- * (architecture-guide.md, sections 9.4 and 13.3).
+ * Which connector each token of the connector proxy was issued to (ADR-009).
  *
  * Scoped by the subscription of the token itself, like every other repository:
  * a binding is found only under the subscription the token names, so no token
- * can borrow the connector of a session of another subscription (rule 1).
+ * can borrow the connector of a session of another subscription (INV-01).
  */
 export interface ConnectorBindingRepository {
   /**
@@ -149,16 +158,29 @@ export interface AccountDirectory {
    * not satisfy the policy of the pool, and NEVER says which.
    *
    * It ends the other sessions of the account, which is what a password change
-   * means and what the screen says before it happens.
+   * means and what the screen says before it happens, and answers this one
+   * signed in again, or null when that sign-in failed (RN-ACC-023, #331).
    */
-  changePassword(account: Email, current: string, next: string): Promise<Result<void, DomainError>>;
+  changePassword(
+    account: Email,
+    current: string,
+    next: string,
+  ): Promise<Result<RenewedSession | null, DomainError>>;
+}
+
+/** The tokens of a session signed in again, as the identity provider issued them. */
+export interface RenewedSession {
+  readonly accessToken: string;
+  readonly idToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
 }
 
 /**
  * The face beside a person, INSIDE one subscription (RN-ACC-022).
  *
  * Keyed under the subscription like everything else, which is what keeps
- * design rule 1 whole and opens no third exception of section 8.3: a picture
+ * INV-01 whole and opens no third exception of it: a picture
  * is data of the membership, not of the global identity. Somebody who takes
  * part in two subscriptions has a picture in each, and that is not an
  * accident — the face your colleagues see and the face your other notebook
@@ -191,7 +213,7 @@ export interface PictureTypes {
 
 /**
  * Where a share of a notebook is kept (RN-ACC-024), and exception 1 widened
- * (architecture-guide.md, section 8.3).
+ * (INV-01).
  *
  * A share is written twice in ONE transaction: under the subscription that
  * owns the notebook, an ordinary key, and under the grantee, beside their links

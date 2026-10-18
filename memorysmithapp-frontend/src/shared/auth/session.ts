@@ -130,7 +130,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
           name: dto.user.name,
           isPlatformAdmin: dto.user.isPlatformAdmin,
           // The status in the token is what governs access, and it ages with
-          // the token: a suspension takes effect on the next refresh (§8.5).
+          // the token: a suspension takes effect on the next refresh (INV-02).
           subscriptionState: stateOf(claims?.subscriptionStatus ?? active?.status),
           subscriptionType: active?.type ?? null,
           subscriptionQuota: active?.quota ?? null,

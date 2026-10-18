@@ -1,5 +1,5 @@
 /**
- * HTTP surface of svc-audit (architecture-guide.md, section 14.1):
+ * HTTP surface of svc-audit:
  *
  *   GET /notebooks/:v/notes/:n/history
  *   GET /notebooks/:v/notes/:n/revisions/:versionId

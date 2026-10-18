@@ -1,7 +1,7 @@
 /**
- * The API says which environment it serves and which version it runs
- * (architecture-guide.md, 23.3). After a deploy, the only proof that the new
- * artefact was the one answering used to be reading the minified bundle by hand.
+ * The API says which environment it serves and which version it runs. After a
+ * deploy, the only proof that the new artefact was the one answering used to be
+ * reading the minified bundle by hand.
  */
 
 import { describe, expect, it } from 'vitest';

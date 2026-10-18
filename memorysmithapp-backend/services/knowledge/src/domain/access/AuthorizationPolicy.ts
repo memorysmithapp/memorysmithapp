@@ -1,12 +1,11 @@
 /**
- * AuthorizationPolicy: stage 2 of the two-stage authorization
- * (architecture-guide.md, section 14.2).
+ * AuthorizationPolicy: stage 2 of the two-stage authorization (INV-09).
  *
  * It is a DOMAIN SERVICE, not an infrastructure port: it takes no I/O and
  * makes no network call. The three inputs arrive at no extra cost - isOwner
  * and the role come from the context the authorizer injected, and the
- * ceilings come from the same Query that already loaded the notebook
- * (section 9.3). No extra read enters the hot path because of authorization.
+ * ceilings come from the same Query that already loaded the notebook. No extra
+ * read enters the hot path because of authorization.
  *
  * Fixed rule, no exception: every Knowledge use case loads the notebook and calls
  * require() BEFORE anything else.
@@ -24,8 +23,8 @@ export interface RequestContext {
   readonly isOwner: boolean;
   /**
    * The role in the subscription: one role, not one per recorte. There is no
-   * level between the subscription and the notebook (software-vision.md 4.3), so
-   * the only thing that can narrow this is the ceiling of a given notebook.
+   * level between the subscription and the notebook, so the only thing that
+   * can narrow this is the ceiling of a given notebook (INV-13).
    */
   readonly role: Role;
   /**

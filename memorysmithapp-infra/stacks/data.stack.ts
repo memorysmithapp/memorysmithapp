@@ -1,5 +1,5 @@
 /**
- * Storage, events and the five tables (architecture-guide.md, sections 9, 17).
+ * Storage, events and the five tables.
  *
  * One table per service, and no service reads the table of another. They are
  * declared together because they are one lifecycle: they are what has to exist
@@ -39,7 +39,7 @@ export class DataStack extends Stack {
     /**
      * The content bucket. VERSIONING IS NOT OPTIONAL: each write to a Content
      * Slot produces an immutable versionId, and that is what read_note(asOf)
-     * and the historical reconstruction of section 12.3 rest on.
+     * and the historical reconstruction of a note rest on.
      */
     this.contentBucket = new Bucket(this, 'ContentBucket', {
       versioned: true,
@@ -104,12 +104,11 @@ export class DataStack extends Stack {
       removalPolicy,
       indexes: [
         /**
-         * Only GSI2 here. GSI1 used to answer "which workspaces do I have",
-         * and with that level gone (software-vision.md 4.3) the question is
-         * answered by the link partition itself, so the index would be an
-         * empty one nobody writes to.
+         * Only GSI2 here. GSI1 used to answer "which workspaces do I have", and
+         * with that level gone the question is answered by the link partition
+         * itself, so the index would be an empty one nobody writes to.
          */
-        // The platform queue, metadata only (exception 2 of section 8.3).
+        // The platform queue, metadata only (exception 2 of INV-01).
         { name: 'GSI2', partitionKey: 'GSI2PK', sortKey: 'GSI2SK' },
       ],
     });
@@ -124,7 +123,7 @@ export class DataStack extends Stack {
         // The notebooks of the subscription, already carrying the note count.
         { name: 'GSI1', partitionKey: 'GSI1PK', sortKey: 'GSI1SK' },
         // Notes of a folder, in the defined order. SPARSE: a deleted note
-        // loses these attributes and leaves every listing (section 12.4).
+        // loses these attributes and leaves every listing (INV-08).
         { name: 'GSI2', partitionKey: 'GSI2PK', sortKey: 'GSI2SK' },
       ],
     });

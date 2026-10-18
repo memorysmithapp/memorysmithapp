@@ -15,6 +15,7 @@ import type { FolderNode } from '../../shared/types/api';
 import { folderAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
+import { ActionWord } from '../../shared/components/ActionWord';
 
 export interface Crumb {
   label: string;
@@ -247,8 +248,7 @@ export function BarButton({
 }) {
   return (
     <button ref={ref} type="button" className="bar-button" onClick={onClick} title={title ?? label}>
-      {icon}
-      <span className="bar-button-label">{label}</span>
+      <ActionWord icon={icon} word={label} />
     </button>
   );
 }
@@ -271,8 +271,7 @@ export function BarLink({
 }) {
   return (
     <Link to={to} target="_blank" className="bar-button" title={title ?? label}>
-      {icon}
-      <span className="bar-button-label">{label}</span>
+      <ActionWord icon={icon} word={label} />
     </Link>
   );
 }

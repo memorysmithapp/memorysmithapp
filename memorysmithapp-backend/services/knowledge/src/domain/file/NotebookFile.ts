@@ -177,7 +177,7 @@ export class NotebookFile {
   }
 
   /**
-   * Deleting is definitive and the bytes go with it (rule 8, RN-KNW-051): the
+   * Deleting is definitive and the bytes go with it (INV-08, RN-KNW-051): the
    * purge destroys what this invalidated, and every note that referenced the
    * name renders pending from this instant.
    */

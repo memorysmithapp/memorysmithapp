@@ -1,5 +1,5 @@
 /**
- * Export use case (architecture-guide.md, section 16).
+ * Export use case.
  *
  * A notebook leaves as **one document**, zipped, with the extension `.notebook`
  * (RN-PRT-009). It is built from the Notebook aggregate and its notes; the bodies
@@ -53,7 +53,7 @@ export interface ExportSource {
  * It answers the entries AND the revisions they name, because a history whose
  * content cannot be read says only that something was written. Each revision is
  * fetched by the exact pair its entry carries, never by listing: listing the
- * versions of an object belongs to the purge and to nothing else (rule 8).
+ * versions of an object belongs to the purge and to nothing else (INV-08).
  *
  * `carried` is what the archive holds, and `null` is the whole notebook, which
  * carries the trail whole. It is passed IN rather than applied to the answer,

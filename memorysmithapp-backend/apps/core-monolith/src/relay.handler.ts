@@ -1,5 +1,5 @@
 /**
- * The outbox relay: DynamoDB Streams to EventBridge (section 10.4).
+ * The outbox relay: DynamoDB Streams to EventBridge (ADR-006).
  *
  * It is a separate entrypoint on the same bundle, because it is triggered by
  * the stream rather than by a request, and because its IAM policy is different:
@@ -43,8 +43,8 @@ export async function handler(event: StreamEvent): Promise<void> {
     .filter((record) => record.eventName === 'INSERT' && record.dynamodb?.NewImage)
     .map((record) => unmarshall(record.dynamodb?.NewImage ?? {}));
 
-  // One line per event published, under the id of the request that wrote it
-  // (section 17). The batch is published as a unit, and fails as one.
+  // One line per event published, under the id of the request that wrote it.
+  // The batch is published as a unit, and fails as one.
   const events = items.filter((item) => item['entity'] === 'EVENT').map(envelopeOf);
   await observeBatch(
     events,

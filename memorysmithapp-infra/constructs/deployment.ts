@@ -1,5 +1,5 @@
 /**
- * What a deploy says about itself (architecture-guide.md, section 23.3).
+ * What a deploy says about itself.
  *
  * The environment, the version and the commit arrive as CDK context
  * (`-c environment=… -c version=… -c commit=…`), from whatever runs the deploy.

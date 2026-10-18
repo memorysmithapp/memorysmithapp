@@ -22,7 +22,7 @@ export function documentTitleOf(...parts: Array<string | null | undefined>): str
 /**
  * Outside production the tab says which environment it is before anything
  * else, so a tab of staging is never mistaken for one of production in a row
- * of tabs, in the history or in a bookmark (architecture-guide.md, 23.3).
+ * of tabs, in the history or in a bookmark.
  */
 export function withEnvironment(title: string, environment: string | undefined): string {
   return environment && environment !== 'production' ? `[${environment}] ${title}` : title;

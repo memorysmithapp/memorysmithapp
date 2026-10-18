@@ -1,6 +1,6 @@
 /**
  * The domain never throws: every operation that can fail returns a Result.
- * Exceptions exist only at the edge (architecture-guide.md, section 15).
+ * Exceptions exist only at the edge.
  */
 
 import type { DomainError } from './errors.js';

@@ -37,6 +37,15 @@ import {
 } from './TransferParts';
 import { queryKeys } from '../../shared/api/query-keys';
 import { RequestFulfil } from './RequestFulfil';
+import { ActionWord } from '../../shared/components/ActionWord';
+import {
+  ChevronRightIcon,
+  CloseIcon,
+  DownloadIcon,
+  LinkIcon,
+  TrashIcon,
+  UploadIcon,
+} from '../../shared/components/icons';
 
 type Filter = 'all' | 'request' | 'export' | 'import' | 'agent';
 
@@ -297,7 +306,7 @@ function TransferRow({
             disabled={busy}
             onClick={() => void cancel()}
           >
-            {t('transfers.cancelImport')}
+            <ActionWord icon={<CloseIcon />} word={t('transfers.cancelImport')} />
           </button>
         )}
         {/* An import ends in a notebook, so its row is where it is opened —
@@ -307,7 +316,7 @@ function TransferRow({
           transfer.notebookId !== null &&
           !unavailable && (
             <Link className="button is-quiet is-small" to={notebookAddress(transfer.notebookId)}>
-              {t('portability.openNotebook')}
+              <ActionWord icon={<ChevronRightIcon />} word={t('portability.openNotebook')} />
             </Link>
           )}
         {readyExport && (
@@ -316,12 +325,12 @@ function TransferRow({
             className="button is-quiet is-small"
             onClick={() => void saveArchive(transfer.transferId)}
           >
-            {t('transfers.download')}
+            <ActionWord icon={<DownloadIcon />} word={t('transfers.download')} />
           </button>
         )}
         {readyExport && (
           <button type="button" className="button is-quiet is-small" onClick={onImport}>
-            {t('transfers.importKept')}
+            <ActionWord icon={<UploadIcon />} word={t('transfers.importKept')} />
           </button>
         )}
         {/* An upload whose notebook is unavailable finishes in another one,
@@ -334,7 +343,7 @@ function TransferRow({
             className="button is-primary is-small"
             onClick={() => setGiving(true)}
           >
-            {t('transfers.fulfil')}
+            <ActionWord icon={<UploadIcon />} word={t('transfers.fulfil')} />
           </button>
         )}
         {(isOpenUpload(transfer) || request) && unavailable && !linking && !asking && (
@@ -346,7 +355,7 @@ function TransferRow({
               setLinking(true);
             }}
           >
-            {t('transfers.link')}
+            <ActionWord icon={<LinkIcon />} word={t('transfers.link')} />
           </button>
         )}
         {deletable && !asking && !linking && (
@@ -355,7 +364,10 @@ function TransferRow({
             className="button is-danger is-small"
             onClick={() => setAsking(true)}
           >
-            {t(request ? 'transfers.dismiss' : 'transfers.delete')}
+            <ActionWord
+              icon={<TrashIcon />}
+              word={t(request ? 'transfers.dismiss' : 'transfers.delete')}
+            />
           </button>
         )}
       </div>

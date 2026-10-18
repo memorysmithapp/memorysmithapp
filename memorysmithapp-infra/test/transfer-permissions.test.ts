@@ -11,7 +11,7 @@
  * of the import: a notebook was written whole and the job said it failed (#148).
  *
  * **An entry of the trail** may be removed by exactly one principal, the purge,
- * and only as part of a deletion (rule 6, RN-AUD-011). A guarantee of that
+ * and only as part of a deletion (INV-06, RN-AUD-011). A guarantee of that
  * shape is worth exactly as much as the number of principals that hold it.
  */
 
@@ -184,7 +184,7 @@ describe('the upload an import discards', () => {
 
   it('is the only thing the worker may delete, and never a revision of one', () => {
     // A delete of a VERSION destroys bytes, and exactly one principal in this
-    // system may do that (rule 8, RN-KNW-047). The worker is not it: its delete
+    // system may do that (INV-08, RN-KNW-047). The worker is not it: its delete
     // leaves a marker the lifecycle rule of the tag collects.
     const deletes = allowedOf(template, roles.get(TRANSFER_WORKER) ?? '').filter((each) =>
       each.actions.some((action) => action.startsWith('s3:Delete')),
@@ -244,7 +244,7 @@ describe('the copy of a kept export into an upload', () => {
 });
 
 /**
- * Who may remove an entry of the trail (rule 6, RN-AUD-011).
+ * Who may remove an entry of the trail (INV-06, RN-AUD-011).
  *
  * The trail stopped being "nothing is ever removed" and became "nothing is
  * ever altered, and exactly ONE principal removes — the purge, as part of a

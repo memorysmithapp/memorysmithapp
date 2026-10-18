@@ -37,7 +37,7 @@ export class ImportedTrailWriter implements TrailWriter {
           occurredAt: entry.occurredAt,
           // The subscription is THIS one, whatever the archive came from: an
           // entry belongs to the subscription that holds the notebook it is
-          // about, and every key of this system starts there (rule 1).
+          // about, and every key of this system starts there (INV-01).
           subscriptionId: this.subscriptionId,
           subject: entry.subject,
           subjectId: entry.subjectId,

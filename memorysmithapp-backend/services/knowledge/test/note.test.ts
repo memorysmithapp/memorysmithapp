@@ -188,7 +188,7 @@ describe('Note: moving', () => {
   });
 
   it('preserves the NoteId and reports both sides of the move', () => {
-    // RN-KNW-023: the identifier survives, and with it the whole timeline.
+    // RN-KNW-057: the identifier survives, and with it the whole timeline.
     const notebook = newNotebook();
     const note = newNote(notebook, folderId);
     const originalId = note.id.value;

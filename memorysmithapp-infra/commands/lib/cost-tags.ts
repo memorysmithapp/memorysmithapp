@@ -1,6 +1,5 @@
 /**
- * Which tags the bill of the account is grouped by (architecture-guide.md,
- * section 17; #280).
+ * Which tags the bill of the account is grouped by (#280).
  *
  * Every stack carries `app:project` and `app:environment`, and the CDK hands
  * them to every resource that takes a tag, but Cost Explorer and Budgets read a

@@ -1,6 +1,5 @@
 /**
- * The purge: what a deletion left behind stops existing (RN-KNW-047,
- * architecture-guide.md §12.4).
+ * The purge: what a deletion left behind stops existing (INV-08, RN-KNW-047).
  *
  * Deleting is one write on the unit deleted, and everything under it becomes
  * invalid in the same instant without being written (RN-KNW-046). Invalid is a
@@ -15,10 +14,10 @@
  * writes shows nobody anything.
  *
  * **The subscription comes from the envelope of the event**, which is the case
- * §8.2 makes for a consumer of the outbox: the worker serves no request, so
+ * INV-02 makes for a consumer of the outbox: the worker serves no request, so
  * there is no claim to take it from, and the envelope is the only thing that
  * carries it. The authorship comes from the deletion event, so the trail
- * records the purge under whoever asked for it (rule 7, RN-AUD-010).
+ * records the purge under whoever asked for it (INV-07, RN-AUD-010).
  *
  * Delivery is at least once and a second pass changes nothing: destroying a
  * revision that is gone destroys nothing, and deleting an item that is gone
@@ -57,7 +56,7 @@ export interface PurgeDependencies {
   readonly purgerFor: (subscriptionId: SubscriptionId) => ContentPurger;
   /**
    * Closes the trail of a notebook this purge destroyed (RN-AUD-011). It is a
-   * port of its own for the same reason destroying a revision is one (rule 8):
+   * port of its own for the same reason destroying a revision is one (INV-08):
    * this worker is the ONE principal in the system that removes an entry, and
    * a capability that lives in one place is one nothing else reaches by
    * accident. What is behind it belongs to Audit, and this context never names
@@ -465,7 +464,7 @@ export class ContentPurge {
 
   /**
    * The item goes and its event is written in the SAME transaction, so a purge
-   * that happened is a purge the trail records (§10.4). The event travels the
+   * that happened is a purge the trail records (ADR-006). The event travels the
    * ordinary way, through the outbox of the notebook it belonged to.
    */
   private async record(
@@ -512,7 +511,7 @@ export class ContentPurge {
     }
   }
 
-  /** Every item of a notebook lives in this one partition (§9.3, rule 1). */
+  /** Every item of a notebook lives in this one partition (INV-01). */
   private partitionOf(context: Context): string {
     return `S#${context.subscriptionId.value}#NOTEBOOK#${context.notebookId}`;
   }

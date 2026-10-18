@@ -1,11 +1,11 @@
 /**
- * Outbox relay: DynamoDB Streams to EventBridge (architecture-guide.md, 10.4).
+ * Outbox relay: DynamoDB Streams to EventBridge (ADR-006).
  *
  * The outbox exists because "I wrote but did not publish" happens, and happens
  * silently. In a system whose audit trail lives on events, that silence would
  * be a hole in the record.
  *
- * The relay also maintains the folder and notebook counters (section 10.3),
+ * The relay also maintains the folder and notebook counters (ADR-010),
  * OUTSIDE the user transaction. To avoid counting twice when the stream
  * reprocesses, the increment travels with a dedup item:
  *
@@ -180,7 +180,7 @@ export class OutboxRelay {
     if (events.length === 0) return { published: 0 };
 
     // Validate on the producing side as well: an envelope only one side knows
-    // is how a projection starts lying quietly (section 19).
+    // is how a projection starts lying quietly.
     const envelopes = events.map((item) => parseEvent(envelopeOf(item)));
 
     const entries: PutEventsRequestEntry[] = envelopes.map((envelope) => ({
@@ -196,7 +196,7 @@ export class OutboxRelay {
       // PutEvents answers 200 with the entries it refused counted, not thrown.
       // An event the bus did not take fails the batch, so the stream delivers
       // it again. Delivery is at least once, and an event delivered twice
-      // changes nothing (architecture-guide.md, section 10.4).
+      // changes nothing (ADR-006).
       const refused = answer?.FailedEntryCount ?? 0;
       if (refused > 0) {
         const reasons = new Set(

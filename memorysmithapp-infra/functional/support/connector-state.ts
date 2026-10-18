@@ -1,6 +1,6 @@
 /**
  * The token the connector handed the suite, written by the setup that
- * connected it and read by every MCP case (architecture-guide.md, section 19).
+ * connected it and read by every MCP case.
  * It sits beside the state of the run, which git ignores, and goes with it.
  */
 

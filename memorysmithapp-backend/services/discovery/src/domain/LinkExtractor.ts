@@ -1,8 +1,8 @@
 /**
- * LinkExtractor: the first of the two sanctioned readers of content
- * (architecture-guide.md, section 11.1). It reads ONLY the notation the
- * specification declares - no field name, no notebook convention - because what a
- * convention means belongs to the guidance, never to the backend (PP4).
+ * LinkExtractor: the first of the two sanctioned readers of content (INV-05). It
+ * reads ONLY the notation the specification declares - no field name, no notebook
+ * convention - because what a convention means belongs to the guidance, never to
+ * the backend (PP4).
  *
  * **A target is a name, and the two forms reach it differently.** A wikilink
  * target is LITERAL: nothing in it is decoded, no extension is removed and no
@@ -339,13 +339,13 @@ function labelKey(label: string): string {
  * line after a block still starts a line.
  *
  * The INDENTED form is deliberately absent, and it is a declared limitation
- * rather than an oversight (`architecture-guide.md` §11.1). Telling four
- * spaces of code from four spaces of a nested list item needs the block
- * context only a parser has, and this reader has none by design (PP4). Of the
- * two ways to be wrong, reading a link that was an example costs a spurious
- * pending link, and skipping a nested list item costs a real edge — the graph
- * lying about what the notebook says, which is what the product exists to
- * prevent. So the cheaper mistake is the one that stays.
+ * rather than an oversight (INV-05). Telling four spaces of code from four
+ * spaces of a nested list item needs the block context only a parser has, and
+ * this reader has none by design (PP4). Of the two ways to be wrong, reading a
+ * link that was an example costs a spurious pending link, and skipping a nested
+ * list item costs a real edge — the graph lying about what the notebook says,
+ * which is what the product exists to prevent. So the cheaper mistake is the
+ * one that stays.
  */
 function stripCodeBlocks(markdown: string): string {
   let out = '';

@@ -3,7 +3,7 @@
  * report. It lives HERE, in the composition root, and not inside Discovery:
  * the list of notes belongs to the Knowledge context, and having Discovery
  * query it directly would invert the one-way arrow that makes the projections
- * rebuildable (architecture-guide.md, section 3.1).
+ * rebuildable.
  */
 
 import type { NoteCatalog, NoteRef } from '@memorysmithapp/svc-discovery/domain';

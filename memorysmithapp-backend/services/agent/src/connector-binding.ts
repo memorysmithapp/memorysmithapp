@@ -1,10 +1,9 @@
 /**
- * How the proxy records which connector a token belongs to
- * (architecture-guide.md, section 13.3, item 4).
+ * How the proxy records which connector a token belongs to (ADR-009).
  *
  * Access owns the binding and svc-agent may not import it, so the proxy writes
  * it through a route of Access, signed with the IAM credentials of this
- * function: the gateway lets nobody else reach that route (section 14.1). The
+ * function: the gateway lets nobody else reach that route. The
  * token being bound travels in the body, and Access reads the subscription and
  * the identifier of the token from its verified claims. The refresh token never
  * leaves this process: only its SHA-256 does.

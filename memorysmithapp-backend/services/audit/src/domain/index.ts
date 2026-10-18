@@ -3,7 +3,7 @@
  * poverty is the point: the trail is APPEND-ONLY (RN-AUD-001), so there is
  * nothing else it could do.
  *
- * The key is BY SUBJECT, not by notebook (architecture-guide.md, section 12.2).
+ * The key is BY SUBJECT, not by notebook (INV-06).
  * That is what makes the timeline of a note survive it changing folder and
  * notebook, and it is the reason moving a note is a command instead of a delete
  * plus a create.
@@ -31,7 +31,7 @@ export class AuditEvent {
     readonly occurredAt: Instant,
     readonly type: DomainEventType,
     readonly authorship: Authorship,
-    /** The exact revision of the content at that instant (RN-AUD-003). */
+    /** The exact revision of the content at that instant (RN-KNW-027). */
     readonly contentRef: ContentRef | null,
     readonly payload: Record<string, unknown>,
     /**
@@ -153,10 +153,10 @@ export interface ClosedTrails {
 }
 
 /**
- * The one operation in the system that removes an entry (rule 6, RN-AUD-011).
+ * The one operation in the system that removes an entry (INV-06, RN-AUD-011).
  *
  * It is a port of its own, reached by ONE principal — the purge worker — for
- * the same reason destroying a revision is (rule 8): a capability that exists
+ * the same reason destroying a revision is (INV-08): a capability that exists
  * in one place is a capability nothing else can reach by accident.
  */
 export interface TrailCloser {

@@ -1,7 +1,7 @@
 /**
- * The audit trail: who wrote what, and what a note said on a date
- * (software-vision.md, section 11; architecture-guide.md, section 12). The
- * trail is written by a consumer of the events, so every case waits for it.
+ * The audit trail: who wrote what, and what a note said on a date (INV-06,
+ * INV-07). The trail is written by a consumer of the events, so every case
+ * waits for it.
  */
 
 import { eventually } from '../support/eventually.js';

@@ -1,5 +1,7 @@
 import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ActionWord } from './ActionWord';
+import { UploadIcon } from './icons';
 
 /**
  * Where a person gives a file (#253, RN-KNW-055), in any of the three ways a
@@ -58,7 +60,7 @@ export function FileDrop({
         disabled={disabled}
         onClick={() => picker.current?.click()}
       >
-        {t('fileDrop.choose')}
+        <ActionWord icon={<UploadIcon />} word={t('fileDrop.choose')} />
       </button>
       <input
         ref={picker}

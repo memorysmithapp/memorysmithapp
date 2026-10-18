@@ -1,6 +1,5 @@
 /**
- * The environment a round runs against, and the accounts it creates for itself
- * (architecture-guide.md, section 19).
+ * The environment a round runs against, and the accounts it creates for itself.
  *
  * Every account is new, created through the Cognito admin API with no message
  * sent, and its subscription is asked for and approved through the product, the

@@ -1,7 +1,7 @@
 /**
  * Identifiers. Every one of them is a value object, never a bare string:
  * "no raw string crosses the domain boundary" is what makes PE2 checkable by
- * the compiler instead of by review (architecture-guide.md, sections 6.5, 8.2).
+ * the compiler instead of by review (INV-01).
  *
  * SubscriptionId is the one that carries a rule: it can only be built from a
  * JWT claim, and it is perpetual, since no status transition ever rewrites it
@@ -106,8 +106,7 @@ export class FileId extends UlidIdentifier {
 
 /**
  * Addresses a Content Slot. Stored explicitly and never derived from a NoteId:
- * one day the same slot may be pointed at by another Content Role
- * (architecture-guide.md, section 9.2).
+ * one day the same slot may be pointed at by another Content Role (INV-04).
  */
 export class ContentId extends UlidIdentifier {
   private readonly __contentId!: void;

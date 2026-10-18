@@ -7,7 +7,7 @@
  * and every file of every notebook to draw a panel, so both are answered the
  * way the total already is: counters, moved by the outbox relay from the
  * events that move the total, in the same transaction and under the same
- * dedup marker (architecture-guide.md §10.3).
+ * dedup marker (ADR-010).
  *
  * This file is the arithmetic and nothing else: which event moves which
  * counter, and by how much. It takes the envelope as plain data and imports

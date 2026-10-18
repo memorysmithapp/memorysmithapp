@@ -6,10 +6,10 @@
  * of that, and both are guarantees rather than conventions:
  *
  *  - No code path can build a repository without a subscription: the compiler
- *    rejects it (PE2, architecture-guide.md section 8.2).
+ *    rejects it (INV-01, PE2).
  *  - A platform admin session carries no subscription_id claim, so no
  *    Knowledge use case is even instantiable under it. The attempt fails at
- *    composition, before any role check (RN-SUB-016, section 8.4).
+ *    composition, before any role check (INV-12, RN-SUB-016).
  */
 
 import { DomainError } from './errors.js';
@@ -60,11 +60,11 @@ export class SubscriptionContext {
 
   /**
    * The second constructor, and the only door through the boundary: a share
-   * of a notebook its grantee ACCEPTED (RN-ACC-026, architecture-guide.md
-   * section 8.3). The person is the one of the token; the subscription is the
-   * one the stored share names, which an authenticated act of its owner wrote
-   * and which the grantee's session reached by a key taken from its own token.
-   * Nothing of it comes from the request (RN-SUB-002).
+   * of a notebook its grantee ACCEPTED (INV-01, RN-ACC-026). The person is the
+   * one of the token; the subscription is the one the stored share names, which
+   * an authenticated act of its owner wrote and which the grantee's session
+   * reached by a key taken from its own token. Nothing of it comes from the
+   * request (RN-SUB-002).
    *
    * Only the core reaches for it, after reading the accepted share, and what it
    * builds reaches that one notebook, read-only: the request it goes into

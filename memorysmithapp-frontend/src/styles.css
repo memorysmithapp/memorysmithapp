@@ -138,9 +138,8 @@ a:hover {
 }
 
 /*
- * The environment a page is served from, outside production
- * (architecture-guide.md, 23.3). The last row of the window, never
- * dismissable: it reads, it does not ask for anything.
+ * The environment a page is served from, outside production. The last row of
+ * the window, never dismissable: it reads, it does not ask for anything.
  */
 .environment-banner {
   /* In the flow: it used to be fixed over the page, which covered the end of
@@ -198,7 +197,8 @@ a:hover {
   background: var(--border);
 }
 .tagline {
-  max-width: 320px;
+  /* Two lines of the slogan in either locale: pt_BR is the longer (#334). */
+  max-width: 440px;
   color: var(--text-soft);
   font-size: 0.75rem;
   line-height: 1.35;
@@ -1359,15 +1359,6 @@ a:hover {
   .bar-button svg {
     width: 18px;
     height: 18px;
-  }
-  .bar-button-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 }
 /* The page of a folder (#231): what it keeps, then its Template, then its
@@ -3148,6 +3139,38 @@ input[type='radio'] {
   width: 100%;
 }
 
+/* An action button that carries an icon (#325), the bar's included: the icon
+   and its word on a computer, the icon alone from 860 px down, a 44 px target
+   whose word stays as the accessible name. After every size of `.button`, so
+   it wins over `.is-small`. A button that spans the width keeps its word
+   (`.is-kept`), since it is not short of room. */
+.button svg {
+  flex: none;
+}
+@media (max-width: 860px) {
+  .button:has(> .action-word:not(.is-kept)) {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+  .button:has(> .action-word.is-kept) {
+    min-height: 44px;
+  }
+  .button:has(> .action-word) svg {
+    width: 18px;
+    height: 18px;
+  }
+  .action-word:not(.is-kept) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* ── The Notebook Context and its parts (#227) ───────────────────────────────
    The line under the bar that says what the page is. */
 .page-intro {
@@ -3669,7 +3692,7 @@ body.has-sheet .app-main {
 }
 
 /* ── Skeletons ──────────────────────────────────────────────────────────────
-   The shape of what is coming, in the position it will occupy (§13.2).
+   The shape of what is coming, in the position it will occupy.
 
    One primitive, used by every surface: a block with an explicit size and a
    sheen that travels across it. A skeleton that does not occupy the frame of
@@ -3776,7 +3799,7 @@ body.has-sheet .app-main {
    In the header, because the header is already fixed: visible from any scroll
    position, covering no line of the note, needing no overlay. It used to be a
    paragraph at the top of the content, which scrolled away with the text and
-   was never seen from where the box was clicked (§13.2).
+   was never seen from where the box was clicked.
 
    The slot is always in the tree so `aria-live` can announce into it, and it
    reserves no width while idle: a reading surface stays a reading surface. */
@@ -4346,9 +4369,12 @@ body.has-sheet .app-main {
     flex-direction: column;
     align-items: stretch;
   }
+  /* One above the other, each the width of the screen with its word (#325):
+     side by side, a longer word in pt_BR ran past the edge. The panel keeps
+     its own two columns, which wrap their words. */
   .transfers-start {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
   .transfers-rows {
     padding: 0 14px;

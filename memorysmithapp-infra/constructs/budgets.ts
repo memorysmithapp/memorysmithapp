@@ -1,5 +1,5 @@
 /**
- * The cost budgets of the account (architecture-guide.md, section 17; #279).
+ * The cost budgets of the account (#279).
  *
  * A budget belongs to the account, not to an environment, and production owns
  * the account, so only production declares them, beside the topic of its
@@ -35,15 +35,17 @@ export interface BudgetSpec {
 }
 
 /**
- * The fixed base of the account after 0.11.0 is about US$ 6–7 a month, so the
- * whole account is held at 12 and staging, which costs cents on a normal day,
+ * The fixed base of the account after 0.11.0 is about US$ 6–7 a month, and
+ * October 2026 was forecast just above the 12 it was held at before the
+ * dashboards and the daily count of active people were added (#270), so the
+ * whole account is held at 20 and staging, which costs cents on a normal day,
  * at 3. The names differ from the two budgets made by hand before these, which
  * are deleted once these exist, because a budget name is unique in an account.
  */
 export const BUDGETS: readonly BudgetSpec[] = [
   {
     name: 'memorysmith-account-monthly',
-    limit: 12,
+    limit: 20,
     alerts: [
       { kind: 'ACTUAL', percent: 80 },
       { kind: 'ACTUAL', percent: 100 },

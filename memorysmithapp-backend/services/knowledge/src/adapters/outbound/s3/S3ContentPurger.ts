@@ -1,6 +1,6 @@
 /**
  * S3ContentPurger: the ONE piece of the system that destroys a revision
- * (RN-KNW-047, architecture-guide.md §12.4).
+ * (INV-08, RN-KNW-047).
  *
  * It is a port of its own, and deliberately not a method on `ContentStore`.
  * Every use case of Knowledge holds a `ContentStore`; a `purge` on it would be
@@ -10,7 +10,7 @@
  * role of the worker may delete a version of an object of the content bucket.
  *
  * The subscriptionId comes from the envelope of the deletion event, through
- * the constructor, and never from a request (§8.2).
+ * the constructor, and never from a request (INV-02).
  */
 
 import type { ContentId, SubscriptionId } from '@memorysmithapp/kernel';
@@ -41,7 +41,7 @@ export class S3ContentPurger implements ContentPurger {
     // The two key shapes of this bucket: a Content Slot is Markdown under
     // `c/` and carries the extension of what it is, and a file of a notebook
     // is bytes under `f/` and carries none, because the extension of a name
-    // decides nothing anywhere in this product (#166, §9.2).
+    // decides nothing anywhere in this product (INV-04, #166).
     const key =
       kind === 'file'
         ? `s/${this.subscriptionId.value}/f/${slot.value}`
@@ -55,7 +55,7 @@ export class S3ContentPurger implements ContentPurger {
         new ListObjectVersionsCommand({
           Bucket: this.bucket,
           // The exact key, not a prefix of it: a slot is one object, and its
-          // revisions are versions of that object (§9.2).
+          // revisions are versions of that object (INV-04).
           Prefix: key,
           ...(keyMarker ? { KeyMarker: keyMarker } : {}),
           ...(versionMarker ? { VersionIdMarker: versionMarker } : {}),

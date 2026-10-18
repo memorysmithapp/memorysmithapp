@@ -9,6 +9,7 @@ import {
   backlinksSchema,
   graphNodeSchema,
   noteLinksSchema,
+  notebookFileSchema,
   notebookHealthSchema,
   notebookNamesSchema,
   previewSchema,
@@ -381,5 +382,41 @@ describe('the connector reads a preview as the contracts publish it (#260)', () 
 
     apiAnswering(ready);
     expect(await gateway.getPreview(caller, ready.previewId)).toEqual(ready);
+  });
+});
+
+describe('the connector reads a kept file as the contracts publish it', () => {
+  it('answers keep_file with the size and the SHA-256 the core kept (RN-AGT-053, #329)', async () => {
+    const sha256 = 'a'.repeat(64);
+    apiAnswering(
+      notebookFileSchema.parse({
+        fileId: '01JBQ2X000000000000000A001',
+        name: 'drawing.svg',
+        description: '',
+        mimeType: 'image/svg+xml',
+        tags: [],
+        path: '/',
+        bytes: 669,
+        sha256,
+        updatedAt: '2026-10-18T10:00:00.000Z',
+        authorship: { userId: 'user-1', agent: null, at: '2026-10-18T10:00:00.000Z' },
+      }),
+    );
+
+    const kept = await new HttpKnowledgeGateway('https://api.example.com').keepFile(
+      caller,
+      'notebook',
+      {
+        name: 'drawing.svg',
+        description: '',
+        mimeType: 'image/svg+xml',
+        tags: [],
+        path: '/',
+        contentBase64: '',
+      },
+    );
+
+    expect(kept.bytes).toBe(669);
+    expect(kept.sha256).toBe(sha256);
   });
 });

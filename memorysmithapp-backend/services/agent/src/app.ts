@@ -1,5 +1,5 @@
 /**
- * HTTP surface of svc-agent for the CIMD spike (architecture-guide.md, 13.3):
+ * HTTP surface of svc-agent for the CIMD spike (ADR-009):
  *
  *   GET  /.well-known/oauth-protected-resource      item 1 (also with /mcp suffix)
  *   GET  /.well-known/oauth-authorization-server    items 2 and 5
@@ -64,7 +64,7 @@ export function createApp(
   const app = new Hono();
 
   /**
-   * One line per request, written when its answer is known (section 17). A
+   * One line per request, written when its answer is known. A
    * tool call is named by its tool, and its id is the one the gateway gave the
    * request, which the call to the core carries on.
    */
@@ -75,7 +75,7 @@ export function createApp(
    * Every response says what answered it, the OAuth challenge included: it is
    * the one answer of this host a smoke can read without signing in, and after
    * a deploy the version on the wire is the proof that the new artefact is the
-   * one serving (architecture-guide.md, 23.3).
+   * one serving.
    */
   app.use('*', async (c, next) => {
     await next();

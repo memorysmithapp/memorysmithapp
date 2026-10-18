@@ -26,12 +26,13 @@ import {
 const DECLARED = new Set(RECOGNISED_NOTATION.map((entry) => entry.id));
 
 describe('the specification, as this build reads it', () => {
-  it('carries a name, an address and a notation, and no version of its own', () => {
-    // The specification follows the version of the product. An address that
-    // still pointed at the site it was published on would send an agent to a
-    // page that no longer exists.
+  it('carries a name, an address and a notation', () => {
+    // The address is the document of the published version, the one an agent
+    // is sent to read.
     expect(MARKDOWN_SPEC_NAME).toBe('MemorySmith Markdown Specification');
-    expect(MARKDOWN_SPEC_URL).toMatch(/\/docs\/markdown-spec\.md$/);
+    expect(MARKDOWN_SPEC_URL).toMatch(
+      /^https:\/\/github\.com\/memorysmithapp\/memorysmithapp-markdown\/blob\/v[0-9.]+\/packages\/markdown-spec\/SPEC\.md$/,
+    );
     expect(RECOGNISED_NOTATION.length).toBeGreaterThan(0);
   });
 

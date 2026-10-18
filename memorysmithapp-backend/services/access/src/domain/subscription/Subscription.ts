@@ -44,7 +44,7 @@ export interface Membership {
   readonly joinedAt: Instant;
 }
 
-/** The transition machine of software-vision.md, section 4.4. */
+/** The transition machine of the status of a subscription. */
 const TRANSITIONS: Record<string, readonly string[]> = {
   pending_approval: ['trial', 'active', 'rejected'],
   trial: ['active', 'suspended', 'canceled'],
@@ -191,7 +191,7 @@ export class Subscription {
     return this.transition(to, by, { reviewer, event: 'SubscriptionApproved' });
   }
 
-  /** Rejection requires a reason, which is communicated (RN-SUB-009). */
+  /** Rejection requires a reason, kept with the subscription (RN-SUB-009). */
   reject(reason: RejectionReason, reviewer: UserId, by: Authorship): Result<void, DomainError> {
     const moved = this.transition(SubscriptionStatus.REJECTED, by, {
       reviewer,
@@ -227,9 +227,9 @@ export class Subscription {
   }
 
   /**
-   * A rejected requester may ask again (RN-SUB-009), and it is the SAME
-   * subscription: the identifier is perpetual, so asking again is a status
-   * change and never a new record.
+   * Asking again after a rejection is the SAME subscription: the identifier is
+   * perpetual (RN-SUB-005), so asking again is a status change and never a new
+   * record. No route calls it, so a rejected requester cannot ask again.
    */
   requestAgain(by: Authorship): Result<void, DomainError> {
     const moved = this.transition(SubscriptionStatus.PENDING_APPROVAL, by, {
@@ -278,9 +278,8 @@ export class Subscription {
   }
 
   /**
-   * The commercial shape changes, and nothing else does: the quota is declared
-   * and not enforced (RN-SUB-019), so this never touches a byte of content and
-   * never moves a key.
+   * The commercial shape changes, and nothing else does (RN-SUB-019): this
+   * never touches a byte of content and never moves a key.
    */
   changePlan(
     to: { type?: SubscriptionType; quota?: StorageQuota },
@@ -367,7 +366,7 @@ export class Subscription {
     return ok();
   }
 
-  // ---- Members (they used to belong to Workspace, section 4.3) ------------
+  // ---- Members (they used to belong to Workspace) -------------------------
 
   get members(): Membership[] {
     return [...this._members.values()];
