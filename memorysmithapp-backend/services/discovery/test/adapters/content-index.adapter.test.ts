@@ -118,4 +118,46 @@ describe('DynamoContentIndex: a portrait of any note up to 1 MB', () => {
     );
     expect(left.Items ?? []).toHaveLength(0);
   });
+
+  it('writes a note of ordinary size in one item, and answers it whole as it grows past one and shrinks back (#327)', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const index = new DynamoContentIndex(subscription, db, table);
+    const noteId = '01JBQ2X000000000000000BIG4';
+    const keys = async (): Promise<string[]> =>
+      (
+        (
+          await db.send(
+            new QueryCommand({
+              TableName: table,
+              KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+              ExpressionAttributeValues: {
+                ':pk': `S#${subscription.value}#NOTEBOOK#${notebookId}`,
+                ':prefix': `TEXT#${noteId}`,
+              },
+              ProjectionExpression: 'SK',
+              ConsistentRead: true,
+            }),
+          )
+        ).Items ?? []
+      ).map((item) => String(item['SK']));
+    const read = async () => (await index.scanNotebook(notebookId)).map((note) => note.original);
+
+    const small = bodyOf(3_000, 'pequena');
+    await index.replaceNote(notebookId, portrait(noteId, small));
+    expect(await keys()).toEqual([`TEXT#${noteId}`]);
+    expect(await read()).toEqual([small]);
+
+    const grown = bodyOf(700_000, 'grande');
+    await index.replaceNote(notebookId, portrait(noteId, grown));
+    expect(await read()).toEqual([grown]);
+    expect(new Set((await keys()).slice(1).map((sk) => sk.split('#')[2])).size).toBe(1);
+
+    const shrunk = bodyOf(3_000, 'de novo');
+    await index.replaceNote(notebookId, portrait(noteId, shrunk));
+    expect(await read()).toEqual([shrunk]);
+    expect(await keys()).toEqual([`TEXT#${noteId}`]);
+
+    await index.removeNotebook(notebookId);
+  });
 });

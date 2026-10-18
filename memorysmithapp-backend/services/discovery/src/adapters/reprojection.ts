@@ -300,6 +300,10 @@ export class LinkReprojection {
     }));
     await graph.forgetLinks(plan.notebookId);
     await graph.seedNotes(plan.notebookId, refs);
+    // No link is left and every spelling is indexed: from here on the partition
+    // is in the layout every write below keeps whole, and each note is answered
+    // from what is keyed under it instead of from the whole notebook (#328).
+    await graph.markIndexed(plan.notebookId);
     await graph.seedAttachments(plan.notebookId, plan.files);
     for (const note of plan.notes) {
       const { targets, ...ref } = note;

@@ -18,6 +18,7 @@ import {
   InMemoryStructureProjection,
 } from '../src/adapters/memory.js';
 import { dispatch } from '../src/adapters/dispatch.js';
+import { dynamoTable } from './dynamo-table.js';
 import { parseEvent } from '@memorysmithapp/contracts';
 import {
   ProjectNote,
@@ -1059,44 +1060,53 @@ describe('Where the links of a note go (RN-AGT-034)', () => {
 });
 
 describe('The Dynamo link graph answers the targets of a note from its items', () => {
+  const PK = `S#SUB#NOTEBOOK#${NOTEBOOK}`;
+  const items = [
+    { SK: 'NOTE#n2', noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' },
+    { SK: 'NOTE#n4', noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' },
+    { SK: 'OUT#n1#n2', fromNoteId: 'n1', toNoteId: 'n2' },
+    { SK: 'OUT#n1#n4', fromNoteId: 'n1', toNoteId: 'n4' },
+    { SK: 'ALIAS#D1#n1#n4', entity: 'ALIASEDGE', fromNoteId: 'n1', toNoteId: 'n4', name: 'D1' },
+    { SK: 'ALIAS#D1#n9#n4', entity: 'ALIASEDGE', fromNoteId: 'n9', toNoteId: 'n4', name: 'D1' },
+    { SK: 'PENDING#Portaria 9#n1', entity: 'PENDING', fromNoteId: 'n1', name: 'Portaria 9' },
+    { SK: 'PENDING#Outra#n9', entity: 'PENDING', fromNoteId: 'n9', name: 'Outra' },
+  ];
+  const expected = [
+    {
+      target: 'Lei 14.133',
+      kind: 'note',
+      by: 'name',
+      notes: [{ noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' }],
+    },
+    {
+      target: 'D1',
+      kind: 'note',
+      by: 'alias',
+      notes: [{ noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' }],
+    },
+    // Nothing carries it, and the notebook keeps no file of that name
+    // either: it reaches nothing (#166).
+    { target: 'Portaria 9', kind: 'pending', by: null, notes: [] },
+  ];
+
   it('reads a name edge, an alias edge and a pending item back as targets', async () => {
-    const items = [
-      { SK: 'NOTE#n2', noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' },
-      { SK: 'NOTE#n4', noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' },
-      { SK: 'OUT#n1#n2', fromNoteId: 'n1', toNoteId: 'n2' },
-      { SK: 'OUT#n1#n4', fromNoteId: 'n1', toNoteId: 'n4' },
-      { SK: 'ALIAS#D1#n1#n4', fromNoteId: 'n1', toNoteId: 'n4', name: 'D1' },
-      { SK: 'ALIAS#D1#n9#n4', fromNoteId: 'n9', toNoteId: 'n4', name: 'D1' },
-      { SK: 'PENDING#Portaria 9#n1', fromNoteId: 'n1', name: 'Portaria 9' },
-      { SK: 'PENDING#Outra#n9', fromNoteId: 'n9', name: 'Outra' },
-    ];
-    const db = {
-      send: async (command: { input: Record<string, unknown> }) => {
-        const prefix = (command.input['ExpressionAttributeValues'] as Record<string, string>)[
-          ':prefix'
-        ];
-        return { Items: items.filter((item) => item.SK.startsWith(prefix ?? '')) };
-      },
-    };
+    const { db, seed } = dynamoTable();
+    for (const item of items) seed({ PK, ...item });
     const graph = new DynamoLinkGraph({ value: 'SUB' } as never, db as never, 't');
 
-    expect(await graph.outgoingOf(NOTEBOOK, 'n1')).toEqual([
-      {
-        target: 'Lei 14.133',
-        kind: 'note',
-        by: 'name',
-        notes: [{ noteId: 'n2', name: 'Lei 14.133', aliases: [], folderId: 'f2' }],
-      },
-      {
-        target: 'D1',
-        kind: 'note',
-        by: 'alias',
-        notes: [{ noteId: 'n4', name: 'Decreto 1', aliases: ['D1'], folderId: 'f1' }],
-      },
-      // Nothing carries it, and the notebook keeps no file of that name
-      // either: it reaches nothing (#166).
-      { target: 'Portaria 9', kind: 'pending', by: null, notes: [] },
-    ]);
+    expect(await graph.outgoingOf(NOTEBOOK, 'n1')).toEqual(expected);
+  });
+
+  it('answers the same out of the mirrors keyed under the note (#328)', async () => {
+    const { db, seed } = dynamoTable();
+    for (const item of items) seed({ PK, ...item });
+    for (const item of items.filter((each) => /^(PENDING|ALIAS)#/.test(each.SK))) {
+      seed({ PK, ...item, SK: `FROM#${item.fromNoteId}#${item.SK}` });
+    }
+    seed({ PK, SK: 'GRAPH', entity: 'GRAPH' });
+    const graph = new DynamoLinkGraph({ value: 'SUB' } as never, db as never, 't');
+
+    expect(await graph.outgoingOf(NOTEBOOK, 'n1')).toEqual(expected);
   });
 });
 

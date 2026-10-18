@@ -351,7 +351,7 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 ### ADR-012 Search scans a text portrait of each note
 
 - **Context:** a vector index cost about ten times the Markdown it indexed, and silently searched only the first page of results.
-- **Decision:** Discovery keeps one `TEXT#` portrait per note, split below the item limit, and every query scans the whole notebook, through every page; each search is measured.
+- **Decision:** Discovery keeps one `TEXT#` portrait per note, in its head when it fits one item and split into parts below the item limit otherwise, and every query scans the whole notebook, through every page; each search is measured.
 - **Rationale:** an inverted index would make every write update postings, and the scan of a 2,000-note notebook costs about 1,000 read units. A scan that stops at the first page is the defect that sank the previous search.
 - **Consequences:** replacing it is an adapter behind `ContentIndex`, justified by the measurements; any index is per subscription.
 - **Date:** 2026-08-27. **Status:** Accepted. **Origin:** reconstructed.
@@ -411,3 +411,11 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 - **Rationale:** text an agent loads that is no longer true misleads more than missing text. A document per question gives each fact one home, and identifiers (`RN-*`, `INV-*`, `ADR-*`) give the code something stable to cite where a section number breaks at the first renumbering.
 - **Consequences:** a commit touches a document only when it changes a rule, an invariant or a decision ([`SDLC.md` §4.1](SDLC.md#41-when-a-commit-touches-each-document)); the Markdown specification is the one `memorysmithapp-markdown` publishes, and no longer has a copy here.
 - **Date:** 2026-10-18. **Status:** Accepted. **Origin:** #319.
+
+### ADR-020 The link graph answers one note from what is keyed under it
+
+- **Context:** answering the links of one note, on every projected write and every `read_note`, read every `NOTE#`, `PENDING#`, `IMAGE#`, `ALIAS#` and `ATTACH#` item of its notebook, so an agent bulk-writing a notebook paid O(n²); and a write re-put every edge and portrait it derived, changed or not (#268).
+- **Decision:** in the partition of a notebook, every `PENDING#`, `IMAGE#` and `ALIAS#` item has a mirror `FROM#{note}#…` under the note that wrote it, every name and alias a `NAME#{spelling}#{note}` entry, and a `GRAPH` item marks a partition that holds both completely. In a marked partition one note's targets are read under that note and resolved through `NAME#`, with the `NOTE#` items deciding, and a write puts only the edges, pending items and facets that changed; an unmarked partition is read and written as before. `reproject-links` rebuilds a partition into the marked layout (ADR-017), and a notebook's first write marks it when it holds no note yet.
+- **Rationale:** the reads of one note become bounded by that note and not by its notebook, and a write that changes nothing derived writes nothing derived, without migrating a partition in place while it is being written.
+- **Consequences:** every write path keeps a mirror and its item paired (`put` and `remove` are the only ones that write or delete either); a partition stays on the old reads until it is rebuilt.
+- **Date:** 2026-10-18. **Status:** Accepted. **Origin:** #327, #328.

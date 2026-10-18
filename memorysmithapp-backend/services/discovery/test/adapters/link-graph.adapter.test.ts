@@ -12,10 +12,16 @@
 
 import { describe, expect, it } from 'vitest';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { NotebookId, SubscriptionId } from '@memorysmithapp/kernel';
-import { DynamoLinkGraph, DynamoProjectedVersions } from '../../src/adapters/aws.js';
-import type { NoteRef } from '../../src/domain/ports.js';
+import {
+  DynamoContentIndex,
+  DynamoFacetIndex,
+  DynamoLinkGraph,
+  DynamoProjectedVersions,
+  DynamoStructureProjection,
+} from '../../src/adapters/aws.js';
+import type { LinkTarget, NoteRef } from '../../src/domain/ports.js';
 import {
   InMemoryContentIndex,
   InMemoryFacetIndex,
@@ -24,6 +30,7 @@ import {
 } from '../../src/adapters/memory.js';
 import { ProjectNote } from '../../src/application/projections.js';
 import { describeAttachmentForms } from '../attachment-forms.js';
+import { LEGACY_NOTE, answersOf, playScenario, sharedKeys } from '../graph-scenario.js';
 
 const table = process.env['DISCOVERY_TABLE'];
 if (!table)
@@ -514,3 +521,173 @@ describeAttachmentForms('DynamoLinkGraph', () => ({
   graph: new DynamoLinkGraph(SubscriptionId.generate(), db, table),
   notebookId: NotebookId.generate().value,
 }));
+
+/**
+ * A client that asks DynamoDB what every command cost, and adds it up: the
+ * read and write units it reports, and the items a read answered.
+ */
+function metered() {
+  const used = { readUnits: 0, writeUnits: 0, itemsRead: 0 };
+  const reads = new Set(['GetCommand', 'QueryCommand', 'BatchGetCommand']);
+  const client = {
+    send: async (command: { constructor: { name: string }; input: Record<string, unknown> }) => {
+      command.input['ReturnConsumedCapacity'] = 'TOTAL';
+      const answer = (await db.send(command as never)) as Record<string, unknown>;
+      const consumed = answer['ConsumedCapacity'] as
+        { CapacityUnits?: number } | Array<{ CapacityUnits?: number }> | undefined;
+      const units = (Array.isArray(consumed) ? consumed : consumed ? [consumed] : []).reduce(
+        (total, each) => total + Number(each.CapacityUnits ?? 0),
+        0,
+      );
+      if (reads.has(command.constructor.name)) {
+        used.readUnits += units;
+        const responses = answer['Responses'] as Record<string, unknown[]> | undefined;
+        used.itemsRead +=
+          ((answer['Items'] as unknown[] | undefined)?.length ?? 0) +
+          (answer['Item'] ? 1 : 0) +
+          Object.values(responses ?? {}).reduce((total, each) => total + each.length, 0);
+      } else {
+        used.writeUnits += units;
+      }
+      return answer;
+    },
+  };
+  const measure = async (work: () => Promise<unknown>) => {
+    used.readUnits = 0;
+    used.writeUnits = 0;
+    used.itemsRead = 0;
+    await work();
+    return { ...used };
+  };
+  return { client: client as unknown as DynamoDBDocumentClient, measure };
+}
+
+const target = (name: string): LinkTarget => ({ name, anchor: null, form: 'link' });
+
+/**
+ * The layout of #328 against the layout of 0.13, on the real table: one history
+ * played in a partition of each answers the same after every step, and holds
+ * the same items but for the mirrors and the index of spellings.
+ */
+describe('DynamoLinkGraph: reading the note answers what reading the notebook answered (#327, #328)', () => {
+  it('answers the same after every step of one history, and holds the same items', async () => {
+    const subscription = SubscriptionId.generate();
+    const legacyNotebook = NotebookId.generate().value;
+    const indexedNotebook = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+    await db.send(
+      new PutCommand({
+        TableName: table,
+        Item: { PK: `S#${subscription.value}#NOTEBOOK#${legacyNotebook}`, ...LEGACY_NOTE },
+      }),
+    );
+
+    const legacy: unknown[] = [];
+    await playScenario(graph, legacyNotebook, async () => {
+      legacy.push(await answersOf(graph, legacyNotebook));
+    });
+    const indexed: Array<{ step: string; answer: unknown }> = [];
+    await playScenario(graph, indexedNotebook, async (step) => {
+      indexed.push({ step, answer: await answersOf(graph, indexedNotebook) });
+    });
+
+    expect(indexed).toEqual(indexed.map(({ step }, at) => ({ step, answer: legacy[at] })));
+    expect(sharedKeys(await partitionOf(subscription, indexedNotebook))).toEqual(
+      sharedKeys(await partitionOf(subscription, legacyNotebook)),
+    );
+    expect(await partitionOf(subscription, indexedNotebook)).toContain('GRAPH');
+    expect(await partitionOf(subscription, legacyNotebook)).not.toContain('GRAPH');
+
+    await graph.removeNotebook(legacyNotebook);
+    await graph.removeNotebook(indexedNotebook);
+    expect(await partitionOf(subscription, indexedNotebook)).toEqual([]);
+  });
+
+  it('reads as many items for one note in a notebook of four hundred notes as in one of twenty', async () => {
+    const subscription = SubscriptionId.generate();
+    const { client, measure } = metered();
+
+    const readsAt = async (size: number) => {
+      const notebookId = NotebookId.generate().value;
+      const seeding = new DynamoLinkGraph(subscription, db, table);
+      // The notebook as the rebuild leaves it: every note, every spelling, marked.
+      await seeding.seedNotes(
+        notebookId,
+        Array.from({ length: size }, (_, at) =>
+          note(`m${String(at).padStart(5, '0')}`, `Nota ${at}`, [`N${at}`]),
+        ),
+      );
+      await seeding.markIndexed(notebookId);
+      const links = [target('Nota 1'), target('Nota 2'), target('N3'), target('Ninguém')];
+      await seeding.replaceOutgoing(notebookId, note('x', 'Nova'), links);
+
+      const graph = new DynamoLinkGraph(subscription, client, table);
+      const write = await measure(() =>
+        graph.replaceOutgoing(notebookId, note('x', 'Nova'), links),
+      );
+      const read = await measure(() => graph.outgoingOf(notebookId, 'x'));
+      const resolve = await measure(() => graph.resolvePending(notebookId, note('x', 'Nova')));
+      await seeding.removeNotebook(notebookId);
+      return { write, read, resolve };
+    };
+
+    const small = await readsAt(20);
+    const large = await readsAt(400);
+
+    expect(large.write.itemsRead).toBe(small.write.itemsRead);
+    expect(large.read.itemsRead).toBe(small.read.itemsRead);
+    expect(large.resolve.itemsRead).toBe(small.resolve.itemsRead);
+    expect(large.write.readUnits).toBeLessThan(12);
+    expect(large.read.readUnits).toBeLessThan(6);
+  });
+
+  it('projects an update that keeps its links in under ten write units', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const { client, measure } = metered();
+    const content = new Map<string, string>();
+    const project = new ProjectNote({
+      graph: new DynamoLinkGraph(subscription, client, table),
+      facets: new DynamoFacetIndex(subscription, client, table),
+      index: new DynamoContentIndex(subscription, client, table),
+      structure: new DynamoStructureProjection(subscription, client, table),
+      content: { read: async (ref) => content.get(ref.versionId) ?? '' },
+      versions: new DynamoProjectedVersions(subscription, client, table),
+    });
+    const write = async (noteId: string, version: number, markdown: string) => {
+      const versionId = `${noteId}-${version}`;
+      content.set(versionId, markdown);
+      await project.project({
+        kind: 'written',
+        notebookId,
+        noteId,
+        folderId: 'f1',
+        contentRef: { contentId: noteId, versionId },
+        version,
+      });
+    };
+    for (const [noteId, name] of [
+      ['01JBQ2X0000000000000000N02', 'Lei 14.133'],
+      ['01JBQ2X0000000000000000N03', 'Parecer'],
+      ['01JBQ2X0000000000000000N04', 'Decreto 1'],
+    ] as const) {
+      await write(noteId, 1, `---\nname: ${name}\n---\n`);
+    }
+    // A note of the average size measured in production (#268): about 2.8 KB
+    // of body, held twice by its portrait, and six targets.
+    const head =
+      '---\nname: Achado\nmaturity: growing\ntags: [contratos]\n---\n\n' +
+      'Ver [[Lei 14.133]], [[Parecer]], [[Decreto 1]], [[Ninguém ainda]], [[Outra]] e [[Mais uma]].\n\n';
+    const prose = 'Contratação direta de serviço técnico especializado. '.repeat(50);
+    const id = '01JBQ2X0000000000000000N01';
+    await write(id, 1, `${head}${prose}`);
+
+    const update = await measure(() => write(id, 2, `${head}${prose}Uma frase a mais.`));
+
+    expect(update.writeUnits).toBeLessThan(10);
+
+    await new DynamoLinkGraph(subscription, db, table).removeNotebook(notebookId);
+    await new DynamoContentIndex(subscription, db, table).removeNotebook(notebookId);
+    await new DynamoFacetIndex(subscription, db, table).removeNotebook(notebookId);
+  });
+});

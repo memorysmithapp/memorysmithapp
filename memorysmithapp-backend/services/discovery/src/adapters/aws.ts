@@ -5,6 +5,11 @@
  *   PENDING#{name}#{from}  link waiting for its target to exist
  *   ALIAS#{name}#{from}#{to}  an edge that exists because an ALIAS matched,
  *                              and that a note carrying that name takes away
+ *   FROM#{from}#{key}      the mirror of a PENDING#, IMAGE# or ALIAS# item under
+ *                          the note that wrote it (#328)
+ *   NOTE#{noteId}          the note as the graph addresses it: name, aliases
+ *   NAME#{spelling}#{noteId}  a note answering to one spelling (#328)
+ *   GRAPH                  the partition holds its FROM# and NAME# items whole (#328)
  *   FACET#{noteId}         the portrait of one note
  *   STAT#{facet}#{value}   one counter PER VALUE, never one item per notebook
  *   FDEF#{facet}           inferred kind, distinct count, discarded flag
@@ -28,8 +33,9 @@
  * but the storage of its subscription (RN-KNW-010, ADR-012).
  */
 
-import { resolveTarget, notebookNames } from '../domain/LinkResolver.js';
+import { resolveTarget, notebookNames, type NotebookNames } from '../domain/LinkResolver.js';
 import {
+  BatchGetCommand,
   BatchWriteCommand,
   DeleteCommand,
   GetCommand,
@@ -90,6 +96,52 @@ function chunk<T>(items: T[], size: number): T[][] {
 /** Every key starts with the subscription, like everywhere else (PE2). */
 function partition(subscriptionId: SubscriptionId, notebookId: string): string {
   return `S#${subscriptionId.value}#NOTEBOOK#${notebookId}`;
+}
+
+/**
+ * The key of the mirror of a `PENDING#`, `IMAGE#` or `ALIAS#` item under the
+ * note that wrote it, or null for any other key (#328).
+ *
+ * Those three are keyed by the name they wait for or were answered by, because
+ * that is what a note written under that name looks up; the note that wrote
+ * them is the last identifier of the key, or the one before it on an alias
+ * mark, and an identifier never carries a `#`. The mirror is what lets one
+ * note's targets be read without reading every target of the notebook.
+ */
+function mirrorOf(sk: string): string | null {
+  const segments = sk.split('#');
+  if (sk.startsWith('PENDING#') || sk.startsWith('IMAGE#')) return `FROM#${segments.at(-1)}#${sk}`;
+  if (sk.startsWith('ALIAS#')) return `FROM#${segments.at(-2)}#${sk}`;
+  return null;
+}
+
+/** Every spelling a note answers to, as resolution compares them: NFC (§5.3). */
+function spellingsOf(note: {
+  readonly name: string;
+  readonly aliases: readonly string[];
+}): string[] {
+  return [...new Set([note.name, ...note.aliases].map((each) => each.normalize('NFC')))].filter(
+    (each) => each.length > 0,
+  );
+}
+
+/**
+ * Whether an item already held says everything a new one would write, so the
+ * write can be left out (#327). Every attribute these items carry is a string
+ * or a boolean.
+ */
+function holds(held: Item | undefined, item: Item): boolean {
+  return held !== undefined && Object.keys(item).every((key) => held[key] === item[key]);
+}
+
+function sameNote(before: NoteRef | null, after: NoteRef): boolean {
+  return (
+    before !== null &&
+    before.name === after.name &&
+    before.folderId === after.folderId &&
+    before.aliases.length === after.aliases.length &&
+    before.aliases.every((alias, at) => alias === after.aliases[at])
+  );
 }
 
 /**
@@ -274,16 +326,28 @@ export class DynamoLinkGraph implements LinkGraph {
    *
    * It is deduplicated here rather than in each caller because four different
    * places build these items, and each of them could produce the pair again.
+   *
+   * It is also the one place a target item gets its mirror under the note that
+   * wrote it, and `remove` the one place the mirror goes (#328), so no path
+   * can write one without the other.
    */
   private async put(items: Item[]): Promise<void> {
     const unique = new Map(items.map((item) => [`${String(item['SK'])}`, item]));
+    for (const item of [...unique.values()]) {
+      const mirror = mirrorOf(String(item['SK']));
+      if (mirror) unique.set(mirror, { ...item, SK: mirror });
+    }
     for (const batch of chunk([...unique.values()], 25)) {
       await this.writeAll(batch.map((item) => ({ PutRequest: { Item: item } })));
     }
   }
 
   private async remove(notebookId: string, sortKeys: string[]): Promise<void> {
-    for (const batch of chunk([...new Set(sortKeys)], 25)) {
+    const keys = sortKeys.flatMap((sk) => {
+      const mirror = mirrorOf(sk);
+      return mirror ? [sk, mirror] : [sk];
+    });
+    for (const batch of chunk([...new Set(keys)], 25)) {
       await this.writeAll(
         batch.map((sk) => ({ DeleteRequest: { Key: { PK: this.pk(notebookId), SK: sk } } })),
       );
@@ -313,21 +377,296 @@ export class DynamoLinkGraph implements LinkGraph {
   }
 
   /**
+   * Items read by key, a hundred at a time, sent again until DynamoDB has
+   * answered every key: a throttled batch answers `UnprocessedKeys` rather
+   * than an error, as a batch write answers `UnprocessedItems`.
+   */
+  private async getAll(notebookId: string, sortKeys: readonly string[]): Promise<Item[]> {
+    const found: Item[] = [];
+    for (const batch of chunk([...new Set(sortKeys)], 100)) {
+      let keys: Array<Record<string, unknown>> = batch.map((SK) => ({
+        PK: this.pk(notebookId),
+        SK,
+      }));
+      for (let attempt = 0; keys.length > 0 && attempt < 8; attempt++) {
+        const answer = await this.db.send(
+          new BatchGetCommand({ RequestItems: { [this.tableName]: { Keys: keys } } }),
+        );
+        found.push(...((answer.Responses?.[this.tableName] ?? []) as Item[]));
+        keys = (answer.UnprocessedKeys?.[this.tableName]?.Keys ?? []) as typeof keys;
+        if (keys.length > 0) await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+      }
+      if (keys.length > 0) throw new Error(`The link graph left ${keys.length} reads unanswered`);
+    }
+    return found;
+  }
+
+  /**
+   * Whether the partition holds the layout of #328 whole: a `NAME#` item for
+   * every spelling of every note, and a `FROM#` mirror for every target item.
+   * Only then can one note be answered from what is keyed under it.
+   *
+   * A partition written before #328 holds neither, and is read as it always
+   * was, by the whole notebook, until `reproject-links` rebuilds it and marks it
+   * at the end of its seeding. A partition with no note yet has nothing to
+   * rebuild, so the first write into it marks it. The mark never goes away
+   * while the notebook exists, so an answer of yes is kept for the life of
+   * this adapter.
+   */
+  private readonly indexed = new Set<string>();
+
+  private async layoutOf(notebookId: string, writing: boolean): Promise<boolean> {
+    if (this.indexed.has(notebookId)) return true;
+    const mark = await this.db.send(
+      new GetCommand({ TableName: this.tableName, Key: { PK: this.pk(notebookId), SK: 'GRAPH' } }),
+    );
+    if (!mark.Item && writing) {
+      const any = await this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': 'NOTE#' },
+          ProjectionExpression: 'SK',
+          ConsistentRead: true,
+          Limit: 1,
+        }),
+      );
+      if ((any.Items ?? []).length > 0) return false;
+      await this.markIndexed(notebookId);
+      return true;
+    }
+    if (mark.Item) this.indexed.add(notebookId);
+    return Boolean(mark.Item);
+  }
+
+  /** The partition holds the layout of #328 whole, from here on. */
+  async markIndexed(notebookId: string): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: { PK: this.pk(notebookId), SK: 'GRAPH', entity: 'GRAPH', layout: 2 },
+      }),
+    );
+    this.indexed.add(notebookId);
+  }
+
+  /**
+   * The `PENDING#`, `IMAGE#` and `ALIAS#` items one note wrote, each under its
+   * own key: out of their mirrors when the partition holds them (#328), and
+   * out of every target of the notebook when it does not yet.
+   */
+  private async targetItemsOf(
+    notebookId: string,
+    noteId: string,
+    indexed: boolean,
+    consistent = false,
+  ): Promise<Item[]> {
+    if (indexed) {
+      const prefix = `FROM#${noteId}#`;
+      return (await this.query(notebookId, prefix, consistent)).map((mirror) => ({
+        ...mirror,
+        SK: String(mirror['SK']).slice(prefix.length),
+      }));
+    }
+    const [pending, images, aliases] = await Promise.all([
+      this.query(notebookId, 'PENDING#', consistent),
+      this.query(notebookId, 'IMAGE#', consistent),
+      this.query(notebookId, 'ALIAS#', consistent),
+    ]);
+    return [...pending, ...images, ...aliases].filter(
+      (item) => String(item['fromNoteId']) === noteId,
+    );
+  }
+
+  /**
+   * What the notebook answers to, as far as these spellings go (#328): the
+   * `NAME#` items of each, and the `NOTE#` items they point at, which are what
+   * decides. A pointer whose note no longer carries the spelling is a leftover
+   * and answers nothing, so the index may hold too much and never too little.
+   * In a partition that does not hold the index yet, every note is read.
+   *
+   * The note being written answers as it is now, whatever a read finds of it.
+   */
+  private async namesFor(
+    notebookId: string,
+    note: NoteRef,
+    spellings: readonly string[],
+    indexed: boolean,
+  ): Promise<NotebookNames> {
+    const others = indexed
+      ? await this.notesAnswering(notebookId, spellings)
+      : await this.query(notebookId, 'NOTE#');
+    return this.namesOf(
+      [
+        ...others.filter((item) => String(item['noteId']) !== note.noteId),
+        { noteId: note.noteId, name: note.name, aliases: [...note.aliases] },
+      ].sort((left, right) =>
+        String(left['noteId']) < String(right['noteId'])
+          ? -1
+          : String(left['noteId']) > String(right['noteId'])
+            ? 1
+            : 0,
+      ),
+    );
+  }
+
+  private async notesAnswering(notebookId: string, spellings: readonly string[]): Promise<Item[]> {
+    const wanted = [...new Set(spellings.map((each) => each.normalize('NFC')))].filter(
+      (each) => each.length > 0,
+    );
+    const pointers = await Promise.all(
+      wanted.map(async (spelling) =>
+        // A spelling carrying `#` shares a prefix with a longer one, so the
+        // spelling is compared whole.
+        (await this.query(notebookId, `NAME#${spelling}#`)).filter(
+          (item) => item['spelling'] === spelling,
+        ),
+      ),
+    );
+    return this.getAll(
+      notebookId,
+      pointers.flat().map((item) => `NOTE#${String(item['noteId'])}`),
+    );
+  }
+
+  /** The `NAME#` item of one spelling of one note (#328). */
+  private nameItem(notebookId: string, spelling: string, noteId: string): Item {
+    return {
+      PK: this.pk(notebookId),
+      SK: `NAME#${spelling}#${noteId}`,
+      entity: 'NAME',
+      spelling,
+      noteId,
+    };
+  }
+
+  /**
+   * The note item, written only when what the note answers to changed (#327),
+   * and its `NAME#` items with it (#328).
+   *
+   * The spellings it no longer carries go first and the ones it carries go
+   * after the note item, so of two projections of one note racing, the one
+   * whose note item lands last also writes its spellings last: the index may
+   * keep a spelling too many, which `namesFor` reads past, and never misses
+   * one the note item holds. A note item that did not change still has its
+   * spellings looked up, so one a failed write left out is written again.
+   */
+  private async restate(
+    notebookId: string,
+    note: NoteRef,
+    before: NoteRef | null,
+    indexed: boolean,
+  ): Promise<void> {
+    const changed = !sameNote(before, note);
+    if (indexed) {
+      const now = spellingsOf(note);
+      const gone = before ? spellingsOf(before).filter((each) => !now.includes(each)) : [];
+      await this.remove(
+        notebookId,
+        gone.map((spelling) => `NAME#${spelling}#${note.noteId}`),
+      );
+      const items = now.map((spelling) => this.nameItem(notebookId, spelling, note.noteId));
+      const held = changed
+        ? new Set<string>()
+        : new Set(
+            (
+              await this.getAll(
+                notebookId,
+                items.map((item) => String(item['SK'])),
+              )
+            ).map((item) => String(item['SK'])),
+          );
+      if (changed) await this.putNote(notebookId, note);
+      await this.put(items.filter((item) => !held.has(String(item['SK']))));
+      return;
+    }
+    if (changed) await this.putNote(notebookId, note);
+  }
+
+  private async putNote(notebookId: string, note: NoteRef): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: { PK: this.pk(notebookId), SK: `NOTE#${note.noteId}`, entity: 'GNOTE', ...note },
+      }),
+    );
+  }
+
+  /**
    * The targets of one note, out of the projection alone and never out of its
    * content (INV-05): an `OUT#` edge is a target by name, under the name of the
    * note it reaches; an `ALIAS#` item turns that edge into a target by alias,
    * under the name the link wrote; a `PENDING#` item is a target that reaches
    * nothing yet (RN-AGT-034).
+   *
+   * Every item it reads is keyed under the note or named by one of its
+   * targets (#328): its edges, the mirrors of its other targets, the notes its
+   * edges reach and the files its embeds may draw. A partition that does not
+   * hold the mirrors yet is read whole, as it always was.
    */
   async outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]> {
-    const [edges, aliases, pending, images, noteItems, attachments] = await Promise.all([
+    if (!(await this.layoutOf(notebookId, false))) {
+      const [edges, aliases, pending, images, noteItems, attachments] = await Promise.all([
+        this.query(notebookId, `OUT#${noteId}#`),
+        this.query(notebookId, 'ALIAS#'),
+        this.query(notebookId, 'PENDING#'),
+        this.query(notebookId, 'IMAGE#'),
+        this.query(notebookId, 'NOTE#'),
+        this.attachmentsOf(notebookId),
+      ]);
+      return this.targetsOf(
+        noteId,
+        edges,
+        aliases,
+        [...pending, ...images],
+        noteItems,
+        attachments,
+      );
+    }
+
+    const [edges, mine] = await Promise.all([
       this.query(notebookId, `OUT#${noteId}#`),
-      this.query(notebookId, 'ALIAS#'),
-      this.query(notebookId, 'PENDING#'),
-      this.query(notebookId, 'IMAGE#'),
-      this.query(notebookId, 'NOTE#'),
-      this.attachmentsOf(notebookId),
+      this.targetItemsOf(notebookId, noteId, true),
     ]);
+    // In the order the whole partition answers them in: pending, then images.
+    const files = [
+      ...mine.filter((item) => item['entity'] === 'PENDING'),
+      ...mine.filter((item) => item['entity'] === 'IMAGE'),
+    ];
+    const [noteItems, kept] = await Promise.all([
+      this.getAll(
+        notebookId,
+        edges.map((edge) => `NOTE#${String(edge['toNoteId'])}`),
+      ),
+      this.getAll(
+        notebookId,
+        files
+          .filter((item) => item['entity'] === 'IMAGE' || item['embed'] !== false)
+          .flatMap((item) => {
+            const name = String(item['name']);
+            return [`ATTACH#${name}`, `ATTACH#${name.normalize('NFC')}`];
+          }),
+      ),
+    ]);
+    return this.targetsOf(
+      noteId,
+      edges,
+      mine.filter((item) => item['entity'] === 'ALIASEDGE'),
+      files,
+      noteItems,
+      kept.map((item) => String(item['name'])),
+    );
+  }
+
+  /** The targets of one note, out of the items read for it. */
+  private targetsOf(
+    noteId: string,
+    edges: Item[],
+    aliases: Item[],
+    fileItems: Item[],
+    noteItems: Item[],
+    attachments: string[],
+  ): OutgoingTarget[] {
     const kept = new Set(attachments.map((name) => name.normalize('NFC')));
     const notes = new Map(
       noteItems.map((item) => [
@@ -363,7 +702,7 @@ export class DynamoLinkGraph implements LinkGraph {
      * (#174, #305). One entry per target, the one reaching further kept.
      */
     const files = new Map<string, 'attachment' | 'pending'>();
-    for (const item of [...pending, ...images]) {
+    for (const item of fileItems) {
       if (String(item['fromNoteId']) !== noteId) continue;
       const target = String(item['name']);
       const kind = showsFile(item, kept) ? 'attachment' : 'pending';
@@ -382,33 +721,51 @@ export class DynamoLinkGraph implements LinkGraph {
     ];
   }
 
+  /**
+   * Every target of a note, resolved against what the notebook answers to and
+   * written over the ones it had.
+   *
+   * It reads what one note needs (#328): the note item, its own edges and the
+   * mirrors of its other targets, and the notes answering each spelling it
+   * writes. And it writes only what changed (#327): an item already held as it
+   * would be written is left alone, so an update that keeps its links writes
+   * none of them. Both rest on the layout of #328; a partition that does not
+   * hold it yet is read whole and written whole, as before.
+   */
   async replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void> {
-    await this.db.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: { PK: this.pk(notebookId), SK: `NOTE#${note.noteId}`, entity: 'GNOTE', ...note },
-      }),
-    );
+    const indexed = await this.layoutOf(notebookId, true);
+    const [before, existing, mine, names] = await Promise.all([
+      this.noteOf(notebookId, note.noteId),
+      /**
+       * Consistent when what is read decides what is not written: an item
+       * read as present a moment after another note's projection took it away
+       * would never be written again.
+       */
+      this.query(notebookId, `OUT#${note.noteId}#`, indexed),
+      this.targetItemsOf(notebookId, note.noteId, indexed, indexed),
+      this.namesFor(
+        notebookId,
+        note,
+        links.filter((link) => link.form !== 'image').map((link) => link.name),
+        indexed,
+      ),
+    ]);
+    await this.restate(notebookId, note, before, indexed);
 
-    const existing = await this.query(notebookId, `OUT#${note.noteId}#`);
-    const pending = await this.query(notebookId, 'PENDING#');
-    const images = await this.query(notebookId, 'IMAGE#');
-    const aliasEdges = await this.query(notebookId, 'ALIAS#');
-    const stale = [
-      ...existing.map((item) => String(item['SK'])),
-      ...existing.map((item) => `IN#${String(item['toNoteId'])}#${note.noteId}`),
-      ...[...pending, ...images]
-        .filter((item) => String(item['fromNoteId']) === note.noteId)
-        .map((item) => String(item['SK'])),
-      ...aliasEdges
-        .filter((item) => String(item['fromNoteId']) === note.noteId)
-        .map((item) => String(item['SK'])),
-    ];
+    /**
+     * What the note holds now, by key. The backlink of an edge is not read:
+     * the two are written together and taken away together, so the edge
+     * stands for both.
+     */
+    const held = new Map<string, Item>();
+    for (const item of existing) {
+      held.set(String(item['SK']), item);
+      const back = this.edgeItems(notebookId, note.noteId, String(item['toNoteId']))[1] as Item;
+      held.set(String(back['SK']), back);
+    }
+    for (const item of mine) held.set(String(item['SK']), item);
+    const stale = [...held.keys()];
 
-    const names = this.namesOf(
-      await this.query(notebookId, 'NOTE#'),
-      await this.attachmentsOf(notebookId),
-    );
     const writes: Item[] = [];
 
     /**
@@ -496,12 +853,16 @@ export class DynamoLinkGraph implements LinkGraph {
      * with NO edges instead of with the ones it had — and the retry cannot
      * repair that, because the projected version was claimed before applying:
      * only a later write of that note would have.
+     *
+     * The last of each key is the one written, as `put` keeps it.
      */
-    await this.put(writes);
-    const written = new Set(writes.map((item) => String(item['SK'])));
+    const wanted = new Map(writes.map((item) => [String(item['SK']), item]));
+    await this.put(
+      [...wanted.values()].filter((item) => !indexed || !holds(held.get(String(item['SK'])), item)),
+    );
     await this.remove(
       notebookId,
-      stale.filter((sk) => !written.has(sk)),
+      stale.filter((sk) => !wanted.has(sk)),
     );
   }
 
@@ -567,6 +928,9 @@ export class DynamoLinkGraph implements LinkGraph {
       }),
     );
     const name = noteItem.Item?.['name'] === undefined ? null : String(noteItem.Item['name']);
+    const aliases = Array.isArray(noteItem.Item?.['aliases'])
+      ? (noteItem.Item['aliases'] as string[])
+      : [];
 
     const outgoing = await this.query(notebookId, `OUT#${noteId}#`, true);
     const incoming = await this.query(notebookId, `IN#${noteId}#`, true);
@@ -584,9 +948,14 @@ export class DynamoLinkGraph implements LinkGraph {
     const images = (await this.query(notebookId, 'IMAGE#', true)).filter(mine);
     const allAliasEdges = await this.query(notebookId, 'ALIAS#', true);
     const aliasEdges = allAliasEdges.filter(mine);
+    // The mirrors go with what they mirror; these are whatever else is keyed
+    // under the note, read so a mirror never outlives its note (#328).
+    const mirrors = await this.query(notebookId, `FROM#${noteId}#`, true);
 
     await this.remove(notebookId, [
       `NOTE#${noteId}`,
+      ...spellingsOf({ name: name ?? '', aliases }).map((each) => `NAME#${each}#${noteId}`),
+      ...mirrors.map((item) => String(item['SK'])),
       ...outgoing.map((item) => String(item['SK'])),
       ...outgoing.map((item) => `IN#${String(item['toNoteId'])}#${noteId}`),
       ...incoming.map((item) => String(item['SK'])),
@@ -668,7 +1037,11 @@ export class DynamoLinkGraph implements LinkGraph {
       'PENDING#',
       'IMAGE#',
       'ALIAS#',
+      'FROM#',
+      'NAME#',
+      'GRAPH',
     ]);
+    this.indexed.delete(notebookId);
   }
 
   /**
@@ -724,11 +1097,27 @@ export class DynamoLinkGraph implements LinkGraph {
      * other half is an edge a name already holds, which a spelling resolved
      * later finds in place: an edge with no alias mark is held by a name.
      */
-    const [incoming, aliasMarks] = await Promise.all([
+    /**
+     * The marks on edges into this note are read by the spellings it carries
+     * and not out of every mark of the notebook (#328): a mark names the
+     * spelling it was answered by, and one this note no longer carries is put
+     * right by `resolveAgain`, which reads the note that wrote it whole (#316).
+     */
+    const marked = [
+      ...new Set((note.aliases ?? []).flatMap((alias) => [alias, alias.normalize('NFC')])),
+    ].filter((alias) => alias.length > 0);
+    const [incoming, ...aliasMarks] = await Promise.all([
       this.query(notebookId, `IN#${note.noteId}#`),
-      this.query(notebookId, 'ALIAS#'),
+      ...marked.map((alias) => this.query(notebookId, `ALIAS#${alias}#`)),
     ]);
-    const marksHere = aliasMarks.filter((item) => String(item['toNoteId']) === note.noteId);
+    const marksHere = [
+      ...new Map(
+        aliasMarks
+          .flat()
+          .filter((item) => String(item['toNoteId']) === note.noteId)
+          .map((item) => [String(item['SK']), item]),
+      ).values(),
+    ];
     const heldByAlias = new Set(marksHere.map((item) => String(item['fromNoteId'])));
     const resolvedByName = new Set(
       byName.map((item) => String(item['fromNoteId'])).filter((from) => from !== note.noteId),
@@ -1063,7 +1452,7 @@ export class DynamoLinkGraph implements LinkGraph {
    * would make the first note of the rebuild resolve against an empty notebook.
    */
   async forgetLinks(notebookId: string): Promise<void> {
-    for (const prefix of ['OUT#', 'IN#', 'PENDING#', 'IMAGE#', 'ALIAS#']) {
+    for (const prefix of ['OUT#', 'IN#', 'PENDING#', 'IMAGE#', 'ALIAS#', 'FROM#']) {
       const items = await this.query(notebookId, prefix);
       await this.remove(
         notebookId,
@@ -1114,6 +1503,20 @@ export class DynamoLinkGraph implements LinkGraph {
         ...note,
       })),
     );
+
+    // And every spelling each of them answers to, the index a note's targets
+    // are resolved through once the partition is marked (#328).
+    const spellings = notes.flatMap((note) =>
+      spellingsOf(note).map((spelling) => this.nameItem(notebookId, spelling, note.noteId)),
+    );
+    const named = new Set(spellings.map((item) => String(item['SK'])));
+    await this.remove(
+      notebookId,
+      (await this.query(notebookId, 'NAME#'))
+        .map((item) => String(item['SK']))
+        .filter((sk) => !named.has(sk)),
+    );
+    await this.put(spellings);
   }
 }
 
@@ -1129,6 +1532,28 @@ const wait = (milliseconds: number): Promise<void> =>
  */
 function cancelled(error: unknown): boolean {
   return (error as { name?: unknown } | null)?.name === 'TransactionCanceledException';
+}
+
+/**
+ * Whether two portraits say the same, compared entry by entry: a map read
+ * back from DynamoDB keeps no order of keys, so its JSON is not the JSON written.
+ */
+function samePortrait(before: FacetSnapshot | null, after: FacetSnapshot): boolean {
+  if (before === null) return false;
+  const keys = Object.keys(after);
+  if (Object.keys(before).length !== keys.length) return false;
+  return keys.every((key) => {
+    const left = before[key];
+    const right = after[key];
+    return (
+      left !== undefined &&
+      right !== undefined &&
+      left.facet === right.facet &&
+      left.kind === right.kind &&
+      left.values.length === right.values.length &&
+      left.values.every((value, at) => value === right.values[at])
+    );
+  });
 }
 
 export class DynamoFacetIndex implements FacetIndex {
@@ -1200,6 +1625,13 @@ export class DynamoFacetIndex implements FacetIndex {
     );
     const before = (previous.Item?.['facets'] as FacetSnapshot | undefined) ?? null;
     const changes = facetDelta(before, facets);
+
+    // A portrait already held as it would be written, or none to withdraw, is
+    // left alone: the transaction would move no counter and say nothing new,
+    // and it costs two write units (#327).
+    if (previous.Item ? facets !== null && samePortrait(before, facets) : facets === null) {
+      return { changes: [], rest: [] };
+    }
 
     const read = previous.Item?.['revision'];
     const unchanged = !previous.Item
@@ -1392,17 +1824,30 @@ export class DynamoStructureProjection implements StructureProjection {
     return partition(this.subscriptionId, notebookId);
   }
 
+  /**
+   * The notebook item and its folders, by their own keys. A prefix of `S`
+   * reached both in one query, and every `STAT#` counter of the notebook with
+   * them, on every projected write (#328).
+   */
   async get(notebookId: string): Promise<NotebookStructure | null> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': 'S' },
-      }),
-    );
-    const items = (response.Items ?? []) as Item[];
-    const meta = items.find((item) => item['SK'] === 'STRUCT');
+    const [head, response] = await Promise.all([
+      this.db.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: { PK: this.pk(notebookId), SK: 'STRUCT' },
+        }),
+      ),
+      this.db.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': 'SFOLDER#' },
+        }),
+      ),
+    ]);
+    const meta = head.Item as Item | undefined;
     if (!meta) return null;
+    const items = (response.Items ?? []) as Item[];
 
     return {
       notebookId,
@@ -1463,21 +1908,9 @@ export class DynamoStructureProjection implements StructureProjection {
 
   /** The whole portrait of the notebook: its name and every folder of it. */
   async removeNotebook(notebookId: string): Promise<void> {
-    const response = await this.db.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': this.pk(notebookId), ':prefix': 'S' },
-      }),
-    );
-    for (const item of (response.Items ?? []) as Item[]) {
-      await this.db.send(
-        new DeleteCommand({
-          TableName: this.tableName,
-          Key: { PK: this.pk(notebookId), SK: String(item['SK']) },
-        }),
-      );
-    }
+    // Its own two prefixes: the `STAT#` counters a prefix of `S` also reached
+    // are the facet projection's, which sweeps them itself (#328).
+    await sweep(this.db, this.tableName, this.pk(notebookId), ['STRUCT', 'SFOLDER#']);
   }
 }
 
@@ -1524,6 +1957,10 @@ export function partsOf(text: string, size = PART_UNITS): string[] {
  * head only ever names parts that are all there; the parts of the generation it
  * replaced go afterwards. A reader follows the head: a note whose parts are not
  * all there is never answered as if it were whole.
+ *
+ * A portrait that fits one part has none: its head carries the body itself,
+ * the shape every head had before the split, which the reader never stopped
+ * reading (#327).
  */
 export class DynamoContentIndex implements ContentIndex {
   constructor(
@@ -1537,6 +1974,40 @@ export class DynamoContentIndex implements ContentIndex {
   }
 
   async replaceNote(notebookId: string, note: IndexedNote): Promise<void> {
+    const head = {
+      PK: this.pk(notebookId),
+      SK: `TEXT#${note.noteId}`,
+      entity: 'text',
+      noteId: note.noteId,
+      name: note.name,
+      folderId: note.folderId,
+      folderName: note.folderName,
+      sections: note.sections,
+      facets: note.facets,
+      aliases: note.aliases ?? [],
+      facetKinds: note.facetKinds ?? {},
+    };
+
+    /**
+     * A portrait that fits one part is written into its head, whole, in one
+     * put (#327): what a search reads is the head before or the head after,
+     * and neither names a part that is not there, which is the guarantee of
+     * #135 with nothing left to order. A new generation of parts and the
+     * deletion of the last one cost about thirteen write units on the average
+     * note, for a body that never needed to be split. The parts a larger
+     * revision left go afterwards, as they go below.
+     */
+    if (note.normalized.length + note.original.length <= PART_UNITS) {
+      await this.db.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: { ...head, normalized: note.normalized, original: note.original },
+        }),
+      );
+      await this.removeParts(notebookId, note.noteId, null);
+      return;
+    }
+
     const generation = ulid();
     const normalized = partsOf(note.normalized);
     const original = partsOf(note.original);
@@ -1569,17 +2040,7 @@ export class DynamoContentIndex implements ContentIndex {
       new PutCommand({
         TableName: this.tableName,
         Item: {
-          PK: this.pk(notebookId),
-          SK: `TEXT#${note.noteId}`,
-          entity: 'text',
-          noteId: note.noteId,
-          name: note.name,
-          folderId: note.folderId,
-          folderName: note.folderName,
-          sections: note.sections,
-          facets: note.facets,
-          aliases: note.aliases ?? [],
-          facetKinds: note.facetKinds ?? {},
+          ...head,
           generation,
           normalizedParts: normalized.length,
           originalParts: original.length,
@@ -1669,7 +2130,8 @@ export class DynamoContentIndex implements ContentIndex {
     head: Item,
     parts: Map<string, string>,
   ): { normalized: string; original: string } | null {
-    // A head written before the portrait was split carries the body itself.
+    // A head with no generation carries the body itself: one written before
+    // the portrait was split, or one that fits a part (#327).
     if (head['generation'] === undefined) {
       return {
         normalized: String(head['normalized'] ?? ''),
