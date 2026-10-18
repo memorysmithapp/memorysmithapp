@@ -17,6 +17,7 @@ import {
   DomainError,
   NotebookId,
   Role,
+  ok,
   type SubscriptionContext,
   type EventPublisher,
   type DomainEvent,
@@ -91,6 +92,7 @@ import {
   InMemoryNotebookRepository,
 } from '@memorysmithapp/svc-knowledge/adapters/memory';
 import {
+  ClearMemberCeilings,
   ClearNotebookRoleLimit,
   CreateNotebook,
   DeleteGuidance,
@@ -397,7 +399,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
     removeMember: (request) => {
       const scoped = scopedAccess(request);
-      return new RemoveMember(scoped!.subscriptions, links);
+      const context = request.context;
+      return new RemoveMember(scoped!.subscriptions, links, {
+        clearFor: (user, by) =>
+          context
+            ? new ClearMemberCeilings(knowledgeRepos(context)).execute({ userId: user, by })
+            : Promise.resolve(ok()),
+      });
     },
     transferOwnership: (request) => {
       const scoped = scopedAccess(request);

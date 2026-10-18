@@ -439,4 +439,26 @@ export class ClearNotebookRoleLimit {
   }
 }
 
+/**
+ * What removing a member of the subscription leaves behind here: their ceiling
+ * in every notebook (RN-ACC-014, #332). Access decided the removal, under the
+ * owner's authority, so nothing here asks again. Each notebook is read whole,
+ * because its ceilings come with the notebook and not with the listing.
+ */
+export class ClearMemberCeilings {
+  constructor(private readonly deps: Pick<NotebookDependencies, 'notebooks'>) {}
+
+  async execute(input: { userId: UserId; by: Authorship }): Promise<Result<void, DomainError>> {
+    for (const listed of await this.deps.notebooks.listAll()) {
+      const notebook = await this.deps.notebooks.findById(listed.id, { for: 'write' });
+      if (!notebook?.hasLimitFor(input.userId)) continue;
+      const cleared = notebook.clearRoleLimit(input.userId, input.by);
+      if (!cleared.ok) return cleared;
+      const saved = await this.deps.notebooks.save(notebook);
+      if (!saved.ok) return err(saved.error);
+    }
+    return ok();
+  }
+}
+
 export { loadAuthorized };

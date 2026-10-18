@@ -17,6 +17,7 @@
 
 import type {
   AgentIdentity,
+  Authorship,
   ConcurrencyError,
   DomainError,
   Instant,
@@ -51,6 +52,15 @@ export interface SubscriptionLink {
    * exception 1 names a key shape, and this adds none.
    */
   readonly welcomedAt: string | null;
+}
+
+/**
+ * What another context keeps about a member of the subscription, cleared when
+ * they leave it: the ceilings Knowledge holds on them, notebook by notebook
+ * (RN-ACC-014). The composition root is where the two contexts meet.
+ */
+export interface MemberCeilings {
+  clearFor(user: UserId, by: Authorship): Promise<Result<void, DomainError>>;
 }
 
 export interface UserLinkRepository {

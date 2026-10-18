@@ -17,6 +17,7 @@ import {
   DomainError,
   NoteId,
   NotebookId,
+  ok,
   type SubscriptionContext,
   type SubscriptionId,
 } from '@memorysmithapp/kernel';
@@ -58,6 +59,7 @@ import type {
   KnowledgeUseCases,
 } from '@memorysmithapp/svc-knowledge/adapters/http';
 import {
+  ClearMemberCeilings,
   ClearNotebookRoleLimit,
   CreateNotebook,
   DeleteGuidance,
@@ -312,7 +314,14 @@ const accessUseCases: AccessUseCases = {
   changeMemberRole: (request) => new ChangeMemberRole(scopedOrThrow(request).subscriptions),
   removeMember: (request) => {
     const scoped = scopedOrThrow(request);
-    return new RemoveMember(scoped.subscriptions, buildAccess(infra, request.context).links);
+    const context = request.context;
+    return new RemoveMember(scoped.subscriptions, buildAccess(infra, context).links, {
+      // The ceilings of a member live in Knowledge (RN-ACC-014, #332).
+      clearFor: (user, by) =>
+        context
+          ? new ClearMemberCeilings(buildKnowledge(infra, context)).execute({ userId: user, by })
+          : Promise.resolve(ok()),
+    });
   },
   transferOwnership: (request) => {
     const scoped = scopedOrThrow(request);
