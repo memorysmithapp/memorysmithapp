@@ -11,6 +11,12 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-10-17
+
+### Fixed
+
+- **A link stops reaching a note by a spelling the note no longer carries.** A note renamed away from the name a link wrote, or one that dropped the alias a link reached it by, kept the edge, so the link read as reaching it and the graph and the backlinks counted it, where it should read as pending. Writing a note now resolves again every note linking to it whenever it loses a name or an alias, so the link goes back to pending, or lands on the note that carries the spelling now. The first rebuild of production found two such edges, written before this fix, and removed them (#316, RN-DSC-053).
+
 ## [0.13.0] - 2026-10-17
 
 ### Added
@@ -786,7 +792,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.11.0...v0.12.0

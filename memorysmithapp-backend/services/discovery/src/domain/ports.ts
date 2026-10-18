@@ -148,6 +148,8 @@ export interface LinkGraph {
   outgoingOf(notebookId: string, noteId: string): Promise<OutgoingTarget[]>;
   /** Replaces every outgoing edge of a note, resolving what it can. */
   replaceOutgoing(notebookId: string, note: NoteRef, links: LinkTarget[]): Promise<void>;
+  /** The note as the graph last took it in, or null when it never did (#316). */
+  noteOf(notebookId: string, noteId: string): Promise<NoteRef | null>;
   /** Removes the note from the graph and returns its backlinks to pending. */
   removeNote(notebookId: string, noteId: string): Promise<void>;
   /**

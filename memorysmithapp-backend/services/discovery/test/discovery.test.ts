@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { extractLinks } from '../src/domain/LinkExtractor.js';
 import { extractFacets, facetDelta } from '../src/domain/FacetExtractor.js';
 import { normalize } from '../src/domain/SearchQuery.js';
+import { spellingsLost } from '../src/domain/LinkResolver.js';
 import {
   DynamoContentIndex,
   DynamoFacetIndex,
@@ -1466,5 +1467,105 @@ describe('The facet projection tries again a transaction DynamoDB cancelled', ()
     ).rejects.toMatchObject({ name: 'TransactionCanceledException' });
     expect(transactions).toHaveLength(5);
     expect(pauses).toHaveLength(4);
+  });
+});
+
+/**
+ * A note renamed, or one that drops an alias, takes away the spelling a link
+ * reached it by, in a note nobody touched (RN-DSC-053, #316). The in-memory
+ * graph resolves on every read and cannot hold such an edge, so what is held
+ * here is that the projector resolves those notes again, and only then; the
+ * edge itself is held against DynamoDB in the adapter tests.
+ */
+describe('spellingsLost: what a note stopped answering to (#316)', () => {
+  it('names the old name of a rename and every alias dropped', () => {
+    expect(
+      spellingsLost(
+        { name: 'TRB-001 Guia', aliases: ['Guia', 'Máquina de estados'] },
+        { name: 'Trabalho 1 Guia', aliases: ['Guia'] },
+      ),
+    ).toEqual(['TRB-001 Guia', 'Máquina de estados']);
+  });
+
+  it('names nothing when every spelling stays, in another place or another composition', () => {
+    expect(
+      spellingsLost({ name: 'Lei', aliases: ['LGL'] }, { name: 'LGL', aliases: ['Lei'] }),
+    ).toEqual([]);
+    expect(
+      spellingsLost({ name: 'Contratação', aliases: [] }, { name: 'Contratação', aliases: [] }),
+    ).toEqual([]);
+    expect(spellingsLost(null, { name: 'Nova', aliases: [] })).toEqual([]);
+  });
+});
+
+describe('The projector, when a note stops answering to a spelling (#316)', () => {
+  class CountingGraph extends InMemoryLinkGraph {
+    readonly rewritten: string[] = [];
+    override async replaceOutgoing(
+      notebookId: string,
+      note: Parameters<InMemoryLinkGraph['replaceOutgoing']>[1],
+      links: Parameters<InMemoryLinkGraph['replaceOutgoing']>[2],
+    ): Promise<void> {
+      this.rewritten.push(note.noteId);
+      return super.replaceOutgoing(notebookId, note, links);
+    }
+  }
+
+  let graph: CountingGraph;
+  let content: Map<string, string>;
+  let project: ProjectNote;
+  let version = 0;
+
+  beforeEach(() => {
+    graph = new CountingGraph();
+    content = new Map();
+    project = new ProjectNote({
+      graph,
+      facets: new InMemoryFacetIndex(),
+      index: new InMemoryContentIndex(),
+      structure: new InMemoryStructureProjection(),
+      content: { read: async (ref) => content.get(`${ref.contentId}#${ref.versionId}`) ?? '' },
+      versions: new InMemoryProjectedVersions(),
+    });
+  });
+
+  async function write(noteId: string, markdown: string): Promise<void> {
+    version += 1;
+    const ref = { contentId: `c-${noteId}`, versionId: `v-${version}` };
+    content.set(`${ref.contentId}#${ref.versionId}`, markdown);
+    await project.project({
+      kind: 'written',
+      notebookId: NOTEBOOK,
+      noteId,
+      folderId: 'f1',
+      contentRef: ref,
+      version,
+    });
+  }
+
+  it('resolves again the notes linking to a note that was renamed or dropped an alias', async () => {
+    await write('target', '---\nname: TRB-001 Guia\naliases: [Guia]\n---\n');
+    await write('source', '---\nname: Origem\n---\n\n[[TRB-001 Guia]] e [[Guia]].');
+    graph.rewritten.length = 0;
+
+    await write('target', '---\nname: Trabalho 1 Guia\naliases: [Guia]\n---\n');
+    expect(graph.rewritten).toEqual(['target', 'source']);
+
+    graph.rewritten.length = 0;
+    await write('target', '---\nname: Trabalho 1 Guia\n---\n');
+    expect(graph.rewritten).toEqual(['target', 'source']);
+    expect((await graph.outgoingOf(NOTEBOOK, 'source')).map((each) => each.kind)).toEqual([
+      'pending',
+      'pending',
+    ]);
+  });
+
+  it('touches no other note when the note keeps every spelling', async () => {
+    await write('target', '---\nname: Lei\naliases: [LGL]\n---\n');
+    await write('source', '---\nname: Origem\n---\n\n[[Lei]].');
+    graph.rewritten.length = 0;
+
+    await write('target', '---\nname: Lei\naliases: [LGL]\n---\n\nUm corpo novo.');
+    expect(graph.rewritten).toEqual(['target']);
   });
 });

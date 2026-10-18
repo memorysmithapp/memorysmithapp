@@ -542,6 +542,24 @@ export class DynamoLinkGraph implements LinkGraph {
     );
   }
 
+  async noteOf(notebookId: string, noteId: string): Promise<NoteRef | null> {
+    const response = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { PK: this.pk(notebookId), SK: `NOTE#${noteId}` },
+        ConsistentRead: true,
+      }),
+    );
+    const item = response.Item;
+    if (!item) return null;
+    return {
+      noteId,
+      name: String(item['name'] ?? ''),
+      aliases: Array.isArray(item['aliases']) ? (item['aliases'] as string[]) : [],
+      folderId: String(item['folderId'] ?? ''),
+    };
+  }
+
   async removeNote(notebookId: string, noteId: string): Promise<void> {
     const noteItem = await this.db.send(
       new GetCommand({
