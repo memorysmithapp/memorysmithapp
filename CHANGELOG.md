@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-18
+
 ### Added
 
 - **Every call can be followed through X-Ray**, from the connector to the core and from a write to the relay, the projector and the trail it caused: each operation is a subsegment searchable by its business flow (`write`, `file-upload`, `share`, `export`, `import`, `print`, `onboarding`, `connect-agent`), its operation and its correlation id, with identifiers only, as the log. (#271)
@@ -826,7 +828,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.0...v0.12.1
