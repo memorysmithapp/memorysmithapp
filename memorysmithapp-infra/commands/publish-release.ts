@@ -64,10 +64,10 @@ function token(): string {
 const repository = required('GITHUB_REPOSITORY');
 const commit = required('COMMIT');
 
-const version = baseVersionOf(readText('CLAUDE.md'));
+const version = baseVersionOf(readText('package.json'));
 const notes = version ? changelogSection(readText('CHANGELOG.md'), version) : null;
 if (!version || !notes) {
-  console.error('CLAUDE.md and CHANGELOG.md name no version with notes to publish.');
+  console.error('package.json and CHANGELOG.md name no version with notes to publish.');
   process.exit(1);
 }
 

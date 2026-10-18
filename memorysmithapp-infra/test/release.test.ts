@@ -63,7 +63,7 @@ describe('the version a deploy serves', () => {
   });
 });
 
-const CLAUDE_MD = '## Project identity\n\n### Base version\n0.6.0\n\n### Current state\n';
+const ROOT_MANIFEST = JSON.stringify({ name: 'memorysmithapp', version: '0.6.0' });
 const CHANGELOG = [
   '# Changelog',
   '',
@@ -91,14 +91,16 @@ const agreeing = [
 ];
 
 describe('the checks of a release', () => {
-  it('read the base version from CLAUDE.md', () => {
-    expect(baseVersionOf(CLAUDE_MD)).toBe('0.6.0');
+  it('read the base version from the root package.json', () => {
+    expect(baseVersionOf(ROOT_MANIFEST)).toBe('0.6.0');
+    expect(baseVersionOf(JSON.stringify({ name: 'memorysmithapp' }))).toBeNull();
+    expect(baseVersionOf('not json')).toBeNull();
   });
 
   it('pass when every manifest, the changelog and the tags agree', () => {
     expect(
       releaseProblems({
-        claudeMd: CLAUDE_MD,
+        rootManifest: ROOT_MANIFEST,
         manifests: agreeing,
         changelog: CHANGELOG,
         tagExists: false,
@@ -108,7 +110,7 @@ describe('the checks of a release', () => {
 
   it('stop a change to what is deployed that did not bump the version, and say so', () => {
     const problems = releaseProblems({
-      claudeMd: CLAUDE_MD,
+      rootManifest: ROOT_MANIFEST,
       manifests: agreeing,
       changelog: CHANGELOG,
       tagExists: true,
@@ -120,22 +122,22 @@ describe('the checks of a release', () => {
 
   it('name every manifest that disagrees', () => {
     const problems = releaseProblems({
-      claudeMd: CLAUDE_MD,
+      rootManifest: ROOT_MANIFEST,
       manifests: [...agreeing, { path: 'memorysmithapp-frontend/package.json', version: '0.5.7' }],
       changelog: CHANGELOG,
       tagExists: false,
     });
     expect(problems).toEqual([
-      'memorysmithapp-frontend/package.json is at 0.5.7, and CLAUDE.md declares 0.6.0.',
+      'memorysmithapp-frontend/package.json is at 0.5.7, and package.json declares 0.6.0.',
     ]);
   });
 
   it('leave alone a manifest that declares no version, which follows the product', () => {
     const problems = releaseProblems({
-      claudeMd: CLAUDE_MD,
+      rootManifest: ROOT_MANIFEST,
       manifests: [
         ...agreeing,
-        { path: 'memorysmithapp-backend/packages/markdown-spec/package.json', version: undefined },
+        { path: 'memorysmithapp-backend/packages/example/package.json', version: undefined },
       ],
       changelog: CHANGELOG,
       tagExists: false,
@@ -145,7 +147,7 @@ describe('the checks of a release', () => {
 
   it('refuse a version with no dated section in the changelog', () => {
     const problems = releaseProblems({
-      claudeMd: CLAUDE_MD.replace('0.6.0', '0.6.1'),
+      rootManifest: ROOT_MANIFEST.replace('0.6.0', '0.6.1'),
       manifests: agreeing.map((manifest) => ({ ...manifest, version: '0.6.1' })),
       changelog: CHANGELOG,
       tagExists: false,

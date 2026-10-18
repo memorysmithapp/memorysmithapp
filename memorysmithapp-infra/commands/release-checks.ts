@@ -11,11 +11,11 @@
 import { baseVersionOf, releaseProblems } from './lib/release.js';
 import { manifests, readText, tagExists } from './lib/repository.js';
 
-const claudeMd = readText('CLAUDE.md');
-const version = baseVersionOf(claudeMd);
+const rootManifest = readText('package.json');
+const version = baseVersionOf(rootManifest);
 
 const problems = releaseProblems({
-  claudeMd,
+  rootManifest,
   manifests: manifests(),
   changelog: readText('CHANGELOG.md'),
   tagExists: version ? tagExists(`v${version}`) : false,

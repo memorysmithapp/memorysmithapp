@@ -8,7 +8,7 @@
 import { baseVersionOf, changelogSection } from './lib/release.js';
 import { readText } from './lib/repository.js';
 
-const version = process.argv[2] ?? baseVersionOf(readText('CLAUDE.md'));
+const version = process.argv[2] ?? baseVersionOf(readText('package.json'));
 const notes = version ? changelogSection(readText('CHANGELOG.md'), version) : null;
 
 if (!notes) {

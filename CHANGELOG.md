@@ -13,6 +13,8 @@ issues each entry cites.
 
 ### Changed
 
+- **The version of the product lives in the root `package.json`.** It was read with a regular expression out of `CLAUDE.md`, which is what kept that file from shrinking; `release-checks`, `release-notes` and `publish-release` read the field now, and every other manifest and `CHANGELOG.md` still have to agree with it. (#319)
+
 - **The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.4.** Nothing a note is drawn or read with changed in it; it is the version whose README and documents point at where they now live. (#320)
 - **The Markdown specification the product reads is the one `memorysmithapp-markdown` publishes**, `@memorysmithapp/markdown-spec` 0.8.4, where this repository kept a copy of it brought over by hand. The extractors now pass its 140 conformance cases, the 35 it gained since the copy included, and an agent sent to read the specification reaches the document of that version. The cases this repository had added for an image written with a path are upstream already, as `image/*`. (#319, #320)
 
