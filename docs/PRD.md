@@ -423,3 +423,5 @@ Declared so they become tests.
 | Notes in a notebook | No ceiling; the quota of the subscription bounds it |
 | Graph traversal | depth 3, at most 200 nodes |
 | Storage quota of a subscription | 500 MB, 1 GB or 2 GB |
+
+**An action button** that carries an icon shows the icon and its word on a wide screen, and from 860 px down the icon alone, the word kept as its accessible name. The buttons around a note (Show and Copy Markdown, Edit and Read) show the icon alone at every width.
