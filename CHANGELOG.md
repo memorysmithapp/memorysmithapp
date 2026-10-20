@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The web interface runs on a workstation again with `pnpm -C memorysmithapp-frontend dev`.** The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.5 and reads `@memorysmithapp/markdown-spec` 0.8.5, where the renderer no longer ships two files whose names differ only in case, which stopped Vite's dev server at start and could not be unpacked on a case-insensitive disk. Nothing a note is drawn or read with changed. (#336)
+
 ## [0.14.0] - 2026-10-18
 
 ### Added

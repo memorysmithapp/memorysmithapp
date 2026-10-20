@@ -33,7 +33,7 @@ pnpm test        # every unit suite
 pnpm typecheck
 ```
 
-The unit suites run with no AWS account. There is no local backend: the web interface runs against a deployed environment, from `memorysmithapp-frontend/config.local.json` (a copy of `config.example.json` filled in with that environment's app client) and `pnpm -C memorysmithapp-frontend dev`. That dev server does not start today, because of two files of the renderer whose names differ only in case ([memorysmithapp-markdown#131](https://github.com/memorysmithapp/memorysmithapp-markdown/issues/131)).
+The unit suites run with no AWS account. There is no local backend: the web interface runs against a deployed environment, from `memorysmithapp-frontend/config.local.json` (a copy of `config.example.json` filled in with that environment's app client) and `pnpm -C memorysmithapp-frontend dev`.
 
 Deploying and operating an environment is in [`ARCHITECTURE.md` §5](docs/ARCHITECTURE.md#5-operation).
 
