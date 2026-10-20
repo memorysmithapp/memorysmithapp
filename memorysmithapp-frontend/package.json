@@ -1,6 +1,6 @@
 {
   "name": "memorysmithapp-frontend",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@memorysmithapp/contracts": "workspace:*",
-    "@memorysmithapp/markdown-renderer": ">=0.8.4 <1.0.0",
+    "@memorysmithapp/markdown-renderer": ">=0.8.5 <1.0.0",
     "@tanstack/react-query": "^5.0.0",
     "d3-force": "^3.0.0",
     "i18next": "^24.0.0",

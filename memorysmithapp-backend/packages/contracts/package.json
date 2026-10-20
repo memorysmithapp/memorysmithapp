@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/contracts",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "private": true,
   "type": "module",
   "description": "Zod schemas of the domain events and of the API DTOs: the only backend package the frontend imports, and it imports types only.",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@memorysmithapp/markdown-spec": ">=0.8.4 <1.0.0",
+    "@memorysmithapp/markdown-spec": ">=0.8.5 <1.0.0",
     "zod": "^4.0.0"
   }
 }

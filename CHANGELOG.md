@@ -11,6 +11,12 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-10-19
+
+### Fixed
+
+- **The web interface runs on a workstation again with `pnpm -C memorysmithapp-frontend dev`.** The product draws a note with `@memorysmithapp/markdown-renderer` 0.8.5 and reads `@memorysmithapp/markdown-spec` 0.8.5, where the renderer no longer ships two files whose names differ only in case, which stopped Vite's dev server at start and could not be unpacked on a case-insensitive disk. Nothing a note is drawn or read with changed. (#336)
+
 ## [0.14.0] - 2026-10-18
 
 ### Added
@@ -828,7 +834,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.12.1...v0.13.0
