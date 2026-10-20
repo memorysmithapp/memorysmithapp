@@ -44,7 +44,9 @@ export class AlarmTopic extends Construct {
     super(scope, id);
     const address = props.environment.alarmEmail;
     if (!address) {
-      throw new Error(`The ${props.environment.name} environment has no address to send alarms to.`);
+      throw new Error(
+        `The ${props.environment.name} environment has no address to send alarms to.`,
+      );
     }
     this.topic = new Topic(this, 'Topic', {
       topicName: alarmTopicName(props.environment),

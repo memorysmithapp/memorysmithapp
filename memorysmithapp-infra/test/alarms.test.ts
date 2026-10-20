@@ -139,7 +139,9 @@ describe('the alarms of staging', () => {
     const alarms = alarmsOf(all);
     expect(alarms.length).toBeGreaterThan(20);
     const arn = `:sns:us-east-1:111111111111:${alarmTopicName({ name: 'staging' })}`;
-    expect(alarms.filter(([, alarm]) => !JSON.stringify(alarm.Properties.AlarmActions).includes(arn))).toEqual([]);
+    expect(
+      alarms.filter(([, alarm]) => !JSON.stringify(alarm.Properties.AlarmActions).includes(arn)),
+    ).toEqual([]);
   });
 
   it('cannot be turned on without an address to notify', () => {

@@ -11,8 +11,7 @@ import { appFor, stacksOf } from './stacks.js';
 
 const template = (environment: 'production' | 'staging', dashboards = false) =>
   Template.fromStack(
-    stacksOf(appFor(environment, { alarmEmail: 'operator@example.com', dashboards }))
-      .observability,
+    stacksOf(appFor(environment, { alarmEmail: 'operator@example.com', dashboards })).observability,
   );
 
 describe('the dashboards', () => {
