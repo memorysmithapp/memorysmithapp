@@ -60,3 +60,33 @@ describe('the daily count of active people', () => {
     expect(policies).toContain('"cloudwatch:namespace":"MemorySmith"');
   });
 });
+
+describe('the exports the dashboards read', () => {
+  /**
+   * A delivery without the dashboards once dropped exports that the
+   * Observability stack, deployed last, still imported, and CloudFormation
+   * refused it (#340). The exports are the same whether or not they are drawn.
+   */
+  const exportsOf = (dashboards: boolean) => {
+    const { all } = stacksOf(
+      appFor('production', { alarmEmail: 'operator@example.com', dashboards }),
+    );
+    return all
+      .flatMap((stack) =>
+        Object.values(
+          (Template.fromStack(stack).toJSON().Outputs ?? {}) as Record<
+            string,
+            { Export?: { Name?: string } }
+          >,
+        ).map((output) => output.Export?.Name),
+      )
+      .filter((name): name is string => Boolean(name))
+      .sort();
+  };
+
+  it('are the same whether or not the dashboards are drawn', () => {
+    const drawn = exportsOf(true);
+    expect(drawn.length).toBeGreaterThan(30);
+    expect(exportsOf(false)).toEqual(drawn);
+  });
+});

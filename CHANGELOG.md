@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Production can be delivered without the dashboards.** The first delivery of 0.14.2 stopped halfway, because the stacks that the dashboards read tried to remove values the dashboards still used. Those values are now kept whether or not the dashboards are on, so turning the dashboards off or on never stops a delivery. (#340)
+
 ## [0.14.2] - 2026-10-20
 
 ### Changed

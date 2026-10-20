@@ -39,7 +39,7 @@ import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import type { Construct } from 'constructs';
+import type { Construct, IConstruct } from 'constructs';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import type { DataStack } from './data.stack.js';
@@ -124,6 +124,29 @@ export class ObservabilityStack extends Stack {
       schedule: Schedule.cron({ minute: '15', hour: '0' }),
       targets: [new LambdaFunction(activePeople.function)],
     });
+
+    const tables = [
+      props.data.accessTable.table,
+      props.data.knowledgeTable.table,
+      props.data.discoveryTable.table,
+      props.data.portabilityTable.table,
+      props.data.auditTable.table,
+    ];
+
+    // The dashboards read the other stacks through their exports. A delivery
+    // without them would drop those exports while this stack, deployed last,
+    // still imports them, and CloudFormation refuses that (#340). So every value
+    // a dashboard may read is exported whether or not the dashboards are drawn,
+    // and turning them off or on never deletes an export in use.
+    const keep = (owner: IConstruct, value: string): void =>
+      void Stack.of(owner).exportValue(value);
+    for (const service of functions.values()) {
+      keep(service, service.function.functionName);
+      keep(service, service.logGroup.logGroupName);
+    }
+    for (const queue of queues) keep(queue, queue.queueName);
+    for (const api of apis) keep(api, api.apiId);
+    for (const table of tables) keep(table, table.tableName);
 
     // The dashboards cost money, so only a delivery that turns them on draws
     // them, in either environment (ADR-021).
@@ -342,14 +365,6 @@ export class ObservabilityStack extends Stack {
     for (let index = 0; index < perFunction.length; index += 3) {
       rows.push(perFunction.slice(index, index + 3));
     }
-    const tables = [
-      props.data.accessTable.table,
-      props.data.knowledgeTable.table,
-      props.data.discoveryTable.table,
-      props.data.portabilityTable.table,
-      props.data.auditTable.table,
-    ];
-
     new Dashboard(this, 'Health', {
       dashboardName: physicalName(props.environment, 'memorysmith-health'),
       defaultInterval: Duration.days(1),
