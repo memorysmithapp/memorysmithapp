@@ -2,9 +2,10 @@
  * Where somebody looks at the product (#270).
  *
  * Three questions need an answer at a glance: is it being used, and by whom;
- * do the business flows reach their end; is it healthy. Each is a dashboard,
- * and the three fit the free allowance of dashboards. They exist in
- * production only: staging is proved by its suites, never watched.
+ * do the business flows reach their end; is it healthy. Each is a dashboard.
+ * They cost money, the health one holding more than the fifty metrics the free
+ * allowance covers, so they exist only where a delivery turns them on, in
+ * either environment (ADR-021).
  *
  * What a person did is read from the operation lines of the log through Logs
  * Insights wherever a count of distinct people is asked, so no metric is kept
@@ -124,7 +125,9 @@ export class ObservabilityStack extends Stack {
       targets: [new LambdaFunction(activePeople.function)],
     });
 
-    if (props.environment.name !== 'production') return;
+    // The dashboards cost money, so only a delivery that turns them on draws
+    // them, in either environment (ADR-021).
+    if (!props.environment.dashboards) return;
 
     const groups = (...names: string[]) => names.map((name) => named(name).logGroup.logGroupName);
     const logs = (

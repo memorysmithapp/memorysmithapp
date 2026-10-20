@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **Alarms, dashboards and X-Ray tracing are off unless a delivery turns them on**, so whoever operates the product pays for them only while using them. A manual run of the *Staging* or *Production* workflow has an input for each. A merge to `main` delivers production without any of them, and removes what a manual run had turned on. The logs, their month of retention, the daily count of active people and the budgets stay as they were. A manual run of *Production* now delivers the released commit again instead of stopping at its tag. Staging can be delivered with alarms once its GitHub environment has an `ALARM_EMAIL`. (#338)
+
 ## [0.14.1] - 2026-10-19
 
 ### Fixed

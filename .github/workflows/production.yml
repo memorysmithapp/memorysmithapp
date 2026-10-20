@@ -12,8 +12,23 @@ on:
       - 'memorysmithapp-infra/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
-  # To run a delivery of main again, after a failure that was not the code's.
+  # To run a delivery of main again, after a failure that was not the code's,
+  # or to deliver the released commit again with what costs money turned on
+  # (ADR-021). A merge chooses none of it, so it removes what a run turned on.
   workflow_dispatch:
+    inputs:
+      alarms:
+        description: Deliver with the alarms
+        type: boolean
+        default: false
+      dashboards:
+        description: Deliver with the dashboards
+        type: boolean
+        default: false
+      tracing:
+        description: Deliver with X-Ray tracing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -93,10 +108,15 @@ jobs:
           role-duration-seconds: 7200
       - name: Deliver
         env:
-          # Who the alarms of production notify (#267): a variable of
-          # this environment, never a line of cdk.json, because the repository is
-          # public. Without it the delivery refuses before it builds anything.
+          # Who the alarms and the budgets of production notify (#267): a
+          # variable of this environment, never a line of cdk.json, because the
+          # repository is public. Without it the delivery refuses before it
+          # builds anything.
           ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}
+          # Empty on a merge, so off (ADR-021).
+          ALARMS: ${{ inputs.alarms }}
+          DASHBOARDS: ${{ inputs.dashboards }}
+          TRACING: ${{ inputs.tracing }}
         run: pnpm -C memorysmithapp-infra deliver --environment production
 
   release:

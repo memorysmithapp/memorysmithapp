@@ -156,7 +156,7 @@ The effective role is the owner's when the requester owns the subscription, and 
 
 ### INV-14 The version has one home
 
-The `version` field of the root `package.json`. `release-checks` refuses a merge where another manifest disagrees, where `CHANGELOG.md` has no dated section with notes for it, or whose tag exists (`memorysmithapp-infra/commands/lib/release.ts`); `scripts/quality.mjs` checks the version against the changelog and every manifest of the workspace on every pull request.
+The `version` field of the root `package.json`. `release-checks` refuses a merge where another manifest disagrees, where `CHANGELOG.md` has no dated section with notes for it, or whose tag exists on another commit, a tag on the very commit being the release delivered again (`memorysmithapp-infra/commands/lib/release.ts`); `scripts/quality.mjs` checks the version against the changelog and every manifest of the workspace on every pull request.
 
 ### INV-15 CLAUDE.md is only the import
 
@@ -196,25 +196,25 @@ The tag `vX.Y.Z` is written by `publish-release`, the last job of the workflow *
 | | production | staging |
 |---|---|---|
 | Zone | `memorysmith.app` | `stg.memorysmith.app` |
-| Alarms | yes | none |
+| Alarms, dashboards, X-Ray tracing | only when a delivery turns them on ([ADR-021](#adr-021-what-costs-money-in-observability-is-a-choice-of-the-delivery-off-by-default)) | the same |
 | Data on deletion of a stack | retained | destroyed by `destroy-staging` |
 
-Staging is disposable and never watched: it carries no alarm, and the subjects of the messages its pool sends start with `[staging]`. Every stack carries the tags `app:project`, `app:environment`, `app:version` and `deploy:sha`; the first two are the cost allocation tags of the bill.
+Staging is disposable and is proved by its suites rather than watched, and the subjects of the messages its pool sends start with `[staging]`. Every stack carries the tags `app:project`, `app:environment`, `app:version` and `deploy:sha`; the first two are the cost allocation tags of the bill.
 
 ### 5.2 Delivery
 
-`pnpm -C memorysmithapp-infra deliver --environment <name>` builds the SPA, synthesises, deploys *Network* and *Frontend*, waits for DNS and for the SES identity, deploys *Data*, *Identity*, *Api*, *Projections*, *Agent*, *FrontendRelease* and *Observability* in that order, and closes with `smoke`. It refuses an environment with alarms and no `ALARM_EMAIL`, and an account other than the environment's.
+`pnpm -C memorysmithapp-infra deliver --environment <name>` builds the SPA, synthesises, deploys *Network* and *Frontend*, waits for DNS and for the SES identity, deploys *Data*, *Identity*, *Api*, *Projections*, *Agent*, *FrontendRelease* and *Observability* in that order, and closes with `smoke`. `--alarms`, `--dashboards` and `--tracing` (or `ALARMS`, `DASHBOARDS`, `TRACING` set to `true`) turn on what costs money, which is otherwise off, and a delivery that does not ask for one removes it. It refuses production, which owns the budgets, or a delivery with alarms, when `ALARM_EMAIL` is empty, and an account other than the environment's.
 
 Nobody delivers production from a workstation. The workflows ([`SDLC.md` §10](SDLC.md#10-release)):
 
 | Workflow | Started by | Does |
 |---|---|---|
 | *CI* | a pull request, a push to `release/**` | the checks; no AWS |
-| *Staging* | hand, on a branch; inputs: adapter tests, functional suite, a maintenance job | `deliver` to staging, then what was asked |
-| *Production* | a merge to `main` touching what is deployed; or by hand | `release-checks`, the checks, `deliver` to production, `publish-release` |
+| *Staging* | hand, on a branch; inputs: adapter tests, functional suite, a maintenance job, alarms, dashboards, tracing | `deliver` to staging, then what was asked |
+| *Production* | a merge to `main` touching what is deployed, with alarms, dashboards and tracing off; or by hand, with inputs for each | `release-checks`, the checks, `deliver` to production, `publish-release` |
 | *Production maintenance* | hand; `report` or `apply` | `reproject-links` against production |
 
-They assume the roles `memorysmith-github-production` and `memorysmith-github-staging` through GitHub OIDC, trusted only for the matching GitHub environment, with no key stored. The repository variables `AWS_PRODUCTION_ROLE_ARN` and `AWS_STAGING_ROLE_ARN` name them, and the variable `ALARM_EMAIL` of the environment `production` is where alarms and budgets write: it is not in the repository because the repository is public.
+They assume the roles `memorysmith-github-production` and `memorysmith-github-staging` through GitHub OIDC, trusted only for the matching GitHub environment, with no key stored. The repository variables `AWS_PRODUCTION_ROLE_ARN` and `AWS_STAGING_ROLE_ARN` name them, and the variable `ALARM_EMAIL` of the environment `production` is where alarms and budgets write (staging needs one of its own to be delivered with alarms): it is not in the repository because the repository is public.
 
 ### 5.3 Bringing an account up
 
@@ -248,11 +248,11 @@ Without `--apply`, a maintenance job only reports.
 
 Every function writes one JSON line per operation, with identifiers only and never a name, a path or a body, and one correlation id follows a call from the connector through the core, the relay, the projector and the trail (`packages/observability`). Both HTTP APIs keep access logs. Every log group the stacks declare keeps a month.
 
-Every function is traced through X-Ray (`ServiceLambda` sets active tracing), at the rate Lambda samples and no function can change: one request a second and 5% of the rest. Each operation opens a subsegment of its own, annotated with the identifiers of its line and its business flow (`flow`, `operation`, `outcome`, `correlationId`, `subscriptionId`, `channel`, `agentClient`), and the Tracer captures HTTPS and `fetch`, so the calls to AWS show under it. The trace breaks in two places, and the correlation id links across both: at the HTTP API between the connector and the core, which opens no trace of its own, and at the DynamoDB streams the relays read, which carry none. A search by `annotation.correlationId` returns the whole story of one call.
+When a delivery turns tracing on, every function is traced through X-Ray (`ServiceLambda` sets active tracing; otherwise it disables it and `POWERTOOLS_TRACE_ENABLED`), at the rate Lambda samples and no function can change: one request a second and 5% of the rest. Each operation opens a subsegment of its own, annotated with the identifiers of its line and its business flow (`flow`, `operation`, `outcome`, `correlationId`, `subscriptionId`, `channel`, `agentClient`), and the Tracer captures HTTPS and `fetch`, so the calls to AWS show under it. The trace breaks in two places, and the correlation id links across both: at the HTTP API between the connector and the core, which opens no trace of its own, and at the DynamoDB streams the relays read, which carry none. A search by `annotation.correlationId` returns the whole story of one call.
 
-The *Observability* stack holds no state and is deployed last: it finds the functions, queues and HTTP APIs the other stacks declared in their construct trees. In production it draws three dashboards, `memorysmith-usage`, `memorysmith-flows` and `memorysmith-health`, which read people from the operation lines through Logs Insights (`count_distinct(userId)`), so no metric is ever kept per person or per subscription. The one trend that has to outlive the month of logs is counted once a day, in both environments, by `ActivePeople` (`apps/core-monolith/src/active-people.handler.ts`): the distinct people of a day, a week and a month in the lines of the core API and the connector, written as `ActivePeopleDaily`, `ActivePeopleWeekly` and `ActivePeopleMonthly` in the namespace `MemorySmith`, which CloudWatch keeps fifteen months.
+The *Observability* stack holds no state and is deployed last: it finds the functions, queues and HTTP APIs the other stacks declared in their construct trees. When a delivery turns them on, in either environment, it draws three dashboards, `memorysmith-usage`, `memorysmith-flows` and `memorysmith-health`, which read people from the operation lines through Logs Insights (`count_distinct(userId)`), so no metric is ever kept per person or per subscription. The one trend that has to outlive the month of logs is counted once a day, in both environments, by `ActivePeople` (`apps/core-monolith/src/active-people.handler.ts`): the distinct people of a day, a week and a month in the lines of the core API and the connector, written as `ActivePeopleDaily`, `ActivePeopleWeekly` and `ActivePeopleMonthly` in the namespace `MemorySmith`, which CloudWatch keeps fifteen months.
 
-In production every function has an alarm on errors, the three a person or an agent waits on (`CoreApi`, `AgentFunction`, `PreTokenGeneration`) one on p99 duration, the account one on Lambda throttles (no function reserves concurrency, so a throttle is the account at its limit), and every dead-letter queue one on its depth, all notifying the SNS topic `memorysmith-alarms-production`. Alarms are created only through `mandatoryAlarm`, and an aspect fails the synthesis of an alarm without an action, or of any alarm in staging (`memorysmithapp-infra/constructs/alarms.ts`). Two budgets, declared in the *Network* stack of production: the account at US$ 20 a month and staging, read through `app:environment`, at US$ 3.
+When a delivery turns the alarms on, every function has an alarm on errors, the three a person or an agent waits on (`CoreApi`, `AgentFunction`, `PreTokenGeneration`) one on p99 duration, the account one on Lambda throttles (no function reserves concurrency, so a throttle is the account at its limit), and every dead-letter queue one on its depth, all notifying the SNS topic `memorysmith-alarms-<environment>`. The topic of production exists even while its alarms are off, so its confirmed subscription survives. Alarms are created only through `mandatoryAlarm`, and an aspect fails the synthesis of an alarm without an action, or of any alarm in a delivery without them (`memorysmithapp-infra/constructs/alarms.ts`). Two budgets, declared in the *Network* stack of production: the account at US$ 20 a month and staging, read through `app:environment`, at US$ 3.
 
 ## 6. Architecture decision records
 
@@ -419,3 +419,11 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 - **Rationale:** the reads of one note become bounded by that note and not by its notebook, and a write that changes nothing derived writes nothing derived, without migrating a partition in place while it is being written.
 - **Consequences:** every write path keeps a mirror and its item paired (`put` and `remove` are the only ones that write or delete either); a partition stays on the old reads until it is rebuilt. Linking is read-after-write on both sides: a note resolving what waits for it reads the waiting links consistently after indexing its spellings, and a write leaving a target pending reads that spelling again consistently after writing it, so two notes projected at once cannot both miss each other; an unmarked partition keeps its previous, narrower race until rebuilt.
 - **Date:** 2026-10-18. **Status:** Accepted. **Origin:** #327, #328.
+
+### ADR-021 What costs money in observability is a choice of the delivery, off by default
+
+- **Context:** with no contracted users, no formal SLA and no incident on record, the alarms (22, above the free 10), the dashboards (`memorysmith-health` holds more than the 50 metrics the free allowance covers) and X-Ray (staging's functional suite takes the account past the free 100,000 traces a month) cost money every hour whether anybody looks or not (#338).
+- **Decision:** what costs money is a choice of each delivery, off unless chosen: `alarms`, `dashboards` and `tracing`, the inputs of a manual run of *Staging* or *Production*, passed by `deliver` to the synthesis as context and never declared in `cdk.json`. A merge to `main` chooses none of them. What the free tier covers stays as it was: the logs and their month, the access logs, `ActivePeople` and its metrics, the budgets and the topic of production.
+- **Rationale:** the code that defines the observability stays whole and proved, and costs nothing until somebody means to use it. A choice per delivery rather than per environment keeps a test of observability one run away; dashboards and alarms read metrics and logs that exist anyway, so turning them on shows the past too.
+- **Consequences:** a delivery that does not choose something removes it, so a merge after a manual run turns everything off again. A trace is never recovered for a time when tracing was off; the correlation id in the logs covers that time. A manual run of *Production* delivers the released commit again, which `release-checks` admits because the tag names that very commit. Staging is delivered with alarms only when its environment on GitHub has an `ALARM_EMAIL`.
+- **Date:** 2026-10-20. **Status:** Accepted. **Origin:** #338.

@@ -58,3 +58,17 @@ export function tagExists(tag: string): boolean {
   const remote = git('ls-remote', '--tags', 'origin', `refs/tags/${tag}`);
   return remote.length > 0 || git('tag', '--list', tag).length > 0;
 }
+
+/** The commit a tag names, on origin or here, or undefined when there is none. */
+export function taggedCommit(tag: string): string | undefined {
+  // `^{}` peels an annotated tag to the commit it names.
+  const remote = git('ls-remote', '--tags', 'origin', `refs/tags/${tag}^{}`, `refs/tags/${tag}`);
+  const lines = remote.split('\n').filter(Boolean);
+  const peeled = lines.find((line) => line.endsWith('^{}')) ?? lines[0];
+  if (peeled) return peeled.split('\t')[0];
+  try {
+    return git('rev-parse', '--verify', '--quiet', `${tag}^{commit}`) || undefined;
+  } catch {
+    return undefined;
+  }
+}

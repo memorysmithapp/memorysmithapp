@@ -1,9 +1,7 @@
 /**
- * ServiceLambda: no service reaches production without observability and the
- * mandatory alarms, each with the destination it notifies. Where the
- * environment carries no alarms, as staging does, it creates none (#267).
- *
- * Every function is also traced through X-Ray, for the same reason (#271).
+ * ServiceLambda: no service is deployed without its log and, when the
+ * delivery turns them on (ADR-021), the mandatory alarms, each with the
+ * destination it notifies (#267), and tracing through X-Ray (#271).
  *
  * Forgetting them stops being possible by omission, which is the whole reason
  * this construct exists instead of a helper function someone may skip.
@@ -19,6 +17,7 @@ import { Architecture, Runtime, Tracing, type ILayerVersion } from 'aws-cdk-lib/
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import { environmentOf } from '../config/environments.js';
 import { mandatoryAlarm } from './alarms.js';
 import { deploymentOf, deploymentVariables } from './deployment.js';
 
@@ -74,6 +73,7 @@ export class ServiceLambda extends Construct {
       removalPolicy: RemovalPolicy.DESTROY,
     });
     const logGroup = this.logGroup;
+    const { tracing } = environmentOf(this.node);
 
     this.function = new NodejsFunction(this, 'Function', {
       entry: props.entry,
@@ -86,11 +86,11 @@ export class ServiceLambda extends Construct {
       timeout: props.timeout ?? Duration.seconds(15),
       description: props.description,
       logGroup,
-      // Every function is traced (#271), in both environments: Lambda samples
-      // one request a second and 5% of the rest, a rate it does not let a
-      // function change, which at this traffic keeps production inside the
-      // free 100,000 traces a month and traces nearly all of staging.
-      tracing: Tracing.ACTIVE,
+      // Every function is traced (#271) when the delivery turns tracing on
+      // (ADR-021): Lambda samples one request a second and 5% of the rest, a
+      // rate it does not let a function change, and staging's functional suite
+      // alone takes the account past the free 100,000 traces a month.
+      tracing: tracing ? Tracing.ACTIVE : Tracing.DISABLED,
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
         // Powertools writes the one line of each operation, named by this
@@ -100,6 +100,8 @@ export class ServiceLambda extends Construct {
         POWERTOOLS_SERVICE_NAME: id,
         POWERTOOLS_LOG_LEVEL: 'INFO',
         POWERTOOLS_METRICS_NAMESPACE: 'MemorySmith',
+        // Without tracing the Tracer opens no subsegment, so nothing is sent.
+        POWERTOOLS_TRACE_ENABLED: String(tracing),
         // Where it runs and what it is, as configuration and never as a
         // constant of the bundle.
         ...deploymentVariables(deploymentOf(this)),
@@ -120,7 +122,7 @@ export class ServiceLambda extends Construct {
 
     // ---- The mandatory alarms ---------------------------------
     // Through mandatoryAlarm, which attaches the topic of the environment and
-    // creates nothing where the environment carries no alarms (#267).
+    // creates nothing where the delivery carries no alarms (#267, ADR-021).
 
     mandatoryAlarm(this, 'Errors', {
       alarmDescription: `${id}: invocation errors`,

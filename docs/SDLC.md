@@ -225,12 +225,12 @@ Collect the data from the git history and the diff, without guessing and without
 2. Push the branch and open the single pull request of the cycle ([§6](#6-pull-request)).
 3. The owner reviews and merges it. The bump never reaches `main` by a direct push.
 4. A merge to `main` that touches `memorysmithapp-backend/`, `memorysmithapp-frontend/`, `memorysmithapp-infra/` or the workspace files starts the workflow *Production*, which runs, in order, stopping at the first that fails:
-   1. `release-checks`: a version that disagrees anywhere, that has no dated section with notes, or whose tag already exists stops here;
+   1. `release-checks`: a version that disagrees anywhere, that has no dated section with notes, or whose tag already exists on another commit stops here;
    2. the checks of CI again, on the merged commit;
    3. `deliver --environment production`, which builds, deploys in the order the environment imposes and closes with the smoke;
    4. `publish-release`: the annotated tag `vX.Y.Z` on the merged commit and the GitHub Release, refusing a tag that already points at another commit, because a version names one commit.
 
-A merge that touches nothing deployed starts nothing. A run that failed for a cause other than the code is run again from the Actions tab.
+A merge that touches nothing deployed starts nothing. A run that failed for a cause other than the code is run again from the Actions tab. A merge delivers with alarms, dashboards and tracing off; a manual run of *Production* delivers the released commit again with the ones chosen, and the next merge turns them off ([ADR-021](ARCHITECTURE.md#adr-021-what-costs-money-in-observability-is-a-choice-of-the-delivery-off-by-default)).
 
 When a cycle is cut, every issue delivered in it is closed already ([§5](#5-when-an-issue-closes)), and the ones left behind move to the milestone of the next version: an accepted issue nobody reassessed is a silent promise.
 
@@ -238,7 +238,7 @@ When a cycle is cut, every issue delivered in it is closed already ([§5](#5-whe
 
 A released version that turns out wrong is **never undone by moving or deleting its tag**, and production is never deployed by hand from a workstation.
 
-Production returns to the previous behaviour through a **new patch version**: the fix, or the revert of the offending commits, enters `[Unreleased]` under `Fixed` on a `fix/` or `release/` branch, is cut, and is delivered by the flow of [§10](#10-release). `release-checks` refuses to deliver a version that is tagged already, so a revert merged without a bump stops before production. Data written meanwhile stays: a migration is never reversed by a rollback, which is why a destructive key or schema migration is a major bump ([§9](#9-versioning)).
+Production returns to the previous behaviour through a **new patch version**: the fix, or the revert of the offending commits, enters `[Unreleased]` under `Fixed` on a `fix/` or `release/` branch, is cut, and is delivered by the flow of [§10](#10-release). `release-checks` refuses to deliver a version that is tagged already on another commit, so a revert merged without a bump stops before production. Data written meanwhile stays: a migration is never reversed by a rollback, which is why a destructive key or schema migration is a major bump ([§9](#9-versioning)).
 
 ## 12. Done criteria
 

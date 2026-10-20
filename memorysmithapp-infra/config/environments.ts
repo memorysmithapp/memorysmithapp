@@ -3,10 +3,11 @@
  *
  * `-c environment=production|staging` chooses one, and everything that differs
  * between them is read from `environments` in cdk.json: the account, the
- * region, the hosted zone, the zones it delegates and whether it carries
- * alarms. A synth that names no environment is production. The one thing that
- * differs and is not in cdk.json is the address the alarms notify, which is
- * context a delivery passes, because the repository is public.
+ * region, the hosted zone and the zones it delegates. A synth that names no
+ * environment is production. Two things that differ are not in cdk.json, and
+ * arrive as context a delivery passes: the address the alarms and the budgets
+ * notify, because the repository is public, and which of the observability
+ * that costs money a delivery turns on (ADR-021).
  *
  * The account is never taken from the credentials. Named explicitly in the
  * environment of every stack, it makes the CDK itself refuse to deploy into
@@ -44,14 +45,18 @@ export interface EnvironmentConfig {
    */
   readonly repositorySubject: string;
   /**
-   * Whether this environment carries its alarms (#267). An alarm
-   * exists to reach a person, so production carries them and staging, which is
-   * disposable and proved by the smoke and the functional suite rather than
-   * watched, carries none. Declared per environment in cdk.json, never assumed.
+   * Whether this delivery carries the alarms (#267, ADR-021). What costs money
+   * is chosen by the delivery and is off unless it is turned on: the context
+   * `alarms`, which `deliver --alarms` passes.
    */
   readonly alarms: boolean;
+  /** Whether this delivery draws the dashboards (#270, ADR-021): the context `dashboards`. */
+  readonly dashboards: boolean;
+  /** Whether this delivery traces its functions through X-Ray (#271, ADR-021): the context `tracing`. */
+  readonly tracing: boolean;
   /**
-   * Who the alarms notify, present exactly when `alarms` is. It arrives as the
+   * Who the alarms and the budgets notify, present in production, which owns
+   * the budgets of the account, and wherever `alarms` is on. It arrives as the
    * context `alarmEmail`, which `deliver` takes from the variable `ALARM_EMAIL`
    * of the GitHub environment, and it is never written into cdk.json, because
    * the repository is public.
@@ -78,6 +83,17 @@ function delegationOf(raw: unknown, environment: string): Delegation {
     );
   }
   return { recordName, nameServers: nameServers as string[] };
+}
+
+/**
+ * A choice of the delivery (ADR-021): off unless the context turns it on, as
+ * `true` from a test or the text `true` from `cdk synth -c`.
+ */
+function choiceOf(node: ContextReader, key: string): boolean {
+  const value = node.tryGetContext(key);
+  if (value === undefined || value === false || value === 'false') return false;
+  if (value === true || value === 'true') return true;
+  throw new Error(`The context "${key}" is "${String(value)}": it is true or false.`);
 }
 
 /** The environment a synth describes, validated field by field. */
@@ -107,16 +123,17 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     );
   }
   const delegations = Array.isArray(raw['delegations']) ? raw['delegations'] : [];
-  const alarms = raw['alarms'];
-  if (typeof alarms !== 'boolean') {
+  if ('alarms' in raw) {
     throw new Error(
-      `The ${requested} environment in cdk.json does not say whether it carries alarms ("alarms": true or false).`,
+      `The ${requested} environment in cdk.json declares "alarms", which a delivery chooses (ADR-021): remove it.`,
     );
   }
+  const alarms = choiceOf(node, 'alarms');
+  const notified = alarms || requested === 'production';
   const alarmEmail = String(node.tryGetContext('alarmEmail') ?? '').trim();
-  if (alarms && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(alarmEmail)) {
+  if (notified && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(alarmEmail)) {
     throw new Error(
-      `The ${requested} environment carries alarms, and no address to notify was given. ` +
+      `The ${requested} environment ${alarms ? 'carries alarms' : 'carries the budgets'}, and no address to notify was given. ` +
         'Pass it as -c alarmEmail=…, which deliver takes from ALARM_EMAIL: an alarm is never created with nowhere to go.',
     );
   }
@@ -138,7 +155,9 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
         ? String(node.tryGetContext('repositorySubject'))
         : `repo:${repository}`,
     alarms,
-    ...(alarms ? { alarmEmail } : {}),
+    dashboards: choiceOf(node, 'dashboards'),
+    tracing: choiceOf(node, 'tracing'),
+    ...(notified ? { alarmEmail } : {}),
   };
 }
 

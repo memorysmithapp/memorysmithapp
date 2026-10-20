@@ -2,6 +2,7 @@
  * Delivers an environment from a workstation.
  *
  *   pnpm -C memorysmithapp-infra deliver [--environment staging] [--skip-build]
+ *                                        [--alarms] [--dashboards] [--tracing]
  *
  * It is what the Deliver and Smoke stages ran, in one command and in the same
  * order, because the order is not a preference: the site of the environment has
@@ -15,11 +16,16 @@
  * tree with uncommitted changes is said out loud, because `deploy:sha` would
  * otherwise name a commit that never held what is being served.
  *
- * It refuses any account but the one cdk.json names for the environment, and an
- * environment that carries alarms when `ALARM_EMAIL` names nobody for them to
- * notify: the address is a variable of the GitHub environment, handed to
- * the synthesis as context, and never written into cdk.json, because the
- * repository is public.
+ * What costs money is off unless it is asked for (ADR-021): the alarms, the
+ * dashboards and the X-Ray tracing are each turned on by a flag, or by `ALARMS`,
+ * `DASHBOARDS` and `TRACING` set to `true`, as a manual run of a workflow does,
+ * and a delivery that asks for none removes what an earlier one turned on.
+ *
+ * It refuses any account but the one cdk.json names for the environment, and a
+ * delivery of production, which owns the budgets, or one with alarms, when
+ * `ALARM_EMAIL` names nobody for them to notify: the address is a variable of
+ * the GitHub environment, handed to the synthesis as context, and never
+ * written into cdk.json, because the repository is public.
  */
 
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
@@ -36,6 +42,9 @@ const { values } = parseArgs({
     environment: { type: 'string', default: process.env['ENVIRONMENT'] ?? 'staging' },
     'skip-build': { type: 'boolean', default: false },
     'skip-smoke': { type: 'boolean', default: false },
+    alarms: { type: 'boolean', default: process.env['ALARMS'] === 'true' },
+    dashboards: { type: 'boolean', default: process.env['DASHBOARDS'] === 'true' },
+    tracing: { type: 'boolean', default: process.env['TRACING'] === 'true' },
   },
 });
 
@@ -58,7 +67,7 @@ const declared = (
     context: {
       environments: Record<
         string,
-        { account?: string; region?: string; hostedZoneName?: string; alarms?: boolean } | undefined
+        { account?: string; region?: string; hostedZoneName?: string } | undefined
       >;
     };
   }
@@ -68,11 +77,12 @@ const account = declared?.account ?? refuse(`cdk.json names no account for ${env
 const region = declared?.region ?? 'us-east-1';
 const zone = declared?.hostedZoneName ?? refuse(`cdk.json names no zone for ${environment}.`);
 const alarmEmail = process.env['ALARM_EMAIL']?.trim() ?? '';
-if (declared?.alarms === true && alarmEmail === '') {
+if ((values.alarms || environment === 'production') && alarmEmail === '') {
   refuse(
-    `${environment} carries alarms, and ALARM_EMAIL names nobody for them to notify. Nothing was deployed.`,
+    `${environment} ${values.alarms ? 'carries alarms' : 'carries the budgets'}, and ALARM_EMAIL names nobody for them to notify. Nothing was deployed.`,
   );
 }
+const choices = (['alarms', 'dashboards', 'tracing'] as const).filter((choice) => values[choice]);
 
 const caller = await new STSClient({ region }).send(new GetCallerIdentityCommand({}));
 if (caller.Account !== account) {
@@ -94,6 +104,7 @@ const version = servedVersion({
 });
 
 say(`Delivering ${version} to ${environment}, account ${account}, ${region}.`);
+say(`  with ${choices.length > 0 ? choices.join(', ') : 'no alarms, dashboards or tracing'}.`);
 if (git('status', '--porcelain').length > 0) {
   say(`  the working tree has changes that ${sha.slice(0, 7)} does not hold.`);
 }
@@ -151,6 +162,7 @@ node('Synthesising', [
   '-c',
   `commit=${sha}`,
   ...(alarmEmail === '' ? [] : ['-c', `alarmEmail=${alarmEmail}`]),
+  ...choices.flatMap((choice) => ['-c', `${choice}=true`]),
 ]);
 
 deploy('Deploying the network and the hosting', ids(['Network', 'Frontend']));

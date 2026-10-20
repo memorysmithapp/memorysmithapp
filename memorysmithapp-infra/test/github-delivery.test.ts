@@ -22,7 +22,6 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'memorysmith.app',
     hostedZoneId: 'ZPRODUCTION',
-    alarms: true,
     delegations: [],
   },
   staging: {
@@ -30,7 +29,6 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'stg.memorysmith.app',
     hostedZoneId: 'ZSTAGING',
-    alarms: false,
     delegations: [],
   },
 };

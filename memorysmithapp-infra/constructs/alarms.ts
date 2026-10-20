@@ -1,21 +1,21 @@
 /**
  * The alarms of an environment and where they go (#267).
  *
- * An alarm exists to reach a person. Production carries the mandatory alarms
- * and every one of them notifies one SNS topic, which the operator's address is
- * subscribed to; staging carries none, because it is disposable and is proved
- * by the smoke and the functional suite, never watched.
+ * An alarm exists to reach a person. A delivery that turns the alarms on
+ * (ADR-021) carries the mandatory alarms, and every one of them notifies one
+ * SNS topic, which the operator's address is subscribed to; a delivery that
+ * does not, the default in both environments, carries none.
  *
  * Three pieces keep that true without anybody remembering it:
  *
  * - `AlarmTopic`, the destination, declared once per environment in the network
  *   stack, the first a delivery deploys, under a name the environment fixes;
  * - `mandatoryAlarm`, the only way an alarm is created here: it creates nothing
- *   where the environment carries no alarms, and attaches the topic where it
+ *   where the delivery carries no alarms, and attaches the topic where it
  *   does, so `ServiceLambda` hands every function a destination exactly as it
  *   hands it an alarm;
  * - `AlarmPolicy`, an aspect over the whole app, which fails the synthesis on an
- *   alarm in an environment without alarms and on an alarm without an action,
+ *   alarm in a delivery without alarms and on an alarm without an action,
  *   so an `Alarm` created by hand is refused rather than shipped mute.
  */
 
@@ -43,8 +43,8 @@ export class AlarmTopic extends Construct {
   constructor(scope: Construct, id: string, props: { readonly environment: EnvironmentConfig }) {
     super(scope, id);
     const address = props.environment.alarmEmail;
-    if (!props.environment.alarms || !address) {
-      throw new Error(`The ${props.environment.name} environment has no alarms to send anywhere.`);
+    if (!address) {
+      throw new Error(`The ${props.environment.name} environment has no address to send alarms to.`);
     }
     this.topic = new Topic(this, 'Topic', {
       topicName: alarmTopicName(props.environment),
@@ -73,7 +73,7 @@ function destinationOf(scope: Construct, environment: EnvironmentConfig): ITopic
 }
 
 /**
- * An alarm of the environment: created only where the environment carries alarms,
+ * An alarm of the environment: created only where the delivery carries alarms,
  * and always with the topic as its action. Returns nothing where it created
  * nothing.
  */
@@ -93,7 +93,7 @@ export class AlarmPolicy implements IAspect {
     if (!(node instanceof CfnAlarm)) return;
     if (!this.environment.alarms) {
       throw new Error(
-        `${node.node.path}: the ${this.environment.name} environment carries no alarms (#267). Create alarms through mandatoryAlarm.`,
+        `${node.node.path}: this delivery of ${this.environment.name} carries no alarms (#267, ADR-021). Create alarms through mandatoryAlarm.`,
       );
     }
     const actions: unknown = Stack.of(node).resolve(node.alarmActions);
