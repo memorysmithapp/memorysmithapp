@@ -21,7 +21,6 @@ const ENVIRONMENTS = {
     region: 'us-east-1',
     hostedZoneName: 'stg.memorysmith.app',
     hostedZoneId: 'ZSTAGING',
-    alarms: false,
     delegations: [],
   },
 };

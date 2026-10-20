@@ -1,5 +1,6 @@
 /**
- * The alarms reach somebody in production, and do not exist in staging (#267).
+ * The alarms reach somebody wherever a delivery turns them on, and do not
+ * exist where it does not, the default in both environments (#267, ADR-021).
  *
  * Seventy alarms had been created with no action at all, half of them in an
  * environment nobody watches, and nothing could see it before the bill did.
@@ -34,8 +35,8 @@ function alarmsOf(stacks: readonly Stack[]): Array<[string, AlarmResource]> {
   );
 }
 
-describe('the alarms of production', () => {
-  const app = appFor('production', { alarmEmail: ADDRESS });
+describe('the alarms of production, turned on', () => {
+  const app = appFor('production', { alarmEmail: ADDRESS, alarms: 'true' });
   const { network, all } = stacksOf(app);
   const alarms = alarmsOf(all);
 
@@ -89,7 +90,7 @@ describe('the alarms of production', () => {
   });
 
   it('refuse an alarm created by hand without an action', () => {
-    const app = appFor('production', { alarmEmail: ADDRESS });
+    const app = appFor('production', { alarmEmail: ADDRESS, alarms: true });
     const environment = environmentOf(app.node);
     const stack = new Stack(app, 'Loose', {
       env: { account: environment.account, region: environment.region },
@@ -111,12 +112,42 @@ describe('the alarms of production', () => {
   });
 });
 
+describe('the alarms of production, by default', () => {
+  const { network, all } = stacksOf(appFor('production', { alarmEmail: ADDRESS }));
+
+  it('do not exist', () => {
+    expect(alarmsOf(all)).toEqual([]);
+  });
+
+  it('keep their topic and its confirmed subscription, which cost nothing', () => {
+    Template.fromStack(network).hasResourceProperties('AWS::SNS::Topic', {
+      TopicName: alarmTopicName({ name: 'production' }),
+    });
+  });
+});
+
 describe('the alarms of staging', () => {
-  it('do not exist, and neither does a topic for them', () => {
+  it('do not exist by default, and neither does a topic for them', () => {
     // An address passed by mistake changes nothing: staging carries no alarms.
     const { all } = stacksOf(appFor('staging', { alarmEmail: ADDRESS }));
     expect(alarmsOf(all)).toEqual([]);
     for (const stack of all) Template.fromStack(stack).resourceCountIs('AWS::SNS::Topic', 0);
+  });
+
+  it('exist when a delivery turns them on, each notifying the topic of staging', () => {
+    const { all } = stacksOf(appFor('staging', { alarmEmail: ADDRESS, alarms: true }));
+    const alarms = alarmsOf(all);
+    expect(alarms.length).toBeGreaterThan(20);
+    const arn = `:sns:us-east-1:111111111111:${alarmTopicName({ name: 'staging' })}`;
+    expect(
+      alarms.filter(([, alarm]) => !JSON.stringify(alarm.Properties.AlarmActions).includes(arn)),
+    ).toEqual([]);
+  });
+
+  it('cannot be turned on without an address to notify', () => {
+    expect(() => environmentOf(appFor('staging', { alarms: true }).node)).toThrow(
+      /carries alarms, and no address to notify/,
+    );
   });
 
   it('refuse an alarm created by hand', () => {
@@ -135,22 +166,29 @@ describe('the alarms of staging', () => {
   });
 });
 
-describe('the choice of an environment', () => {
-  it('is production with alarms and staging without, and no address is ever in cdk.json', () => {
+describe('what a delivery chooses', () => {
+  it('is never in cdk.json, and neither is an address', () => {
     const text = readText('memorysmithapp-infra/cdk.json');
-    const declared = (
-      JSON.parse(text) as { context: { environments: Record<string, { alarms?: unknown }> } }
-    ).context.environments;
-    expect(declared['production']?.alarms).toBe(true);
-    expect(declared['staging']?.alarms).toBe(false);
+    expect(text).not.toMatch(/"(alarms|dashboards|tracing)"/);
     expect(text).not.toMatch(/alarmEmail|@[a-z0-9-]+\.[a-z]/i);
   });
 
-  it('is declared in cdk.json, never assumed', () => {
-    const { alarms: _omitted, ...staging } = ENVIRONMENTS.staging;
+  it('is refused when cdk.json declares it', () => {
     const app = new App({
-      context: { environment: 'staging', environments: { staging } },
+      context: {
+        environment: 'staging',
+        environments: { staging: { ...ENVIRONMENTS.staging, alarms: true } },
+      },
     });
-    expect(() => environmentOf(app.node)).toThrow(/whether it carries alarms/);
+    expect(() => environmentOf(app.node)).toThrow(/which a delivery chooses/);
+  });
+
+  it('is off unless the context turns it on, and only true or false', () => {
+    const chosen = environmentOf(appFor('staging').node);
+    expect([chosen.alarms, chosen.dashboards, chosen.tracing]).toEqual([false, false, false]);
+    expect(environmentOf(appFor('staging', { tracing: 'true' }).node).tracing).toBe(true);
+    expect(() => environmentOf(appFor('staging', { dashboards: 'yes' }).node)).toThrow(
+      /true or false/,
+    );
   });
 });

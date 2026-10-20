@@ -155,9 +155,12 @@ export class NetworkStack extends Stack {
      * Where every alarm of the environment goes (#267). It lives here because
      * this is the first stack a delivery deploys, so the topic exists before any
      * alarm names it, and every alarm names it by the ARN its fixed name gives,
-     * which ties no stack to this one. Staging carries no alarms, and no topic.
+     * which ties no stack to this one. It exists wherever there is an address,
+     * production always, even while a delivery carries no alarms (ADR-021): a
+     * topic costs nothing, and one created again would ask for its subscription
+     * to be confirmed again.
      */
-    if (props.environment.alarms) {
+    if (props.environment.alarmEmail) {
       new AlarmTopic(this, 'Alarms', { environment: props.environment });
 
       /**

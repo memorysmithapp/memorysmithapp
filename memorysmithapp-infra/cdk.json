@@ -13,7 +13,6 @@
         "region": "us-east-1",
         "hostedZoneName": "memorysmith.app",
         "hostedZoneId": "Z1003210YHFJUFXNHOVX",
-        "alarms": true,
         "delegations": [
           {
             "recordName": "stg",
@@ -31,7 +30,6 @@
         "region": "us-east-1",
         "hostedZoneName": "stg.memorysmith.app",
         "hostedZoneId": "Z07999273FVWE6U5B5811",
-        "alarms": false,
         "delegations": []
       }
     },

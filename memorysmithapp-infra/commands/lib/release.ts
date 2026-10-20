@@ -76,7 +76,9 @@ export function changelogSection(changelog: string, version: string): string | n
  *
  * The one that stops most is the last: a tag that already exists means the
  * version was released, so a merge that changed code without bumping it would
- * deploy different bytes under a number that already names others.
+ * deploy different bytes under a number that already names others. A tag on
+ * the very commit being delivered is that release delivered again, as a
+ * manual run does to turn on what costs money (ADR-021), and stops nothing.
  */
 export function releaseProblems(input: {
   readonly rootManifest: string;
@@ -86,6 +88,8 @@ export function releaseProblems(input: {
   }>;
   readonly changelog: string;
   readonly tagExists: boolean;
+  /** Whether that tag names the commit being delivered. */
+  readonly taggedHere?: boolean;
 }): string[] {
   const problems: string[] = [];
   const base = baseVersionOf(input.rootManifest);
@@ -111,7 +115,7 @@ export function releaseProblems(input: {
   if (!changelogSection(input.changelog, base)) {
     problems.push(`The section of ${base} in CHANGELOG.md is empty.`);
   }
-  if (input.tagExists) {
+  if (input.tagExists && !input.taggedHere) {
     problems.push(
       `v${base} is already released. A change to what is deployed needs a new version: bump it on the release branch.`,
     );

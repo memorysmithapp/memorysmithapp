@@ -21,6 +21,20 @@ on:
         type: choice
         default: none
         options: [none, recount-storage, reproject-links, both]
+      # What costs money is off unless it is chosen here (ADR-021), and the
+      # next delivery that does not choose it removes it again.
+      alarms:
+        description: Deliver with the alarms (needs ALARM_EMAIL in the staging environment)
+        type: boolean
+        default: false
+      dashboards:
+        description: Deliver with the dashboards
+        type: boolean
+        default: false
+      tracing:
+        description: Deliver with X-Ray tracing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -63,6 +77,11 @@ jobs:
         run: echo "version=$(pnpm -s -C memorysmithapp-infra served-version --environment staging --branch "$GITHUB_REF_NAME")" >> "$GITHUB_OUTPUT"
 
       - name: Deliver
+        env:
+          ALARMS: ${{ inputs.alarms }}
+          DASHBOARDS: ${{ inputs.dashboards }}
+          TRACING: ${{ inputs.tracing }}
+          ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}
         run: pnpm -C memorysmithapp-infra deliver --environment staging
 
       - name: Maintenance

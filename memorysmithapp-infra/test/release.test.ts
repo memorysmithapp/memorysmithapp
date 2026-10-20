@@ -119,6 +119,17 @@ describe('the checks of a release', () => {
     ]);
   });
 
+  it('let the released commit be delivered again, as a manual run does', () => {
+    const problems = releaseProblems({
+      rootManifest: ROOT_MANIFEST,
+      manifests: agreeing,
+      changelog: CHANGELOG,
+      tagExists: true,
+      taggedHere: true,
+    });
+    expect(problems).toEqual([]);
+  });
+
   it('name every manifest that disagrees', () => {
     const problems = releaseProblems({
       rootManifest: ROOT_MANIFEST,

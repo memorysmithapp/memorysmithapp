@@ -3,22 +3,26 @@
  *
  * A merge to main that touches what is deployed becomes a release, so before
  * anything is built the version has to agree everywhere it is written and must
- * not be released already. Every reason is printed, and the stage fails on any.
+ * not be released already, unless on this very commit, which is the release
+ * delivered again. Every reason is printed, and the stage fails on any.
  *
  *   pnpm -C memorysmithapp-infra release-checks
  */
 
 import { baseVersionOf, releaseProblems } from './lib/release.js';
-import { manifests, readText, tagExists } from './lib/repository.js';
+import { git, manifests, readText, tagExists, taggedCommit } from './lib/repository.js';
 
 const rootManifest = readText('package.json');
 const version = baseVersionOf(rootManifest);
+const released = version ? tagExists(`v${version}`) : false;
+const taggedHere = released && taggedCommit(`v${version}`) === git('rev-parse', 'HEAD');
 
 const problems = releaseProblems({
   rootManifest,
   manifests: manifests(),
   changelog: readText('CHANGELOG.md'),
-  tagExists: version ? tagExists(`v${version}`) : false,
+  tagExists: released,
+  taggedHere,
 });
 
 if (problems.length > 0) {
@@ -26,4 +30,8 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`  - ${problem}`);
   process.exit(1);
 }
-process.stdout.write(`v${version} is ready to be released.\n`);
+process.stdout.write(
+  taggedHere
+    ? `v${version} is released on this commit, and is delivered again.\n`
+    : `v${version} is ready to be released.\n`,
+);
