@@ -11,11 +11,15 @@ issues each entry cites.
 
 ## [Unreleased]
 
-## [0.14.2] - 2026-10-20
+## [0.14.3] - 2026-10-20
 
 ### Changed
 
 - **Alarms, dashboards and X-Ray tracing are off unless a delivery turns them on**, so whoever operates the product pays for them only while using them. A manual run of the *Staging* or *Production* workflow has an input for each. A merge to `main` delivers production without any of them, and removes what a manual run had turned on. The logs, their month of retention, the daily count of active people and the budgets stay as they were. A manual run of *Production* now delivers the released commit again instead of stopping at its tag. Staging can be delivered with alarms once its GitHub environment has an `ALARM_EMAIL`. (#338)
+
+### Fixed
+
+- **Production can be delivered without the dashboards.** A delivery of production without them stopped halfway, because the stacks that the dashboards read tried to remove values the dashboards still used. Those values are now kept whether or not the dashboards are on, so turning the dashboards off or on never stops a delivery. (#340)
 
 ## [0.14.1] - 2026-10-19
 
@@ -840,8 +844,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.2...HEAD
-[0.14.2]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.2
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...HEAD
+[0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3
 [0.14.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.0...v0.13.1
