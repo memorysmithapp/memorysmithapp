@@ -38,6 +38,10 @@ issues each entry cites.
 - **A note follows version 0.9.0 of the MemorySmith Markdown Specification, which adds parameter references.** `{{name}}` marks where a value goes in a notebook model: the page draws it as a parameter, a wikilink whose target writes one is neither a link nor a pending one, and an attribute whose value writes one is not offered as a filter. `\{{` writes the characters as they are. A note that already wrote `{{` for another purpose now shows a parameter there, and escaping it keeps it as text.
 - **The tools that operate and evaluate the product run as `pnpm tools` from the root of the repository**, grouped and with help: `pnpm tools --help` lists them and `pnpm tools <command> --help` says what each takes. Onboarding is `pnpm tools onboard`, the product-data maintenance jobs are `pnpm tools data <job>` (`cleanup-staging`, `recount-storage`, `reproject-links`, `migrate-slots`), the functional suite is `pnpm tools functional` and the agent evaluation `pnpm tools agent-eval`, each with the arguments, refusals and exit codes it had. Delivering and tearing down an environment stay with the infrastructure, in `memorysmithapp-infra`; the old `pnpm -C memorysmithapp-infra` names of the moved commands are gone. (#345)
 
+### Fixed
+
+- **A note written while others were being written is always counted.** When several writes of one subscription were counted at the same moment, one of them could be dropped for good, so a folder or a notebook said it held fewer notes than it did, and the space used could be off. Such a write is now counted again until it lands. (#362)
+
 ## [0.14.3] - 2026-10-20
 
 ### Changed

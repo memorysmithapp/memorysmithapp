@@ -357,9 +357,28 @@ export class OutboxRelay {
       await this.deps.db.send(new TransactWriteCommand({ TransactItems: writes }));
     } catch (error) {
       // A duplicate SEEN item means the stream is replaying: the counters were
-      // already applied, and doing nothing is the correct outcome.
-      const name = (error as { name?: string })?.name ?? '';
-      if (name !== 'TransactionCanceledException') throw error;
+      // already applied, and doing nothing is the correct outcome. Anything
+      // else that cancelled the transaction — a conflict with another event of
+      // the subscription on its USAGE item, above all — applied nothing, and
+      // fails the batch so the stream delivers it again (#362).
+      if (!isReplay(error)) throw error;
     }
   }
+}
+
+/**
+ * Whether a cancelled transaction was cancelled by its SEEN item alone, the
+ * first of its writes: the one cancellation that means "already applied".
+ */
+export function isReplay(error: unknown): boolean {
+  const cancelled = error as {
+    name?: string;
+    CancellationReasons?: Array<{ Code?: string } | undefined>;
+  } | null;
+  if (cancelled?.name !== 'TransactionCanceledException') return false;
+  const reasons = cancelled.CancellationReasons ?? [];
+  return (
+    reasons[0]?.Code === 'ConditionalCheckFailed' &&
+    reasons.slice(1).every((reason) => !reason?.Code || reason.Code === 'None')
+  );
 }
