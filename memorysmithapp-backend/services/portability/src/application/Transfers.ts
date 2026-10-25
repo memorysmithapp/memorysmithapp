@@ -16,9 +16,19 @@ import {
   type Authorship,
   type Result,
 } from '@memorysmithapp/kernel';
-import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
+import {
+  startedTransfer,
+  type Transfer,
+  type TransferOrigin,
+  type TransferStore,
+} from '../domain/Transfer.js';
 import type { ArchiveStore } from './ExportNotebook.js';
-import { refusalOf, type ImportJob, type ImportSelection } from './ImportNotebook.js';
+import {
+  refusalOf,
+  type ImportJob,
+  type ImportSelection,
+  type ModelFill,
+} from './ImportNotebook.js';
 
 /** How long a download link lives. Issued at the moment of each download. */
 const URL_TTL_SECONDS = 900;
@@ -38,6 +48,12 @@ export interface TransferWork {
   readonly notebookId?: string | undefined;
   /** An export that is a version of a notebook model (#353). */
   readonly modelVersion?: boolean | undefined;
+  /**
+   * An import that creates a notebook from a version of a model (#359): the
+   * parameters it declared and the values supplied, filled in before anything
+   * is written (#354).
+   */
+  readonly fill?: ModelFill | undefined;
   /**
    * What the transfer carries, or nothing for the whole notebook: an export
    * chooses now as an import already did (RN-PRT-017, RN-PRT-024).
@@ -174,6 +190,10 @@ export class StartImport {
      */
     fileName?: string | null;
     by: Authorship;
+    /** A creation from a version of a model: its parameters, filled in by the worker (#359). */
+    fill?: ModelFill | undefined;
+    /** Which version it came from, kept on the record as information only (#359). */
+    origin?: TransferOrigin | undefined;
   }): Promise<Result<Transfer, DomainError>> {
     if (!input.uploadKey.startsWith(`s/${this.subscriptionId}/imports/`)) {
       return err(DomainError.notFound('Upload not found'));
@@ -194,7 +214,7 @@ export class StartImport {
       total: input.selection ? input.selection.notes.length : 0,
       fileName: input.fileName?.trim() ? input.fileName.trim().slice(0, 200) : null,
     });
-    await this.transfers.put(transfer);
+    await this.transfers.put(input.origin ? { ...transfer, origin: input.origin } : transfer);
     await this.queue.send({
       subscriptionId: this.subscriptionId,
       userId: this.userId,
@@ -203,6 +223,7 @@ export class StartImport {
       uploadKey: input.uploadKey,
       name: transfer.notebookName,
       selection: input.selection,
+      ...(input.fill ? { fill: input.fill } : {}),
       authorship: {
         userId: input.by.user.value,
         agent: input.by.agent
@@ -520,6 +541,7 @@ export interface ImportRunner {
     name: string | null;
     by: Authorship;
     selection?: ImportSelection | null | undefined;
+    fill?: ModelFill | undefined;
     progress?:
       | {
           wrote(written: number, total: number): Promise<void>;
@@ -570,6 +592,7 @@ export class RunImport {
         name: work.name ?? null,
         by: this.by,
         selection: work.selection ?? null,
+        ...(work.fill ? { fill: work.fill } : {}),
         progress,
       });
 

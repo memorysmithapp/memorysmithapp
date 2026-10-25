@@ -124,6 +124,7 @@ import type {
   PortabilityUseCases,
 } from '@memorysmithapp/svc-portability/adapters/http';
 import {
+  CreateFromVersion,
   CreateModelVersion,
   DeclareModel,
   DeleteModelVersion,
@@ -675,6 +676,16 @@ const portabilityUseCases: PortabilityUseCases = {
   deleteModelVersion: (request) =>
     new DeleteModelVersion(modelDependencies(request), modelCaller(request), (transfer) =>
       destroyExport(request.subscription, transfer),
+    ),
+  // A notebook created from a version, its parameters filled in by the
+  // worker, as any import is written (#359).
+  createFromVersion: (request) =>
+    new CreateFromVersion(
+      modelDependencies(request),
+      modelCaller(request),
+      request.canRead,
+      new S3UploadStore(infra.s3, infra.contentBucket),
+      portabilityUseCases.startImport(request),
     ),
 };
 

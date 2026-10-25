@@ -14,7 +14,7 @@ interface ModelDto {
 }
 
 test.describe('a notebook model', () => {
-  test('[route:PUT /portability/models/:v] [route:GET /portability/models/:v] [route:GET /portability/models] [route:POST /portability/models/:v/versions] [route:GET /portability/models/:v/versions/:n] [route:DELETE /portability/models/:v/versions/:n] is declared, versioned, read whole and its version deleted', async ({
+  test('[route:PUT /portability/models/:v] [route:GET /portability/models/:v] [route:GET /portability/models] [route:POST /portability/models/:v/versions] [route:GET /portability/models/:v/versions/:n] [route:DELETE /portability/models/:v/versions/:n] [route:POST /portability/models/:v/versions/:n/notebooks] is declared, versioned, read whole, used to create a notebook, and its version deleted', async ({
     owner,
     notebook,
   }) => {
@@ -73,6 +73,37 @@ test.describe('a notebook model', () => {
     expect(view.notebook.name).toBe(notebook.name);
     expect(view.folders.map((each) => each.folderId)).toEqual([notebook.folderId]);
     expect(view.notes.map((each) => each.noteId)).toEqual([notebook.noteId]);
+
+    // A notebook created from the version, its parameters filled in (#359).
+    const refused = await owner.call<{ details?: { missing?: string[] } }>(
+      'POST',
+      `/portability/models/${notebook.notebookId}/versions/1/notebooks`,
+      { name: '', values: {} },
+    );
+    expect(refused.status).toBe(400);
+    expect(refused.body.details?.missing).toEqual(['case']);
+    const created = await owner.ok<{ transferId: string }>(
+      'POST',
+      `/portability/models/${notebook.notebookId}/versions/1/notebooks`,
+      { name: `${notebook.name} AE-01`, values: { case: 'AE-01' } },
+    );
+    const imported = await eventually(
+      'the notebook to be created',
+      () =>
+        owner.ok<{ status: string; notebookId: string | null }>(
+          'GET',
+          `/portability/transfers/${created.transferId}`,
+        ),
+      (each) => each.status !== 'running',
+    );
+    expect(imported.status).toBe('ready');
+    const copy = await owner.ok<{ name: string }>(
+      'GET',
+      `/knowledge/notebooks/${imported.notebookId}`,
+    );
+    expect(copy.name).toBe(`${notebook.name} AE-01`);
+    await owner.call('DELETE', `/knowledge/notebooks/${imported.notebookId}`);
+    await owner.call('DELETE', `/portability/transfers/${created.transferId}`);
 
     // A version is not one of the person's transfers to look after.
     const transfers = await owner.ok<{ transfers: Array<{ notebookId: string | null }> }>(

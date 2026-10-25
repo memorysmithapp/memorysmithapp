@@ -502,6 +502,15 @@ function transferOf(item: Item): Transfer {
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
     ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
     ...(item['model'] ? { model: modelVersionOf(item['model'] as Item) } : {}),
+    ...(item['origin']
+      ? {
+          origin: {
+            subscriptionId: String((item['origin'] as Item)['subscriptionId'] ?? ''),
+            notebookId: String((item['origin'] as Item)['notebookId'] ?? ''),
+            version: Number((item['origin'] as Item)['version'] ?? 0),
+          },
+        }
+      : {}),
   };
 }
 

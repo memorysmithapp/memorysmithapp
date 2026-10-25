@@ -77,6 +77,18 @@ export interface Transfer {
    * with its model instead of in Transfers.
    */
   readonly model?: ModelVersionMeta | undefined;
+  /**
+   * The version of a model a notebook was created from (#359), on the import
+   * that created it: information only, which nothing depends on.
+   */
+  readonly origin?: TransferOrigin | undefined;
+}
+
+/** Which version of which model an import created its notebook from. */
+export interface TransferOrigin {
+  readonly subscriptionId: string;
+  readonly notebookId: string;
+  readonly version: number;
 }
 
 /**

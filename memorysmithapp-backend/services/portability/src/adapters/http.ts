@@ -40,6 +40,7 @@
 import { Hono, type Context } from 'hono';
 import {
   beginUploadRequestSchema,
+  createFromVersionRequestSchema,
   createModelVersionRequestSchema,
   declareModelRequestSchema,
   finishedUploadSchema,
@@ -74,6 +75,7 @@ import type { GetPrint, StartPrint } from '../application/Prints.js';
 import type { GetPreview, StartPreview } from '../application/Previews.js';
 import type { Transfer } from '../domain/Transfer.js';
 import type {
+  CreateFromVersion,
   CreateModelVersion,
   DeclareModel,
   DeleteModelVersion,
@@ -160,6 +162,7 @@ export interface PortabilityUseCases {
   readonly createModelVersion: (request: PortabilityRequest) => CreateModelVersion;
   readonly viewModelVersion: (request: PortabilityRequest) => ViewModelVersion;
   readonly deleteModelVersion: (request: PortabilityRequest) => DeleteModelVersion;
+  readonly createFromVersion: (request: PortabilityRequest) => CreateFromVersion;
 }
 
 /** A model on the wire (#353): what it says of itself, and its versions. */
@@ -194,7 +197,12 @@ function versionToDto(version: ModelVersion): Record<string, unknown> {
 }
 
 /** A version read whole: what it froze, and the notebook it holds, without its file bytes. */
-function versionViewToDto({ model, version, document }: VersionView): Record<string, unknown> {
+function versionViewToDto({
+  model,
+  version,
+  document,
+  references,
+}: VersionView): Record<string, unknown> {
   const meta = version.transfer.model;
   return {
     notebookId: model.notebookId,
@@ -223,6 +231,7 @@ function versionViewToDto({ model, version, document }: VersionView): Record<str
       // The bytes travel as base64 in the document; what is said is their size.
       bytes: Math.floor((file.bytes.replace(/=+$/, '').length * 3) / 4),
     })),
+    references,
   };
 }
 
@@ -358,6 +367,31 @@ export function createPortabilityRoutes(
       number: Number(c.req.param('n')),
     });
     return present(c, viewed, versionViewToDto);
+  });
+
+  /**
+   * An independent notebook created from a version (#359): its parameters
+   * filled in, written by the worker as any import is. The answer is the
+   * import, which the client follows until it ends.
+   */
+  app.post('/models/:v/versions/:n/notebooks', async (c) => {
+    const request = c.get('portability');
+    if (!request.authorship.ok) return fail(c, request.authorship.error);
+    const body = createFromVersionRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) {
+      return fail(
+        c,
+        DomainError.validation('A creation takes a name and the values of the parameters'),
+      );
+    }
+    const started = await useCases.createFromVersion(request).execute({
+      notebookId: c.req.param('v') ?? '',
+      number: Number(c.req.param('n')),
+      name: body.data.name,
+      values: body.data.values,
+      by: request.authorship.value,
+    });
+    return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
   });
 
   app.delete('/models/:v/versions/:n', async (c) => {

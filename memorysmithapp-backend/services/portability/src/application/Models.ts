@@ -28,7 +28,9 @@ import {
 } from '../domain/NotebookModel.js';
 import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
-import type { StorageBudget, TransferQueue } from './Transfers.js';
+import type { StartImport, StorageBudget, TransferQueue } from './Transfers.js';
+import { freshUploadKey } from './ImportNotebook.js';
+import { fillText, referenceReport, resolveValues } from '../domain/ParameterFilling.js';
 
 /** A notebook of THIS subscription, never one reached through a share. */
 export interface OwnNotebooks {
@@ -244,6 +246,8 @@ export interface VersionView {
   readonly model: NotebookModel;
   readonly version: ModelVersion;
   readonly document: NotebookDocument;
+  /** What the version writes and the model declares, compared (RN-PRT-039). */
+  readonly references: { undeclared: string[]; unused: string[] };
 }
 
 export class ViewModelVersion {
@@ -273,7 +277,8 @@ export class ViewModelVersion {
       version.transfer.versionId,
     );
     if (!document) return err(DomainError.notFound('Version not found'));
-    return ok({ model, version, document });
+    const declared = version.transfer.model?.parameters ?? model.parameters;
+    return ok({ model, version, document, references: referenceReport(document, declared) });
   }
 }
 
@@ -324,5 +329,78 @@ export class ForgetModel {
       await this.destroy(version.transfer);
     }
     await this.deps.models.remove(notebookId);
+  }
+}
+
+/** Where the snapshot of a version is copied to become the upload an import reads. */
+export interface VersionCopier {
+  copyFrom(sourceKey: string, uploadKey: string): Promise<boolean>;
+}
+
+/**
+ * Creates an independent notebook from a version (#359): the parameters the
+ * version declared are filled in with what the person supplied, or refused
+ * before anything is written when one is required and missing or not of its
+ * type (#354); the snapshot is copied to an upload and imported as any kept
+ * export is, every identifier minted anew and no history carried. The import
+ * records which version it came from, as information only: nothing of the
+ * model is read again once the notebook exists.
+ */
+export class CreateFromVersion {
+  constructor(
+    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers'>,
+    private readonly caller: ModelCaller,
+    private readonly canRead: (notebookId: string) => Promise<boolean>,
+    private readonly copier: VersionCopier,
+    private readonly startImport: StartImport,
+  ) {}
+
+  async execute(input: {
+    notebookId: string;
+    number: number;
+    /** The name of the new notebook; the name of the model, filled in, when empty. */
+    name: string;
+    values: Readonly<Record<string, unknown>>;
+    by: Authorship;
+  }): Promise<Result<Transfer, DomainError>> {
+    if (!(await this.canRead(input.notebookId))) {
+      return err(DomainError.notFound('Version not found'));
+    }
+    const model = await this.deps.models.get(input.notebookId);
+    if (!model) return err(DomainError.notFound('Version not found'));
+    const version = (await versionsOf(this.deps.transfers, model)).find(
+      (each) => each.number === input.number,
+    );
+    if (!version?.transfer.key || !version.transfer.model) {
+      return err(DomainError.notFound('Version not found'));
+    }
+    if (version.status !== 'ready') {
+      return err(DomainError.conflict('This version is still being created, or it failed'));
+    }
+
+    const declarations = version.transfer.model.parameters;
+    const values = resolveValues(declarations, input.values);
+    if (!values.ok) return values;
+
+    const uploadKey = freshUploadKey(this.caller.subscriptionId);
+    if (!(await this.copier.copyFrom(version.transfer.key, uploadKey))) {
+      return err(DomainError.notFound('Version not found'));
+    }
+    const name = input.name.trim() || fillText(version.transfer.notebookName, values.value);
+    return this.startImport.execute({
+      uploadKey,
+      name,
+      selection: null,
+      by: input.by,
+      fill: {
+        declarations,
+        values: Object.fromEntries([...values.value].map(([key, each]) => [key, each.value])),
+      },
+      origin: {
+        subscriptionId: this.caller.subscriptionId,
+        notebookId: input.notebookId,
+        version: input.number,
+      },
+    });
   }
 }

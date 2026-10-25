@@ -103,6 +103,22 @@ export const modelVersionViewSchema = z.object({
   files: z.array(
     z.object({ name: z.string(), mimeType: z.string(), bytes: z.number().int().nonnegative() }),
   ),
+  /**
+   * What the version writes against what it declares (#354): a reference no
+   * parameter answers, which a notebook created from it would keep, and a
+   * parameter no text uses.
+   */
+  references: z.object({ undeclared: z.array(z.string()), unused: z.array(z.string()) }),
+});
+
+/**
+ * Creating an independent notebook from a version (#359): its name, the name
+ * of the model filled in when empty, and a value for each parameter, keyed by
+ * its name; one not given takes its default, and a required one is refused.
+ */
+export const createFromVersionRequestSchema = z.object({
+  name: z.string().max(120).default(''),
+  values: z.record(z.string(), parameterValueSchema).default({}),
 });
 
 export type ParameterTypeDto = z.infer<typeof parameterTypeSchema>;
@@ -114,3 +130,4 @@ export type NotebookModelDto = z.infer<typeof notebookModelSchema>;
 export type ModelListDto = z.infer<typeof modelListSchema>;
 export type CreateModelVersionRequest = z.input<typeof createModelVersionRequestSchema>;
 export type ModelVersionViewDto = z.infer<typeof modelVersionViewSchema>;
+export type CreateFromVersionRequest = z.input<typeof createFromVersionRequestSchema>;

@@ -47,12 +47,20 @@ import {
 } from '@memorysmithapp/kernel';
 import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
+import type { ParameterDeclaration, ParameterValue } from '../domain/NotebookModel.js';
+import { fillDocument, resolveValues } from '../domain/ParameterFilling.js';
 
 /**
  * The versions of the document format this build reads. `1.1` added the
  * history an export may carry and changed nothing else, so a `1.0` document is
  * read exactly as it always was (RN-PRT-022).
  */
+/** The parameters a creation from a version fills in, and the values supplied (#354). */
+export interface ModelFill {
+  readonly declarations: readonly ParameterDeclaration[];
+  readonly values: Readonly<Record<string, ParameterValue>>;
+}
+
 export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2'];
 
 /**
@@ -253,7 +261,7 @@ const UPLOAD_TTL_SECONDS = 900;
  * product stores (INV-01), and under `imports/`, which is the
  * one prefix an import reads from and the one its worker may discard.
  */
-function freshUploadKey(subscriptionId: string): string {
+export function freshUploadKey(subscriptionId: string): string {
   return `s/${subscriptionId}/imports/${ulid()}.notebook`;
 }
 
@@ -370,6 +378,8 @@ export class ImportNotebook {
     name: string | null;
     by: Authorship;
     selection?: ImportSelection | null | undefined;
+    /** The parameters of a model, filled in before anything is written (#354). */
+    fill?: ModelFill | undefined;
     progress?: ImportProgress | undefined;
   }): Promise<Result<ImportJob, DomainError>> {
     // A key of another subscription is not readable and not addressable: the
@@ -385,7 +395,15 @@ export class ImportNotebook {
       const selection = input.selection ?? null;
       const document = this.readDocument(archive, selection);
       if (!document.ok) return document;
-      return await this.write(document.value, input.name, input.by, selection, input.progress);
+      let written = document.value;
+      if (input.fill) {
+        // The values were checked when the creation was asked for, and are
+        // checked again here, against the declarations the version froze.
+        const values = resolveValues(input.fill.declarations, input.fill.values);
+        if (!values.ok) return values;
+        written = fillDocument(written, values.value);
+      }
+      return await this.write(written, input.name, input.by, selection, input.progress);
     } finally {
       // The upload is discarded whichever way the import ended: it was the
       // means of getting the bytes here and it is not a copy of the notebook.

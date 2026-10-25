@@ -154,6 +154,7 @@ import {
   InMemoryTransferStore,
 } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import {
+  CreateFromVersion,
   CreateModelVersion,
   DeclareModel,
   DeleteModelVersion,
@@ -874,6 +875,14 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
           transfer.transferId,
         );
       }),
+    createFromVersion: (request) =>
+      new CreateFromVersion(
+        modelsOf(request),
+        callerOf(request),
+        request.canRead,
+        uploadStore,
+        portabilityUseCases.startImport(request),
+      ),
   };
 
   const app = createApp({

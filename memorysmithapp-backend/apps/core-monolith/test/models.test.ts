@@ -249,4 +249,84 @@ describe('a notebook model (#353)', () => {
       ).status,
     ).toBe(403);
   });
+
+  it('creates several independent notebooks from one private version, each with its values (#359)', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    await call(OWNER, `/knowledge/notebooks/${notebookId}`, {
+      method: 'PATCH',
+      body: { name: 'Condomínio {{condomínio}}' },
+    });
+    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
+
+    const create = (values: Record<string, unknown>, name = '') =>
+      call(OWNER, `/portability/models/${notebookId}/versions/1/notebooks`, {
+        method: 'POST',
+        body: { name, values },
+      });
+
+    // A required parameter left out refuses the creation, naming it.
+    const refused = await create({ síndico: 'Ana' });
+    expect(refused.status).toBe(400);
+    expect((await json<{ details?: { missing?: string[] } }>(refused)).details?.missing).toEqual([
+      'condomínio',
+    ]);
+
+    for (const [condominium, manager] of [
+      ['Aurora', 'Ana Lima'],
+      ['Boreal', null],
+    ] as const) {
+      const started = await create({
+        condomínio: condominium,
+        ...(manager ? { síndico: manager } : {}),
+      });
+      expect(started.status).toBe(202);
+      const transfer = await json<{ status: string; notebookId: string | null }>(started);
+      expect(transfer.status).toBe('running');
+    }
+
+    const notebooks = await json<Array<{ notebookId: string; name: string }>>(
+      await call(OWNER, '/knowledge/notebooks'),
+    );
+    const created = notebooks.filter((each) => each.notebookId !== notebookId);
+    expect(created.map((each) => each.name).sort()).toEqual([
+      'Condomínio Aurora',
+      'Condomínio Boreal',
+    ]);
+
+    for (const each of created) {
+      const notes = await json<Array<{ noteId: string; name: string }>>(
+        await call(OWNER, `/knowledge/notebooks/${each.notebookId}/notes`),
+      );
+      expect(notes).toHaveLength(1);
+      const note = await json<{ content: string }>(
+        await call(OWNER, `/knowledge/notebooks/${each.notebookId}/notes/${notes[0]!.noteId}`),
+      );
+      expect(note.content).not.toContain('{{');
+      if (each.name.endsWith('Aurora')) {
+        expect(note.content).toContain('name: "Ata de exemplo de Aurora"');
+        expect(note.content).toContain('Presidida por Ana Lima.');
+      } else {
+        expect(note.content).toContain('Presidida por a definir.');
+      }
+    }
+
+    // Independent: the model changes and loses its version, and they do not.
+    await call(OWNER, `/portability/models/${notebookId}/versions/1`, { method: 'DELETE' });
+    await call(OWNER, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
+    for (const each of created) {
+      expect((await call(OWNER, `/knowledge/notebooks/${each.notebookId}`)).status).toBe(200);
+    }
+  });
+
+  it('reports what a version writes and never declared', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, {
+      method: 'PUT',
+      body: { ...declaration, parameters: [declaration.parameters[0]] },
+    });
+    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
+    const view = await json<{ references: { undeclared: string[]; unused: string[] } }>(
+      await call(OWNER, `/portability/models/${notebookId}/versions/1`),
+    );
+    expect(view.references).toEqual({ undeclared: ['síndico'], unused: [] });
+  });
 });

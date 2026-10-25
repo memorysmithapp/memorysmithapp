@@ -87,6 +87,7 @@
   "POST /portability/imports/apply",
   "POST /portability/imports/from-export",
   "POST /portability/models/:v/versions",
+  "POST /portability/models/:v/versions/:n/notebooks",
   "POST /portability/notebooks/:v/export",
   "POST /portability/notebooks/:v/notes/:n/pdf",
   "POST /portability/notebooks/:v/previews",
