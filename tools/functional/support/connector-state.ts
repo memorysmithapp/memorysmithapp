@@ -8,7 +8,13 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const CONNECTOR = join(dirname(fileURLToPath(import.meta.url)), '..', '.state', 'connector.json');
+const STATE = join(dirname(fileURLToPath(import.meta.url)), '..', '.state');
+
+/** Whose connector: the owner's, which every MCP case uses, or the other account's (#351). */
+export type ConnectorAccount = 'owner' | 'other';
+
+const fileOf = (account: ConnectorAccount): string =>
+  join(STATE, account === 'owner' ? 'connector.json' : 'connector-other.json');
 
 export interface ConnectorToken {
   readonly accessToken: string;
@@ -18,11 +24,14 @@ export interface ConnectorToken {
   readonly clientName: string;
 }
 
-export function writeConnectorToken(token: ConnectorToken): void {
-  mkdirSync(dirname(CONNECTOR), { recursive: true });
-  writeFileSync(CONNECTOR, JSON.stringify(token, null, 2));
+export function writeConnectorToken(
+  token: ConnectorToken,
+  account: ConnectorAccount = 'owner',
+): void {
+  mkdirSync(STATE, { recursive: true });
+  writeFileSync(fileOf(account), JSON.stringify(token, null, 2));
 }
 
-export function readConnectorToken(): ConnectorToken {
-  return JSON.parse(readFileSync(CONNECTOR, 'utf8')) as ConnectorToken;
+export function readConnectorToken(account: ConnectorAccount = 'owner'): ConnectorToken {
+  return JSON.parse(readFileSync(fileOf(account), 'utf8')) as ConnectorToken;
 }

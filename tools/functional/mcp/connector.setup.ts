@@ -26,3 +26,22 @@ setup(
     );
   },
 );
+
+/**
+ * The other account connects an agent of its own, so a journey has two
+ * people, each with an agent, working across two subscriptions (#351).
+ */
+setup('connects the other account to the connector, as a second person', async ({ page }) => {
+  const state = readState();
+  writeConnectorToken(
+    await connectThroughBrowser({
+      page,
+      environment: state.environment,
+      region: state.region,
+      site: state.surfaces.site,
+      mcp: state.surfaces.mcp,
+      account: state.accounts.other,
+    }),
+    'other',
+  );
+});
