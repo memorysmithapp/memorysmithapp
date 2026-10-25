@@ -49,7 +49,7 @@ const notebooks: readonly NotebookListing[] = [
     noteCount: 3,
     ownership: 'shared',
     owner: 'owner@example.test',
-    access: 'read',
+    access: 'reader',
   },
 ];
 

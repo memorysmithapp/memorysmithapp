@@ -43,6 +43,9 @@ import {
   type AccessGateway,
   type AgentCaller,
   type ConnectorIdentity,
+  type ContextChanged,
+  type NoteContextRevisions,
+  type ShareAccessName,
   type AuditGateway,
   type DiscoveryGateway,
   type FolderListing,
@@ -66,6 +69,11 @@ import {
  * by hand as the shape the tools wanted, so related_notes printed
  * "- undefined (undefined)" for every note and no test could see it.
  */
+/** A note read back after a write, with what the write said of its context. */
+function withContext(note: NoteContent, changed: ContextChanged | undefined): NoteContent {
+  return changed ? { ...note, contextChanged: changed } : note;
+}
+
 function referenceOf(note: NoteRefDto): NoteReference {
   return {
     noteId: note.noteId,
@@ -195,7 +203,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           name: string;
           description: string;
           ownerEmail: string;
-          access: 'read' | 'read-write';
+          profile: ShareAccessName;
+          pendingProfile: ShareAccessName | null;
           state: string;
           noteCount: number | null;
         }>
@@ -218,7 +227,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           noteCount: notebook.noteCount ?? 0,
           ownership: 'shared' as const,
           owner: notebook.ownerEmail,
-          access: notebook.access,
+          access: notebook.profile,
+          pendingAccess: notebook.pendingProfile,
         })),
     ];
   }
@@ -577,6 +587,20 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     });
   }
 
+  async contextRevisions(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<{ guidance: string | null; structure: string }> {
+    const detail = await callApi<{
+      guidance: { revision: { versionId: string } } | null;
+      structureRevision: string;
+    }>(this.origin, caller, `/knowledge/notebooks/${notebookId}`);
+    return {
+      guidance: detail.guidance?.revision.versionId ?? null,
+      structure: detail.structureRevision,
+    };
+  }
+
   async notebookContext(caller: AgentCaller, notebookId: string): Promise<string> {
     const token = (caller as TokenCarrier).bearerToken;
     const response = await fetch(`${this.origin}/knowledge/notebooks/${notebookId}/context`, {
@@ -622,14 +646,29 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async recentNotes(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<Array<{ noteId: string; name: string | null; updatedAt: string }>> {
-    const notes = await callApi<Array<{ noteId: string; name: string | null; updatedAt: string }>>(
-      this.origin,
-      caller,
-      `/knowledge/notebooks/${notebookId}/notes`,
-    );
+  ): Promise<
+    Array<{
+      noteId: string;
+      name: string | null;
+      updatedAt: string;
+      staleContext?: readonly string[];
+    }>
+  > {
+    const notes = await callApi<
+      Array<{
+        noteId: string;
+        name: string | null;
+        updatedAt: string;
+        staleContext?: string[];
+      }>
+    >(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes`);
     return notes
-      .map(({ noteId, name, updatedAt }) => ({ noteId, name, updatedAt }))
+      .map(({ noteId, name, updatedAt, staleContext }) => ({
+        noteId,
+        name,
+        updatedAt,
+        ...(staleContext && staleContext.length > 0 ? { staleContext } : {}),
+      }))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }
 
@@ -725,7 +764,13 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async createNote(
     caller: AgentCaller,
-    input: { notebookId: string; folderId: string; content: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      folderId: string;
+      content: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<NoteContent> {
     const created = await callApi<NoteSummaryDto>(
       this.origin,
@@ -737,10 +782,16 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           folderId: input.folderId,
           content: input.content,
           afterNoteId: input.afterNoteId ?? null,
+          ...(input.context ? { context: input.context } : {}),
         },
       },
     );
-    return this.noteOf(caller, input.notebookId, created.noteId);
+    // The note is read back, which is where its links are; what the write said
+    // of its context is the write's alone, and travels with it (RN-KNW-061).
+    return withContext(
+      await this.noteOf(caller, input.notebookId, created.noteId),
+      created.contextChanged,
+    );
   }
 
   async reorderNote(
@@ -773,15 +824,25 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async moveNote(
     caller: AgentCaller,
-    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      noteId: string;
+      folderId: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<MovedNote> {
-    await callApi<NoteSummaryDto>(
+    const written = await callApi<NoteSummaryDto>(
       this.origin,
       caller,
       `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}/move`,
       {
         method: 'POST',
-        body: { toFolderId: input.folderId, afterNoteId: input.afterNoteId ?? null },
+        body: {
+          toFolderId: input.folderId,
+          afterNoteId: input.afterNoteId ?? null,
+          ...(input.context ? { context: input.context } : {}),
+        },
       },
     );
     // Read back from the note itself, which says the folder by its names as
@@ -795,6 +856,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       position: note.position ?? '',
       revision: note.revision,
       updatedAt: note.updatedAt,
+      ...(written.contextChanged ? { contextChanged: written.contextChanged } : {}),
     };
   }
 
@@ -806,9 +868,10 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       content: string;
       baseRevision: string;
       message?: string | null;
+      context?: NoteContextRevisions;
     },
   ): Promise<NoteContent> {
-    await callApi(
+    const written = await callApi<NoteSummaryDto>(
       this.origin,
       caller,
       `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}`,
@@ -820,10 +883,14 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           // Only when there is one: an empty line is no line, and the entry
           // is written without it (RN-AUD-012).
           ...(input.message ? { message: input.message } : {}),
+          ...(input.context ? { context: input.context } : {}),
         },
       },
     );
-    return this.noteOf(caller, input.notebookId, input.noteId);
+    return withContext(
+      await this.noteOf(caller, input.notebookId, input.noteId),
+      written.contextChanged,
+    );
   }
 
   async searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]> {

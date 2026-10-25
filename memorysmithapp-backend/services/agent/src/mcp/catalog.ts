@@ -82,6 +82,32 @@ const noteOrderArgument = {
     'written in; alphabetical orders them by name.',
 };
 
+/**
+ * The context a note write declares it read (RN-KNW-061): optional, and never
+ * a reason to refuse. Said once, so the three tools that take it say it alike.
+ */
+const contextArgument = {
+  type: 'object',
+  description:
+    'Optional, and asked for: the revisions you read before writing, so the answer can tell ' +
+    'you if somebody changed them meanwhile. guidance and structure as the end of ' +
+    'get_notebook_context answers them, template as get_template answers the revision of the ' +
+    "folder's template (null when it has none). The note is saved either way.",
+  properties: {
+    guidance: { type: ['string', 'null'] },
+    template: { type: ['string', 'null'] },
+    structure: { type: 'string' },
+  },
+  required: ['guidance', 'template', 'structure'],
+  additionalProperties: false,
+};
+
+/** What a write answers when its declared context changed (RN-KNW-061). */
+const CONTEXT_ANSWERED =
+  'When the context you declared changed while you wrote, the note is still saved, and the ' +
+  'answer carries `contextChanged` with what changed and the current revisions: reread it, ' +
+  'review the note against it and update it if needed. It is a notice, never a lock.';
+
 function object(
   properties: Record<string, unknown>,
   required: string[] = [],
@@ -141,8 +167,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Lists the notebooks this connector can reach, with their description and note count, ' +
       'and every notebook tool takes its identifier from this list. Each says its ownership: ' +
       '`own`, of this subscription, or `shared`, shared with this person from another one, ' +
-      'which also names its owner and the access the share grants — with `read`, every write ' +
-      'in it is refused. Call whoami before it: ' +
+      'which also names its owner and the access the share grants: `reader` writes nothing, ' +
+      '`content-editor` writes notes and files but not folders, guidance or templates, ' +
+      '`notebook-editor` writes all of them; `pendingAccess` is an increase waiting for the ' +
+      "person's acceptance, which grants nothing until accepted. Call whoami before it: " +
       'whoami lists the same notebooks, together with how to write in them and the skills to ' +
       'read before a task.',
     inputSchema: object({}),
@@ -198,7 +226,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'directly and those in its subfolders, how many notes and folders the notebook holds, ' +
       'and which folders carry a template. Read this before writing anything: the guidance ' +
       'declares the conventions of this notebook, the folder descriptions say what belongs where, ' +
-      'and the identifiers are what you pass to get_template, create_note and list_notes.',
+      'and the identifiers are what you pass to get_template, create_note and list_notes. It ' +
+      'ends with the revisions of what you read, to declare as `context` when you write a note.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -527,7 +556,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'so retrying one of those writes a second. Another folder may hold a note of the same ' +
       'name. The note goes last in its folder unless you pass after; in a folder that orders ' +
       'its notes by name it appears by its name, wherever after puts it. ' +
-      NOTICES_ANSWERED,
+      NOTICES_ANSWERED +
+      ' ' +
+      CONTEXT_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -544,6 +575,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: identifier of the note this one goes right after, as list_notes prints ' +
             'it. Without it the note goes last in its folder.',
         },
+        context: contextArgument,
       },
       ['notebook', 'folder', 'content'],
     ),
@@ -868,7 +900,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'also how a note is renamed: change the `name:` of its frontmatter. Pass message to say ' +
       'what you changed and why: it is recorded in the history of the note beside the instant ' +
       'and who wrote, and it is what a person reads there months later. ' +
-      NOTICES_ANSWERED,
+      NOTICES_ANSWERED +
+      ' ' +
+      CONTEXT_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -882,6 +916,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'string',
           description: 'One line about this change, recorded in the history of the note. Optional.',
         },
+        context: contextArgument,
       },
       ['notebook', 'note', 'content', 'baseRevision'],
     ),
@@ -923,7 +958,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'in the destination unless you pass after; in a folder that orders its notes by name it ' +
       'appears by its name, wherever after puts it. A note already in that folder is refused: ' +
       'reorder_note moves it within its folder. Answers the note in its new folder and ' +
-      'position.',
+      'position. Declare the context of the destination folder as `context` to be told if it ' +
+      'changed. ' +
+      CONTEXT_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -940,6 +977,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: identifier of a note of the destination folder this one goes right ' +
             'after, as list_notes prints it. Without it the note goes last there.',
         },
+        context: contextArgument,
       },
       ['notebook', 'note', 'folder'],
     ),
@@ -1029,7 +1067,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '`notices` lists, note by note, where the page will not show what was typed — a fence ' +
       'never closed, a heading that skips a level, a footnote with no definition — read from ' +
       'the most recently written notes, up to 200, with `noticesRead` saying how many were read ' +
-      'of how many. It is as recent as the link index, which follows a write within seconds, so ' +
+      'of how many. `staleContext` lists the notes written against a context — guidance, ' +
+      'template or structure — that had already changed when they were written: review each ' +
+      'against the current one, and it leaves the list once rewritten declaring the current ' +
+      'context. It is as recent as the link index, which follows a write within seconds, so ' +
       'right after the last write, run it again.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },

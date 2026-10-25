@@ -791,6 +791,20 @@ note lacks something the specification reserves, \`aliases\` or \`tags\`: add it
 when the guidance asks for it, and leave it otherwise. \`check_notebook\` lists
 the notices of the notebook's latest notes the same way.
 
+**Declare the context you read, and weigh what changed.** Another person, or
+another agent, may be writing in the same notebook. \`get_notebook_context\` ends
+with the revisions of what you read, and \`get_template\` answers the revision of
+the folder's template: pass them as \`context\` to \`create_note\`,
+\`update_note\` and \`move_note\`. When any of it changed while you wrote, the
+note is saved all the same and the answer carries \`contextChanged\`, naming the
+guidance, the template or the structure. The guidance is guidance, not a rule:
+read again what changed, review the note against it, and when it needs
+adjusting, \`update_note\` it under its own revision, declaring the current
+context. Never send the same note again with the new revisions just to make the
+notice go away. \`check_notebook\` lists in \`staleContext\` every note written
+against a context that had already changed; treat each the same way before
+saying the work is done.
+
 ## Searching what you wrote
 
 \`search_notes\` reads the body, not the frontmatter, and its query language is

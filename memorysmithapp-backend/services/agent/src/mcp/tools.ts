@@ -35,7 +35,10 @@ import {
   type HistoryEntry,
   type KnowledgeGateway,
   type NoteContent,
+  type NoteContextRevisions,
+  type NotebookListing,
   type RelatedNode,
+  type ShareAccessName,
 } from './gateway.js';
 
 /**
@@ -460,8 +463,103 @@ function noteAnswer(note: NoteContent, notices: readonly NoteNotice[] = []): Too
   // diagnosis does not say it a second time.
   const said =
     note.name === null ? notices.filter((each) => each.code !== 'name-missing') : notices;
-  const body = note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : { ...note };
+  const named = note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : { ...note };
+  // The note was saved; what changed of the context it was written against is
+  // for the agent to weigh, and this says how (RN-KNW-061).
+  const body = note.contextChanged ? { ...named, contextNotice: CONTEXT_CHANGED_NOTICE } : named;
   return json(said.length > 0 ? { ...body, notices: said } : body);
+}
+
+/**
+ * What an agent does when the context it declared changed while it wrote
+ * (RN-KNW-061): said once, so every write that can be told says it alike.
+ */
+export const CONTEXT_CHANGED_NOTICE =
+  'The note was saved, but what you declared in `context` had changed meanwhile: ' +
+  '`contextChanged` says which part and the current revisions. Somebody else changed it; it ' +
+  'is guidance, not a rule, so judge it. Read it again — get_notebook_context for the ' +
+  'guidance and the structure, get_template for the template — review this note against it, ' +
+  'and if it needs adjusting, update_note it under its own revision, declaring the current ' +
+  'context. Never resend the same content with the new revisions without that review.';
+
+/** The access a share grants, as an agent acts on it (RN-AGT-046, RN-ACC-032). */
+const ACCESS_SAYS: Record<ShareAccessName, string> = {
+  reader:
+    'Read it whole; every write here is refused, so do not follow the guidance below into ' +
+    'writing — say whose notebook it is instead.',
+  'content-editor':
+    'You may write, move and delete its notes and keep its files, following its guidance; ' +
+    'its folders, guidance and templates are refused: propose a change to them to the person ' +
+    'instead.',
+  'notebook-editor':
+    'It is written as any notebook is, its folders, guidance and templates included; sharing ' +
+    'it and deleting it stay with its owner.',
+};
+
+/** What a notebook shared with this person says before anything else. */
+export function sharedBanner(shared: NotebookListing): string {
+  const access = shared.access ?? 'reader';
+  const pending = shared.pendingAccess
+    ? ` The owner offered \`${shared.pendingAccess}\`, which waits for this person to accept ` +
+      'it in the web interface; until then, what is said here applies.'
+    : '';
+  return (
+    `> **Shared with this person by ${shared.owner ?? 'its owner'}, with \`${access}\` ` +
+    `access.** ${ACCESS_SAYS[access] ?? ACCESS_SAYS.reader}${pending}`
+  );
+}
+
+/** The revisions a note write declares as `context`, closing the notebook context (RN-KNW-061). */
+export function contextRevisionsSection(revisions: {
+  guidance: string | null;
+  structure: string;
+}): string {
+  return [
+    '## Context revisions',
+    '',
+    'What you read here, by revision. Declare it as `context` of create_note, update_note and ' +
+      'move_note, with the `revision` get_template answers for the folder you write in (null ' +
+      'when it has no template), and the answer tells you if any of it changed while you ' +
+      'wrote:',
+    '',
+    '```json',
+    JSON.stringify({
+      guidance: revisions.guidance,
+      template: null,
+      structure: revisions.structure,
+    }),
+    '```',
+  ].join('\n');
+}
+
+/** The `context` a write declares, or undefined when it declares none (RN-KNW-061). */
+function contextArgument(
+  args: Record<string, unknown>,
+  tool: string,
+): NoteContextRevisions | undefined {
+  const raw = args['context'];
+  if (raw === undefined || raw === null) return undefined;
+  const value = raw as Record<string, unknown>;
+  const revision = (key: string) =>
+    value[key] === null || typeof value[key] === 'string'
+      ? (value[key] as string | null)
+      : undefined;
+  const guidance = revision('guidance');
+  const template = revision('template');
+  if (
+    typeof raw !== 'object' ||
+    guidance === undefined ||
+    template === undefined ||
+    typeof value['structure'] !== 'string'
+  ) {
+    throw new GatewayError(
+      'VALIDATION',
+      `${tool} takes \`context\` as the revisions you read: guidance and template, each a ` +
+        'revision or null when there is none, and structure, as the end of ' +
+        'get_notebook_context and get_template answer them. Nothing was written.',
+    );
+  }
+  return { guidance, template, structure: value['structure'] };
 }
 
 /**
@@ -543,9 +641,18 @@ export class McpToolAdapter {
   ): Promise<{
     notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }>;
     read: { notes: number; of: number; complete: boolean };
+    stale: Array<{ note: { noteId: string; name: string | null }; changed: readonly string[] }>;
   }> {
     const started = Date.now();
     const recent = await this.gateways.knowledge.recentNotes(caller, notebookId);
+    // Every note whose live revision was written against a context that had
+    // already changed, from the same listing (RN-KNW-062).
+    const stale = recent
+      .filter((each) => (each.staleContext?.length ?? 0) > 0)
+      .map((each) => ({
+        note: { noteId: each.noteId, name: each.name },
+        changed: each.staleContext ?? [],
+      }));
     const wanted = recent.slice(0, CHECK_NOTICES_LIMIT);
     const notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }> = [];
     let read = 0;
@@ -565,7 +672,11 @@ export class McpToolAdapter {
       read += batch.length;
       notices.push(...found.flat());
     }
-    return { notices, read: { notes: read, of: recent.length, complete: read === recent.length } };
+    return {
+      notices,
+      read: { notes: read, of: recent.length, complete: read === recent.length },
+      stale,
+    };
   }
 
   /**
@@ -1026,27 +1137,19 @@ export class McpToolAdapter {
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read.
         const notebook = requireString(args, 'notebook', 'get_notebook_context');
-        const [context, reach] = await Promise.all([
+        const [context, reach, revisions] = await Promise.all([
           knowledge.notebookContext(caller, notebook),
           knowledge.listNotebooks(caller),
+          knowledge.contextRevisions(caller, notebook),
         ]);
         // A notebook shared from another subscription says so before anything
         // else, because the guidance it opens with asks to be written in, and
-        // with read access it cannot be (RN-AGT-046).
+        // what a share lets this person write is its access (RN-AGT-046).
         const shared = reach.find(
           (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
-        return text(
-          shared
-            ? `> **Shared with this person by ${shared.owner ?? 'its owner'}, with ` +
-                `\`${shared.access ?? 'read'}\` access.** ` +
-                (shared.access === 'read-write'
-                  ? 'It is written as any notebook is.'
-                  : 'Read it whole; every write here is refused, so do not follow the ' +
-                    'guidance below into writing — say whose notebook it is instead.') +
-                `\n\n${context}`
-            : context,
-        );
+        const body = `${context.trimEnd()}\n\n${contextRevisionsSection(revisions)}`;
+        return text(shared ? `${sharedBanner(shared)}\n\n${body}` : body);
       }
 
       case 'get_template': {
@@ -1089,23 +1192,27 @@ export class McpToolAdapter {
       case 'create_note': {
         const after = optionalAnchor(args);
         const content = requireString(args, 'content', 'create_note');
+        const declared = contextArgument(args, 'create_note');
         const created = await knowledge.createNote(caller, {
           notebookId: requireString(args, 'notebook', 'create_note'),
           folderId: requireString(args, 'folder', 'create_note'),
           content,
           ...(after === undefined ? {} : { afterNoteId: after }),
+          ...(declared ? { context: declared } : {}),
         });
         return noteAnswer(created, await noticesOf(content));
       }
 
       case 'update_note': {
         const content = requireString(args, 'content', 'update_note');
+        const declared = contextArgument(args, 'update_note');
         const updated = await knowledge.updateNote(caller, {
           notebookId: requireString(args, 'notebook', 'update_note'),
           noteId: requireString(args, 'note', 'update_note'),
           content,
           baseRevision: requireString(args, 'baseRevision', 'update_note'),
           message: optionalString(args, 'message'),
+          ...(declared ? { context: declared } : {}),
         });
         return noteAnswer(updated, await noticesOf(content));
       }
@@ -1121,13 +1228,16 @@ export class McpToolAdapter {
 
       case 'move_note': {
         const after = optionalAnchor(args);
+        const declared = contextArgument(args, 'move_note');
+        const moved = await knowledge.moveNote(caller, {
+          notebookId: requireString(args, 'notebook', 'move_note'),
+          noteId: requireString(args, 'note', 'move_note'),
+          folderId: requireString(args, 'folder', 'move_note'),
+          ...(after === undefined ? {} : { afterNoteId: after }),
+          ...(declared ? { context: declared } : {}),
+        });
         return json(
-          await knowledge.moveNote(caller, {
-            notebookId: requireString(args, 'notebook', 'move_note'),
-            noteId: requireString(args, 'note', 'move_note'),
-            folderId: requireString(args, 'folder', 'move_note'),
-            ...(after === undefined ? {} : { afterNoteId: after }),
-          }),
+          moved.contextChanged ? { ...moved, contextNotice: CONTEXT_CHANGED_NOTICE } : moved,
         );
       }
 
@@ -1185,6 +1295,7 @@ export class McpToolAdapter {
           openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),
           notices: notices.notices,
           noticesRead: notices.read,
+          staleContext: notices.stale,
         });
       }
 

@@ -45,13 +45,33 @@ export interface NotebookListing {
   /**
    * Whether the notebook is of the subscription of this connection or shared
    * with its person from another one (RN-AGT-046). A shared one names its
-   * owner and the access the share grants, which is `read` for every share
-   * today; `read-write` is in the contract so the day it is offered changes no
-   * shape (RN-ACC-024).
+   * owner and the access the share grants, its profile (RN-ACC-032), and an
+   * increase the owner offered that waits for this person (RN-ACC-033).
    */
   readonly ownership: 'own' | 'shared';
   readonly owner?: string;
-  readonly access?: 'read' | 'read-write';
+  readonly access?: ShareAccessName;
+  readonly pendingAccess?: ShareAccessName | null;
+}
+
+/** The access a share grants, as the connector names it. */
+export type ShareAccessName = 'reader' | 'content-editor' | 'notebook-editor';
+
+/**
+ * The context a note is written against (RN-KNW-061): the Guidance, the
+ * Template of its folder and the structure of the notebook, each by its
+ * revision, as the reads answer them.
+ */
+export interface NoteContextRevisions {
+  readonly guidance: string | null;
+  readonly template: string | null;
+  readonly structure: string;
+}
+
+/** A write whose declared context had changed: what changed, and what is current. */
+export interface ContextChanged {
+  readonly changed: readonly string[];
+  readonly current: NoteContextRevisions;
 }
 
 /**
@@ -127,6 +147,8 @@ export interface NoteContent {
   readonly content: string;
   readonly revision: string;
   readonly updatedAt: string;
+  /** On the answer of a write only: the context it declared had changed (RN-KNW-061). */
+  readonly contextChanged?: ContextChanged;
   /**
    * Every link target the content writes and what it reaches (RN-AGT-034),
    * beside the body and never inside it. Left out of a revision from the
@@ -148,6 +170,8 @@ export interface MovedNote {
   readonly position: string;
   readonly revision: string;
   readonly updatedAt: string;
+  /** The context of the destination it declared had changed (RN-KNW-061). */
+  readonly contextChanged?: ContextChanged;
 }
 
 /** A file of a notebook, as the connector answers it (#166). */
@@ -399,11 +423,33 @@ export interface KnowledgeGateway {
   recentNotes(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<Array<{ noteId: string; name: string | null; updatedAt: string }>>;
+  ): Promise<
+    Array<{
+      noteId: string;
+      name: string | null;
+      updatedAt: string;
+      /** What had changed of the context the live revision declared (RN-KNW-062). */
+      staleContext?: readonly string[];
+    }>
+  >;
+  /**
+   * The revisions of the notebook's part of a note's context: its Guidance and
+   * its structure. The Template's is answered by `template`.
+   */
+  contextRevisions(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<{ guidance: string | null; structure: string }>;
   /** Without an anchor the note goes last in its folder. */
   createNote(
     caller: AgentCaller,
-    input: { notebookId: string; folderId: string; content: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      folderId: string;
+      content: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<NoteContent>;
   updateNote(
     caller: AgentCaller,
@@ -413,6 +459,7 @@ export interface KnowledgeGateway {
       content: string;
       baseRevision: string;
       message?: string | null;
+      context?: NoteContextRevisions;
     },
   ): Promise<NoteContent>;
   /**
@@ -430,7 +477,13 @@ export interface KnowledgeGateway {
    */
   moveNote(
     caller: AgentCaller,
-    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      noteId: string;
+      folderId: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<MovedNote>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
 }
