@@ -20,7 +20,7 @@ import {
   withdrawModel,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { NotebookBar, contextCrumbs } from '../structure/NotebookBreadcrumb';
+import { NotebookBar, contextCrumbs, type Crumb } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { declarationsOf, draftOf, type ParameterDraft } from './model-form';
@@ -99,7 +99,7 @@ export function SharedModelPage() {
 
   return (
     <>
-      <NotebookBar crumbs={[{ label: t('model.title') }]} />
+      <SharedModelBar crumbs={[{ label: t('model.title') }]} />
       <article className="content-pane model-page">
         {model.isPending ? (
           <p className="hint">{t('common.loading')}</p>
@@ -185,16 +185,18 @@ function ModelForm({
           {t('model.declareHint', { reference: `{{${t('model.referenceExample')}}}` })}
         </p>
       )}
-      <label className="field">
-        <span className="field-label">{t('model.objective')}</span>
-        <textarea
-          rows={2}
-          value={objective}
-          required
-          onChange={(event) => setObjective(event.target.value)}
-        />
+      <div className="field">
+        <label>
+          <span className="field-label">{t('model.objective')}</span>
+          <textarea
+            rows={2}
+            value={objective}
+            required
+            onChange={(event) => setObjective(event.target.value)}
+          />
+        </label>
         <span className="field-hint">{t('model.objectiveHint')}</span>
-      </label>
+      </div>
       <label className="field">
         <span className="field-label">{t('model.description')}</span>
         <input value={description} onChange={(event) => setDescription(event.target.value)} />
@@ -203,11 +205,13 @@ function ModelForm({
         <span className="field-label">{t('model.audience')}</span>
         <input value={audience} onChange={(event) => setAudience(event.target.value)} />
       </label>
-      <label className="field">
-        <span className="field-label">{t('model.basedOn')}</span>
-        <input value={basedOn} onChange={(event) => setBasedOn(event.target.value)} />
+      <div className="field">
+        <label>
+          <span className="field-label">{t('model.basedOn')}</span>
+          <input value={basedOn} onChange={(event) => setBasedOn(event.target.value)} />
+        </label>
         <span className="field-hint">{t('model.basedOnHint')}</span>
-      </label>
+      </div>
       <h2>{t('model.parameters')}</h2>
       <p className="hint">{t('model.parametersHint')}</p>
       <ParametersEditor parameters={parameters} onChange={setParameters} />
@@ -333,15 +337,17 @@ function Versions({
             void create();
           }}
         >
-          <label className="field">
-            <span className="field-label">{t('model.changelog')}</span>
-            <textarea
-              rows={2}
-              value={changelog}
-              onChange={(event) => setChangelog(event.target.value)}
-            />
+          <div className="field">
+            <label>
+              <span className="field-label">{t('model.changelog')}</span>
+              <textarea
+                rows={2}
+                value={changelog}
+                onChange={(event) => setChangelog(event.target.value)}
+              />
+            </label>
             <span className="field-hint">{t('model.versionHint')}</span>
-          </label>
+          </div>
           <button type="submit" className="button is-primary" disabled={busy}>
             {busy ? t('model.creatingVersion') : t('model.createVersion')}
           </button>
@@ -510,5 +516,25 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
         </p>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * The trail of a model shared as a model reader (#355): no notebook is open, so
+ * it is not the notebook's trail, which reads the notebook it starts from.
+ */
+export function SharedModelBar({ crumbs }: { crumbs: Crumb[] }) {
+  const { t } = useTranslation();
+  return (
+    <div className="notebook-bar">
+      <nav className="shared-model-trail" aria-label={t('model.title')}>
+        {crumbs.map((crumb, index) => (
+          <span key={`${crumb.label}-${index}`}>
+            {index > 0 ? ' / ' : null}
+            {crumb.to ? <Link to={crumb.to}>{crumb.label}</Link> : crumb.label}
+          </span>
+        ))}
+      </nav>
+    </div>
   );
 }

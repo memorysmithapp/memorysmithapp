@@ -106,7 +106,7 @@ export function modelVersionAddress(notebookId: string, version: number): string
  * model and never the notebook, so it lives outside the notebook's pages.
  */
 export function sharedModelAddress(notebookId: string): string {
-  return `/models/${notebookId}`;
+  return `/models/${written(notebookId)}`;
 }
 
 export function sharedModelVersionAddress(notebookId: string, version: number): string {

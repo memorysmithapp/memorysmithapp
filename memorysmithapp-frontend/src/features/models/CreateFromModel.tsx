@@ -88,11 +88,13 @@ export function CreateFromModelForm({
         void create();
       }}
     >
-      <label className="field">
-        <span className="field-label">{t('model.newName')}</span>
-        <input value={name} onChange={(event) => setName(event.target.value)} />
+      <div className="field">
+        <label>
+          <span className="field-label">{t('model.newName')}</span>
+          <input value={name} onChange={(event) => setName(event.target.value)} />
+        </label>
         <span className="field-hint">{t('model.newNameHint')}</span>
-      </label>
+      </div>
       {parameters.map((parameter) => {
         const id = `value-${parameter.name}`;
         const flagged = missing.includes(parameter.name);
