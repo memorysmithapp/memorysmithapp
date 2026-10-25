@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The tools that operate and evaluate the product run as `pnpm tools` from the root of the repository**, grouped and with help: `pnpm tools --help` lists them and `pnpm tools <command> --help` says what each takes. Onboarding is `pnpm tools onboard`, the product-data maintenance jobs are `pnpm tools data <job>` (`cleanup-staging`, `recount-storage`, `reproject-links`, `migrate-slots`), the functional suite is `pnpm tools functional` and the agent evaluation `pnpm tools agent-eval`, each with the arguments, refusals and exit codes it had. Delivering and tearing down an environment stay with the infrastructure, in `memorysmithapp-infra`; the old `pnpm -C memorysmithapp-infra` names of the moved commands are gone. (#345)
+
 ## [0.14.3] - 2026-10-20
 
 ### Changed

@@ -2,10 +2,10 @@
  * Runs a maintenance job of the core against the tables of an environment
  * (ADR-010, ADR-017).
  *
- *   pnpm -C memorysmithapp-infra cleanup-staging [--apply]
- *   pnpm -C memorysmithapp-infra recount-storage --environment production [--apply]
- *   pnpm -C memorysmithapp-infra reproject-links --environment staging [--apply]
- *   pnpm -C memorysmithapp-infra reproject-links --environment staging --follow <execution>
+ *   pnpm tools data cleanup-staging [--apply]
+ *   pnpm tools data recount-storage --environment production [--apply]
+ *   pnpm tools data reproject-links --environment staging [--apply]
+ *   pnpm tools data reproject-links --environment staging --follow <execution>
  *
  * With credentials of the account of the environment, and refused under any
  * other; a job that names the environments it may run in is refused in every
@@ -44,8 +44,8 @@ import {
   summaryLines,
   type ReprojectionSummary,
 } from './lib/maintenance.js';
-import { readText, REPOSITORY_ROOT } from './lib/repository.js';
-import { stackIdOf } from './lib/teardown.js';
+import { declaredEnvironment, stackIdOf } from './lib/environments.js';
+import { REPOSITORY_ROOT } from './lib/repository.js';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -72,11 +72,7 @@ const job = MAINTENANCE_JOBS[name];
 const environment = values.environment;
 const refusedHere = environmentRefusal(job, environment);
 if (refusedHere) fail(refusedHere);
-const declared = (
-  JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
-    context: { environments: Record<string, { account?: string; region?: string } | undefined> };
-  }
-).context.environments[environment];
+const declared = declaredEnvironment(environment);
 if (!declared) fail(`There is no environment called "${environment}".`);
 const region = declared.region ?? 'us-east-1';
 

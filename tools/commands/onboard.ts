@@ -2,7 +2,7 @@
  * Creates an account and gives it a subscription, or, when it is the first
  * account of an empty pool, the operation of the platform and nothing else.
  *
- *   pnpm -C memorysmithapp-infra onboard --environment staging [--email ana@example.com]
+ *   pnpm tools onboard --environment staging [--email ana@example.com]
  *     [--name Ana] [--quota 1GB] [--status active] [--set-password] [--locale en_US]
  *
  * A deploy seeds nothing: the user pool comes up empty, and no subscription is
@@ -46,7 +46,7 @@ import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { workingPassword } from './lib/passwords.js';
 import { ProductApi } from './lib/product-api.js';
-import { readText } from './lib/repository.js';
+import { declaredEnvironment } from './lib/environments.js';
 
 const QUOTAS = ['500MB', '1GB', '2GB'];
 const STATUSES = ['pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled'];
@@ -124,13 +124,9 @@ async function choose(question: string, options: readonly string[], fallback: st
 // ---- What is being created ---------------------------------------------------
 
 const environment = values.environment;
-const environments = (
-  JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
-    context: { environments: Record<string, { hostedZoneName: string }> };
-  }
-).context.environments;
 const zone =
-  environments[environment]?.hostedZoneName ?? fail(`There is no environment "${environment}".`);
+  declaredEnvironment(environment)?.hostedZoneName ??
+  fail(`There is no environment "${environment}".`);
 
 const email = (values.email ?? (await ask('e-mail of the account'))).toLowerCase();
 if (!email) fail('No account to onboard: pass --email.');

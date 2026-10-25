@@ -19,7 +19,7 @@ import type { Page } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { stackIdOf } from '../../commands/lib/teardown.js';
+import { stackIdOf } from '../../commands/lib/environments.js';
 import {
   authorizeUrl,
   clientMetadata,

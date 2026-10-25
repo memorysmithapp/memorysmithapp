@@ -18,7 +18,7 @@ import {
 } from '../functional/support/coverage.js';
 
 function specSources(): string[] {
-  const root = join(REPOSITORY_ROOT, 'memorysmithapp-infra', 'functional');
+  const root = join(REPOSITORY_ROOT, 'tools', 'functional');
   return readdirSync(root, { recursive: true, encoding: 'utf8' })
     .filter((file) => file.endsWith('.spec.ts'))
     .map((file) => readFileSync(join(root, file), 'utf8'));

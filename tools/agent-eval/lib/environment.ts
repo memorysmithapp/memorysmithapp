@@ -18,8 +18,8 @@ import { writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { readNotebookTree } from '../../commands/lib/notebook-tree.js';
 import { ProductApi } from '../../commands/lib/product-api.js';
-import { readText, REPOSITORY_ROOT } from '../../commands/lib/repository.js';
-import { stackIdOf } from '../../commands/lib/teardown.js';
+import { REPOSITORY_ROOT } from '../../commands/lib/repository.js';
+import { declaredEnvironment, stackIdOf } from '../../commands/lib/environments.js';
 import { writeNotebookTree } from '../../commands/lib/write-notebook.js';
 import { apiToken, createAccount, deleteAccount } from '../../functional/support/accounts.js';
 import { connectThroughBrowser } from '../../functional/support/connector-flow.js';
@@ -59,11 +59,7 @@ export async function openEnvironment(name: string): Promise<EvaluationEnvironme
   if (name === 'production') {
     throw new Error('The agent evaluation writes, and none of it runs against production.');
   }
-  const declared = (
-    JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
-      context: { environments: Record<string, { region?: string; hostedZoneName?: string }> };
-    }
-  ).context.environments[name];
+  const declared = declaredEnvironment(name);
   if (!declared?.hostedZoneName) throw new Error(`cdk.json declares no ${name} environment.`);
   const region = declared.region ?? 'us-east-1';
   const zone = declared.hostedZoneName;

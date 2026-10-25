@@ -53,7 +53,7 @@ One line each; the reason lives where the link points.
 - Code cites a rule, an invariant or a decision by its identifier (`RN-KNW-035`, `INV-04`, `ADR-003`), never by a section number ([SDLC §4.1](docs/SDLC.md#41-when-a-commit-touches-each-document)).
 - A business rule code is append-only: never renumbered, never reused; a rule that stops holding keeps its row, marked removed ([PRD §7](docs/PRD.md#7-features-and-rules)).
 - Infrastructure code lives in `memorysmithapp-infra`, never in the backend, and a stack is never defined inside a service ([ARCHITECTURE §2](docs/ARCHITECTURE.md#2-layout)).
-- Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `memorysmithapp-infra/agent-eval/`.
+- Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `tools/agent-eval/`.
 - In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
 - The repository builds no container image; a Dockerfile, if one ever appears, comes with its `.dockerignore` in the same change.
 - Create or delete a GitHub repository, change a ruleset, or act on production data only with the owner's go-ahead in the session.
@@ -92,6 +92,7 @@ Each command with the directory it runs in, what it does, and the date somebody 
 | `pnpm test` | The root | The tests of those checks, then every unit suite of the workspace | 2026-10-18 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm depcruise` | The root | The rest of what CI runs ([SDLC §8](docs/SDLC.md#8-tests-and-review)) | 2026-10-18 |
 | `pnpm release-checks`, `pnpm release-notes [X.Y.Z]` | `memorysmithapp-infra` | Whether the version can be released; the notes of a version | 2026-10-18 |
+| `pnpm tools --help`, `pnpm tools <command> --help` | The root | The tools that operate and evaluate the product, and what each takes | 2026-10-25 |
 
 ## 7. Before calling something done
 

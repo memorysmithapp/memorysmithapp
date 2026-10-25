@@ -4,7 +4,7 @@
  * A fourth entrypoint on the same bundle, beside the request handler, the
  * outbox relay and the recount, and for the same reason: it is triggered by an
  * operator, it serves no request and it needs no session. Run it with
- * `pnpm -C memorysmithapp-infra migrate-slots --environment staging [--apply]`.
+ * `pnpm tools data migrate-slots --environment staging [--apply]`.
  *
  * It reports before it writes, and writes only when told to, because a job
  * that changes where a person's Guidance lives is not a job anybody should

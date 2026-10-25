@@ -6,12 +6,13 @@
   "packageManager": "pnpm@11.22.0",
   "scripts": {
     "quality": "node scripts/quality.mjs",
+    "tools": "pnpm -s -C tools exec tsx cli.ts",
     "typecheck": "pnpm -r typecheck",
     "test": "node --test scripts/*.test.mjs && pnpm -r test",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
-    "depcruise": "depcruise memorysmithapp-backend memorysmithapp-frontend memorysmithapp-infra"
+    "depcruise": "depcruise memorysmithapp-backend memorysmithapp-frontend memorysmithapp-infra tools"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

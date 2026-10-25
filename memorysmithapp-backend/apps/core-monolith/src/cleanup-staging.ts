@@ -3,7 +3,7 @@
  *
  * A fifth entrypoint on this bundle, next to `recount.ts` and `reproject.handler.ts`,
  * and for the same reason they are separate: an operator triggers it, not a
- * request or a stream. Run it with `pnpm -C memorysmithapp-infra cleanup-staging`.
+ * request or a stream. Run it with `pnpm tools data cleanup-staging`.
  *
  * The functional suite deleted the accounts of every run and left their
  * notebooks behind, so staging came to hold thousands of notebooks nobody can

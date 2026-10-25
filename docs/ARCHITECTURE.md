@@ -6,7 +6,7 @@ Every statement here was checked against the code; where a guarantee does not fu
 
 ## 1. Overview
 
-MemorySmith is three projects in one pnpm monorepo, deployed together to one AWS account in `us-east-1`, as two environments: production on `memorysmith.app` and staging on `stg.memorysmith.app`.
+MemorySmith is three projects in one pnpm monorepo, with the tools that operate and evaluate them, deployed together to one AWS account in `us-east-1`, as two environments: production on `memorysmith.app` and staging on `stg.memorysmith.app`.
 
 ```
  person ── memorysmith.app (SPA, CloudFront) ──► api.<zone> ── CoreApi Lambda (modular monolith)
@@ -75,16 +75,21 @@ memorysmithapp/
 ├── memorysmithapp-frontend/
 │   └── src/                       app/ (router, layout), features/ (one folder per screen), shared/
 │                                  (api client, components, config), i18n/ (en_US, pt_BR)
-└── memorysmithapp-infra/
-    ├── bin/app.ts, config/, cdk.json   the CDK app and the two environments
-    ├── stacks/, constructs/       every resource of the three projects
-    ├── commands/                  deliver, smoke, release, onboard, maintenance, destroy-staging
+├── memorysmithapp-infra/
+│   ├── bin/app.ts, config/, cdk.json   the CDK app and the two environments
+│   ├── stacks/, constructs/       every resource of the three projects
+│   ├── commands/                  deliver, smoke, release, destroy-staging, DNS and e-mail readiness,
+│   │                              cost tags, the e-mail lockup
+│   └── test/                      synth assertions and the tests of the commands
+└── tools/                         `pnpm tools`: what operates and evaluates the product from outside
+    ├── cli.ts, cli/               the grouped commands and their help
+    ├── commands/                  onboard, and the product-data maintenance jobs
     ├── functional/                Playwright suites against staging: api, mcp, connector, web, journeys
     ├── agent-eval/                the blind evaluation of agents writing through the connector
-    └── test/                      synth assertions and the tests of the commands
+    └── test/                      the tests of the tools
 ```
 
-**The direction between the projects is single, and `.dependency-cruiser.cjs` checks it in CI:** `memorysmithapp-infra` references the artifacts of the other two; `memorysmithapp-backend` knows nothing of either; `memorysmithapp-frontend` imports `@memorysmithapp/contracts` and calls the API at runtime. Infrastructure code never lives in the backend, and a stack is never defined inside a service. A file goes where what it *is* belongs, not what it is *for*: a construct for the audit table is in `memorysmithapp-infra/constructs/`.
+**The direction between the projects is single, and `.dependency-cruiser.cjs` checks it in CI:** `memorysmithapp-infra` references the artifacts of the other two; `memorysmithapp-backend` knows nothing of either; `tools` reaches the product through its surfaces, imports only `@memorysmithapp/contracts`, reads the environments in `memorysmithapp-infra/cdk.json` as data and runs an entrypoint of the core as a process, by its path, and nothing imports it; `memorysmithapp-frontend` imports `@memorysmithapp/contracts` and calls the API at runtime. Infrastructure code never lives in the backend, and a stack is never defined inside a service. A file goes where what it *is* belongs, not what it is *for*: a construct for the audit table is in `memorysmithapp-infra/constructs/`.
 
 Deployed names keep the identifier `memorysmith`: stacks are `Memorysmith{Production|Staging}{Name}` and physical resources `{name}-{environment}`, such as `mv-knowledge-production`.
 
@@ -226,19 +231,28 @@ Once per account, with the owner supervising each step:
 4. On GitHub: the environments `production` and `staging`, the two role variables, and `ALARM_EMAIL` in `production`.
 5. The first delivery of production, then confirm the subscription of the SNS topic `memorysmith-alarms-production` from the e-mail AWS sends.
 6. `pnpm -C memorysmithapp-infra activate-cost-tags`, once.
-7. `pnpm -C memorysmithapp-infra onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator, with no subscription; run it again for the account the product is used with, giving the administrator's credentials when it asks.
+7. `pnpm tools onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator, with no subscription; run it again for the account the product is used with, giving the administrator's credentials when it asks.
 
 ### 5.4 Commands
 
-Run from `memorysmithapp-infra` with `pnpm <command>`, credentials from the default AWS chain (`AWS_PROFILE`). Each refuses an account other than the environment's.
+Credentials from the default AWS chain (`AWS_PROFILE`); each refuses an account other than the environment's.
+
+What delivers and tears down the infrastructure runs from `memorysmithapp-infra` with `pnpm <command>`:
+
+| Command | Does |
+|---|---|
+| `deliver --environment <name>` | The delivery of [§5.2](#52-delivery) |
+| `destroy-staging [--preview]` | Deletes the stacks of staging in reverse order and purges what they retained; leaves the zone and the delivery roles |
+
+What operates and evaluates the product runs from the root with `pnpm tools <command>`, and `pnpm tools --help` lists it:
 
 | Command | Does |
 |---|---|
 | `onboard` | Creates or hands over an account and its subscription, with its quota and status; the first account of a pool gets the platform and no subscription |
-| `cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
-| `recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
-| `reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
-| `destroy-staging [--preview]` | Deletes the stacks of staging in reverse order and purges what they retained; leaves the zone and the delivery roles |
+| `data cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
+| `data recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
+| `data reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
+| `data migrate-slots [--apply]` | Rebuilds the Guidance and the Templates written before they had a life of their own |
 | `functional` | The Playwright suites against staging; never production |
 | `agent-eval` | A round of the agent evaluation against staging; never production |
 

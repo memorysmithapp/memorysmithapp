@@ -19,7 +19,6 @@ import {
   type ReprojectionSummary,
 } from '../commands/lib/maintenance.js';
 import { REPOSITORY_ROOT } from '../commands/lib/repository.js';
-import { physicalName } from '../config/environments.js';
 
 describe('a maintenance job', () => {
   it('is an entrypoint of the core, and receives every variable it requires', () => {
@@ -57,14 +56,30 @@ describe('a maintenance job', () => {
       }),
     ).toEqual({
       ENVIRONMENT: 'production',
-      KNOWLEDGE_TABLE: physicalName({ name: 'production' }, 'mv-knowledge'),
-      DISCOVERY_TABLE: physicalName({ name: 'production' }, 'mv-discovery'),
-      AUDIT_TABLE: physicalName({ name: 'production' }, 'mv-audit'),
-      PORTABILITY_TABLE: physicalName({ name: 'production' }, 'mv-portability'),
-      ACCESS_TABLE: physicalName({ name: 'production' }, 'mv-access'),
+      KNOWLEDGE_TABLE: 'mv-knowledge-production',
+      DISCOVERY_TABLE: 'mv-discovery-production',
+      AUDIT_TABLE: 'mv-audit-production',
+      PORTABILITY_TABLE: 'mv-portability-production',
+      ACCESS_TABLE: 'mv-access-production',
       CONTENT_BUCKET: 'the-bucket',
       USER_POOL_ID: 'the-pool',
     });
+  });
+
+  it('names tables the data stack declares, read as text and never imported', () => {
+    const stack = readFileSync(
+      join(REPOSITORY_ROOT, 'memorysmithapp-infra/stacks/data.stack.ts'),
+      'utf8',
+    );
+    for (const base of [
+      'mv-knowledge',
+      'mv-discovery',
+      'mv-audit',
+      'mv-portability',
+      'mv-access',
+    ]) {
+      expect(stack).toContain(`tableName: named('${base}')`);
+    }
   });
 
   it('that cleans staging up is refused on production, before anything is read (#276)', () => {

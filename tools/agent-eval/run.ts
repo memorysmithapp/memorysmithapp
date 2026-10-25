@@ -1,8 +1,8 @@
 /**
  * A round of the blind agent evaluation.
  *
- *   pnpm -C memorysmithapp-infra exec playwright install chromium
- *   pnpm -C memorysmithapp-infra agent-eval --environment staging
+ *   pnpm -C tools exec playwright install chromium
+ *   pnpm tools agent-eval --environment staging
  *     [--models sonnet,haiku] [--runs 3] [--cases AE-00,AE-01] [--user-model sonnet]
  *     [--open-room] [--keep-accounts]
  *

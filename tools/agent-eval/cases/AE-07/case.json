@@ -24,8 +24,8 @@
       "person": "carla",
       "request": "Desenhei a planta da cozinha num SVG pequeno, o código está aqui embaixo. Guarda esse desenho no meu caderno da reforma e coloca ele na nota da cozinha?\n\n{{file}}",
       "persona": "persona-pt_BR.md",
-      "setup": { "kind": "tree", "path": "memorysmithapp-infra/agent-eval/fixtures/reforma" },
-      "hands": "memorysmithapp-infra/agent-eval/fixtures/handed/planta-da-cozinha.svg"
+      "setup": { "kind": "tree", "path": "tools/agent-eval/fixtures/reforma" },
+      "hands": "tools/agent-eval/fixtures/handed/planta-da-cozinha.svg"
     }
   ]
 }

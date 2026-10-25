@@ -23,7 +23,7 @@
       "person": "rita",
       "request": "Minhas notas antigas estão cheias de #etiquetas no meio do texto e eu não consigo filtrar nada. Dá pra organizar isso?",
       "persona": "persona-pt_BR.md",
-      "setup": { "kind": "tree", "path": "memorysmithapp-infra/agent-eval/fixtures/inline-tags" }
+      "setup": { "kind": "tree", "path": "tools/agent-eval/fixtures/inline-tags" }
     }
   ]
 }

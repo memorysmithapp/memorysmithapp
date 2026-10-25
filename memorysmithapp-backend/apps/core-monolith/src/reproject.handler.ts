@@ -8,7 +8,7 @@
  * run splits by notebook and belongs to AWS: `list` names the live notebooks,
  * the map calls `notebook` once for each, a few dozen at once, and `summarise`
  * sums what they answered. Start it with
- * `pnpm -C memorysmithapp-infra reproject-links`, after a deploy that changed
+ * `pnpm tools data reproject-links`, after a deploy that changed
  * the rule a link is resolved by, or whenever the graph is found wrong.
  *
  * A projection that disagrees with the rule links are resolved by is rebuilt

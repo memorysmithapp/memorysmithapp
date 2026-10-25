@@ -1,7 +1,7 @@
 /**
  * The functional suite of the product, against a deployed environment.
  *
- *   FUNCTIONAL_ENVIRONMENT=staging FUNCTIONAL_VERSION=<served> pnpm -C memorysmithapp-infra functional
+ *   FUNCTIONAL_ENVIRONMENT=staging FUNCTIONAL_VERSION=<served> pnpm tools functional
  *
  * It runs in the Functional stage of the staging pipeline, with credentials of
  * the account, and from a workstation only to debug a case. Workers are

@@ -15,8 +15,7 @@
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { randomBytes } from 'node:crypto';
 import { rmSync } from 'node:fs';
-import { readText } from '../../commands/lib/repository.js';
-import { stackIdOf } from '../../commands/lib/teardown.js';
+import { declaredEnvironment, stackIdOf } from '../../commands/lib/environments.js';
 import { apiToken, createAccount } from './accounts.js';
 import { Api } from './api.js';
 import { REPORT_DIRECTORY, writeState, type RunState, type TestAccount } from './state.js';
@@ -27,13 +26,7 @@ export default async function globalSetup(): Promise<void> {
     throw new Error('The functional suite writes, and a test never writes to production.');
   }
 
-  const declared = (
-    JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
-      context: {
-        environments: Record<string, { region?: string; hostedZoneName?: string } | undefined>;
-      };
-    }
-  ).context.environments[environment];
+  const declared = declaredEnvironment(environment);
   if (!declared?.hostedZoneName)
     throw new Error(`cdk.json declares no ${environment} environment.`);
 

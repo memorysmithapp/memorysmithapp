@@ -99,27 +99,45 @@ module.exports = {
     {
       name: 'infrastructure-never-loads-what-operates-it',
       comment:
-        'The stacks, the constructs and the app describe infrastructure. The commands, the ' +
-        'functional suite and the agent evaluation operate and test it ' +
-        'from outside, through its surfaces, and a synth that loaded them would load their ' +
+        'The stacks, the constructs and the app describe infrastructure. The commands that ' +
+        'deliver it operate it from outside, and a synth that loaded them would load their ' +
         'dependencies too.',
       severity: 'error',
       from: { path: '^memorysmithapp-infra/(bin|config|stacks|constructs)/' },
-      to: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
+      to: { path: '^memorysmithapp-infra/commands/' },
+    },
+    {
+      name: 'nothing-loads-the-tools',
+      comment:
+        'The tools operate and evaluate the product from outside (#345). The product and its ' +
+        'infrastructure never import them: a tool may change without anything deployed noticing.',
+      severity: 'error',
+      from: { path: '^memorysmithapp-(backend|frontend|infra)/' },
+      to: { path: '^tools/' },
     },
     {
       name: 'operations-reach-the-product-through-its-contracts',
       comment:
-        'The commands, the functional suite and the agent evaluation reach the product the way ' +
-        'anybody outside does, through its surfaces: of ' +
-        'this repository they import @memorysmithapp/contracts and nothing else, not a service and ' +
-        'not a stack.',
+        'The delivery commands and the tools reach the product the way anybody outside does, ' +
+        'through its surfaces: of this repository they import @memorysmithapp/contracts and ' +
+        'nothing else, not a service and not a stack. A tool reads the environment metadata of ' +
+        'memorysmithapp-infra/cdk.json as data and runs an entrypoint of the core as a process, ' +
+        'by its path; neither is an import.',
       severity: 'error',
-      from: { path: '^memorysmithapp-infra/(commands|functional|agent-eval)/' },
+      from: { path: ['^memorysmithapp-infra/commands/', '^tools/'] },
       to: {
         path: '^memorysmithapp-(backend|frontend)/|^memorysmithapp-infra/(bin|config|stacks|constructs)/',
         pathNot: CONTRACTS,
       },
+    },
+    {
+      name: 'tools-never-import-the-infrastructure',
+      comment:
+        'A tool shares no code with the infrastructure, in either direction; what both need of ' +
+        'an environment is declared once, in cdk.json, and read as data.',
+      severity: 'error',
+      from: { path: '^tools/' },
+      to: { path: '^memorysmithapp-infra/' },
     },
     {
       name: 'contracts-stay-standalone',
