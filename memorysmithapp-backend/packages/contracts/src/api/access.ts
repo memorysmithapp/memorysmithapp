@@ -332,10 +332,13 @@ export const connectorSchema = agentIdentitySchema;
  * owns it; the share is the one door through that boundary, and it opens only
  * when the person it names accepts it.
  *
- * `read-write` is in the contract so that the day it is offered changes no
- * shape; no share grants it yet, and asking for it is refused (RN-ACC-024).
+ * Its profile is what it grants (#347): a `reader` reads and exports; a
+ * `content-editor` also writes the notes, their moves and the files; a
+ * `notebook-editor` also maintains the folders, the Guidance and the
+ * Templates. Sharing, the profiles and deleting the notebook stay with the
+ * owner.
  */
-export const shareAccessSchema = z.enum(['read', 'read-write']);
+export const shareProfileSchema = z.enum(['reader', 'content-editor', 'notebook-editor']);
 
 /** Where a share stands, as its owner sees it. */
 export const shareStateSchema = z.enum(['pending', 'accepted', 'rejected', 'left']);
@@ -347,7 +350,17 @@ export const shareStateSchema = z.enum(['pending', 'accepted', 'rejected', 'left
  */
 export const shareNotebookRequestSchema = z.object({
   email: z.string().min(1),
-  access: shareAccessSchema,
+  /** A reader when absent, which is what a share was before the profiles. */
+  profile: shareProfileSchema.default('reader'),
+});
+
+/**
+ * The owner changes what a share grants. A reduction applies at once; an
+ * increase of an accepted share waits for the grantee's renewed acceptance,
+ * the accepted profile applying until then.
+ */
+export const changeShareProfileRequestSchema = z.object({
+  profile: shareProfileSchema,
 });
 
 /** One person a notebook is shared with, in the owner's Share dialog. */
@@ -355,7 +368,9 @@ export const outgoingShareSchema = z.object({
   notebookId: ulidSchema,
   granteeUserId: userIdSchema,
   granteeEmail: z.string(),
-  access: shareAccessSchema,
+  profile: shareProfileSchema,
+  /** An increase offered on an accepted share, waiting for the grantee. */
+  pendingProfile: shareProfileSchema.nullable(),
   state: shareStateSchema,
   sharedAt: instantSchema,
   answeredAt: instantSchema.nullable(),
@@ -371,7 +386,9 @@ export const incomingShareSchema = z.object({
   name: z.string(),
   description: z.string(),
   ownerEmail: z.string(),
-  access: shareAccessSchema,
+  profile: shareProfileSchema,
+  /** An increase the owner offered, waiting for this person's answer. */
+  pendingProfile: shareProfileSchema.nullable(),
   state: z.enum(['pending', 'accepted']),
   sharedAt: instantSchema,
   noteCount: z.number().int().nonnegative().nullable(),
@@ -385,11 +402,11 @@ export const leaveShareRequestSchema = z.object({
 
 /**
  * What the notifications button lists (RN-ACC-029): every change of a share,
- * told to the other side. `shared` waits for an answer; the others are read and
- * dismissed.
+ * told to the other side. `shared` and `increase` wait for an answer; the others
+ * are read and dismissed.
  */
 export const notificationSchema = z.object({
-  kind: z.enum(['shared', 'revoked', 'accepted', 'rejected', 'left']),
+  kind: z.enum(['shared', 'increase', 'revoked', 'accepted', 'rejected', 'left']),
   notebookId: ulidSchema,
   /** The name of the notebook, or null when it can no longer be read. */
   notebookName: z.string().nullable(),
@@ -429,9 +446,10 @@ export type ConnectorBindingRequest = z.infer<typeof connectorBindingRequestSche
 export type ConnectorDto = z.infer<typeof connectorSchema>;
 export type UsageShareDto = z.infer<typeof usageShareSchema>;
 export type SubscriptionUsageDto = z.infer<typeof subscriptionUsageSchema>;
-export type ShareAccessDto = z.infer<typeof shareAccessSchema>;
+export type ShareProfileDto = z.infer<typeof shareProfileSchema>;
+export type ChangeShareProfileRequest = z.infer<typeof changeShareProfileRequestSchema>;
 export type ShareStateDto = z.infer<typeof shareStateSchema>;
-export type ShareNotebookRequest = z.infer<typeof shareNotebookRequestSchema>;
+export type ShareNotebookRequest = z.input<typeof shareNotebookRequestSchema>;
 export type OutgoingShareDto = z.infer<typeof outgoingShareSchema>;
 export type IncomingShareDto = z.infer<typeof incomingShareSchema>;
 export type LeaveShareRequest = z.infer<typeof leaveShareRequestSchema>;

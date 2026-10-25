@@ -835,13 +835,24 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       ),
     /** What an upload in parts becomes a file with, over the same use cases (RN-PRT-027). */
     fileKeeperFor: (request) =>
-      new KnowledgeFileKeeper(
-        {
-          destination: new CheckFileDestination(knowledgeRepos(request.subscription)),
-          keep: new KeepAssembledFile(knowledgeRepos(request.subscription)),
-        },
-        request.ctx,
-      ),
+      new KnowledgeFileKeeper(async (notebookId) => {
+        const through =
+          (await openShared(request, notebookId.value, { ...sharing, parse: notebookIdOf })) ??
+          request;
+        const knowledge = {
+          ...knowledgeRepos(through.subscription),
+          fileStore: fileStoreOf(through.subscription).withUploadsOf(
+            fileStoreOf(request.subscription),
+          ),
+        };
+        return {
+          useCases: {
+            destination: new CheckFileDestination(knowledge),
+            keep: new KeepAssembledFile(knowledge),
+          },
+          ctx: through.ctx,
+        };
+      }),
     openSharedNotebook: (request, notebookId) =>
       openShared(request, notebookId, { ...sharing, parse: notebookIdOf }),
     accessUseCases,

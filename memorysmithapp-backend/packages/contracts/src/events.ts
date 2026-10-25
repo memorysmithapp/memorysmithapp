@@ -63,6 +63,9 @@ export const domainEventTypeSchema = z.enum([
   'NotebookShareRejected',
   'NotebookShareRevoked',
   'NotebookShareLeft',
+  'NotebookShareProfileChanged',
+  'NotebookShareIncreaseAccepted',
+  'NotebookShareIncreaseRejected',
   // Knowledge
   'NotebookCreated',
   'NotebookRenamed',
@@ -215,7 +218,18 @@ export const notebookSharePayload = z.object({
   notebookId: ulidSchema,
   granteeUserId: userIdSchema,
   granteeEmail: z.string(),
-  access: z.enum(['read', 'read-write']),
+  /** On an entry written before the profiles (#347), the only access there was. */
+  access: z.enum(['read', 'read-write']).optional(),
+  /** What the share grants once this happened (#347). */
+  profile: z.enum(['reader', 'content-editor', 'notebook-editor']).optional(),
+  /** An increase waiting for the grantee's renewed acceptance, or null. */
+  pendingProfile: z.enum(['reader', 'content-editor', 'notebook-editor']).nullable().optional(),
+  /** On a change of profile or an answer to an increase: the profile before it. */
+  from: z.enum(['reader', 'content-editor', 'notebook-editor']).optional(),
+  /** On an answer to an increase: the profile that was offered. */
+  offered: z.enum(['reader', 'content-editor', 'notebook-editor']).optional(),
+  /** On a change of profile: whether it waits for the grantee's acceptance. */
+  pending: z.boolean().optional(),
   /** On a departure only: whether the grantee chose to tell the owner (RN-ACC-028). */
   notifyOwner: z.boolean().optional(),
 });
@@ -513,6 +527,9 @@ export const eventPayloadSchemas = {
   NotebookShareRejected: notebookSharePayload,
   NotebookShareRevoked: notebookSharePayload,
   NotebookShareLeft: notebookSharePayload,
+  NotebookShareProfileChanged: notebookSharePayload,
+  NotebookShareIncreaseAccepted: notebookSharePayload,
+  NotebookShareIncreaseRejected: notebookSharePayload,
   NotebookCreated: notebookCreatedPayload,
   NotebookRenamed: notebookRenamedPayload,
   NotebookDeleted: notebookDeletedPayload,

@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **A notebook can be shared for editing, with one of three profiles.** A **Reader** reads and exports, as every share did until now; a **Content editor** also writes, moves and deletes notes and keeps files; a **Notebook editor** also maintains the folders, the Guidance and the Templates. Sharing, changing a profile, renaming and deleting the notebook stay with its owner. The owner can change the profile of a share at any time: a reduction or a revocation applies from the grantee's next request, and an increase waits for the grantee to accept it again, granting nothing more until then. Every share that existed is a Reader, as before. A write the profile does not allow is refused naming the owner and the access held, and a share never reaches another notebook of its owner. Every change of a profile and every answer to an increase is recorded in the notebook's history. (#347)
+
 ### Changed
 
 - **The tools that operate and evaluate the product run as `pnpm tools` from the root of the repository**, grouped and with help: `pnpm tools --help` lists them and `pnpm tools <command> --help` says what each takes. Onboarding is `pnpm tools onboard`, the product-data maintenance jobs are `pnpm tools data <job>` (`cleanup-staging`, `recount-storage`, `reproject-links`, `migrate-slots`), the functional suite is `pnpm tools functional` and the agent evaluation `pnpm tools agent-eval`, each with the arguments, refusals and exit codes it had. Delivering and tearing down an environment stay with the infrastructure, in `memorysmithapp-infra`; the old `pnpm -C memorysmithapp-infra` names of the moved commands are gone. (#345)

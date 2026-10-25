@@ -146,6 +146,7 @@ import {
 } from '@memorysmithapp/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from './import-writer.js';
 import { KnowledgeFileKeeper } from './file-keeper.js';
+import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
 import {
   S3ArchiveStore,
   S3PartStore,
@@ -446,11 +447,30 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
 
 /** What an upload in parts becomes a file with, over the Knowledge use cases (RN-PRT-027). */
 function fileKeeperFor(request: KnowledgeRequest): FileKeeper {
-  const knowledge = buildKnowledge(infra, request.subscription);
-  return new KnowledgeFileKeeper(
-    { destination: new CheckFileDestination(knowledge), keep: new KeepAssembledFile(knowledge) },
-    request.ctx,
-  );
+  return new KnowledgeFileKeeper(async (notebookId) => {
+    // A notebook shared with this person is kept into as its owner's (#347).
+    const through =
+      (await openShared(request, notebookId.value, { ...sharing, parse: notebookIdOf })) ?? request;
+    const knowledge = {
+      ...buildKnowledge(infra, through.subscription),
+      // The parts land in this person's subscription, and become a file of
+      // the notebook's (INV-01: each key still starts with its subscription).
+      fileStore: new S3FileStore(
+        through.subscription,
+        infra.s3,
+        infra.contentBucket,
+        infra.filesOrigin ?? null,
+        request.subscription,
+      ),
+    };
+    return {
+      useCases: {
+        destination: new CheckFileDestination(knowledge),
+        keep: new KeepAssembledFile(knowledge),
+      },
+      ctx: through.ctx,
+    };
+  });
 }
 
 const portabilityUseCases: PortabilityUseCases = {

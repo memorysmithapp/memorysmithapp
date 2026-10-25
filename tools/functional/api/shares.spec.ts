@@ -24,10 +24,15 @@ async function userIdOf(api: Api): Promise<string> {
   return (await api.ok<{ user: { userId: string } }>('GET', '/access/session')).user.userId;
 }
 
-async function shareWith(owner: Api, notebook: NotebookFixture, email: string): Promise<void> {
+async function shareWith(
+  owner: Api,
+  notebook: NotebookFixture,
+  email: string,
+  profile = 'reader',
+): Promise<void> {
   const shared = await owner.call('POST', `/access/notebooks/${notebook.notebookId}/shares`, {
     email,
-    access: 'read',
+    profile,
   });
   expect(shared.status).toBe(204);
 }
@@ -231,5 +236,65 @@ test.describe('a notebook shared with another subscription', () => {
     expect(
       await owner.ok<unknown[]>('GET', `/access/notebooks/${notebook.notebookId}/shares`),
     ).toEqual([]);
+  });
+
+  test('[route:PUT /access/notebooks/:v/shares/:user/profile] [route:POST /access/shared/:v/increase/accept] [route:POST /access/shared/:v/increase/reject] writes as its profile, and grants an increase only once accepted again (#347)', async ({
+    owner,
+    other,
+    notebook,
+    state,
+  }) => {
+    const grantee = await userIdOf(other);
+    const note = (name: string) =>
+      other.call('POST', `/knowledge/notebooks/${notebook.notebookId}/notes`, {
+        folderId: notebook.folderId,
+        content: `---\nname: ${name}\n---\n\n# ${name}\n`,
+      });
+    const folder = (name: string) =>
+      other.call('POST', `/knowledge/notebooks/${notebook.notebookId}/folders`, {
+        name,
+        description: 'A folder of the grantee.',
+      });
+    const profile = (to: string) =>
+      owner.call('PUT', `/access/notebooks/${notebook.notebookId}/shares/${grantee}/profile`, {
+        profile: to,
+      });
+    try {
+      await shareWith(owner, notebook, state.accounts.other.email, 'content-editor');
+      await other.ok('POST', `/access/shared/${notebook.notebookId}/accept`);
+
+      // A content editor writes the notes, and is refused the structure, naming the owner.
+      expect((await note(`Grantee note ${state.runId}`)).status).toBe(201);
+      const refused = await folder('Not mine');
+      expect(refused.status).toBe(403);
+      expect((refused.body as { message: string }).message).toContain(state.accounts.owner.email);
+
+      // An increase waits for the grantee, who still writes as before.
+      expect((await profile('notebook-editor')).status).toBe(204);
+      expect((await folder('Still not mine')).status).toBe(403);
+      const waiting = await other.ok<Array<{ notebookId: string; pendingProfile: string | null }>>(
+        'GET',
+        '/access/shared',
+      );
+      expect(waiting.find((each) => each.notebookId === notebook.notebookId)).toMatchObject({
+        pendingProfile: 'notebook-editor',
+      });
+      expect(
+        (await other.call('POST', `/access/shared/${notebook.notebookId}/increase/reject`)).status,
+      ).toBe(204);
+      expect((await folder('Rejected')).status).toBe(403);
+
+      expect((await profile('notebook-editor')).status).toBe(204);
+      expect(
+        (await other.call('POST', `/access/shared/${notebook.notebookId}/increase/accept`)).status,
+      ).toBe(204);
+      expect((await folder(`Grantee folder ${state.runId}`)).status).toBe(201);
+
+      // A reduction applies at the next request, asking nobody.
+      expect((await profile('reader')).status).toBe(204);
+      expect((await note(`Refused note ${state.runId}`)).status).toBe(403);
+    } finally {
+      await closeDoor(owner, notebook, grantee);
+    }
   });
 });

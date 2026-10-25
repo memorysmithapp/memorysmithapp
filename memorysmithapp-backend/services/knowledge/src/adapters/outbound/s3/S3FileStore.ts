@@ -41,6 +41,12 @@ export class S3FileStore implements FileStore {
      * the very request it signed: only the name the browser shows changes.
      */
     private readonly publicOrigin: string | null = null,
+    /**
+     * Whose uploads may become files here: this subscription's, or the one of
+     * a person writing through a share, whose upload in parts lands in their
+     * own subscription and becomes a file of the owner's (#347).
+     */
+    private readonly uploadsOf: SubscriptionContext = sub,
   ) {}
 
   async put(bytes: Uint8Array, mimeType: string): Promise<ContentRef> {
@@ -200,9 +206,13 @@ export class S3FileStore implements FileStore {
     return ref.value;
   }
 
-  /** Only an upload of this subscription may become one of its files (INV-01). */
+  /**
+   * Only an upload of this subscription, or of the person writing through a
+   * share, may become one of its files (INV-01): the file is written under
+   * this subscription either way.
+   */
   private isUpload(key: string): boolean {
-    return key.startsWith(`s/${this.sub.subscriptionId.value}/uploads/`);
+    return key.startsWith(`s/${this.uploadsOf.subscriptionId.value}/uploads/`);
   }
 
   private keyOf(contentId: ContentId): string {

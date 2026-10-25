@@ -62,6 +62,10 @@ export const ACCESS_EVENT_TYPES = [
   'NotebookShareRejected',
   'NotebookShareRevoked',
   'NotebookShareLeft',
+  /** What a share grants changed, or an increase was answered (#347). */
+  'NotebookShareProfileChanged',
+  'NotebookShareIncreaseAccepted',
+  'NotebookShareIncreaseRejected',
 ] as const;
 
 export const KNOWLEDGE_EVENT_TYPES = [

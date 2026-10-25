@@ -25,6 +25,8 @@ import type {
 import type { Share } from '@memorysmithapp/svc-access/domain/share';
 import {
   AnswerShare,
+  AnswerShareIncrease,
+  ChangeShareProfile,
   DismissRevokedShare,
   DismissShareAnswer,
   LeaveShare,
@@ -143,7 +145,7 @@ export async function openShared(
       user: request.ctx.user,
       isOwner: false,
       role: Role.VIEWER,
-      share: { notebookId, owner: share.ownerEmail.value, profile: 'reader' },
+      share: { notebookId, owner: share.ownerEmail.value, profile: share.profile },
     },
     subscription: contextThrough(share),
     authorship: request.authorship,
@@ -179,6 +181,8 @@ export function shareUseCasesOf(deps: {
   | 'dismissShareAnswer'
   | 'listIncomingShares'
   | 'answerShare'
+  | 'changeShareProfile'
+  | 'answerShareIncrease'
   | 'leaveShare'
   | 'dismissRevokedShare'
   | 'listNotifications'
@@ -197,6 +201,8 @@ export function shareUseCasesOf(deps: {
     dismissShareAnswer: (request) => new DismissShareAnswer(of(request)),
     listIncomingShares: (request) => new ListIncomingShares(of(request)),
     answerShare: (request) => new AnswerShare(of(request)),
+    changeShareProfile: (request) => new ChangeShareProfile(of(request)),
+    answerShareIncrease: (request) => new AnswerShareIncrease(of(request)),
     leaveShare: (request) => new LeaveShare(of(request)),
     dismissRevokedShare: (request) => new DismissRevokedShare(of(request)),
     listNotifications: (request) => new ListNotifications(of(request)),

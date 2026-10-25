@@ -54,6 +54,8 @@ import type {
 import type { UserProfile } from '../../../domain/ports/index.js';
 import type {
   AnswerShare,
+  AnswerShareIncrease,
+  ChangeShareProfile,
   DismissRevokedShare,
   DismissShareAnswer,
   LeaveShare,
@@ -64,6 +66,7 @@ import type {
   RevokeShare,
   ShareNotebook,
 } from '../../../application/shares.js';
+import { noticeAt } from '../../../application/shares.js';
 import type { Share } from '../../../domain/share/Share.js';
 import {
   connectorBindingRequestSchema,
@@ -72,6 +75,7 @@ import {
   notificationListSchema,
   outgoingShareSchema,
   shareNotebookRequestSchema,
+  changeShareProfileRequestSchema,
   profileSchema,
   sessionSchema,
   subscriptionUsageSchema,
@@ -127,6 +131,8 @@ export interface AccessUseCases {
   readonly dismissShareAnswer: (request: AccessRequest) => DismissShareAnswer;
   readonly listIncomingShares: (request: AccessRequest) => ListIncomingShares;
   readonly answerShare: (request: AccessRequest) => AnswerShare;
+  readonly changeShareProfile: (request: AccessRequest) => ChangeShareProfile;
+  readonly answerShareIncrease: (request: AccessRequest) => AnswerShareIncrease;
   readonly leaveShare: (request: AccessRequest) => LeaveShare;
   readonly dismissRevokedShare: (request: AccessRequest) => DismissRevokedShare;
   readonly listNotifications: (request: AccessRequest) => ListNotifications;
@@ -138,7 +144,8 @@ function outgoingOf(share: Share) {
     notebookId: share.notebookId.value,
     granteeUserId: share.granteeUserId.value,
     granteeEmail: share.granteeEmail.value,
-    access: share.access,
+    profile: share.profile,
+    pendingProfile: share.pendingProfile,
     state: share.state,
     sharedAt: share.sharedAt.toISOString(),
     answeredAt: share.answeredAt?.toISOString() ?? null,
@@ -531,7 +538,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
     if (!notebookId.ok) return respond(c, notebookId);
     const body = shareNotebookRequestSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) {
-      return respond(c, err(DomainError.validation('A share takes an e-mail and an access')));
+      return respond(c, err(DomainError.validation('A share takes an e-mail and a profile')));
     }
     return respond(
       c,
@@ -540,7 +547,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         ownerEmail: request.profile.email.value,
         notebookId: notebookId.value,
         email: body.data.email,
-        access: body.data.access,
+        profile: body.data.profile,
         by: Authorship.byHuman(request.profile.userId),
       }),
     );
@@ -560,6 +567,30 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         context: context.value,
         notebookId: notebookId.value,
         grantee: grantee.value,
+        by: Authorship.byHuman(request.profile.userId),
+      }),
+    );
+  });
+
+  app.put('/notebooks/:v/shares/:user/profile', async (c) => {
+    const request = c.get('access');
+    const context = requireContext(request);
+    if (!context.ok) return respond(c, context);
+    const notebookId = notebookIdOf(c.req.param('v'));
+    if (!notebookId.ok) return respond(c, notebookId);
+    const grantee = UserId.create(c.req.param('user'));
+    if (!grantee.ok) return respond(c, grantee);
+    const body = changeShareProfileRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) {
+      return respond(c, err(DomainError.validation('A change of a share takes a profile')));
+    }
+    return respond(
+      c,
+      await useCases.changeShareProfile(request).execute({
+        context: context.value,
+        notebookId: notebookId.value,
+        grantee: grantee.value,
+        profile: body.data.profile,
         by: Authorship.byHuman(request.profile.userId),
       }),
     );
@@ -599,7 +630,8 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
           name: notebook.name,
           description: notebook.description,
           ownerEmail: share.ownerEmail.value,
-          access: share.access,
+          profile: share.profile,
+          pendingProfile: share.isOpen ? share.pendingProfile : null,
           state: share.state,
           sharedAt: share.sharedAt.toISOString(),
           // A pending share shows its name and description and nothing else
@@ -621,6 +653,25 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
       return respond(
         c,
         await useCases.answerShare(request).execute({
+          user: request.profile.userId,
+          notebookId: notebookId.value,
+          accept: answer === 'accept',
+          by: Authorship.byHuman(request.profile.userId),
+        }),
+      );
+    });
+  }
+
+  for (const answer of ['accept', 'reject'] as const) {
+    app.post(`/shared/:v/increase/${answer}`, async (c) => {
+      const request = c.get('access');
+      const context = requireContext(request);
+      if (!context.ok) return respond(c, context);
+      const notebookId = notebookIdOf(c.req.param('v'));
+      if (!notebookId.ok) return respond(c, notebookId);
+      return respond(
+        c,
+        await useCases.answerShareIncrease(request).execute({
           user: request.profile.userId,
           notebookId: notebookId.value,
           accept: answer === 'accept',
@@ -684,10 +735,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
             notebookName,
             person: ownerSide ? share.granteeEmail.value : share.ownerEmail.value,
             granteeUserId: ownerSide ? share.granteeUserId.value : null,
-            at: (kind === 'shared'
-              ? share.sharedAt
-              : (share.answeredAt ?? share.sharedAt)
-            ).toISOString(),
+            at: noticeAt({ kind, share, notebookName }),
           };
         }),
       }),

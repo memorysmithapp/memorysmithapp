@@ -49,7 +49,7 @@ Code comments cite them by code. A principle that stopped holding keeps its code
 
 ## 5. Ubiquitous language
 
-The terms as the code names them. In the `pt_BR` locale, and only there, three are translated: **Guidance** is _Orientação_, **Template** is _Modelo_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word.
+The terms as the code names them. In the `pt_BR` locale, and only there, three are translated: **Guidance** is _Orientação_, **Template** is _Modelo_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word, and the share profiles are named in ordinary words too: _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
 
 | Term                    | Meaning                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -77,7 +77,8 @@ The terms as the code names them. In the `pt_BR` locale, and only there, three a
 | **Notice**              | What the renderer says about a note an agent wrote, with its code, line and column; it refuses nothing            |
 | **Skill**               | A written method the connector serves to an agent                                                                 |
 | **Connector**           | An AI client authorised to act for a person, bound to the subscription it consented to                            |
-| **Share**               | A notebook shared read-only with a person of another subscription                                                 |
+| **Share**               | A notebook shared with a person of another subscription, with a profile                                           |
+| **Share profile**       | What a share grants: Reader, Content editor or Notebook editor; an increase waits for the grantee's acceptance    |
 | **Transfer**            | A job listed in Transfers: an export, an import, an upload from an agent, or a file an agent asked the person for |
 
 ## 6. Journeys
@@ -151,13 +152,18 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-ACC-021 | A person edits their name and picture while the e-mail stays read-only, and what they typed is never overwritten by the identity provider or Gravatar.                                                                                   |                                                                                                       |
 | RN-ACC-022 | A profile picture comes from Gravatar, drawn initials or an upload; an upload is bounded in size, type-checked against its bytes and counts against no quota.                                                                            |                                                                                                       |
 | RN-ACC-023 | A person changes their password by stating the current one; a refusal never says which half failed, and the change ends every other session.                                                                                             |                                                                                                       |
-| RN-ACC-024 | Only the `OWNER` shares a notebook, read-only, with a person named by their account e-mail; asking for `read-write` is refused with `VALIDATION`, and re-sharing changes nothing.                                                        |                                                                                                       |
+| RN-ACC-024 | Said only the `OWNER` shared a notebook, read-only, with a person named by their account e-mail, `read-write` being refused. | Removed (v0.15.0): a share carries a profile (RN-ACC-031) |
 | RN-ACC-025 | Sharing answers the same whatever the e-mail, so it cannot reveal who has an account; an e-mail with no account keeps and sends nothing.                                                                                                 |                                                                                                       |
 | RN-ACC-026 | A share takes effect only once its grantee accepts it; until then only the notebook's name and description are visible, and the grantee may accept or reject.                                                                            |                                                                                                       |
-| RN-ACC-027 | An accepted share lets its grantee read and export the whole notebook and write nothing, a write answering `403` naming the owner.                                                                                                       |                                                                                                       |
+| RN-ACC-027 | Said an accepted share let its grantee read and export the whole notebook and write nothing. | Removed (v0.15.0): what a share grants is its profile (RN-ACC-032) |
 | RN-ACC-028 | A share ends when the owner revokes it, the grantee leaves or the notebook is deleted, and reaches nothing while the owner's subscription grants no access; while the notebook exists, every change of a share is recorded in its trail. |                                                                                                       |
 | RN-ACC-029 | Sharing, revoking, accepting, declining and leaving are told to the other side in the interface notifications, never by e-mail; a departure is told only if the grantee chose to.                                                        |                                                                                                       |
 | RN-ACC-030 | In the interface, a notebook shared with a person appears only on their Home, marked with its owner, and a pending share is a card offering **Accept** and **Decline**.                                                                  |                                                                                                       |
+| RN-ACC-031 | Only the `OWNER` shares a notebook with a person named by their account e-mail, with one of three profiles: Reader, Content editor or Notebook editor; a share asked for without a profile is a Reader, and re-sharing changes nothing. | |
+| RN-ACC-032 | A Reader reads and exports the whole notebook; a Content editor also creates, edits, deletes and moves notes between its folders and keeps and deletes its files; a Notebook editor also creates, edits and deletes its folders, Guidance and Templates; none shares, changes a profile, renames or deletes the notebook, and a write the profile does not allow answers `403` naming the owner and the access held. | |
+| RN-ACC-033 | The `OWNER` changes the profile of a share: before the grantee answers the offer itself changes; once accepted, a reduction applies from the grantee's next request with no consent, and an increase waits for the grantee's renewed acceptance, granting nothing more until it is accepted. | |
+| RN-ACC-034 | A share reaches only its own notebook: every other notebook of the owner answers `404` to it, whatever its profile. | |
+| RN-ACC-035 | An increase waiting for the grantee's acceptance is told to them in the interface notifications, never by e-mail. | |
 
 ### Knowledge
 

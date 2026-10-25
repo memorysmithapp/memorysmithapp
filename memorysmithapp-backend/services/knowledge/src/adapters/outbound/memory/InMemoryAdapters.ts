@@ -578,6 +578,21 @@ export class InMemoryFileStore implements FileStore {
 
   constructor(private readonly sub: SubscriptionContext) {}
 
+  /** Whose assembled uploads this store adopts: its own, unless a share says otherwise. */
+  protected get uploads(): Map<string, Uint8Array> {
+    return this.assembled;
+  }
+
+  /**
+   * This store, adopting what another subscription's upload assembled: a person
+   * writing through a share keeps a file of the owner's (#347).
+   */
+  withUploadsOf(other: InMemoryFileStore): InMemoryFileStore {
+    const view = Object.create(this) as InMemoryFileStore;
+    Object.defineProperty(view, 'uploads', { get: () => other.assembled });
+    return view;
+  }
+
   private keyOf(contentId: ContentId, versionId: string): string {
     return `s/${this.sub.subscriptionId.value}/f/${contentId.value}@${versionId}`;
   }
@@ -601,7 +616,7 @@ export class InMemoryFileStore implements FileStore {
   }
 
   async peekAssembled(key: string, versionId: string, bytes: number): Promise<Uint8Array | null> {
-    return this.assembled.get(`${key}@${versionId}`)?.slice(0, bytes) ?? null;
+    return this.uploads.get(`${key}@${versionId}`)?.slice(0, bytes) ?? null;
   }
 
   async adoptAssembled(input: {
@@ -610,7 +625,7 @@ export class InMemoryFileStore implements FileStore {
     mimeType: string;
     sha256: string;
   }): Promise<ContentRef | 'mismatch' | null> {
-    const whole = this.assembled.get(`${input.key}@${input.versionId}`);
+    const whole = this.uploads.get(`${input.key}@${input.versionId}`);
     if (!whole) return null;
     if (createHash('sha256').update(whole).digest('hex') !== input.sha256) return 'mismatch';
     return this.put(whole, input.mimeType);
