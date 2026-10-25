@@ -3,19 +3,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { IncomingShareDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { answerShare, leaveShare } from '../../shared/api/source';
+import { answerShare, answerShareIncrease, leaveShare } from '../../shared/api/source';
 import { Menu, MenuDivider, MenuItem } from '../../shared/components/Menu';
 import { MoreIcon } from '../../shared/components/icons';
 import type { NotebookSummary } from '../../shared/types/api';
 import { CardGraphDrawing } from '../dashboard/card-graphs';
 import { NotebookCard } from '../dashboard/NotebookCard';
 import { OwnershipMark } from './OwnershipMark';
-import { sharesChanged } from './shares';
+import { profileKey, sharesChanged } from './shares';
 
 /**
  * A notebook shared with me and accepted, as a card of Home (#256): what a
- * notebook of mine shows, plus whose it is. Behind its `⋯`, exporting it to my
- * own Transfers and leaving it (RN-ACC-027, RN-ACC-028).
+ * notebook of mine shows, plus whose it is and what I may do in it. Behind its
+ * `⋯`, exporting it to my own Transfers and leaving it (RN-ACC-028). An
+ * increase its owner offered waits on the card for my answer, granting
+ * nothing until I accept it (RN-ACC-033).
  */
 export function AcceptedShareCard({
   share,
@@ -45,6 +47,19 @@ export function AcceptedShareCard({
     effectiveRole: 'VIEWER',
   };
 
+  async function answerIncrease(accept: boolean): Promise<void> {
+    setBusy(true);
+    setFailure(null);
+    try {
+      await answerShareIncrease(share.notebookId, accept);
+      await sharesChanged(client);
+    } catch (error) {
+      setFailure(t(messageKeyOf(error)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function leave(): Promise<void> {
     setBusy(true);
     setFailure(null);
@@ -61,7 +76,10 @@ export function AcceptedShareCard({
     <NotebookCard
       notebook={notebook}
       strip={leaving ? 'danger' : strip}
-      byline={t('sharing.card.sharedBy', { owner: share.ownerEmail })}
+      byline={t('sharing.card.sharedAs', {
+        owner: share.ownerEmail,
+        profile: t(`sharing.profile.${profileKey(share.profile)}`),
+      })}
       corner={
         leaving ? null : (
           <div className="notebook-card-corner">
@@ -142,6 +160,40 @@ export function AcceptedShareCard({
               onClick={() => void leave()}
             >
               {t('sharing.card.leaveForGood')}
+            </button>
+          </div>
+        </div>
+      ) : share.pendingProfile ? (
+        <div
+          className="notebook-card-confirm"
+          role="group"
+          aria-labelledby={`increase-${share.notebookId}`}
+        >
+          <h2 id={`increase-${share.notebookId}`}>{share.name}</h2>
+          <p>
+            {failure ??
+              t('sharing.card.increaseOffered', {
+                owner: share.ownerEmail,
+                profile: t(`sharing.profile.${profileKey(share.pendingProfile)}`),
+                current: t(`sharing.profile.${profileKey(share.profile)}`),
+              })}
+          </p>
+          <div className="notebook-card-confirm-actions">
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              disabled={busy}
+              onClick={() => void answerIncrease(false)}
+            >
+              {t('sharing.reject')}
+            </button>
+            <button
+              type="button"
+              className="button is-primary is-small"
+              disabled={busy}
+              onClick={() => void answerIncrease(true)}
+            >
+              {t('sharing.accept')}
             </button>
           </div>
         </div>

@@ -138,7 +138,9 @@
     "noteOrderHintManual": "The notes keep the position they were given in this folder, by you or by an agent.",
     "noteOrderHintAlphabetical": "The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.",
     "notesByName": "In alphabetical order",
-    "noteOrderFailed": "The order of the notes was not changed. Try again."
+    "noteOrderFailed": "The order of the notes was not changed. Try again.",
+    "staleContext": "Context changed",
+    "staleContextHint": "Written while {{parts}} had changed: worth reviewing."
   },
   "folderEdit": {
     "short": "Edit",
@@ -152,6 +154,21 @@
     "save": "Save",
     "saving": "Saving…",
     "nameTaken": "A folder named “{{name}}” already exists at this level. Nothing was changed."
+  },
+  "folderDelete": {
+    "short": "Delete",
+    "open": "Delete this folder",
+    "title": "Delete the folder",
+    "holds": "It holds {{notes}} and {{folders}}.",
+    "notes_one": "{{count}} note",
+    "notes_other": "{{count}} notes",
+    "folders_one": "{{count}} subfolder",
+    "folders_other": "{{count}} subfolders",
+    "consequences": "Deleting it takes all of them out of the notebook at once, for good: they are destroyed shortly after, with every revision, and links to those notes become pending. Nothing brings them back.",
+    "understood": "I understand that everything in this folder is deleted for good",
+    "empty": "The folder is empty. Deleting it cannot be undone.",
+    "delete": "Delete the folder",
+    "deleting": "Deleting…"
   },
   "note": {
     "propertyTrue": "Yes",
@@ -703,7 +720,14 @@
     "unnamed": "The note no longer has a name: it still renders and still links outward, and no link can reach it. {{losing}}.",
     "keepBroken": "Keep the links broken",
     "understood": "Understood",
-    "attachKept": "“{{name}}” was kept whole in the notebook"
+    "attachKept": "“{{name}}” was kept whole in the notebook",
+    "contextChangedTitle": "The notebook changed while you wrote",
+    "contextChanged": "Your note was saved, but {{parts}} changed since you opened it. Read what changed and adjust the note if it needs it.",
+    "contextPart": {
+      "guidance": "the Guidance",
+      "template": "the Template of this folder",
+      "structure": "the folders of the notebook"
+    }
   },
   "move": {
     "short": "Move",
@@ -799,10 +823,6 @@
       "sharedByMe": "Your notebook, shared by you",
       "sharedWithMe": "Shared with you by {{owner}}"
     },
-    "access": {
-      "read": "Read",
-      "readWrite": "Read and write"
-    },
     "accept": "Accept",
     "reject": "Decline",
     "dialog": {
@@ -810,14 +830,16 @@
       "email": "E-mail of the person",
       "emailPlaceholder": "name@example.com",
       "access": "Access",
-      "readWriteLater": "Read and write is not offered yet: the person reads the whole notebook and writes nothing.",
       "share": "Share",
       "sharing": "Sharing…",
       "sent": "Done. If {{email}} has a MemorySmith subscription, the notebook is waiting for their answer.",
       "people": "Shared with",
       "nobody": "Not shared with anybody yet.",
       "revoke": "Revoke",
-      "remove": "Remove"
+      "remove": "Remove",
+      "profileOf": "Access of {{email}}",
+      "increasePending": "Still {{profile}} until they accept the increase.",
+      "changeExplained": "Reducing access applies at once. Increasing it waits for the person to accept again."
     },
     "state": {
       "pending": "Waiting",
@@ -836,7 +858,19 @@
       "leaveForGood": "Leave",
       "pendingLabel": "{{name}}, waiting for your answer",
       "invitedBy": "{{owner}} shared it with you",
-      "waiting": "Waiting for your answer"
+      "waiting": "Waiting for your answer",
+      "sharedAs": "Shared by {{owner}} · {{profile}}",
+      "increaseOffered": "{{owner}} offers you {{profile}} access. Until you accept, you stay {{current}}."
+    },
+    "profile": {
+      "reader": "Reader",
+      "contentEditor": "Content editor",
+      "notebookEditor": "Notebook editor"
+    },
+    "profileHint": {
+      "reader": "Reads and exports the whole notebook, and writes nothing.",
+      "contentEditor": "Also writes, moves and deletes notes and keeps files. The folders, the Guidance and the Templates stay yours to change.",
+      "notebookEditor": "Also creates, edits and deletes folders, the Guidance and the Templates. Sharing and deleting the notebook stay with you."
     }
   },
   "notifications": {
@@ -847,7 +881,8 @@
     "aNotebook": "a notebook",
     "dismiss": "Dismiss",
     "kind": {
-      "shared": "<b>{{person}}</b> shared <b>{{notebook}}</b> with you, to read.",
+      "shared": "<b>{{person}}</b> shared <b>{{notebook}}</b> with you.",
+      "increase": "<b>{{person}}</b> offers you more access to <b>{{notebook}}</b>.",
       "revoked": "<b>{{person}}</b> stopped sharing <b>{{notebook}}</b> with you.",
       "accepted": "<b>{{person}}</b> accepted <b>{{notebook}}</b>.",
       "rejected": "<b>{{person}}</b> declined <b>{{notebook}}</b>.",

@@ -206,8 +206,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const found = await useCases
       .getNotebook(request)
       .execute({ ctx: request.ctx, notebookId: notebookId.value });
-    return present(c, found, ({ notebook, guidance, role }) =>
-      notebookToDetail(notebook, role, guidance),
+    return present(c, found, ({ notebook, guidance, role, permissions }) =>
+      notebookToDetail(notebook, role, guidance, permissions),
     );
   });
 

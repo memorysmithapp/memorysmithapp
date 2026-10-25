@@ -53,6 +53,8 @@ const structure: NotebookStructure = {
   },
   guidance: null,
   guidanceRevision: null,
+  structureRevision: '1',
+  permissions: { writeContent: true, maintain: true, administer: true },
   effectiveRole: 'owner',
   folders: [
     folder('f1', [{ id: 'n1', name: 'Visão Geral' }]),

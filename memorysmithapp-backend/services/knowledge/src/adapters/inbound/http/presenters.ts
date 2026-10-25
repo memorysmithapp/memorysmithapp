@@ -52,6 +52,7 @@ export function notebookToDetail(
   role: Role,
   /** The Guidance as its own aggregate answered it, content and revision. */
   guidance: { content: string; ref: ContentRef } | null,
+  permissions: NotebookDetailDto['permissions'],
 ): NotebookDetailDto {
   return {
     ...notebookToSummary(notebook, role),
@@ -59,6 +60,7 @@ export function notebookToDetail(
     folders: notebook.folders.inOrder().map((folder) => folderToDto(folder, notebook)),
     guidance: guidance ? { content: guidance.content, revision: guidance.ref.toJSON() } : null,
     structureRevision: String(notebook.version),
+    permissions: { ...permissions },
   };
 }
 

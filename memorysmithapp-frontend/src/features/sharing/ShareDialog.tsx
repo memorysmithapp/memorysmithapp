@@ -1,23 +1,27 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { OutgoingShareDto } from '@memorysmithapp/contracts';
+import type { OutgoingShareDto, ShareProfileDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
-import { listNotebookShares, revokeShare, shareNotebook } from '../../shared/api/source';
+import {
+  changeShareProfile,
+  listNotebookShares,
+  revokeShare,
+  shareNotebook,
+} from '../../shared/api/source';
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
-import { sharesChanged } from './shares';
+import { profileKey, SHARE_PROFILES, sharesChanged } from './shares';
 
 /**
  * Sharing a notebook with a person who holds another subscription (#256,
- * RN-ACC-024): the e-mail of their account and the kind of share, and below
- * them who it is already shared with, where each one stands, and the way to
- * take it back.
+ * RN-ACC-031): the e-mail of their account and the profile of the share, and
+ * below them who it is already shared with, where each one stands, what each
+ * one may do, and the way to change it or take it back (RN-ACC-033).
  *
- * Read and write is shown and cannot be chosen: it is the direction, and no
- * share grants it yet. After sharing the dialog says the same thing whatever
- * the e-mail was, because the product does (RN-ACC-025).
+ * After sharing the dialog says the same thing whatever the e-mail was,
+ * because the product does (RN-ACC-025).
  */
 export function ShareDialog({
   notebook,
@@ -31,6 +35,7 @@ export function ShareDialog({
   const { t } = useTranslation();
   const client = useQueryClient();
   const [email, setEmail] = useState('');
+  const [profile, setProfile] = useState<ShareProfileDto>('reader');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -47,7 +52,7 @@ export function ShareDialog({
     setBusy(true);
     setFailure(null);
     try {
-      await shareNotebook(notebook.id, address);
+      await shareNotebook(notebook.id, address, profile);
       setSent(address);
       setEmail('');
       await sharesChanged(client);
@@ -55,6 +60,16 @@ export function ShareDialog({
       setFailure(t(messageKeyOf(error)));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function change(share: OutgoingShareDto, to: ShareProfileDto): Promise<void> {
+    setFailure(null);
+    try {
+      await changeShareProfile(notebook.id, share.granteeUserId, to);
+      await sharesChanged(client);
+    } catch (error) {
+      setFailure(t(messageKeyOf(error)));
     }
   }
 
@@ -96,14 +111,17 @@ export function ShareDialog({
           <span className="field-label">{t('sharing.dialog.access')}</span>
           <Segmented
             label={t('sharing.dialog.access')}
-            value="read"
-            onChange={() => undefined}
-            options={[
-              { value: 'read', label: t('sharing.access.read') },
-              { value: 'read-write', label: t('sharing.access.readWrite'), disabled: true },
-            ]}
+            value={profile}
+            onChange={setProfile}
+            describedBy="share-profile-hint"
+            options={SHARE_PROFILES.map((each) => ({
+              value: each,
+              label: t(`sharing.profile.${profileKey(each)}`),
+            }))}
           />
-          <span className="field-hint">{t('sharing.dialog.readWriteLater')}</span>
+          <span id="share-profile-hint" className="field-hint">
+            {t(`sharing.profileHint.${profileKey(profile)}`)}
+          </span>
         </div>
         <div className="share-form-actions">
           <button type="submit" className="button is-primary" disabled={busy || !email.trim()}>
@@ -124,6 +142,7 @@ export function ShareDialog({
 
       <section className="share-people" aria-labelledby="share-people-heading">
         <h3 id="share-people-heading">{t('sharing.dialog.people')}</h3>
+        <p className="hint">{t('sharing.dialog.changeExplained')}</p>
         {shares.isPending ? (
           <p className="hint">{t('common.loading')}</p>
         ) : listed.length === 0 ? (
@@ -136,6 +155,27 @@ export function ShareDialog({
                 <span className="state-chip" data-state={stateOf(share.state)}>
                   {t(`sharing.state.${share.state}`)}
                 </span>
+                {share.state === 'pending' || share.state === 'accepted' ? (
+                  <select
+                    className="share-person-profile"
+                    aria-label={t('sharing.dialog.profileOf', { email: share.granteeEmail })}
+                    value={share.pendingProfile ?? share.profile}
+                    onChange={(event) => void change(share, event.target.value as ShareProfileDto)}
+                  >
+                    {SHARE_PROFILES.map((each) => (
+                      <option key={each} value={each}>
+                        {t(`sharing.profile.${profileKey(each)}`)}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {share.pendingProfile ? (
+                  <span className="share-person-pending">
+                    {t('sharing.dialog.increasePending', {
+                      profile: t(`sharing.profile.${profileKey(share.profile)}`),
+                    })}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className="button is-quiet is-small"

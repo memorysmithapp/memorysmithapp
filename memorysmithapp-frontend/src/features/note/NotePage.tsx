@@ -4,11 +4,12 @@ import { useLiveInterval } from '../../shared/api/live';
 import { useWriteStatus } from '../../shared/store/write-status';
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getNote } from '../../shared/api/source';
+import { getNote, getTemplate } from '../../shared/api/source';
+import type { FolderNode } from '../../shared/types/api';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { canWrite, updateNote } from '../../shared/api/source';
+import { updateNote } from '../../shared/api/source';
 
 import {
   PropertyValue,
@@ -66,10 +67,31 @@ export function NotePage({ noteId }: { noteId: string }) {
    * opens an edit session for whoever may write, and a reader gets *Show* and
    * *Copy Markdown* there and no switch.
    */
-  const writable = canWrite(structure.effectiveRole);
+  // A note is content: a content editor of a share writes it too (#350).
+  const writable = structure.permissions.writeContent;
+  /**
+   * The context a save declares it was written against (RN-KNW-061): the
+   * Guidance and the structure this page loaded, and the Template of the
+   * note's folder, read here for the purpose.
+   */
+  const folder = data ? folderOf(structure.folders, data.folderId) : undefined;
+  const template = useQuery({
+    queryKey: queryKeys.template(notebookId, folder?.id),
+    queryFn: () => getTemplate(notebookId, folder?.id ?? ''),
+    enabled: writable && Boolean(folder?.hasTemplate),
+  });
+  const context =
+    folder && (!folder.hasTemplate || template.data)
+      ? {
+          guidance: structure.guidanceRevision,
+          template: folder.hasTemplate ? (template.data?.revision ?? null) : null,
+          structure: structure.structureRevision,
+        }
+      : null;
   const { editing, open } = useNoteEditSession({
     notebookId,
     note: writable ? data : undefined,
+    context,
   });
   sessionOpen.current = open;
   /**
@@ -268,4 +290,14 @@ export function NotePage({ noteId }: { noteId: string }) {
       ) : null}
     </>
   );
+}
+
+/** The folder of the tree with this identifier, at any depth. */
+function folderOf(folders: readonly FolderNode[], folderId: string): FolderNode | undefined {
+  for (const folder of folders) {
+    if (folder.id === folderId) return folder;
+    const found = folderOf(folder.children, folderId);
+    if (found) return found;
+  }
+  return undefined;
 }

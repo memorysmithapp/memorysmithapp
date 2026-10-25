@@ -20,6 +20,11 @@ export interface NoteSummary {
   /** `null` when the content of the note states no name a link could name. */
   name: string | null;
   folderId: string;
+  /**
+   * What had changed of the context its live revision was written against
+   * (RN-KNW-062): the Guidance, the folder's Template or the structure.
+   */
+  staleContext?: readonly ('guidance' | 'template' | 'structure')[];
 }
 
 export interface FolderNode {
@@ -42,6 +47,14 @@ export interface NotebookStructure {
   guidance: string | null;
   /** The revision of the guidance slot, null when nothing is written yet. */
   guidanceRevision: string | null;
+  /** The revision of the notebook's structure, a part of a note's context (RN-KNW-061). */
+  structureRevision: string;
+  /**
+   * What the person may do here (#346): write its notes and files, maintain
+   * its folders, Guidance and Templates, administer it. A share decides them
+   * by its profile, a member by role.
+   */
+  permissions: { writeContent: boolean; maintain: boolean; administer: boolean };
   /** min(papel de assinatura, teto do caderno), owner acima dos dois. */
   effectiveRole: string;
   folders: FolderNode[];

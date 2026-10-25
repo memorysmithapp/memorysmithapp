@@ -405,6 +405,10 @@ export function deleteTemplate(notebookId: string, folderId: string): Promise<vo
   return backend.deleteTemplate(notebookId, folderId);
 }
 
+export function deleteFolder(notebookId: string, folderId: string): Promise<void> {
+  return backend.deleteFolder(notebookId, folderId);
+}
+
 /**
  * Who may tick a box: whoever may write in THIS notebook. The effective role is
  * min(subscription role, notebook ceiling), and it is the only thing that
@@ -419,6 +423,8 @@ export function canWrite(effectiveRole: string): boolean {
 // the API, because nothing a screen already holds answers any of it.
 export {
   answerShare,
+  answerShareIncrease,
+  changeShareProfile,
   dismissRevokedShare,
   dismissShareAnswer,
   leaveShare,

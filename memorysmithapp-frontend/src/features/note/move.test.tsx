@@ -69,6 +69,8 @@ const structure: NotebookStructure = {
   notebook: { id: NOTEBOOK } as NotebookStructure['notebook'],
   guidance: null,
   guidanceRevision: null,
+  structureRevision: '1',
+  permissions: { writeContent: true, maintain: true, administer: true },
   effectiveRole: 'OWNER',
   folders: [proposals, made, minutes],
 };

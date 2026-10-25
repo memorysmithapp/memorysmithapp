@@ -51,6 +51,13 @@ export interface NotebookDependencies {
   readonly reservedVocabulary: readonly string[];
 }
 
+/** What a request may do in a notebook, by action (#346). */
+export interface NotebookPermissions {
+  readonly writeContent: boolean;
+  readonly maintain: boolean;
+  readonly administer: boolean;
+}
+
 /** Loads a notebook and authorizes in one step, so no caller can forget. */
 async function loadAuthorized(
   deps: NotebookDependencies,
@@ -157,12 +164,14 @@ export class ListNotebooks {
 export class GetNotebook {
   constructor(private readonly deps: NotebookDependencies) {}
 
-  async execute(input: {
-    ctx: RequestContext;
-    notebookId: NotebookId;
-  }): Promise<
+  async execute(input: { ctx: RequestContext; notebookId: NotebookId }): Promise<
     Result<
-      { notebook: Notebook; guidance: { content: string; ref: ContentRef } | null; role: Role },
+      {
+        notebook: Notebook;
+        guidance: { content: string; ref: ContentRef } | null;
+        role: Role;
+        permissions: NotebookPermissions;
+      },
       DomainError
     >
   > {
@@ -179,6 +188,13 @@ export class GetNotebook {
         ? { content: await this.deps.content.read(guidance.ref), ref: guidance.ref }
         : null,
       role: AuthorizationPolicy.effectiveRole(input.ctx, notebook.value),
+      // What this request may do here, which a share decides by its profile
+      // and a member by role (#346): the interface offers exactly that.
+      permissions: {
+        writeContent: AuthorizationPolicy.allows(input.ctx, notebook.value, 'write-content'),
+        maintain: AuthorizationPolicy.allows(input.ctx, notebook.value, 'maintain'),
+        administer: AuthorizationPolicy.allows(input.ctx, notebook.value, 'administer'),
+      },
     });
   }
 }

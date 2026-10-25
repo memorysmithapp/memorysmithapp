@@ -8,6 +8,7 @@
  * brings the other side's act in.
  */
 
+import type { ShareProfileDto } from '@memorysmithapp/contracts';
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -47,4 +48,20 @@ export async function sharesChanged(client: QueryClient): Promise<void> {
     client.invalidateQueries({ queryKey: queryKeys.incomingShares() }),
     client.invalidateQueries({ queryKey: queryKeys.notifications() }),
   ]);
+}
+
+/** The three profiles of a share, from the one that grants least (RN-ACC-031). */
+export const SHARE_PROFILES: readonly ShareProfileDto[] = [
+  'reader',
+  'content-editor',
+  'notebook-editor',
+];
+
+/** The key a profile is named by in the strings of the interface. */
+export function profileKey(profile: ShareProfileDto): string {
+  return profile === 'content-editor'
+    ? 'contentEditor'
+    : profile === 'notebook-editor'
+      ? 'notebookEditor'
+      : 'reader';
 }

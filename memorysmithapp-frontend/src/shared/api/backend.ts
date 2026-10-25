@@ -15,6 +15,8 @@ import type {
   NotificationDto,
   NotificationListDto,
   OutgoingShareDto,
+  ShareProfileDto,
+  NoteContextDto,
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
@@ -169,6 +171,7 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
           id: note.noteId,
           name: note.name,
           folderId: note.folderId,
+          ...(note.staleContext ? { staleContext: note.staleContext } : {}),
         })),
       children: build(folder.folderId),
     }));
@@ -228,6 +231,8 @@ export async function getNotebookStructure(notebookId: string): Promise<Notebook
     notebook: toSummary(detail),
     guidance: detail.guidance?.content ?? null,
     guidanceRevision: detail.guidance?.revision.versionId ?? null,
+    structureRevision: detail.structureRevision,
+    permissions: detail.permissions,
     effectiveRole: detail.effectiveRole,
     folders: nest(detail.folders, notes),
   };
@@ -576,6 +581,8 @@ export async function updateNote(
     message?: string;
     /** The edit session of the interface the save belongs to (RN-AUD-013). */
     session?: string;
+    /** The context the page read before the edit, which the answer compares (RN-KNW-061). */
+    context?: NoteContextDto;
   },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
@@ -589,6 +596,17 @@ export async function updateNote(
 }
 
 /**
+ * A folder and everything under it (RN-KNW-007, RN-KNW-046): one write that
+ * takes it all out of reach at once, and a purge that destroys it after. The
+ * policy is always said: CASCADE is what the person confirmed.
+ */
+export async function deleteFolder(notebookId: string, folderId: string): Promise<void> {
+  await request<unknown>(`/knowledge/notebooks/${notebookId}/folders/${folderId}?policy=CASCADE`, {
+    method: 'DELETE',
+  });
+}
+
+/**
  * A note to another folder of its notebook (#265, RN-KNW-057): the same note,
  * its identifier and its history with it, last there or right after a note of
  * that folder. It writes no content, so it carries no revision.
@@ -596,7 +614,7 @@ export async function updateNote(
 export async function moveNote(
   notebookId: string,
   noteId: string,
-  input: { toFolderId: string; afterNoteId: string | null },
+  input: { toFolderId: string; afterNoteId: string | null; context?: NoteContextDto },
 ): Promise<NoteSummaryDto> {
   return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}/move`, {
     method: 'POST',
@@ -669,10 +687,36 @@ export async function listNotebookShares(notebookId: string): Promise<OutgoingSh
 }
 
 /** The answer is the same whatever the e-mail is (RN-ACC-025). */
-export async function shareNotebook(notebookId: string, email: string): Promise<void> {
+export async function shareNotebook(
+  notebookId: string,
+  email: string,
+  profile: ShareProfileDto,
+): Promise<void> {
   await request<void>(`/access/notebooks/${notebookId}/shares`, {
     method: 'POST',
-    body: { email, access: 'read' },
+    body: { email, profile },
+  });
+}
+
+/**
+ * The owner changes what a share grants (RN-ACC-033): a reduction applies at
+ * once, an increase waits for the grantee's renewed acceptance.
+ */
+export async function changeShareProfile(
+  notebookId: string,
+  granteeUserId: string,
+  profile: ShareProfileDto,
+): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}/profile`, {
+    method: 'PUT',
+    body: { profile },
+  });
+}
+
+/** The grantee answers an increase of a share they accepted (RN-ACC-033). */
+export async function answerShareIncrease(notebookId: string, accept: boolean): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}/increase/${accept ? 'accept' : 'reject'}`, {
+    method: 'POST',
   });
 }
 

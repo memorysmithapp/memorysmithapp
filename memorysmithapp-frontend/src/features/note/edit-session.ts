@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { ContextChangedDto, NoteContextDto } from '@memorysmithapp/contracts';
 import type { AttachProgress, NoteMode } from '@memorysmithapp/markdown-renderer';
 import { getNotebookGraph, updateNote } from '../../shared/api/backend';
 import { getNote } from '../../shared/api/source';
@@ -36,8 +37,12 @@ export interface EditTarget {
     baseRevision: string | null;
     session: string;
     keepalive: boolean;
-  }): Promise<string>;
+  }): Promise<string | { revision: string; contextChanged?: ContextChangedDto }>;
   reload(): Promise<{ raw: string; revision: string }>;
+  /** An edit session opened on the document: what it declares is read now. */
+  opened?(): void;
+  /** The person read that the context changed (RN-KNW-061). */
+  acknowledgeContext?(current: NoteContextDto): void;
   /** A save landed; `renamed` when it changed the name the text states. */
   written(renamed: boolean): void;
   /** The session ended with everything written. */
@@ -117,6 +122,11 @@ export function useEditSession({
     keepBroken: t('editor.keepBroken'),
     keepAlias: (name) => t('editor.keepAlias', { name }),
     understood: t('editor.understood'),
+    contextChangedTitle: t('editor.contextChangedTitle'),
+    contextChanged: (changed) =>
+      t('editor.contextChanged', {
+        parts: changed.map((part) => t(`editor.contextPart.${part}`)).join(', '),
+      }),
   };
   const wordsRef = useRef(words);
   wordsRef.current = words;
@@ -138,18 +148,20 @@ export function useEditSession({
       const current = documentRef.current;
       if (next === 'edit' && current) {
         const named = targetRef.current.rename;
+        targetRef.current.opened?.();
         saves.current = new NoteSaves(
           {
             write: async ({ content, baseRevision, session, keepalive }) => {
               setPending(true);
-              const revision = await targetRef.current.write({
+              const written = await targetRef.current.write({
                 content,
                 baseRevision,
                 session,
                 keepalive,
               });
-              return { revision };
+              return typeof written === 'string' ? { revision: written } : written;
             },
+            acknowledgeContext: (current) => targetRef.current.acknowledgeContext?.(current),
             refusalOf: (error) => ({
               code: error instanceof ApiError ? error.code : null,
               currentRevision: currentRevisionOf(error),
@@ -298,13 +310,24 @@ export function useEditSession({
 export function useNoteEditSession({
   notebookId,
   note,
+  context,
 }: {
   notebookId: string;
   note: NoteDetail | undefined;
+  /**
+   * The context the page has read for this note — the Guidance, the folder's
+   * Template and the structure — declared with each save of a session, as it
+   * was when the session opened (RN-KNW-061). Null while it is still loading,
+   * which declares nothing.
+   */
+  context: NoteContextDto | null;
 }): { editing: NoteEditing | undefined; open: boolean } {
   const { t } = useTranslation();
   const client = useQueryClient();
   const noteId = note?.id ?? '';
+  const readNow = useRef(context);
+  readNow.current = context;
+  const declared = useRef<NoteContextDto | null>(null);
   return useEditSession({
     notebookId,
     document: note && {
@@ -320,10 +343,24 @@ export function useNoteEditSession({
         const written = await updateNote(
           notebookId,
           noteId,
-          { content, baseRevision: baseRevision ?? '', session },
+          {
+            content,
+            baseRevision: baseRevision ?? '',
+            session,
+            ...(declared.current ? { context: declared.current } : {}),
+          },
           { keepalive },
         );
-        return written.revision.versionId;
+        return {
+          revision: written.revision.versionId,
+          ...(written.contextChanged ? { contextChanged: written.contextChanged } : {}),
+        };
+      },
+      opened: () => {
+        declared.current = readNow.current;
+      },
+      acknowledgeContext: (current) => {
+        declared.current = current;
       },
       reload: async () => {
         const fresh = await getNote(notebookId, noteId);

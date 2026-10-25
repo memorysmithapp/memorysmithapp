@@ -164,6 +164,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-ACC-033 | The `OWNER` changes the profile of a share: before the grantee answers the offer itself changes; once accepted, a reduction applies from the grantee's next request with no consent, and an increase waits for the grantee's renewed acceptance, granting nothing more until it is accepted. | |
 | RN-ACC-034 | A share reaches only its own notebook: every other notebook of the owner answers `404` to it, whatever its profile. | |
 | RN-ACC-035 | An increase waiting for the grantee's acceptance is told to them in the interface notifications, never by e-mail. | |
+| RN-ACC-036 | In the interface, sharing offers the three profiles, each said in a line, and the owner changes the profile of a person in the list of the notebook's shares; an increase waiting for acceptance is said there, and on the grantee's card and notifications, which accept or decline it. | |
 
 ### Knowledge
 
@@ -231,6 +232,9 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-060 | A Guidance and a Template are written in place with the note editor by the roles that write in the notebook, each save a revision; an absent one is created on first save.                                                                                                          |                                                                                                                 |
 | RN-KNW-061 | A note write may declare the context it read: the Guidance, the Template of the note's folder and the notebook's structure, each by its revision; it is never refused for it: a declared context that changed is saved, answered with what changed and the current revisions, and recorded on that revision, and a write that declares nothing records nothing. | |
 | RN-KNW-062 | A note whose live revision was written against a context already changed is listed as such, with what had changed, until it is written again against the current context; a later change of the context marks no note, and a change committing in the same instant as a write may go unreported. | |
+| RN-KNW-063 | The interface offers in a notebook what the person may do there: whoever may write content edits notes and keeps files, and whoever may maintain it also edits its folders, Guidance and Templates, a share deciding both by its profile and a member by role. | |
+| RN-KNW-064 | The interface deletes a folder only after saying what it holds and that everything under it goes at once and for good (RN-KNW-046), and, when it holds anything, only once the person ticks that they understood. | |
+| RN-KNW-065 | The note editor declares the context the page read when the edit opened; a save whose context changed says what changed and writes nothing more on its own, the next saves declaring the current context only once the person has read it, and the folder page marks every note written against a changed context. | |
 
 ### Discovery
 

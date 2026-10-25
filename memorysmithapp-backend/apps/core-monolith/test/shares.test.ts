@@ -473,6 +473,11 @@ describe('the profiles of a share (#347)', () => {
     expect((await share(GRANTEE.email, 'content-editor')).status).toBe(204);
     await accept();
 
+    const detail = await json<{ permissions: Record<string, boolean> }>(
+      await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}`),
+    );
+    expect(detail.permissions).toEqual({ writeContent: true, maintain: false, administer: false });
+
     expect((await createNote('Lei 8.666')).status).toBe(201);
     const noteId = await noteOf();
     const edited = await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/notes/${noteId}`, {

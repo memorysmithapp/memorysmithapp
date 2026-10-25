@@ -59,6 +59,16 @@ export const notebookDetailSchema = notebookSummarySchema.extend({
    * a note is written against (#348).
    */
   structureRevision: z.string(),
+  /**
+   * What the person asking may do here (#346): write its notes and files,
+   * maintain its folders, Guidance and Templates, and administer it. A share
+   * decides them by its profile, a member by role.
+   */
+  permissions: z.object({
+    writeContent: z.boolean(),
+    maintain: z.boolean(),
+    administer: z.boolean(),
+  }),
 });
 
 /**

@@ -1,3 +1,4 @@
+import type { ContextChangedDto, NoteContextDto } from '@memorysmithapp/contracts';
 import type { SaveAction, SaveNotice, SaveOutcome } from '@memorysmithapp/markdown-renderer';
 
 /**
@@ -20,6 +21,11 @@ import type { SaveAction, SaveNotice, SaveOutcome } from '@memorysmithapp/markdo
  *   says so and offers their version or saving anyway — a write on the
  *   revision that now exists, which leaves the other one in the history;
  * - any other refusal rejects with what it was and the offer to try again;
+ * - a write saved while the context it declared had changed — the Guidance,
+ *   the folder's Template or the folders — resolves with a notice saying what
+ *   changed (RN-KNW-061). The note was saved; nothing is written again on its
+ *   own, and only once the person has read the notice do the next writes
+ *   declare the context that is current;
  * - a write that changed the name of the note resolves with a notice saying
  *   how many links go pending and how many resolve, and offers to keep the old
  *   name as an alias. The name compared is the one the note had when edit mode
@@ -32,9 +38,10 @@ import type { SaveAction, SaveNotice, SaveOutcome } from '@memorysmithapp/markdo
 /** How long the text has to rest before it is written. */
 export const SAVE_PAUSE_MS = 1500;
 
-/** What a write answers: the revision it produced. */
+/** What a write answers: the revision it produced, and whether its context had changed. */
 export interface WrittenNote {
   readonly revision: string;
+  readonly contextChanged?: ContextChangedDto;
 }
 
 /** What a refused write carries, as the API states it. */
@@ -68,6 +75,8 @@ export interface SaveWords {
   readonly keepBroken: string;
   readonly keepAlias: (name: string) => string;
   readonly understood: string;
+  readonly contextChangedTitle: string;
+  readonly contextChanged: (changed: readonly string[]) => string;
 }
 
 export interface SavePorts {
@@ -95,6 +104,11 @@ export interface SavePorts {
   renameCost(from: string | null, to: string | null): Promise<RenameCost>;
   /** A write landed: the page reads again what it shows around the note. */
   written(renamed: boolean): void;
+  /**
+   * The person read that the context changed: the next writes declare the
+   * current one (RN-KNW-061). Absent for a document that declares none.
+   */
+  acknowledgeContext?(current: NoteContextDto): void;
   readonly words: SaveWords;
 }
 
@@ -179,6 +193,7 @@ export class NoteSaves {
       this.saved = raw;
       const name = this.ports.nameOf(raw);
       this.ports.written(name !== before);
+      if (written.contextChanged) return this.contextNotice(written.contextChanged);
       return await this.renameNotice(name, raw);
     } catch (error) {
       throw this.refusal(error);
@@ -205,6 +220,25 @@ export class NoteSaves {
             { label: words.keepAlias(from), run: () => this.keepAlias(from, raw) },
           ];
     return { title: words.renamedTitle, message: words.renamed(from, name, cost), actions };
+  }
+
+  /**
+   * The note was saved, but the context it was written against changed
+   * meanwhile (RN-KNW-061). The notice says what; reading it is what makes the
+   * next writes declare the current context, never a write of its own.
+   */
+  private contextNotice(changed: ContextChangedDto): SaveOutcome {
+    const { words } = this.ports;
+    return {
+      title: words.contextChangedTitle,
+      message: words.contextChanged(changed.changed),
+      actions: [
+        {
+          label: words.understood,
+          run: () => this.ports.acknowledgeContext?.(changed.current),
+        },
+      ],
+    };
   }
 
   /** The old name kept as an alias, so the links to it keep arriving (§5.2, step 8). */

@@ -138,7 +138,9 @@
     "noteOrderHintManual": "As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.",
     "noteOrderHintAlphabetical": "As notas seguem o nome, com os números pelo valor: Ata 2 vem antes de Ata 10. A posição de cada uma fica guardada e volta se a ordem voltar a ser manual.",
     "notesByName": "Em ordem alfabética",
-    "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo."
+    "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo.",
+    "staleContext": "Contexto mudou",
+    "staleContextHint": "Escrita quando {{parts}} já tinha mudado: vale revisar."
   },
   "folderEdit": {
     "short": "Editar",
@@ -152,6 +154,21 @@
     "save": "Salvar",
     "saving": "Salvando…",
     "nameTaken": "Já existe uma pasta chamada “{{name}}” neste nível. Nada foi alterado."
+  },
+  "folderDelete": {
+    "short": "Apagar",
+    "open": "Apagar esta pasta",
+    "title": "Apagar a pasta",
+    "holds": "Ela guarda {{notes}} e {{folders}}.",
+    "notes_one": "{{count}} nota",
+    "notes_other": "{{count}} notas",
+    "folders_one": "{{count}} subpasta",
+    "folders_other": "{{count}} subpastas",
+    "consequences": "Apagá-la tira tudo isso do caderno na hora, de vez: é destruído logo depois, com todas as revisões, e os links para essas notas ficam pendentes. Nada traz de volta.",
+    "understood": "Entendo que tudo nesta pasta é apagado de vez",
+    "empty": "A pasta está vazia. Apagá-la não tem volta.",
+    "delete": "Apagar a pasta",
+    "deleting": "Apagando…"
   },
   "note": {
     "propertyTrue": "Sim",
@@ -706,7 +723,14 @@
     "unnamed": "A nota não tem mais nome: continua sendo desenhada e apontando para fora, e nenhum link consegue chegar a ela. {{losing}}.",
     "keepBroken": "Manter os links quebrados",
     "understood": "Entendi",
-    "attachKept": "“{{name}}” foi guardado inteiro no caderno"
+    "attachKept": "“{{name}}” foi guardado inteiro no caderno",
+    "contextChangedTitle": "O caderno mudou enquanto você escrevia",
+    "contextChanged": "Sua nota foi salva, mas {{parts}} mudou desde que você a abriu. Leia o que mudou e ajuste a nota se precisar.",
+    "contextPart": {
+      "guidance": "a Orientação",
+      "template": "o Modelo desta pasta",
+      "structure": "as pastas do caderno"
+    }
   },
   "move": {
     "short": "Mover",
@@ -802,10 +826,6 @@
       "sharedByMe": "Seu caderno, compartilhado por você",
       "sharedWithMe": "Compartilhado com você por {{owner}}"
     },
-    "access": {
-      "read": "Leitura",
-      "readWrite": "Leitura e gravação"
-    },
     "accept": "Aceitar",
     "reject": "Recusar",
     "dialog": {
@@ -813,14 +833,16 @@
       "email": "E-mail da pessoa",
       "emailPlaceholder": "nome@exemplo.com",
       "access": "Acesso",
-      "readWriteLater": "Leitura e gravação ainda não está disponível: a pessoa lê o caderno inteiro e não escreve nada.",
       "share": "Compartilhar",
       "sharing": "Compartilhando…",
       "sent": "Pronto. Se {{email}} tem uma assinatura do MemorySmith, o caderno está esperando a resposta dessa pessoa.",
       "people": "Compartilhado com",
       "nobody": "Ainda não está compartilhado com ninguém.",
       "revoke": "Revogar",
-      "remove": "Remover"
+      "remove": "Remover",
+      "profileOf": "Acesso de {{email}}",
+      "increasePending": "Continua {{profile}} até a pessoa aceitar o aumento.",
+      "changeExplained": "Reduzir o acesso vale na hora. Aumentá-lo espera a pessoa aceitar de novo."
     },
     "state": {
       "pending": "Aguardando",
@@ -839,7 +861,19 @@
       "leaveForGood": "Sair",
       "pendingLabel": "{{name}}, aguardando a sua resposta",
       "invitedBy": "{{owner}} compartilhou com você",
-      "waiting": "Aguardando a sua resposta"
+      "waiting": "Aguardando a sua resposta",
+      "sharedAs": "Compartilhado por {{owner}} · {{profile}}",
+      "increaseOffered": "{{owner}} oferece a você o acesso {{profile}}. Até você aceitar, continua {{current}}."
+    },
+    "profile": {
+      "reader": "Leitor",
+      "contentEditor": "Editor de conteúdo",
+      "notebookEditor": "Editor do caderno"
+    },
+    "profileHint": {
+      "reader": "Lê e exporta o caderno inteiro, e não escreve nada.",
+      "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos continuam sendo seus para mudar.",
+      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos. Compartilhar e apagar o caderno continuam com você."
     }
   },
   "notifications": {
@@ -850,7 +884,8 @@
     "aNotebook": "um caderno",
     "dismiss": "Dispensar",
     "kind": {
-      "shared": "<b>{{person}}</b> compartilhou <b>{{notebook}}</b> com você, para leitura.",
+      "shared": "<b>{{person}}</b> compartilhou <b>{{notebook}}</b> com você.",
+      "increase": "<b>{{person}}</b> oferece a você mais acesso a <b>{{notebook}}</b>.",
       "revoked": "<b>{{person}}</b> deixou de compartilhar <b>{{notebook}}</b> com você.",
       "accepted": "<b>{{person}}</b> aceitou <b>{{notebook}}</b>.",
       "rejected": "<b>{{person}}</b> recusou <b>{{notebook}}</b>.",

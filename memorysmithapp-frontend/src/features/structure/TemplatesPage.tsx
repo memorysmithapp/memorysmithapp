@@ -3,7 +3,7 @@ import { useLiveInterval } from '../../shared/api/live';
 import { useQueries } from '@tanstack/react-query';
 import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, getTemplate } from '../../shared/api/source';
+import { getTemplate } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { folderAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
@@ -100,7 +100,7 @@ export function TemplatesPage() {
                     notebookId={notebookId}
                     folder={folder}
                     template={template}
-                    writable={canWrite(structure.effectiveRole)}
+                    writable={structure.permissions.maintain}
                   />
                 </div>
               ) : failed ? (
