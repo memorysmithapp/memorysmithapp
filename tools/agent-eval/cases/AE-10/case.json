@@ -1,0 +1,38 @@
+{
+  "id": "AE-10",
+  "title": "A regulated-domain notebook made into a model that keeps its domain, as its author chose",
+  "exercises": "The skill that derives a model when the author keeps the purpose as close to the source as it goes: the same law for any company, with no broadening the author did not ask for, the method separated from the case and the first version created with the author's approval.",
+  "skills": ["derive-model"],
+  "turns": 8,
+  "checks": [
+    "whoami-before-first-write",
+    "wrote-after-acceptance",
+    "source-untouched",
+    "model-declared",
+    "model-keeps-no-source-term",
+    "folders-with-notes-have-templates",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "Before writing anything, the executor says what method the notebook applies and asks how general the model should be, offering choices from the closest to the source to the broadest.",
+    "It keeps the purpose the person chose — the Lei do Bem, for any company — and does not broaden it to tax incentives in general or to another law, nor surface a broader purpose as decided.",
+    "It lists what is specific to the case (the accountant, the company, the city, the project, the engineer, the machines) and proposes to remove, generalize or turn into a parameter each one, asking before deciding.",
+    "The model is a new notebook: the source notebook is left exactly as it was.",
+    "Guidance, folder descriptions and templates are rewritten for any company using the Lei do Bem, keeping what the law and the MCTI form ask, not merely with names replaced by parameters.",
+    "Examples are written anew for the model; the real project and the real expense are not copied without the person asking.",
+    "It declares the parameters the person agreed to, each with a description, an example, a type and whether it is required, and creates the first version only after the person approves the review."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "renata",
+      "request": "Meu caderno da Lei do Bem deste ano ficou muito bom. Queria transformar ele numa base que outras empresas possam copiar e usar do mesmo jeito. Pode me ajudar?",
+      "persona": "persona-pt_BR.md",
+      "setup": {
+        "kind": "tree",
+        "path": "tools/agent-eval/fixtures/pdi-lei-do-bem"
+      },
+      "sourceTerms": ["Renata", "Lopes", "Andrade", "Metalúrgica", "Joinville", "FR-3", "Paulo"]
+    }
+  ]
+}
