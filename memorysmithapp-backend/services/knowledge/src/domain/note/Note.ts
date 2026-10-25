@@ -40,8 +40,18 @@ import {
   type DomainEvent,
   type Result,
 } from '@memorysmithapp/kernel';
+import {
+  NoteContexts,
+  type ContextNotice,
+  type ContextPart,
+  type NoteContext,
+  type NoteContextRecord,
+} from './NoteContext.js';
+
 export class Note {
   private readonly events: DomainEvent[] = [];
+  /** What the write in hand answers about its context, never stored. */
+  private _contextNotice: ContextNotice | null = null;
 
   private constructor(
     readonly id: NoteId,
@@ -55,6 +65,8 @@ export class Note {
     private _updatedBy: Authorship,
     private _deletedAt: Instant | null,
     private _version: number,
+    /** The context the live revision was written against, as declared (#348). */
+    private _context: NoteContextRecord | null = null,
   ) {}
 
   /**
@@ -114,6 +126,7 @@ export class Note {
     updatedBy: Authorship;
     deletedAt: Instant | null;
     version: number;
+    context?: NoteContextRecord | null;
   }): Note {
     return new Note(
       input.id,
@@ -127,6 +140,7 @@ export class Note {
       input.updatedBy,
       input.deletedAt,
       input.version,
+      input.context ?? null,
     );
   }
 
@@ -165,6 +179,41 @@ export class Note {
   get isDeleted(): boolean {
     return this._deletedAt !== null;
   }
+  /** What the live revision recorded of the context it was written against (#348). */
+  get context(): NoteContextRecord | null {
+    return this._context;
+  }
+
+  /**
+   * The parts of the context that had changed when the live revision was
+   * written, or nothing when it declared none or none had changed.
+   */
+  get staleContext(): readonly ContextPart[] {
+    return this._context?.stale ?? [];
+  }
+
+  /** What this write answers about its context: what changed, and the current revisions. */
+  get contextNotice(): ContextNotice | null {
+    return this._contextNotice;
+  }
+
+  /**
+   * Records, on the revision this write produces, the context the caller
+   * declared it read, compared with the one current now (#348). A write that
+   * declares nothing records nothing, and the mark of an earlier revision goes
+   * with it: what is listed as stale is always the live revision.
+   */
+  recordContext(observed: { read: NoteContext; current: NoteContext } | null): void {
+    if (!observed) {
+      this._context = null;
+      this._contextNotice = null;
+      return;
+    }
+    const stale = NoteContexts.staleParts(observed.read, observed.current);
+    this._context = { read: observed.read, stale };
+    this._contextNotice = stale.length > 0 ? { changed: stale, current: observed.current } : null;
+  }
+
   /** The revision a caller must echo back as baseRevision (RN-AGT-005). */
   get revision(): string {
     return this._bodyRef.versionId;

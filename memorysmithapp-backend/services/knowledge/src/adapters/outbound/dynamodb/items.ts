@@ -27,6 +27,7 @@ import type { ContentSlot } from '../../../domain/content-slot/ContentSlot.js';
 import { Guidance } from '../../../domain/content-slot/Guidance.js';
 import { Template } from '../../../domain/content-slot/Template.js';
 import { Note } from '../../../domain/note/Note.js';
+import type { ContextPart, NoteContextRecord } from '../../../domain/note/NoteContext.js';
 import { Notebook } from '../../../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, ShortText, NotebookName } from '../../../domain/values.js';
 import { currentCorrelationId } from '@memorysmithapp/observability';
@@ -247,6 +248,13 @@ export function noteItem(
   // empty string is a name somebody wrote and this is the absence of one
   // (RN-KNW-036).
   if (note.name !== null) item['name'] = note.name;
+  // The context the live revision was written against, when its caller
+  // declared one (#348). On the note's own item: no other item enters the
+  // transaction of a note (INV-10).
+  if (note.context) {
+    item['contextRead'] = { ...note.context.read };
+    item['contextStale'] = [...note.context.stale];
+  }
   if (note.isDeleted) {
     item['deletedAt'] = note.deletedAt?.toISOString();
     item['deletedBy'] = serializeAuthorship(note.updatedBy);
@@ -257,6 +265,27 @@ export function noteItem(
     item['GSI2SK'] = keys.gsi2sk;
   }
   return item;
+}
+
+const CONTEXT_PARTS: readonly ContextPart[] = ['guidance', 'template', 'structure'];
+
+function parseNoteContext(item: Item): NoteContextRecord | null {
+  const read = item['contextRead'] as Record<string, unknown> | undefined;
+  if (!read || typeof read !== 'object') return null;
+  const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+  const stale = Array.isArray(item['contextStale'])
+    ? (item['contextStale'] as unknown[]).filter((part): part is ContextPart =>
+        CONTEXT_PARTS.includes(part as ContextPart),
+      )
+    : [];
+  return {
+    read: {
+      guidance: text(read['guidance']),
+      template: text(read['template']),
+      structure: String(read['structure'] ?? ''),
+    },
+    stale,
+  };
 }
 
 export function parseNote(item: Item, subscriptionId: SubscriptionId): Note {
@@ -272,6 +301,7 @@ export function parseNote(item: Item, subscriptionId: SubscriptionId): Note {
     createdBy: parseAuthorship(item['createdBy']),
     updatedBy: parseAuthorship(item['updatedBy']),
     deletedAt: deletedAt ? unwrapOrThrow(Instant.fromISO(String(deletedAt))) : null,
+    context: parseNoteContext(item),
     version: Number(item['version'] ?? 0),
   });
 }

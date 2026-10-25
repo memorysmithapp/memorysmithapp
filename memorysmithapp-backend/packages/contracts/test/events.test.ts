@@ -131,6 +131,7 @@ describe('API DTOs', () => {
         },
       ],
       guidance: null,
+      structureRevision: '3',
     });
     expect(detail.folders[0]?.hasTemplate).toBe(true);
     expect(detail.folders[0]?.noteOrder).toBe('alphabetical');

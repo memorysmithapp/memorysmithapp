@@ -58,6 +58,7 @@ export function notebookToDetail(
     // The tree in the DEFINED order, which is signal and not decoration (PP9).
     folders: notebook.folders.inOrder().map((folder) => folderToDto(folder, notebook)),
     guidance: guidance ? { content: guidance.content, revision: guidance.ref.toJSON() } : null,
+    structureRevision: String(notebook.version),
   };
 }
 
@@ -71,6 +72,15 @@ export function noteToSummary(note: Note): NoteSummaryDto {
     bytes: note.bodyRef.bytes,
     updatedAt: note.updatedBy.at.toISOString(),
     updatedBy: note.updatedBy.toJSON(),
+    ...(note.staleContext.length > 0 ? { staleContext: [...note.staleContext] } : {}),
+    ...(note.contextNotice
+      ? {
+          contextChanged: {
+            changed: [...note.contextNotice.changed],
+            current: { ...note.contextNotice.current },
+          },
+        }
+      : {}),
   };
 }
 

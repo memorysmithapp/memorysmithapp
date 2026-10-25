@@ -145,7 +145,7 @@ A refusal answers `404` unless it reveals nothing, because a `403` confirms that
 
 ### INV-10 A note transaction never writes the notebook META
 
-A note's `TransactWriteItems` holds the `NOTE` item under its version lock, its outbox event and, when a name moves, the name guard; never the notebook `META`, never even a `ConditionCheck` on a `FOLDER` (`DynamoNoteRepository.ts`). Counters are kept by the relay, outside the transaction ([ADR-003](#adr-003-no-note-transaction-includes-an-item-another-one-includes), [ADR-010](#adr-010-counters-and-storage-usage-are-kept-by-the-relay)).
+A note's `TransactWriteItems` holds the `NOTE` item under its version lock, its outbox event and, when a name moves, the name guard; never the notebook `META`, never even a `ConditionCheck` on a `FOLDER` (`DynamoNoteRepository.ts`). The context a note write declares it read (RN-KNW-061) is compared outside that transaction, against the `META` already loaded to authorize the write and the `GUIDANCE` and `FTPL#` items read for it, and what it found is an attribute of the `NOTE` item (`contextRead`, `contextStale`): a notice, never a condition of the write. Counters are kept by the relay, outside the transaction ([ADR-003](#adr-003-no-note-transaction-includes-an-item-another-one-includes), [ADR-010](#adr-010-counters-and-storage-usage-are-kept-by-the-relay)).
 
 ### INV-11 The subscription identifier is perpetual
 
