@@ -274,6 +274,12 @@ export interface SharedNotebookView {
   readonly description: string;
   readonly noteCount: number;
   readonly updatedAt: string;
+  /**
+   * Whether the notebook is declared as a model, and whether its owner already
+   * accepted that a model is distributed under CC0 1.0 (#355, #357); null for a
+   * notebook that is no model.
+   */
+  readonly model: { readonly licenceAccepted: boolean } | null;
 }
 
 /**
@@ -289,4 +295,10 @@ export interface SharedNotebooks {
   through(share: Share): Promise<SharedNotebookView | null>;
   /** Whether the subscription a share names grants operational access (RN-SUB-007). */
   ownerGrantsAccess(share: Share): Promise<boolean>;
+  /** Records the owner's acceptance of CC0 1.0 for the model of a notebook (#357). */
+  acceptModelLicence(
+    owner: SubscriptionContext,
+    notebookId: NotebookId,
+    by: Authorship,
+  ): Promise<void>;
 }

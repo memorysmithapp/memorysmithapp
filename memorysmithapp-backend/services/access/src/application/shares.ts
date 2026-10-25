@@ -51,6 +51,43 @@ async function ownerOf(
 }
 
 /**
+ * Whether the owner may distribute this notebook with this profile (#355): a
+ * model reader is offered only a notebook declared as a model, and sharing a
+ * model distributes it under CC0 1.0, which its owner accepts once, on its
+ * first distribution, and is refused until then, whoever the e-mail is
+ * (RN-ACC-037, RN-ACC-038).
+ */
+async function mayDistribute(
+  deps: ShareDependencies,
+  input: {
+    context: SubscriptionContext;
+    notebookId: NotebookId;
+    notebook: SharedNotebookView;
+    profile: ShareProfile;
+    acceptLicence: boolean;
+    by: Authorship;
+  },
+): Promise<Result<void, DomainError>> {
+  const { model } = input.notebook;
+  if (input.profile === 'model-reader' && !model) {
+    return err(
+      DomainError.validation('Only a notebook declared as a model is shared as a model reader'),
+    );
+  }
+  if (!model || model.licenceAccepted) return ok();
+  if (!input.acceptLicence) {
+    return err(
+      DomainError.conflict(
+        'This notebook is a model, and a model is distributed under CC0 1.0: whoever receives it may reuse and republish it freely, the community included. Accept the licence to share it',
+        { reason: 'LICENCE', licence: 'CC0-1.0' },
+      ),
+    );
+  }
+  await deps.notebooks.acceptModelLicence(input.context, input.notebookId, input.by);
+  return ok();
+}
+
+/**
  * Shares a notebook of the subscription with an e-mail (RN-ACC-024,
  * RN-ACC-025). Only its owner may, with the profile they choose (#347).
  *
@@ -67,6 +104,7 @@ export class ShareNotebook {
     notebookId: NotebookId;
     email: string;
     profile: ShareProfile;
+    acceptLicence?: boolean;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const owned = await ownerOf(this.deps, input.context);
@@ -74,6 +112,12 @@ export class ShareNotebook {
 
     const notebook = await this.deps.notebooks.own(input.context, input.notebookId);
     if (!notebook) return err(DomainError.notFound('Notebook not found'));
+    const distributable = await mayDistribute(this.deps, {
+      ...input,
+      notebook,
+      acceptLicence: input.acceptLicence ?? false,
+    });
+    if (!distributable.ok) return distributable;
 
     const email = Email.create(input.email);
     if (!email.ok) return email;
@@ -183,10 +227,13 @@ export class ChangeShareProfile {
     notebookId: NotebookId;
     grantee: UserId;
     profile: ShareProfile;
+    acceptLicence?: boolean;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const owned = await ownerOf(this.deps, input.context);
     if (!owned.ok) return owned;
+    const notebook = await this.deps.notebooks.own(input.context, input.notebookId);
+    if (!notebook) return err(DomainError.notFound('This notebook is not shared with that person'));
     const share = await this.deps.shares.findOutgoing(
       input.context,
       input.notebookId,
@@ -195,6 +242,12 @@ export class ChangeShareProfile {
     if (!share?.standsInTheWay) {
       return err(DomainError.notFound('This notebook is not shared with that person'));
     }
+    const distributable = await mayDistribute(this.deps, {
+      ...input,
+      notebook,
+      acceptLicence: input.acceptLicence ?? false,
+    });
+    if (!distributable.ok) return distributable;
     const changed = share.changeProfile(input.profile, input.by);
     if (!changed.ok) return changed;
     await this.deps.shares.save(share);

@@ -774,6 +774,7 @@ function modelOf(item: Item): NotebookModel {
     declaredAt: String(item['declaredAt'] ?? ''),
     updatedAt: String(item['updatedAt'] ?? ''),
     nextVersion: Number(item['nextVersion'] ?? 1),
+    licenceAcceptedAt: item['licenceAcceptedAt'] ? String(item['licenceAcceptedAt']) : null,
   };
 }
 

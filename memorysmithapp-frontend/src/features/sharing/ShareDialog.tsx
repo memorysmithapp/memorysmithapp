@@ -6,13 +6,14 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
   changeShareProfile,
+  getModel,
   listNotebookShares,
   revokeShare,
   shareNotebook,
 } from '../../shared/api/source';
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
-import { profileKey, SHARE_PROFILES, sharesChanged } from './shares';
+import { profileKey, profilesFor, sharesChanged } from './shares';
 
 /**
  * Sharing a notebook with a person who holds another subscription (#256,
@@ -44,6 +45,22 @@ export function ShareDialog({
     queryFn: () => listNotebookShares(notebook.id),
     enabled: open,
   });
+  // A notebook declared as a model is also shared as a model reader, and
+  // sharing it distributes it under CC0 1.0, accepted once (#355, #357).
+  const model = useQuery({
+    queryKey: queryKeys.model(notebook.id),
+    queryFn: () => getModel(notebook.id),
+    enabled: open,
+  });
+  const isModel = Boolean(model.data);
+  const licenceNeeded = model.data?.licence === null;
+  const [licenceAccepted, setLicenceAccepted] = useState(false);
+  const profiles = profilesFor(isModel);
+  const blocked = licenceNeeded && !licenceAccepted;
+  async function changed(): Promise<void> {
+    await sharesChanged(client);
+    if (isModel) await client.invalidateQueries({ queryKey: queryKeys.model(notebook.id) });
+  }
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -52,10 +69,10 @@ export function ShareDialog({
     setBusy(true);
     setFailure(null);
     try {
-      await shareNotebook(notebook.id, address, profile);
+      await shareNotebook(notebook.id, address, profile, licenceAccepted);
       setSent(address);
       setEmail('');
-      await sharesChanged(client);
+      await changed();
     } catch (error) {
       setFailure(t(messageKeyOf(error)));
     } finally {
@@ -66,8 +83,8 @@ export function ShareDialog({
   async function change(share: OutgoingShareDto, to: ShareProfileDto): Promise<void> {
     setFailure(null);
     try {
-      await changeShareProfile(notebook.id, share.granteeUserId, to);
-      await sharesChanged(client);
+      await changeShareProfile(notebook.id, share.granteeUserId, to, licenceAccepted);
+      await changed();
     } catch (error) {
       setFailure(t(messageKeyOf(error)));
     }
@@ -114,7 +131,7 @@ export function ShareDialog({
             value={profile}
             onChange={setProfile}
             describedBy="share-profile-hint"
-            options={SHARE_PROFILES.map((each) => ({
+            options={profiles.map((each) => ({
               value: each,
               label: t(`sharing.profile.${profileKey(each)}`),
             }))}
@@ -123,8 +140,27 @@ export function ShareDialog({
             {t(`sharing.profileHint.${profileKey(profile)}`)}
           </span>
         </div>
+        {isModel ? (
+          <div className="share-licence">
+            <p className="callout-warning">{t('sharing.dialog.licence')}</p>
+            {licenceNeeded ? (
+              <label className="parameter-required">
+                <input
+                  type="checkbox"
+                  checked={licenceAccepted}
+                  onChange={(event) => setLicenceAccepted(event.target.checked)}
+                />
+                {t('sharing.dialog.acceptLicence')}
+              </label>
+            ) : null}
+          </div>
+        ) : null}
         <div className="share-form-actions">
-          <button type="submit" className="button is-primary" disabled={busy || !email.trim()}>
+          <button
+            type="submit"
+            className="button is-primary"
+            disabled={busy || !email.trim() || blocked}
+          >
             {busy ? t('sharing.dialog.sharing') : t('sharing.dialog.share')}
           </button>
         </div>
@@ -162,7 +198,7 @@ export function ShareDialog({
                     value={share.pendingProfile ?? share.profile}
                     onChange={(event) => void change(share, event.target.value as ShareProfileDto)}
                   >
-                    {SHARE_PROFILES.map((each) => (
+                    {profiles.map((each) => (
                       <option key={each} value={each}>
                         {t(`sharing.profile.${profileKey(each)}`)}
                       </option>

@@ -134,6 +134,7 @@ import {
   ViewModelVersion,
   type ModelCaller,
   type ModelDependencies,
+  type ModelSources,
   type OwnNotebooks,
 } from '@memorysmithapp/svc-portability/application/models';
 import type { Transfer } from '@memorysmithapp/svc-portability/domain/transfer';
@@ -203,6 +204,7 @@ import { KnowledgeNoteCatalog } from './note-catalog.js';
 import {
   contextThrough,
   DeleteNotebookAndShares,
+  modelSourcesOf,
   openShared,
   openShareOf,
   shareUseCasesOf,
@@ -668,11 +670,12 @@ const portabilityUseCases: PortabilityUseCases = {
     ),
   // ---- Notebook models (#353) -------------------------------------------
   declareModel: (request) => new DeclareModel(modelDependencies(request), modelCaller(request)),
-  getModel: (request) => new GetModel(modelDependencies(request), request.canRead),
-  listModels: (request) => new ListModels(modelDependencies(request), request.canRead),
+  getModel: (request) => new GetModel(modelSources(request)),
+  listModels: (request) =>
+    new ListModels(modelDependencies(request), request.canRead, modelSources(request)),
   createModelVersion: (request) =>
     new CreateModelVersion(modelDependencies(request), modelCaller(request)),
-  viewModelVersion: (request) => new ViewModelVersion(modelDependencies(request), request.canRead),
+  viewModelVersion: (request) => new ViewModelVersion(modelSources(request)),
   deleteModelVersion: (request) =>
     new DeleteModelVersion(modelDependencies(request), modelCaller(request), (transfer) =>
       destroyExport(request.subscription, transfer),
@@ -681,9 +684,8 @@ const portabilityUseCases: PortabilityUseCases = {
   // worker, as any import is written (#359).
   createFromVersion: (request) =>
     new CreateFromVersion(
-      modelDependencies(request),
+      modelSources(request),
       modelCaller(request),
-      request.canRead,
       new S3UploadStore(infra.s3, infra.contentBucket),
       portabilityUseCases.startImport(request),
     ),
@@ -691,15 +693,38 @@ const portabilityUseCases: PortabilityUseCases = {
 
 /** What every use case of a model is built from, for one request (#353). */
 function modelDependencies(request: PortabilityRequest): ModelDependencies {
-  const uploads = new S3UploadStore(infra.s3, infra.contentBucket);
   return {
-    models: buildModels(infra, request.subscription),
-    transfers: buildTransfers(infra, request.subscription),
+    ...modelReadsOf(request.subscription),
     notebooks: ownNotebooks(request.subscription),
     queue: new SqsTransferQueue(sqs, transferQueueUrl),
     budget: { current: () => readStorageBudget(infra, request.subscription) },
-    versions: { read: (key) => readVersionDocument((at) => uploads.read(at), readZip, key) },
   };
+}
+
+/** What reads the models of one subscription and their versions. */
+function modelReadsOf(context: SubscriptionContext) {
+  const uploads = new S3UploadStore(infra.s3, infra.contentBucket);
+  return {
+    models: buildModels(infra, context),
+    transfers: buildTransfers(infra, context),
+    versions: {
+      read: (key: string) => readVersionDocument((at) => uploads.read(at), readZip, key),
+    },
+  };
+}
+
+/** Where this request reads a model from: its own subscription, or a share (#355). */
+function modelSources(request: PortabilityRequest): ModelSources {
+  return modelSourcesOf({
+    user: request.subscription.userId,
+    own: request.subscription,
+    holds: async (notebookId) =>
+      (await ownNotebooks(request.subscription).own(notebookId)) !== null,
+    canRead: request.canRead,
+    depsOf: modelReadsOf,
+    sharing,
+    parse: notebookIdOf,
+  });
 }
 
 function modelCaller(request: PortabilityRequest): ModelCaller {

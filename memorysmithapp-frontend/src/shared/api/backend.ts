@@ -759,10 +759,12 @@ export async function shareNotebook(
   notebookId: string,
   email: string,
   profile: ShareProfileDto,
+  /** Sharing a model distributes it under CC0 1.0, accepted once (#355). */
+  acceptLicence = false,
 ): Promise<void> {
   await request<void>(`/access/notebooks/${notebookId}/shares`, {
     method: 'POST',
-    body: { email, profile },
+    body: { email, profile, acceptLicence },
   });
 }
 
@@ -774,10 +776,11 @@ export async function changeShareProfile(
   notebookId: string,
   granteeUserId: string,
   profile: ShareProfileDto,
+  acceptLicence = false,
 ): Promise<void> {
   await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}/profile`, {
     method: 'PUT',
-    body: { profile },
+    body: { profile, acceptLicence },
   });
 }
 

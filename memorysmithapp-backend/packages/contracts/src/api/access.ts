@@ -335,10 +335,16 @@ export const connectorSchema = agentIdentitySchema;
  * Its profile is what it grants (#347): a `reader` reads and exports; a
  * `content-editor` also writes the notes, their moves and the files; a
  * `notebook-editor` also maintains the folders, the Guidance and the
- * Templates. Sharing, the profiles and deleting the notebook stay with the
- * owner.
+ * Templates. A `model-reader` reaches only the model of a notebook declared
+ * as one and its versions, never the notebook (#355). Sharing, the profiles
+ * and deleting the notebook stay with the owner.
  */
-export const shareProfileSchema = z.enum(['reader', 'content-editor', 'notebook-editor']);
+export const shareProfileSchema = z.enum([
+  'model-reader',
+  'reader',
+  'content-editor',
+  'notebook-editor',
+]);
 
 /** Where a share stands, as its owner sees it. */
 export const shareStateSchema = z.enum(['pending', 'accepted', 'rejected', 'left']);
@@ -352,6 +358,11 @@ export const shareNotebookRequestSchema = z.object({
   email: z.string().min(1),
   /** A reader when absent, which is what a share was before the profiles. */
   profile: shareProfileSchema.default('reader'),
+  /**
+   * Sharing a notebook declared as a model distributes it under CC0 1.0, which
+   * its owner accepts once, on the first distribution (#355, #357).
+   */
+  acceptLicence: z.boolean().optional(),
 });
 
 /**
@@ -361,6 +372,7 @@ export const shareNotebookRequestSchema = z.object({
  */
 export const changeShareProfileRequestSchema = z.object({
   profile: shareProfileSchema,
+  acceptLicence: z.boolean().optional(),
 });
 
 /** One person a notebook is shared with, in the owner's Share dialog. */

@@ -6858,3 +6858,9 @@ body.has-sheet .app-main {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+.share-licence {
+  margin-bottom: 0.75rem;
+}
+.share-licence .callout-warning {
+  margin: 0 0 0.5rem;
+}

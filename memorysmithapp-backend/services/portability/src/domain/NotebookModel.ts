@@ -55,7 +55,16 @@ export interface NotebookModel {
   readonly updatedAt: string;
   /** The number the next version is created with: 1, 2, … (#353). */
   readonly nextVersion: number;
+  /**
+   * When its owner accepted that the model is distributed under CC0 1.0, on
+   * its first distribution (#357); null while it was never distributed, when
+   * it is its author's under no licence.
+   */
+  readonly licenceAcceptedAt: string | null;
 }
+
+/** The one licence every distribution of a model is under (#357). */
+export const MODEL_LICENCE = 'CC0-1.0';
 
 /** What a version froze of its model, beside the snapshot of the notebook. */
 export interface ModelVersionMeta {

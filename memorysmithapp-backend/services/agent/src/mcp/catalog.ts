@@ -1189,7 +1189,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     description:
       'What a notebook declared as a model says of itself — its objective, audience and ' +
       'parameters — and its versions, the newest first, each with its number, changelog and ' +
-      'status. A notebook that is no model answers NOT_FOUND.',
+      'status. A model shared with this person from another subscription names its owner in ' +
+      '`sharedBy`, and only its owner versions it. `licence` is `CC0-1.0` once the model was ' +
+      'distributed: whoever receives it may reuse and republish it freely, the community ' +
+      'included, so say so before the person shares one. A notebook that is no model answers ' +
+      'NOT_FOUND.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -1197,8 +1201,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     name: 'list_models',
     title: 'List the models this person can use',
     description:
-      'The notebooks of this subscription declared as models, with their objective and ' +
-      'parameters: what create_notebook_from_model can create a notebook from.',
+      'The notebooks of this subscription declared as models, and the models shared with this ' +
+      'person from another subscription, which name their owner in `sharedBy`, each with its ' +
+      'objective and parameters: what create_notebook_from_model can create a notebook from. A ' +
+      'notebook created from a shared model is written in this subscription and counts here.',
     inputSchema: object({}),
     annotations: { readOnlyHint: true },
   },

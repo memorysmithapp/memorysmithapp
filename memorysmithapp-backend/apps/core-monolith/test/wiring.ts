@@ -44,6 +44,8 @@ import {
   contextThrough,
   DeleteNotebookAndShares,
   KnowledgeSharedNotebooks,
+  modelLicencesOf,
+  modelSourcesOf,
   openShared,
   openShareOf,
   shareUseCasesOf,
@@ -164,6 +166,7 @@ import {
   ViewModelVersion,
   type ModelCaller,
   type ModelDependencies,
+  type ModelSources,
 } from '@memorysmithapp/svc-portability/application/models';
 import {
   InMemoryPartStore,
@@ -359,6 +362,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     notebooks: new KnowledgeSharedNotebooks(
       (context) => knowledgeRepos(context).notebooks,
       async (id) => accessDb.subscriptions.get(`S#${id.value}`)?.subscription.status.name ?? null,
+      (context) => modelLicencesOf(modelStoreOf(context)),
     ),
   };
   const notebookIdOf = (raw: string) => {
@@ -707,6 +711,21 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
     },
   });
+  /** Where a request reads a model from, by the same module production uses (#355). */
+  const sourcesOf = (request: PortabilityRequest): ModelSources =>
+    modelSourcesOf({
+      user: request.subscription.userId,
+      own: request.subscription,
+      holds: async (notebookId) => (await modelsOf(request).notebooks.own(notebookId)) !== null,
+      canRead: request.canRead,
+      depsOf: (context) => ({
+        models: modelStoreOf(context),
+        transfers,
+        versions: modelsOf(request).versions,
+      }),
+      sharing,
+      parse: notebookIdOf,
+    });
   const callerOf = (request: PortabilityRequest): ModelCaller => ({
     subscriptionId: request.subscription.subscriptionId.value,
     userId: request.subscription.userId.value,
@@ -865,10 +884,10 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     // The models of a subscription and their versions (#353), over the same
     // use cases production builds, with the worker inline.
     declareModel: (request) => new DeclareModel(modelsOf(request), callerOf(request)),
-    getModel: (request) => new GetModel(modelsOf(request), request.canRead),
-    listModels: (request) => new ListModels(modelsOf(request), request.canRead),
+    getModel: (request) => new GetModel(sourcesOf(request)),
+    listModels: (request) => new ListModels(modelsOf(request), request.canRead, sourcesOf(request)),
     createModelVersion: (request) => new CreateModelVersion(modelsOf(request), callerOf(request)),
-    viewModelVersion: (request) => new ViewModelVersion(modelsOf(request), request.canRead),
+    viewModelVersion: (request) => new ViewModelVersion(sourcesOf(request)),
     deleteModelVersion: (request) =>
       new DeleteModelVersion(modelsOf(request), callerOf(request), async (transfer) => {
         await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
@@ -877,9 +896,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       }),
     createFromVersion: (request) =>
       new CreateFromVersion(
-        modelsOf(request),
+        sourcesOf(request),
         callerOf(request),
-        request.canRead,
         uploadStore,
         portabilityUseCases.startImport(request),
       ),

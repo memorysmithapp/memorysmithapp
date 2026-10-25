@@ -59,6 +59,33 @@ export interface ModelDependencies {
   readonly versions: VersionReader;
 }
 
+/**
+ * Where the model of a notebook is read from (#355): the caller's own
+ * subscription, or the one an accepted share of the notebook names, a model
+ * reader's included. It is resolved by the composition root, which sees the
+ * shares; nothing of it comes from the request (INV-02).
+ */
+export interface ModelSource {
+  readonly subscriptionId: string;
+  readonly deps: Pick<ModelDependencies, 'models' | 'transfers' | 'versions'>;
+  /** The e-mail of the owner who shared it, or null for a model of one's own. */
+  readonly sharedBy: string | null;
+}
+
+export interface ModelSources {
+  /** The source of the model of a notebook the caller may read, or null (INV-09). */
+  of(notebookId: string): Promise<ModelSource | null>;
+  /** The models of notebooks shared with the caller and open now, with the name of each. */
+  shared(): Promise<Array<{ model: NotebookModel; name: string; sharedBy: string }>>;
+}
+
+/** A model as it is listed, and from whom when it was shared. */
+export interface ListedModel {
+  readonly model: NotebookModel;
+  readonly name: string;
+  readonly sharedBy: string | null;
+}
+
 /** A version, as its model shows it: the frozen meta and the export that holds it. */
 export interface ModelVersion {
   readonly number: number;
@@ -125,46 +152,59 @@ export class DeclareModel {
       declaredAt: held?.declaredAt ?? now,
       updatedAt: now,
       nextVersion: held?.nextVersion ?? 1,
+      licenceAcceptedAt: held?.licenceAcceptedAt ?? null,
     };
     await this.deps.models.put(model);
     return ok(model);
   }
 }
 
-/** A model of the subscription, for whoever may read its notebook. */
+/**
+ * A model, for whoever may read its notebook or holds a share of it (#355),
+ * and from whom when it was shared.
+ */
 export class GetModel {
-  constructor(
-    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers'>,
-    private readonly canRead: (notebookId: string) => Promise<boolean>,
-  ) {}
+  constructor(private readonly sources: ModelSources) {}
 
   async execute(
     notebookId: string,
-  ): Promise<Result<{ model: NotebookModel; versions: ModelVersion[] }, DomainError>> {
+  ): Promise<
+    Result<{ model: NotebookModel; versions: ModelVersion[]; sharedBy: string | null }, DomainError>
+  > {
     // A notebook the caller may not read is answered as one with no model,
     // whether it has one or not (INV-09).
-    if (!(await this.canRead(notebookId))) return err(DomainError.notFound('Model not found'));
-    const model = await this.deps.models.get(notebookId);
+    const source = await this.sources.of(notebookId);
+    if (!source) return err(DomainError.notFound('Model not found'));
+    const model = await source.deps.models.get(notebookId);
     if (!model) return err(DomainError.notFound('Model not found'));
-    return ok({ model, versions: await versionsOf(this.deps.transfers, model) });
+    return ok({
+      model,
+      versions: await versionsOf(source.deps.transfers, model),
+      sharedBy: source.sharedBy,
+    });
   }
 }
 
-/** The models of the subscription its caller may read, with the name of each notebook. */
+/**
+ * The models its caller may use: those of the subscription whose notebook they
+ * may read, with the name of each, and those shared with them (#355).
+ */
 export class ListModels {
   constructor(
     private readonly deps: Pick<ModelDependencies, 'models' | 'notebooks'>,
     private readonly canRead: (notebookId: string) => Promise<boolean>,
+    private readonly sources: ModelSources,
   ) {}
 
-  async execute(): Promise<Result<Array<{ model: NotebookModel; name: string }>, DomainError>> {
+  async execute(): Promise<Result<ListedModel[], DomainError>> {
     const models = await this.deps.models.list();
-    const readable: Array<{ model: NotebookModel; name: string }> = [];
+    const readable: ListedModel[] = [];
     for (const model of models) {
       if (!(await this.canRead(model.notebookId))) continue;
       const notebook = await this.deps.notebooks.own(model.notebookId);
-      if (notebook) readable.push({ model, name: notebook.name });
+      if (notebook) readable.push({ model, name: notebook.name, sharedBy: null });
     }
+    for (const shared of await this.sources.shared()) readable.push(shared);
     return ok(readable);
   }
 }
@@ -251,28 +291,24 @@ export interface VersionView {
 }
 
 export class ViewModelVersion {
-  constructor(
-    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers' | 'versions'>,
-    private readonly canRead: (notebookId: string) => Promise<boolean>,
-  ) {}
+  constructor(private readonly sources: ModelSources) {}
 
   async execute(input: {
     notebookId: string;
     number: number;
   }): Promise<Result<VersionView, DomainError>> {
-    if (!(await this.canRead(input.notebookId))) {
-      return err(DomainError.notFound('Version not found'));
-    }
-    const model = await this.deps.models.get(input.notebookId);
+    const source = await this.sources.of(input.notebookId);
+    if (!source) return err(DomainError.notFound('Version not found'));
+    const model = await source.deps.models.get(input.notebookId);
     if (!model) return err(DomainError.notFound('Version not found'));
-    const version = (await versionsOf(this.deps.transfers, model)).find(
+    const version = (await versionsOf(source.deps.transfers, model)).find(
       (each) => each.number === input.number,
     );
     if (!version) return err(DomainError.notFound('Version not found'));
     if (version.status !== 'ready' || !version.transfer.key) {
       return err(DomainError.conflict('This version is still being created, or it failed'));
     }
-    const document = await this.deps.versions.read(
+    const document = await source.deps.versions.read(
       version.transfer.key,
       version.transfer.versionId,
     );
@@ -345,12 +381,15 @@ export interface VersionCopier {
  * export is, every identifier minted anew and no history carried. The import
  * records which version it came from, as information only: nothing of the
  * model is read again once the notebook exists.
+ *
+ * A model shared with the caller is read in its owner's subscription and the
+ * notebook is written in the caller's own (#355): the snapshot is copied once,
+ * into the caller's uploads, and the import counts there, never in the owner's.
  */
 export class CreateFromVersion {
   constructor(
-    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers'>,
+    private readonly sources: ModelSources,
     private readonly caller: ModelCaller,
-    private readonly canRead: (notebookId: string) => Promise<boolean>,
     private readonly copier: VersionCopier,
     private readonly startImport: StartImport,
   ) {}
@@ -363,12 +402,11 @@ export class CreateFromVersion {
     values: Readonly<Record<string, unknown>>;
     by: Authorship;
   }): Promise<Result<Transfer, DomainError>> {
-    if (!(await this.canRead(input.notebookId))) {
-      return err(DomainError.notFound('Version not found'));
-    }
-    const model = await this.deps.models.get(input.notebookId);
+    const source = await this.sources.of(input.notebookId);
+    if (!source) return err(DomainError.notFound('Version not found'));
+    const model = await source.deps.models.get(input.notebookId);
     if (!model) return err(DomainError.notFound('Version not found'));
-    const version = (await versionsOf(this.deps.transfers, model)).find(
+    const version = (await versionsOf(source.deps.transfers, model)).find(
       (each) => each.number === input.number,
     );
     if (!version?.transfer.key || !version.transfer.model) {
@@ -397,7 +435,7 @@ export class CreateFromVersion {
         values: Object.fromEntries([...values.value].map(([key, each]) => [key, each.value])),
       },
       origin: {
-        subscriptionId: this.caller.subscriptionId,
+        subscriptionId: source.subscriptionId,
         notebookId: input.notebookId,
         version: input.number,
       },

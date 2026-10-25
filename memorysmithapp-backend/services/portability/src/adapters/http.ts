@@ -85,7 +85,11 @@ import type {
   ViewModelVersion,
   VersionView,
 } from '../application/Models.js';
-import type { NotebookModel, ParameterDeclaration } from '../domain/NotebookModel.js';
+import {
+  MODEL_LICENCE,
+  type NotebookModel,
+  type ParameterDeclaration,
+} from '../domain/NotebookModel.js';
 import {
   receivedOf,
   type BeginUpload,
@@ -176,6 +180,8 @@ function modelToDto(model: NotebookModel): Record<string, unknown> {
     basedOn: model.basedOn,
     declaredAt: model.declaredAt,
     updatedAt: model.updatedAt,
+    // Null while the model was never distributed: it is its author's (#357).
+    licence: model.licenceAcceptedAt ? MODEL_LICENCE : null,
   };
 }
 
@@ -316,15 +322,20 @@ export function createPortabilityRoutes(
     const request = c.get('portability');
     const listed = await useCases.listModels(request).execute();
     return present(c, listed, (models) => ({
-      models: models.map(({ model, name }) => ({ ...modelToDto(model), name })),
+      models: models.map(({ model, name, sharedBy }) => ({
+        ...modelToDto(model),
+        name,
+        sharedBy,
+      })),
     }));
   });
 
   app.get('/models/:v', async (c) => {
     const request = c.get('portability');
     const found = await useCases.getModel(request).execute(c.req.param('v') ?? '');
-    return present(c, found, ({ model, versions }) => ({
+    return present(c, found, ({ model, versions, sharedBy }) => ({
       ...modelToDto(model),
+      sharedBy,
       versions: versions.map(versionToDto),
     }));
   });

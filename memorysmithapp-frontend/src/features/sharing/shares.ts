@@ -57,11 +57,25 @@ export const SHARE_PROFILES: readonly ShareProfileDto[] = [
   'notebook-editor',
 ];
 
+/**
+ * The profiles a notebook is shared with: a notebook declared as a model is
+ * also shared as a model reader, who reaches the model and never the notebook
+ * (#355).
+ */
+export function profilesFor(isModel: boolean): readonly ShareProfileDto[] {
+  return isModel ? ['model-reader', ...SHARE_PROFILES] : SHARE_PROFILES;
+}
+
 /** The key a profile is named by in the strings of the interface. */
 export function profileKey(profile: ShareProfileDto): string {
-  return profile === 'content-editor'
-    ? 'contentEditor'
-    : profile === 'notebook-editor'
-      ? 'notebookEditor'
-      : 'reader';
+  switch (profile) {
+    case 'model-reader':
+      return 'modelReader';
+    case 'content-editor':
+      return 'contentEditor';
+    case 'notebook-editor':
+      return 'notebookEditor';
+    case 'reader':
+      return 'reader';
+  }
 }

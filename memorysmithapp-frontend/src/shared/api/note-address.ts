@@ -102,6 +102,18 @@ export function modelVersionAddress(notebookId: string, version: number): string
 }
 
 /**
+ * A model shared with the person as a model reader (#355), which opens the
+ * model and never the notebook, so it lives outside the notebook's pages.
+ */
+export function sharedModelAddress(notebookId: string): string {
+  return `/models/${notebookId}`;
+}
+
+export function sharedModelVersionAddress(notebookId: string, version: number): string {
+  return `${sharedModelAddress(notebookId)}/versions/${version}`;
+}
+
+/**
  * The address of a link target, which is where a name legitimately gets
  * encoded: a route reached by clicking and never by typing (RN-DSC-046).
  */

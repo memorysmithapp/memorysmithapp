@@ -49,7 +49,7 @@ Code comments cite them by code. A principle that stopped holding keeps its code
 
 ## 5. Ubiquitous language
 
-The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word, and the share profiles are named in ordinary words too: _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
+The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
 
 | Term                    | Meaning                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -168,6 +168,8 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-ACC-034 | A share reaches only its own notebook: every other notebook of the owner answers `404` to it, whatever its profile. | |
 | RN-ACC-035 | An increase waiting for the grantee's acceptance is told to them in the interface notifications, never by e-mail. | |
 | RN-ACC-036 | In the interface, sharing offers the three profiles, each said in a line, and the owner changes the profile of a person in the list of the notebook's shares; an increase waiting for acceptance is said there, and on the grantee's card and notifications, which accept or decline it. | |
+| RN-ACC-037 | A notebook declared as a model is also shared as a Model reader, who reads its model and versions and creates notebooks from them, and reaches nothing of the notebook, which answers `404`; the interface opens such a share on a page of the model, outside any notebook, and offers the profile only for a model. | |
+| RN-ACC-038 | Sharing a notebook declared as a model, with any profile, distributes it under CC0 1.0: its owner accepts the licence once, on the first distribution, and a share or an increase is refused with `CONFLICT` until then; the interface and the connector say that whoever receives a model may reuse and republish it freely, the community included. | |
 
 ### Knowledge
 
@@ -389,6 +391,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-055 | `get_notebook_context` ends with the revisions of the Guidance and the structure, and `get_template` answers the Template's; `create_note`, `update_note` and `move_note` take them as `context` and answer `contextChanged` with what to do, never refusing; `check_notebook` lists `staleContext`, and the skills tell the agent to review a note against what changed rather than resend it. | |
 | RN-AGT-056 | The connector declares a notebook as a model, reads it with its versions, creates, reads whole and deletes a version, and creates a notebook from one with the values of its parameters, waiting up to twenty seconds for it to be written before answering the transfer to follow. | |
 | RN-AGT-057 | The skill `derive-model` makes a model of a notebook that worked into a new notebook: it asks the level of generality and keeps the one chosen, proposes to remove, generalize or parameterize each circumstance of the case, rewrites the context, writes examples anew, and creates a version only after the author reviewed it; `design-notebook` offers a model before designing, and designs one from scratch. | |
+| RN-AGT-058 | The connector lists a model reader's share among the models and never among the notebooks; `list_models` and `get_model` name the owner of a model shared with the person in `sharedBy`, and `get_model` its licence once distributed. | |
 
 ### Portability
 
@@ -435,6 +438,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-039 | The view of a version names every reference no parameter of the model declares, which a notebook created from it would keep, and every parameter no text of it uses. | |
 | RN-PRT-040 | A notebook created from a version is an import of its snapshot under a name the person gives, the name of the model filled in by default: every identifier minted anew, no history, nothing that depends on the model; the import records the version it came from as information only, and the notebook keeps working whatever becomes of the model. | |
 | RN-PRT-041 | The interface offers, in a notebook, its model: the owner declares it there and creates and deletes its versions, and whoever reads the notebook reads them; Home creates a notebook blank, or from the ready version of a model the person reads, asking each parameter in the form of its type. | |
+| RN-PRT-042 | Whoever holds an accepted share of a model notebook, whatever its profile, reads its model and versions and creates notebooks from them, written and counted in their own subscription; the models listed include those shared with the person, with their owner; only the owner declares and versions, and sharing, accepting and revoking change no storage. | |
 
 ## 8. Quality requirements
 

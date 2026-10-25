@@ -9,6 +9,7 @@
  */
 
 import {
+  type Authorship,
   type NotebookId,
   Role,
   SubscriptionContext,
@@ -40,6 +41,8 @@ import {
   type ShareDependencies,
 } from '@memorysmithapp/svc-access/application/shares';
 import type { AccessRequest, AccessUseCases } from '@memorysmithapp/svc-access/adapters/http';
+import type { ModelSource, ModelSources } from '@memorysmithapp/svc-portability/application/models';
+import type { ModelStore } from '@memorysmithapp/svc-portability/domain/model';
 import type { KnowledgeRequest } from '@memorysmithapp/svc-knowledge/adapters/http';
 import { DeleteNotebook } from '@memorysmithapp/svc-knowledge/application/notebooks';
 
@@ -52,6 +55,30 @@ export interface NotebookReader {
     readonly noteCount: number;
     readonly updatedAt: { toISOString(): string };
   } | null>;
+}
+
+/**
+ * What a share asks of the model of a notebook (#355, #357), answered from
+ * Portability, which Access may not import either: whether the notebook is
+ * declared as one, whether its owner accepted CC0 1.0, and the acceptance.
+ */
+export interface ModelLicences {
+  licenceOf(notebookId: string): Promise<{ readonly accepted: boolean } | null>;
+  accept(notebookId: string, at: string): Promise<void>;
+}
+
+/** What a share asks of a model, over the models of one subscription. */
+export function modelLicencesOf(models: ModelStore): ModelLicences {
+  return {
+    licenceOf: async (notebookId) => {
+      const model = await models.get(notebookId);
+      return model ? { accepted: model.licenceAcceptedAt !== null } : null;
+    },
+    accept: async (notebookId, at) => {
+      const model = await models.get(notebookId);
+      if (model && !model.licenceAcceptedAt) await models.put({ ...model, licenceAcceptedAt: at });
+    },
+  };
 }
 
 /** Only trial and active grant access to anybody (RN-SUB-007). */
@@ -80,17 +107,27 @@ export class KnowledgeSharedNotebooks implements SharedNotebooks {
     private readonly notebooksOf: (context: SubscriptionContext) => NotebookReader,
     /** The status of a subscription by identifier, or null when there is none. */
     private readonly statusOf: (id: SubscriptionId) => Promise<string | null>,
+    /** The models of a subscription, by the context that holds them. */
+    private readonly licencesOf: (context: SubscriptionContext) => ModelLicences,
   ) {}
 
   async own(
     owner: SubscriptionContext,
     notebookId: NotebookId,
   ): Promise<SharedNotebookView | null> {
-    return this.view(this.notebooksOf(owner), notebookId);
+    return this.view(owner, notebookId);
   }
 
   async through(share: Share): Promise<SharedNotebookView | null> {
-    return this.view(this.notebooksOf(contextThrough(share)), share.notebookId);
+    return this.view(contextThrough(share), share.notebookId);
+  }
+
+  async acceptModelLicence(
+    owner: SubscriptionContext,
+    notebookId: NotebookId,
+    by: Authorship,
+  ): Promise<void> {
+    await this.licencesOf(owner).accept(notebookId.value, by.at.toISOString());
   }
 
   async ownerGrantsAccess(share: Share): Promise<boolean> {
@@ -99,16 +136,18 @@ export class KnowledgeSharedNotebooks implements SharedNotebooks {
   }
 
   private async view(
-    notebooks: NotebookReader,
+    context: SubscriptionContext,
     notebookId: NotebookId,
   ): Promise<SharedNotebookView | null> {
-    const notebook = await notebooks.findById(notebookId);
+    const notebook = await this.notebooksOf(context).findById(notebookId);
     if (!notebook || notebook.isDeleted) return null;
+    const licence = await this.licencesOf(context).licenceOf(notebookId.value);
     return {
       name: notebook.name.value,
       description: notebook.description.value,
       noteCount: notebook.noteCount,
       updatedAt: notebook.updatedAt.toISOString(),
+      model: licence ? { licenceAccepted: licence.accepted } : null,
     };
   }
 }
@@ -139,7 +178,9 @@ export async function openShared(
     user: request.subscription.userId,
     notebookId,
   });
-  if (!share) return null;
+  // A model reader never reaches the notebook, only its model (#355): the
+  // request goes on in the session's own subscription, where it is missing.
+  if (!share || share.profile === 'model-reader') return null;
   return {
     ctx: {
       user: request.ctx.user,
@@ -153,13 +194,42 @@ export async function openShared(
   };
 }
 
-/** Whether a notebook is shared with this person and open to them (an export asks). */
+/**
+ * Whether a notebook is shared with this person and open to them (an export
+ * asks). A model reader's share opens no notebook (#355).
+ */
 export async function openShareOf(
   user: UserId,
   notebookId: NotebookId,
   deps: { readonly shares: ShareRepository; readonly notebooks: SharedNotebooks },
 ): Promise<Share | null> {
+  const share = await new OpenSharedNotebook(deps).execute({ user, notebookId });
+  return share && share.profile !== 'model-reader' ? share : null;
+}
+
+/**
+ * The share a model is read through (#355): any accepted share of its notebook
+ * opens its model, a model reader's included, because whoever reads the
+ * notebook reads its model.
+ */
+export async function openModelShareOf(
+  user: UserId,
+  notebookId: NotebookId,
+  deps: { readonly shares: ShareRepository; readonly notebooks: SharedNotebooks },
+): Promise<Share | null> {
   return new OpenSharedNotebook(deps).execute({ user, notebookId });
+}
+
+/** Every share accepted by this person and open now, the notebook of each a candidate model. */
+export async function openSharesOf(
+  user: UserId,
+  deps: { readonly shares: ShareRepository; readonly notebooks: SharedNotebooks },
+): Promise<Share[]> {
+  const open: Share[] = [];
+  for (const share of await deps.shares.listIncoming(user)) {
+    if (share.isOpen && (await deps.notebooks.ownerGrantsAccess(share))) open.push(share);
+  }
+  return open;
 }
 
 /**
@@ -240,4 +310,53 @@ export class DeleteNotebookAndShares extends DeleteNotebook {
     }
     return deleted;
   }
+}
+
+/**
+ * Where a model is read from, for one session (#355): a notebook of its own
+ * subscription it may read, or a notebook shared with this person, by any
+ * accepted share, read in the subscription the stored share names (INV-02).
+ */
+export function modelSourcesOf(input: {
+  readonly user: UserId;
+  readonly own: SubscriptionContext;
+  /** Whether the session's own subscription holds this notebook, alive. */
+  readonly holds: (notebookId: string) => Promise<boolean>;
+  /** Whether the session may read a notebook of its own subscription. */
+  readonly canRead: (notebookId: string) => Promise<boolean>;
+  readonly depsOf: (context: SubscriptionContext) => ModelSource['deps'];
+  readonly sharing: { readonly shares: ShareRepository; readonly notebooks: SharedNotebooks };
+  readonly parse: (raw: string) => NotebookId | null;
+}): ModelSources {
+  return {
+    of: async (notebookId) => {
+      if (await input.holds(notebookId)) {
+        if (!(await input.canRead(notebookId))) return null;
+        return {
+          subscriptionId: input.own.subscriptionId.value,
+          deps: input.depsOf(input.own),
+          sharedBy: null,
+        };
+      }
+      const parsed = input.parse(notebookId);
+      if (!parsed) return null;
+      const share = await openModelShareOf(input.user, parsed, input.sharing);
+      if (!share) return null;
+      return {
+        subscriptionId: share.ownerSubscriptionId.value,
+        deps: input.depsOf(contextThrough(share)),
+        sharedBy: share.ownerEmail.value,
+      };
+    },
+    shared: async () => {
+      const found: Awaited<ReturnType<ModelSources['shared']>> = [];
+      for (const share of await openSharesOf(input.user, input.sharing)) {
+        const model = await input.depsOf(contextThrough(share)).models.get(share.notebookId.value);
+        if (!model) continue;
+        const view = await input.sharing.notebooks.through(share);
+        if (view) found.push({ model, name: view.name, sharedBy: share.ownerEmail.value });
+      }
+      return found;
+    },
+  };
 }

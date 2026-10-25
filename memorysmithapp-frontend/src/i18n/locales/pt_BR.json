@@ -844,7 +844,9 @@
       "remove": "Remover",
       "profileOf": "Acesso de {{email}}",
       "increasePending": "Continua {{profile}} até a pessoa aceitar o aumento.",
-      "changeExplained": "Reduzir o acesso vale na hora. Aumentá-lo espera a pessoa aceitar de novo."
+      "changeExplained": "Reduzir o acesso vale na hora. Aumentá-lo espera a pessoa aceitar de novo.",
+      "licence": "Este caderno é um Modelo de caderno. Quem o receber pode reutilizá-lo e republicá-lo livremente, inclusive na comunidade: toda distribuição de um modelo é sob CC0 1.0.",
+      "acceptLicence": "Aceito que este modelo seja distribuído sob CC0 1.0"
     },
     "state": {
       "pending": "Aguardando",
@@ -870,12 +872,14 @@
     "profile": {
       "reader": "Leitor",
       "contentEditor": "Editor de conteúdo",
-      "notebookEditor": "Editor do caderno"
+      "notebookEditor": "Editor do caderno",
+      "modelReader": "Leitor do modelo"
     },
     "profileHint": {
       "reader": "Lê e exporta o caderno inteiro, e não escreve nada.",
       "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos de pasta continuam sendo seus para mudar.",
-      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de pasta. Compartilhar e apagar o caderno continuam com você."
+      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de pasta. Compartilhar e apagar o caderno continuam com você.",
+      "modelReader": "Lê este modelo e as versões dele e cria cadernos a partir delas, e nunca abre o caderno em si."
     }
   },
   "notifications": {
@@ -1072,7 +1076,8 @@
     "newNameHint": "Vazio, é o nome do modelo, preenchido.",
     "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
     "creationFailed": "O caderno não foi criado. Transferências diz por quê.",
-    "referenceExample": "nome"
+    "referenceExample": "nome",
+    "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo e as versões dele e cria cadernos a partir delas; o caderno que ele é fica com o dono."
   },
   "newNotebook": {
     "open": "Novo caderno",

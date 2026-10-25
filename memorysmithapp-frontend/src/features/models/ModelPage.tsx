@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { ModelVersionDto, NotebookModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { modelVersionAddress } from '../../shared/api/note-address';
+import { modelVersionAddress, sharedModelVersionAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
   createModelVersion,
@@ -63,7 +63,57 @@ export function ModelPage() {
         ) : (
           <p className="hint">{t('model.notAModel')}</p>
         )}
-        {model.data ? <Versions notebookId={notebookId} model={model.data} owner={owner} /> : null}
+        {model.data ? (
+          <Versions
+            notebookId={notebookId}
+            model={model.data}
+            owner={owner}
+            versionAddress={(number) => modelVersionAddress(notebookId, number)}
+          />
+        ) : null}
+      </article>
+    </>
+  );
+}
+
+/**
+ * A model shared with the person as a model reader (#355): what it says of
+ * itself and its versions, which they read and create notebooks from, without
+ * ever reaching the notebook it is.
+ */
+export function SharedModelPage() {
+  const { t } = useTranslation();
+  const notebookId = useNotebookId();
+  useDocumentTitle(t('model.title'));
+  const model = useQuery({
+    queryKey: queryKeys.model(notebookId),
+    queryFn: () => getModel(notebookId),
+  });
+
+  return (
+    <>
+      <NotebookBar crumbs={[{ label: t('model.title') }]} />
+      <article className="content-pane model-page">
+        {model.isPending ? (
+          <p className="hint">{t('common.loading')}</p>
+        ) : model.isError ? (
+          <p className="status">{t(messageKeyOf(model.error))}</p>
+        ) : !model.data ? (
+          <p className="status">{t('common.notFound')}</p>
+        ) : (
+          <>
+            {model.data.sharedBy ? (
+              <p className="page-intro">{t('model.sharedBy', { owner: model.data.sharedBy })}</p>
+            ) : null}
+            <ModelSummary model={model.data} />
+            <Versions
+              notebookId={notebookId}
+              model={model.data}
+              owner={false}
+              versionAddress={(number) => sharedModelVersionAddress(notebookId, number)}
+            />
+          </>
+        )}
       </article>
     </>
   );
@@ -219,10 +269,12 @@ function Versions({
   notebookId,
   model,
   owner,
+  versionAddress,
 }: {
   notebookId: string;
   model: NotebookModelDto;
   owner: boolean;
+  versionAddress: (number: number) => string;
 }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
@@ -306,10 +358,7 @@ function Versions({
               <span className="model-version-when">{when(version.createdAt)}</span>
               <span className="model-version-changelog">{version.changelog}</span>
               {version.status === 'ready' ? (
-                <Link
-                  to={modelVersionAddress(notebookId, version.number)}
-                  className="button is-quiet is-small"
-                >
+                <Link to={versionAddress(version.number)} className="button is-quiet is-small">
                   {t('model.openVersion')}
                 </Link>
               ) : null}

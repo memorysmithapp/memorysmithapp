@@ -20,8 +20,8 @@ import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
-import { ModelPage } from '../features/models/ModelPage';
-import { ModelVersionPage } from '../features/models/ModelVersionPage';
+import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
+import { ModelVersionPage, SharedModelVersionPage } from '../features/models/ModelVersionPage';
 import { RequireSession, RootLayout } from './RootLayout';
 
 /**
@@ -76,6 +76,12 @@ export const router = createBrowserRouter([
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },
               { path: '/transfers', element: <TransfersPage /> },
+              // A model shared as a model reader opens no notebook (#355).
+              { path: '/models/:notebookId', element: <SharedModelPage /> },
+              {
+                path: '/models/:notebookId/versions/:version',
+                element: <SharedModelVersionPage />,
+              },
               {
                 path: '/notebooks/:notebookId',
                 element: <NotebookLayout />,

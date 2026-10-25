@@ -208,8 +208,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           name: string;
           description: string;
           ownerEmail: string;
-          profile: ShareAccessName;
-          pendingProfile: ShareAccessName | null;
+          profile: ShareAccessName | 'model-reader';
+          pendingProfile: ShareAccessName | 'model-reader' | null;
           state: string;
           noteCount: number | null;
         }>
@@ -224,7 +224,12 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         ownership: 'own' as const,
       })),
       ...shared
-        .filter((notebook) => notebook.state === 'accepted')
+        // A model reader's share opens the model and never the notebook
+        // (#355): it is reached through list_models, not as a notebook.
+        .filter(
+          (notebook): notebook is typeof notebook & { profile: ShareAccessName } =>
+            notebook.state === 'accepted' && notebook.profile !== 'model-reader',
+        )
         .map((notebook) => ({
           notebookId: notebook.notebookId,
           name: notebook.name,
@@ -233,7 +238,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           ownership: 'shared' as const,
           owner: notebook.ownerEmail,
           access: notebook.profile,
-          pendingAccess: notebook.pendingProfile,
+          pendingAccess:
+            notebook.pendingProfile === 'model-reader' ? null : notebook.pendingProfile,
         })),
     ];
   }

@@ -841,7 +841,9 @@
       "remove": "Remove",
       "profileOf": "Access of {{email}}",
       "increasePending": "Still {{profile}} until they accept the increase.",
-      "changeExplained": "Reducing access applies at once. Increasing it waits for the person to accept again."
+      "changeExplained": "Reducing access applies at once. Increasing it waits for the person to accept again.",
+      "licence": "This notebook is a model. Whoever you share it with may reuse and republish it freely, the community included: every distribution of a model is under CC0 1.0.",
+      "acceptLicence": "I accept that this model is distributed under CC0 1.0"
     },
     "state": {
       "pending": "Waiting",
@@ -867,12 +869,14 @@
     "profile": {
       "reader": "Reader",
       "contentEditor": "Content editor",
-      "notebookEditor": "Notebook editor"
+      "notebookEditor": "Notebook editor",
+      "modelReader": "Model reader"
     },
     "profileHint": {
       "reader": "Reads and exports the whole notebook, and writes nothing.",
       "contentEditor": "Also writes, moves and deletes notes and keeps files. The folders, the Guidance and the Templates stay yours to change.",
-      "notebookEditor": "Also creates, edits and deletes folders, the Guidance and the Templates. Sharing and deleting the notebook stay with you."
+      "notebookEditor": "Also creates, edits and deletes folders, the Guidance and the Templates. Sharing and deleting the notebook stay with you.",
+      "modelReader": "Reads this model and its versions and creates notebooks from them, and never opens the notebook itself."
     }
   },
   "notifications": {
@@ -1069,7 +1073,8 @@
     "newNameHint": "Left empty, it is the name of the model, filled in.",
     "stillCreating": "The notebook is still being written; it appears on Home when it is.",
     "creationFailed": "The notebook was not created. Transfers says why.",
-    "referenceExample": "name"
+    "referenceExample": "name",
+    "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner."
   },
   "newNotebook": {
     "open": "New notebook",

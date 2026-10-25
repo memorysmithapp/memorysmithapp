@@ -72,7 +72,7 @@ import type { ModelStore } from '@memorysmithapp/svc-portability/domain/model';
 import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters/http';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
-import { KnowledgeSharedNotebooks } from './shares.js';
+import { KnowledgeSharedNotebooks, modelLicencesOf } from './shares.js';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -361,6 +361,8 @@ export function buildShares(infra: Infrastructure) {
     notebooks: new KnowledgeSharedNotebooks(
       (context) => buildKnowledge(infra, context).notebooks,
       async (id) => (await platform.findById(id))?.status.name ?? null,
+      // Whether a notebook is a model, and its licence (#355, #357).
+      (context) => modelLicencesOf(buildModels(infra, context)),
     ),
   };
 }

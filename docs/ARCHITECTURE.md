@@ -107,6 +107,8 @@ The only keys outside a subscription are the **links of a person** (`USER#{user}
 
 `SubscriptionContext` has a private constructor and is built from the token claims (`fromClaims`) or from a stored accepted share (`packages/kernel/src/subscription-context.ts`). The claim `subscription_id` is written by the Cognito pre-token generation trigger from the user's default link, and read only in `authenticate` (`services/access/src/adapters/inbound/http/authentication.ts`); handlers receive it as `request.subscription`. Workers take it from the event envelope the core wrote.
 
+A share opens the owner's subscription in two places only, both in `apps/core-monolith/src/shares.ts`, each from the share stored under the person of the token: `openShared` on the path of a notebook, which a model reader's share never opens, and `modelSourcesOf`, which reads the model of a shared notebook and its versions in the owner's subscription while the notebook created from one is written in the caller's own.
+
 Two routes read a subscription id from the request, and neither acts in it on the request's word: switching the default subscription checks the id against the caller's own links, and the platform routes are for a platform administrator only.
 
 ### INV-03 The domain does not import the AWS SDK

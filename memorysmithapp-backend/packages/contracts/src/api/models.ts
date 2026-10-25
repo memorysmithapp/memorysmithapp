@@ -60,6 +60,13 @@ export const notebookModelSchema = z.object({
   basedOn: z.string().nullable(),
   declaredAt: instantSchema,
   updatedAt: instantSchema,
+  /**
+   * `CC0-1.0` once its owner accepted it, on its first distribution; null while
+   * it was never distributed (#357).
+   */
+  licence: z.literal('CC0-1.0').nullable(),
+  /** The e-mail of the owner who shared it, or null for a model of one's own (#355). */
+  sharedBy: z.string().nullable(),
   versions: z.array(modelVersionSchema),
 });
 

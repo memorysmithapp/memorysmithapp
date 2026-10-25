@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { IncomingShareDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
+import { sharedModelAddress } from '../../shared/api/note-address';
 import { answerShare, answerShareIncrease, leaveShare } from '../../shared/api/source';
 import { Menu, MenuDivider, MenuItem } from '../../shared/components/Menu';
 import { MoreIcon } from '../../shared/components/icons';
@@ -37,6 +38,7 @@ export function AcceptedShareCard({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
+  const modelOnly = share.profile === 'model-reader';
   const notebook: NotebookSummary = {
     id: share.notebookId,
     slug: '',
@@ -75,6 +77,8 @@ export function AcceptedShareCard({
   return (
     <NotebookCard
       notebook={notebook}
+      // A model reader reaches the model and never the notebook (#355).
+      to={modelOnly ? sharedModelAddress(share.notebookId) : undefined}
       strip={leaving ? 'danger' : strip}
       byline={t('sharing.card.sharedAs', {
         owner: share.ownerEmail,
@@ -103,15 +107,19 @@ export function AcceptedShareCard({
               title={share.name}
               className="notebook-card-menu"
             >
-              <MenuItem
-                onSelect={() => {
-                  setOpen(false);
-                  onExport(share.notebookId);
-                }}
-              >
-                {t('dashboard.card.export')}
-              </MenuItem>
-              <MenuDivider />
+              {modelOnly ? null : (
+                <>
+                  <MenuItem
+                    onSelect={() => {
+                      setOpen(false);
+                      onExport(share.notebookId);
+                    }}
+                  >
+                    {t('dashboard.card.export')}
+                  </MenuItem>
+                  <MenuDivider />
+                </>
+              )}
               <MenuItem
                 danger
                 onSelect={() => {

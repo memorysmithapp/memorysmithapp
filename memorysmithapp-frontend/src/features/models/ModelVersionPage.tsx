@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { modelAddress, notebookAddress } from '../../shared/api/note-address';
+import { modelAddress, notebookAddress, sharedModelAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getModelVersion } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { NotebookBar } from '../structure/NotebookBreadcrumb';
+import { NotebookBar, type Crumb } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { CreateFromModelForm } from './CreateFromModel';
@@ -24,18 +24,53 @@ export function ModelVersionPage() {
   const notebookId = useNotebookId();
   const number = Number(useParams().version);
   const { structure } = useOutletContext<NotebookOutletContext>();
-  const [creating, setCreating] = useState(false);
   useDocumentTitle(t('model.versionTitle', { number }), structure.notebook.name);
+  return (
+    <VersionView
+      notebookId={notebookId}
+      number={number}
+      crumbs={[
+        { label: t('structure.heading'), to: notebookAddress(notebookId) },
+        { label: t('model.title'), to: modelAddress(notebookId) },
+        { label: `v${number}` },
+      ]}
+    />
+  );
+}
+
+/** A version of a model shared with the person as a model reader (#355). */
+export function SharedModelVersionPage() {
+  const { t } = useTranslation();
+  const notebookId = useNotebookId();
+  const number = Number(useParams().version);
+  useDocumentTitle(t('model.versionTitle', { number }));
+  return (
+    <VersionView
+      notebookId={notebookId}
+      number={number}
+      crumbs={[
+        { label: t('model.title'), to: sharedModelAddress(notebookId) },
+        { label: `v${number}` },
+      ]}
+    />
+  );
+}
+
+function VersionView({
+  notebookId,
+  number,
+  crumbs,
+}: {
+  notebookId: string;
+  number: number;
+  crumbs: Crumb[];
+}) {
+  const { t } = useTranslation();
+  const [creating, setCreating] = useState(false);
   const version = useQuery({
     queryKey: queryKeys.modelVersion(notebookId, number),
     queryFn: () => getModelVersion(notebookId, number),
   });
-
-  const crumbs = [
-    { label: t('structure.heading'), to: notebookAddress(notebookId) },
-    { label: t('model.title'), to: modelAddress(notebookId) },
-    { label: `v${number}` },
-  ];
 
   if (version.isPending) {
     return (

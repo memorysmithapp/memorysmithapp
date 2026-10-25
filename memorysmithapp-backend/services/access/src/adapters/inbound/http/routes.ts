@@ -548,6 +548,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         notebookId: notebookId.value,
         email: body.data.email,
         profile: body.data.profile,
+        acceptLicence: body.data.acceptLicence ?? false,
         by: Authorship.byHuman(request.profile.userId),
       }),
     );
@@ -591,6 +592,7 @@ export function createAccessRoutes(useCases: AccessUseCases): Hono<{ Variables: 
         notebookId: notebookId.value,
         grantee: grantee.value,
         profile: body.data.profile,
+        acceptLicence: body.data.acceptLicence ?? false,
         by: Authorship.byHuman(request.profile.userId),
       }),
     );
