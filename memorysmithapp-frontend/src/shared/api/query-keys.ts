@@ -80,6 +80,11 @@ export const queryKeys = {
   model: (notebookId: string) => ['model', notebookId] as const,
   modelVersion: (notebookId: string, version: number) =>
     ['model-version', notebookId, version] as const,
+  /** The community catalog (#360): a search, a published model and a version of one. */
+  catalog: (text: string, language: string | null) => ['catalog', text, language] as const,
+  catalogModel: (publicId: string) => ['catalog-model', publicId] as const,
+  catalogVersion: (publicId: string, version: number) =>
+    ['catalog-version', publicId, version] as const,
   /** The notebooks shared with the person, pending and accepted. */
   incomingShares: () => ['incoming-shares'] as const,
   /** What the notifications button lists (RN-ACC-029). */

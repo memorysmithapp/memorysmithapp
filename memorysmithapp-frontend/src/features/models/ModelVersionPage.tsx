@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { ModelVersionViewDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { modelAddress, notebookAddress, sharedModelAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -128,40 +129,54 @@ function VersionView({
           </button>
         )}
 
-        <h2>{t('model.contents')}</h2>
-        <details className="template-card">
-          <summary>{t('structure.guidance')}</summary>
-          <pre className="model-source">{view.notebook.guidance ?? t('model.none')}</pre>
-        </details>
-        {view.folders.map((folder) => (
-          <details key={folder.folderId} className="template-card">
-            <summary>
-              {folder.name}
-              <span className="hint"> — {folder.description}</span>
-            </summary>
-            {folder.template ? <pre className="model-source">{folder.template}</pre> : null}
-            {view.notes
-              .filter((note) => note.folderId === folder.folderId)
-              .map((note) => (
-                <pre key={note.noteId} className="model-source">
-                  {note.body}
-                </pre>
-              ))}
-          </details>
-        ))}
-        {view.files.length > 0 ? (
-          <>
-            <h2>{t('attachments.navLabel')}</h2>
-            <ul>
-              {view.files.map((file) => (
-                <li key={file.name}>
-                  {file.name} · {file.mimeType}
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
+        <VersionContents view={view} />
       </article>
+    </>
+  );
+}
+
+/** What a frozen version holds, part by part: also what the community reads of one (#360). */
+export function VersionContents({
+  view,
+}: {
+  view: Pick<ModelVersionViewDto, 'notebook' | 'folders' | 'notes' | 'files'>;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <h2>{t('model.contents')}</h2>
+      <details className="template-card">
+        <summary>{t('structure.guidance')}</summary>
+        <pre className="model-source">{view.notebook.guidance ?? t('model.none')}</pre>
+      </details>
+      {view.folders.map((folder) => (
+        <details key={folder.folderId} className="template-card">
+          <summary>
+            {folder.name}
+            <span className="hint"> — {folder.description}</span>
+          </summary>
+          {folder.template ? <pre className="model-source">{folder.template}</pre> : null}
+          {view.notes
+            .filter((note) => note.folderId === folder.folderId)
+            .map((note) => (
+              <pre key={note.noteId} className="model-source">
+                {note.body}
+              </pre>
+            ))}
+        </details>
+      ))}
+      {view.files.length > 0 ? (
+        <>
+          <h2>{t('attachments.navLabel')}</h2>
+          <ul>
+            {view.files.map((file) => (
+              <li key={file.name}>
+                {file.name} · {file.mimeType}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </>
   );
 }

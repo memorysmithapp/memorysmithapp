@@ -47,6 +47,8 @@ import type {
   ModelListDto,
   ModelVersionDto,
   ModelVersionViewDto,
+  PublicModelDto,
+  PublicVersionViewDto,
   NotebookModelDto,
   ParameterValueDto,
 } from '@memorysmithapp/contracts';
@@ -59,7 +61,7 @@ import type {
   NotebookSummary,
 } from '../types/api';
 import { splitFrontmatter } from './markdown';
-import { request } from './http';
+import { publicRequest, request } from './http';
 import { ApiError } from './error-mapper';
 import { adoptSession } from '../auth/oauth';
 
@@ -199,6 +201,65 @@ export async function createFromVersion(
   return request<TransferDto>(`/portability/models/${notebookId}/versions/${version}/notebooks`, {
     method: 'POST',
     body: input,
+  });
+}
+
+// ---- The community catalog (#360) -----------------------------------------
+
+/** Publishes a model of this subscription, or says its entry again. */
+export async function publishModel(
+  notebookId: string,
+  input: { language: string; acceptLicence: boolean },
+): Promise<PublicModelDto> {
+  return request<PublicModelDto>(`/portability/models/${notebookId}/publication`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+export async function withdrawModel(notebookId: string): Promise<void> {
+  await request<void>(`/portability/models/${notebookId}/publication`, { method: 'DELETE' });
+}
+
+/** What anybody finds, with no session: read through the edge. */
+export async function searchCatalog(query: {
+  text: string;
+  language: string | null;
+}): Promise<PublicModelDto[]> {
+  const params = new URLSearchParams();
+  if (query.text.trim()) params.set('q', query.text.trim());
+  if (query.language) params.set('language', query.language);
+  const suffix = params.size > 0 ? `?${params.toString()}` : '';
+  return (await publicRequest<{ models: PublicModelDto[] }>(`/public/catalog${suffix}`)).models;
+}
+
+export async function getCatalogModel(publicId: string): Promise<PublicModelDto> {
+  return publicRequest<PublicModelDto>(`/public/catalog/${publicId}`);
+}
+
+export async function getCatalogVersion(
+  publicId: string,
+  version: number,
+): Promise<PublicVersionViewDto> {
+  return publicRequest<PublicVersionViewDto>(`/public/catalog/${publicId}/versions/${version}`);
+}
+
+/** A notebook of this subscription from a published version, for whoever signed in. */
+export async function createFromCatalog(
+  publicId: string,
+  version: number,
+  input: { name: string; values: Record<string, ParameterValueDto> },
+): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/catalog/${publicId}/versions/${version}/notebooks`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function reportModel(publicId: string, reason: string): Promise<void> {
+  await request<void>(`/portability/catalog/${publicId}/reports`, {
+    method: 'POST',
+    body: { reason },
   });
 }
 

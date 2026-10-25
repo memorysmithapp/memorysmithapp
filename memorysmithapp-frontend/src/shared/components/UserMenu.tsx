@@ -293,6 +293,13 @@ export function UserMenu() {
           {/* Where the connector of this environment is published, which is
               what an agent is pointed at: an item like the others, and not a
               footnote beside the version (#210). */}
+          {/* The models others published, which anybody reads (#360). */}
+          <MenuItem
+            onSelect={() => go('/community')}
+            trailing={<ChevronRightIcon width={12} height={12} />}
+          >
+            {t('community.menu')}
+          </MenuItem>
           <MenuItem
             onSelect={() => go('/about')}
             trailing={<ChevronRightIcon width={12} height={12} />}

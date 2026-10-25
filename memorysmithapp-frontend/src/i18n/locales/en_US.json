@@ -1074,7 +1074,16 @@
     "stillCreating": "The notebook is still being written; it appears on Home when it is.",
     "creationFailed": "The notebook was not created. Transfers says why.",
     "referenceExample": "name",
-    "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner."
+    "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner.",
+    "community": "Community",
+    "publishHint": "Publishing shows the model and every version you keep to anybody, signed in or not, by the name of your account and never your e-mail; whoever signs in creates notebooks from it. You withdraw it at any time.",
+    "publishLicence": "Every distribution of a model is under CC0 1.0: anybody may reuse and republish it freely, the community included.",
+    "publish": "Publish to the community",
+    "publishNeedsVersion": "Create a version first: the community reads versions, never the notebook.",
+    "publishNeedsName": "Write your name in your profile first: the catalog shows it, never your e-mail.",
+    "publishedAs": "Published by {{author}}, in {{language}}.",
+    "publicPage": "Open its public page",
+    "withdraw": "Withdraw from the community"
   },
   "newNotebook": {
     "open": "New notebook",
@@ -1089,6 +1098,35 @@
     "model": "Model",
     "noModels": "No notebook of this subscription is declared as a model yet.",
     "noVersion": "This model has no ready version yet.",
-    "fromVersion": "From version {{number}}: {{changelog}}"
+    "fromVersion": "From version {{number}}: {{changelog}}",
+    "community": "Or find a model in the community"
+  },
+  "community": {
+    "title": "Community models",
+    "menu": "Community models",
+    "home": "Home",
+    "signIn": "Sign in",
+    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. Anybody may read them; creating a notebook from one asks you to sign in.",
+    "search": "Find",
+    "searchHint": "Words of the name, the objective, the author…",
+    "find": "Find",
+    "language": "Language",
+    "languages": {
+      "any": "Any language",
+      "pt": "Portuguese",
+      "en": "English",
+      "es": "Spanish"
+    },
+    "nothing": "No published model answers this search.",
+    "byline_one": "By {{author}} · {{language}} · updated {{date}} · {{count}} version",
+    "byline_other": "By {{author}} · {{language}} · updated {{date}} · {{count}} versions",
+    "author": "Author",
+    "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
+    "report": "Report this model",
+    "reportWhy": "What is wrong with it",
+    "sendReport": "Send the report",
+    "reported": "Thank you: the report reached the operator of the platform.",
+    "signInToReport": "Sign in to report this model",
+    "signInToCreate": "Sign in to create a notebook from this version"
   }
 }

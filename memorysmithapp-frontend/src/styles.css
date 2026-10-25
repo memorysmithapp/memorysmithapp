@@ -6864,3 +6864,78 @@ body.has-sheet .app-main {
 .share-licence .callout-warning {
   margin: 0 0 0.5rem;
 }
+
+/* ── The community catalog (#360) ────────────────────────────────────────────
+   Pages a visitor with no account reaches, so they carry a head of their own
+   instead of the frame of the application. */
+.community-frame {
+  min-height: 100vh;
+  background: var(--bg);
+}
+.community-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.community-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.community-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+.community-main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+.community-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12rem auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+.community-search .field {
+  margin-bottom: 0;
+}
+@media (max-width: 40rem) {
+  .community-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.community-results {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.community-card {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.community-card h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--display);
+  font-size: 1rem;
+}
+.community-card p {
+  margin: 0.25rem 0 0;
+}
+.community-report,
+.model-publication {
+  margin-top: 1.5rem;
+}

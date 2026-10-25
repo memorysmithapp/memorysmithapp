@@ -120,3 +120,16 @@ export function sharedModelVersionAddress(notebookId: string, version: number): 
 export function linkTargetAddress(notebookId: string, target: string): string {
   return `${notebookAddress(notebookId)}/links/${encodeURIComponent(target.normalize('NFC'))}`;
 }
+
+/** The community catalog (#360), which anybody reads, signed in or not. */
+export function communityAddress(): string {
+  return '/community';
+}
+
+export function communityModelAddress(publicId: string): string {
+  return `/community/${publicId.toLowerCase()}`;
+}
+
+export function communityVersionAddress(publicId: string, version: number): string {
+  return `${communityModelAddress(publicId)}/versions/${version}`;
+}

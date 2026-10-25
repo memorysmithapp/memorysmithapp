@@ -448,3 +448,15 @@ export {
   listModels,
   createNotebook,
 } from './backend';
+
+// The community catalog (#360): what anybody reads, and what a person signed
+// in does with it.
+export {
+  createFromCatalog,
+  getCatalogModel,
+  getCatalogVersion,
+  publishModel,
+  reportModel,
+  searchCatalog,
+  withdrawModel,
+} from './backend';

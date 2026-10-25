@@ -446,6 +446,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-045 | Anybody, an account or none, searches the catalog by name, objective, description, audience, author and language, and reads a published model and each of its versions whole, and nothing else of the author's subscription; a model whose subscription grants no access answers `404`, as a withdrawn one does. | |
 | RN-PRT-046 | Whoever signs in creates a notebook from a published version, with its parameters filled in, written and counted in their own subscription; publishing and withdrawing change no storage. | |
 | RN-PRT-047 | Whoever signs in reports a published model, saying why, to the operator of the platform, who reads the reports and may withdraw the model, which deletes its catalog entry and nothing of the author's, the author told by e-mail. | |
+| RN-PRT-048 | The interface publishes and withdraws a model on its page, saying what anybody will see and the licence; the community pages — the search, a model and a version — are read with no session and may be indexed, each titled and described by its model, and creating from a version and reporting ask to sign in. | |
 
 ## 8. Quality requirements
 

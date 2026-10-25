@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { ParameterDeclarationDto } from '@memorysmithapp/contracts';
+import type {
+  ParameterDeclarationDto,
+  ParameterValueDto,
+  TransferDto,
+} from '@memorysmithapp/contracts';
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
 import { notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -22,11 +26,17 @@ export function CreateFromModelForm({
   version,
   parameters,
   onCancel,
+  create: start = (input) => createFromVersion(notebookId, version, input),
 }: {
   notebookId: string;
   version: number;
   parameters: readonly ParameterDeclarationDto[];
   onCancel?: () => void;
+  /** How the notebook is created: from a model of the person's, or from the community (#360). */
+  create?: (input: {
+    name: string;
+    values: Record<string, ParameterValueDto>;
+  }) => Promise<TransferDto>;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -44,10 +54,7 @@ export function CreateFromModelForm({
     setFailure(null);
     setMissing([]);
     try {
-      const started = await createFromVersion(notebookId, version, {
-        name,
-        values: valuesOf(parameters, typed),
-      });
+      const started = await start({ name, values: valuesOf(parameters, typed) });
       let transfer = started;
       for (let waited = 0; transfer.status === 'running' && waited < 60_000; waited += 1000) {
         await new Promise((resolve) => setTimeout(resolve, 1000));

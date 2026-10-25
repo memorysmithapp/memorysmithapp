@@ -42,6 +42,10 @@ describe('the pages of the interface', () => {
     expect(pagesOf(readText('memorysmithapp-frontend/src/app/router.tsx'))).toEqual([
       '/login',
       '/auth/callback',
+      // Read by anybody, signed in or not (#360).
+      '/community',
+      '/community/:publicId',
+      '/community/:publicId/versions/:version',
       // Outside the frame of the application, drawn as the sign-in (#214).
       '/profile/password',
       '/notebooks/:notebookId/notes/:noteId/print',

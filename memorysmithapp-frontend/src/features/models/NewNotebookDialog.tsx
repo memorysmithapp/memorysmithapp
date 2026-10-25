@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { notebookAddress } from '../../shared/api/note-address';
+import { communityAddress, notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { createNotebook, getModel, getModelVersion, listModels } from '../../shared/api/source';
 import { Modal } from '../../shared/components/Modal';
@@ -104,10 +104,26 @@ function FromModel({ onClose }: { onClose: () => void }) {
 
   if (models.isPending) return <p className="hint">{t('common.loading')}</p>;
   if (models.isError) return <p className="status">{t(messageKeyOf(models.error))}</p>;
-  if (models.data.length === 0) return <p className="hint">{t('newNotebook.noModels')}</p>;
+  // Beside the models the person may use, the ones others published (#360).
+  const community = (
+    <p className="hint">
+      <Link to={communityAddress()} onClick={onClose}>
+        {t('newNotebook.community')}
+      </Link>
+    </p>
+  );
+  if (models.data.length === 0) {
+    return (
+      <>
+        <p className="hint">{t('newNotebook.noModels')}</p>
+        {community}
+      </>
+    );
+  }
 
   return (
     <div className="new-notebook-model">
+      {community}
       <label className="field">
         <span className="field-label">{t('newNotebook.model')}</span>
         <select value={chosen ?? ''} onChange={(event) => setChosen(event.target.value || null)}>

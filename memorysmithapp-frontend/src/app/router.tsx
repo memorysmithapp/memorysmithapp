@@ -21,6 +21,11 @@ import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
+import {
+  CommunityModelPage,
+  CommunityPage,
+  CommunityVersionPage,
+} from '../features/community/CommunityPages';
 import { ModelVersionPage, SharedModelVersionPage } from '../features/models/ModelVersionPage';
 import { RequireSession, RootLayout } from './RootLayout';
 
@@ -45,6 +50,10 @@ export const router = createBrowserRouter([
     children: [
       { path: '/login', element: <LoginPage /> },
       { path: '/auth/callback', element: <AuthCallbackPage /> },
+      // The community catalog, which anybody reads, signed in or not (#360).
+      { path: '/community', element: <CommunityPage /> },
+      { path: '/community/:publicId', element: <CommunityModelPage /> },
+      { path: '/community/:publicId/versions/:version', element: <CommunityVersionPage /> },
       {
         element: <RequireSession />,
         children: [

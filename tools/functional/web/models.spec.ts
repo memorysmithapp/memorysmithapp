@@ -8,7 +8,7 @@
 import { apiToken } from '../support/accounts.js';
 import { Api } from '../support/api.js';
 import { eventually } from '../support/eventually.js';
-import { expect, openAs, test, type AppLocale } from './fixtures.js';
+import { expect, openAs, speak, test, type AppLocale } from './fixtures.js';
 
 /** The words of the model pages, copied from the locale files of the interface. */
 const MODEL_WORDS: Record<
@@ -152,4 +152,87 @@ test.describe('notebook models', () => {
       await owner.call('DELETE', `${shares}/${user.userId}`);
     }
   });
+
+  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model with no account, reads it and its version, and asks to sign in to create from it', async ({
+    page,
+    notebook,
+    owner,
+    state,
+    appLocale,
+  }) => {
+    const words = COMMUNITY_WORDS[appLocale];
+    const model = `/portability/models/${notebook.notebookId}`;
+    await owner.ok('PUT', model, { objective: `Keep the findings of ${notebook.name}` });
+    await owner.call('POST', `${model}/versions`, { changelog: 'The first version' });
+    await eventually(
+      'the first version of the model is ready',
+      () => owner.ok<{ versions: Array<{ status: string }> }>('GET', model),
+      (read) => read.versions[0]?.status === 'ready',
+      { timeoutMs: 120_000 },
+    );
+    const profile = await owner.ok<{ name: string; email: string }>('GET', '/access/profile');
+    if (!profile.name.trim() || profile.name === profile.email) {
+      await owner.ok('PUT', '/access/profile', { name: 'Functional Owner', avatar: 'initials' });
+    }
+    await owner.ok('PUT', `${model}/publication`, {
+      language: 'en',
+      acceptLicence: true,
+    });
+
+    try {
+      // No session at all: the catalog is read by anybody.
+      await speak(page, state, appLocale);
+      await page.goto(`${state.surfaces.site}/community`);
+      await expect(page.getByRole('heading', { name: words.title, level: 1 })).toBeVisible();
+      await page.getByRole('searchbox').fill(notebook.name);
+      await page.getByRole('button', { name: words.find, exact: true }).click();
+      await page.getByRole('link', { name: notebook.name }).click({ timeout: 90_000 });
+
+      await expect(page.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
+      await expect(page.getByText(words.licence, { exact: false })).toBeVisible();
+      await expect(page.getByRole('link', { name: words.signInToReport })).toBeVisible();
+      await page
+        .locator('.model-version', { hasText: 'v1' })
+        .getByRole('link', { name: words.open })
+        .click();
+      await expect(page.getByRole('heading', { name: words.version(1) })).toBeVisible();
+      await expect(page.getByRole('link', { name: words.signInToCreate })).toBeVisible();
+      await expect(page).toHaveTitle(new RegExp(notebook.name));
+    } finally {
+      await owner.call('DELETE', `${model}/publication`);
+    }
+  });
 });
+
+/** The words of the community pages, copied from the locale files of the interface. */
+const COMMUNITY_WORDS: Record<
+  AppLocale,
+  {
+    readonly title: string;
+    readonly find: string;
+    readonly licence: string;
+    readonly signInToReport: string;
+    readonly signInToCreate: string;
+    readonly open: string;
+    readonly version: (number: number) => string;
+  }
+> = {
+  en_US: {
+    title: 'Community models',
+    find: 'Find',
+    licence: 'Published under CC0 1.0',
+    signInToReport: 'Sign in to report this model',
+    signInToCreate: 'Sign in to create a notebook from this version',
+    open: 'Open',
+    version: (number) => `Version ${number}`,
+  },
+  pt_BR: {
+    title: 'Modelos da comunidade',
+    find: 'Buscar',
+    licence: 'Publicado sob CC0 1.0',
+    signInToReport: 'Entre para denunciar este modelo',
+    signInToCreate: 'Entre para criar um caderno a partir desta versão',
+    open: 'Abrir',
+    version: (number) => `Versão ${number}`,
+  },
+};

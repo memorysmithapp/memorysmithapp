@@ -1077,7 +1077,16 @@
     "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
     "creationFailed": "O caderno não foi criado. Transferências diz por quê.",
     "referenceExample": "nome",
-    "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo e as versões dele e cria cadernos a partir delas; o caderno que ele é fica com o dono."
+    "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo e as versões dele e cria cadernos a partir delas; o caderno que ele é fica com o dono.",
+    "community": "Comunidade",
+    "publishHint": "Publicar mostra o modelo e todas as versões que você mantém a qualquer pessoa, com ou sem conta, pelo nome da sua conta e nunca pelo seu e-mail; quem entra cria cadernos a partir dele. Você o retira quando quiser.",
+    "publishLicence": "Toda distribuição de um modelo é sob CC0 1.0: qualquer pessoa pode reutilizá-lo e republicá-lo livremente, inclusive na comunidade.",
+    "publish": "Publicar na comunidade",
+    "publishNeedsVersion": "Crie uma versão antes: a comunidade lê versões, nunca o caderno.",
+    "publishNeedsName": "Escreva seu nome no perfil antes: o catálogo mostra o nome, nunca o e-mail.",
+    "publishedAs": "Publicado por {{author}}, em {{language}}.",
+    "publicPage": "Abrir a página pública",
+    "withdraw": "Retirar da comunidade"
   },
   "newNotebook": {
     "open": "Novo caderno",
@@ -1092,6 +1101,35 @@
     "model": "Modelo de caderno",
     "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
     "noVersion": "Este modelo ainda não tem versão pronta.",
-    "fromVersion": "Da versão {{number}}: {{changelog}}"
+    "fromVersion": "Da versão {{number}}: {{changelog}}",
+    "community": "Ou encontre um modelo na comunidade"
+  },
+  "community": {
+    "title": "Modelos da comunidade",
+    "menu": "Modelos da comunidade",
+    "home": "Início",
+    "signIn": "Entrar",
+    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. Qualquer pessoa os lê; criar um caderno a partir de um pede que você entre.",
+    "search": "Buscar",
+    "searchHint": "Palavras do nome, do objetivo, do autor…",
+    "find": "Buscar",
+    "language": "Idioma",
+    "languages": {
+      "any": "Qualquer idioma",
+      "pt": "Português",
+      "en": "Inglês",
+      "es": "Espanhol"
+    },
+    "nothing": "Nenhum modelo publicado responde a esta busca.",
+    "byline_one": "Por {{author}} · {{language}} · atualizado em {{date}} · {{count}} versão",
+    "byline_other": "Por {{author}} · {{language}} · atualizado em {{date}} · {{count}} versões",
+    "author": "Autor",
+    "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
+    "report": "Denunciar este modelo",
+    "reportWhy": "O que há de errado com ele",
+    "sendReport": "Enviar a denúncia",
+    "reported": "Obrigado: a denúncia chegou ao operador da plataforma.",
+    "signInToReport": "Entre para denunciar este modelo",
+    "signInToCreate": "Entre para criar um caderno a partir desta versão"
   }
 }

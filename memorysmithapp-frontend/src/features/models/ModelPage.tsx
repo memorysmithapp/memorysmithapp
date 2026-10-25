@@ -4,14 +4,20 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ModelVersionDto, NotebookModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
-import { messageKeyOf } from '../../shared/api/error-mapper';
-import { modelVersionAddress, sharedModelVersionAddress } from '../../shared/api/note-address';
+import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
+import {
+  communityModelAddress,
+  modelVersionAddress,
+  sharedModelVersionAddress,
+} from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
   createModelVersion,
   declareModel,
   deleteModelVersion,
   getModel,
+  publishModel,
+  withdrawModel,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBar, contextCrumbs } from '../structure/NotebookBreadcrumb';
@@ -71,6 +77,7 @@ export function ModelPage() {
             versionAddress={(number) => modelVersionAddress(notebookId, number)}
           />
         ) : null}
+        {model.data && owner ? <Publication notebookId={notebookId} model={model.data} /> : null}
       </article>
     </>
   );
@@ -409,4 +416,99 @@ function stateOf(status: ModelVersionDto['status']): string {
     case 'cancelled':
       return 'cancelled';
   }
+}
+
+/**
+ * Publishing the model to the community (#360): what anybody will see of it,
+ * the licence every distribution is under, accepted once, and withdrawing it.
+ * Only the owner publishes, with a ready version.
+ */
+function Publication({ notebookId, model }: { notebookId: string; model: NotebookModelDto }) {
+  const { t, i18n } = useTranslation();
+  const client = useQueryClient();
+  const [language, setLanguage] = useState(i18n.language.startsWith('pt') ? 'pt-BR' : 'en');
+  const [accepted, setAccepted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const published = model.publication ?? null;
+  const ready = model.versions.some((each) => each.status === 'ready');
+  const needsLicence = model.licence === null;
+
+  async function act(what: () => Promise<unknown>): Promise<void> {
+    setBusy(true);
+    setFailure(null);
+    try {
+      await what();
+      await client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
+    } catch (error) {
+      const reason =
+        error instanceof ApiError
+          ? (error.details as { reason?: string } | undefined)?.reason
+          : undefined;
+      setFailure(reason === 'AUTHOR_NAME' ? t('model.publishNeedsName') : t(messageKeyOf(error)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="model-publication" aria-labelledby="model-publication-heading">
+      <h2 id="model-publication-heading">{t('model.community')}</h2>
+      {published ? (
+        <>
+          <p>
+            {t('model.publishedAs', { author: published.author, language: published.language })}{' '}
+            <Link to={communityModelAddress(published.publicId)}>{t('model.publicPage')}</Link>
+          </p>
+          <button
+            type="button"
+            className="button is-quiet"
+            disabled={busy}
+            onClick={() => void act(() => withdrawModel(notebookId))}
+          >
+            {t('model.withdraw')}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="hint">{t('model.publishHint')}</p>
+          <p className="callout-warning">{t('model.publishLicence')}</p>
+          <label className="field">
+            <span className="field-label">{t('community.language')}</span>
+            <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+              <option value="pt-BR">{t('community.languages.pt')}</option>
+              <option value="en">{t('community.languages.en')}</option>
+              <option value="es">{t('community.languages.es')}</option>
+            </select>
+          </label>
+          {needsLicence ? (
+            <label className="parameter-required">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(event) => setAccepted(event.target.checked)}
+              />
+              {t('sharing.dialog.acceptLicence')}
+            </label>
+          ) : null}
+          <button
+            type="button"
+            className="button is-primary"
+            disabled={busy || !ready || (needsLicence && !accepted)}
+            onClick={() =>
+              void act(() => publishModel(notebookId, { language, acceptLicence: accepted }))
+            }
+          >
+            {t('model.publish')}
+          </button>
+          {!ready ? <p className="hint">{t('model.publishNeedsVersion')}</p> : null}
+        </>
+      )}
+      {failure ? (
+        <p className="share-failure" role="alert">
+          {failure}
+        </p>
+      ) : null}
+    </section>
+  );
 }
