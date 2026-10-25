@@ -67,6 +67,11 @@ export const notebookModelSchema = z.object({
   licence: z.literal('CC0-1.0').nullable(),
   /** The e-mail of the owner who shared it, or null for a model of one's own (#355). */
   sharedBy: z.string().nullable(),
+  /** What it is published as in the community catalog, or null (#360). */
+  publication: z
+    .lazy(() => publicModelSchema)
+    .nullable()
+    .optional(),
   versions: z.array(modelVersionSchema),
 });
 
@@ -128,6 +133,65 @@ export const createFromVersionRequestSchema = z.object({
   values: z.record(z.string(), parameterValueSchema).default({}),
 });
 
+/** Publishing a model to the community (#360): its language, and CC0 1.0 once. */
+export const publishModelRequestSchema = z.object({
+  language: z.string().min(2).max(35),
+  acceptLicence: z.boolean().default(false),
+});
+
+/**
+ * A published model, as anybody sees it (#360): no subscription, no owner and
+ * no e-mail, only what the catalog shows and is searched by (#358).
+ */
+export const publicModelSchema = z.object({
+  publicId: ulidSchema,
+  name: z.string(),
+  objective: z.string(),
+  description: z.string(),
+  audience: z.string(),
+  language: z.string(),
+  /** The display name of the account that published it, never its e-mail (#357). */
+  author: z.string(),
+  basedOn: z.string().nullable(),
+  licence: z.literal('CC0-1.0'),
+  publishedAt: instantSchema,
+  updatedAt: instantSchema,
+  parameters: z.array(parameterDeclarationSchema),
+  versions: z.array(
+    z.object({
+      number: z.number().int().positive(),
+      changelog: z.string(),
+      createdAt: instantSchema,
+      bytes: z.number().int().nonnegative(),
+    }),
+  ),
+});
+
+export const catalogSearchSchema = z.object({ models: z.array(publicModelSchema) });
+
+/** A published version, read whole: the snapshot and nothing else of its subscription. */
+export const publicVersionViewSchema = modelVersionViewSchema
+  .omit({ notebookId: true, version: true })
+  .extend({
+    model: publicModelSchema,
+    version: publicModelSchema.shape.versions.element,
+  });
+
+/** A report of a published model, which only a person who signed in makes (#358). */
+export const reportModelRequestSchema = z.object({ reason: z.string().min(1).max(1000) });
+
+/** A report waiting for the operator, with the model it is about while it is published. */
+export const catalogReportSchema = z.object({
+  reportId: ulidSchema,
+  publicId: ulidSchema,
+  reason: z.string(),
+  reportedAt: instantSchema,
+  model: publicModelSchema.nullable(),
+});
+
+/** The operator withdraws a model, saying why: the author is told (#358). */
+export const withdrawModelRequestSchema = z.object({ reason: z.string().min(1).max(2000) });
+
 export type ParameterTypeDto = z.infer<typeof parameterTypeSchema>;
 export type ParameterValueDto = z.infer<typeof parameterValueSchema>;
 export type ParameterDeclarationDto = z.infer<typeof parameterDeclarationSchema>;
@@ -138,3 +202,8 @@ export type ModelListDto = z.infer<typeof modelListSchema>;
 export type CreateModelVersionRequest = z.input<typeof createModelVersionRequestSchema>;
 export type ModelVersionViewDto = z.infer<typeof modelVersionViewSchema>;
 export type CreateFromVersionRequest = z.input<typeof createFromVersionRequestSchema>;
+export type PublishModelRequest = z.input<typeof publishModelRequestSchema>;
+export type PublicModelDto = z.infer<typeof publicModelSchema>;
+export type CatalogSearchDto = z.infer<typeof catalogSearchSchema>;
+export type PublicVersionViewDto = z.infer<typeof publicVersionViewSchema>;
+export type CatalogReportDto = z.infer<typeof catalogReportSchema>;

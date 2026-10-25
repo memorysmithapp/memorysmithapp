@@ -23,7 +23,11 @@
     "./application/previews": "./src/application/Previews.ts",
     "./adapters/previews": "./src/adapters/previews.ts",
     "./application/models": "./src/application/Models.ts",
-    "./domain/model": "./src/domain/NotebookModel.ts"
+    "./domain/model": "./src/domain/NotebookModel.ts",
+    "./adapters/catalog": "./src/adapters/catalog.ts",
+    "./application/catalog": "./src/application/Catalog.ts",
+    "./domain/catalog": "./src/domain/CommunityCatalog.ts",
+    "./adapters/catalog-http": "./src/adapters/catalog-http.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

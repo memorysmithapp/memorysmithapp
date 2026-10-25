@@ -169,6 +169,25 @@ import {
   type ModelSources,
 } from '@memorysmithapp/svc-portability/application/models';
 import {
+  InMemoryCatalogReports,
+  InMemoryCatalogStore,
+} from '@memorysmithapp/svc-portability/adapters/catalog';
+import {
+  CreateFromCatalog,
+  PublicationOf,
+  PublishModel,
+  ReportModel,
+  WithdrawModel,
+  refreshPublication,
+  type CatalogReading,
+} from '@memorysmithapp/svc-portability/application/catalog';
+import {
+  catalogOperatorUseCasesOf,
+  forgetPublication,
+  NO_EDGE_CACHE,
+  publicCatalogUseCasesOf,
+} from '../src/catalog.js';
+import {
   InMemoryPartStore,
   InMemoryPreviewQueue,
   InMemoryPreviewStore,
@@ -236,7 +255,7 @@ import {
 } from '@memorysmithapp/svc-discovery/application/projections';
 import { createApp } from '../src/app.js';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
-import { StorageQuota } from '@memorysmithapp/svc-access/domain/values';
+import { Email, StorageQuota } from '@memorysmithapp/svc-access/domain/values';
 import { noSubscription, SubscriptionUsageReport } from '../src/usage.js';
 
 export class RecordingEventPublisher implements EventPublisher {
@@ -478,15 +497,15 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         knowledgeRepos(request.subscription),
         request.subscription,
         sharing.shares,
-        (notebookId) =>
-          new ForgetModel(
-            { models: modelStoreOf(request.subscription), transfers },
-            async (transfer) => {
-              await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
-                transfer.transferId,
-              );
-            },
-          ).execute(notebookId.value),
+        async (notebookId) => {
+          const models = modelStoreOf(request.subscription);
+          await forgetPublication({ models, catalog, cache: NO_EDGE_CACHE }, notebookId.value);
+          await new ForgetModel({ models, transfers }, async (transfer) => {
+            await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
+              transfer.transferId,
+            );
+          }).execute(notebookId.value);
+        },
       ),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
     deleteGuidance: (request) => new DeleteGuidance(knowledgeRepos(request.subscription)),
@@ -704,6 +723,18 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     queue: {
       send: async (work) => {
         await new RunExport(transfers, await exporterFor(request, work)).execute(work);
+        // As the worker does: a version made ready joins a published model (#360).
+        if (work.modelVersion && work.notebookId) {
+          await refreshPublication(
+            {
+              models: modelStoreOf(request.subscription),
+              transfers,
+              catalog,
+              cache: NO_EDGE_CACHE,
+            },
+            work.notebookId,
+          );
+        }
       },
     },
     budget: { current: async () => ({ usedBytes: 0, limitBytes: Number.MAX_SAFE_INTEGER }) },
@@ -726,6 +757,20 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       sharing,
       parse: notebookIdOf,
     });
+  /** The community catalog (#360), at the level of the platform, in memory. */
+  const catalog = new InMemoryCatalogStore();
+  const catalogReports = new InMemoryCatalogReports();
+  const catalogReading: CatalogReading = {
+    catalog,
+    access: {
+      grants: async (id) =>
+        ['trial', 'active'].includes(
+          accessDb.subscriptions.get(`S#${id}`)?.subscription.status.name ?? '',
+        ),
+    },
+  };
+  /** What the operator's withdrawals told their authors, for a test to read. */
+  const authorMail: Array<{ to: string; name: string; reason: string }> = [];
   const callerOf = (request: PortabilityRequest): ModelCaller => ({
     subscriptionId: request.subscription.subscriptionId.value,
     userId: request.subscription.userId.value,
@@ -893,6 +938,10 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
           transfer.transferId,
         );
+        await refreshPublication(
+          { ...modelsOf(request), catalog, cache: NO_EDGE_CACHE },
+          transfer.notebookId ?? '',
+        );
       }),
     createFromVersion: (request) =>
       new CreateFromVersion(
@@ -900,6 +949,25 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         callerOf(request),
         uploadStore,
         portabilityUseCases.startImport(request),
+      ),
+    // The community catalog (#360), over the same use cases production builds.
+    publishModel: (request) =>
+      new PublishModel({ ...modelsOf(request), catalog, cache: NO_EDGE_CACHE }, callerOf(request)),
+    withdrawModel: (request) =>
+      new WithdrawModel({ ...modelsOf(request), catalog, cache: NO_EDGE_CACHE }, callerOf(request)),
+    publicationOf: (request) =>
+      new PublicationOf({ models: modelStoreOf(request.subscription), catalog }),
+    createFromCatalog: (request) =>
+      new CreateFromCatalog(
+        catalogReading,
+        callerOf(request),
+        uploadStore,
+        portabilityUseCases.startImport(request),
+      ),
+    reportModel: (request) =>
+      new ReportModel(
+        { ...catalogReading, reports: catalogReports },
+        request.subscription.userId.value,
       ),
   };
 
@@ -960,6 +1028,23 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     auditUseCases,
     discoveryUseCases,
     portabilityUseCases,
+    publicCatalog: publicCatalogUseCasesOf(catalogReading, {
+      read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
+    }),
+    catalogOperator: catalogOperatorUseCasesOf({
+      catalog,
+      reports: catalogReports,
+      cache: NO_EDGE_CACHE,
+      notifier: {
+        withdrawn: async (entry, reason) => {
+          authorMail.push({ to: entry.authorEmail, name: entry.name, reason });
+        },
+      },
+    }),
+    nameOf: async (email) => {
+      const parsed = Email.create(email);
+      return parsed.ok ? accountDirectory.nameOf(parsed.value) : null;
+    },
     // Discovery holds no notebook, so it asks the context that owns it.
     canReadNotebook: async (request, notebookId) => {
       const parsed = (await import('@memorysmithapp/kernel')).NotebookId.create(notebookId);
@@ -1033,6 +1118,12 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     parts,
     /** What the purge worker would have recorded, for the counters to read (#197). */
     relayed,
+    /** The names of the accounts, which the catalog shows of an author (#357). */
+    accountDirectory,
+    /** The catalog and its reports, and what the authors were told (#360). */
+    catalog,
+    catalogReports,
+    authorMail,
     /** Makes the discard of an upload fail, or stop failing when given null. */
     refuseDiscard: (error: Error | null): void => {
       refusals.discard = error;

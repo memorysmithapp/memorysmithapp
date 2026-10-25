@@ -111,12 +111,20 @@ export interface ApiStackProps extends StackProps {
   readonly frontendOrigin: string;
   /** The pool whose accounts record the language they are written to in (RN-ACC-018). */
   readonly userPool: IUserPool;
+  /**
+   * The address the product writes from, on the verified domain of the
+   * environment: an author is told from it that the operator withdrew their
+   * model (#358).
+   */
+  readonly senderAddress: string;
 }
 
 export class ApiStack extends Stack {
   readonly apiOrigin: string;
   /** Where the parts of an upload are sent (#241). */
   readonly uploadsOrigin: string;
+  /** Where anybody reads the community catalog, through the edge (#360). */
+  readonly catalogOrigin: string;
   readonly httpApi: HttpApi;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -157,6 +165,51 @@ export class ApiStack extends Stack {
       deadLetterQueue: { queue: printDlq, maxReceiveCount: 1 },
     });
 
+    /**
+     * The edge in front of the public route of the community catalog (#356,
+     * #360). Anonymous reads are kept a minute, so a crowd reading the catalog
+     * does not become Lambda and DynamoDB; a withdrawal empties it at once,
+     * which is the API's one CloudFront permission. It answers on the
+     * distribution's own host, so no certificate or record is needed, and it
+     * carries the CORS of the site itself: the Origin of a request is not part
+     * of what it keeps, so the gateway's answer to it cannot be.
+     */
+    const catalogCors = new ResponseHeadersPolicy(this, 'CatalogHeaders', {
+      comment: `MemorySmith catalog (${props.environment.name})`,
+      corsBehavior: {
+        accessControlAllowCredentials: false,
+        accessControlAllowHeaders: ['content-type'],
+        accessControlAllowMethods: ['GET', 'HEAD', 'OPTIONS'],
+        accessControlAllowOrigins: [props.frontendOrigin, 'http://localhost:5173'],
+        accessControlExposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version'],
+        originOverride: true,
+      },
+    });
+    const catalogCache = new CachePolicy(this, 'CatalogCache', {
+      comment: `MemorySmith catalog (${props.environment.name}): a minute at the edge`,
+      defaultTtl: Duration.seconds(60),
+      minTtl: Duration.seconds(0),
+      maxTtl: Duration.minutes(5),
+      queryStringBehavior: CacheQueryStringBehavior.allowList('q', 'language'),
+      headerBehavior: CacheHeaderBehavior.none(),
+      cookieBehavior: CacheCookieBehavior.none(),
+    });
+    const catalogEdge = new Distribution(this, 'CatalogDistribution', {
+      comment: `MemorySmith community catalog (${props.environment.name})`,
+      priceClass: PriceClass.PRICE_CLASS_100,
+      defaultBehavior: {
+        origin: new HttpOrigin(props.apiDomainName, {
+          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+        }),
+        allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachePolicy: catalogCache,
+        originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        responseHeadersPolicy: catalogCors,
+        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+    });
+    this.catalogOrigin = `https://${catalogEdge.distributionDomainName}`;
+
     const environment = {
       ACCESS_TABLE: props.data.accessTable.table.tableName,
       KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
@@ -175,6 +228,9 @@ export class ApiStack extends Stack {
       UPLOADS_ORIGIN: `https://${props.uploadsDomainName}`,
       // Where a link to a kept file or an export is answered (#255).
       FILES_ORIGIN: `https://${props.filesDomainName}`,
+      // The edge a withdrawal empties, and who an author is told from (#360).
+      CATALOG_DISTRIBUTION_ID: catalogEdge.distributionId,
+      SENDER_ADDRESS: props.senderAddress,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -249,6 +305,71 @@ export class ApiStack extends Stack {
     // The API READS the trail and can never write it: the Deny travels with
     // the grant (PE4).
     props.data.auditTable.grantRead(api.function);
+    /**
+     * The community catalog (#360): a withdrawal empties the edge of the public
+     * route, and the operator's withdrawal tells the author, from the address
+     * of the environment and from no other.
+     */
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['cloudfront:CreateInvalidation'],
+        resources: [
+          `arn:aws:cloudfront::${this.account}:distribution/${catalogEdge.distributionId}`,
+        ],
+      }),
+    );
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['ses:SendEmail'],
+        resources: ['*'],
+        conditions: { StringEquals: { 'ses:FromAddress': props.senderAddress } },
+      }),
+    );
+
+    /**
+     * The public route of the catalog, a function of its own (#356): what it
+     * may reach is what makes it safe to answer anybody. It reads the catalog
+     * partition of the portability table and nothing else of it, the status of
+     * a subscription and no other attribute of the access table, and the
+     * snapshots of versions of models; it writes nothing.
+     */
+    const publicCatalog = new ServiceLambda(this, 'PublicCatalog', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'catalog.handler.ts'),
+      description: 'MemorySmith community catalog: the public, read-only route.',
+      environment: {
+        PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
+        ACCESS_TABLE: props.data.accessTable.table.tableName,
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+      },
+      timeout: Duration.seconds(10),
+      memorySize: 512,
+    });
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:GetItem', 'dynamodb:Query'],
+        resources: [props.data.portabilityTable.table.tableArn],
+        conditions: { 'ForAllValues:StringEquals': { 'dynamodb:LeadingKeys': ['CATALOG'] } },
+      }),
+    );
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:GetItem'],
+        resources: [props.data.accessTable.table.tableArn],
+        conditions: {
+          'ForAllValues:StringEquals': { 'dynamodb:Attributes': ['PK', 'SK', 'status'] },
+          StringEqualsIfExists: { 'dynamodb:Select': 'SPECIFIC_ATTRIBUTES' },
+        },
+      }),
+    );
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:GetObject', 's3:GetObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/models/*')],
+      }),
+    );
+    if (props.data.contentBucket.encryptionKey) {
+      props.data.contentBucket.encryptionKey.grantDecrypt(publicCatalog.function);
+    }
     // ---- The outbox relay ---------------------------------------------------
 
     const relayDlq = new Queue(this, 'RelayDeadLetter', {
@@ -574,6 +695,23 @@ export class ApiStack extends Stack {
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration('ConnectorBindingIntegration', api.function),
       authorizer: new HttpIamAuthorizer(),
+    });
+
+    // Anybody, an account or none, reaches the catalog on these paths (#360);
+    // the function answers what an entry says and nothing else.
+    const catalogIntegration = new HttpLambdaIntegration(
+      'PublicCatalogIntegration',
+      publicCatalog.function,
+    );
+    this.httpApi.addRoutes({
+      path: '/public/catalog',
+      methods: [HttpMethod.GET],
+      integration: catalogIntegration,
+    });
+    this.httpApi.addRoutes({
+      path: '/public/catalog/{proxy+}',
+      methods: [HttpMethod.GET],
+      integration: catalogIntegration,
     });
 
     new ARecord(this, 'ApiRecord', {

@@ -63,11 +63,15 @@ import {
 import {
   buildAccess,
   buildKnowledge,
+  buildModels,
   buildShares,
   parseNotebookDocument,
   serializeNotebookDocument,
   type Infrastructure,
 } from './composition-root.js';
+import { DynamoCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
+import { refreshPublication } from '@memorysmithapp/svc-portability/application/catalog';
+import { NO_EDGE_CACHE } from './catalog.js';
 
 interface QueueEvent {
   Records?: Array<{
@@ -268,4 +272,16 @@ async function run(work: TransferWork): Promise<void> {
     ),
   );
   await new RunExport(transfers, exporter, unexpected).execute(work);
+  // A version made ready joins the catalog entry of a published model (#360).
+  if (work.modelVersion && work.notebookId) {
+    await refreshPublication(
+      {
+        models: buildModels(infra, context),
+        transfers,
+        catalog: new DynamoCatalogStore(infra.db, infra.portabilityTable),
+        cache: NO_EDGE_CACHE,
+      },
+      work.notebookId,
+    );
+  }
 }

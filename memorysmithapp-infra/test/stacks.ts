@@ -100,6 +100,7 @@ export function stacksOf(app: App) {
     connectorClientId: identity.proxyClient.userPoolClientId,
     webClientId: identity.webClient.userPoolClientId,
     frontendOrigin: `https://${network.siteDomainName}`,
+    senderAddress: network.senderAddress,
   });
   const projections = new ProjectionsStack(app, id('Projections'), { env, environment, data });
   const agent = new AgentStack(app, id('Agent'), {

@@ -153,6 +153,7 @@ export class DeclareModel {
       updatedAt: now,
       nextVersion: held?.nextVersion ?? 1,
       licenceAcceptedAt: held?.licenceAcceptedAt ?? null,
+      publicId: held?.publicId ?? null,
     };
     await this.deps.models.put(model);
     return ok(model);

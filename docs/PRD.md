@@ -66,6 +66,7 @@ The terms as the code names them. In the `pt_BR` locale, and only there, four ar
 | **Notebook Context**    | The Guidance and the annotated tree, composed for an agent on every call, never stored                            |
 | **Kept file**           | Bytes a notebook keeps, with a name, description, type, tags and path; a note shows it by its name                |
 | **Notebook model**      | A notebook declared as a model, from which independent notebooks are created; distinct from a Template            |
+| **Community catalog**   | Where the models their owners published are found, read by anybody and created from by whoever signs in           |
 | **Model version**       | A numbered, frozen snapshot of a model notebook, with its changelog and parameters                                |
 | **Parameter**           | A value a notebook created from a model fills in, declared by the model and written `{{name}}` in its notes        |
 | **Link**, **embed**     | A reference from a note to another note or a kept file, by name: `[[name]]` and `![[name]]`                       |
@@ -439,6 +440,11 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-040 | A notebook created from a version is an import of its snapshot under a name the person gives, the name of the model filled in by default: every identifier minted anew, no history, nothing that depends on the model; the import records the version it came from as information only, and the notebook keeps working whatever becomes of the model. | |
 | RN-PRT-041 | The interface offers, in a notebook, its model: the owner declares it there and creates and deletes its versions, and whoever reads the notebook reads them; Home creates a notebook blank, or from the ready version of a model the person reads, asking each parameter in the form of its type. | |
 | RN-PRT-042 | Whoever holds an accepted share of a model notebook, whatever its profile, reads its model and versions and creates notebooks from them, written and counted in their own subscription; the models listed include those shared with the person, with their owner; only the owner declares and versions, and sharing, accepting and revoking change no storage. | |
+| RN-PRT-043 | Only the `OWNER` publishes a model to the community catalog, with at least one ready version, its language, the display name of their account and CC0 1.0 accepted once; the catalog shows that name and never an e-mail, and the credit the model gives when it gives one, never required. | |
+| RN-PRT-044 | A published model lists every version its author retains, the newest first, with number, date and changelog: a version made ready joins it, a deleted one leaves it, and a model left with none is withdrawn; the owner withdraws it at any time, and nothing created from it is touched. | |
+| RN-PRT-045 | Anybody, an account or none, searches the catalog by name, objective, description, audience, author and language, and reads a published model and each of its versions whole, and nothing else of the author's subscription; a model whose subscription grants no access answers `404`, as a withdrawn one does. | |
+| RN-PRT-046 | Whoever signs in creates a notebook from a published version, with its parameters filled in, written and counted in their own subscription; publishing and withdrawing change no storage. | |
+| RN-PRT-047 | Whoever signs in reports a published model, saying why, to the operator of the platform, who reads the reports and may withdraw the model, which deletes its catalog entry and nothing of the author's, the author told by e-mail. | |
 
 ## 8. Quality requirements
 

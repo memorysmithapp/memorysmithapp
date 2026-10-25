@@ -84,6 +84,7 @@ const api = new ApiStack(app, id('Api'), {
   connectorClientId: identity.proxyClient.userPoolClientId,
   webClientId: identity.webClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,
+  senderAddress: network.senderAddress,
 });
 
 const projections = new ProjectionsStack(app, id('Projections'), { env, environment, data });
@@ -117,6 +118,7 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
     apiOrigin: api.apiOrigin,
     connectorOrigin: `https://${network.mcpDomainName}`,
     uploadsOrigin: api.uploadsOrigin,
+    catalogOrigin: api.catalogOrigin,
     cognitoDomain: identity.hostedUiOrigin,
     cognitoClientId: identity.webClient.userPoolClientId,
     environment: deployment.environment,

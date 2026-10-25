@@ -81,6 +81,7 @@ function templates(): { api: Template; projections: Template } {
     connectorClientId: identity.proxyClient.userPoolClientId,
     webClientId: identity.webClient.userPoolClientId,
     frontendOrigin: `https://${network.siteDomainName}`,
+    senderAddress: network.senderAddress,
   });
   const projections = new ProjectionsStack(app, stackId(environment, 'Projections'), {
     env,
@@ -346,5 +347,53 @@ describe('the renderer of prints and previews', () => {
     expect(s3.some((each) => each.actions.some((action) => action.startsWith('s3:Delete')))).toBe(
       false,
     );
+  });
+});
+
+/**
+ * The public route of the community catalog answers anybody (#356, #360), so
+ * what keeps it from reaching a subscription is its role: the catalog entries,
+ * the status of a subscription and the snapshots of versions, read, and
+ * nothing written.
+ */
+describe('the public route of the catalog', () => {
+  const PUBLIC_CATALOG = 'MemorySmith community catalog: the public, read-only route.';
+  const { api } = templates();
+  const role = rolesByDescription(api).get(PUBLIC_CATALOG) ?? '';
+  const allowed = allowedOf(api, role);
+
+  it('is a function of its own', () => {
+    expect(role).not.toBe('');
+  });
+
+  it('only reads', () => {
+    const actions = allowed.flatMap((each) => each.actions);
+    const reads = /^(dynamodb:(GetItem|Query)|s3:GetObject(Version)?|logs:|xray:)/;
+    expect(actions.filter((action) => !reads.test(action))).toEqual([]);
+  });
+
+  it('reads the snapshots of versions of models and no other object', () => {
+    const s3 = allowed.filter((each) => each.actions.some((action) => action.startsWith('s3:')));
+    expect(s3).toHaveLength(1);
+    expect(s3[0]?.resource).toContain('s/*/models/*');
+  });
+
+  it('reads the catalog partition of the portability table, and the status of a subscription', () => {
+    const statements = Object.values(api.findResources('AWS::IAM::Policy'))
+      .filter((policy) =>
+        ((policy.Properties as { Roles?: Array<{ Ref?: string }> }).Roles ?? []).some(
+          (each) => each.Ref === role,
+        ),
+      )
+      .flatMap(
+        (policy) =>
+          (policy.Properties as { PolicyDocument: { Statement: Array<Record<string, unknown>> } })
+            .PolicyDocument.Statement,
+      )
+      .filter((statement) => JSON.stringify(statement['Action']).includes('dynamodb:'));
+    expect(statements).toHaveLength(2);
+    for (const statement of statements) expect(statement['Condition']).toBeDefined();
+    expect(JSON.stringify(statements)).toContain('"dynamodb:LeadingKeys":["CATALOG"]');
+    expect(JSON.stringify(statements)).toContain('"dynamodb:Attributes":["PK","SK","status"]');
   });
 });

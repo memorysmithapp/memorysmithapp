@@ -61,6 +61,8 @@ export interface NotebookModel {
    * it is its author's under no licence.
    */
   readonly licenceAcceptedAt: string | null;
+  /** Its identifier in the community catalog while it is published, or null (#360). */
+  readonly publicId: string | null;
 }
 
 /** The one licence every distribution of a model is under (#357). */

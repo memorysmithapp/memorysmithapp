@@ -38,6 +38,8 @@ export interface InterfaceConfig {
    * one in their client.
    */
   readonly uploadsOrigin: string;
+  /** Where anybody reads the community catalog, through the edge (#360). */
+  readonly catalogOrigin: string;
   readonly cognitoDomain: string;
   readonly cognitoClientId: string;
   readonly environment: string;

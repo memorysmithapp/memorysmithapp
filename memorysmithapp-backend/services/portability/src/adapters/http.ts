@@ -43,6 +43,8 @@ import {
   createFromVersionRequestSchema,
   createModelVersionRequestSchema,
   declareModelRequestSchema,
+  publishModelRequestSchema,
+  reportModelRequestSchema,
   finishedUploadSchema,
   importFromExportRequestSchema,
   importUploadSchema,
@@ -85,6 +87,15 @@ import type {
   ViewModelVersion,
   VersionView,
 } from '../application/Models.js';
+import type {
+  Author,
+  CreateFromCatalog,
+  PublicationOf,
+  PublishModel,
+  ReportModel,
+  WithdrawModel,
+} from '../application/Catalog.js';
+import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 import {
   MODEL_LICENCE,
   type NotebookModel,
@@ -137,6 +148,11 @@ export interface PortabilityRequest {
    * creating its versions ask (#353): they occupy its storage.
    */
   readonly isOwner: boolean;
+  /**
+   * Who is publishing, as the catalog shows them: the display name of the
+   * account, never its e-mail, and the e-mail a withdrawal is told to (#360).
+   */
+  readonly author: () => Promise<Author>;
 }
 
 export interface PortabilityUseCases {
@@ -167,6 +183,12 @@ export interface PortabilityUseCases {
   readonly viewModelVersion: (request: PortabilityRequest) => ViewModelVersion;
   readonly deleteModelVersion: (request: PortabilityRequest) => DeleteModelVersion;
   readonly createFromVersion: (request: PortabilityRequest) => CreateFromVersion;
+  // The community catalog (#360).
+  readonly publishModel: (request: PortabilityRequest) => PublishModel;
+  readonly withdrawModel: (request: PortabilityRequest) => WithdrawModel;
+  readonly publicationOf: (request: PortabilityRequest) => PublicationOf;
+  readonly createFromCatalog: (request: PortabilityRequest) => CreateFromCatalog;
+  readonly reportModel: (request: PortabilityRequest) => ReportModel;
 }
 
 /** A model on the wire (#353): what it says of itself, and its versions. */
@@ -218,6 +240,14 @@ function versionViewToDto({
     audience: meta?.audience ?? model.audience,
     parameters: (meta?.parameters ?? model.parameters).map(parameterToDto),
     basedOn: meta?.basedOn ?? model.basedOn,
+    ...documentToDto(document),
+    references,
+  };
+}
+
+/** What a frozen snapshot holds, on the wire: every part, and the size of each file. */
+export function documentToDto(document: NotebookDocument): Record<string, unknown> {
+  return {
     notebook: document.notebook,
     folders: document.folders.map((folder) => ({
       folderId: folder.folderId,
@@ -237,7 +267,6 @@ function versionViewToDto({
       // The bytes travel as base64 in the document; what is said is their size.
       bytes: Math.floor((file.bytes.replace(/=+$/, '').length * 3) / 4),
     })),
-    references,
   };
 }
 
@@ -333,11 +362,17 @@ export function createPortabilityRoutes(
   app.get('/models/:v', async (c) => {
     const request = c.get('portability');
     const found = await useCases.getModel(request).execute(c.req.param('v') ?? '');
-    return present(c, found, ({ model, versions, sharedBy }) => ({
+    if (!found.ok) return fail(c, found.error);
+    const { model, versions, sharedBy } = found.value;
+    // Where it stands in the community catalog, for whoever reads it here (#360).
+    const publication =
+      sharedBy === null ? await useCases.publicationOf(request).execute(model.notebookId) : null;
+    return c.json({
       ...modelToDto(model),
       sharedBy,
+      publication,
       versions: versions.map(versionToDto),
-    }));
+    });
   });
 
   app.put('/models/:v', async (c) => {
@@ -403,6 +438,64 @@ export function createPortabilityRoutes(
       by: request.authorship.value,
     });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
+  });
+
+  /**
+   * Publishing a model to the community (#360), and withdrawing it. What it is
+   * published as is answered, which is what anybody will see of it.
+   */
+  app.put('/models/:v/publication', async (c) => {
+    const request = c.get('portability');
+    const body = publishModelRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) {
+      return fail(c, DomainError.validation('A publication takes the language of the model'));
+    }
+    const published = await useCases.publishModel(request).execute({
+      notebookId: c.req.param('v') ?? '',
+      language: body.data.language,
+      acceptLicence: body.data.acceptLicence,
+      author: await request.author(),
+    });
+    return present(c, published, (model) => model);
+  });
+
+  app.delete('/models/:v/publication', async (c) => {
+    const request = c.get('portability');
+    const withdrawn = await useCases.withdrawModel(request).execute(c.req.param('v') ?? '');
+    return withdrawn.ok ? c.body(null, 204) : fail(c, withdrawn.error);
+  });
+
+  /** A notebook created from a published version, in the caller's own subscription (#360). */
+  app.post('/catalog/:p/versions/:n/notebooks', async (c) => {
+    const request = c.get('portability');
+    if (!request.authorship.ok) return fail(c, request.authorship.error);
+    const body = createFromVersionRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) {
+      return fail(
+        c,
+        DomainError.validation('A creation takes a name and the values of the parameters'),
+      );
+    }
+    const started = await useCases.createFromCatalog(request).execute({
+      publicId: c.req.param('p') ?? '',
+      number: Number(c.req.param('n')),
+      name: body.data.name,
+      values: body.data.values,
+      by: request.authorship.value,
+    });
+    return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
+  });
+
+  /** A report of a published model, which only a person who signed in makes (#358). */
+  app.post('/catalog/:p/reports', async (c) => {
+    const request = c.get('portability');
+    const body = reportModelRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return fail(c, DomainError.validation('A report says why'));
+    const reported = await useCases.reportModel(request).execute({
+      publicId: c.req.param('p') ?? '',
+      reason: body.data.reason,
+    });
+    return reported.ok ? c.body(null, 204) : fail(c, reported.error);
   });
 
   app.delete('/models/:v/versions/:n', async (c) => {

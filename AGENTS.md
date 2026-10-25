@@ -62,8 +62,8 @@ One line each; the reason lives where the link points.
 
 Breaking one is a rewrite, not a defect: when a task seems to require it, stop and raise the question. The mechanism of each is in [`ARCHITECTURE.md` §3](docs/ARCHITECTURE.md#3-invariants-and-their-mechanisms).
 
-- **INV-01** Every key starts with the subscription, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3; the only exceptions are the links of a person and the platform queue ([mechanism](docs/ARCHITECTURE.md#inv-01-every-key-starts-with-the-subscription)).
-- **INV-02** The subscription comes from the token, never from the path, the query, the body or a header ([mechanism](docs/ARCHITECTURE.md#inv-02-the-subscription-comes-from-the-token-never-from-the-request)).
+- **INV-01** Every key starts with the subscription, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3; the only exceptions are the links of a person, the platform queue and the community catalog ([mechanism](docs/ARCHITECTURE.md#inv-01-every-key-starts-with-the-subscription)).
+- **INV-02** The subscription comes from the token, never from the path, the query, the body or a header; the one exception is the read-only public catalog route, through its catalog entry ([mechanism](docs/ARCHITECTURE.md#inv-02-the-subscription-comes-from-the-token-never-from-the-request)).
 - **INV-03** `domain/` and `application/` never import the AWS SDK, "just to get a type" included ([mechanism](docs/ARCHITECTURE.md#inv-03-the-domain-does-not-import-the-aws-sdk)).
 - **INV-04** The S3 key is only a `ContentId`; renaming, moving and reordering never write to S3 ([mechanism](docs/ARCHITECTURE.md#inv-04-the-s3-key-is-opaque)).
 - **INV-05** The backend reads only the notation the specification declares, in its named readers, and never interprets what a note means ([mechanism](docs/ARCHITECTURE.md#inv-05-the-backend-reads-only-the-notation-the-specification-declares)).
