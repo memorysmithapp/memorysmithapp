@@ -58,6 +58,15 @@ export function valueOf(type: ParameterTypeDto, typed: string): ParameterValueDt
   }
 }
 
+/**
+ * The default of a parameter that is not required: a value of its type, or an
+ * empty date, which writes nothing where it stands (#363).
+ */
+function defaultOf(type: ParameterTypeDto, typed: string): ParameterValueDto | null {
+  if (type === 'date' && typed.trim() === '') return '';
+  return valueOf(type, typed);
+}
+
 /** Why a parameter cannot be declared as it stands, as a key of the strings, or null. */
 export function parameterProblem(
   draft: ParameterDraft,
@@ -66,7 +75,7 @@ export function parameterProblem(
   const name = draft.name.trim().normalize('NFC');
   if (!NAME.test(name)) return 'name';
   if (others.some((other) => other.name.trim().normalize('NFC') === name)) return 'duplicate';
-  if (!draft.required && valueOf(draft.type, draft.defaultText) === null) return 'default';
+  if (!draft.required && defaultOf(draft.type, draft.defaultText) === null) return 'default';
   return null;
 }
 
@@ -83,7 +92,7 @@ export function declarationsOf(
       example: draft.example.trim(),
       type: draft.type,
       required: draft.required,
-      default: draft.required ? null : valueOf(draft.type, draft.defaultText),
+      default: draft.required ? null : defaultOf(draft.type, draft.defaultText),
     });
   }
   return declared;

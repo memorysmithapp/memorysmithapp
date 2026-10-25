@@ -1167,7 +1167,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
               default: {
                 description:
                   'The value of one not required, of its type: a text, a list of texts, true or ' +
-                  'false, or a date as YYYY-MM-DD. It may be empty.',
+                  'false, or a date as YYYY-MM-DD. It may be empty: "" for a text or a date, [] for ' +
+                  'a list, and an empty one writes nothing where the parameter stands.',
               },
             },
             required: ['name', 'type', 'required'],

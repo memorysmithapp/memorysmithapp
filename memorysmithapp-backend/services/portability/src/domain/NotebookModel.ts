@@ -121,6 +121,14 @@ function validDate(value: string): boolean {
 }
 
 /**
+ * Whether `value` may be the default of a parameter of `type`: a value of the
+ * type, or, for a date, empty — a date nobody gave writes nothing (#363).
+ */
+export function isDefaultOf(type: ParameterType, value: unknown): value is ParameterValue {
+  return (type === 'date' && value === '') || isValueOf(type, value);
+}
+
+/**
  * What the author declared, checked: lengths, a name a reference can carry and
  * that no other parameter carries after NFC, a known type, and a default valid
  * for its type on every parameter that is not required.
@@ -173,7 +181,7 @@ export function checkedDeclaration(input: ModelDeclaration): Result<ModelDeclara
     if (!said.ok) return said;
     const example = text(parameter.example, 'An example of a parameter', LIMITS.parameterExample);
     if (!example.ok) return example;
-    if (!parameter.required && !isValueOf(parameter.type, parameter.default)) {
+    if (!parameter.required && !isDefaultOf(parameter.type, parameter.default)) {
       return err(
         DomainError.validation(
           `The parameter "${name}" is not required, so it takes a default of type ${parameter.type}`,

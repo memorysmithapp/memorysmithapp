@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { ParameterDeclaration } from '../src/domain/NotebookModel.js';
+import { checkedDeclaration, type ParameterDeclaration } from '../src/domain/NotebookModel.js';
 import {
   fillMarkdown,
   fillText,
@@ -112,5 +112,46 @@ describe('what a version writes against what its model declares', () => {
       undeclared: ['cliente'],
       unused: ['ativo', 'blocos', 'início', 'síndico'],
     });
+  });
+});
+
+describe('a date nobody gave (#363)', () => {
+  const withEnd: ParameterDeclaration[] = [
+    ...declared,
+    { name: 'fim', description: '', example: '', type: 'date', required: false, default: '' },
+  ];
+
+  it('is declared with an empty default', () => {
+    const checked = checkedDeclaration({
+      objective: 'x',
+      description: '',
+      audience: '',
+      basedOn: null,
+      parameters: withEnd,
+    });
+    expect(checked.ok).toBe(true);
+  });
+
+  it('writes nothing where it stands', () => {
+    const resolved = resolveValues(withEnd, {
+      condomínio: 'Aurora',
+      início: '2026-11-01',
+      fim: '',
+    });
+    if (!resolved.ok) throw new Error(resolved.error.message);
+    const filled = resolved.value;
+    expect(filled.get('fim')?.value).toBe('');
+    expect(fillMarkdown('---\nname: X\nfim: {{fim}}\n---\n\nAté {{fim}}.\n', filled)).toBe(
+      '---\nname: X\nfim: \n---\n\nAté .\n',
+    );
+  });
+
+  it('still refuses a value given that is no date', () => {
+    const refused = resolveValues(withEnd, {
+      condomínio: 'Aurora',
+      início: '2026-11-01',
+      fim: 'soon',
+    });
+    expect(refused.ok).toBe(false);
   });
 });

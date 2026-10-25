@@ -112,3 +112,20 @@ describe('the values of a creation', () => {
     expect(valueOf('date', '01/11/2026')).toBeNull();
   });
 });
+
+describe('a date that is not required (#363)', () => {
+  it('may default to nothing, and is declared with an empty default', () => {
+    const draft = {
+      ...draftOf({
+        name: 'fim',
+        description: '',
+        example: '',
+        type: 'date',
+        required: false,
+        default: '',
+      }),
+    };
+    expect(parameterProblem(draft, [])).toBeNull();
+    expect(declarationsOf([draft])?.[0]?.default).toBe('');
+  });
+});

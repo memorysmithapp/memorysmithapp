@@ -57,7 +57,7 @@ export function resolveValues(
     if (
       given === undefined ||
       given === null ||
-      (declaration.type === 'text' && given === '' && declaration.required)
+      (given === '' && (declaration.type === 'date' || declaration.required))
     ) {
       if (declaration.required) {
         missing.push(declaration.name);
