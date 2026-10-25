@@ -473,7 +473,7 @@ describe('a file the person hands over (#295)', () => {
 describe('the catalogue', () => {
   const cases = loadCases();
 
-  it('holds AE-00 to AE-03, AE-06 and AE-07, each with a variant, a check and a rubric', () => {
+  it('holds AE-00 to AE-03 and AE-06 to AE-09, each with a variant, a check and a rubric', () => {
     expect(cases.map((each) => each.id)).toEqual([
       'AE-00',
       'AE-01',
@@ -481,6 +481,9 @@ describe('the catalogue', () => {
       'AE-03',
       'AE-06',
       'AE-07',
+      // A model derived from a notebook that worked, and one designed from scratch (#352).
+      'AE-08',
+      'AE-09',
     ]);
     for (const each of cases) {
       expect(each.variants.length).toBeGreaterThan(0);
@@ -555,5 +558,57 @@ describe('the scorecard of a round', () => {
     });
     expect(card).toContain('| room-held | 1/2 | — |');
     expect(card).toContain('| runs discarded for a leak | 0 | 1 |');
+  });
+});
+
+describe('the checks of a model (#352)', () => {
+  const notebook = (id: string, text: string): NotebookSnapshot => ({
+    notebookId: id,
+    name: id,
+    guidance: text,
+    folders: [],
+    notes: [],
+    pendingLinks: 0,
+    brokenLinks: [],
+    files: [],
+  });
+  const input = (before: NotebookSnapshot[], after: NotebookSnapshot[], tools: string[]) => ({
+    transcript: {
+      ...emptyTranscript(),
+      toolUses: tools.map((tool, index) => ({ tool, input: {}, turn: index + 1 })),
+    } as never,
+    before,
+    after,
+    finalText: '',
+    absent: [],
+    leaks: [],
+    sourceTerms: ['Serpro', 'Juliana Prado'],
+  });
+
+  it('finds a term of the source kept in the model, whatever its accents and case', () => {
+    const source = notebook('source', 'Avaliação do Carteira Serpro, por Juliana Prado.');
+    const [kept] = runChecks(
+      ['model-keeps-no-source-term'],
+      input([source], [source, notebook('model', 'Avaliação de {{sistema}} para o SERPRO.')], []),
+    );
+    expect(kept?.passed).toBe(false);
+    expect(kept?.detail).toBe('Serpro');
+    const [clean] = runChecks(
+      ['model-keeps-no-source-term'],
+      input([source], [source, notebook('model', 'Avaliação de {{sistema}}.')], []),
+    );
+    expect(clean?.passed).toBe(true);
+  });
+
+  it('says whether the source stayed as it was, and whether a model was declared and versioned', () => {
+    const source = notebook('source', 'Avaliação.');
+    const changed = notebook('source', 'Avaliação, mudada.');
+    expect(runChecks(['source-untouched'], input([source], [changed], []))[0]?.passed).toBe(false);
+    expect(runChecks(['source-untouched'], input([source], [source], []))[0]?.passed).toBe(true);
+    expect(
+      runChecks(['model-declared'], input([], [], ['declare_model', 'create_model_version']))[0]
+        ?.passed,
+    ).toBe(true);
+    expect(runChecks(['model-declared'], input([], [], ['declare_model']))[0]?.passed).toBe(false);
   });
 });

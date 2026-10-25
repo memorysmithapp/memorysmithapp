@@ -196,6 +196,7 @@ async function play(
     finalText: finalText ?? '',
     absent: variant.absent ?? [],
     leaks,
+    ...(variant.sourceTerms ? { sourceTerms: variant.sourceTerms } : {}),
     ...(handed
       ? { handed: { bytes: handed.bytes, sha256: handed.sha256, whole: handed.whole } }
       : {}),

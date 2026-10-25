@@ -1,0 +1,34 @@
+{
+  "id": "AE-09",
+  "title": "A model designed from scratch, with no notebook to start from",
+  "exercises": "The skill that designs a notebook, on its path for a model: asking the objective and the audience, keeping the structure generic, proposing the parameters, writing illustrative examples, declaring the model and creating its first version.",
+  "skills": ["design-notebook"],
+  "turns": 7,
+  "checks": [
+    "whoami-before-first-write",
+    "design-skill-before-create",
+    "wrote-after-acceptance",
+    "notebook-has-guidance",
+    "folders-with-notes-have-templates",
+    "model-declared",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "The executor asks what notebooks created from the model are for and who keeps them before proposing a structure.",
+    "The structure is generic: folders, descriptions and templates name the kind of thing they hold, never one condominium.",
+    "It proposes the parameters that change from one condominium to the next, writes them as {{name}} where they go, and declares each with a description, an example, a type and whether it is required.",
+    "Each folder with a template holds one illustrative note written for the model.",
+    "It declares the model and creates its first version only after the person approves, and offers to try it."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "marcos",
+      "request": "Sou síndico profissional e cuido de vários condomínios. Queria uma base de caderno que eu possa copiar para ter um caderno por condomínio, com as assembleias, as obras e os fornecedores. Ainda não tenho nenhum caderno pronto.",
+      "persona": "persona-pt_BR.md",
+      "setup": {
+        "kind": "empty"
+      }
+    }
+  ]
+}

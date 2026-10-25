@@ -50,6 +50,8 @@ export interface CheckInput {
   readonly finalText: string;
   readonly absent: readonly string[];
   readonly leaks: readonly string[];
+  /** What a model derived from the source must not keep (#352). */
+  readonly sourceTerms?: readonly string[];
   /** The file the person handed over, when the case hands one (#295). */
   readonly handed?: {
     readonly bytes: number;
@@ -84,6 +86,11 @@ export const WRITES: ReadonlySet<string> = new Set([
   'finish_file_upload',
   'request_file',
   'delete_file',
+  // A notebook model and what is made of it (#353, #359).
+  'declare_model',
+  'create_model_version',
+  'delete_model_version',
+  'create_notebook_from_model',
 ]);
 
 const RESERVED = new Set<string>(RESERVED_FRONTMATTER_KEYS);
@@ -206,6 +213,58 @@ const FILE_CHECKS = {
     );
   },
 };
+
+/** Everything a notebook says, as one text: its guidance, folders, templates and notes. */
+function textOf(notebook: NotebookSnapshot): string {
+  return [
+    notebook.name,
+    notebook.guidance ?? '',
+    ...notebook.folders.flatMap((folder) => [
+      folder.name,
+      folder.description,
+      folder.template ?? '',
+    ]),
+    ...notebook.notes.map((note) => note.content),
+  ].join('\n');
+}
+
+/** What a run of a model asks of it (#352). */
+const MODEL_CHECKS = {
+  'model-declared': (input: CheckInput): CheckOutcome => {
+    const declared = input.transcript.toolUses.some((use) => use.tool === 'declare_model');
+    const versioned = input.transcript.toolUses.some((use) => use.tool === 'create_model_version');
+    return outcome(
+      'model-declared',
+      declared && versioned,
+      declared ? (versioned ? '' : 'no version was created') : 'no notebook was declared a model',
+    );
+  },
+
+  'model-keeps-no-source-term': (input: CheckInput): CheckOutcome => {
+    const terms = input.sourceTerms ?? [];
+    if (terms.length === 0)
+      return outcome('model-keeps-no-source-term', null, 'no term to look for');
+    const earlier = new Set(input.before.map((notebook) => notebook.notebookId));
+    const created = input.after.filter((notebook) => !earlier.has(notebook.notebookId));
+    if (created.length === 0)
+      return outcome('model-keeps-no-source-term', false, 'no model notebook');
+    const kept = terms.filter((term) =>
+      created.some((notebook) => normalized(textOf(notebook)).includes(normalized(term))),
+    );
+    return outcome('model-keeps-no-source-term', kept.length === 0, kept.join(', '));
+  },
+
+  'source-untouched': (input: CheckInput): CheckOutcome => {
+    const after = new Map(input.after.map((notebook) => [notebook.notebookId, notebook]));
+    const changed = input.before
+      .filter((notebook) => {
+        const now = after.get(notebook.notebookId);
+        return now === undefined || textOf(now) !== textOf(notebook);
+      })
+      .map((notebook) => notebook.name);
+    return outcome('source-untouched', changed.length === 0, changed.join(', '));
+  },
+} satisfies Partial<Record<CheckName, (input: CheckInput) => CheckOutcome>>;
 
 const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
   'room-held': (input) => {
@@ -438,6 +497,7 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
   },
 
   ...FILE_CHECKS,
+  ...MODEL_CHECKS,
 
   'wrote-after-acceptance': (input) => {
     const write = input.transcript.toolUses.find((use) => WRITES.has(use.tool));

@@ -36,6 +36,10 @@ export const CHECK_NAMES = [
   'wrote-after-acceptance',
   'file-kept-whole',
   'file-shown',
+  // A notebook model, designed or derived (#352).
+  'model-declared',
+  'model-keeps-no-source-term',
+  'source-untouched',
 ] as const;
 
 export type CheckName = (typeof CHECK_NAMES)[number];
@@ -59,6 +63,11 @@ export interface CaseVariant {
   readonly setup: Setup;
   /** Strings the executor must not produce, for a case that asks what only the repository knows. */
   readonly absent?: readonly string[];
+  /**
+   * What the source notebook says of its own case — people, organizations,
+   * the system it evaluates — which a model derived from it must not keep (#352).
+   */
+  readonly sourceTerms?: readonly string[];
   /**
    * The file the person hands the executor (#295), by its path from the root of
    * the repository: its text takes the place of `{{file}}` in the request, and
