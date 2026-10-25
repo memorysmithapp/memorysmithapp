@@ -37,7 +37,7 @@ export class CreateFolder {
     noteOrder?: string | undefined;
     by: Authorship;
   }): Promise<Result<Folder, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     const name = FolderName.create(input.name);
@@ -77,7 +77,7 @@ export class PatchFolder {
     noteOrder?: string | undefined;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     if (input.name !== undefined) {
@@ -125,7 +125,7 @@ export class ReorderFolder {
     afterFolderId: FolderId | null;
     by: Authorship;
   }): Promise<Result<{ notebook: Notebook; folder: Folder }, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     const reordered = notebook.value.reorderFolder(input.folderId, input.afterFolderId, input.by);
@@ -171,7 +171,7 @@ export class RemoveFolder {
     policy: string;
     by: Authorship;
   }): Promise<Result<FolderId[], DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     const policy = RemovalPolicy.create(input.policy);
@@ -205,7 +205,7 @@ export class PutTemplate {
     // The reference this write produced, so the caller can base the next
     // write on it instead of on the one it loaded with (RN-AGT-005).
   }): Promise<Result<ContentRef, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     const folder = notebook.value.folders.get(input.folderId);
@@ -272,7 +272,7 @@ export class DeleteTemplate {
     folderId: FolderId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     if (!notebook.value.folders.get(input.folderId)) {
@@ -308,7 +308,7 @@ export class NextNumber {
     folderId: FolderId;
     by: Authorship;
   }): Promise<Result<number, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
     if (!notebook.value.folders.get(input.folderId)) {
       return err(DomainError.notFound('Folder not found in this notebook'));
@@ -331,7 +331,7 @@ export class RestoreFolderNumber {
     lastNumber: number;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
     if (!notebook.value.folders.get(input.folderId)) {
       return err(DomainError.notFound('Folder not found in this notebook'));

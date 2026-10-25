@@ -100,7 +100,7 @@ export class KeepFile {
     bytes: Uint8Array;
     by: Authorship;
   }): Promise<Result<NotebookFile, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const type = this.deps.fileTypes.canonical(input.mimeType);
@@ -196,7 +196,7 @@ export class CheckFileDestination {
     name: string;
     mimeType: string;
   }): Promise<Result<{ notebookName: string; mimeType: string }, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
     const type = this.deps.fileTypes.canonical(input.mimeType);
     if (!type) {
@@ -244,7 +244,7 @@ export class KeepAssembledFile {
     assembled: { key: string; versionId: string; size: number; sha256: string };
     by: Authorship;
   }): Promise<Result<NotebookFile, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const type = this.deps.fileTypes.canonical(input.mimeType);
@@ -397,7 +397,7 @@ export class DeleteFile {
     fileId: FileId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const file = await this.deps.files.findById(input.notebookId, input.fileId);

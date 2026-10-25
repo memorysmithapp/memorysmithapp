@@ -252,7 +252,7 @@ export class CreateNote {
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     if (!notebook.value.folders.has(input.folderId)) {
@@ -335,7 +335,7 @@ export class UpdateNote {
     session?: string | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
     if (Buffer.byteLength(input.content, 'utf8') > NOTEBOOK_LIMITS.maxNoteBytes) {
       return err(DomainError.limitExceeded('A note holds at most 1 MB of content'));
@@ -414,7 +414,7 @@ export class ReorderNote {
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
@@ -473,13 +473,13 @@ export class MoveNote {
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const origin = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const origin = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!origin.ok) return origin;
 
     const destinationNotebookId = input.toNotebookId ?? input.notebookId;
     const crossNotebook = !destinationNotebookId.equals(input.notebookId);
     const destination = crossNotebook
-      ? await loadAuthorized(this.deps, input.ctx, destinationNotebookId, 'write')
+      ? await loadAuthorized(this.deps, input.ctx, destinationNotebookId, 'write-content')
       : origin;
     if (!destination.ok) return destination;
 
@@ -553,7 +553,7 @@ export class DeleteNote {
     noteId: NoteId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);

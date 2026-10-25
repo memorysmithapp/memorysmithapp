@@ -143,7 +143,7 @@ export async function openShared(
       user: request.ctx.user,
       isOwner: false,
       role: Role.VIEWER,
-      sharedBy: share.ownerEmail.value,
+      share: { notebookId, owner: share.ownerEmail.value, profile: 'reader' },
     },
     subscription: contextThrough(share),
     authorship: request.authorship,

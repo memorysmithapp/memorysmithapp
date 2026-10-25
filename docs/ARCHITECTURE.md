@@ -157,7 +157,7 @@ The platform routes are reserved to the Cognito group `platform-admin` (`require
 
 ### INV-13 The per-notebook ceiling only lowers a role
 
-The effective role is the owner's when the requester owns the subscription, and otherwise `Role.min(subscription role, notebook ceiling)`; a notebook with no ceiling for a member limits nothing (`services/knowledge/src/domain/access/AuthorizationPolicy.ts`, `packages/kernel/src/role.ts`).
+The effective role is the owner's when the requester owns the subscription, and otherwise `Role.min(subscription role, notebook ceiling)`; a notebook with no ceiling for a member limits nothing (`services/knowledge/src/domain/access/AuthorizationPolicy.ts`, `packages/kernel/src/role.ts`). Every Knowledge use case authorizes one action, pinned by a test per use case: `read`, `write-content` (notes, their order and moves, the numbers a folder issues, kept files), `maintain` (folders, Guidance, Templates) or `administer`. A member holds both writing actions or neither, by role; a share from another subscription reaches the notebook with the VIEWER role and a `share` bound to that one notebook, whose profile decides the actions, so a share never reads as a role and reaches no other notebook of its owner, which answers `404`.
 
 ### INV-14 The version has one home
 

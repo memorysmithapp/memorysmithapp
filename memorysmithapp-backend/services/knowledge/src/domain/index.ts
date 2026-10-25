@@ -42,6 +42,8 @@ export {
   AuthorizationPolicy,
   type Action,
   type RequestContext,
+  type ShareAccess,
+  type ShareProfile,
 } from './access/AuthorizationPolicy.js';
 export type {
   ContentSlotRepository,
