@@ -572,6 +572,40 @@ export const CHECK_NOTICES_LIMIT = 200;
 /** How long create_notebook_from_model waits for the worker, and how often it looks. */
 const CREATION_WAIT_MS = 20_000;
 const CREATION_POLL_MS = 1_000;
+
+/** The values of the parameters an agent passed, by name. */
+function valuesOf(args: Record<string, unknown>): Record<string, unknown> {
+  return args['values'] && typeof args['values'] === 'object'
+    ? (args['values'] as Record<string, unknown>)
+    : {};
+}
+
+/**
+ * Waits for a notebook created from a version to be written (#359): most are
+ * written in seconds, and one that takes longer answers the transfer to follow.
+ */
+async function createdFrom(
+  started: TransferDto,
+  read: (transferId: string) => Promise<TransferDto>,
+): Promise<Record<string, unknown>> {
+  let transfer = started;
+  for (let waited = 0; transfer.status === 'running' && waited < CREATION_WAIT_MS;) {
+    await new Promise((resolve) => setTimeout(resolve, CREATION_POLL_MS));
+    waited += CREATION_POLL_MS;
+    transfer = await read(started.transferId);
+  }
+  return transfer.status === 'ready'
+    ? { notebook: transfer.notebookId, name: transfer.notebookName, status: 'ready' }
+    : {
+        transfer: transfer.transferId,
+        status: transfer.status,
+        failure: transfer.failure,
+        next:
+          transfer.status === 'running'
+            ? 'The notebook is still being written: list_notebooks shows it once it is.'
+            : 'The notebook was not created; the failure says why.',
+      };
+}
 const CHECK_NOTICES_BUDGET_MS = 8_000;
 const CHECK_NOTICES_PARALLEL = 10;
 
@@ -1325,36 +1359,61 @@ export class McpToolAdapter {
         return json({ deleted: true });
 
       case 'create_notebook_from_model': {
-        const values =
-          args['values'] && typeof args['values'] === 'object'
-            ? (args['values'] as Record<string, unknown>)
-            : {};
         const started = await knowledge.createFromModel(caller, {
           notebookId: requireString(args, 'notebook', 'create_notebook_from_model'),
           version: requireInteger(args, 'version', 'create_notebook_from_model'),
           name: optionalString(args, 'name') ?? '',
-          values,
+          values: valuesOf(args),
         });
-        // The notebook is written by the worker; most are written in seconds.
-        let transfer = started;
-        for (let waited = 0; transfer.status === 'running' && waited < CREATION_WAIT_MS;) {
-          await new Promise((resolve) => setTimeout(resolve, CREATION_POLL_MS));
-          waited += CREATION_POLL_MS;
-          transfer = await knowledge.transfer(caller, started.transferId);
-        }
+        return json(await createdFrom(started, (id) => knowledge.transfer(caller, id)));
+      }
+
+      // ---- The community catalog (#360) -----------------------------------
+      case 'publish_model':
         return json(
-          transfer.status === 'ready'
-            ? { notebook: transfer.notebookId, name: transfer.notebookName, status: 'ready' }
-            : {
-                transfer: transfer.transferId,
-                status: transfer.status,
-                failure: transfer.failure,
-                next:
-                  transfer.status === 'running'
-                    ? 'The notebook is still being written: list_notebooks shows it once it is.'
-                    : 'The notebook was not created; the failure says why.',
-              },
+          await knowledge.publishModel(caller, requireString(args, 'notebook', 'publish_model'), {
+            language: requireString(args, 'language', 'publish_model'),
+            acceptLicence: args['acceptLicence'] === true,
+          }),
         );
+
+      case 'withdraw_model':
+        await knowledge.withdrawModel(caller, requireString(args, 'notebook', 'withdraw_model'));
+        return json({ withdrawn: true });
+
+      case 'search_community_models':
+        return json({
+          models: await knowledge.searchCommunity(caller, {
+            text: optionalString(args, 'query') ?? '',
+            language: optionalString(args, 'language') ?? null,
+          }),
+        });
+
+      case 'read_community_model':
+        return json(
+          await knowledge.communityModel(
+            caller,
+            requireString(args, 'model', 'read_community_model'),
+          ),
+        );
+
+      case 'read_community_version':
+        return json(
+          await knowledge.communityVersion(
+            caller,
+            requireString(args, 'model', 'read_community_version'),
+            requireInteger(args, 'version', 'read_community_version'),
+          ),
+        );
+
+      case 'create_notebook_from_community_model': {
+        const started = await knowledge.createFromCommunity(caller, {
+          publicId: requireString(args, 'model', 'create_notebook_from_community_model'),
+          version: requireInteger(args, 'version', 'create_notebook_from_community_model'),
+          name: optionalString(args, 'name') ?? '',
+          values: valuesOf(args),
+        });
+        return json(await createdFrom(started, (id) => knowledge.transfer(caller, id)));
       }
 
       case 'check_notebook': {

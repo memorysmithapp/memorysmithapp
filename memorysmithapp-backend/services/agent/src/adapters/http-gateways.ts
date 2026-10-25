@@ -20,6 +20,8 @@ import type {
   ModelListDto,
   ModelVersionDto,
   ModelVersionViewDto,
+  PublicModelDto,
+  PublicVersionViewDto,
   NotebookModelDto,
   BacklinksDto,
   BeginUploadRequest,
@@ -557,6 +559,71 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async transfer(caller: AgentCaller, transferId: string): Promise<TransferDto> {
     return callApi<TransferDto>(this.origin, caller, `/portability/transfers/${transferId}`);
+  }
+
+  async publishModel(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { language: string; acceptLicence: boolean },
+  ): Promise<PublicModelDto> {
+    return callApi<PublicModelDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/publication`,
+      { method: 'PUT', body: input },
+    );
+  }
+
+  async withdrawModel(caller: AgentCaller, notebookId: string): Promise<void> {
+    await callApi(this.origin, caller, `/portability/models/${notebookId}/publication`, {
+      method: 'DELETE',
+    });
+  }
+
+  /** The catalog is read on its public route, as anybody reads it (#360). */
+  async searchCommunity(
+    caller: AgentCaller,
+    query: { text: string; language: string | null },
+  ): Promise<PublicModelDto[]> {
+    const params = new URLSearchParams();
+    if (query.text) params.set('q', query.text);
+    if (query.language) params.set('language', query.language);
+    const suffix = params.size > 0 ? `?${params.toString()}` : '';
+    return (
+      await callApi<{ models: PublicModelDto[] }>(this.origin, caller, `/public/catalog${suffix}`)
+    ).models;
+  }
+
+  async communityModel(caller: AgentCaller, publicId: string): Promise<PublicModelDto> {
+    return callApi<PublicModelDto>(
+      this.origin,
+      caller,
+      `/public/catalog/${encodeURIComponent(publicId)}`,
+    );
+  }
+
+  async communityVersion(
+    caller: AgentCaller,
+    publicId: string,
+    number: number,
+  ): Promise<PublicVersionViewDto> {
+    return callApi<PublicVersionViewDto>(
+      this.origin,
+      caller,
+      `/public/catalog/${encodeURIComponent(publicId)}/versions/${number}`,
+    );
+  }
+
+  async createFromCommunity(
+    caller: AgentCaller,
+    input: { publicId: string; version: number; name: string; values: Record<string, unknown> },
+  ): Promise<TransferDto> {
+    return callApi<TransferDto>(
+      this.origin,
+      caller,
+      `/portability/catalog/${encodeURIComponent(input.publicId)}/versions/${input.version}/notebooks`,
+      { method: 'POST', body: { name: input.name, values: input.values } },
+    );
   }
 
   async beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto> {

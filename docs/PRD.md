@@ -393,6 +393,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-056 | The connector declares a notebook as a model, reads it with its versions, creates, reads whole and deletes a version, and creates a notebook from one with the values of its parameters, waiting up to twenty seconds for it to be written before answering the transfer to follow. | |
 | RN-AGT-057 | The skill `derive-model` makes a model of a notebook that worked into a new notebook: it asks the level of generality and keeps the one chosen, proposes to remove, generalize or parameterize each circumstance of the case, rewrites the context, writes examples anew, and creates a version only after the author reviewed it; `design-notebook` offers a model before designing, and designs one from scratch. | |
 | RN-AGT-058 | The connector lists a model reader's share among the models and never among the notebooks; `list_models` and `get_model` name the owner of a model shared with the person in `sharedBy`, and `get_model` its licence once distributed. | |
+| RN-AGT-059 | The connector publishes and withdraws a model of the subscription, searches the community catalog, reads a published model and its versions and creates a notebook from one; `publish_model` takes the licence only once the person accepted it, and the skills say CC0 1.0 before publishing and offer a community model before designing from scratch. | |
 
 ### Portability
 

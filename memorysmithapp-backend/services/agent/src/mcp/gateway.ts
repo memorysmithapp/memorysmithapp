@@ -14,6 +14,8 @@ import type {
   ModelListDto,
   ModelVersionDto,
   ModelVersionViewDto,
+  PublicModelDto,
+  PublicVersionViewDto,
   NotebookModelDto,
 } from '@memorysmithapp/contracts';
 import type {
@@ -522,6 +524,27 @@ export interface KnowledgeGateway {
     },
   ): Promise<TransferDto>;
   transfer(caller: AgentCaller, transferId: string): Promise<TransferDto>;
+  // ---- The community catalog (#360) ---------------------------------------
+  publishModel(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { language: string; acceptLicence: boolean },
+  ): Promise<PublicModelDto>;
+  withdrawModel(caller: AgentCaller, notebookId: string): Promise<void>;
+  searchCommunity(
+    caller: AgentCaller,
+    query: { text: string; language: string | null },
+  ): Promise<PublicModelDto[]>;
+  communityModel(caller: AgentCaller, publicId: string): Promise<PublicModelDto>;
+  communityVersion(
+    caller: AgentCaller,
+    publicId: string,
+    number: number,
+  ): Promise<PublicVersionViewDto>;
+  createFromCommunity(
+    caller: AgentCaller,
+    input: { publicId: string; version: number; name: string; values: Record<string, unknown> },
+  ): Promise<TransferDto>;
 }
 
 export interface DiscoveryGateway {

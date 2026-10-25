@@ -1292,6 +1292,119 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
   {
+    name: 'publish_model',
+    title: 'Publish a model to the community',
+    description:
+      'Publishes a model of this subscription to the community catalog, where anybody, with ' +
+      'an account or not, finds it and reads every version kept, and whoever signs in creates ' +
+      'notebooks from it. Only the owner of the subscription publishes, and the model needs a ' +
+      'ready version. Every distribution of a model is under CC0 1.0: anybody may reuse and ' +
+      'republish it freely, so say so to the person and pass acceptLicence only once they ' +
+      'agree. The catalog shows the name of their account, never the e-mail; a refusal with ' +
+      'reason AUTHOR_NAME means they write their name in their profile first. Publishing again ' +
+      'says the entry again. It answers what anybody will see of the model.',
+    inputSchema: object(
+      {
+        notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' },
+        language: {
+          type: 'string',
+          description: 'The language the model is written in, as a BCP 47 tag: pt-BR, en.',
+        },
+        acceptLicence: {
+          type: 'boolean',
+          description: 'True once the person accepted CC0 1.0 for this model.',
+        },
+      },
+      ['notebook', 'language'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'withdraw_model',
+    title: 'Withdraw a model from the community',
+    description:
+      'Withdraws a published model from the community catalog. The model and its versions ' +
+      'stay in this subscription, and nothing anybody created from it is touched; what was ' +
+      'already copied stays with whoever copied it.',
+    inputSchema: object(
+      { notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' } },
+      ['notebook'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'search_community_models',
+    title: 'Search the community models',
+    description:
+      'Finds the models published to the community, by every word given in their name, ' +
+      'objective, description, audience or author, and by language. Each answers its public ' +
+      'identifier, what it is for, its author, its parameters and its versions. Offer one ' +
+      'before designing a notebook from scratch, when it fits what the person wants.',
+    inputSchema: object({
+      query: { type: 'string', description: 'Optional: words to find.' },
+      language: { type: 'string', description: 'Optional: a BCP 47 tag, such as pt or en.' },
+    }),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'read_community_model',
+    title: 'Read a community model',
+    description:
+      'A model published to the community, by its public identifier: what it is for, who it ' +
+      'is for, its author and credit, its parameters, and every version its author keeps, the ' +
+      'newest first, each with its number, date and changelog.',
+    inputSchema: object(
+      { model: { type: 'string', description: 'The public identifier of the model.' } },
+      ['model'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'read_community_version',
+    title: 'Read a version of a community model',
+    description:
+      'A version of a published model, whole: its Guidance, every folder with its Template, ' +
+      'every note and the files it keeps, with `{{name}}` where a value goes. Read it with the ' +
+      'person before creating a notebook from it.',
+    inputSchema: object(
+      {
+        model: { type: 'string', description: 'The public identifier of the model.' },
+        version: { type: 'integer', description: 'The number of the version.' },
+      },
+      ['model', 'version'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_notebook_from_community_model',
+    title: 'Create a notebook from a community model',
+    description:
+      'Creates an independent notebook of this subscription from a version of a model ' +
+      'published to the community, with a value for each of its parameters, by name, as ' +
+      'create_notebook_from_model does; it is written and counted here, and depends on ' +
+      'nothing of the model afterwards. Ask the person for the values first.',
+    inputSchema: object(
+      {
+        model: { type: 'string', description: 'The public identifier of the model.' },
+        version: {
+          type: 'integer',
+          description: 'The version to create from, usually the latest.',
+        },
+        name: {
+          type: 'string',
+          description: 'Optional: the name of the new notebook; the name of the model, filled in.',
+        },
+        values: {
+          type: 'object',
+          description: 'The value of each parameter, by its name.',
+          additionalProperties: true,
+        },
+      },
+      ['model', 'version', 'values'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
     name: 'note_history',
     title: 'Read the history of a note',
     description:

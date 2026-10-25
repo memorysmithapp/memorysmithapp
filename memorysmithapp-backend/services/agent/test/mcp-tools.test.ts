@@ -263,6 +263,13 @@ describe('The tool catalog is the public contract', () => {
       'read_model_version',
       'delete_model_version',
       'create_notebook_from_model',
+      // The community catalog (#360).
+      'publish_model',
+      'withdraw_model',
+      'search_community_models',
+      'read_community_model',
+      'read_community_version',
+      'create_notebook_from_community_model',
       'note_history',
     ]);
   });
@@ -318,6 +325,9 @@ describe('The tool catalog is the public contract', () => {
       'create_model_version',
       'delete_model_version',
       'create_notebook_from_model',
+      'publish_model',
+      'withdraw_model',
+      'create_notebook_from_community_model',
     ]);
     for (const tool of TOOL_CATALOG) {
       const readable = tool.annotations.readOnlyHint === true;
@@ -3014,6 +3024,59 @@ describe('notebook models through the connector (#353, #354, #359)', () => {
       name: 'Condomínio Aurora',
       status: 'ready',
     });
+  });
+
+  it('publishes a model only with the licence the person accepted, and searches the catalog (#360)', async () => {
+    const published: unknown[] = [];
+    const searched: unknown[] = [];
+    const tools = gateways({
+      knowledge: {
+        publishModel: async (_caller: unknown, notebookId: string, input: unknown) => {
+          published.push([notebookId, input]);
+          return { publicId: '01JBQ2X00000000000000000P1', licence: 'CC0-1.0' };
+        },
+        searchCommunity: async (_caller: unknown, query: unknown) => {
+          searched.push(query);
+          return [{ publicId: '01JBQ2X00000000000000000P1' }];
+        },
+      },
+    });
+    await tools.call(
+      'publish_model',
+      { notebook: '01JBQ2X00000000000000000V1', language: 'pt-BR' },
+      caller,
+    );
+    await tools.call('search_community_models', { query: 'condomínio', language: 'pt' }, caller);
+    expect(published).toEqual([
+      ['01JBQ2X00000000000000000V1', { language: 'pt-BR', acceptLicence: false }],
+    ]);
+    expect(searched).toEqual([{ text: 'condomínio', language: 'pt' }]);
+  });
+
+  it('creates a notebook from a community model and waits for it, as from a model of its own', async () => {
+    const answer = await gateways({
+      knowledge: {
+        createFromCommunity: async (_caller: unknown, input: unknown) => {
+          expect(input).toEqual({
+            publicId: '01JBQ2X00000000000000000P1',
+            version: 2,
+            name: '',
+            values: { condominio: 'Aurora' },
+          });
+          return {
+            transferId: '01JBQ2X00000000000000000T1',
+            status: 'ready',
+            notebookId: '01JBQ2X00000000000000000V9',
+            notebookName: 'Condomínio Aurora',
+          };
+        },
+      },
+    }).call(
+      'create_notebook_from_community_model',
+      { model: '01JBQ2X00000000000000000P1', version: 2, values: { condominio: 'Aurora' } },
+      caller,
+    );
+    expect(JSON.parse(answer.content[0]?.text ?? '{}')).toMatchObject({ status: 'ready' });
   });
 
   it('teaches deriving a model as a skill of its own, and designing one in design-notebook', () => {

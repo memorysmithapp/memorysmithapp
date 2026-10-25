@@ -366,6 +366,12 @@ its description and example, and call \`create_notebook_from_model\`. The new
 notebook is theirs, independent of the model, and is then read and written like
 any other.
 
+When none of the subscription fits, \`search_community_models\` finds the models
+others published to the community. Read the one that fits with the person —
+\`read_community_model\` and \`read_community_version\` — and create from it with
+\`create_notebook_from_community_model\` the same way: the notebook is written in
+this subscription and depends on nothing of the model.
+
 ## A notebook that is a model
 
 When the person asks for a model — a notebook to be copied, one per client,
@@ -460,6 +466,11 @@ author, never yours.
    removed from the declaration.
 4. Offer the trial: create a notebook from the version with sample values, read
    it with the author, and delete it. It is recommended, never required.
+5. Sharing or publishing it is the author's decision, never a step of this
+   method. When they ask to publish it to the community with \`publish_model\`,
+   say first that every distribution of a model is under CC0 1.0 — anybody may
+   reuse and republish it freely — and pass \`acceptLicence\` only once they
+   agree. Giving credit to a model it was based on is optional.
 
 ## What not to do
 

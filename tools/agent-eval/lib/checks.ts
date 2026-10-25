@@ -91,6 +91,10 @@ export const WRITES: ReadonlySet<string> = new Set([
   'create_model_version',
   'delete_model_version',
   'create_notebook_from_model',
+  // The community catalog (#360).
+  'publish_model',
+  'withdraw_model',
+  'create_notebook_from_community_model',
 ]);
 
 const RESERVED = new Set<string>(RESERVED_FRONTMATTER_KEYS);
