@@ -100,6 +100,9 @@ export const FORMATTING_LEFT_TO_WRITE_NOTES: ReadonlySet<string> = new Set([
   'raw-html',
   'attachment',
   'pending-link-display',
+  // A model's parameters (§7.14) are taught where a model is made, and their
+  // syntax and effect with every other form, in write-notes.
+  'parameter-reference',
 ]);
 
 /** A code span that holds any text, backticks included, inside a table cell. */

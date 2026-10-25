@@ -25,7 +25,7 @@ import {
   RECOGNISED_NOTATION,
   type ConformanceCase,
 } from '@memorysmithapp/contracts';
-import { noteName } from '@memorysmithapp/kernel';
+import { noteName, parameterNames } from '@memorysmithapp/kernel';
 import { extractImages, extractLinks, extractReferences } from '../src/domain/LinkExtractor.js';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
 import { resolveReference, notebookNames } from '../src/domain/LinkResolver.js';
@@ -35,6 +35,7 @@ const withLinks = CONFORMANCE_CASES.filter((each) => each.links !== undefined);
 const withFacets = CONFORMANCE_CASES.filter((each) => each.facets !== undefined);
 const withName = CONFORMANCE_CASES.filter((each) => each.name !== undefined);
 const withResolution = CONFORMANCE_CASES.filter((each) => each.resolution !== undefined);
+const withParameters = CONFORMANCE_CASES.filter((each) => each.parameters !== undefined);
 
 /**
  * The notebook a resolution case is resolved against, built the way the product
@@ -260,4 +261,19 @@ describe('a base notation that means something different here', () => {
     expect(extractLinks('```\n[[Lei 14.133]]\n```\n')).toEqual([]);
     expect(extractLinks('Write `[[Lei 14.133]]` to link.')).toEqual([]);
   });
+});
+
+describe('the parameters of the conformance suite (§7.14)', () => {
+  it('has cases to read', () => {
+    expect(withParameters.length).toBeGreaterThan(10);
+  });
+
+  it.each(withParameters.map((each) => [each.id, each] as const))(
+    '%s reads the declared parameters',
+    (_id, each) => {
+      expect(parameterNames(each.markdown)).toEqual(
+        (each.parameters ?? []).map((name) => name.normalize('NFC')),
+      );
+    },
+  );
 });

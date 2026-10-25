@@ -19,6 +19,15 @@ export {
   type FrontmatterForm,
 } from './frontmatter.js';
 export { noteName, NAME_KEY } from './note-name.js';
+export { codeRanges } from './markdown-code.js';
+export {
+  isParameterName,
+  parameterNames,
+  parameterReferences,
+  textReferences,
+  type ParameterReference,
+  type ReferencePlace,
+} from './parameter-references.js';
 export { Instant } from './instant.js';
 export { Position, rebalancedPositions, REBALANCE_THRESHOLD } from './position.js';
 export { Role, NotebookRoleLimit, type RoleName } from './role.js';

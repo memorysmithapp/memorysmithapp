@@ -114,6 +114,8 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     footnoteBack: (number) => t('note.footnoteBack', { number }),
     pendingLink: t('note.pendingLink'),
     refusedLink: t('note.refusedLink'),
+    parameter: t('note.parameter'),
+    parameterLink: t('note.parameterLink'),
     attachmentMissing: t('note.attachmentMissing'),
     copy: t('note.copy'),
     copied: t('note.copied'),

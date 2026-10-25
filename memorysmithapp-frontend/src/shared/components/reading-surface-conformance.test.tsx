@@ -257,6 +257,12 @@ const EXPECTED: Record<string, (html: string) => void> = {
     // What react-markdown hands a component is not an attribute of the page.
     expect(html).not.toContain('node="[object Object]"');
   },
+  'parameter-reference': (html) => {
+    // Drawn as a parameter, braces and all, never as broken text (§7.14).
+    expect(html).toContain('class="parameter"');
+    expect(html).toContain('data-parameter=');
+    expect(html).toContain('{{');
+  },
   'autolink-extended': (html) => {
     // Bare, and still a link. External, so it is a plain anchor and never one
     // of ours: `wikilink` is the class this surface puts on an edge.

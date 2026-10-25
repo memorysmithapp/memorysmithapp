@@ -23,7 +23,12 @@
  * second value to an attribute must not change what the attribute is.
  */
 
-import { frontmatterOf, NAME_KEY, type FrontmatterEntry } from '@memorysmithapp/kernel';
+import {
+  frontmatterOf,
+  NAME_KEY,
+  textReferences,
+  type FrontmatterEntry,
+} from '@memorysmithapp/kernel';
 
 export type FacetKind = 'date' | 'boolean' | 'enum' | 'list';
 
@@ -92,6 +97,9 @@ export function extractFacets(markdown: string): FacetSnapshot {
   const snapshot: FacetSnapshot = {};
   for (const [facet, entry] of Object.entries(frontmatterOf(markdown))) {
     if (facet === NAME_KEY) continue;
+    // A value nobody has given yet, in a model (§7.14): `"{{date}}"` is not an
+    // invalid date and not a category of one, so the attribute is not indexed.
+    if (entry.values.some((value) => textReferences(value).length > 0)) continue;
     const kind = kindOf(entry);
     if (!kind) continue; // free text and empties are described, not counted
     snapshot[facet] = {

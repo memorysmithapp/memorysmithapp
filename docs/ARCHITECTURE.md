@@ -123,9 +123,10 @@ The backend never interprets what a note means: frontmatter and convention belon
 
 - **Discovery**, which extracts links (`LinkExtractor`), facets (`FacetExtractor`) and aliases (`Aliases`), and keeps a text portrait of each note for search (`application/projections.ts`);
 - **`noteName`** in the kernel, which reads one key of the frontmatter, `name`, to name a note (RN-KNW-035), called by Knowledge and by the import;
+- **`parameterReferences`** in the kernel, which reads the parameter references of a model (§7.14) and where each stands, and never what a parameter is; Discovery asks it which wikilinks name no note yet and which attributes are not given, and the creation of a notebook from a model asks it where each value goes. It reads code where `codeRanges`, also in the kernel, says code is, the one function `LinkExtractor` uses too;
 - **the notices of the connector**, which hand an agent the renderer's own `diagnose` of what it wrote and decide nothing (`services/agent/src/mcp/notices.ts`, RN-AGT-052).
 
-The extractors pass the conformance suite of the published specification on every build (`services/discovery/test/notation-conformance.test.ts`).
+The extractors and the reader of parameters pass the conformance suite of the published specification on every build (`services/discovery/test/notation-conformance.test.ts`).
 
 ### INV-06 The audit trail is append-only
 

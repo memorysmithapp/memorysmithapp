@@ -183,6 +183,8 @@
     "remoteImages_one": "Opening this note fetched an image from {{hosts}}, so that site was told your address and the moment you read this.",
     "remoteImages_other": "Opening this note fetched images from {{count}} other sites — {{hosts}} — so each of them was told your address and the moment you read this.",
     "refusedLink": "This address is not one the reading surface follows, so the text stays and the link does not.",
+    "parameter": "A parameter of this model, filled in when a notebook is created from it.",
+    "parameterLink": "This link names a parameter, and leads to a note once a notebook created from the model fills it in.",
     "copy": "Copy",
     "copied": "Copied",
     "unnamed": "Unnamed note",

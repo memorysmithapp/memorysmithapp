@@ -183,6 +183,8 @@
     "remoteImages_one": "Abrir esta nota buscou uma imagem em {{hosts}}, então esse site recebeu seu endereço e o momento em que você leu.",
     "remoteImages_other": "Abrir esta nota buscou imagens em {{count}} outros sites — {{hosts}} —, então cada um deles recebeu seu endereço e o momento em que você leu.",
     "refusedLink": "Este endereço não é dos que a superfície de leitura segue, então o texto fica e o link não.",
+    "parameter": "Um parâmetro deste modelo, preenchido quando um caderno é criado a partir dele.",
+    "parameterLink": "Este link nomeia um parâmetro e leva a uma nota quando um caderno criado a partir do modelo o preenche.",
     "copy": "Copiar",
     "copied": "Copiado",
     "unnamed": "Nota sem nome",
