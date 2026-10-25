@@ -119,7 +119,24 @@ import {
   NotebookGraphQuery,
   NotebookHealth,
 } from '@memorysmithapp/svc-discovery/application/queries';
-import type { PortabilityUseCases } from '@memorysmithapp/svc-portability/adapters/http';
+import type {
+  PortabilityRequest,
+  PortabilityUseCases,
+} from '@memorysmithapp/svc-portability/adapters/http';
+import {
+  CreateModelVersion,
+  DeclareModel,
+  DeleteModelVersion,
+  ForgetModel,
+  GetModel,
+  ListModels,
+  ViewModelVersion,
+  type ModelCaller,
+  type ModelDependencies,
+  type OwnNotebooks,
+} from '@memorysmithapp/svc-portability/application/models';
+import type { Transfer } from '@memorysmithapp/svc-portability/domain/transfer';
+import { readZip } from '@memorysmithapp/svc-portability/adapters/zip';
 import {
   CancelTransfer,
   DeleteTransfer,
@@ -171,6 +188,8 @@ import {
   buildAudit,
   buildDiscovery,
   buildKnowledge,
+  buildModels,
+  readVersionDocument,
   buildShares,
   buildSubscriptionUsage,
   buildTransfers,
@@ -364,6 +383,15 @@ const knowledgeUseCases: KnowledgeUseCases = {
       buildKnowledge(infra, request.subscription),
       request.subscription,
       sharing.shares,
+      // Its model and every version go with it (#353).
+      (notebookId) =>
+        new ForgetModel(
+          {
+            models: buildModels(infra, request.subscription),
+            transfers: buildTransfers(infra, request.subscription),
+          },
+          (transfer) => destroyExport(request.subscription, transfer),
+        ).execute(notebookId.value),
     ),
   putGuidance: (request) => new PutGuidance(buildKnowledge(infra, request.subscription)),
   deleteGuidance: (request) => new DeleteGuidance(buildKnowledge(infra, request.subscription)),
@@ -637,7 +665,65 @@ const portabilityUseCases: PortabilityUseCases = {
       new S3PreviewStore(infra.s3, infra.contentBucket),
       request.subscription.subscriptionId.value,
     ),
+  // ---- Notebook models (#353) -------------------------------------------
+  declareModel: (request) => new DeclareModel(modelDependencies(request), modelCaller(request)),
+  getModel: (request) => new GetModel(modelDependencies(request), request.canRead),
+  listModels: (request) => new ListModels(modelDependencies(request), request.canRead),
+  createModelVersion: (request) =>
+    new CreateModelVersion(modelDependencies(request), modelCaller(request)),
+  viewModelVersion: (request) => new ViewModelVersion(modelDependencies(request), request.canRead),
+  deleteModelVersion: (request) =>
+    new DeleteModelVersion(modelDependencies(request), modelCaller(request), (transfer) =>
+      destroyExport(request.subscription, transfer),
+    ),
 };
+
+/** What every use case of a model is built from, for one request (#353). */
+function modelDependencies(request: PortabilityRequest): ModelDependencies {
+  const uploads = new S3UploadStore(infra.s3, infra.contentBucket);
+  return {
+    models: buildModels(infra, request.subscription),
+    transfers: buildTransfers(infra, request.subscription),
+    notebooks: ownNotebooks(request.subscription),
+    queue: new SqsTransferQueue(sqs, transferQueueUrl),
+    budget: { current: () => readStorageBudget(infra, request.subscription) },
+    versions: { read: (key) => readVersionDocument((at) => uploads.read(at), readZip, key) },
+  };
+}
+
+function modelCaller(request: PortabilityRequest): ModelCaller {
+  return {
+    subscriptionId: request.subscription.subscriptionId.value,
+    userId: request.subscription.userId.value,
+    isOwner: request.isOwner,
+  };
+}
+
+/** A notebook of this subscription, never one reached through a share (#353). */
+function ownNotebooks(context: SubscriptionContext): OwnNotebooks {
+  return {
+    own: async (notebookId) => {
+      const parsed = NotebookId.create(notebookId);
+      if (!parsed.ok) return null;
+      const knowledge = buildKnowledge(infra, context);
+      const notebook = await knowledge.notebooks.findById(parsed.value);
+      if (!notebook || notebook.isDeleted) return null;
+      return { name: notebook.name.value, noteCount: notebook.noteCount };
+    },
+  };
+}
+
+/**
+ * Destroys one kept export, as its owner deleting it would: its bytes by the
+ * revision the worker wrote, its record, and what it occupied (RN-PRT-020).
+ */
+async function destroyExport(context: SubscriptionContext, transfer: Transfer): Promise<void> {
+  await new DeleteTransfer(
+    buildTransfers(infra, context),
+    new S3ArchiveStore(infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
+    transfer.userId,
+  ).execute(transfer.transferId);
+}
 
 function discoveryFor(context: SubscriptionContext) {
   const built = buildDiscovery(infra, context);

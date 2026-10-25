@@ -40,6 +40,8 @@
 import { Hono, type Context } from 'hono';
 import {
   beginUploadRequestSchema,
+  createModelVersionRequestSchema,
+  declareModelRequestSchema,
   finishedUploadSchema,
   importFromExportRequestSchema,
   importUploadSchema,
@@ -71,6 +73,17 @@ import type { ImportSelection } from '../application/ImportNotebook.js';
 import type { GetPrint, StartPrint } from '../application/Prints.js';
 import type { GetPreview, StartPreview } from '../application/Previews.js';
 import type { Transfer } from '../domain/Transfer.js';
+import type {
+  CreateModelVersion,
+  DeclareModel,
+  DeleteModelVersion,
+  GetModel,
+  ListModels,
+  ModelVersion,
+  ViewModelVersion,
+  VersionView,
+} from '../application/Models.js';
+import type { NotebookModel, ParameterDeclaration } from '../domain/NotebookModel.js';
 import {
   receivedOf,
   type BeginUpload,
@@ -113,6 +126,11 @@ export interface PortabilityRequest {
    * asked, and nothing more.
    */
   readonly accessToken: string;
+  /**
+   * Whether the caller owns the subscription, which declaring a model and
+   * creating its versions ask (#353): they occupy its storage.
+   */
+  readonly isOwner: boolean;
 }
 
 export interface PortabilityUseCases {
@@ -136,6 +154,76 @@ export interface PortabilityUseCases {
   readonly getPrint: (request: PortabilityRequest) => GetPrint;
   readonly startPreview: (request: PortabilityRequest) => StartPreview;
   readonly getPreview: (request: PortabilityRequest) => GetPreview;
+  readonly declareModel: (request: PortabilityRequest) => DeclareModel;
+  readonly getModel: (request: PortabilityRequest) => GetModel;
+  readonly listModels: (request: PortabilityRequest) => ListModels;
+  readonly createModelVersion: (request: PortabilityRequest) => CreateModelVersion;
+  readonly viewModelVersion: (request: PortabilityRequest) => ViewModelVersion;
+  readonly deleteModelVersion: (request: PortabilityRequest) => DeleteModelVersion;
+}
+
+/** A model on the wire (#353): what it says of itself, and its versions. */
+function modelToDto(model: NotebookModel): Record<string, unknown> {
+  return {
+    notebookId: model.notebookId,
+    objective: model.objective,
+    description: model.description,
+    audience: model.audience,
+    parameters: model.parameters.map(parameterToDto),
+    basedOn: model.basedOn,
+    declaredAt: model.declaredAt,
+    updatedAt: model.updatedAt,
+  };
+}
+
+function parameterToDto(parameter: ParameterDeclaration): Record<string, unknown> {
+  return {
+    ...parameter,
+    default: Array.isArray(parameter.default) ? [...parameter.default] : parameter.default,
+  };
+}
+
+function versionToDto(version: ModelVersion): Record<string, unknown> {
+  return {
+    number: version.number,
+    changelog: version.changelog,
+    createdAt: version.createdAt,
+    status: version.status,
+    bytes: version.bytes,
+  };
+}
+
+/** A version read whole: what it froze, and the notebook it holds, without its file bytes. */
+function versionViewToDto({ model, version, document }: VersionView): Record<string, unknown> {
+  const meta = version.transfer.model;
+  return {
+    notebookId: model.notebookId,
+    version: versionToDto(version),
+    objective: meta?.objective ?? model.objective,
+    description: meta?.description ?? model.description,
+    audience: meta?.audience ?? model.audience,
+    parameters: (meta?.parameters ?? model.parameters).map(parameterToDto),
+    basedOn: meta?.basedOn ?? model.basedOn,
+    notebook: document.notebook,
+    folders: document.folders.map((folder) => ({
+      folderId: folder.folderId,
+      parentFolderId: folder.parentFolderId,
+      name: folder.name,
+      description: folder.description,
+      template: folder.template,
+    })),
+    notes: document.notes.map((note) => ({
+      noteId: note.noteId,
+      folderId: note.folderId,
+      body: note.body,
+    })),
+    files: (document.files ?? []).map((file) => ({
+      name: file.name,
+      mimeType: file.mimeType,
+      // The bytes travel as base64 in the document; what is said is their size.
+      bytes: Math.floor((file.bytes.replace(/=+$/, '').length * 3) / 4),
+    })),
+  };
 }
 
 /** What a transfer looks like on the wire, which is what it is. */
@@ -212,6 +300,74 @@ export function createPortabilityRoutes(
   useCases: PortabilityUseCases,
 ): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
+
+  // ---- Notebook models (#353) ---------------------------------------------
+
+  app.get('/models', async (c) => {
+    const request = c.get('portability');
+    const listed = await useCases.listModels(request).execute();
+    return present(c, listed, (models) => ({
+      models: models.map(({ model, name }) => ({ ...modelToDto(model), name })),
+    }));
+  });
+
+  app.get('/models/:v', async (c) => {
+    const request = c.get('portability');
+    const found = await useCases.getModel(request).execute(c.req.param('v') ?? '');
+    return present(c, found, ({ model, versions }) => ({
+      ...modelToDto(model),
+      versions: versions.map(versionToDto),
+    }));
+  });
+
+  app.put('/models/:v', async (c) => {
+    const request = c.get('portability');
+    const body = declareModelRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) {
+      return fail(
+        c,
+        DomainError.validation(
+          'A model takes an objective, and optionally a description, an audience, parameters and a credit',
+        ),
+      );
+    }
+    const declared = await useCases.declareModel(request).execute({
+      notebookId: c.req.param('v') ?? '',
+      declaration: body.data,
+    });
+    return present(c, declared, modelToDto);
+  });
+
+  app.post('/models/:v/versions', async (c) => {
+    const request = c.get('portability');
+    if (!request.authorship.ok) return fail(c, request.authorship.error);
+    const body = createModelVersionRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return fail(c, DomainError.validation('A changelog is a text'));
+    const created = await useCases.createModelVersion(request).execute({
+      notebookId: c.req.param('v') ?? '',
+      changelog: body.data.changelog,
+      by: request.authorship.value,
+    });
+    return created.ok ? c.json(versionToDto(created.value), 202) : fail(c, created.error);
+  });
+
+  app.get('/models/:v/versions/:n', async (c) => {
+    const request = c.get('portability');
+    const viewed = await useCases.viewModelVersion(request).execute({
+      notebookId: c.req.param('v') ?? '',
+      number: Number(c.req.param('n')),
+    });
+    return present(c, viewed, versionViewToDto);
+  });
+
+  app.delete('/models/:v/versions/:n', async (c) => {
+    const request = c.get('portability');
+    const deleted = await useCases.deleteModelVersion(request).execute({
+      notebookId: c.req.param('v') ?? '',
+      number: Number(c.req.param('n')),
+    });
+    return deleted.ok ? c.body(null, 204) : fail(c, deleted.error);
+  });
 
   app.post('/notebooks/:v/export', async (c) => {
     const request = c.get('portability');

@@ -311,7 +311,10 @@ export class ImportFromExport {
       !found.key ||
       // A key the worker wrote is always under this prefix; one that is not
       // is not copied, whatever the record says (INV-01).
-      !found.key.startsWith(`s/${this.subscriptionId}/exports/`)
+      !(
+        found.key.startsWith(`s/${this.subscriptionId}/exports/`) ||
+        found.key.startsWith(`s/${this.subscriptionId}/models/`)
+      )
     ) {
       return err(DomainError.notFound('Export not found'));
     }

@@ -21,7 +21,9 @@
     "./adapters/prints": "./src/adapters/prints.ts",
     "./adapters/chromium": "./src/adapters/chromium.ts",
     "./application/previews": "./src/application/Previews.ts",
-    "./adapters/previews": "./src/adapters/previews.ts"
+    "./adapters/previews": "./src/adapters/previews.ts",
+    "./application/models": "./src/application/Models.ts",
+    "./domain/model": "./src/domain/NotebookModel.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

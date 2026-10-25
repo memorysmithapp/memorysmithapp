@@ -17,6 +17,8 @@
  * the notebook.
  */
 
+import type { ModelVersionMeta } from './NotebookModel.js';
+
 /**
  * `request` is a file an agent asked the person for instead of sending it
  * itself (#253, RN-PRT-030): it has no bytes, reserves no room, and ends when
@@ -69,6 +71,12 @@ export interface Transfer {
   readonly upload?: TransferUpload | undefined;
   /** The file an agent asked the person for (RN-PRT-030); only on a request. */
   readonly request?: TransferRequest | undefined;
+  /**
+   * A version of a notebook model (#353): an export of the model notebook,
+   * without history, kept apart from the person's other exports and shown
+   * with its model instead of in Transfers.
+   */
+  readonly model?: ModelVersionMeta | undefined;
 }
 
 /**

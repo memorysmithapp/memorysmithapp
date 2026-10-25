@@ -32,7 +32,7 @@ MemorySmith is three projects in one pnpm monorepo, with the tools that operate 
 | `discovery` | Projections of the knowledge events: the link graph, pending links, aliases, facets and the text search. It owns no source data |
 | `audit` | The append-only trail of every event, and the history reads |
 | `agent` | The remote MCP server, the OAuth resource server and the CIMD proxy |
-| `portability` | Export and import of a notebook, transfers, uploads in parts, prints and previews |
+| `portability` | Export and import of a notebook, transfers, uploads in parts, prints and previews, notebook models and their versions |
 
 Every context except `agent` runs inside one Lambda, *CoreApi*, composed in `memorysmithapp-backend/apps/core-monolith/src/composition-root.ts`; the other entry points of that app (`*.handler.ts`) are the relays, the purge, the transfer worker, the print renderer and the link reprojection. `agent` is deployed on its own and calls `api.<zone>` over HTTPS with the user's bearer token, as any client does ([ADR-005](#adr-005-a-modular-monolith-with-the-audit-consumer-and-the-agent-apart)).
 
@@ -115,7 +115,7 @@ Two routes read a subscription id from the request, and neither acts in it on th
 
 ### INV-04 The S3 key is opaque
 
-A note, a Guidance or a Template is stored at `s/{subscriptionId}/c/{contentId}.md`, and a kept file at `s/{subscriptionId}/f/{contentId}` (`S3ContentStore.ts`, `S3FileStore.ts`). The key holds no notebook, folder, name or role, and the object metadata only immutable facts. Renaming, moving and reordering write DynamoDB only and never a byte to S3 ([ADR-002](#adr-002-the-s3-key-is-opaque-and-never-shared)).
+A note, a Guidance or a Template is stored at `s/{subscriptionId}/c/{contentId}.md`, and a kept file at `s/{subscriptionId}/f/{contentId}` (`S3ContentStore.ts`, `S3FileStore.ts`). A kept export is an archive at `s/{subscriptionId}/exports/{id}.notebook`, and a version of a notebook model, a kept export of the model notebook without history, at `s/{subscriptionId}/models/{id}.notebook`, apart so that what reads versions can be granted them alone; the record of the export, in `mv-portability` under its owner, says which model and number it is. The key holds no notebook, folder, name or role, and the object metadata only immutable facts. Renaming, moving and reordering write DynamoDB only and never a byte to S3 ([ADR-002](#adr-002-the-s3-key-is-opaque-and-never-shared)).
 
 ### INV-05 The backend reads only the notation the specification declares
 

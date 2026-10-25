@@ -221,12 +221,17 @@ export class ApiStack extends Stack {
      * `exports/` and to nothing else, so no revision of a note is within its
      * reach: the one principal allowed to destroy one of those is the purge
      * worker below (INV-08). The version is the one the worker recorded when
-     * it wrote the archive, so nothing is listed to find it.
+     * it wrote the archive, so nothing is listed to find it. A version of a
+     * notebook model is a kept export too, under `models/` (#353), and is
+     * destroyed the same way.
      */
     api.function.addToRolePolicy(
       new PolicyStatement({
         actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
-        resources: [props.data.contentBucket.arnForObjects('s/*/exports/*')],
+        resources: [
+          props.data.contentBucket.arnForObjects('s/*/exports/*'),
+          props.data.contentBucket.arnForObjects('s/*/models/*'),
+        ],
       }),
     );
     /**

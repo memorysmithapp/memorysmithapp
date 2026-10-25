@@ -9,6 +9,7 @@
   "DELETE /knowledge/notebooks/:v/guidance",
   "DELETE /knowledge/notebooks/:v/limits/:user",
   "DELETE /knowledge/notebooks/:v/notes/:n",
+  "DELETE /portability/models/:v/versions/:n",
   "DELETE /portability/transfers/:t",
   "GET /access/connector",
   "GET /access/members",
@@ -42,6 +43,9 @@
   "GET /knowledge/notebooks/:v/folders/:f/template",
   "GET /knowledge/notebooks/:v/notes",
   "GET /knowledge/notebooks/:v/notes/:n",
+  "GET /portability/models",
+  "GET /portability/models/:v",
+  "GET /portability/models/:v/versions/:n",
   "GET /portability/previews/:p",
   "GET /portability/prints/:p",
   "GET /portability/transfers",
@@ -82,6 +86,7 @@
   "POST /portability/imports",
   "POST /portability/imports/apply",
   "POST /portability/imports/from-export",
+  "POST /portability/models/:v/versions",
   "POST /portability/notebooks/:v/export",
   "POST /portability/notebooks/:v/notes/:n/pdf",
   "POST /portability/notebooks/:v/previews",
@@ -100,5 +105,6 @@
   "PUT /knowledge/notebooks/:v/guidance",
   "PUT /knowledge/notebooks/:v/limits/:user",
   "PUT /knowledge/notebooks/:v/notes/:n",
+  "PUT /portability/models/:v",
   "PUT /portability/uploads/:t/parts/:n"
 ]

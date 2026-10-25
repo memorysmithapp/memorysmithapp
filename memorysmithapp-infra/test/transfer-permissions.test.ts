@@ -226,7 +226,8 @@ describe('the copy of a kept export into an upload', () => {
   });
 
   it('never destroys what it copied from, beyond what deleting an export already does', () => {
-    // The API deletes a version under `exports/` (RN-PRT-020) and under
+    // The API deletes a version under `exports/` (RN-PRT-020), under
+    // `models/` (a version of a model is a kept export, #353) and under
     // `uploads/` (RN-PRT-028), and nowhere else: the copy adds no delete of
     // any kind, and no revision of a note or a file is within its reach.
     const deletes = allowed.filter((each) =>
@@ -235,7 +236,9 @@ describe('the copy of a kept export into an upload', () => {
     expect(
       deletes.every(
         (each) =>
-          each.resource.includes('s/*/exports/*') || each.resource.includes('s/*/uploads/*'),
+          each.resource.includes('s/*/exports/*') ||
+          each.resource.includes('s/*/models/*') ||
+          each.resource.includes('s/*/uploads/*'),
       ),
     ).toBe(true);
     expect(deletes.some((each) => each.resource.includes('s/*/uploads/*'))).toBe(true);

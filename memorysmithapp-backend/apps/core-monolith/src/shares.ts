@@ -221,6 +221,11 @@ export class DeleteNotebookAndShares extends DeleteNotebook {
     deps: ConstructorParameters<typeof DeleteNotebook>[0],
     private readonly owner: SubscriptionContext,
     private readonly shares: ShareRepository,
+    /**
+     * What else goes with the notebook: its model and every version of it
+     * (#353), which belong to Portability.
+     */
+    private readonly alsoForget: (notebookId: NotebookId) => Promise<void> = async () => undefined,
   ) {
     super(deps);
   }
@@ -229,7 +234,10 @@ export class DeleteNotebookAndShares extends DeleteNotebook {
     input: Parameters<DeleteNotebook['execute']>[0],
   ): ReturnType<DeleteNotebook['execute']> {
     const deleted = await super.execute(input);
-    if (deleted.ok) await this.shares.removeAllOf(this.owner, input.notebookId);
+    if (deleted.ok) {
+      await this.shares.removeAllOf(this.owner, input.notebookId);
+      await this.alsoForget(input.notebookId);
+    }
     return deleted;
   }
 }

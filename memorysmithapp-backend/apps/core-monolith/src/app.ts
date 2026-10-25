@@ -262,6 +262,8 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
         // A print is drawn as the person who asked (RN-PRT-031): the renderer
         // opens the page with the very token this request was authenticated by.
         accessToken: (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, ''),
+        // Declaring a model and creating its versions are the owner's (#353).
+        isOwner: resolved.value.ctx.isOwner,
       });
       await next();
     },

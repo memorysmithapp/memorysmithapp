@@ -65,6 +65,9 @@ The terms as the code names them. In the `pt_BR` locale, and only there, three a
 | **Template**            | The suggested shape of a folder's notes; zero or one per folder, never enforced                                   |
 | **Notebook Context**    | The Guidance and the annotated tree, composed for an agent on every call, never stored                            |
 | **Kept file**           | Bytes a notebook keeps, with a name, description, type, tags and path; a note shows it by its name                |
+| **Notebook model**      | A notebook declared as a model, from which independent notebooks are created; distinct from a Template            |
+| **Model version**       | A numbered, frozen snapshot of a model notebook, with its changelog and parameters                                |
+| **Parameter**           | A value a notebook created from a model fills in, declared by the model and written `{{name}}` in its notes        |
 | **Link**, **embed**     | A reference from a note to another note or a kept file, by name: `[[name]]` and `![[name]]`                       |
 | **Pending link**        | A link no note or file answers yet; it resolves on its own when one appears                                       |
 | **Backlink**            | A note linking to the one being read                                                                              |
@@ -421,6 +424,10 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-030 | A file request is a `request` transfer holding no bytes, fulfilled by the person's upload under the requested name and notebook.                                                         |                                                                                                      |
 | RN-PRT-031 | A note is downloaded as a server-made PDF of the print preview, rendered as the requesting person, kept a day and not counted against storage.                                           |                                                                                                      |
 | RN-PRT-032 | A note, draft or part is rendered as a PNG for an agent, as the person the connector acts for, kept a day and not counted against storage.                                               |                                                                                                      |
+| RN-PRT-033 | Only the `OWNER` declares a notebook of the subscription as a model, with an objective, a description, an audience, its parameters and an optional credit, and declares it again to change them; whoever reads the notebook reads its model, and editing the model notebook follows the permissions of any notebook. | |
+| RN-PRT-034 | A model declares each parameter once, by a name a reference can carry and no other parameter carries after NFC, with a description, an example, a type (`text`, `list`, `boolean` or `date`) and either `required` or a default valid for its type, which may be empty. | |
+| RN-PRT-035 | Only the `OWNER` creates a version of a model: the next number, 1, 2, …, with its changelog, what the model says of itself and a snapshot of the notebook without history, which never changes after it is created and is read whole before it is distributed. | |
+| RN-PRT-036 | A version counts once in the storage of the subscription, as a kept export, and is listed with its model and not among transfers; the owner deletes any version, and deleting the model notebook deletes the model and every version, while notebooks created from them stay. | |
 
 ## 8. Quality requirements
 

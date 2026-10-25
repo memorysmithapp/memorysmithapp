@@ -1038,9 +1038,12 @@ describe('Delivery 4 done criteria', () => {
     const read = { guidance: guidance.revision, template: null, structure: String(1) };
 
     const rewrite = (async () => {
-      const held = (await repositories(context).slots.findGuidance(notebook.id)) as Guidance;
+      // One repository reads and writes: the revision it read is what the
+      // write is conditioned on.
+      const writer = repositories(context).slots;
+      const held = (await writer.findGuidance(notebook.id)) as Guidance;
       unwrap(held.replace(await content.create('# Guidance, again\n'), authorshipOf(context)));
-      return repositories(context).slots.save(held);
+      return writer.save(held);
     })();
     const outcomes = await Promise.all(
       Array.from({ length: 50 }, async (_unused, index) => {

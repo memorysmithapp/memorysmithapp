@@ -64,7 +64,11 @@ import {
   DynamoLinkGraph,
   DynamoStructureProjection,
 } from '@memorysmithapp/svc-discovery/adapters/aws';
-import { DynamoTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
+import {
+  DynamoModelStore,
+  DynamoTransferStore,
+} from '@memorysmithapp/svc-portability/adapters/dynamo';
+import type { ModelStore } from '@memorysmithapp/svc-portability/domain/model';
 import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters/http';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
@@ -140,6 +144,31 @@ export function serializeNotebookDocument(document: unknown): { entry: string; c
  */
 export function parseNotebookDocument(json: string): NotebookDocument {
   return notebookDocumentSchema.parse(JSON.parse(json)) as NotebookDocument;
+}
+
+/**
+ * The snapshot a version of a notebook model froze (#353): the archive of a
+ * kept export, unzipped and read against the published schema, or null when
+ * the object is gone or is not one.
+ */
+export async function readVersionDocument(
+  read: (key: string) => Promise<Buffer | null>,
+  unzip: (archive: Buffer) => Record<string, string>,
+  key: string,
+): Promise<NotebookDocument | null> {
+  const archive = await read(key);
+  if (!archive) return null;
+  try {
+    const json = Object.entries(unzip(archive)).find(([name]) => name.endsWith('.json'))?.[1];
+    return json === undefined ? null : parseNotebookDocument(json);
+  } catch {
+    return null;
+  }
+}
+
+/** The models of a subscription (#353), beside its transfers. */
+export function buildModels(infra: Infrastructure, context: SubscriptionContext): ModelStore {
+  return new DynamoModelStore(infra.db, infra.portabilityTable, context.subscriptionId.value);
 }
 
 /**

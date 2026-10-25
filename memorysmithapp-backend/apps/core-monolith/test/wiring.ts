@@ -149,7 +149,21 @@ import {
   StartImport,
   type TransferWork,
 } from '@memorysmithapp/svc-portability/application/transfers';
-import { InMemoryTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
+import {
+  InMemoryModelStore,
+  InMemoryTransferStore,
+} from '@memorysmithapp/svc-portability/adapters/dynamo';
+import {
+  CreateModelVersion,
+  DeclareModel,
+  DeleteModelVersion,
+  ForgetModel,
+  GetModel,
+  ListModels,
+  ViewModelVersion,
+  type ModelCaller,
+  type ModelDependencies,
+} from '@memorysmithapp/svc-portability/application/models';
 import {
   InMemoryPartStore,
   InMemoryPreviewQueue,
@@ -179,7 +193,7 @@ import {
   PrepareImport,
 } from '@memorysmithapp/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from '../src/import-writer.js';
-import { parseNotebookDocument } from '../src/composition-root.js';
+import { parseNotebookDocument, readVersionDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
 import { AuditHistorySource } from '../src/history-source.js';
 import { ImportedTrailWriter } from '../src/trail-writer.js';
@@ -459,6 +473,15 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         knowledgeRepos(request.subscription),
         request.subscription,
         sharing.shares,
+        (notebookId) =>
+          new ForgetModel(
+            { models: modelStoreOf(request.subscription), transfers },
+            async (transfer) => {
+              await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
+                transfer.transferId,
+              );
+            },
+          ).execute(notebookId.value),
       ),
     putGuidance: (request) => new PutGuidance(knowledgeRepos(request.subscription)),
     deleteGuidance: (request) => new DeleteGuidance(knowledgeRepos(request.subscription)),
@@ -651,6 +674,43 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       new AuditHistorySource(auditTrail, revisions),
     );
   };
+  const modelStores = new Map<string, InMemoryModelStore>();
+  const modelStoreOf = (context: SubscriptionContext): InMemoryModelStore => {
+    const held = modelStores.get(context.subscriptionId.value);
+    if (held) return held;
+    const made = new InMemoryModelStore();
+    modelStores.set(context.subscriptionId.value, made);
+    return made;
+  };
+  const modelsOf = (request: PortabilityRequest): ModelDependencies => ({
+    models: modelStoreOf(request.subscription),
+    transfers,
+    notebooks: {
+      own: async (notebookId) => {
+        const parsed = NotebookId.create(notebookId);
+        if (!parsed.ok) return null;
+        const notebook = await knowledgeRepos(request.subscription).notebooks.findById(
+          parsed.value,
+        );
+        if (!notebook || notebook.isDeleted) return null;
+        return { name: notebook.name.value, noteCount: notebook.noteCount };
+      },
+    },
+    queue: {
+      send: async (work) => {
+        await new RunExport(transfers, await exporterFor(request, work)).execute(work);
+      },
+    },
+    budget: { current: async () => ({ usedBytes: 0, limitBytes: Number.MAX_SAFE_INTEGER }) },
+    versions: {
+      read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
+    },
+  });
+  const callerOf = (request: PortabilityRequest): ModelCaller => ({
+    subscriptionId: request.subscription.subscriptionId.value,
+    userId: request.subscription.userId.value,
+    isOwner: request.isOwner,
+  });
   const portabilityUseCases: PortabilityUseCases = {
     startExport: (request) =>
       new StartExport(
@@ -801,6 +861,19 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       new StartPreview(previews.queue, previews.store, request.subscription.subscriptionId.value),
     getPreview: (request) =>
       new GetPreview(previews.store, request.subscription.subscriptionId.value),
+    // The models of a subscription and their versions (#353), over the same
+    // use cases production builds, with the worker inline.
+    declareModel: (request) => new DeclareModel(modelsOf(request), callerOf(request)),
+    getModel: (request) => new GetModel(modelsOf(request), request.canRead),
+    listModels: (request) => new ListModels(modelsOf(request), request.canRead),
+    createModelVersion: (request) => new CreateModelVersion(modelsOf(request), callerOf(request)),
+    viewModelVersion: (request) => new ViewModelVersion(modelsOf(request), request.canRead),
+    deleteModelVersion: (request) =>
+      new DeleteModelVersion(modelsOf(request), callerOf(request), async (transfer) => {
+        await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
+          transfer.transferId,
+        );
+      }),
   };
 
   const app = createApp({

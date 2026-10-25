@@ -36,6 +36,8 @@ export interface TransferWork {
   readonly transferId: string;
   readonly kind: 'export' | 'import';
   readonly notebookId?: string | undefined;
+  /** An export that is a version of a notebook model (#353). */
+  readonly modelVersion?: boolean | undefined;
   /**
    * What the transfer carries, or nothing for the whole notebook: an export
    * chooses now as an import already did (RN-PRT-017, RN-PRT-024).
@@ -271,7 +273,11 @@ export class ListTransfers {
       this.transfers.transitUsage(),
     ]);
     return ok({
-      transfers: await Promise.all(transfers.map((transfer) => this.observe(transfer))),
+      // A version of a model is shown with its model, not among the person's
+      // transfers, though it counts in the storage as any kept export (#353).
+      transfers: await Promise.all(
+        transfers.filter((transfer) => !transfer.model).map((transfer) => this.observe(transfer)),
+      ),
       keptBytes,
       transitBytes: transit.bytes,
     });
@@ -406,6 +412,7 @@ export interface ExportRunner {
     now: Instant;
     selection?: ImportSelection | null | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
+    modelVersion?: boolean | undefined;
   }): Promise<
     Result<{ key: string; versionId: string | null; noteCount: number; bytes: number }, DomainError>
   >;
@@ -447,6 +454,7 @@ export class RunExport {
         now: Instant.now(),
         selection: work.selection ?? null,
         report,
+        ...(work.modelVersion ? { modelVersion: true } : {}),
       });
       await Promise.all(pending);
 

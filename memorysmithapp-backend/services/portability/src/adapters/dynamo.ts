@@ -36,6 +36,15 @@ import type {
   TransferStore,
   TransferUpload,
 } from '../domain/Transfer.js';
+import {
+  PARAMETER_TYPES,
+  type ModelStore,
+  type NotebookModel,
+  type ModelVersionMeta,
+  type ParameterDeclaration,
+  type ParameterType,
+  type ParameterValue,
+} from '../domain/NotebookModel.js';
 
 type Item = Record<string, unknown>;
 
@@ -492,6 +501,37 @@ function transferOf(item: Item): Transfer {
     fileName: item['fileName'] ? String(item['fileName']) : null,
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
     ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
+    ...(item['model'] ? { model: modelVersionOf(item['model'] as Item) } : {}),
+  };
+}
+
+/** What a version froze of its model (#353), as the item holds it. */
+function modelVersionOf(item: Item): ModelVersionMeta {
+  const parameters = Array.isArray(item['parameters']) ? (item['parameters'] as Item[]) : [];
+  return {
+    number: Number(item['number'] ?? 0),
+    changelog: String(item['changelog'] ?? ''),
+    objective: String(item['objective'] ?? ''),
+    description: String(item['description'] ?? ''),
+    audience: String(item['audience'] ?? ''),
+    basedOn: item['basedOn'] ? String(item['basedOn']) : null,
+    parameters: parameters.map(parameterOf),
+  };
+}
+
+/** A declared parameter, as an item holds it. */
+export function parameterOf(item: Item): ParameterDeclaration {
+  const type = PARAMETER_TYPES.includes(item['type'] as ParameterType)
+    ? (item['type'] as ParameterType)
+    : 'text';
+  const raw = item['default'];
+  return {
+    name: String(item['name'] ?? ''),
+    description: String(item['description'] ?? ''),
+    example: String(item['example'] ?? ''),
+    type,
+    required: Boolean(item['required']),
+    default: raw === undefined || raw === null ? null : (raw as ParameterValue),
   };
 }
 
@@ -635,5 +675,119 @@ class MemoryCounter {
       bytes: Math.max(0, this.bytes),
       byNotebook: new Map(this.byNotebook),
     };
+  }
+}
+
+/**
+ * The notebook models of a subscription (#353), beside its kept exports:
+ *
+ *   PK  S#{subscriptionId}   SK  MODEL#{notebookId}
+ *
+ * Their versions are not here: each one is a kept export of the owner, with
+ * what it froze of its model on its record.
+ */
+export class DynamoModelStore implements ModelStore {
+  constructor(
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+    private readonly subscriptionId: string,
+  ) {}
+
+  private key(notebookId: string): Item {
+    return { PK: `S#${this.subscriptionId}`, SK: `MODEL#${notebookId}` };
+  }
+
+  async get(notebookId: string): Promise<NotebookModel | null> {
+    const found = await this.db.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: this.key(notebookId),
+        ConsistentRead: true,
+      }),
+    );
+    return found.Item ? modelOf(found.Item) : null;
+  }
+
+  async list(): Promise<NotebookModel[]> {
+    const found = await this.db.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: { ':pk': `S#${this.subscriptionId}`, ':prefix': 'MODEL#' },
+      }),
+    );
+    return (found.Items ?? []).map(modelOf);
+  }
+
+  async put(model: NotebookModel): Promise<void> {
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: { ...this.key(model.notebookId), entity: 'MODEL', ...model },
+      }),
+    );
+  }
+
+  async takeVersionNumber(notebookId: string): Promise<number | null> {
+    try {
+      const updated = await this.db.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: this.key(notebookId),
+          UpdateExpression: 'SET nextVersion = nextVersion + :one',
+          ConditionExpression: 'attribute_exists(SK)',
+          ExpressionAttributeValues: { ':one': 1 },
+          ReturnValues: 'UPDATED_OLD',
+        }),
+      );
+      return Number(updated.Attributes?.['nextVersion'] ?? 1);
+    } catch (error) {
+      if ((error as { name?: string }).name === 'ConditionalCheckFailedException') return null;
+      throw error;
+    }
+  }
+
+  async remove(notebookId: string): Promise<void> {
+    await this.db.send(new DeleteCommand({ TableName: this.tableName, Key: this.key(notebookId) }));
+  }
+}
+
+function modelOf(item: Item): NotebookModel {
+  const parameters = Array.isArray(item['parameters']) ? (item['parameters'] as Item[]) : [];
+  return {
+    notebookId: String(item['notebookId']),
+    objective: String(item['objective'] ?? ''),
+    description: String(item['description'] ?? ''),
+    audience: String(item['audience'] ?? ''),
+    parameters: parameters.map(parameterOf),
+    basedOn: item['basedOn'] ? String(item['basedOn']) : null,
+    ownerUserId: String(item['ownerUserId'] ?? ''),
+    declaredAt: String(item['declaredAt'] ?? ''),
+    updatedAt: String(item['updatedAt'] ?? ''),
+    nextVersion: Number(item['nextVersion'] ?? 1),
+  };
+}
+
+/** The models of a subscription, in memory, for the harness of a test. */
+export class InMemoryModelStore implements ModelStore {
+  private readonly models = new Map<string, NotebookModel>();
+
+  async get(notebookId: string): Promise<NotebookModel | null> {
+    return this.models.get(notebookId) ?? null;
+  }
+  async list(): Promise<NotebookModel[]> {
+    return [...this.models.values()];
+  }
+  async put(model: NotebookModel): Promise<void> {
+    this.models.set(model.notebookId, model);
+  }
+  async takeVersionNumber(notebookId: string): Promise<number | null> {
+    const held = this.models.get(notebookId);
+    if (!held) return null;
+    this.models.set(notebookId, { ...held, nextVersion: held.nextVersion + 1 });
+    return held.nextVersion;
+  }
+  async remove(notebookId: string): Promise<void> {
+    this.models.delete(notebookId);
   }
 }
