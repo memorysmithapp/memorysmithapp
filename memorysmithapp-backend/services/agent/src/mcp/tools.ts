@@ -568,6 +568,10 @@ function contextArgument(
  * at about thirty seconds and the function at fifteen (RN-AGT-052).
  */
 export const CHECK_NOTICES_LIMIT = 200;
+
+/** How long create_notebook_from_model waits for the worker, and how often it looks. */
+const CREATION_WAIT_MS = 20_000;
+const CREATION_POLL_MS = 1_000;
 const CHECK_NOTICES_BUDGET_MS = 8_000;
 const CHECK_NOTICES_PARALLEL = 10;
 
@@ -1267,6 +1271,91 @@ export class McpToolAdapter {
             requireString(args, 'note', 'backlinks'),
           ),
         );
+
+      // ---- Notebook models (#353, #354, #359) -----------------------------
+      case 'declare_model': {
+        const parameters = Array.isArray(args['parameters']) ? args['parameters'] : [];
+        return json(
+          await knowledge.declareModel(caller, requireString(args, 'notebook', 'declare_model'), {
+            objective: requireString(args, 'objective', 'declare_model'),
+            description: optionalString(args, 'description') ?? '',
+            audience: optionalString(args, 'audience') ?? '',
+            parameters: parameters as never,
+            basedOn: optionalString(args, 'basedOn') ?? null,
+          }),
+        );
+      }
+
+      case 'get_model':
+        return json(await knowledge.model(caller, requireString(args, 'notebook', 'get_model')));
+
+      case 'list_models':
+        return json({ models: await knowledge.listModels(caller) });
+
+      case 'create_model_version': {
+        const notebook = requireString(args, 'notebook', 'create_model_version');
+        const version = await knowledge.createModelVersion(
+          caller,
+          notebook,
+          optionalString(args, 'changelog') ?? '',
+        );
+        return json({
+          ...version,
+          next:
+            `The version is being built. Call get_model with this notebook until version ` +
+            `${version.number} is ready, then read_model_version to review it with the person.`,
+        });
+      }
+
+      case 'read_model_version':
+        return json(
+          await knowledge.modelVersion(
+            caller,
+            requireString(args, 'notebook', 'read_model_version'),
+            requireInteger(args, 'version', 'read_model_version'),
+          ),
+        );
+
+      case 'delete_model_version':
+        await knowledge.deleteModelVersion(
+          caller,
+          requireString(args, 'notebook', 'delete_model_version'),
+          requireInteger(args, 'version', 'delete_model_version'),
+        );
+        return json({ deleted: true });
+
+      case 'create_notebook_from_model': {
+        const values =
+          args['values'] && typeof args['values'] === 'object'
+            ? (args['values'] as Record<string, unknown>)
+            : {};
+        const started = await knowledge.createFromModel(caller, {
+          notebookId: requireString(args, 'notebook', 'create_notebook_from_model'),
+          version: requireInteger(args, 'version', 'create_notebook_from_model'),
+          name: optionalString(args, 'name') ?? '',
+          values,
+        });
+        // The notebook is written by the worker; most are written in seconds.
+        let transfer = started;
+        for (let waited = 0; transfer.status === 'running' && waited < CREATION_WAIT_MS;) {
+          await new Promise((resolve) => setTimeout(resolve, CREATION_POLL_MS));
+          waited += CREATION_POLL_MS;
+          transfer = await knowledge.transfer(caller, started.transferId);
+        }
+        return json(
+          transfer.status === 'ready'
+            ? { notebook: transfer.notebookId, name: transfer.notebookName, status: 'ready' }
+            : {
+                transfer: transfer.transferId,
+                status: transfer.status,
+                failure: transfer.failure,
+                next:
+                  transfer.status === 'running'
+                    ? 'The notebook is still being written: list_notebooks shows it once it is.'
+                    : 'The notebook was not created; the failure says why.',
+              },
+        );
+      }
 
       case 'check_notebook': {
         // The sweep reads the links from Discovery and what is still on its way

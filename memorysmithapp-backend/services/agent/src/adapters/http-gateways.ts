@@ -16,6 +16,11 @@
 import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmithapp/observability';
 import { pageOf } from '../mcp/note-pages.js';
 import type {
+  DeclareModelRequest,
+  ModelListDto,
+  ModelVersionDto,
+  ModelVersionViewDto,
+  NotebookModelDto,
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
@@ -479,6 +484,73 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       { method: 'POST', body: file },
     );
     return fileRefOf(kept);
+  }
+
+  async declareModel(
+    caller: AgentCaller,
+    notebookId: string,
+    declaration: DeclareModelRequest,
+  ): Promise<NotebookModelDto> {
+    await callApi(this.origin, caller, `/portability/models/${notebookId}`, {
+      method: 'PUT',
+      body: declaration,
+    });
+    return this.model(caller, notebookId);
+  }
+
+  async model(caller: AgentCaller, notebookId: string): Promise<NotebookModelDto> {
+    return callApi<NotebookModelDto>(this.origin, caller, `/portability/models/${notebookId}`);
+  }
+
+  async listModels(caller: AgentCaller): Promise<ModelListDto['models']> {
+    return (await callApi<ModelListDto>(this.origin, caller, '/portability/models')).models;
+  }
+
+  async createModelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    changelog: string,
+  ): Promise<ModelVersionDto> {
+    return callApi<ModelVersionDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/versions`,
+      { method: 'POST', body: { changelog } },
+    );
+  }
+
+  async modelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    number: number,
+  ): Promise<ModelVersionViewDto> {
+    return callApi<ModelVersionViewDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/versions/${number}`,
+    );
+  }
+
+  async deleteModelVersion(caller: AgentCaller, notebookId: string, number: number): Promise<void> {
+    await callApi(this.origin, caller, `/portability/models/${notebookId}/versions/${number}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createFromModel(
+    caller: AgentCaller,
+    input: { notebookId: string; version: number; name: string; values: Record<string, unknown> },
+  ): Promise<TransferDto> {
+    return callApi<TransferDto>(
+      this.origin,
+      caller,
+      `/portability/models/${input.notebookId}/versions/${input.version}/notebooks`,
+      { method: 'POST', body: { name: input.name, values: input.values } },
+    );
+  }
+
+  async transfer(caller: AgentCaller, transferId: string): Promise<TransferDto> {
+    return callApi<TransferDto>(this.origin, caller, `/portability/transfers/${transferId}`);
   }
 
   async beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto> {

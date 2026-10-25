@@ -254,6 +254,15 @@ describe('The tool catalog is the public contract', () => {
       // How a note is drawn, before or after it is written (#260).
       'preview_note',
       'get_preview',
+      // A notebook declared as a model, its versions, and a notebook created
+      // from one (#353, #354, #359).
+      'declare_model',
+      'get_model',
+      'list_models',
+      'create_model_version',
+      'read_model_version',
+      'delete_model_version',
+      'create_notebook_from_model',
       'note_history',
     ]);
   });
@@ -305,6 +314,10 @@ describe('The tool catalog is the public contract', () => {
       'reorder_note',
       'move_note',
       'delete_note',
+      'declare_model',
+      'create_model_version',
+      'delete_model_version',
+      'create_notebook_from_model',
     ]);
     for (const tool of TOOL_CATALOG) {
       const readable = tool.annotations.readOnlyHint === true;
@@ -2935,5 +2948,78 @@ describe('a notebook shared for editing (#349)', () => {
       ).content[0]?.text ?? '';
     expect(context).toContain('which waits for this person to accept');
     expect(context).toContain('every write here is refused');
+  });
+});
+
+describe('notebook models through the connector (#353, #354, #359)', () => {
+  it('declares a model with its parameters and answers it', async () => {
+    const declared: unknown[] = [];
+    const answer = await gateways({
+      knowledge: {
+        declareModel: async (_caller: unknown, notebookId: string, declaration: unknown) => {
+          declared.push([notebookId, declaration]);
+          return { notebookId, objective: 'x', versions: [] };
+        },
+      },
+    }).call(
+      'declare_model',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        objective: 'Run one condominium',
+        parameters: [{ name: 'condominio', type: 'text', required: true }],
+      },
+      caller,
+    );
+    expect(answer.isError).toBe(false);
+    expect(declared).toEqual([
+      [
+        '01JBQ2X00000000000000000V1',
+        expect.objectContaining({
+          objective: 'Run one condominium',
+          parameters: [{ name: 'condominio', type: 'text', required: true }],
+          basedOn: null,
+        }),
+      ],
+    ]);
+  });
+
+  it('waits for the notebook created from a model, and answers it', async () => {
+    let reads = 0;
+    const answer = await gateways({
+      knowledge: {
+        createFromModel: async () => ({
+          transferId: '01JBQ2X00000000000000000T1',
+          status: 'running',
+          notebookId: null,
+          notebookName: 'Condomínio Aurora',
+        }),
+        transfer: async () => {
+          reads += 1;
+          return {
+            transferId: '01JBQ2X00000000000000000T1',
+            status: 'ready',
+            notebookId: '01JBQ2X00000000000000000V9',
+            notebookName: 'Condomínio Aurora',
+          };
+        },
+      },
+    }).call(
+      'create_notebook_from_model',
+      { notebook: '01JBQ2X00000000000000000V1', version: 1, values: { condominio: 'Aurora' } },
+      caller,
+    );
+    expect(reads).toBe(1);
+    expect(JSON.parse(answer.content[0]?.text ?? '{}')).toEqual({
+      notebook: '01JBQ2X00000000000000000V9',
+      name: 'Condomínio Aurora',
+      status: 'ready',
+    });
+  });
+
+  it('teaches deriving a model as a skill of its own, and designing one in design-notebook', () => {
+    const derive = skillNamed('derive-model')?.body ?? '';
+    expect(derive).toContain('**Ask the level of generality.**');
+    expect(derive).toContain('Do not change the source notebook.');
+    expect(skillNamed('design-notebook')?.body).toContain('## A notebook that is a model');
   });
 });

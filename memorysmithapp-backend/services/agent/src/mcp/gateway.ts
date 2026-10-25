@@ -10,6 +10,13 @@
  */
 
 import type {
+  DeclareModelRequest,
+  ModelListDto,
+  ModelVersionDto,
+  ModelVersionViewDto,
+  NotebookModelDto,
+} from '@memorysmithapp/contracts';
+import type {
   BeginUploadRequest,
   FinishedUploadDto,
   NoteOrder,
@@ -486,6 +493,35 @@ export interface KnowledgeGateway {
     },
   ): Promise<MovedNote>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
+  // ---- Notebook models (#353, #354, #359) ---------------------------------
+  declareModel(
+    caller: AgentCaller,
+    notebookId: string,
+    declaration: DeclareModelRequest,
+  ): Promise<NotebookModelDto>;
+  model(caller: AgentCaller, notebookId: string): Promise<NotebookModelDto>;
+  listModels(caller: AgentCaller): Promise<ModelListDto['models']>;
+  createModelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    changelog: string,
+  ): Promise<ModelVersionDto>;
+  modelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    number: number,
+  ): Promise<ModelVersionViewDto>;
+  deleteModelVersion(caller: AgentCaller, notebookId: string, number: number): Promise<void>;
+  createFromModel(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      version: number;
+      name: string;
+      values: Record<string, unknown>;
+    },
+  ): Promise<TransferDto>;
+  transfer(caller: AgentCaller, transferId: string): Promise<TransferDto>;
 }
 
 export interface DiscoveryGateway {

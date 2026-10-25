@@ -1133,6 +1133,158 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     ),
     annotations: { readOnlyHint: true },
   },
+  // ---- Notebook models (#353, #354, #359) ---------------------------------
+  {
+    name: 'declare_model',
+    title: 'Declare a notebook as a model',
+    description:
+      'Declares a notebook of this subscription as a MODEL, from which other notebooks are ' +
+      'created, or declares it again to change what it says of itself. Only the owner of the ' +
+      'subscription may. A model is not a template: a template is the suggested shape of the ' +
+      'notes of one folder, a model is a whole notebook to be copied. Write in the notebook ' +
+      'itself `{{name}}` wherever a value goes, and declare each name here once, with what it ' +
+      `is, an example, its type and whether it is required or what it defaults to. Read the skill ` +
+      '`derive-model` first when the model comes from a notebook that worked, and `design-notebook` ' +
+      'when it is designed from scratch. Answers the model and its versions.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        objective: { type: 'string', description: 'What a notebook created from it is for.' },
+        description: { type: 'string', description: 'Optional: what it holds, in one line.' },
+        audience: { type: 'string', description: 'Optional: who it is for.' },
+        parameters: {
+          type: 'array',
+          description:
+            'Each value a notebook created from it fills in, by the name its `{{name}}` writes.',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              description: { type: 'string' },
+              example: { type: 'string' },
+              type: { type: 'string', enum: ['text', 'list', 'boolean', 'date'] },
+              required: { type: 'boolean' },
+              default: {
+                description:
+                  'The value of one not required, of its type: a text, a list of texts, true or ' +
+                  'false, or a date as YYYY-MM-DD. It may be empty.',
+              },
+            },
+            required: ['name', 'type', 'required'],
+            additionalProperties: false,
+          },
+        },
+        basedOn: {
+          type: ['string', 'null'],
+          description: 'Optional credit to what it is based on, shown with it; never required.',
+        },
+      },
+      ['notebook', 'objective'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'get_model',
+    title: 'Read the model of a notebook',
+    description:
+      'What a notebook declared as a model says of itself — its objective, audience and ' +
+      'parameters — and its versions, the newest first, each with its number, changelog and ' +
+      'status. A notebook that is no model answers NOT_FOUND.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'list_models',
+    title: 'List the models this person can use',
+    description:
+      'The notebooks of this subscription declared as models, with their objective and ' +
+      'parameters: what create_notebook_from_model can create a notebook from.',
+    inputSchema: object({}),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_model_version',
+    title: 'Create a version of a model',
+    description:
+      'Freezes the model notebook as it is now into its next version, 1, 2, …, with a ' +
+      'changelog saying what changed since the last. A version never changes afterwards, ' +
+      'counts once in the storage, and is what notebooks are created from. Only the owner of ' +
+      'the subscription may, after reviewing the notebook with them. It is built in the ' +
+      'background: get_model says when its status is ready, and read_model_version then shows ' +
+      'exactly what it holds, and what it writes as `{{name}}` without declaring.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        changelog: { type: 'string', description: 'What changed since the last version.' },
+      },
+      ['notebook'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'read_model_version',
+    title: 'Read a version of a model whole',
+    description:
+      'Everything a version holds — its guidance, folders, templates, notes and files, its ' +
+      'parameters and changelog — and `references`: the `{{name}}` it writes that no parameter ' +
+      'declares, which a notebook created from it would keep, and the parameters nothing ' +
+      'uses. Review it with the person before the version is shared.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        version: { type: 'integer', description: 'The number of the version.' },
+      },
+      ['notebook', 'version'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'delete_model_version',
+    title: 'Delete a version of a model',
+    description:
+      'Deletes one version of a model and frees its storage. Notebooks already created from it ' +
+      'are not touched. Only the owner of the subscription may; confirm with them first.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        version: { type: 'integer', description: 'The number of the version.' },
+      },
+      ['notebook', 'version'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'create_notebook_from_model',
+    title: 'Create a notebook from a model',
+    description:
+      'Creates an independent notebook of this subscription from a version of a model, with ' +
+      'a value for each of its parameters, by name: one not given takes its default, and a ' +
+      'required one missing, or a value not of its type, is refused before anything is ' +
+      'written, naming each. Ask the person for the values first, using the description and ' +
+      'example of each parameter. Every `{{name}}` is filled in; the new notebook depends on ' +
+      'nothing of the model afterwards. It waits for the notebook to be written and answers ' +
+      'its identifier, or the transfer to follow when it takes longer.',
+    inputSchema: object(
+      {
+        notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' },
+        version: {
+          type: 'integer',
+          description: 'The version to create from, usually the latest.',
+        },
+        name: {
+          type: 'string',
+          description: 'Optional: the name of the new notebook; the name of the model, filled in.',
+        },
+        values: {
+          type: 'object',
+          description: 'The value of each parameter, by its name.',
+          additionalProperties: true,
+        },
+      },
+      ['notebook', 'version', 'values'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
   {
     name: 'note_history',
     title: 'Read the history of a note',
@@ -1154,13 +1306,13 @@ const DEFINITIONS: readonly ToolDefinition[] = [
 ];
 
 /**
- * What every tool that writes in a notebook says of a shared one (RN-AGT-046):
+ * What every tool that writes in a notebook says of a shared one (RN-AGT-054):
  * said once here and appended, so no write tool can be added without it.
  */
 const SHARED_REFUSAL =
-  ' A notebook shared with this person from another subscription with `read` access refuses ' +
-  'this with FORBIDDEN, naming its owner: list_notebooks says which notebooks are shared and ' +
-  'with which access.';
+  ' A notebook shared with this person from another subscription refuses what its access does ' +
+  'not allow with FORBIDDEN, naming its owner: list_notebooks says which notebooks are shared ' +
+  'and with which access.';
 
 function writesInANotebook(tool: ToolDefinition): boolean {
   const writes =

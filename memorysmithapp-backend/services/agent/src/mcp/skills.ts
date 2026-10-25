@@ -356,6 +356,118 @@ say what you built. Without it, when you can propose the whole structure in one
 message — the guidance in a paragraph, the folders with their descriptions, the
 properties, the maps and the templates — and the person can accept it or adjust
 it. Then build it.
+
+## Starting from a model
+
+Before designing a notebook for a kind of work, call \`list_models\`: a model of
+this subscription may already be that design. When one fits, say so and offer
+it; with the person's agreement, ask them for the value of each parameter, by
+its description and example, and call \`create_notebook_from_model\`. The new
+notebook is theirs, independent of the model, and is then read and written like
+any other.
+
+## A notebook that is a model
+
+When the person asks for a model — a notebook to be copied, one per client,
+case or place — and not for a notebook of their own work, design it from scratch
+as this skill says, with four differences:
+
+1. **Ask the objective and the audience first.** A model is written for whoever
+   creates a notebook from it, so its guidance says what such a notebook is for
+   and who keeps it, never one case.
+2. **Keep the structure generic.** Folders, descriptions and templates name the
+   kind of thing they hold, never one instance of it.
+3. **Propose the parameters.** What changes from one notebook to the next — the
+   name of the condominium, the client, the start date — is written \`{{name}}\`
+   wherever it goes, and declared once with \`declare_model\`: what it is, an
+   example, its type, and whether it is required or what it defaults to. The
+   person approves the list.
+4. **Write illustrative examples.** Each folder with a template holds one note
+   that shows it, written for the model, with parameters where a case would put
+   its own words.
+
+Then, with the person, call \`declare_model\`, review the notebook, and create
+its first version with \`create_model_version\`. Offer to try it: create a
+notebook from that version with sample values, read it together, and delete it.
+The trial is recommended and never required.
+`;
+
+/**
+ * Deriving a model from a notebook that worked (#352): the method, because
+ * generalizing is rewriting, not search and replace, and an agent that does it
+ * by intuition leaks the circumstances of the source into the model.
+ */
+const DERIVE_MODEL = `# Deriving a model from a notebook that worked
+
+A notebook that worked carries its circumstances: the name of whoever wrote it
+and of their organization in the guidance, the system it evaluates, local
+decisions, real notes. A **model** carries the method, with the objective its
+author chooses: instead of evaluating one mobile application, evaluating any
+source code and structuring what is learned. Getting from one to the other is
+rewriting, and this is how.
+
+The source notebook is never changed. The model is a **new notebook** of the
+subscription, created for it and declared as a model at the end. Only the owner
+of the subscription declares a model and creates its versions.
+
+## The method
+
+Do these in order, and do not skip the questions: each one is a decision of the
+author, never yours.
+
+1. **Understand the notebook.** Read \`get_notebook_context\`, every template with
+   \`get_template\`, and a sample of the notes of each folder. Say, in a short
+   paragraph, the method the notebook actually applies: what it collects, in what
+   order, how it decides, what it produces.
+2. **Ask the level of generality.** Offer the author two or three objectives, from
+   the one closest to the source to the broadest that still holds — "evaluate
+   mobile applications", "evaluate any source code", "evaluate any system". Keep
+   the one they choose. A domain-specific model is a good model: never broaden
+   the purpose on your own.
+3. **Separate the method from the circumstance.** List everything specific to the
+   case: people, organizations, the system evaluated, dates, places, decisions,
+   internal references and figures. For each, propose one of three outcomes and
+   let the author decide:
+   - **remove it**, when the model is better without it;
+   - **generalize it**, rewriting the sentence for the chosen objective;
+   - **make it a parameter**, when it changes from one notebook to the next and
+     the next notebook has to say it: \`{{client}}\`, \`{{system}}\`.
+4. **Rewrite, do not substitute.** Replacing the name of the organization with
+   \`{{organization}}\` is not enough when the whole sentence only makes sense for
+   that case. Rewrite the guidance, the folder descriptions and the templates for
+   the new objective.
+5. **Write the examples anew.** A real note almost always carries facts of the
+   case. Write one illustrative note per folder with a template, for the model;
+   copy a real one only when the author asks for it, and only after reviewing it
+   with them line by line.
+6. **Review it with the author.** Show what was removed, what was generalized,
+   what became a parameter, and every assumption you made. Nothing becomes a
+   version without their approval.
+
+## Building it
+
+1. Create the model notebook with \`create_notebook\`, and write its guidance,
+   folders, templates and examples as \`design-notebook\` says, with the rewritten
+   text.
+2. Declare it with \`declare_model\`: the objective the author chose, who it is
+   for, and each parameter — its name, what it is, an example, its type
+   (\`text\`, \`list\`, \`boolean\` or \`date\`), and whether it is required or what
+   it defaults to.
+3. Create its first version with \`create_model_version\`, with a changelog that
+   says what it is. When \`get_model\` says it is ready, read it with
+   \`read_model_version\`: \`references.undeclared\` must be empty, and every
+   parameter in \`references.unused\` is either written where it belongs or
+   removed from the declaration.
+4. Offer the trial: create a notebook from the version with sample values, read
+   it with the author, and delete it. It is recommended, never required.
+
+## What not to do
+
+- Do not change the source notebook.
+- Do not keep a name of a person or of an organization of the source in the
+  model, unless the author asked to.
+- Do not broaden the objective, or narrow it, without the author's agreement.
+- Do not create a version the author has not reviewed.
 `;
 
 /**
@@ -1019,6 +1131,7 @@ with \`waitingFor: "person"\` is a file they were asked for.
  */
 export const DESIGN_NOTEBOOK_SKILL = 'design-notebook';
 export const KEEP_FILES_SKILL = 'keep-files';
+export const DERIVE_MODEL_SKILL = 'derive-model';
 
 /**
  * One skill per task, and only tasks the reading path does not teach. The path
@@ -1033,6 +1146,11 @@ export const SKILLS: readonly Skill[] = [
     name: DESIGN_NOTEBOOK_SKILL,
     task: 'Design a notebook from scratch: its guidance, its folders and their templates',
     body: DESIGN_NOTEBOOK,
+  },
+  {
+    name: DERIVE_MODEL_SKILL,
+    task: 'Derive a notebook model from a notebook that worked: keep the method, leave the circumstance',
+    body: DERIVE_MODEL,
   },
   {
     name: 'write-notes',
