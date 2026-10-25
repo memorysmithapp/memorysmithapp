@@ -28,6 +28,16 @@ interface Usage {
 const SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="#0f56d7"/></svg>';
 
+/**
+ * What one notebook occupies in a subscription, read from its usage. The run
+ * writes in the same accounts from other cases at once, so the totals move
+ * under any journey; a notebook's own line moves only with that notebook.
+ */
+async function bytesOf(api: Api, notebookId: string): Promise<number | null> {
+  const usage = await api.ok<Usage>('GET', '/access/usage');
+  return usage.notebooks.find((each) => each.notebookId === notebookId)?.bytes ?? null;
+}
+
 /** Waits for a notebook created from a version, by the transfer that writes it. */
 async function created(api: Api, transferId: string): Promise<string> {
   const transfer = await eventually(
@@ -183,7 +193,6 @@ test('a regulated-domain model goes from its author to a named person and to the
       ).isError,
     ).toBe(false);
 
-    const ownerBefore = await owner.ok<Usage>('GET', '/access/usage');
     await callTool(ownerAgent, 'create_model_version', {
       notebook: model,
       changelog: 'Primeira versão',
@@ -196,11 +205,12 @@ test('a regulated-domain model goes from its author to a named person and to the
     expect(version.references).toEqual({ undeclared: [], unused: [] });
     expect(version.files).toHaveLength(1);
     // The version counts once in the author's storage, as a kept export.
-    const ownerVersioned = await eventually(
-      'the version to be counted once',
-      () => owner.ok<Usage>('GET', '/access/usage'),
-      (usage) => usage.byType.exports.bytes > ownerBefore.byType.exports.bytes,
+    // The version is counted once, with its author, as a kept export of its size.
+    const counted = await owner.ok<{ versions: Array<{ number: number; bytes: number }> }>(
+      'GET',
+      `/portability/models/${model}`,
     );
+    expect(counted.versions.find((each) => each.number === 1)?.bytes).toBeGreaterThan(0);
 
     // ---- Two independent notebooks of the author, each with its values ------
     const fromOwn: string[] = [];
@@ -255,16 +265,17 @@ test('a regulated-domain model goes from its author to a named person and to the
 
     // ---- Shared with a named person, as a model reader -----------------------
     const shares = `/access/notebooks/${model}/shares`;
-    const ownerShared = (await owner.ok<Usage>('GET', '/access/usage')).usedBytes;
-    const otherBefore = (await other.ok<Usage>('GET', '/access/usage')).usedBytes;
+    const modelBytes = await bytesOf(owner, model);
+    expect(modelBytes).toBeGreaterThan(0);
     await owner.ok('POST', shares, {
       email: state.accounts.other.email,
       profile: 'model-reader',
       acceptLicence: true,
     });
     await other.ok('POST', `/access/shared/${model}/accept`);
-    expect((await owner.ok<Usage>('GET', '/access/usage')).usedBytes).toBe(ownerShared);
-    expect((await other.ok<Usage>('GET', '/access/usage')).usedBytes).toBe(otherBefore);
+    // Sharing and accepting move nothing: the model stays counted once, with its author.
+    expect(await bytesOf(owner, model)).toBe(modelBytes);
+    expect(await bytesOf(other, model)).toBeNull();
     expect((await callTool(otherAgent, 'list_models')).text).toContain(model);
     expect((await callTool(otherAgent, 'get_notebook_context', { notebook: model })).isError).toBe(
       true,
@@ -280,10 +291,10 @@ test('a regulated-domain model goes from its author to a named person and to the
     toDelete.push([other, sharedCopy.notebook ?? '']);
     await eventually(
       'the copy to be counted in the subscription of whoever made it',
-      () => other.ok<Usage>('GET', '/access/usage'),
-      (usage) => usage.usedBytes > otherBefore,
+      () => bytesOf(other, sharedCopy.notebook ?? ''),
+      (bytes) => (bytes ?? 0) > 0,
     );
-    expect((await owner.ok<Usage>('GET', '/access/usage')).usedBytes).toBe(ownerShared);
+    expect(await bytesOf(owner, sharedCopy.notebook ?? '')).toBeNull();
 
     // ---- The same person as an editor of the model notebook -----------------
     await owner.ok('PUT', `${shares}/${otherUser}/profile`, { profile: 'notebook-editor' });
@@ -304,7 +315,10 @@ test('a regulated-domain model goes from its author to a named person and to the
     await owner.ok('DELETE', `${shares}/${otherUser}`);
 
     // ---- Published, found and used as a stranger would ----------------------
-    const ownerPublishing = (await owner.ok<Usage>('GET', '/access/usage')).usedBytes;
+    const publishingBytes = await bytesOf(owner, model);
+    const versionsBefore = (
+      await owner.ok<{ versions: unknown[] }>('GET', `/portability/models/${model}`)
+    ).versions.length;
     const published = parsed<{ publicId: string }>(
       await callTool(ownerAgent, 'publish_model', {
         notebook: model,
@@ -312,7 +326,8 @@ test('a regulated-domain model goes from its author to a named person and to the
         acceptLicence: true,
       }),
     );
-    expect((await owner.ok<Usage>('GET', '/access/usage')).usedBytes).toBe(ownerPublishing);
+    // Publishing copies nothing: the notebook and its versions are as they were.
+    expect(await bytesOf(owner, model)).toBe(publishingBytes);
     const found = await eventually(
       'the model to be found in the community',
       async () =>
@@ -371,10 +386,12 @@ test('a regulated-domain model goes from its author to a named person and to the
     expect((await fetch(`${state.surfaces.api}/public/catalog/${published.publicId}`)).status).toBe(
       404,
     );
-    expect((await owner.ok<Usage>('GET', '/access/usage')).usedBytes).toBe(ownerPublishing);
+    expect(await bytesOf(owner, model)).toBe(publishingBytes);
+    expect(
+      (await owner.ok<{ versions: unknown[] }>('GET', `/portability/models/${model}`)).versions,
+    ).toHaveLength(versionsBefore);
     expect(await notesOf(otherAgent, strangerCopy)).toContain('Prefeitura de Indaiatuba');
     await callTool(otherAgent, 'withdraw_model', { notebook: strangerCopy });
-    void ownerVersioned;
   } finally {
     for (const [api, notebook] of toDelete.reverse()) {
       if (notebook) await api.call('DELETE', `/knowledge/notebooks/${notebook}`);

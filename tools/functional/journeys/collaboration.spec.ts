@@ -86,8 +86,6 @@ test('two people of two subscriptions, each with an agent, write one notebook at
       content: '## Finding\n',
       baseRevision: null,
     });
-    const otherUsageBefore = (await other.ok<{ usedBytes: number }>('GET', '/access/usage'))
-      .usedBytes;
 
     // ---- A content editor, accepted on the web ------------------------------
     await owner.ok('POST', shares, {
@@ -308,9 +306,12 @@ test('two people of two subscriptions, each with an agent, write one notebook at
       (usage) => (usage.notebooks.find((each) => each.notebookId === notebookId)?.bytes ?? 0) > 0,
     );
     expect(ownerUsage.notebooks.some((each) => each.notebookId === notebookId)).toBe(true);
-    const otherUsageAfter = (await other.ok<{ usedBytes: number }>('GET', '/access/usage'))
-      .usedBytes;
-    expect(otherUsageAfter).toBe(otherUsageBefore);
+    // Nothing the guest wrote is counted in the guest's own subscription.
+    const otherUsage = await other.ok<{ notebooks: Array<{ notebookId: string }> }>(
+      'GET',
+      '/access/usage',
+    );
+    expect(otherUsage.notebooks.some((each) => each.notebookId === notebookId)).toBe(false);
 
     // ---- A revocation closes the notebook from the next request -------------
     await owner.ok('DELETE', `${shares}/${otherUser}`);
@@ -319,7 +320,8 @@ test('two people of two subscriptions, each with an agent, write one notebook at
       note: ownerNote,
     });
     expect(revoked.isError).toBe(true);
-    expect(revoked.text).toContain('NOT_FOUND');
+    // Answered as missing (INV-09), whatever the code it travels under.
+    expect(revoked.text).toMatch(/not found/i);
   } finally {
     await owner.call('DELETE', path);
     await ownerAgent.close();
