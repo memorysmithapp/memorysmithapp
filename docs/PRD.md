@@ -49,7 +49,7 @@ Code comments cite them by code. A principle that stopped holding keeps its code
 
 ## 5. Ubiquitous language
 
-The terms as the code names them. In the `pt_BR` locale, and only there, three are translated: **Guidance** is _Orientação_, **Template** is _Modelo_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word, and the share profiles are named in ordinary words too: _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
+The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word, and the share profiles are named in ordinary words too: _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
 
 | Term                    | Meaning                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -434,6 +434,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-038 | Every reference to a declared parameter is filled in — the name and the description of the notebook, its Guidance, the name, the description and the Template of each folder, and each note, its frontmatter included — each type in the form of its place: text as typed and escaped, a list as `a, b` in a body and `["a", "b"]` in the frontmatter, a boolean as `true` or `false`, a date as `YYYY-MM-DD`; no value produces notation it did not contain. | |
 | RN-PRT-039 | The view of a version names every reference no parameter of the model declares, which a notebook created from it would keep, and every parameter no text of it uses. | |
 | RN-PRT-040 | A notebook created from a version is an import of its snapshot under a name the person gives, the name of the model filled in by default: every identifier minted anew, no history, nothing that depends on the model; the import records the version it came from as information only, and the notebook keeps working whatever becomes of the model. | |
+| RN-PRT-041 | The interface offers, in a notebook, its model: the owner declares it there and creates and deletes its versions, and whoever reads the notebook reads them; Home creates a notebook blank, or from the ready version of a model the person reads, asking each parameter in the form of its type. | |
 
 ## 8. Quality requirements
 

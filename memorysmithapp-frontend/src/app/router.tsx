@@ -20,6 +20,8 @@ import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
+import { ModelPage } from '../features/models/ModelPage';
+import { ModelVersionPage } from '../features/models/ModelVersionPage';
 import { RequireSession, RootLayout } from './RootLayout';
 
 /**
@@ -83,6 +85,8 @@ export const router = createBrowserRouter([
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },
                   { path: 'graph', element: <GraphPage /> },
+                  { path: 'model', element: <ModelPage /> },
+                  { path: 'model/versions/:version', element: <ModelVersionPage /> },
                   { path: 'folders', element: <FoldersPage /> },
                   { path: 'folders/:folderId', element: <FolderPage /> },
                   { path: 'notes/:noteId', element: <NoteRoute /> },

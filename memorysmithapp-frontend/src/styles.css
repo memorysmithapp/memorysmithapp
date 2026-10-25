@@ -6690,3 +6690,171 @@ body.has-sheet .app-main {
 .content-pane > .markdown .edit-bar {
   top: var(--bar-h);
 }
+
+/* ── Notebook models (#353, #354, #359) ──────────────────────────────────────
+   The page of a model, its versions, and a notebook created from one. The
+   fields are the fields of the Controles; a textarea and a select take the
+   same edge and the same focus as an input. */
+.field textarea,
+.field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+.field textarea {
+  resize: vertical;
+}
+.field textarea:focus-visible,
+.field select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.model-page,
+.model-version-page {
+  max-width: 48rem;
+}
+.model-form,
+.model-versions,
+.model-summary,
+.model-create {
+  margin-top: 1.5rem;
+}
+.model-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.parameters-editor {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.parameter-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.75rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.parameter-row .field {
+  margin-bottom: 0.75rem;
+}
+.parameter-description,
+.parameter-default,
+.parameter-problem,
+.parameter-written {
+  grid-column: 1 / -1;
+}
+.parameter-required {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.parameter-remove {
+  justify-self: end;
+}
+@media (max-width: 40rem) {
+  .parameter-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.parameter-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+}
+.parameter-list li + li {
+  margin-top: 0.35rem;
+}
+.model-version-new {
+  margin-bottom: 1rem;
+}
+.model-version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.model-version {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.model-version:last-child {
+  border-bottom: 0;
+}
+.model-version-number {
+  font-family: var(--display);
+  font-weight: 700;
+}
+.model-version-when {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+.model-version-changelog {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+.model-version-confirm {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+@media (max-width: 40rem) {
+  .model-version {
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+  .model-version-changelog {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
+.model-source {
+  overflow-x: auto;
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.callout-warning {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--signal);
+  border-radius: 8px;
+  background: var(--code-bg);
+  font-size: 0.875rem;
+}
+.new-notebook .ask-dialog-box {
+  width: min(36rem, calc(100vw - 2rem));
+}
+.new-notebook-form,
+.new-notebook-model,
+.create-from-model {
+  margin-top: 1rem;
+}
+.home-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

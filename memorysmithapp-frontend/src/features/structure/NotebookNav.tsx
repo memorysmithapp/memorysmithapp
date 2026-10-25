@@ -6,12 +6,14 @@ import {
   foldersAddress,
   graphAddress,
   guidanceAddress,
+  modelAddress,
   notebookAddress,
   templatesAddress,
 } from '../../shared/api/note-address';
 import {
   ChevronRightIcon,
   ContextIcon,
+  CopyIcon,
   FolderIcon,
   GraphIcon,
   GuidanceIcon,
@@ -78,6 +80,10 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
       </NavItem>
       <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
         {t('graph.navLabel')}
+      </NavItem>
+      {/* What the notebook is as a model, to copy (#353). */}
+      <NavItem to={modelAddress(notebookId)} icon={<CopyIcon />}>
+        {t('model.title')}
       </NavItem>
     </nav>
   );

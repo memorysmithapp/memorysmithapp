@@ -75,6 +75,11 @@ export const queryKeys = {
   ownShares: () => ['own-shares'] as const,
   /** The people one notebook is shared with, in its Share dialog. */
   notebookShares: (notebookId: string) => ['notebook-shares', notebookId] as const,
+  // Notebook models and their versions (#353).
+  models: () => ['models'] as const,
+  model: (notebookId: string) => ['model', notebookId] as const,
+  modelVersion: (notebookId: string, version: number) =>
+    ['model-version', notebookId, version] as const,
   /** The notebooks shared with the person, pending and accepted. */
   incomingShares: () => ['incoming-shares'] as const,
   /** What the notifications button lists (RN-ACC-029). */

@@ -54,7 +54,7 @@ One line each; the reason lives where the link points.
 - A business rule code is append-only: never renumbered, never reused; a rule that stops holding keeps its row, marked removed ([PRD §7](docs/PRD.md#7-features-and-rules)).
 - Infrastructure code lives in `memorysmithapp-infra`, never in the backend, and a stack is never defined inside a service ([ARCHITECTURE §2](docs/ARCHITECTURE.md#2-layout)).
 - Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `tools/agent-eval/`.
-- In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
+- In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo de pasta*, Notebook model is *Modelo de caderno* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
 - The repository builds no container image; a Dockerfile, if one ever appears, comes with its `.dockerignore` in the same change.
 - Create or delete a GitHub repository, change a ruleset, or act on production data only with the owner's go-ahead in the session.
 

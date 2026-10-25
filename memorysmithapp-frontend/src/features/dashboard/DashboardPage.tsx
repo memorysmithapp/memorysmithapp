@@ -13,6 +13,7 @@ import { useMatchMedia } from '../../shared/lib/media';
 import { homeExpanded, rememberHomeExpanded } from '../../shared/store/home-layout';
 import { TransferDialogs } from '../portability/StartTransfer';
 import { NotebookActions } from './NotebookActions';
+import { NewNotebookDialog } from '../models/NewNotebookDialog';
 import { SubscriptionSpace } from './SubscriptionSpace';
 import { byName } from './catalogue';
 import { useIncomingShares, useOwnShares } from '../sharing/shares';
@@ -49,6 +50,7 @@ export function DashboardPage() {
   const state = queryState(query);
   // The export a card started, with its notebook already chosen (#199).
   const [exporting, setExporting] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [remembered, setRemembered] = useState(homeExpanded);
   const phone = useMatchMedia(PHONE);
   const expanded = remembered && !phone;
@@ -95,7 +97,19 @@ export function DashboardPage() {
   return (
     <section className={expanded ? 'page home is-expanded' : 'page home'}>
       <CardCarousel
-        heading={<h1 className="home-heading">{t('dashboard.selectNotebook')}</h1>}
+        heading={
+          <div className="home-heading-row">
+            <h1 className="home-heading">{t('dashboard.selectNotebook')}</h1>
+            {/* A blank notebook, or one created from a model (#359). */}
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              onClick={() => setCreating(true)}
+            >
+              {t('newNotebook.open')}
+            </button>
+          </div>
+        }
         prevLabel={t('dashboard.prevNotebooks')}
         nextLabel={t('dashboard.nextNotebooks')}
         expanded={expanded}
@@ -133,6 +147,7 @@ export function DashboardPage() {
       {entries?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
       {expanded ? null : <SubscriptionSpace />}
+      <NewNotebookDialog open={creating} onClose={() => setCreating(false)} />
       <TransferDialogs
         starting={exporting === null ? null : 'export'}
         notebookId={exporting ?? undefined}

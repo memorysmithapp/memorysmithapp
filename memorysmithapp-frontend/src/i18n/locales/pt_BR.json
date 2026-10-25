@@ -100,24 +100,24 @@
     "foldersHint": "A árvore com a descrição de cada pasta",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
-    "hasTemplate": "modelo",
+    "hasTemplate": "modelo de pasta",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToNotebooks": "Todos os cadernos",
     "openNavigation": "Navegação do caderno",
     "heading": "Contexto do caderno",
-    "contextParts": "Orientação, Modelos e Pastas",
-    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
+    "contextParts": "Orientação, Modelos de pasta e Pastas",
+    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo de pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
     "deleteGuidance": "Apagar a Orientação",
     "noGuidanceWrite": "Este caderno ainda não tem Orientação. Use o lápis para escrever uma: ela orienta todo agente que escreve aqui.",
-    "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
-    "templates": "Modelos",
+    "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos de pasta e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
+    "templates": "Modelos de pasta",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
     "templatesPageHint_one": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pasta deste caderno declara um, mostrado abaixo; o servidor nunca valida uma nota contra ele.",
     "templatesPageHint_other": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pastas deste caderno declaram um, cada um mostrado abaixo; o servidor nunca valida uma nota contra eles.",
-    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo.",
-    "templateOf": "Modelo da pasta {{folder}}",
+    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo de pasta.",
+    "templateOf": "Modelo de pasta de {{folder}}",
     "openFolder": "Abrir pasta",
     "content": "Conteúdo",
     "breadcrumb": "Trilha do contexto do caderno"
@@ -125,11 +125,11 @@
   "folder": {
     "subfolders": "Subpastas",
     "notesHeading": "Notas nesta pasta",
-    "template": "Modelo",
+    "template": "Modelo de pasta",
     "templateCardHint": "Leiaute sugerido para as notas desta pasta",
-    "deleteTemplate": "Apagar o Modelo",
-    "noTemplateWrite": "Esta pasta ainda não tem Modelo. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
-    "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
+    "deleteTemplate": "Apagar o Modelo de pasta",
+    "noTemplateWrite": "Esta pasta ainda não tem Modelo de pasta. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
+    "deleteTemplateConfirm": "Apagar o Modelo de pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta.",
     "noteOrder": "Ordem das notas",
     "noteOrderManual": "Manual",
@@ -150,7 +150,7 @@
     "description": "Descrição",
     "descriptionHint": "É o que orienta o próximo agente que escrever aqui.",
     "count": "{{used}}/{{max}}",
-    "explain": "A pasta mantém as notas, as subpastas e o Modelo, e todo link continua funcionando.",
+    "explain": "A pasta mantém as notas, as subpastas e o Modelo de pasta, e todo link continua funcionando.",
     "save": "Salvar",
     "saving": "Salvando…",
     "nameTaken": "Já existe uma pasta chamada “{{name}}” neste nível. Nada foi alterado."
@@ -183,8 +183,8 @@
     "remoteImages_one": "Abrir esta nota buscou uma imagem em {{hosts}}, então esse site recebeu seu endereço e o momento em que você leu.",
     "remoteImages_other": "Abrir esta nota buscou imagens em {{count}} outros sites — {{hosts}} —, então cada um deles recebeu seu endereço e o momento em que você leu.",
     "refusedLink": "Este endereço não é dos que a superfície de leitura segue, então o texto fica e o link não.",
-    "parameter": "Um parâmetro deste modelo, preenchido quando um caderno é criado a partir dele.",
-    "parameterLink": "Este link nomeia um parâmetro e leva a uma nota quando um caderno criado a partir do modelo o preenche.",
+    "parameter": "Um parâmetro deste Modelo de caderno, preenchido quando um caderno é criado a partir dele.",
+    "parameterLink": "Este link nomeia um parâmetro e leva a uma nota quando um caderno criado a partir do Modelo de caderno o preenche.",
     "copy": "Copiar",
     "copied": "Copiado",
     "unnamed": "Nota sem nome",
@@ -240,7 +240,7 @@
     "expandNotebooks": "Mostrar todos os cadernos",
     "collapseNotebooks": "Voltar a uma linha",
     "goToNotebook": "Ir para o caderno {{number}}",
-    "noNotebooks": "Nenhum caderno ainda. Um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
+    "noNotebooks": "Nenhum caderno ainda. Crie um aqui; um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
     "space": "Espaço da assinatura",
     "planChip": "{{plan}} · {{quota}}",
     "plan": {
@@ -256,7 +256,7 @@
     "kindNotes": "Notas",
     "kindExports": "Exportações guardadas",
     "kindOthers": "Outros",
-    "kindOthersHint": "Orientações e Modelos",
+    "kindOthersHint": "Orientações e Modelos de pasta",
     "byNotebook": "Por caderno",
     "moreNotebooks_one": "Mais {{count}} caderno",
     "moreNotebooks_other": "Mais {{count}} cadernos",
@@ -357,12 +357,12 @@
     "tab": {
       "context": "Contexto",
       "folders": "Pastas",
-      "templates": "Modelos",
+      "templates": "Modelos de pasta",
       "notes": "Notas",
       "conflicts": "Inconsistências",
       "files": "Arquivos"
     },
-    "noTemplate": "sem Modelo",
+    "noTemplate": "sem Modelo de pasta",
     "wholeNotebook": "O caderno todo",
     "whatToCarry": {
       "export": "O que vai no arquivo",
@@ -380,16 +380,16 @@
     "onlyChosenFolders": "Só aparecem as pastas escolhidas na aba Pastas.",
     "noFolderChosen": {
       "folders": "Este caderno não tem pasta.",
-      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos aqui.",
+      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos de pasta aqui.",
       "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
     },
     "pathFolder": "caminho",
     "countFolders_zero": "{{count}} pastas",
     "countFolders_one": "{{count}} pasta",
     "countFolders_other": "{{count}} pastas",
-    "countTemplates_zero": "{{count}} Modelos",
-    "countTemplates_one": "{{count}} Modelo",
-    "countTemplates_other": "{{count}} Modelos",
+    "countTemplates_zero": "{{count}} Modelos de pasta",
+    "countTemplates_one": "{{count}} Modelo de pasta",
+    "countTemplates_other": "{{count}} Modelos de pasta",
     "twinsBlock_one": "1 nome é carregado duas vezes na pasta dele.",
     "twinsBlock_other": "{{count}} nomes são carregados duas vezes na pasta deles.",
     "showTwins": "Ver o motivo",
@@ -574,7 +574,7 @@
     "what": {
       "heading": "O que é isto",
       "body": "O MemorySmith é onde você e seus agentes de IA constroem conhecimento juntos. Um caderno tem pastas, uma pasta tem notas em Markdown, e as mesmas notas são lidas e escritas pelos dois lados: por você, nesta interface, e pelo agente, pelo conector. Nada fica preso aqui dentro: cada nota continua sendo texto puro e guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
-      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
+      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo de pasta. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
     },
     "interface": {
       "heading": "O que você encontra aqui",
@@ -588,7 +588,7 @@
         "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades e o seu texto, e cada link leva à nota que alcança — ou diz que ainda não alcança nenhuma."
       },
       "guidance": {
-        "term": "Orientação e Modelos",
+        "term": "Orientação e Modelos de pasta",
         "definition": "Podem ser lidos em telas próprias, então você vê as regras que um agente está seguindo antes de ler o que ele escreveu."
       },
       "graph": {
@@ -601,12 +601,12 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos de pasta, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
       "heading": "Conectando seu assistente de IA",
-      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de cada pasta. O endereço deste ambiente é:",
+      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de pasta de cada pasta. O endereço deste ambiente é:",
       "claude": {
         "heading": "No Claude",
         "one": "No menu lateral, abra <b>Personalizar</b> e depois <b>Conectores</b>.",
@@ -707,7 +707,7 @@
     "attachPurpose": "Anexado pela interface à nota “{{note}}”",
     "attachPurposeUnnamed": "Anexado pela interface a uma nota",
     "attachPurposeGuidance": "Anexado pela interface à Orientação do caderno",
-    "attachPurposeTemplate": "Anexado pela interface ao Modelo da pasta “{{folder}}”",
+    "attachPurposeTemplate": "Anexado pela interface ao Modelo de pasta de “{{folder}}”",
     "attachRefusal": {
       "TOO_LARGE": "Um arquivo anexado vai até 100 MB.",
       "EMPTY": "Esse arquivo está vazio.",
@@ -730,7 +730,7 @@
     "contextChanged": "Sua nota foi salva, mas {{parts}} mudou desde que você a abriu. Leia o que mudou e ajuste a nota se precisar.",
     "contextPart": {
       "guidance": "a Orientação",
-      "template": "o Modelo desta pasta",
+      "template": "o Modelo de pasta desta pasta",
       "structure": "as pastas do caderno"
     }
   },
@@ -874,8 +874,8 @@
     },
     "profileHint": {
       "reader": "Lê e exporta o caderno inteiro, e não escreve nada.",
-      "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos continuam sendo seus para mudar.",
-      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos. Compartilhar e apagar o caderno continuam com você."
+      "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos de pasta continuam sendo seus para mudar.",
+      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de pasta. Compartilhar e apagar o caderno continuam com você."
     }
   },
   "notifications": {
@@ -1003,5 +1003,90 @@
     "updating": "Atualizando…",
     "notSaved": "Não salvo",
     "editUnavailable": "Esta nota mistura quebras de linha, que o editor não consegue manter byte a byte, então ela abre só para leitura."
+  },
+  "model": {
+    "title": "Modelo de caderno",
+    "intro": "Um caderno declarado como Modelo de caderno é copiado em cadernos novos, cada um preenchido com os próprios valores. Não é um Modelo de pasta: o Modelo de pasta é a forma sugerida das notas de uma pasta; o Modelo de caderno é um caderno inteiro.",
+    "notAModel": "Este caderno não é um Modelo de caderno.",
+    "declareHint": "Declare este caderno como Modelo de caderno para criar outros cadernos a partir dele. Escreva {{reference}} nas notas onde vai um valor, e declare cada nome abaixo.",
+    "objective": "Objetivo",
+    "objectiveHint": "Para que serve um caderno criado a partir dele.",
+    "description": "Descrição",
+    "audience": "Para quem é",
+    "basedOn": "Baseado em",
+    "basedOnHint": "Crédito opcional, mostrado com o modelo. Nunca é obrigatório.",
+    "parameters": "Parâmetros",
+    "parametersHint": "Cada valor que um caderno criado a partir do modelo preenche. Um parâmetro é obrigatório, ou tem um valor padrão, que pode ser vazio.",
+    "noParameters": "Nenhum parâmetro.",
+    "parameterLegend": "Parâmetro {{name}}",
+    "parameterName": "Nome",
+    "parameterType": "Tipo",
+    "parameterDescription": "O que é",
+    "parameterExample": "Exemplo",
+    "parameterRequired": "Obrigatório",
+    "parameterDefault": "Padrão",
+    "listHint": "Um item por linha",
+    "removeParameter": "Remover",
+    "addParameter": "Adicionar um parâmetro",
+    "writtenAs": "Escrito {{reference}} nas notas.",
+    "problem": {
+      "name": "Um nome começa com letra ou _, e segue com letras, dígitos, _ e -.",
+      "duplicate": "Outro parâmetro tem este nome.",
+      "default": "Um parâmetro que não é obrigatório precisa de um valor padrão do seu tipo."
+    },
+    "type": {
+      "text": "Texto",
+      "list": "Lista",
+      "boolean": "Sim ou não",
+      "date": "Data"
+    },
+    "defaultsTo": "padrão “{{value}}”",
+    "forExample": "por exemplo {{example}}",
+    "declare": "Declarar como Modelo de caderno",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "saved": "Salvo.",
+    "versions": "Versões",
+    "changelog": "O que mudou desde a última versão",
+    "versionHint": "Uma versão congela o caderno como está agora. Ela não muda depois, e conta uma vez no armazenamento.",
+    "createVersion": "Criar uma versão",
+    "creatingVersion": "Criando…",
+    "noVersions": "Nenhuma versão ainda.",
+    "status": {
+      "running": "Sendo criada",
+      "ready": "Pronta",
+      "failed": "Falhou",
+      "cancelled": "Cancelada"
+    },
+    "openVersion": "Abrir",
+    "deleteVersion": "Apagar…",
+    "deleteVersionForGood": "Apagar v{{number}}",
+    "versionTitle": "Versão {{number}}",
+    "undeclared": "Esta versão escreve {{names}}, que nenhum parâmetro declara: um caderno criado a partir dela os manteria como estão.",
+    "unused": "Declarados e não escritos em lugar nenhum: {{names}}.",
+    "contents": "O que ela guarda",
+    "none": "Nenhuma.",
+    "create": "Criar um caderno a partir desta versão",
+    "creating": "Criando…",
+    "newName": "Nome do caderno novo",
+    "newNameHint": "Vazio, é o nome do modelo, preenchido.",
+    "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
+    "creationFailed": "O caderno não foi criado. Transferências diz por quê.",
+    "referenceExample": "nome"
+  },
+  "newNotebook": {
+    "open": "Novo caderno",
+    "title": "Novo caderno",
+    "kind": "Como começar",
+    "blank": "Em branco",
+    "fromModel": "De um Modelo de caderno",
+    "name": "Nome",
+    "description": "Para que serve",
+    "create": "Criar",
+    "creating": "Criando…",
+    "model": "Modelo de caderno",
+    "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
+    "noVersion": "Este modelo ainda não tem versão pronta.",
+    "fromVersion": "Da versão {{number}}: {{changelog}}"
   }
 }

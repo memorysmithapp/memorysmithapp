@@ -435,3 +435,16 @@ export {
   revokeShare,
   shareNotebook,
 } from './backend';
+
+// Notebook models (#353, #354, #359), and a blank notebook beside them: straight
+// to the API, as sharing is.
+export {
+  createFromVersion,
+  createModelVersion,
+  declareModel,
+  deleteModelVersion,
+  getModel,
+  getModelVersion,
+  listModels,
+  createNotebook,
+} from './backend';

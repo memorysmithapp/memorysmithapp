@@ -43,6 +43,12 @@ import type {
   NoteRefDto,
   NotebookSummaryDto,
   SubscriptionUsageDto,
+  DeclareModelRequest,
+  ModelListDto,
+  ModelVersionDto,
+  ModelVersionViewDto,
+  NotebookModelDto,
+  ParameterValueDto,
 } from '@memorysmithapp/contracts';
 import type {
   FolderNode,
@@ -54,6 +60,7 @@ import type {
 } from '../types/api';
 import { splitFrontmatter } from './markdown';
 import { request } from './http';
+import { ApiError } from './error-mapper';
 import { adoptSession } from '../auth/oauth';
 
 export async function getSession(): Promise<SessionDto> {
@@ -132,6 +139,67 @@ export async function readUsage(): Promise<SubscriptionUsageDto> {
  */
 export async function deleteNotebook(notebookId: string): Promise<void> {
   await request<void>(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
+}
+
+// ---- Notebook models (#353, #354, #359) ------------------------------------
+
+export async function listModels(): Promise<ModelListDto['models']> {
+  return (await request<ModelListDto>('/portability/models')).models;
+}
+
+/** The model of a notebook, or null when the notebook is no model. */
+export async function getModel(notebookId: string): Promise<NotebookModelDto | null> {
+  try {
+    return await request<NotebookModelDto>(`/portability/models/${notebookId}`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function declareModel(
+  notebookId: string,
+  declaration: DeclareModelRequest,
+): Promise<void> {
+  await request<unknown>(`/portability/models/${notebookId}`, {
+    method: 'PUT',
+    body: declaration,
+  });
+}
+
+export async function createModelVersion(
+  notebookId: string,
+  changelog: string,
+): Promise<ModelVersionDto> {
+  return request<ModelVersionDto>(`/portability/models/${notebookId}/versions`, {
+    method: 'POST',
+    body: { changelog },
+  });
+}
+
+export async function getModelVersion(
+  notebookId: string,
+  version: number,
+): Promise<ModelVersionViewDto> {
+  return request<ModelVersionViewDto>(`/portability/models/${notebookId}/versions/${version}`);
+}
+
+export async function deleteModelVersion(notebookId: string, version: number): Promise<void> {
+  await request<void>(`/portability/models/${notebookId}/versions/${version}`, {
+    method: 'DELETE',
+  });
+}
+
+/** An independent notebook created from a version; the answer is the import to follow. */
+export async function createFromVersion(
+  notebookId: string,
+  version: number,
+  input: { name: string; values: Record<string, ParameterValueDto> },
+): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/models/${notebookId}/versions/${version}/notebooks`, {
+    method: 'POST',
+    body: input,
+  });
 }
 
 export async function listNotebooks(): Promise<NotebookSummary[]> {

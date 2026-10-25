@@ -91,6 +91,16 @@ export function graphAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/graph`;
 }
 
+/** What a notebook declared as a model says of itself, and its versions (#353). */
+export function modelAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/model`;
+}
+
+/** One version of a model, read whole (#353). */
+export function modelVersionAddress(notebookId: string, version: number): string {
+  return `${modelAddress(notebookId)}/versions/${version}`;
+}
+
 /**
  * The address of a link target, which is where a name legitimately gets
  * encoded: a route reached by clicking and never by typing (RN-DSC-046).
