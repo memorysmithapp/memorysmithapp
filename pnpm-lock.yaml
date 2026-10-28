@@ -96,7 +96,7 @@ importers:
     dependencies:
       '@memorysmithapp/markdown-spec':
         specifier: '>=0.8.5 <1.0.0'
-        version: 0.8.5
+        version: 0.9.0
       zod:
         specifier: ^4.0.0
         version: 4.4.3
@@ -1277,8 +1277,8 @@ packages:
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@memorysmithapp/markdown-spec@0.8.5':
-    resolution: {integrity: sha512-VkcRJj2Ug+A5WE9PqlmTCbLkhdAXHSfNB87s8Pu3Xn77ABWq1CA3LpzPOAd4jrt6on9FelVmN45+A+sCn24ciQ==}
+  '@memorysmithapp/markdown-spec@0.9.0':
+    resolution: {integrity: sha512-vv6aIXQnwBgsYmGBI4os93X6hEbxRMgzbSrCirtpROR2ytWdN6tTk4qxhpzeKKOFXXV22vSV1+i8llJFQzdChg==}
 
   '@mermaid-js/parser@1.2.1':
     resolution: {integrity: sha512-n12NohV3mrUyUL2o93IgG/ifeW9FTyeJn3zDxkhwa8MJ9Fxg3HQMlA3RiGmD/3UnJvheztkjjQAjA2T4LmUcpw==}
@@ -4915,7 +4915,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@memorysmithapp/markdown-spec@0.8.5': {}
+  '@memorysmithapp/markdown-spec@0.9.0': {}
 
   '@mermaid-js/parser@1.2.1':
     dependencies:
