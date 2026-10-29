@@ -38,22 +38,6 @@ async function bytesOf(api: Api, notebookId: string): Promise<number | null> {
   return usage.notebooks.find((each) => each.notebookId === notebookId)?.bytes ?? null;
 }
 
-/** Waits for a notebook created from a version, by the transfer that writes it. */
-async function created(api: Api, transferId: string): Promise<string> {
-  const transfer = await eventually(
-    'the notebook to be written',
-    () =>
-      api.ok<{ status: string; notebookId: string | null }>(
-        'GET',
-        `/portability/transfers/${transferId}`,
-      ),
-    (each) => each.status !== 'running',
-    { timeoutMs: 120_000 },
-  );
-  expect(transfer.status).toBe('ready');
-  return transfer.notebookId ?? '';
-}
-
 async function readyVersion(api: Api, notebookId: string, number: number): Promise<void> {
   await eventually(
     `version ${number} to be built`,
