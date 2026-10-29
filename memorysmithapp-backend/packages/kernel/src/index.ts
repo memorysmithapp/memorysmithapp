@@ -21,6 +21,17 @@ export {
 export { noteName, NAME_KEY } from './note-name.js';
 export { codeRanges } from './markdown-code.js';
 export {
+  COMPARISONS,
+  comparedFacets,
+  normalize,
+  parseQuery,
+  QuerySyntaxError,
+  STRUCTURAL_FIELDS,
+  type Comparison,
+  type QueryNode,
+  type StructuralField,
+} from './search-query.js';
+export {
   isParameterName,
   parameterNames,
   parameterReferences,
