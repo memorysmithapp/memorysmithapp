@@ -41,6 +41,7 @@ issues each entry cites.
 ### Fixed
 
 - **A note written while others were being written is always counted.** When several writes of one subscription were counted at the same moment, one of them could be dropped for good, so a folder or a notebook said it held fewer notes than it did, and the space used could be off. Such a write is now counted again until it lands. (#362)
+- **The *New notebook* button on Home shows its icon.** On a computer it shows a plus and its word, and on a phone the plus alone, its word still read by a screen reader, like every other action button. (#371)
 
 ## [0.14.3] - 2026-10-20
 

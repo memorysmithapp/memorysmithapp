@@ -418,3 +418,12 @@ export function SignInIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** A new notebook, the action of Home (#371). */
+export function PlusIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

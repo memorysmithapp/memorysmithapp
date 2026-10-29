@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import { listNotebooks } from '../../shared/api/source';
+import { ActionWord } from '../../shared/components/ActionWord';
 import { CardCarousel } from '../../shared/components/CardCarousel';
+import { PlusIcon } from '../../shared/components/icons';
 import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
@@ -106,7 +108,7 @@ export function DashboardPage() {
               className="button is-quiet is-small"
               onClick={() => setCreating(true)}
             >
-              {t('newNotebook.open')}
+              <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
             </button>
           </div>
         }
