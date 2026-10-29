@@ -183,4 +183,32 @@ test.describe('the tables of a notebook', () => {
     expect((await owner.call('DELETE', path)).status).toBe(200);
     expect((await owner.call('GET', path)).status).toBe(404);
   });
+
+  test('[route:POST /knowledge/notebooks/:v/tables/import] proposes a schema out of a kept CSV and imports its rows', async ({
+    owner,
+    notebook,
+  }) => {
+    const file = `${unique('statement').replace(/\s+/g, '-')}.csv`;
+    await owner.ok('POST', `/knowledge/notebooks/${notebook.notebookId}/files`, {
+      name: file,
+      mimeType: 'text/csv',
+      contentBase64: Buffer.from('date,amount\n2026-10-01,10\n2026-10-02,20\n').toString('base64'),
+    });
+    const proposed = await owner.ok<{
+      proposal: { rows: number; schema: Record<string, unknown> };
+    }>('POST', `${tablesPath(notebook)}/import`, { file });
+    expect(proposed.proposal.rows).toBe(2);
+    const table = file.replace('.csv', '');
+    await owner.ok('POST', tablesPath(notebook), { name: table, schema: proposed.proposal.schema });
+    const imported = await owner.call<{ imported: { inserted: number } }>(
+      'POST',
+      `${tablesPath(notebook)}/import`,
+      {
+        file,
+        table,
+      },
+    );
+    expect(imported.status).toBe(201);
+    expect(imported.body.imported.inserted).toBe(2);
+  });
 });

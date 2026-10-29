@@ -253,13 +253,15 @@ export function cellOf(
     }
     case 'date': {
       const text = typeof raw === 'string' ? raw.trim() : null;
-      const value = text && !strict && isDateTime(text) ? text.slice(0, 10) : text;
+      const day = text && !strict ? dayFirst(text) : text;
+      const value = day && !strict && isDateTime(day) ? day.slice(0, 10) : day;
       if (value === null || !isDate(value)) return invalid(`${named} holds a date, as 2026-10-29`);
       return ok(value);
     }
     case 'date-time': {
       const text = typeof raw === 'string' ? raw.trim() : null;
-      const value = text && !strict && isDate(text) ? `${text}T00:00` : text;
+      const day = text && !strict ? dayFirst(text) : text;
+      const value = day && !strict && isDate(day) ? `${day}T00:00` : day;
       if (value === null || !isDateTime(value)) {
         return invalid(`${named} holds a date and a time, as 2026-10-29T14:30`);
       }
@@ -285,6 +287,19 @@ export function cellOf(
       return ok(kept);
     }
   }
+}
+
+/**
+ * A date as a file written in pt-BR writes it, day first: `29/10/2026` is
+ * 2026-10-29. Only a file is read this way; the connector writes ISO dates.
+ */
+function dayFirst(text: string): string {
+  const match = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(.*)$/.exec(text);
+  if (!match) return text;
+  const [, day = '', month = '', year = '', rest = ''] = match;
+  const time = /^[ T](\d{2}:\d{2}(?::\d{2})?)$/.exec(rest)?.[1];
+  const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  return time ? `${date}T${time}` : rest.length === 0 ? date : text;
 }
 
 function lenientNumber(raw: unknown, strict: boolean): unknown {

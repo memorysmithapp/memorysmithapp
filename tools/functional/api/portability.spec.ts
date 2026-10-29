@@ -314,7 +314,7 @@ test.describe('a notebook out and back in', () => {
     /**
      * The smallest real PNG there is, kept under a name with NO EXTENSION, so
      * what comes back is proved to travel by its type and never by its name
-     * (RN-PRT-025, RN-KNW-050).
+     * (RN-PRT-025, RN-KNW-075).
      */
     const png =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

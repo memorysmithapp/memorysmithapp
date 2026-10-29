@@ -15,7 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL } from './skills.js';
+import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL, KEEP_TABLES_SKILL } from './skills.js';
 
 export interface ToolDefinition {
   readonly name: string;
@@ -33,6 +33,12 @@ export interface ToolDefinition {
 const notebookArgument = {
   type: 'string',
   description: 'Identifier of the notebook, as returned by list_notebooks.',
+};
+
+/** A table is named as a note names it: by its name, or by its identifier (#366). */
+const tableArgument = {
+  type: 'string',
+  description: 'The name of the table, or its identifier, as list_tables prints them.',
 };
 
 /**
@@ -590,8 +596,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG as ' +
-      'its text in `content`, copied exactly as you were given it, and any other type in ' +
+      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG or a ' +
+      'CSV as its text in `content`, copied exactly as you were given it, and any other type in ' +
       '`contentBase64`, which you write without a slip only when code encodes it \u2014 base64 ' +
       'written by hand slips even on a small file. A photo, a recording or a document ' +
       'of any real size is sent with begin_file_upload instead, whole and at its own ' +
@@ -618,7 +624,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'The type of the content, which is what decides how it is drawn. One of: ' +
             'image/png, image/jpeg, image/webp, image/gif, image/svg+xml, application/pdf, ' +
             'audio/mpeg, audio/wav, audio/ogg, audio/webm, video/mp4, video/webm, ' +
-            'video/quicktime, and the three Office documents (docx, xlsx, pptx).',
+            'video/quicktime, the three Office documents (docx, xlsx, pptx) and text/csv, the ' +
+            'rows a table imports.',
         },
         tags: {
           type: 'array',
@@ -634,7 +641,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         content: {
           type: 'string',
           description:
-            'The file as text, for an SVG: every character exactly as you were given it, ' +
+            'The file as text, for an SVG or a CSV: every character exactly as you were given it, ' +
             'nothing reformatted. Give this or contentBase64, never both.',
         },
         contentBase64: {
@@ -887,6 +894,230 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         file: { type: 'string', description: 'File identifier, as list_files prints it.' },
       },
       ['notebook', 'file'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'list_tables',
+    title: 'List the tables of a notebook',
+    description:
+      'Every Table the notebook keeps: its name, what it is for, its schema in JSON Schema, its ' +
+      'key and how many rows it holds. Read it before creating a table, so rows go where a table ' +
+      'for them already is, and before writing rows, so they fit the schema. The count of rows ' +
+      'is kept as the rows are written and may take a moment to show the last write.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_table',
+    title: 'Create a table',
+    description:
+      `Creates a Table in the notebook: structured data a note shows through a query. Read the skill \`${KEEP_TABLES_SKILL}\` first. \`schema\` ` +
+      'is JSON Schema: { "type": "object", "properties": { column: { "type": ... } }, "required": ' +
+      '[...] }. A column is "string", "number", "integer", "boolean", { "type": "string", ' +
+      '"format": "date" } (2026-10-29), { "type": "string", "format": "date-time" } or ' +
+      '{ "type": "array", "items": { "type": "string" } }, and may take enum, default, ' +
+      'description, minimum, maximum and maxLength. Nothing else is accepted, and what is ' +
+      'refused is named. A column name is one word (letters, digits, _ and -), because a filter ' +
+      'names it as column:value. `key` names the columns that identify a row, such as the date, ' +
+      'description and amount of a bank statement, so writing the same rows again changes them ' +
+      'instead of adding them twice; leave it out when rows have no identity of their own. ' +
+      'Describe each column: the description is what the next agent reads to know what goes ' +
+      'there. Show the person the schema before creating it.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        name: { type: 'string', description: 'The name of the table, unique in the notebook.' },
+        description: { type: 'string', description: 'What the table is for.' },
+        schema: { type: 'object', description: 'The columns, in JSON Schema.' },
+        key: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The columns that identify a row, when rows have an identity.',
+        },
+      },
+      ['notebook', 'name', 'schema'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'alter_table',
+    title: 'Change the schema of a table',
+    description:
+      'Changes a table with one or more changes, applied in order, all or none: ' +
+      '{ "op": "rename-table", "to" }, { "op": "describe", "description" }, ' +
+      '{ "op": "add-column", "name", "schema", "required"? }, { "op": "rename-column", "column", ' +
+      '"to" }, { "op": "remove-column", "column" }, { "op": "change-column", "column", "schema", ' +
+      '"required"? } and { "op": "set-key", "columns" } (null removes the key). A change never ' +
+      'leaves a row invalid: converting a column, tightening a constraint, making a column ' +
+      'required or setting a key happens only when every row fits, and otherwise nothing changes ' +
+      'and the answer names the rows that do not fit, so you can fix them first. Removing a ' +
+      'column removes its values from every row, for good. Renaming does not rewrite the notes ' +
+      'that show the table.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        changes: {
+          type: 'array',
+          items: { type: 'object' },
+          description: 'The changes, in order.',
+        },
+      },
+      ['notebook', 'table', 'changes'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+  },
+  {
+    name: 'delete_table',
+    title: 'Delete a table',
+    description:
+      'Deletes a table and every row it holds. It is DEFINITIVE — there is no undo and no ' +
+      'trash — the rows are destroyed shortly after, and every note that shows the table says ' +
+      'it is missing from that instant. Its name is free again at once. Say how many rows go ' +
+      'before you ask the person to confirm.',
+    inputSchema: object({ notebook: notebookArgument, table: tableArgument }, [
+      'notebook',
+      'table',
+    ]),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'query_table',
+    title: 'Read the rows of a table',
+    description:
+      'Reads the rows of a table, filtered, sorted and paged, each with its rowId and its values ' +
+      'by column. `where` is the language of the search, where a field is a column: ' +
+      '`status:paid`, `amount:>100`, `amount:30..200`, `date:2026-10` (October), ' +
+      '`date:>=2026-10-01`, `-status:cancelled`, `a OR b`, and a bare word looks in every column ' +
+      'that holds text, with case and accents ignored. A column the table does not have is ' +
+      'refused, naming it. `sort` orders by up to five columns; pages hold up to 100 rows. ' +
+      'This is how an agent reads the data a note shows: read_note returns the query as written.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        where: { type: 'string', description: 'The filter, in the language of the search.' },
+        sort: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              column: { type: 'string' },
+              direction: { type: 'string', enum: ['asc', 'desc'] },
+            },
+            required: ['column'],
+          },
+          description: 'The order, first column first. Insertion order when absent.',
+        },
+        page: { type: 'integer', minimum: 1, description: 'The page, from 1.' },
+        pageSize: { type: 'integer', minimum: 1, maximum: 100, description: 'Rows per page; 25.' },
+      },
+      ['notebook', 'table'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'insert_rows',
+    title: 'Insert rows into a table',
+    description:
+      'Writes up to 50 rows into a table, each an object of values by column name, all or none: ' +
+      'every value is checked against its column, a default fills what a row leaves out, and one ' +
+      'row that does not fit refuses the call, naming it, and keeps nothing. A number travels ' +
+      'as a JSON number, or as text when it carries more digits than a float holds; a date as ' +
+      '2026-10-29. With mode "insert", a row whose key the table already holds is refused; with ' +
+      '"upsert", that row is changed with the columns given and keeps the others, which is how ' +
+      'the same statement read twice is written once. For more rows, call again; for a CSV or an ' +
+      'Excel file, send the file and use import_table.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        rows: {
+          type: 'array',
+          items: { type: 'object' },
+          minItems: 1,
+          maxItems: 50,
+          description: 'The rows, each by column name.',
+        },
+        mode: {
+          type: 'string',
+          enum: ['insert', 'upsert'],
+          description: 'insert, the default, or upsert.',
+        },
+      },
+      ['notebook', 'table', 'rows'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'import_table',
+    title: 'Import rows from a CSV or an Excel file',
+    description:
+      'Reads the rows of a CSV or an Excel workbook (.xlsx) the notebook keeps, by its name as ' +
+      'list_files prints it: the first line is the header, each line after it a row. With no ' +
+      '`table`, or with `dryRun: true`, it writes NOTHING and answers the schema the sheet ' +
+      'suggests, the column each header becomes and the first rows: show them to the person, ' +
+      'then create_table and call this again with the table. With a table, every header must be ' +
+      'one of its columns, and every line is checked before the first is written: one that does ' +
+      'not fit refuses the whole file, naming its line. A CSV may be written in pt-BR: a ' +
+      'semicolon between fields, 1.250,75 as a number and 29/10/2026 as a date. `sheet` picks a ' +
+      'sheet of a workbook, the first one by default. `mode: "upsert"` changes the rows whose ' +
+      'key the table already holds instead of refusing them. Keep the file first, as the skill ' +
+      `\`${KEEP_FILES_SKILL}\` says, or ask the person for it with request_file.`,
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        file: {
+          type: 'string',
+          description: 'The name of the kept file, as list_files prints it.',
+        },
+        table: tableArgument,
+        sheet: { type: 'string', description: 'The sheet of a workbook; the first by default.' },
+        mode: {
+          type: 'string',
+          enum: ['insert', 'upsert'],
+          description: 'insert, the default, or upsert.',
+        },
+        dryRun: { type: 'boolean', description: 'true reads and proposes, and writes nothing.' },
+      },
+      ['notebook', 'file'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'update_rows',
+    title: 'Update rows of a table',
+    description:
+      'Changes up to 50 rows, each named by its rowId, as query_table prints it, or by the values ' +
+      'of its key: [{ "target": { "rowId" } | { "key": { column: value } }, "set": { column: ' +
+      'value } }]. The columns set change and the others stay; null clears a column that is not ' +
+      'required. A column of the key is never changed here, because the key names the row: ' +
+      'delete the row and insert it again instead. All or none.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        updates: { type: 'array', items: { type: 'object' }, minItems: 1, maxItems: 50 },
+      },
+      ['notebook', 'table', 'updates'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'delete_rows',
+    title: 'Delete rows of a table',
+    description:
+      'Deletes up to 50 rows, each named by its rowId or by the values of its key: ' +
+      '[{ "rowId" } | { "key": { column: value } }]. It is DEFINITIVE: the history keeps that ' +
+      'the rows were deleted, by whom and when, and never what they held. All or none.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        targets: { type: 'array', items: { type: 'object' }, minItems: 1, maxItems: 50 },
+      },
+      ['notebook', 'table', 'targets'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },

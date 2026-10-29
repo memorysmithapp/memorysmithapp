@@ -1135,6 +1135,73 @@ without telling the person why. A file no note shows may be kept on purpose,
 such as the source of a figure: say which ones to the person. A pending link
 with \`waitingFor: "person"\` is a file they were asked for.
 `;
+const KEEP_TABLES = `# Keeping structured data in a Table
+
+A notebook keeps Tables beside its notes: rows of typed data a note shows
+through a query. Use a table for what has rows — expenses, readings, an
+inventory, the tasks of a project, the lines of a bank statement — and a note
+for what is read as prose. A Markdown table typed into a note is a picture of
+data: nothing checks it, nothing filters it, and every change rewrites the note.
+
+${SHARED_NOTEBOOKS} Writing rows is writing content; creating, altering and
+deleting a table is maintaining the notebook.
+
+## Before anything
+
+Read \`get_notebook_context\`: it names the tables the notebook already has,
+with their columns. Rows go into the table that is already there for them;
+\`list_tables\` gives each schema whole.
+
+## Where the rows come from
+
+1. **A file the person has: a CSV or an Excel workbook.** Keep it whole, the
+   way the skill \`${'keep-files'}\` says — \`begin_file_upload\` and its parts, or
+   \`keep_file\` with \`content\` for a small CSV — or, when the file is with
+   the person and not with you, ask for it with \`request_file\`. Then call
+   \`import_table\` with the file and no table: it writes nothing and answers
+   the schema the sheet suggests, the column each header becomes, and the
+   first rows. Show that to the person, change what they want changed, create
+   the table, and call \`import_table\` again with the table. Every line is
+   checked before the first is written, so a file with one bad line is refused
+   whole, naming the line: fix it in the file, or widen the column, and import
+   again.
+2. **No file: a page on the screen, a PDF you read, what the person tells
+   you.** You are the one who turns it into rows. Write them with
+   \`insert_rows\`, up to 50 a call, each an object by column name.
+
+## The schema
+
+Write it in JSON Schema, and describe every column: the description is what
+the next agent reads to know what goes there. Prefer the narrowest type that
+holds the data — a date as \`{ "type": "string", "format": "date" }\`, an amount
+as a number, a status as a string with \`enum\` — because a filter compares by
+type: \`amount:>100\` compares numbers only in a number column. Show the person
+the schema before \`create_table\`.
+
+## The key, and reading the same data twice
+
+When rows have an identity — a bank line is its date, description and amount,
+or an identifier the bank prints — declare it as the \`key\`. Then write with
+\`mode: "upsert"\`: reading the same statement tomorrow changes the rows it
+already holds and adds only the new ones, and nothing is duplicated. Without a
+key, every row written is a new row.
+
+## Changing what is there
+
+\`update_rows\` and \`delete_rows\` name a row by its \`rowId\`, as
+\`query_table\` prints it, or by the values of its key. A column of the key is
+never changed in place: delete the row and insert it again. \`alter_table\`
+changes the schema and never leaves a row invalid: when it refuses, it names
+the rows that do not fit, and you fix those first. Deleting rows or a table is
+definitive; say how many go and ask before you do it.
+
+## Reading
+
+\`query_table\` filters in the language of the search — \`status:paid\`,
+\`date:2026-10\`, \`amount:30..200\`, \`-status:cancelled\` — sorts and pages.
+Read the data through it, never by copying rows into a note.
+`;
+
 /**
  * The skill a text names outside the registry, as a constant of it: a
  * description that cites a skill by a literal would still cite it the day it is
@@ -1143,6 +1210,7 @@ with \`waitingFor: "person"\` is a file they were asked for.
 export const DESIGN_NOTEBOOK_SKILL = 'design-notebook';
 export const KEEP_FILES_SKILL = 'keep-files';
 export const DERIVE_MODEL_SKILL = 'derive-model';
+export const KEEP_TABLES_SKILL = 'keep-tables';
 
 /**
  * One skill per task, and only tasks the reading path does not teach. The path
@@ -1172,6 +1240,11 @@ export const SKILLS: readonly Skill[] = [
     name: KEEP_FILES_SKILL,
     task: 'Keep a file in a notebook — a photo, a recording, a document — whole, at its own size',
     body: KEEP_FILES,
+  },
+  {
+    name: KEEP_TABLES_SKILL,
+    task: 'Keep structured data in a Table — from a CSV, an Excel file or what is on the screen — and read it back',
+    body: KEEP_TABLES,
   },
   {
     name: 'convert-inline-tags',

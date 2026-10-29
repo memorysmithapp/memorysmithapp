@@ -342,7 +342,7 @@ test.describe('the tools', () => {
     agent,
     notebook,
   }) => {
-    // The smallest real PNG, kept under a name with no extension (RN-KNW-050).
+    // The smallest real PNG, kept under a name with no extension (RN-KNW-075).
     const png =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
     const name = `picture ${Date.now()}`;
@@ -1037,5 +1037,128 @@ test.describe('the tools', () => {
       await callTool(agent, 'read_note', { ...note, asOf: earliest?.occurredAt }),
     );
     expect(asItWas.content).toBe(first.content);
+  });
+});
+
+test.describe('the tables of a notebook (#366)', () => {
+  test('[tool:create_table] [tool:list_tables] [tool:insert_rows] [tool:query_table] [tool:update_rows] [tool:delete_rows] [tool:alter_table] [tool:delete_table] keeps rows checked against a schema, upserts by key and reads them through a filter', async ({
+    agent,
+    notebook,
+  }) => {
+    const name = `expenses-${randomBytes(4).toString('hex')}`;
+    const created = await callTool(agent, 'create_table', {
+      notebook: notebook.notebookId,
+      name,
+      description: 'Created by a functional case.',
+      schema: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', format: 'date' },
+          description: { type: 'string' },
+          amount: { type: 'number' },
+        },
+        required: ['date', 'description', 'amount'],
+      },
+      key: ['date', 'description'],
+    });
+    expect(created.isError).toBe(false);
+
+    const listed = parsed<{ tables: Array<{ name: string }> }>(
+      await callTool(agent, 'list_tables', { notebook: notebook.notebookId }),
+    );
+    expect(listed.tables.map((table) => table.name)).toContain(name);
+
+    const rows = [
+      { date: '2026-10-01', description: 'Market', amount: 120.5 },
+      { date: '2026-10-15', description: 'Pharmacy', amount: 30 },
+    ];
+    const written = parsed<{ inserted: number }>(
+      await callTool(agent, 'insert_rows', { notebook: notebook.notebookId, table: name, rows }),
+    );
+    expect(written.inserted).toBe(2);
+    const upserted = parsed<{ updated: number }>(
+      await callTool(agent, 'insert_rows', {
+        notebook: notebook.notebookId,
+        table: name,
+        rows,
+        mode: 'upsert',
+      }),
+    );
+    expect(upserted.updated).toBe(2);
+
+    const page = parsed<{ rows: Array<{ values: Record<string, unknown> }>; total: number }>(
+      await callTool(agent, 'query_table', {
+        notebook: notebook.notebookId,
+        table: name,
+        where: 'amount:>100',
+      }),
+    );
+    expect(page.total).toBe(1);
+    expect(page.rows[0]?.values['description']).toBe('Market');
+
+    const key = { date: '2026-10-15', description: 'Pharmacy' };
+    expect(
+      (
+        await callTool(agent, 'update_rows', {
+          notebook: notebook.notebookId,
+          table: name,
+          updates: [{ target: { key }, set: { amount: 31 } }],
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (
+        await callTool(agent, 'alter_table', {
+          notebook: notebook.notebookId,
+          table: name,
+          changes: [
+            { op: 'add-column', name: 'paid', schema: { type: 'boolean', default: false } },
+          ],
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (
+        await callTool(agent, 'delete_rows', {
+          notebook: notebook.notebookId,
+          table: name,
+          targets: [{ key }],
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (await callTool(agent, 'delete_table', { notebook: notebook.notebookId, table: name }))
+        .isError,
+    ).toBe(false);
+  });
+
+  test('[tool:import_table] proposes a schema out of a CSV it keeps, then imports its rows', async ({
+    agent,
+    notebook,
+  }) => {
+    const file = `statement-${randomBytes(4).toString('hex')}.csv`;
+    const kept = await callTool(agent, 'keep_file', {
+      notebook: notebook.notebookId,
+      name: file,
+      mimeType: 'text/csv',
+      content: 'Data;Descrição;Valor\n01/10/2026;Mercado;"1.250,75"\n15/10/2026;Farmácia;30\n',
+    });
+    expect(kept.isError).toBe(false);
+
+    const proposed = parsed<{ proposal: { rows: number; schema: Record<string, unknown> } }>(
+      await callTool(agent, 'import_table', { notebook: notebook.notebookId, file }),
+    );
+    expect(proposed.proposal.rows).toBe(2);
+
+    const table = file.replace('.csv', '');
+    await callTool(agent, 'create_table', {
+      notebook: notebook.notebookId,
+      name: table,
+      schema: proposed.proposal.schema,
+    });
+    const imported = parsed<{ imported: { inserted: number } }>(
+      await callTool(agent, 'import_table', { notebook: notebook.notebookId, file, table }),
+    );
+    expect(imported.imported.inserted).toBe(2);
   });
 });

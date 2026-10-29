@@ -146,6 +146,8 @@ import {
   QueryTable,
   UpdateRows,
 } from '@memorysmithapp/svc-knowledge/application/tables';
+import { ImportTableRows } from '@memorysmithapp/svc-knowledge/application/table-imports';
+import { SpreadsheetReader } from '@memorysmithapp/svc-knowledge/adapters/sheets';
 import { InMemoryAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
 import type {
   PortabilityRequest,
@@ -392,6 +394,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     fileTypes: FILE_TYPE_CATALOGUE,
     // The Tables of a notebook and their rows (#366), kept between calls too.
     tables: tableRepositoryOf(context),
+    sheets: new SpreadsheetReader(),
     storage,
     // The same list production injects, from the same specification (RN-AGT-025).
     reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
@@ -564,6 +567,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     insertRows: (request) => new InsertRows(knowledgeRepos(request.subscription)),
     updateRows: (request) => new UpdateRows(knowledgeRepos(request.subscription)),
     deleteRows: (request) => new DeleteRows(knowledgeRepos(request.subscription)),
+    importTableRows: (request) => new ImportTableRows(knowledgeRepos(request.subscription)),
   };
 
   // Audit and Discovery, wired in memory. In production they are fed by the

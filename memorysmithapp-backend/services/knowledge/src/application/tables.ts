@@ -361,6 +361,45 @@ function completeRow(
   return ok(row);
 }
 
+/**
+ * Every row of a file checked against the table before any is written, and the
+ * key of each told apart from the others (#366): the first rows that do not
+ * fit, by their line in the file, refuse the import whole.
+ */
+export function rowsChecked(
+  table: Table,
+  rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+  strict: boolean,
+): Result<void, DomainError> {
+  const refused: string[] = [];
+  const seen = new Map<string, number>();
+  for (const [index, given] of rows.entries()) {
+    // The header is line 1, so a row is the line after its place.
+    const where = `Line ${index + 2}`;
+    const values = valuesOf(table, given, strict, where);
+    const full = values.ok ? completeRow(table, values.value, where) : values;
+    if (!full.ok) {
+      refused.push(full.error.message);
+    } else if (table.key) {
+      if (!hasKey(table.key, full.value)) {
+        refused.push(`${where}: the key ${table.keyNames?.join(', ')} needs a value`);
+      } else {
+        const rowId = rowIdOf(table.key, full.value);
+        const earlier = seen.get(rowId);
+        if (earlier !== undefined) refused.push(`${where} repeats the key of line ${earlier}`);
+        else seen.set(rowId, index + 2);
+      }
+    }
+    if (refused.length >= 20) break;
+  }
+  if (refused.length === 0) return ok(undefined);
+  return err(
+    DomainError.validation(
+      `The file does not fit the table "${table.name}": ${refused.join('; ')}`,
+    ),
+  );
+}
+
 function checkBatch(count: number): Result<void, DomainError> {
   if (count === 0) return err(DomainError.validation('A call writes at least one row'));
   if (count > TABLE_LIMITS.rowsPerCall) {

@@ -763,7 +763,7 @@ export class ApiStack extends Stack {
     this.uploadsOrigin = `https://${props.uploadsDomainName}`;
 
     /**
-     * The host a kept file and an export are read from (#255, RN-KNW-050).
+     * The host a kept file and an export are read from (#255, RN-KNW-075).
      * The same arrangement as the uploads host, in the other direction: the
      * API signs the GET for the bucket's own host and answers it on this one,
      * and CloudFront hands S3 the very request it signed, so the link expires
@@ -797,7 +797,7 @@ export class ApiStack extends Stack {
      * `SignatureDoesNotMatch` — found on staging, where a plain signed GET
      * passed and one naming its disposition did not. Those two are what make
      * a PDF open where it is opened and save under its name where it is
-     * saved (RN-KNW-050), so they have to arrive. A query string travels
+     * saved (RN-KNW-075), so they have to arrive. A query string travels
      * whole when the cache policy names it, and naming it needs a TTL above
      * zero; the default stays at zero and S3 sends no Cache-Control, so
      * nothing is kept, and a link is its own key anyway.

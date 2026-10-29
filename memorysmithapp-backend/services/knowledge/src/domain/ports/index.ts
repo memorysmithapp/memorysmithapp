@@ -153,7 +153,7 @@ export interface FolderNumbers {
 
 /**
  * Which types a notebook accepts, and whether bytes support the one they were
- * declared under (#166, RN-KNW-050).
+ * declared under (#166, RN-KNW-075).
  *
  * It is a PORT and not a table in here, for the reason the reserved vocabulary
  * is injected rather than transcribed: the list is a decision of the product,
@@ -295,6 +295,27 @@ export interface TableRepository {
    * the locked table, so a change made meanwhile refuses the move.
    */
   replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>>;
+}
+
+/** A cell of a sheet as a file holds it: text, a number, true or false, a date as ISO, or nothing. */
+export type SheetCell = string | number | boolean | null;
+
+/** One sheet of a spreadsheet, or the one sheet of a CSV: its header and its rows. */
+export interface Sheet {
+  readonly name: string;
+  readonly header: readonly string[];
+  readonly rows: ReadonlyArray<readonly SheetCell[]>;
+}
+
+/**
+ * Reads the rows of a CSV or an Excel file a notebook keeps (#366). It is a
+ * port because reading a spreadsheet takes a library, and the domain of a
+ * context imports the kernel and nothing else.
+ */
+export interface SheetReader {
+  /** The types it reads, which a refusal names. */
+  readonly accepted: readonly string[];
+  read(bytes: Uint8Array, mimeType: string): Promise<Result<Sheet[], DomainError>>;
 }
 
 export interface EventPublisher {

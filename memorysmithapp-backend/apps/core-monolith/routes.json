@@ -98,6 +98,7 @@
   "POST /knowledge/notebooks/:v/tables/:t/query",
   "POST /knowledge/notebooks/:v/tables/:t/rows",
   "POST /knowledge/notebooks/:v/tables/:t/rows/delete",
+  "POST /knowledge/notebooks/:v/tables/import",
   "POST /platform/catalog/models/:p/withdraw",
   "POST /portability/catalog/:p/reports",
   "POST /portability/catalog/:p/versions/:n/notebooks",

@@ -10,7 +10,7 @@
  * Two rules run before a byte is stored, in this order, because each one
  * refuses cheaper than the next:
  *
- *  1. **The type is on the list** (RN-KNW-050) and **the bytes support it**.
+ *  1. **The type is on the list** (RN-KNW-075) and **the bytes support it**.
  *     The second half is what makes the first mean anything: a document
  *     arriving under the type of a picture is refused here, naming both.
  *  2. **There is room** (RN-SUB-021). A file is current content of the
@@ -368,7 +368,7 @@ export class LinkToFile {
 
     /**
      * Two addresses for one file, and the type decides what the first one is
-     * (#171, RN-KNW-050). What a browser shows is served `inline`, so opening
+     * (#171, RN-KNW-075). What a browser shows is served `inline`, so opening
      * it opens it; what nothing displays is served as an attachment under both,
      * because a verb that saves the file whatever is pressed should not be
      * offered twice. The second address always saves.

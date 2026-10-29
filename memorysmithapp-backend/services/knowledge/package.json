@@ -18,7 +18,8 @@
     "@memorysmithapp/contracts": "workspace:*",
     "@memorysmithapp/kernel": "workspace:*",
     "@memorysmithapp/observability": "workspace:*",
-    "hono": "^4.13.3"
+    "hono": "^4.13.3",
+    "read-excel-file": "6.0.3"
   },
   "exports": {
     "./adapters/notebooks": "./src/adapters/outbound/dynamodb/DynamoNotebookRepository.ts",
@@ -42,6 +43,8 @@
     "./application/notes": "./src/application/notes.ts",
     "./application/files": "./src/application/files.ts",
     "./application/tables": "./src/application/tables.ts",
+    "./application/table-imports": "./src/application/table-imports.ts",
+    "./adapters/sheets": "./src/adapters/outbound/sheets/SpreadsheetReader.ts",
     "./adapters/tables": "./src/adapters/outbound/dynamodb/DynamoTableRepository.ts",
     "./application/usage": "./src/application/usage.ts",
     "./domain": "./src/domain/index.ts"

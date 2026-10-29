@@ -43,6 +43,14 @@ import type {
   NotebookNamesDto,
   PreviewDto,
   SearchResultDto,
+  ImportTableRequest,
+  NotebookTableDto,
+  RowsWrittenDto,
+  TableAlteredDto,
+  TableImportDto,
+  TableListDto,
+  TablePageDto,
+  TableQueryRequest,
 } from '@memorysmithapp/contracts';
 import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmithapp/contracts';
 import {
@@ -172,6 +180,11 @@ async function callApi<T>(
     );
   }
   return payload as T;
+}
+
+/** A table is named in the path by its name or its identifier, encoded (#366). */
+function tablePath(notebookId: string, table: string): string {
+  return `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`;
 }
 
 export class HttpAccessGateway implements AccessGateway {
@@ -718,6 +731,127 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `/knowledge/notebooks/${notebookId}/files`,
     );
     return listed.files.map(fileRefOf);
+  }
+
+  async listTables(caller: AgentCaller, notebookId: string): Promise<NotebookTableDto[]> {
+    const listed = await callApi<TableListDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/tables`,
+    );
+    return listed.tables;
+  }
+
+  async createTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: {
+      name: string;
+      description: string;
+      schema: Record<string, unknown>;
+      key: string[] | null;
+    },
+  ): Promise<NotebookTableDto> {
+    return callApi<NotebookTableDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/tables`,
+      {
+        method: 'POST',
+        body: input,
+      },
+    );
+  }
+
+  async alterTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    changes: unknown[],
+  ): Promise<TableAlteredDto> {
+    return callApi<TableAlteredDto>(this.origin, caller, tablePath(notebookId, table), {
+      method: 'PATCH',
+      body: { changes },
+    });
+  }
+
+  async deleteTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+  ): Promise<{ rows: number }> {
+    return callApi<{ rows: number }>(this.origin, caller, tablePath(notebookId, table), {
+      method: 'DELETE',
+    });
+  }
+
+  async queryTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    query: Partial<TableQueryRequest>,
+  ): Promise<TablePageDto> {
+    return callApi<TablePageDto>(this.origin, caller, `${tablePath(notebookId, table)}/query`, {
+      method: 'POST',
+      body: query,
+    });
+  }
+
+  async insertRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    input: { rows: unknown[]; mode: 'insert' | 'upsert' },
+  ): Promise<RowsWrittenDto> {
+    return callApi<RowsWrittenDto>(this.origin, caller, `${tablePath(notebookId, table)}/rows`, {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async updateRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    updates: unknown[],
+  ): Promise<RowsWrittenDto> {
+    return callApi<RowsWrittenDto>(this.origin, caller, `${tablePath(notebookId, table)}/rows`, {
+      method: 'PATCH',
+      body: { updates },
+    });
+  }
+
+  async deleteRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    targets: unknown[],
+  ): Promise<RowsWrittenDto> {
+    return callApi<RowsWrittenDto>(
+      this.origin,
+      caller,
+      `${tablePath(notebookId, table)}/rows/delete`,
+      {
+        method: 'POST',
+        body: { targets },
+      },
+    );
+  }
+
+  async importTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: Partial<ImportTableRequest> & { file: string },
+  ): Promise<TableImportDto> {
+    return callApi<TableImportDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/tables/import`,
+      {
+        method: 'POST',
+        body: input,
+      },
+    );
   }
 
   async deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void> {

@@ -119,6 +119,42 @@ export const rowsWrittenSchema = z.object({
   deleted: z.array(z.string()),
 });
 
+/**
+ * Rows from a CSV or an Excel file the notebook keeps (#366). With no table, or
+ * with `dryRun`, nothing is written and the answer is the schema the sheet
+ * suggests; with a table, every row is checked and then written.
+ */
+export const importTableRequestSchema = z.object({
+  file: z.string().min(1),
+  sheet: z.string().min(1).nullable().default(null),
+  table: z.string().min(1).nullable().default(null),
+  mode: z.enum(['insert', 'upsert']).default('insert'),
+  dryRun: z.boolean().default(false),
+});
+
+export const tableImportSchema = z.union([
+  z.object({
+    proposal: z.object({
+      sheet: z.string(),
+      sheets: z.array(z.string()),
+      rows: z.number().int().nonnegative(),
+      schema: tableSchemaDocument,
+      columns: z.array(z.object({ header: z.string(), column: z.string() })),
+      sample: z.array(z.record(z.string(), z.unknown())),
+    }),
+  }),
+  z.object({
+    imported: z.object({
+      operationId: z.string(),
+      sheet: z.string(),
+      inserted: z.number().int().nonnegative(),
+      updated: z.number().int().nonnegative(),
+    }),
+  }),
+]);
+
+export type ImportTableRequest = z.infer<typeof importTableRequestSchema>;
+export type TableImportDto = z.infer<typeof tableImportSchema>;
 export type NotebookTableDto = z.infer<typeof notebookTableSchema>;
 export type TableListDto = z.infer<typeof tableListSchema>;
 export type CreateTableRequest = z.infer<typeof createTableRequestSchema>;

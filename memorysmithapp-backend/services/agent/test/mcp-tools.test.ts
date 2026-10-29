@@ -38,6 +38,8 @@ function gateways(overrides: Record<string, unknown> = {}) {
     ...((overrides['access'] as object) ?? {}),
   };
   const knowledge = {
+    // A notebook keeps no tables unless a case gives it some (#366).
+    listTables: async () => [],
     listNotebooks: async () => [
       {
         notebookId: '01JBQ2X00000000000000000V1',
@@ -241,6 +243,16 @@ describe('The tool catalog is the public contract', () => {
       'discard_file_upload',
       'list_files',
       'delete_file',
+      // The Tables of a notebook and their rows (#366).
+      'list_tables',
+      'create_table',
+      'alter_table',
+      'delete_table',
+      'query_table',
+      'insert_rows',
+      'import_table',
+      'update_rows',
+      'delete_rows',
       'update_note',
       'reorder_note',
       // A note changes folder keeping its history (#265).
@@ -317,6 +329,13 @@ describe('The tool catalog is the public contract', () => {
       'request_file',
       'discard_file_upload',
       'delete_file',
+      'create_table',
+      'alter_table',
+      'delete_table',
+      'insert_rows',
+      'import_table',
+      'update_rows',
+      'delete_rows',
       'update_note',
       'reorder_note',
       'move_note',
@@ -3084,5 +3103,78 @@ describe('notebook models through the connector (#353, #354, #359)', () => {
     expect(derive).toContain('**Ask the level of generality.**');
     expect(derive).toContain('Do not change the source notebook.');
     expect(skillNamed('design-notebook')?.body).toContain('## A notebook that is a model');
+  });
+});
+
+describe('the tables of a notebook (#366)', () => {
+  const expenses = {
+    tableId: '01JBQ2X00000000000000000T1',
+    notebookId: '01JBQ2X00000000000000000V1',
+    name: 'expenses',
+    description: 'Every expense of the house',
+    schema: {
+      type: 'object',
+      properties: { date: { type: 'string' }, amount: { type: 'number' } },
+    },
+    key: ['date'],
+    rows: 12,
+    bytes: 400,
+    updatedAt: '2026-10-29T10:00:00.000Z',
+    authorship: {},
+  };
+
+  it('names the tables in the notebook context, so an agent knows they exist', async () => {
+    const adapter = gateways({ knowledge: { listTables: async () => [expenses] } });
+    const answer =
+      (await adapter.call('get_notebook_context', { notebook: expenses.notebookId }, caller))
+        .content[0]?.text ?? '';
+    expect(answer).toContain('## Tables');
+    expect(answer).toContain(
+      '- **expenses** — Every expense of the house (12 rows; columns date, amount; key date)',
+    );
+  });
+
+  it('writes rows as given and answers how many, by row', async () => {
+    let sent: unknown = null;
+    const adapter = gateways({
+      knowledge: {
+        insertRows: async (_caller: unknown, _notebook: string, table: string, input: unknown) => {
+          sent = { table, input };
+          return { operationId: 'op', inserted: ['r1'], updated: ['r2'], deleted: [] };
+        },
+      },
+    });
+    const result = await adapter.call(
+      'insert_rows',
+      {
+        notebook: expenses.notebookId,
+        table: 'expenses',
+        rows: [{ date: '2026-10-01', amount: 1 }],
+        mode: 'upsert',
+      },
+      caller,
+    );
+    expect(result.isError).not.toBe(true);
+    expect(sent).toEqual({
+      table: 'expenses',
+      input: { rows: [{ date: '2026-10-01', amount: 1 }], mode: 'upsert' },
+    });
+    expect(JSON.parse(result.content[0]?.text ?? '{}')).toEqual({
+      operationId: 'op',
+      inserted: 1,
+      updated: 1,
+      deleted: 0,
+      rowIds: ['r1', 'r2'],
+    });
+  });
+
+  it('refuses a write of rows that names none', async () => {
+    const result = await gateways().call(
+      'delete_rows',
+      { notebook: expenses.notebookId, table: 'expenses', targets: [] },
+      caller,
+    );
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text ?? '').toContain('delete_rows requires "targets"');
   });
 });

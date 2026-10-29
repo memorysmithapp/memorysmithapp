@@ -20,7 +20,7 @@
  * Which types exist and whether the bytes support the one declared is not
  * decided here: it is a list the product publishes and the composition root
  * injects (`FileTypes`), checked by the use case before a byte is stored
- * (RN-KNW-050). The aggregate never sees bytes, and the domain of a context
+ * (RN-KNW-075). The aggregate never sees bytes, and the domain of a context
  * imports the kernel and nothing else.
  */
 

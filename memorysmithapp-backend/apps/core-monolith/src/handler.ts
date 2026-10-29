@@ -110,6 +110,7 @@ import {
   QueryTable,
   UpdateRows,
 } from '@memorysmithapp/svc-knowledge/application/tables';
+import { ImportTableRows } from '@memorysmithapp/svc-knowledge/application/table-imports';
 import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   GetNoteHistory,
@@ -490,6 +491,7 @@ const knowledgeUseCases: KnowledgeUseCases = {
   insertRows: (request) => new InsertRows(buildKnowledge(infra, request.subscription)),
   updateRows: (request) => new UpdateRows(buildKnowledge(infra, request.subscription)),
   deleteRows: (request) => new DeleteRows(buildKnowledge(infra, request.subscription)),
+  importTableRows: (request) => new ImportTableRows(buildKnowledge(infra, request.subscription)),
 };
 
 const auditUseCases: AuditUseCases = {

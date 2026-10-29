@@ -10,6 +10,15 @@
  */
 
 import type {
+  ImportTableRequest,
+  NotebookTableDto,
+  RowsWrittenDto,
+  TableImportDto,
+  TableAlteredDto,
+  TablePageDto,
+  TableQueryRequest,
+} from '@memorysmithapp/contracts';
+import type {
   DeclareModelRequest,
   ModelListDto,
   ModelVersionDto,
@@ -413,6 +422,58 @@ export interface KnowledgeGateway {
   ): Promise<{ previewId: string }>;
   getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
+  /**
+   * The Tables of a notebook and their rows (#366), named by their name or
+   * their identifier. Every write answers what it wrote, by row.
+   */
+  listTables(caller: AgentCaller, notebookId: string): Promise<NotebookTableDto[]>;
+  createTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: {
+      name: string;
+      description: string;
+      schema: Record<string, unknown>;
+      key: string[] | null;
+    },
+  ): Promise<NotebookTableDto>;
+  alterTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    changes: unknown[],
+  ): Promise<TableAlteredDto>;
+  deleteTable(caller: AgentCaller, notebookId: string, table: string): Promise<{ rows: number }>;
+  queryTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    query: Partial<TableQueryRequest>,
+  ): Promise<TablePageDto>;
+  insertRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    input: { rows: unknown[]; mode: 'insert' | 'upsert' },
+  ): Promise<RowsWrittenDto>;
+  updateRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    updates: unknown[],
+  ): Promise<RowsWrittenDto>;
+  deleteRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    targets: unknown[],
+  ): Promise<RowsWrittenDto>;
+  /** Rows from a CSV or an Excel file the notebook keeps, or the schema it suggests. */
+  importTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: Partial<ImportTableRequest> & { file: string },
+  ): Promise<TableImportDto>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(
     caller: AgentCaller,

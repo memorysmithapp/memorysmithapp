@@ -12,6 +12,7 @@ import {
   alterTableRequestSchema,
   createTableRequestSchema,
   deleteRowsRequestSchema,
+  importTableRequestSchema,
   insertRowsRequestSchema,
   type NotebookTableDto,
   tableQueryRequestSchema,
@@ -19,6 +20,7 @@ import {
 } from '@memorysmithapp/contracts';
 import { type Authorship, DomainError, NotebookId, type Result } from '@memorysmithapp/kernel';
 import type { RequestContext } from '../../../domain/access/AuthorizationPolicy.js';
+import type { ImportTableRows } from '../../../application/table-imports.js';
 import type {
   AlterTable,
   CreateTable,
@@ -56,6 +58,7 @@ export interface TableUseCases<KnowledgeRequest extends TableRequest = TableRequ
   readonly insertRows: (request: KnowledgeRequest) => InsertRows;
   readonly updateRows: (request: KnowledgeRequest) => UpdateRows;
   readonly deleteRows: (request: KnowledgeRequest) => DeleteRows;
+  readonly importTableRows: (request: KnowledgeRequest) => ImportTableRows;
 }
 
 type Fail = (c: Context, error: DomainError) => Response;
@@ -156,6 +159,32 @@ export function registerTableRoutes<R extends TableRequest>(
     return created.ok
       ? c.json(tableToDto(created.value, { rows: 0, bytes: 0 }), 201)
       : fail(c, created.error);
+  });
+
+  /**
+   * Rows from a CSV or an Excel file the notebook keeps. A dry run writes
+   * nothing and needs no authorship, so a reader can ask what a file holds.
+   */
+  app.post('/notebooks/:v/tables/import', async (c) => {
+    const request = c.get('knowledge');
+    const notebookId = notebookOf(c);
+    if (!notebookId.ok) return fail(c, notebookId.error);
+    const body = await bodyOf(c, importTableRequestSchema);
+    if (!body.ok) return fail(c, body.error);
+    const writes = body.value.table !== null && !body.value.dryRun;
+    if (writes && !request.authorship.ok) return fail(c, request.authorship.error);
+
+    const answered = await useCases.importTableRows(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      file: body.value.file,
+      sheet: body.value.sheet,
+      table: body.value.table,
+      mode: body.value.mode,
+      dryRun: body.value.dryRun,
+      by: request.authorship.ok ? request.authorship.value : null,
+    });
+    return answered.ok ? c.json(answered.value, writes ? 201 : 200) : fail(c, answered.error);
   });
 
   app.get('/notebooks/:v/tables/:t', async (c) => {

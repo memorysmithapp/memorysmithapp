@@ -1,6 +1,6 @@
 /**
  * What a notebook may keep beside its notes, and how the product tells one
- * kind of bytes from another (#166, RN-KNW-050).
+ * kind of bytes from another (#166, RN-KNW-075).
  *
  * **The extension decides nothing.** A file is named whatever whoever kept it
  * called it — `esquema de blocos`, `diagrama.png`, `relatorio.final` — and the
@@ -95,7 +95,8 @@ export const FILE_TYPES: readonly FileType[] = [
     extensions: ['.pptx'],
     renders: 'card',
     magic: ['504b0304'],
-  },
+  }, // Text, and recognised as text: a CSV a Table imports its rows from (#366).
+  { mimeType: 'text/csv', extensions: ['.csv'], renders: 'card', magic: [] },
 ];
 
 export const FILE_MIME_TYPES: readonly string[] = FILE_TYPES.map((each) => each.mimeType);
@@ -152,6 +153,20 @@ export function bytesSupport(mimeType: string, bytes: Uint8Array): boolean {
     return head.startsWith('<svg') || head.startsWith('<?xml') || head.startsWith('<!doctype svg');
   }
 
+  // A CSV is text: UTF-8 that decodes, with no NUL a binary file would carry.
+  if (type.mimeType === 'text/csv') {
+    const head = bytes.slice(0, 4096);
+    if (head.includes(0)) return false;
+    try {
+      new TextDecoder('utf-8', { fatal: true }).decode(
+        head.length < bytes.length ? trimPartial(head) : head,
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // ISO base media: the brand sits at offset 4, and the brand is what says
   // whether it is an MP4 or a QuickTime movie.
   if (type.mimeType === 'video/mp4' || type.mimeType === 'video/quicktime') {
@@ -168,4 +183,19 @@ export function bytesSupport(mimeType: string, bytes: Uint8Array): boolean {
   }
 
   return type.magic.some((signature) => hexOf(bytes, 0, signature.length / 2) === signature);
+}
+
+/**
+ * The bytes of a head cut out of a longer text, without the character the cut
+ * may have split: a UTF-8 sequence is at most four bytes, and the ones after
+ * its first are `10xxxxxx`.
+ */
+function trimPartial(head: Uint8Array): Uint8Array {
+  const end = head.length;
+  for (let back = 1; back <= 3 && end - back >= 0; back++) {
+    const byte = head[end - back] ?? 0;
+    if ((byte & 0xc0) === 0xc0) return head.slice(0, end - back);
+    if ((byte & 0xc0) !== 0x80) break;
+  }
+  return head;
 }

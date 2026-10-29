@@ -310,7 +310,7 @@ function optionalString(args: Record<string, unknown>, name: string): string | u
  * kept a 669-byte drawing as 678 bytes that way: copying characters it already
  * holds is what it does without a slip, encoding them is not.
  */
-const TEXT_FILE_TYPES: ReadonlySet<string> = new Set(['image/svg+xml']);
+const TEXT_FILE_TYPES: ReadonlySet<string> = new Set(['image/svg+xml', 'text/csv']);
 
 /** The bytes of keep_file, base64, from exactly one of `content` and `contentBase64`. */
 function keptBytes(args: Record<string, unknown>, mimeType: string): string {
@@ -336,6 +336,61 @@ function keptBytes(args: Record<string, unknown>, mimeType: string): string {
     return Buffer.from(text, 'utf8').toString('base64');
   }
   return encoded as string;
+}
+
+/**
+ * The Tables of the notebook, in its context (#366): what an agent has to know
+ * exists before it writes, so rows go where a table for them already is and a
+ * note shows a table rather than copying it. Nothing when there are none.
+ */
+function tablesSection(
+  tables: ReadonlyArray<{
+    name: string;
+    description: string;
+    schema: Record<string, unknown>;
+    key: string[] | null;
+    rows: number;
+  }>,
+): string {
+  if (tables.length === 0) return '';
+  const lines = tables.map((table) => {
+    const columns = Object.keys((table.schema['properties'] as Record<string, unknown>) ?? {});
+    const key = table.key ? `; key ${table.key.join(', ')}` : '';
+    const about = table.description ? ` \u2014 ${table.description}` : '';
+    return `- **${table.name}**${about} (${table.rows} rows; columns ${columns.join(', ')}${key})`;
+  });
+  return [
+    '## Tables',
+    '',
+    'Structured data this notebook keeps. Read the rows with query_table; list_tables gives each schema.',
+    '',
+    ...lines,
+  ].join('\n');
+}
+
+/** An array argument a tool requires, refused by name when it is missing. */
+function requireArray(args: Record<string, unknown>, name: string, tool: string): unknown[] {
+  const value = args[name];
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new GatewayError('VALIDATION', `${tool} requires "${name}", a list of at least one.`);
+  }
+  return value;
+}
+
+/** What a write of rows answers, in words and by row (#366). */
+function rowsWritten(written: {
+  operationId: string;
+  inserted: string[];
+  updated: string[];
+  deleted: string[];
+}) {
+  return {
+    operationId: written.operationId,
+    inserted: written.inserted.length,
+    updated: written.updated.length,
+    deleted: written.deleted.length,
+    rowIds: [...written.inserted, ...written.updated, ...written.deleted],
+  };
 }
 
 function optionalStrings(args: Record<string, unknown>, name: string): string[] | undefined {
@@ -1171,14 +1226,135 @@ export class McpToolAdapter {
         );
       }
 
+      // The Tables of a notebook and their rows (#366).
+      case 'list_tables':
+        return json({
+          tables: await knowledge.listTables(
+            caller,
+            requireString(args, 'notebook', 'list_tables'),
+          ),
+        });
+
+      case 'create_table': {
+        const schema = args['schema'];
+        if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) {
+          throw new GatewayError(
+            'VALIDATION',
+            'create_table requires "schema", a JSON Schema object.',
+          );
+        }
+        return json(
+          await knowledge.createTable(caller, requireString(args, 'notebook', 'create_table'), {
+            name: requireString(args, 'name', 'create_table'),
+            description: optionalString(args, 'description') ?? '',
+            schema: schema as Record<string, unknown>,
+            key: optionalStrings(args, 'key') ?? null,
+          }),
+        );
+      }
+
+      case 'alter_table':
+        return json(
+          await knowledge.alterTable(
+            caller,
+            requireString(args, 'notebook', 'alter_table'),
+            requireString(args, 'table', 'alter_table'),
+            requireArray(args, 'changes', 'alter_table'),
+          ),
+        );
+
+      case 'delete_table': {
+        const table = requireString(args, 'table', 'delete_table');
+        const deleted = await knowledge.deleteTable(
+          caller,
+          requireString(args, 'notebook', 'delete_table'),
+          table,
+        );
+        return text(
+          `The table ${table} is gone, for good, with its ${deleted.rows} rows, destroyed shortly ` +
+            'after. Every note that showed it now says it is missing, and its name is free again.',
+        );
+      }
+
+      case 'query_table': {
+        const page = args['page'];
+        const pageSize = args['pageSize'];
+        return json(
+          await knowledge.queryTable(
+            caller,
+            requireString(args, 'notebook', 'query_table'),
+            requireString(args, 'table', 'query_table'),
+            {
+              where: optionalString(args, 'where') ?? null,
+              ...(Array.isArray(args['sort']) ? { sort: args['sort'] as never } : {}),
+              ...(typeof page === 'number' ? { page } : {}),
+              ...(typeof pageSize === 'number' ? { pageSize } : {}),
+            },
+          ),
+        );
+      }
+
+      case 'insert_rows': {
+        const mode = args['mode'] === 'upsert' ? 'upsert' : 'insert';
+        return json(
+          rowsWritten(
+            await knowledge.insertRows(
+              caller,
+              requireString(args, 'notebook', 'insert_rows'),
+              requireString(args, 'table', 'insert_rows'),
+              { rows: requireArray(args, 'rows', 'insert_rows'), mode },
+            ),
+          ),
+        );
+      }
+
+      case 'import_table': {
+        const table = optionalString(args, 'table');
+        const sheet = optionalString(args, 'sheet');
+        return json(
+          await knowledge.importTable(caller, requireString(args, 'notebook', 'import_table'), {
+            file: requireString(args, 'file', 'import_table'),
+            ...(table ? { table } : {}),
+            ...(sheet ? { sheet } : {}),
+            mode: args['mode'] === 'upsert' ? 'upsert' : 'insert',
+            dryRun: args['dryRun'] === true,
+          }),
+        );
+      }
+
+      case 'update_rows':
+        return json(
+          rowsWritten(
+            await knowledge.updateRows(
+              caller,
+              requireString(args, 'notebook', 'update_rows'),
+              requireString(args, 'table', 'update_rows'),
+              requireArray(args, 'updates', 'update_rows'),
+            ),
+          ),
+        );
+
+      case 'delete_rows':
+        return json(
+          rowsWritten(
+            await knowledge.deleteRows(
+              caller,
+              requireString(args, 'notebook', 'delete_rows'),
+              requireString(args, 'table', 'delete_rows'),
+              requireArray(args, 'targets', 'delete_rows'),
+            ),
+          ),
+        );
+
       case 'get_notebook_context': {
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read.
         const notebook = requireString(args, 'notebook', 'get_notebook_context');
-        const [context, reach, revisions] = await Promise.all([
+        const [context, reach, revisions, tables] = await Promise.all([
           knowledge.notebookContext(caller, notebook),
           knowledge.listNotebooks(caller),
           knowledge.contextRevisions(caller, notebook),
+          knowledge.listTables(caller, notebook),
         ]);
         // A notebook shared from another subscription says so before anything
         // else, because the guidance it opens with asks to be written in, and
@@ -1186,7 +1362,9 @@ export class McpToolAdapter {
         const shared = reach.find(
           (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
-        const body = `${context.trimEnd()}\n\n${contextRevisionsSection(revisions)}`;
+        const body = [context.trimEnd(), tablesSection(tables), contextRevisionsSection(revisions)]
+          .filter((part) => part.length > 0)
+          .join('\n\n');
         return text(shared ? `${sharedBanner(shared)}\n\n${body}` : body);
       }
 

@@ -4,6 +4,7 @@
  * search language, and a schema change that never leaves a row invalid.
  */
 
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   notebookTableSchema,
@@ -386,5 +387,121 @@ describe('a schema change', () => {
       body: { name: 'expenses', schema: EXPENSES },
     });
     expect(again.status).toBe(201);
+  });
+});
+
+describe('rows from a file the notebook keeps', () => {
+  const keep = (notebookId: string, name: string, mimeType: string, bytes: Buffer) =>
+    call(`/knowledge/notebooks/${notebookId}/files`, {
+      method: 'POST',
+      body: { name, mimeType, contentBase64: bytes.toString('base64') },
+    });
+  const importing = (notebookId: string, body: Record<string, unknown>) =>
+    call(`/knowledge/notebooks/${notebookId}/tables/import`, { method: 'POST', body });
+
+  it('proposes a schema out of a CSV written in pt-BR, and writes nothing', async () => {
+    const notebookId = await seedNotebook();
+    const csv =
+      '﻿Data;Descrição;Valor;Situação\n01/10/2026;Mercado;"1.250,75";pago\n15/10/2026;Farmácia;30;pendente\n';
+    expect((await keep(notebookId, 'extrato.csv', 'text/csv', Buffer.from(csv))).status).toBe(201);
+
+    const proposed = (await (await importing(notebookId, { file: 'extrato.csv' })).json()) as {
+      proposal: {
+        rows: number;
+        schema: Record<string, unknown>;
+        columns: unknown[];
+        sample: unknown[];
+      };
+    };
+    expect(proposed.proposal.rows).toBe(2);
+    expect(proposed.proposal.schema['properties']).toEqual({
+      Data: { type: 'string', format: 'date' },
+      Descrição: { type: 'string' },
+      Valor: { type: 'number' },
+      Situação: { type: 'string' },
+    });
+    expect(
+      tableListSchema.parse(await (await call(`/knowledge/notebooks/${notebookId}/tables`)).json())
+        .tables,
+    ).toHaveLength(0);
+
+    await call(`/knowledge/notebooks/${notebookId}/tables`, {
+      method: 'POST',
+      body: { name: 'extrato', schema: proposed.proposal.schema, key: ['Data', 'Descrição'] },
+    });
+    const imported = await importing(notebookId, { file: 'extrato.csv', table: 'extrato' });
+    expect(imported.status).toBe(201);
+    expect(((await imported.json()) as { imported: { inserted: number } }).imported.inserted).toBe(
+      2,
+    );
+    const page = await query(notebookId, 'extrato', {
+      sort: [{ column: 'Data', direction: 'asc' }],
+    });
+    expect(page.rows[0]?.values).toEqual({
+      Data: '2026-10-01',
+      Descrição: 'Mercado',
+      Valor: 1250.75,
+      Situação: 'pago',
+    });
+
+    const again = await importing(notebookId, {
+      file: 'extrato.csv',
+      table: 'extrato',
+      mode: 'upsert',
+    });
+    expect(again.status).toBe(201);
+    expect((await query(notebookId, 'extrato')).total).toBe(2);
+  });
+
+  it('refuses a whole file when one line does not fit, naming it, before writing any', async () => {
+    const notebookId = await seedNotebook();
+    await keep(notebookId, 'leituras.csv', 'text/csv', Buffer.from('value\n12\nn/a\n13\n'));
+    await call(`/knowledge/notebooks/${notebookId}/tables`, {
+      method: 'POST',
+      body: {
+        name: 'leituras',
+        schema: { type: 'object', properties: { value: { type: 'number' } } },
+      },
+    });
+    const refused = await importing(notebookId, { file: 'leituras.csv', table: 'leituras' });
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { message: string }).message).toContain('Line 3');
+    expect((await query(notebookId, 'leituras')).total).toBe(0);
+  });
+
+  it('reads a sheet of an Excel workbook, a date as a date and a formula by its value', async () => {
+    const notebookId = await seedNotebook();
+    const workbook = readFileSync(new URL('./fixtures/expenses.xlsx', import.meta.url));
+    const kept = await keep(
+      notebookId,
+      'gastos.xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      workbook,
+    );
+    expect(kept.status).toBe(201);
+    const proposed = (await (
+      await importing(notebookId, { file: 'gastos.xlsx', dryRun: true })
+    ).json()) as {
+      proposal: { sheet: string; sheets: string[]; schema: Record<string, unknown> };
+    };
+    expect(proposed.proposal.sheets).toEqual(['Outubro']);
+    expect(proposed.proposal.schema['properties']).toEqual({
+      Data: { type: 'string', format: 'date' },
+      Descrição: { type: 'string' },
+      Valor: { type: 'number' },
+      Pago: { type: 'boolean' },
+    });
+    await call(`/knowledge/notebooks/${notebookId}/tables`, {
+      method: 'POST',
+      body: { name: 'gastos', schema: proposed.proposal.schema },
+    });
+    await importing(notebookId, { file: 'gastos.xlsx', table: 'gastos', sheet: 'Outubro' });
+    const page = await query(notebookId, 'gastos', { where: 'Pago:false' });
+    expect(page.rows[0]?.values).toEqual({
+      Data: '2026-10-15',
+      Descrição: 'Farmácia',
+      Valor: 30,
+      Pago: false,
+    });
   });
 });

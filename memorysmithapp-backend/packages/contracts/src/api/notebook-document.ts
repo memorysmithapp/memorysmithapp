@@ -146,7 +146,7 @@ export const documentHistorySchema = z.object({
 export const documentFileSchema = z.object({
   name: z.string().min(1).max(512),
   description: z.string().max(500),
-  /** What the file IS, which is what decides how it is drawn (RN-KNW-050). */
+  /** What the file IS, which is what decides how it is drawn (RN-KNW-075). */
   mimeType: z.string().min(1).max(128),
   tags: z.array(z.string().min(1).max(40)).max(20),
   /** Where it was filed, written like a path of a filesystem. */
