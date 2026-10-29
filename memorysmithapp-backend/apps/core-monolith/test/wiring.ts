@@ -1031,6 +1031,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
           restoreFolderNumber: new RestoreFolderNumber(knowledgeRepos(request.subscription)),
           createNote: new CreateNote(knowledgeRepos(request.subscription)),
           keepFile: new KeepFile(knowledgeRepos(request.subscription)),
+          createTable: new CreateTable(knowledgeRepos(request.subscription)),
+          insertRows: new InsertRows(knowledgeRepos(request.subscription)),
           deleteNotebook: new DeleteNotebook(knowledgeRepos(request.subscription)),
         },
         request.ctx,

@@ -116,6 +116,20 @@ export const modelVersionViewSchema = z.object({
     z.object({ name: z.string(), mimeType: z.string(), bytes: z.number().int().nonnegative() }),
   ),
   /**
+   * The tables the version froze, each with its columns and how many rows it
+   * carries, `null` when it carries the schema alone (#366).
+   */
+  tables: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        columns: z.array(z.string()),
+        rows: z.number().int().nonnegative().nullable(),
+      }),
+    )
+    .default([]),
+  /**
    * What the version writes against what it declares (#354): a reference no
    * parameter answers, which a notebook created from it would keep, and a
    * parameter no text uses.

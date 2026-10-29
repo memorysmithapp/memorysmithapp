@@ -45,7 +45,11 @@ import {
   type Authorship,
   type Result,
 } from '@memorysmithapp/kernel';
-import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
+import {
+  type DocumentHistory,
+  type NotebookDocument,
+  tablesChosen,
+} from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
 import type { ParameterDeclaration, ParameterValue } from '../domain/NotebookModel.js';
 import { fillDocument, resolveValues } from '../domain/ParameterFilling.js';
@@ -61,7 +65,7 @@ export interface ModelFill {
   readonly values: Readonly<Record<string, ParameterValue>>;
 }
 
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2'];
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3'];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -159,6 +163,25 @@ export interface NotebookWriter {
     bytes: Uint8Array;
     by: Authorship;
   }): Promise<Result<void, DomainError>>;
+  /**
+   * Creates one table of the archive, and writes its rows in calls of up to 50
+   * (#366): through the same doors an agent uses, so a row the schema refuses
+   * is refused here exactly as it would be there.
+   */
+  createTable(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    schema: Record<string, unknown>;
+    key: readonly string[] | null;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
+  insertRows(input: {
+    notebookId: string;
+    table: string;
+    rows: ReadonlyArray<Record<string, unknown>>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
   /** Brings the counter of a folder up to the last number it had issued (RN-PRT-016). */
   restoreNumber(input: {
     notebookId: string;
@@ -244,6 +267,11 @@ export interface ImportSelection {
    * what the two chooser tabs tick. Absent is every file the archive holds.
    */
   readonly files?: readonly string[] | undefined;
+  /**
+   * The tables, by name, each with or without its rows (RN-PRT-049). Absent is
+   * every table the archive holds, with the rows it carries.
+   */
+  readonly tables?: ReadonlyArray<{ readonly name: string; readonly rows: boolean }> | undefined;
 }
 
 /** How an import says where it got to, and whether it should still be running. */
@@ -648,6 +676,38 @@ export class ImportNotebook {
         by,
       });
       if (!keep.ok) return undo(keep);
+    }
+
+    // The tables, after the files: a note that shows one is already written
+    // by the time it arrives (#366, RN-PRT-049).
+    const tables = selection?.tables
+      ? tablesChosen(document.tables ?? [], selection.tables)
+      : (document.tables ?? []);
+    for (const table of tables) {
+      if (await stopped()) {
+        return err(
+          DomainError.validation('The import was cancelled', { reason: IMPORT_REFUSALS.cancelled }),
+        );
+      }
+      const created = await this.writer.createTable({
+        notebookId,
+        name: table.name,
+        description: table.description,
+        schema: table.schema,
+        key: table.key,
+        by,
+      });
+      if (!created.ok) return undo(created);
+      const rows = table.rows ?? [];
+      for (let index = 0; index < rows.length; index += 50) {
+        const wrote = await this.writer.insertRows({
+          notebookId,
+          table: table.name,
+          rows: rows.slice(index, index + 50),
+          by,
+        });
+        if (!wrote.ok) return undo(wrote);
+      }
     }
 
     if (chosen.history && document.history && this.trail) {

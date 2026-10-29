@@ -20,7 +20,7 @@ import {
   type ParameterReference,
   type Result,
 } from '@memorysmithapp/kernel';
-import type { NotebookDocument } from './NotebookDocumentBuilder.js';
+import type { DocumentTable, NotebookDocument } from './NotebookDocumentBuilder.js';
 import {
   isValueOf,
   type ParameterDeclaration,
@@ -204,7 +204,44 @@ export function fillDocument(document: NotebookDocument, values: FilledValues): 
       template: folder.template === null ? null : fillMarkdown(folder.template, values),
     })),
     notes: document.notes.map((note) => ({ ...note, body: fillMarkdown(note.body, values) })),
+    // A table's name and descriptions are filled, and never a row: a row is
+    // data, and data is never rewritten underneath (RN-PRT-050).
+    ...(document.tables
+      ? { tables: document.tables.map((table) => fillTable(table, values)) }
+      : {}),
   };
+}
+
+function fillTable(table: DocumentTable, values: FilledValues): DocumentTable {
+  const properties = (table.schema['properties'] ?? {}) as Record<string, Record<string, unknown>>;
+  return {
+    ...table,
+    name: fillText(table.name, values),
+    description: fillText(table.description, values),
+    schema: {
+      ...table.schema,
+      properties: Object.fromEntries(
+        Object.entries(properties).map(([name, column]) => [
+          name,
+          typeof column['description'] === 'string'
+            ? { ...column, description: fillText(column['description'], values) }
+            : column,
+        ]),
+      ),
+    },
+  };
+}
+
+/** The texts of a table a parameter may stand in: its name and its descriptions. */
+function tableTexts(table: DocumentTable): string[] {
+  const properties = (table.schema['properties'] ?? {}) as Record<string, Record<string, unknown>>;
+  return [
+    table.name,
+    table.description,
+    ...Object.values(properties)
+      .map((column) => column['description'])
+      .filter((text): text is string => typeof text === 'string'),
+  ];
 }
 
 /**
@@ -231,6 +268,9 @@ export function referenceReport(
     if (folder.template) add(parameterReferences(folder.template).map((each) => each.name));
   }
   for (const note of document.notes) add(parameterReferences(note.body).map((each) => each.name));
+  for (const table of document.tables ?? []) {
+    for (const text of tableTexts(table)) add(textReferences(text).map((each) => each.name));
+  }
 
   const declared = new Set(declarations.map((each) => each.name));
   return {

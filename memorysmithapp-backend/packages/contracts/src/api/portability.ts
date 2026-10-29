@@ -46,6 +46,12 @@ export const transferSelectionSchema = z.object({
    * carried and what almost everyone wants.
    */
   files: z.array(z.string().min(1).max(512)).optional(),
+  /**
+   * The tables the transfer carries, by name, each with its rows or with its
+   * schema alone (#366, RN-PRT-049). Absent is every table with its rows; a
+   * table not named is left out.
+   */
+  tables: z.array(z.object({ name: z.string().min(1).max(64), rows: z.boolean() })).optional(),
 });
 
 export type TransferSelection = z.infer<typeof transferSelectionSchema>;

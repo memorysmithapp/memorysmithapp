@@ -537,6 +537,8 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
       // An archive carries the files of the notebook, and they come back
       // through the door an upload uses (#166, RN-PRT-025).
       keepFile: new KeepFile(knowledge),
+      createTable: new CreateTable(knowledge),
+      insertRows: new InsertRows(knowledge),
       deleteNotebook: new DeleteNotebook(knowledge),
     },
     request.ctx,

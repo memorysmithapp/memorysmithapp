@@ -49,6 +49,7 @@ import {
 } from '@memorysmithapp/svc-knowledge/application/folders';
 import { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
 import { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
 import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
 import { DynamoTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import { KnowledgeExportSource } from './export-source.js';
@@ -167,6 +168,8 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
       createNote: new CreateNote(knowledge),
       keepFile: new KeepFile(knowledge),
+      createTable: new CreateTable(knowledge),
+      insertRows: new InsertRows(knowledge),
       deleteNotebook: new DeleteNotebook(knowledge),
     },
     resolved.value,

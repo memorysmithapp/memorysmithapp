@@ -330,3 +330,69 @@ describe('a notebook model (#353)', () => {
     expect(view.references).toEqual({ undeclared: ['síndico'], unused: [] });
   });
 });
+
+describe('the tables of a model (#366, RN-PRT-050)', () => {
+  it('go into a version with their rows, the parameters filled in their names and descriptions only', async () => {
+    await call(OWNER, `/knowledge/notebooks/${notebookId}/tables`, {
+      method: 'POST',
+      body: {
+        name: 'fornecedores de {{condomínio}}',
+        description: 'Quem atende o {{condomínio}}',
+        schema: {
+          type: 'object',
+          properties: {
+            nome: { type: 'string', description: 'O fornecedor do {{condomínio}}' },
+            nota: { type: 'string' },
+          },
+        },
+      },
+    });
+    await call(
+      OWNER,
+      `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent('fornecedores de {{condomínio}}')}/rows`,
+      {
+        method: 'POST',
+        body: { rows: [{ nome: 'Elétrica Silva', nota: 'atende {{condomínio}} desde 2020' }] },
+      },
+    );
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
+
+    const version = await json<{ tables: Array<{ name: string; rows: number | null }> }>(
+      await call(OWNER, `/portability/models/${notebookId}/versions/1`),
+    );
+    expect(version.tables).toEqual([
+      expect.objectContaining({ name: 'fornecedores de {{condomínio}}', rows: 1 }),
+    ]);
+
+    await call(OWNER, `/portability/models/${notebookId}/versions/1/notebooks`, {
+      method: 'POST',
+      body: { name: 'Aurora', values: { condomínio: 'Aurora' } },
+    });
+    const created = (
+      await json<Array<{ notebookId: string; name: string }>>(
+        await call(OWNER, '/knowledge/notebooks'),
+      )
+    ).find((each) => each.name === 'Aurora');
+    const tables = await json<{
+      tables: Array<{ name: string; description: string; schema: Record<string, unknown> }>;
+    }>(await call(OWNER, `/knowledge/notebooks/${created?.notebookId}/tables`));
+    expect(tables.tables[0]?.name).toBe('fornecedores de Aurora');
+    expect(tables.tables[0]?.description).toBe('Quem atende o Aurora');
+    expect(
+      (tables.tables[0]?.schema['properties'] as Record<string, { description?: string }>)['nome']
+        ?.description,
+    ).toBe('O fornecedor do Aurora');
+    const page = await json<{ rows: Array<{ values: Record<string, unknown> }> }>(
+      await call(
+        OWNER,
+        `/knowledge/notebooks/${created?.notebookId}/tables/${encodeURIComponent('fornecedores de Aurora')}/query`,
+        {
+          method: 'POST',
+          body: {},
+        },
+      ),
+    );
+    expect(page.rows[0]?.values['nota']).toBe('atende {{condomínio}} desde 2020');
+  });
+});

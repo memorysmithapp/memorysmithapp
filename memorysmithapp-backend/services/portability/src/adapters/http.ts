@@ -267,6 +267,12 @@ export function documentToDto(document: NotebookDocument): Record<string, unknow
       // The bytes travel as base64 in the document; what is said is their size.
       bytes: Math.floor((file.bytes.replace(/=+$/, '').length * 3) / 4),
     })),
+    tables: (document.tables ?? []).map((table) => ({
+      name: table.name,
+      description: table.description,
+      columns: Object.keys((table.schema['properties'] as Record<string, unknown>) ?? {}),
+      rows: table.rows ? table.rows.length : null,
+    })),
   };
 }
 

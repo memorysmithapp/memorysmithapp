@@ -505,3 +505,104 @@ describe('rows from a file the notebook keeps', () => {
     });
   });
 });
+
+describe('the tables of a notebook in a transfer (RN-PRT-049)', () => {
+  const exportOf = async (notebookId: string, selection: Record<string, unknown> | null) => {
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: selection ? { selection } : {},
+    });
+    return ((await started.json()) as { transferId: string }).transferId;
+  };
+  const importInPlace = async (transferId: string, name: string) => {
+    const copied = await call('/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+    });
+    const { uploadKey } = (await copied.json()) as { uploadKey: string };
+    const started = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: { uploadKey, name },
+    });
+    const { transferId: job } = (await started.json()) as { transferId: string };
+    return (await (await call(`/portability/transfers/${job}`)).json()) as {
+      status: string;
+      notebookId: string;
+      failure: string | null;
+    };
+  };
+
+  it('carries every table with its rows, and brings them back as they were', async () => {
+    const notebookId = await seedNotebook();
+    await createExpenses(notebookId, ['date', 'description']);
+    await call(rows(notebookId, 'expenses'), {
+      method: 'POST',
+      body: {
+        rows: [
+          {
+            date: '2026-10-01',
+            description: 'Market',
+            amount: '12345678901234567890.5',
+            tags: ['food'],
+          },
+          { date: '2026-10-02', description: 'Pharmacy', amount: 30, status: 'paid' },
+        ],
+      },
+    });
+
+    const job = await importInPlace(await exportOf(notebookId, null), 'Finanças, de volta');
+    expect(job.status).toBe('ready');
+    const back = tableListSchema.parse(
+      await (await call(`/knowledge/notebooks/${job.notebookId}/tables`)).json(),
+    );
+    expect(back.tables.map((table) => [table.name, table.key])).toEqual([
+      ['expenses', ['date', 'description']],
+    ]);
+    const page = await query(job.notebookId, 'expenses', {
+      sort: [{ column: 'date', direction: 'asc' }],
+    });
+    expect(page.rows.map((row) => row.values)).toEqual([
+      {
+        date: '2026-10-01',
+        description: 'Market',
+        amount: '12345678901234567890.5',
+        status: 'pending',
+        tags: ['food'],
+      },
+      { date: '2026-10-02', description: 'Pharmacy', amount: 30, status: 'paid' },
+    ]);
+  });
+
+  it('carries a table with its schema alone, or leaves it out, as each transfer chooses', async () => {
+    const notebookId = await seedNotebook();
+    await createExpenses(notebookId);
+    await call(`/knowledge/notebooks/${notebookId}/tables`, {
+      method: 'POST',
+      body: {
+        name: 'private',
+        schema: { type: 'object', properties: { secret: { type: 'string' } } },
+      },
+    });
+    await call(rows(notebookId, 'expenses'), {
+      method: 'POST',
+      body: { rows: [{ date: '2026-10-01', description: 'Market', amount: 1 }] },
+    });
+
+    const transfer = await exportOf(notebookId, {
+      guidance: true,
+      folders: [],
+      templates: [],
+      notes: [],
+      tables: [{ name: 'expenses', rows: false }],
+    });
+    const job = await importInPlace(transfer, 'Finanças, só o schema');
+    expect(job.status).toBe('ready');
+    const back = tableListSchema.parse(
+      await (await call(`/knowledge/notebooks/${job.notebookId}/tables`)).json(),
+    );
+    expect(back.tables.map((table) => table.name)).toEqual(['expenses']);
+    expect((await query(job.notebookId, 'expenses')).total).toBe(0);
+    // The notebook the transfer came from is as it was.
+    expect((await query(notebookId, 'expenses')).total).toBe(1);
+  });
+});

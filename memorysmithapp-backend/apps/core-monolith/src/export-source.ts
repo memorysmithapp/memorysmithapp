@@ -17,7 +17,9 @@ import type {
   FolderNumbers,
   NoteRepository,
   NotebookRepository,
+  TableRepository,
 } from '@memorysmithapp/svc-knowledge/domain';
+import { presentCell, tableSchema } from '@memorysmithapp/svc-knowledge/domain';
 import type { ExportSource } from '@memorysmithapp/svc-portability/application';
 import type { ExportInput } from '@memorysmithapp/svc-portability/domain';
 
@@ -57,6 +59,8 @@ interface KnowledgeSide {
   /** The files the notebook keeps, which travel with it (RN-PRT-025). */
   readonly files: FileRepository;
   readonly fileStore: FileStore;
+  /** The tables of the notebook and their rows, which travel with it (#366). */
+  readonly tables: TableRepository;
 }
 
 export class KnowledgeExportSource implements ExportSource {
@@ -85,6 +89,10 @@ export class KnowledgeExportSource implements ExportSource {
     const guidanceSlot = await this.knowledge.slots.findGuidance(parsed.value);
     const lastNumbers = await this.knowledge.numbers.lastIssued(parsed.value);
     const kept = await this.knowledge.files.list(parsed.value);
+    const tables = await this.knowledge.tables.list(parsed.value);
+    const rowsOf = await mapWithConcurrency(tables, READ_CONCURRENCY, (table) =>
+      this.knowledge.tables.rows(table),
+    );
 
     const [guidance, templates, bodies, fileBytes] = await Promise.all([
       guidanceSlot ? this.knowledge.content.read(guidanceSlot.ref) : Promise.resolve(null),
@@ -140,6 +148,24 @@ export class KnowledgeExportSource implements ExportSource {
         tags: [...file.tags],
         path: file.path,
         bytes: Buffer.from(fileBytes[index] ?? new Uint8Array()).toString('base64'),
+      })),
+      /**
+       * The tables, as JSON Schema and rows by column name, in the order they
+       * were inserted: what an agent wrote is what an import writes back, and
+       * no identifier travels (#366).
+       */
+      tables: tables.map((table, index) => ({
+        name: table.name,
+        description: table.description,
+        schema: tableSchema(table.columns),
+        key: table.keyNames,
+        rows: (rowsOf[index] ?? []).map((row) =>
+          Object.fromEntries(
+            table.columns
+              .filter((column) => row.values[column.id] !== undefined)
+              .map((column) => [column.name, presentCell(column, row.values[column.id] as never)]),
+          ),
+        ),
       })),
     };
   }
