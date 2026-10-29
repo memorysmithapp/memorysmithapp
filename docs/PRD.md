@@ -49,7 +49,7 @@ Code comments cite them by code. A principle that stopped holding keeps its code
 
 ## 5. Ubiquitous language
 
-The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, the ordinary word, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
+The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_ and _Table_ is _tabela_, the ordinary words, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
 
 | Term                    | Meaning                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -58,13 +58,14 @@ The terms as the code names them. In the `pt_BR` locale, and only there, four ar
 | **Role**                | `VIEWER`, `EDITOR` or `OWNER`, ordered; the owner of the subscription is above every member                       |
 | **Notebook ceiling**    | A per-notebook limit on a member's role; it only lowers                                                           |
 | **Platform admin**      | The operator who approves subscriptions; reaches no customer content                                              |
-| **Notebook**            | A self-describing collection of notes: a Guidance, a tree of folders, Templates, notes and kept files             |
+| **Notebook**            | A self-describing collection of notes: a Guidance, a tree of folders, Templates, notes, kept files and tables           |
 | **Folder**              | An ordered node of a notebook's tree, with a description of what is kept there                                    |
 | **Note**                | A Markdown document in a folder, named by the `name:` of its frontmatter                                          |
 | **Guidance**            | The notebook's document saying what it is for and how its notes are written; zero or one                          |
 | **Template**            | The suggested shape of a folder's notes; zero or one per folder, never enforced                                   |
 | **Notebook Context**    | The Guidance and the annotated tree, composed for an agent on every call, never stored                            |
 | **Kept file**           | Bytes a notebook keeps, with a name, description, type, tags and path; a note shows it by its name                |
+| **Table**               | A schema and the rows a notebook keeps, written by an agent and read through a filter, an order and a page        |
 | **Notebook model**      | A notebook declared as a model, from which independent notebooks are created; distinct from a Template            |
 | **Community catalog**   | Where the models their owners published are found, read by anybody and created from by whoever signs in           |
 | **Model version**       | A numbered, frozen snapshot of a model notebook, with its changelog and parameters                                |
@@ -241,6 +242,15 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-063 | The interface offers in a notebook what the person may do there: whoever may write content edits notes and keeps files, and whoever may maintain it also edits its folders, Guidance and Templates, a share deciding both by its profile and a member by role. | |
 | RN-KNW-064 | The interface deletes a folder only after saying what it holds and that everything under it goes at once and for good (RN-KNW-046), and, when it holds anything, only once the person ticks that they understood. | |
 | RN-KNW-065 | The note editor declares the context the page read when the edit opened; a save whose context changed says what changed and writes nothing more on its own, the next saves declaring the current context only once the person has read it, and the folder page marks every note written against a changed context. | |
+| RN-KNW-066 | A notebook keeps up to 50 Tables, each with a name unique among them regardless of case, a description, a schema and rows; a table goes with its notebook, and its rows count against storage. | |
+| RN-KNW-067 | A table's schema is a subset of JSON Schema: columns of type string, number, integer, boolean or an array of strings, a string as a date or a date-time, with enum, default, description, minimum, maximum, maxLength and required; any other keyword is refused, naming it. | |
+| RN-KNW-068 | A table may declare a key of one or more columns; inserting a row whose key it holds is refused, naming it, and an upsert changes that row with the columns given; a table with no key takes every row as new. | |
+| RN-KNW-069 | A schema change never leaves a row invalid: adding, renaming and removing a column, changing a type or a constraint, and setting a key happen only when every row fits, or nothing changes and the refusal names the rows that do not. | |
+| RN-KNW-070 | A call writes up to 50 rows, all or none: every value is checked against its column, a default fills what a row leaves out, `null` clears a column that is not required, and a column of the key is never changed in place. | |
+| RN-KNW-071 | Deleting a table or a row is definitive (INV-08): the rows of a deleted table are purged, and its name is free at once. | |
+| RN-KNW-072 | Every write of rows enters the trail with who, when, which rows and which columns, and never a value; the rows of one call share its operation. | |
+| RN-KNW-073 | The rows of a table are read through a filter in the search query language, a column standing for a facet, text matched as the search matches it, a number by its value and a date by prefix and interval; a column the table lacks is refused; they are sorted by up to five columns and read in pages of up to 100. | |
+| RN-KNW-074 | A share reaches a notebook's tables by its profile: a Reader reads them, a Content editor also writes their rows, a Notebook editor also creates, alters and deletes them. | |
 
 ### Discovery
 
@@ -462,5 +472,10 @@ Declared so they become tests.
 | Notes in a notebook             | No ceiling; the quota of the subscription bounds it         |
 | Graph traversal                 | depth 3, at most 200 nodes                                  |
 | Storage quota of a subscription | 500 MB, 1 GB or 2 GB                                        |
+| Tables in a notebook            | 50                                                          |
+| Rows in a table                 | 10,000                                                      |
+| Size of a row                   | 4 KB                                                        |
+| Columns in a table              | 50                                                          |
+| Rows written in one call        | 50                                                          |
 
 **An action button** that carries an icon shows the icon and its word on a wide screen, and from 860 px down the icon alone, the word kept as its accessible name. The buttons around a note (Show and Copy Markdown, Edit and Read) show the icon alone at every width. The confirmations and cancels of a dialog or of an in-place question carry no icon and keep their word alone at every width, because an icon alone on a phone makes an irreversible answer easier to tap without reading. A button that spans the width of the screen on a phone keeps its word beside its icon there too, because the word is hidden to save room and that button is not short of it.

@@ -66,6 +66,7 @@ export class SubscriptionUsageReport implements SubscriptionUsageQuery {
           notes: line.notes,
           folders: line.folders,
           files: line.files,
+          tables: line.tables,
           exports: exports?.count ?? 0,
           uploads: uploads?.count ?? 0,
         };
@@ -78,6 +79,7 @@ export class SubscriptionUsageReport implements SubscriptionUsageQuery {
       byType: {
         notes: { count: totals.noteCount, bytes: totals.noteBytes },
         files: { count: totals.fileCount, bytes: totals.fileBytes },
+        tables: { count: totals.tableCount, bytes: totals.tableBytes },
         exports: { count: kept.count, bytes: kept.bytes },
         transit: { count: transit.count, bytes: transit.bytes },
         others: { count: totals.otherCount, bytes: totals.otherBytes },

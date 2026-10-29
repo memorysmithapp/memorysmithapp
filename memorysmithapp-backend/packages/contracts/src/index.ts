@@ -15,6 +15,7 @@ export * from './events.js';
 export * from './api/errors.js';
 export * from './api/access.js';
 export * from './api/knowledge.js';
+export * from './api/tables.js';
 export * from './api/discovery.js';
 export * from './api/audit.js';
 export * from './api/notebook-document.js';

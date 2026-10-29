@@ -63,6 +63,7 @@ describe('the arithmetic of the counters', () => {
       notes: 1,
       folders: 1,
       files: 0,
+      tables: 0,
     });
 
     unwrap(note.delete(authorship()));

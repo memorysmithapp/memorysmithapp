@@ -254,6 +254,7 @@
     "bytes": "Space",
     "kindFiles": "Files",
     "kindNotes": "Notes",
+    "kindTables": "Tables",
     "kindExports": "Kept exports",
     "kindOthers": "Others",
     "kindOthersHint": "Guidance and Templates",

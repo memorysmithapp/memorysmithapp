@@ -36,6 +36,7 @@ import {
   SubscriptionId,
 } from '@memorysmithapp/kernel';
 import {
+  BatchWriteCommand,
   GetCommand,
   QueryCommand,
   TransactWriteCommand,
@@ -131,6 +132,32 @@ export class ContentPurge {
         await this.purgeOneFile(context, envelope);
         break;
 
+      /**
+       * A table deleted on its own (#366). Its item stays at the deletion as a
+       * tombstone, so nothing answers it while its rows are still there; here
+       * the rows go, and then the item.
+       */
+      case 'TableDeleted': {
+        const tableId = String(envelope.payload['tableId'] ?? '');
+        if (!tableId) break;
+        const emptied = await this.purgeRows(context, tableId);
+        if (emptied) {
+          await this.deps.db.send(
+            new TransactWriteCommand({
+              TransactItems: [
+                {
+                  Delete: {
+                    TableName: this.deps.tableName,
+                    Key: { PK: this.partitionOf(context), SK: `TABLE#${tableId}` },
+                  },
+                },
+              ],
+            }),
+          );
+        }
+        break;
+      }
+
       case 'FolderRemoved': {
         const removed = new Set((envelope.payload['removedFolderIds'] as string[]) ?? []);
         await this.purgeTemplates(context, (folderId) => removed.has(folderId));
@@ -144,6 +171,8 @@ export class ContentPurge {
         await this.purgeGuidance(context);
         // Its files, which no `FileDeleted` will ever name otherwise (#202).
         await this.purgeFiles(context);
+        // And its tables with their rows, for the same reason (#366).
+        await this.purgeTables(context);
         // The tree itself goes last, and only once nothing under it is left:
         // what is above a unit is what says the unit is invalid, so taking it
         // away first would leave a live note nothing marked.
@@ -262,6 +291,106 @@ export class ContentPurge {
         // The guard of its name goes with it, as it does at the deletion of
         // one file: a live file is the one that holds it.
         deletes: [String(item['SK']), `FNAME#${sha256Hex(name.normalize('NFC'))}`],
+      });
+      return true;
+    });
+  }
+
+  /**
+   * The rows of one table and what the relay counted of them (#366), in the
+   * partition of the table's own. Rows hold no content in the store, so they
+   * go in batches, each batch one unit of the run; `false` when the budget ran
+   * out first and a new message carries on.
+   */
+  private async purgeRows(context: Context, tableId: string): Promise<boolean> {
+    const partition = `S#${context.subscriptionId.value}#TABLE#${tableId}`;
+    for (;;) {
+      if (context.budget <= 0) return false;
+      const page = await this.deps.db.send(
+        new QueryCommand({
+          TableName: this.deps.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :rows)',
+          ExpressionAttributeValues: { ':pk': partition, ':rows': 'ROW#' },
+          ProjectionExpression: 'PK, SK',
+          ConsistentRead: true,
+          Limit: 25,
+        }),
+      );
+      const keys = (page.Items ?? []) as Item[];
+      if (keys.length === 0) {
+        // The count goes last. The events of the rows stay until their own
+        // expiry: the relay may not have read them yet, and they hold no value.
+        await this.deps.db.send(
+          new TransactWriteCommand({
+            TransactItems: [
+              { Delete: { TableName: this.deps.tableName, Key: { PK: partition, SK: 'TSTAT' } } },
+            ],
+          }),
+        );
+        return true;
+      }
+      let pending: Item[] = keys.map((item) => ({
+        DeleteRequest: { Key: { PK: item['PK'], SK: item['SK'] } },
+      }));
+      for (let attempt = 0; pending.length > 0 && attempt < 10; attempt++) {
+        const answer = await this.deps.db.send(
+          new BatchWriteCommand({ RequestItems: { [this.deps.tableName]: pending } }),
+        );
+        pending = (answer.UnprocessedItems?.[this.deps.tableName] ?? []) as Item[];
+      }
+      context.purged += 1;
+      context.budget -= 1;
+    }
+  }
+
+  /**
+   * Every table of a deleted notebook (#366), each the way a table deleted on
+   * its own is taken: its rows first and its item second. A table that was
+   * live when its notebook went never said so, so its item leaves with the
+   * `TableDeleted` its own deletion would have written, releasing the bytes
+   * of its rows through the relay, as a file of a deleted notebook does.
+   */
+  private async purgeTables(context: Context): Promise<void> {
+    await this.walk(context, 'TABLE#', async (item) => {
+      const tableId = String(item['tableId'] ?? '');
+      const name = String(item['name'] ?? '');
+      // Read before the rows go, since their count goes with them.
+      const stat = await this.deps.db.send(
+        new GetCommand({
+          TableName: this.deps.tableName,
+          Key: { PK: `S#${context.subscriptionId.value}#TABLE#${tableId}`, SK: 'TSTAT' },
+          ConsistentRead: true,
+        }),
+      );
+      if (!(await this.purgeRows(context, tableId))) return false;
+      if (item['deletedAt']) {
+        await this.deps.db.send(
+          new TransactWriteCommand({
+            TransactItems: [
+              {
+                Delete: {
+                  TableName: this.deps.tableName,
+                  Key: { PK: this.partitionOf(context), SK: String(item['SK']) },
+                },
+              },
+            ],
+          }),
+        );
+        return true;
+      }
+      await this.record(context, {
+        type: 'TableDeleted',
+        subject: 'TABLE',
+        subjectId: tableId,
+        payload: {
+          notebookId: context.notebookId,
+          tableId,
+          name,
+          rows: Math.max(0, Number(stat.Item?.['rows'] ?? 0)),
+        },
+        contentRef: null,
+        storageDelta: -Math.max(0, Number(stat.Item?.['bytes'] ?? 0)),
+        deletes: [String(item['SK']), `TNAME#${sha256Hex(name.normalize('NFC').toLowerCase())}`],
       });
       return true;
     });

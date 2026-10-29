@@ -87,6 +87,7 @@ import {
   InMemoryContentStore,
   InMemoryFileRepository,
   InMemoryFileStore,
+  InMemoryTableRepository,
   InMemoryStorageBudget,
   InMemoryStorageUsage,
   InMemoryDatabase,
@@ -134,6 +135,17 @@ import {
   LinkToFile,
   ListFiles,
 } from '@memorysmithapp/svc-knowledge/application/files';
+import {
+  AlterTable,
+  CreateTable,
+  DeleteRows,
+  DeleteTable,
+  GetTable,
+  InsertRows,
+  ListTables,
+  QueryTable,
+  UpdateRows,
+} from '@memorysmithapp/svc-knowledge/application/tables';
 import { InMemoryAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
 import type {
   PortabilityRequest,
@@ -357,6 +369,15 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     return made;
   };
 
+  const tableRepositories = new Map<string, InMemoryTableRepository>();
+  const tableRepositoryOf = (context: SubscriptionContext): InMemoryTableRepository => {
+    const held = tableRepositories.get(context.subscriptionId.value);
+    if (held) return held;
+    const made = new InMemoryTableRepository(context, events);
+    tableRepositories.set(context.subscriptionId.value, made);
+    return made;
+  };
+
   const knowledgeRepos = (context: SubscriptionContext) => ({
     notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
@@ -369,6 +390,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     fileStore: fileStoreOf(context),
     // The same list production injects, from the same published table (#166).
     fileTypes: FILE_TYPE_CATALOGUE,
+    // The Tables of a notebook and their rows (#366), kept between calls too.
+    tables: tableRepositoryOf(context),
     storage,
     // The same list production injects, from the same specification (RN-AGT-025).
     reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
@@ -532,6 +555,15 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     listFiles: (request) => new ListFiles(knowledgeRepos(request.subscription)),
     linkToFile: (request) => new LinkToFile(knowledgeRepos(request.subscription)),
     deleteFile: (request) => new DeleteFile(knowledgeRepos(request.subscription)),
+    listTables: (request) => new ListTables(knowledgeRepos(request.subscription)),
+    createTable: (request) => new CreateTable(knowledgeRepos(request.subscription)),
+    getTable: (request) => new GetTable(knowledgeRepos(request.subscription)),
+    alterTable: (request) => new AlterTable(knowledgeRepos(request.subscription)),
+    deleteTable: (request) => new DeleteTable(knowledgeRepos(request.subscription)),
+    queryTable: (request) => new QueryTable(knowledgeRepos(request.subscription)),
+    insertRows: (request) => new InsertRows(knowledgeRepos(request.subscription)),
+    updateRows: (request) => new UpdateRows(knowledgeRepos(request.subscription)),
+    deleteRows: (request) => new DeleteRows(knowledgeRepos(request.subscription)),
   };
 
   // Audit and Discovery, wired in memory. In production they are fed by the

@@ -52,6 +52,7 @@ import { DynamoFolderNumbers } from '@memorysmithapp/svc-knowledge/adapters/numb
 import { DynamoNotebookRepository } from '@memorysmithapp/svc-knowledge/adapters/notebooks';
 import { S3ContentStore } from '@memorysmithapp/svc-knowledge/adapters/content';
 import { DynamoFileRepository } from '@memorysmithapp/svc-knowledge/adapters/files';
+import { DynamoTableRepository } from '@memorysmithapp/svc-knowledge/adapters/tables';
 import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
 import type { FileTypes } from '@memorysmithapp/svc-knowledge/domain';
 import { DynamoStorageMeter } from '@memorysmithapp/svc-knowledge/adapters/storage';
@@ -213,6 +214,9 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     files: new DynamoFileRepository(context, infra.db, infra.knowledgeTable),
     fileStore: new S3FileStore(context, infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
     fileTypes: FILE_TYPE_CATALOGUE,
+    // A schema and its rows (#366): the schema in the notebook's partition,
+    // the rows in one of the table's own.
+    tables: new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the
     // product implements. The Notebook Context declares these names to the agent

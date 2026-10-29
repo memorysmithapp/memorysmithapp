@@ -34,6 +34,8 @@ export const eventSubjectSchema = z.enum([
   'NOTE',
   // What a notebook keeps beside its notes: bytes with a name (#166).
   'FILE',
+  // A schema and its rows, kept beside the notes (#366).
+  'TABLE',
 ]);
 
 export const domainEventTypeSchema = z.enum([
@@ -94,6 +96,13 @@ export const domainEventTypeSchema = z.enum([
   // replaced by keeping them again under the same name (#166).
   'FileKept',
   'FileDeleted',
+  // A Table of a notebook and its rows (#366); a row event never carries a value.
+  'TableCreated',
+  'TableAltered',
+  'TableDeleted',
+  'RowsInserted',
+  'RowsUpdated',
+  'RowsDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -434,6 +443,46 @@ export const fileKeptPayload = z.object({
 
 export const fileDeletedPayload = fileKeptPayload;
 
+/**
+ * A Table of a notebook (#366). What changed is said in words, `changes`,
+ * because a schema change is read by a person in the trail and is not
+ * replayed by anybody.
+ */
+export const tableCreatedPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  name: z.string().min(1),
+  columns: z.array(z.string()),
+});
+
+export const tableAlteredPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  name: z.string().min(1),
+  changes: z.array(z.string()),
+});
+
+export const tableDeletedPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  name: z.string().min(1),
+  rows: z.number().int().nonnegative(),
+});
+
+/**
+ * Rows written by one operation (#366): which rows and which columns, and
+ * never a value, so deleting a row leaves no copy of it in the trail (INV-06,
+ * INV-08). Every event of one operation, a call or an import, shares its
+ * `operationId`.
+ */
+export const rowsChangedPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  table: z.string().min(1),
+  operationId: z.string().min(1),
+  rows: z.array(z.object({ rowId: z.string().min(1), columns: z.array(z.string()) })),
+});
+
 export const noteCreatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
@@ -554,6 +603,12 @@ export const eventPayloadSchemas = {
   NotebookPurged: notebookPurgedPayload,
   FileKept: fileKeptPayload,
   FileDeleted: fileDeletedPayload,
+  TableCreated: tableCreatedPayload,
+  TableAltered: tableAlteredPayload,
+  TableDeleted: tableDeletedPayload,
+  RowsInserted: rowsChangedPayload,
+  RowsUpdated: rowsChangedPayload,
+  RowsDeleted: rowsChangedPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

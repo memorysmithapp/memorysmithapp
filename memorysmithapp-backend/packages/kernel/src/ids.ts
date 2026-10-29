@@ -104,6 +104,17 @@ export class FileId extends UlidIdentifier {
   }
 }
 
+/** A Table of a notebook: a schema and its rows (#366). */
+export class TableId extends UlidIdentifier {
+  private readonly __tableId!: void;
+  static create(raw: string): Result<TableId, DomainError> {
+    return parseUlid(raw, 'TableId', (value) => new TableId(value));
+  }
+  static generate(): TableId {
+    return new TableId(ulid());
+  }
+}
+
 /**
  * Addresses a Content Slot. Stored explicitly and never derived from a NoteId:
  * one day the same slot may be pointed at by another Content Role (INV-04).

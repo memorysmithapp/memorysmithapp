@@ -25,7 +25,10 @@ import {
   type Slug,
   type SubscriptionContext,
   type NotebookId,
+  type TableId,
 } from '@memorysmithapp/kernel';
+import { Table } from '../../../domain/table/Table.js';
+import { rowBytes, type Row } from '../../../domain/table/Row.js';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
 import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
@@ -34,6 +37,9 @@ import type { Guidance } from '../../../domain/content-slot/Guidance.js';
 import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
+  RowWrite,
+  TableRepository,
+  TableUsage,
   FileDisposition,
   FileRepository,
   FileStore,
@@ -122,6 +128,7 @@ export class InMemoryStorageUsage implements StorageUsageReader {
             notes: floor(line.notes),
             folders: floor(line.folders),
             files: floor(line.files),
+            tables: floor(line.tables ?? 0),
           },
         ]),
       ),
@@ -645,5 +652,187 @@ export class InMemoryFileStore implements FileStore {
       url: `memory://files/${ref.contentId.value}/${disposition}/${encodeURIComponent(downloadName)}`,
       expiresAt: expiresAt.value,
     };
+  }
+}
+
+/**
+ * The Tables of a notebook, in memory (#366). The table is kept as it was
+ * saved and handed back as a copy, so a version moves the way the conditioned
+ * write of the adapter moves it, and rows are kept by generation.
+ */
+export class InMemoryTableRepository implements TableRepository {
+  private readonly tables = new Map<string, Table>();
+  private readonly rowsByTable = new Map<string, Map<string, Row>>();
+
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly events: EventPublisher,
+  ) {}
+
+  private key(notebook: NotebookId, tableId: string): string {
+    return `${notebookKey(this.sub, notebook)}#TABLE#${tableId}`;
+  }
+
+  private rowsKey(table: Table, generation = table.generation): string {
+    return `${this.key(table.notebookId, table.id.value)}#ROW#${generation}`;
+  }
+
+  private copy(
+    table: Table,
+    overrides: { version?: number; lockedUntil?: Instant | null } = {},
+  ): Table {
+    return Table.rehydrate({
+      id: table.id,
+      subscriptionId: table.subscriptionId,
+      notebookId: table.notebookId,
+      name: table.name,
+      description: table.description,
+      columns: table.columns,
+      key: table.key,
+      nextColumn: table.nextColumn,
+      generation: table.generation,
+      createdBy: table.createdBy,
+      updatedBy: table.updatedBy,
+      deletedAt: table.deletedAt,
+      version: overrides.version ?? table.version,
+      lockedUntil: overrides.lockedUntil === undefined ? table.lockedUntil : overrides.lockedUntil,
+    });
+  }
+
+  async findById(notebook: NotebookId, table: TableId): Promise<Table | null> {
+    const found = this.tables.get(this.key(notebook, table.value));
+    return found && !found.isDeleted ? this.copy(found) : null;
+  }
+
+  async findByName(notebook: NotebookId, name: string): Promise<Table | null> {
+    const wanted = name.normalize('NFC').trim().toLowerCase();
+    return (await this.list(notebook)).find((table) => table.name.toLowerCase() === wanted) ?? null;
+  }
+
+  async list(notebook: NotebookId): Promise<Table[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#TABLE#`;
+    return [...this.tables.entries()]
+      .filter(([key, table]) => key.startsWith(prefix) && !table.isDeleted)
+      .map(([, table]) => this.copy(table))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async usage(table: Table): Promise<TableUsage> {
+    const rows = [...(this.rowsByTable.get(this.rowsKey(table))?.values() ?? [])];
+    return { rows: rows.length, bytes: rows.reduce((sum, row) => sum + rowBytes(row.values), 0) };
+  }
+
+  async save(table: Table): Promise<Result<void, DomainError>> {
+    const key = this.key(table.notebookId, table.id.value);
+    const held = this.tables.get(key);
+    if ((held?.version ?? 0) !== table.version || (!held && table.version !== 0)) {
+      return {
+        ok: false,
+        error: DomainError.conflict('The table changed while this write was in flight'),
+      };
+    }
+    const named = await this.findByName(table.notebookId, table.name);
+    if (!table.isDeleted && named && !named.id.equals(table.id)) {
+      return {
+        ok: false,
+        error: DomainError.conflict(
+          `This notebook already has a table called "${table.name}"`,
+          named.id.value,
+        ),
+      };
+    }
+    const events = table.pullEvents();
+    this.tables.set(key, this.copy(table, { version: table.nextVersion(), lockedUntil: null }));
+    await this.events.publish(events);
+    return { ok: true, value: undefined };
+  }
+
+  async rows(table: Table): Promise<Row[]> {
+    return [...(this.rowsByTable.get(this.rowsKey(table))?.values() ?? [])].sort((a, b) =>
+      a.seq < b.seq ? -1 : a.seq > b.seq ? 1 : 0,
+    );
+  }
+
+  async findRows(table: Table, rowIds: readonly string[]): Promise<Row[]> {
+    const rows = this.rowsByTable.get(this.rowsKey(table));
+    return rowIds.map((id) => rows?.get(id)).filter((row): row is Row => row !== undefined);
+  }
+
+  async writeRows(
+    table: Table,
+    writes: readonly RowWrite[],
+    events: readonly DomainEvent[],
+  ): Promise<Result<void, DomainError>> {
+    const held = this.tables.get(this.key(table.notebookId, table.id.value));
+    const conflict = {
+      ok: false as const,
+      error: DomainError.conflict(
+        'The table or one of these rows changed while this write was in flight: read them and write again',
+      ),
+    };
+    if (!held || held.isDeleted || held.version !== table.version || held.isLocked(Instant.now()))
+      return conflict;
+    const key = this.rowsKey(table);
+    const rows = new Map(this.rowsByTable.get(key) ?? []);
+    for (const write of writes) {
+      const id = write.kind === 'delete' ? write.rowId : write.row.rowId;
+      const existing = rows.get(id);
+      if (
+        write.kind === 'insert'
+          ? existing !== undefined
+          : existing?.version !== write.expectedVersion
+      ) {
+        return conflict;
+      }
+      if (write.kind === 'delete') rows.delete(id);
+      else rows.set(id, { ...write.row, version: write.row.version + 1 });
+    }
+    this.rowsByTable.set(key, rows);
+    await this.events.publish([...events]);
+    return { ok: true, value: undefined };
+  }
+
+  async lock(table: Table): Promise<Result<Table, DomainError>> {
+    const key = this.key(table.notebookId, table.id.value);
+    const held = this.tables.get(key);
+    const now = Instant.now();
+    if (!held || held.version !== table.version || held.isLocked(now)) {
+      return {
+        ok: false,
+        error: DomainError.conflict(
+          'The table is being altered, or changed meanwhile: alter it again in a moment',
+        ),
+      };
+    }
+    const until = Instant.fromEpochMillis(Date.parse(now.toISOString()) + 120_000);
+    const locked = this.copy(held, {
+      version: held.version + 1,
+      lockedUntil: until.ok ? until.value : null,
+    });
+    this.tables.set(key, locked);
+    return { ok: true, value: this.copy(locked) };
+  }
+
+  async unlock(table: Table): Promise<void> {
+    const key = this.key(table.notebookId, table.id.value);
+    const held = this.tables.get(key);
+    if (held && held.version === table.version) {
+      this.tables.set(key, this.copy(held, { version: held.version + 1, lockedUntil: null }));
+    }
+  }
+
+  async replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>> {
+    const written = new Map(rows.map((row) => [row.rowId, { ...row, version: row.version + 1 }]));
+    this.rowsByTable.set(this.rowsKey(next), written);
+    const saved = await this.save(next);
+    if (!saved.ok) {
+      this.rowsByTable.delete(this.rowsKey(next));
+      return saved;
+    }
+    const prefix = `${this.key(next.notebookId, next.id.value)}#ROW#`;
+    for (const key of [...this.rowsByTable.keys()]) {
+      if (key.startsWith(prefix) && key !== this.rowsKey(next)) this.rowsByTable.delete(key);
+    }
+    return { ok: true, value: undefined };
   }
 }

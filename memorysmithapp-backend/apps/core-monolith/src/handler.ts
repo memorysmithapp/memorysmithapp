@@ -99,6 +99,17 @@ import {
   LinkToFile,
   ListFiles,
 } from '@memorysmithapp/svc-knowledge/application/files';
+import {
+  AlterTable,
+  CreateTable,
+  DeleteRows,
+  DeleteTable,
+  GetTable,
+  InsertRows,
+  ListTables,
+  QueryTable,
+  UpdateRows,
+} from '@memorysmithapp/svc-knowledge/application/tables';
 import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   GetNoteHistory,
@@ -470,6 +481,15 @@ const knowledgeUseCases: KnowledgeUseCases = {
   listFiles: (request) => new ListFiles(buildKnowledge(infra, request.subscription)),
   linkToFile: (request) => new LinkToFile(buildKnowledge(infra, request.subscription)),
   deleteFile: (request) => new DeleteFile(buildKnowledge(infra, request.subscription)),
+  listTables: (request) => new ListTables(buildKnowledge(infra, request.subscription)),
+  createTable: (request) => new CreateTable(buildKnowledge(infra, request.subscription)),
+  getTable: (request) => new GetTable(buildKnowledge(infra, request.subscription)),
+  alterTable: (request) => new AlterTable(buildKnowledge(infra, request.subscription)),
+  deleteTable: (request) => new DeleteTable(buildKnowledge(infra, request.subscription)),
+  queryTable: (request) => new QueryTable(buildKnowledge(infra, request.subscription)),
+  insertRows: (request) => new InsertRows(buildKnowledge(infra, request.subscription)),
+  updateRows: (request) => new UpdateRows(buildKnowledge(infra, request.subscription)),
+  deleteRows: (request) => new DeleteRows(buildKnowledge(infra, request.subscription)),
 };
 
 const auditUseCases: AuditUseCases = {

@@ -621,6 +621,9 @@ a:hover {
 .home-space [data-kind='all'] {
   --kind: var(--accent);
 }
+.home-space [data-kind='tables'] {
+  --kind: var(--seq-growing);
+}
 .home-space [data-kind='exports'] {
   --kind: var(--text-soft);
 }

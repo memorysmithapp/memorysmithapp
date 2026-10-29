@@ -99,6 +99,15 @@ export const KNOWLEDGE_EVENT_TYPES = [
   // them again under the same name (#166).
   'FileKept',
   'FileDeleted',
+  // A Table of a notebook and its rows (#366). A row event names the rows and
+  // the columns it touched and never a value, so the trail keeps no copy of
+  // what deleting a row destroys.
+  'TableCreated',
+  'TableAltered',
+  'TableDeleted',
+  'RowsInserted',
+  'RowsUpdated',
+  'RowsDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -135,7 +144,9 @@ export type EventSubject =
   | 'FOLDER'
   | 'NOTE'
   // What a notebook keeps beside its notes: bytes with a name (#166).
-  | 'FILE';
+  | 'FILE'
+  // A schema and its rows, kept beside the notes (#366).
+  | 'TABLE';
 
 export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** ULID: orders the outbox and the audit sort key by generation time. */

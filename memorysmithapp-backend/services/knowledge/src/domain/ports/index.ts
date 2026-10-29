@@ -23,10 +23,13 @@ import type {
   NotebookId,
   ConcurrencyError,
   Result,
+  TableId,
 } from '@memorysmithapp/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
 import type { NotebookFile } from '../file/NotebookFile.js';
+import type { Table } from '../table/Table.js';
+import type { Row } from '../table/Row.js';
 import type { ContentSlot } from '../content-slot/ContentSlot.js';
 import type { Guidance } from '../content-slot/Guidance.js';
 import type { Template } from '../content-slot/Template.js';
@@ -242,6 +245,56 @@ export interface FileRepository {
   /** Every live file of the notebook, in the order they were kept. */
   list(notebook: NotebookId): Promise<NotebookFile[]>;
   save(file: NotebookFile): Promise<Result<void, DomainError>>;
+}
+
+/** One row written by one operation (#366): kept, replaced or deleted. */
+export type RowWrite =
+  | { readonly kind: 'insert'; readonly row: Row }
+  | { readonly kind: 'replace'; readonly row: Row; readonly expectedVersion: number }
+  | { readonly kind: 'delete'; readonly rowId: string; readonly expectedVersion: number };
+
+/** What the relay counted of a table: rows and bytes (ADR-010). */
+export interface TableUsage {
+  readonly rows: number;
+  readonly bytes: number;
+}
+
+/**
+ * The Tables of a notebook and their rows (#366, RN-KNW-066).
+ *
+ * `save` guards the name, as the file repository does. `writeRows` is one
+ * transaction holding the rows, the events, and a check that the table is
+ * still at the version the rows were validated against, so a schema changed
+ * meanwhile refuses the write instead of letting a row that no longer fits in.
+ * An alteration that rewrites the rows first `lock`s the table, so no row is
+ * written while its rows are read and rewritten, and `replaceRows` then moves
+ * the table to a new generation of rows, written beside the old one: a reader
+ * sees one generation or the other, never both. A lock lapses on its own, so
+ * an alteration that died midway leaves the table writable again.
+ */
+export interface TableRepository {
+  findById(notebook: NotebookId, table: TableId): Promise<Table | null>;
+  findByName(notebook: NotebookId, name: string): Promise<Table | null>;
+  list(notebook: NotebookId): Promise<Table[]>;
+  usage(table: Table): Promise<TableUsage>;
+  save(table: Table): Promise<Result<void, DomainError>>;
+  /** Every row of the table's generation, in the order they were inserted. */
+  rows(table: Table): Promise<Row[]>;
+  findRows(table: Table, rowIds: readonly string[]): Promise<Row[]>;
+  writeRows(
+    table: Table,
+    writes: readonly RowWrite[],
+    events: readonly DomainEvent[],
+  ): Promise<Result<void, DomainError>>;
+  /** The table, locked against row writes; refused when it changed or is locked. */
+  lock(table: Table): Promise<Result<Table, DomainError>>;
+  unlock(table: Table): Promise<void>;
+  /**
+   * Writes `rows` as the generation `next` names, then saves `next`, which
+   * unlocks it, then removes every other generation. `next` was planned from
+   * the locked table, so a change made meanwhile refuses the move.
+   */
+  replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>>;
 }
 
 export interface EventPublisher {

@@ -92,6 +92,7 @@ export class DynamoStorageMeter implements StorageUsageReader {
         notes: counter(line['notes']),
         folders: counter(line['folders']),
         files: counter(line['files']),
+        tables: counter(line['tables']),
       });
     }
     return { subscription, notebooks };

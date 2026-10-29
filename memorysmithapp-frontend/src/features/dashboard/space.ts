@@ -7,7 +7,7 @@ import type { SubscriptionUsageDto } from '@memorysmithapp/contracts';
  * notebooks is grouped.
  */
 
-export type KindKey = 'files' | 'notes' | 'exports' | 'transit' | 'others';
+export type KindKey = 'files' | 'notes' | 'tables' | 'exports' | 'transit' | 'others';
 
 export interface KindLine {
   readonly key: KindKey;
@@ -17,7 +17,7 @@ export interface KindLine {
 
 /** The kinds largest first, which is the order the table and the bar read. */
 export function kindsBySpace(usage: SubscriptionUsageDto): KindLine[] {
-  const keys: KindKey[] = ['files', 'notes', 'exports', 'transit', 'others'];
+  const keys: KindKey[] = ['files', 'notes', 'tables', 'exports', 'transit', 'others'];
   return keys
     .map((key) => ({ key, count: usage.byType[key].count, bytes: usage.byType[key].bytes }))
     .sort((a, b) => b.bytes - a.bytes);
@@ -32,6 +32,7 @@ export interface NotebookLine {
   readonly notes: number;
   readonly folders: number;
   readonly files: number;
+  readonly tables: number;
   readonly exports: number;
   readonly uploads: number;
 }
@@ -65,6 +66,7 @@ export function notebookLines(usage: SubscriptionUsageDto, shown = 3): NotebookL
       notes: sum((each) => each.notes),
       folders: sum((each) => each.folders),
       files: sum((each) => each.files),
+      tables: sum((each) => each.tables),
       exports: sum((each) => each.exports),
       uploads: sum((each) => each.uploads),
     },

@@ -467,6 +467,8 @@ export class ApiStack extends Stack {
           'GuidanceDeleted',
           'FolderRemoved',
           'NotebookDeleted',
+          // The rows of a table deleted on its own (#366).
+          'TableDeleted',
         ],
       },
       targets: [new SqsQueue(purgeQueue)],

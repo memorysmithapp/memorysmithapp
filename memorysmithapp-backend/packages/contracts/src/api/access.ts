@@ -158,7 +158,7 @@ export const usageShareSchema = z.object({
  * What fills the space of the active subscription (#197), read from counters
  * and never from content. `byType` is about the subscription, which is what
  * the quota is about, and adds up to `usedBytes`: the current revision of each
- * note, the files, the kept exports, the room open uploads reserve as
+ * note, the files, the rows of the Tables, the kept exports, the room open uploads reserve as
  * `transit`, and the Guidance and Templates together as `others`. A revision
  * that is no longer current costs nothing and is only counted, in
  * `counts.revisions`.
@@ -175,6 +175,8 @@ export const subscriptionUsageSchema = z.object({
   byType: z.object({
     notes: usageShareSchema,
     files: usageShareSchema,
+    /** The Tables, and the bytes of their rows (#366). */
+    tables: usageShareSchema,
     exports: usageShareSchema,
     /** The room open uploads reserve, by their declared size (RN-SUB-025). */
     transit: usageShareSchema,
@@ -193,6 +195,7 @@ export const subscriptionUsageSchema = z.object({
       notes: z.number().int().nonnegative(),
       folders: z.number().int().nonnegative(),
       files: z.number().int().nonnegative(),
+      tables: z.number().int().nonnegative(),
       exports: z.number().int().nonnegative(),
       /** Open uploads going to this notebook, whose room its bytes include (RN-SUB-025). */
       uploads: z.number().int().nonnegative(),

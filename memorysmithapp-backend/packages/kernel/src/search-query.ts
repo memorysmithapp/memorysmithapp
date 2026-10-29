@@ -297,7 +297,7 @@ function intervalOf(facet: string, raw: string): QueryNode | null {
   // Inverted ends are a SYNTAX ERROR and never an empty result. An empty
   // result reads as "there is nothing there", and this means "you asked
   // something that has no answer", which are different things to be told.
-  if (from > to) {
+  if (inverted(from, to)) {
     throw new QuerySyntaxError(`The range is inverted: ${from} comes after ${to}`);
   }
   return {
@@ -307,6 +307,17 @@ function intervalOf(facet: string, raw: string): QueryNode | null {
       { kind: 'compare', facet, op: '<=', value: to },
     ],
   };
+}
+
+/**
+ * Whether the ends of a range are the wrong way round: by value when both are
+ * numbers, which the columns of a Table compare by (#366), so `30..200` is a
+ * range and not an inverted one; by text otherwise, which is how a date is.
+ */
+function inverted(from: string, to: string): boolean {
+  const NUMBER = /^-?\d+(\.\d+)?$/;
+  if (NUMBER.test(from) && NUMBER.test(to)) return Number(from) > Number(to);
+  return from > to;
 }
 
 /**
