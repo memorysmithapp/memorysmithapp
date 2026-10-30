@@ -7210,17 +7210,21 @@ body.has-sheet .app-main {
     grid-column: 3;
   }
   .dashboard-grid[data-layout='header-two-columns'] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
   .dashboard-grid[data-layout='header-two-columns'] [data-slot='header'],
   .dashboard-grid[data-layout='header-two-columns'] [data-slot='footer'] {
     grid-column: 1 / -1;
   }
+  .dashboard-grid[data-layout='header-two-columns'] .is-kpi[data-slot='header'],
+  .dashboard-grid[data-layout='header-two-columns'] .is-gauge[data-slot='header'] {
+    grid-column: span var(--headline-span, 12);
+  }
   .dashboard-grid[data-layout='header-two-columns'] [data-slot='left'] {
-    grid-column: 1;
+    grid-column: 1 / span 6;
   }
   .dashboard-grid[data-layout='header-two-columns'] [data-slot='right'] {
-    grid-column: 2;
+    grid-column: 7 / span 6;
   }
   .dashboard-grid[data-layout='sidebar'] {
     grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
@@ -7499,8 +7503,54 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   font-size: 0.78rem;
 }
+/* A text sits on its card, not on the fill of a reading pane. */
+.dashboard-card.is-text :is(div, section, article) {
+  background: transparent;
+}
+.dash-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--border);
+  display: grid;
+  gap: 12px;
+}
+.dash-timeline-item {
+  position: relative;
+  display: grid;
+  gap: 2px;
+}
+.dash-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.dash-timeline time {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+.dash-timeline-title {
+  font-weight: 600;
+}
+/* An image cannot be scrolled, so a matrix has to fit in it. */
+.dashboard-print .dash-matrix {
+  font-size: 0.75rem;
+}
+.dashboard-print .dash-matrix :is(th, td) {
+  padding-inline: 5px;
+}
+.dashboard-print .data-table-scroll {
+  overflow: visible;
+}
 .dashboard-print {
-  max-width: 1200px;
+  /* As wide as a computer draws it, whatever little it holds. */
+  width: 1200px;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 24px;
   background: var(--bg);

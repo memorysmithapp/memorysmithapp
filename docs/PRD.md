@@ -264,6 +264,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-084 | A note shows a table through a `table` block, which holds the query and never the rows: it draws the rows a page at a time in the reader's language, sortable by a column for the reader alone, with its total; a printed note carries every filtered row and when they were read; a block that cannot be answered says what is wrong in its place. | |
 | RN-KNW-086 | A click on a mark of a chart of a dashboard narrows every other component whose table can be grouped as that chart groups to the rows of that group; a second click on it clears it, the chart itself stays whole with the other marks drawn faint, and the PNG of the dashboard shows the periods and the mark as the person sees them. | |
 | RN-KNW-087 | A dashboard also draws a WBS tree from an outline code column, the progress of a row rolled up from its children, weighted when a column says how much each weighs; a matrix of a group by a group, with the total of each row and column; a combo of bars and lines; a waterfall; and a funnel. | |
+| RN-KNW-088 | A dashboard also draws a treemap, a scatter of the rows, a heatmap, a calendar of the days of a table, a gauge of a measure against a goal, and a timeline of its events. | |
 | RN-KNW-085 | A table lists the notes that name it, by the `table` key of their blocks, compared after NFC with case folded: a reference is never an edge of the graph, a name no table carries is pending, and renaming a table rewrites no note. | |
 
 ### Discovery

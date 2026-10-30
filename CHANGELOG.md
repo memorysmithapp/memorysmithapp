@@ -13,6 +13,8 @@ issues each entry cites.
 
 ### Added
 
+- **A dashboard draws a treemap, a scatter, a heatmap, a calendar, a gauge and a timeline.** With them every component the dashboards set out to have is there. (#370)
+
 - **A dashboard draws a WBS, a matrix, a combo, a waterfall and a funnel, and a click filters it.** A WBS tree reads the hierarchy from an outline code column and rolls progress up from child to parent; a matrix crosses two groups with the total of each row and column. A click on a mark of a chart narrows the other components to that group, a second click clears it, and the PNG shows the period and the mark on screen. `read_dashboard` and `preview_dashboard` take the same mark. (#369)
 
 - **Home creates a notebook model.** The button *New notebook* offers a notebook or a notebook model, which asks its name and what it declares, its parameters optional. The menu of a notebook shows *Notebook model* only where the notebook is one, first of all, above *Context*, and no longer in every notebook. Turning a notebook that exists into a model stays with the agent, through the skill `derive-model`. (#373)
@@ -67,6 +69,8 @@ issues each entry cites.
 - **The tools that operate and evaluate the product run as `pnpm tools` from the root of the repository**, grouped and with help: `pnpm tools --help` lists them and `pnpm tools <command> --help` says what each takes. Onboarding is `pnpm tools onboard`, the product-data maintenance jobs are `pnpm tools data <job>` (`cleanup-staging`, `recount-storage`, `reproject-links`, `migrate-slots`), the functional suite is `pnpm tools functional` and the agent evaluation `pnpm tools agent-eval`, each with the arguments, refusals and exit codes it had. Delivering and tearing down an environment stay with the infrastructure, in `memorysmithapp-infra`; the old `pnpm -C memorysmithapp-infra` names of the moved commands are gone. (#345)
 
 ### Fixed
+
+- **Dashboards read better.** A preview an agent asks for takes `locale`, to be drawn in the language of the person, the indicators of a header sit side by side, every step of a waterfall is named, a text has no grey box behind it, a legend says a name and not `sum(receita)`, which an agent can choose with `options.names`, and the PNG of a dashboard is always as wide as a computer, with a matrix of a year whole in it. (#374)
 
 - **A note written while others were being written is always counted.** When several writes of one subscription were counted at the same moment, one of them could be dropped for good, so a folder or a notebook said it held fewer notes than it did, and the space used could be off. Such a write is now counted again until it lands. (#362)
 - **The *New notebook* button on Home shows its icon.** On a computer it shows a plus and its word, and on a phone the plus alone, its word still read by a screen reader, like every other action button. (#371)

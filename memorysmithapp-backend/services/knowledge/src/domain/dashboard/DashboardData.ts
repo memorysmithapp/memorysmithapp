@@ -220,7 +220,7 @@ export function componentData(
     const kept = narrowed ? table.rows.filter(narrowed) : [...table.rows];
     const options = component.options;
 
-    if (component.type === 'kpi') {
+    if (component.type === 'kpi' || component.type === 'gauge') {
       const asked = readAggregate(table.columns, { measures: component.source.measures });
       if (!asked.ok) return { id: component.id, status: 'refused', message: asked.error.message };
       const value = aggregate(kept, asked.value);
@@ -242,7 +242,9 @@ export function componentData(
       };
     }
 
-    if (component.type === 'matrix') return matrixOf(component, table, kept);
+    if (component.type === 'matrix' || component.type === 'heatmap') {
+      return matrixOf(component, table, kept);
+    }
 
     if (component.source.group) {
       const asked = readAggregate(table.columns, {
@@ -290,7 +292,7 @@ export function componentData(
       };
     }
 
-    // A Gantt, a Kanban and a WBS draw rows, up to what a screen can hold.
+    // A Gantt, a Kanban, a WBS, a scatter and a timeline draw rows, up to what a screen can hold.
     return {
       id: component.id,
       status: 'ok',

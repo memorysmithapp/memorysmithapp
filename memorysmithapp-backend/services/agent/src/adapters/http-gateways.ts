@@ -721,6 +721,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       dashboard?: string;
       filters?: Record<string, string | null>;
       cross?: { component: string; key: string };
+      locale?: string;
     },
   ): Promise<{ previewId: string }> {
     const { notebookId, ...body } = input;

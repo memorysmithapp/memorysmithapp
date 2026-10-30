@@ -1794,6 +1794,91 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.dashboard-cross')).toHaveCount(0);
   });
 
+  test('[page:/notebooks/:notebookId/dashboards] draws the third batch of components (#370)', async ({
+    app,
+    notebook,
+    owner,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `vendas-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          dia: { type: 'string', format: 'date' },
+          loja: { type: 'string' },
+          itens: { type: 'number' },
+          total: { type: 'number' },
+        },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${table}/rows`, {
+      rows: [
+        { dia: '2026-09-01', loja: 'Centro', itens: 10, total: 100 },
+        { dia: '2026-09-15', loja: 'Sul', itens: 4, total: 60 },
+        { dia: '2026-10-02', loja: 'Centro', itens: 8, total: 90 },
+        { dia: '2026-10-20', loja: 'Norte', itens: 2, total: 50 },
+      ],
+    });
+    const name = `Vendas ${randomBytes(3).toString('hex')}`;
+    const sum = ['sum(total)'];
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        layout: 'two-columns',
+        components: [
+          {
+            id: 'areas',
+            type: 'treemap',
+            slot: 'left',
+            source: { table, group: 'loja', measures: sum },
+          },
+          {
+            id: 'meta',
+            type: 'gauge',
+            slot: 'right',
+            source: { table, measure: 'sum(total)' },
+            options: { goal: 400 },
+          },
+          {
+            id: 'pontos',
+            type: 'scatter',
+            slot: 'left',
+            source: { table },
+            options: { x: 'itens', y: 'total', color: 'loja' },
+          },
+          {
+            id: 'calor',
+            type: 'heatmap',
+            slot: 'right',
+            source: { table, group: 'loja', measures: sum },
+            options: { across: 'dia:month' },
+          },
+          {
+            id: 'dias',
+            type: 'calendar',
+            slot: 'left',
+            source: { table, group: 'dia:day', measures: sum },
+          },
+          {
+            id: 'fatos',
+            type: 'timeline',
+            slot: 'right',
+            source: { table },
+            options: { date: 'dia', title: 'loja' },
+          },
+        ],
+      },
+    });
+    await app.goto(`${notebook.page('/dashboards')}?dashboard=${encodeURIComponent(name)}`);
+    await expect(app.locator('.dash-timeline-item')).toHaveCount(4);
+    await expect(app.locator('.dashboard-card .dash-chart svg')).toHaveCount(5);
+    await expect(app.locator('.dash-problem')).toHaveCount(0);
+    await app.waitForTimeout(1500);
+    await app.locator('.dashboard').screenshot({ path: testInfo.outputPath('third-batch.png') });
+  });
+
   test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
     app,
     notebook,

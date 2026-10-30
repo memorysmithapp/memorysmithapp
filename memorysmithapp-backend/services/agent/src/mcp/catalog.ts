@@ -35,6 +35,12 @@ export interface ToolDefinition {
   };
 }
 
+const previewLocaleArgument = {
+  type: 'string',
+  enum: ['en_US', 'pt_BR'],
+  description: 'The language it is drawn in, the one the person reads: en_US when absent.',
+};
+
 const notebookArgument = {
   type: 'string',
   description: 'Identifier of the notebook, as returned by list_notebooks.',
@@ -1169,8 +1175,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '}. Types: kpi (one measure), pie, donut, bar, line, area (a group and measures), table ' +
       '(rows), gantt (options title, start, end), kanban (options lane, card), text (options ' +
       'markdown), wbs (options code, title, progress), matrix (a group, one measure, options ' +
-      'across), combo (a group, measures, options lines), waterfall and funnel (a group and one ' +
-      'measure). The definition is checked against the tables and refused naming what they ' +
+      'across), combo (a group, measures, options lines), waterfall, funnel and treemap (a group ' +
+      'and one measure), scatter (options x, y), heatmap (like matrix), calendar (group by day, ' +
+      'one measure), gauge (one measure, options goal) and timeline (options date, title). ' +
+      'The definition is checked against the tables and refused naming what they ' +
       'cannot answer. A dashboard keeps no data: it shows what the tables hold when it is read. ' +
       'Look at it with preview_dashboard before you call it done.',
     inputSchema: object(
@@ -1261,6 +1269,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         dashboard: dashboardArgument,
         filters: { type: 'object', description: 'A period by filter id.' },
         cross: { type: 'object', description: 'A mark clicked: { "component", "key" }.' },
+        locale: previewLocaleArgument,
       },
       ['notebook', 'dashboard'],
     ),
@@ -1486,6 +1495,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'string',
           description: 'Optional: one section, `#Section`, or one block, `#^block`, alone.',
         },
+        locale: previewLocaleArgument,
       },
       ['notebook'],
     ),

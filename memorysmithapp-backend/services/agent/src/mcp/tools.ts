@@ -117,6 +117,12 @@ function canonicalIdentifiers(
   return canonical;
 }
 
+/** The language a preview is drawn in, when the call names one (#374). */
+function localeOf(args: Record<string, unknown>): 'en_US' | 'pt_BR' | null {
+  const locale = args['locale'];
+  return locale === 'en_US' || locale === 'pt_BR' ? locale : null;
+}
+
 /** A mark clicked on a chart of a dashboard, when the call names one (#369). */
 function crossOf(args: Record<string, unknown>): DashboardCross | null {
   const cross = args['cross'];
@@ -1392,6 +1398,7 @@ export class McpToolAdapter {
       case 'preview_dashboard': {
         const notebook = requireString(args, 'notebook', 'preview_dashboard');
         const cross = crossOf(args);
+        const locale = localeOf(args);
         const started = await knowledge.startPreview(caller, {
           notebookId: notebook,
           dashboard: requireString(args, 'dashboard', 'preview_dashboard'),
@@ -1399,6 +1406,7 @@ export class McpToolAdapter {
             ? { filters: args['filters'] as Record<string, string | null> }
             : {}),
           ...(cross ? { cross } : {}),
+          ...(locale ? { locale } : {}),
         });
         return json({
           preview: started.previewId,
@@ -1788,8 +1796,10 @@ export class McpToolAdapter {
               'in; a note is drawn where it is. Nothing was drawn.',
           );
         }
+        const locale = localeOf(args);
         const started = await knowledge.startPreview(caller, {
           notebookId: notebook,
+          ...(locale ? { locale } : {}),
           ...(note === undefined ? {} : { noteId: note }),
           ...(content === undefined ? {} : { content }),
           ...(folder === undefined ? {} : { folderId: folder }),

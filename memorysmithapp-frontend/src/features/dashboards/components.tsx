@@ -1,8 +1,23 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as echarts from 'echarts/core';
-import { BarChart, FunnelChart, LineChart, PieChart } from 'echarts/charts';
-import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
+import {
+  BarChart,
+  FunnelChart,
+  GaugeChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  TreemapChart,
+} from 'echarts/charts';
+import {
+  CalendarComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -11,11 +26,17 @@ import { wbsLines, wbsTree } from './wbs';
 echarts.use([
   BarChart,
   FunnelChart,
+  GaugeChart,
+  HeatmapChart,
   LineChart,
   PieChart,
+  ScatterChart,
+  TreemapChart,
+  CalendarComponent,
   GridComponent,
   LegendComponent,
   TooltipComponent,
+  VisualMapComponent,
   SVGRenderer,
 ]);
 
@@ -84,6 +105,18 @@ export function formatValue(
     default:
       return new Intl.NumberFormat(locale, { maximumFractionDigits: 2, ...digits }).format(number);
   }
+}
+
+/** What a legend says of a measure: the name the agent gave, or the column measured. */
+export function measureName(
+  measure: string,
+  options: Record<string, unknown>,
+  count: string,
+): string {
+  const names = options['names'] as Record<string, string> | undefined;
+  if (names?.[measure]) return names[measure];
+  const column = /^\w+\((.*)\)$/.exec(measure)?.[1];
+  return column || count;
 }
 
 export function Kpi({
@@ -219,6 +252,90 @@ export function Chart({
         ],
       };
     }
+    if (type === 'treemap') {
+      return {
+        animation: !still,
+        color: colors,
+        tooltip: { valueFormatter: format },
+        series: [
+          {
+            type: 'treemap',
+            roam: false,
+            nodeClick: false,
+            breadcrumb: { show: false },
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            label: {
+              show: options['labels'] !== false,
+              formatter: (mark: { name: string; value: number }) =>
+                `${mark.name}\n${format(mark.value)}`,
+            },
+            data: drawn.map((group, index) => ({
+              name: keys[index],
+              value: Number(group.values[0] ?? 0),
+              itemStyle: {
+                color: colors[index % Math.max(1, colors.length)],
+                ...(faint(index).itemStyle ?? {}),
+              },
+            })),
+          },
+        ],
+      };
+    }
+    if (type === 'calendar') {
+      const days = drawn.flatMap((group) => (group.key ? [group.key] : [])).sort();
+      const values = drawn.map((group) => Number(group.values[0] ?? 0));
+      return {
+        animation: false,
+        tooltip: {
+          formatter: (mark: { value: [string, number] }) =>
+            `${mark.value[0]}: ${format(mark.value[1])}`,
+        },
+        visualMap: {
+          show: false,
+          min: Math.min(...values),
+          max: Math.max(...values),
+          inRange: { color: [border, colors[0]] },
+        },
+        calendar: {
+          range: [days[0], days[days.length - 1]],
+          top: 28,
+          left: 36,
+          right: 8,
+          bottom: 8,
+          cellSize: ['auto', 'auto'],
+          splitLine: { show: false },
+          itemStyle: { borderColor: token('--surface'), color: 'transparent' },
+          dayLabel: {
+            color: text,
+            firstDay: 1,
+            nameMap: [0, 1, 2, 3, 4, 5, 6].map((day) =>
+              new Intl.DateTimeFormat(locale, { weekday: 'narrow', timeZone: 'UTC' }).format(
+                Date.UTC(2023, 0, 1 + day),
+              ),
+            ),
+          },
+          monthLabel: {
+            color: text,
+            nameMap: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) =>
+              new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(
+                Date.UTC(2023, month, 1),
+              ),
+            ),
+          },
+          yearLabel: { show: false },
+        },
+        series: [
+          {
+            type: 'heatmap',
+            coordinateSystem: 'calendar',
+            data: drawn.map((group) => [group.key, Number(group.values[0] ?? 0)]),
+          },
+        ],
+      };
+    }
     if (type === 'waterfall') {
       // Each bar starts where the last ended, on an invisible bar under it.
       let running = 0;
@@ -249,7 +366,8 @@ export function Chart({
         xAxis: {
           type: 'category',
           data: names,
-          axisLabel: { color: text },
+          // Each step is a part of the sentence, so none of them is skipped.
+          axisLabel: { color: text, interval: 0 },
           axisLine: { lineStyle: { color: border } },
         },
         yAxis: {
@@ -345,7 +463,7 @@ export function Chart({
             ]
           : values,
       series: measures.map((measure, index) => ({
-        name: measure,
+        name: measureName(measure, options, t('dashboards.count')),
         type: type === 'bar' || (type === 'combo' && !lines.includes(measure)) ? 'bar' : 'line',
         ...(lines.includes(measure) ? { yAxisIndex: 1 } : {}),
         smooth: options['smooth'] === true,
@@ -381,6 +499,241 @@ export function Chart({
 
   if (groups.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
   return <div ref={host} className="dash-chart" role="img" aria-label={measures.join(', ')} />;
+}
+
+/** A chart that draws what it is given, with nothing to click. */
+function Plot({ option, label }: { option: object; label: string }) {
+  const host = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!host.current) return undefined;
+    const chart = echarts.init(host.current, undefined, { renderer: 'svg' });
+    chart.setOption(option as echarts.EChartsCoreOption);
+    const resize = new ResizeObserver(() => chart.resize());
+    resize.observe(host.current);
+    return () => {
+      resize.disconnect();
+      chart.dispose();
+    };
+  }, [option]);
+  return <div ref={host} className="dash-chart" role="img" aria-label={label} />;
+}
+
+/** A gauge (#370): one measure against its goal. */
+export function Gauge({
+  value,
+  options,
+  locale,
+  still,
+}: {
+  value: unknown;
+  options: Record<string, unknown>;
+  locale: string;
+  still: boolean;
+}) {
+  const { t } = useTranslation();
+  const goal = Number(options['goal']);
+  const reached = Number(value ?? 0);
+  const option = useMemo(() => {
+    const text = token('--text-soft');
+    return {
+      animation: !still,
+      series: [
+        {
+          type: 'gauge',
+          min: 0,
+          max: goal,
+          radius: '95%',
+          center: ['50%', '62%'],
+          startAngle: 200,
+          endAngle: -20,
+          pointer: { show: false },
+          axisTick: { show: false },
+          splitLine: { show: false },
+          axisLabel: { show: false },
+          progress: { show: true, roundCap: true, width: 14, itemStyle: { color: palette()[0] } },
+          axisLine: { roundCap: true, lineStyle: { width: 14, color: [[1, token('--track')]] } },
+          detail: {
+            valueAnimation: false,
+            offsetCenter: [0, 0],
+            fontSize: 22,
+            color: token('--text'),
+            formatter: () => formatValue(reached, options, locale),
+          },
+          title: { offsetCenter: [0, '38%'], color: text, fontSize: 12 },
+          data: [
+            {
+              value: Math.min(reached, goal),
+              name: t('dashboards.ofGoal', { goal: formatValue(goal, options, locale) }),
+            },
+          ],
+        },
+      ],
+    };
+  }, [goal, reached, options, locale, still, t]);
+  return <Plot option={option} label={t('dashboards.ofGoal', { goal: String(goal) })} />;
+}
+
+/** A scatter (#370): a point per row, coloured by a column when the table has one. */
+export function Scatter({
+  rows,
+  options,
+  locale,
+  still,
+}: {
+  rows: Rows;
+  options: Record<string, unknown>;
+  locale: string;
+  still: boolean;
+}) {
+  const { t } = useTranslation();
+  const option = useMemo(() => {
+    const [x, y] = [String(options['x']), String(options['y'])];
+    const text = token('--text-soft');
+    const border = token('--border');
+    const colorColumn = typeof options['color'] === 'string' ? options['color'] : null;
+    const sizes = options['size']
+      ? rows.map((row) => Number(row.values[String(options['size'])] ?? 0))
+      : [];
+    const largest = Math.max(1, ...sizes);
+    const series = new Map<string, Array<{ name: string; value: number[] }>>();
+    rows.forEach((row, index) => {
+      const key = colorColumn ? String(row.values[colorColumn] ?? t('dashboards.none')) : '';
+      const label = options['label'] ? String(row.values[String(options['label'])] ?? '') : '';
+      const points = series.get(key) ?? [];
+      points.push({
+        name: label,
+        value: [
+          Number(row.values[x] ?? 0),
+          Number(row.values[y] ?? 0),
+          sizes[index] !== undefined ? 8 + ((sizes[index] as number) / largest) * 28 : 12,
+        ],
+      });
+      series.set(key, points);
+    });
+    const axis = (name: string) => ({
+      type: 'value',
+      name,
+      nameTextStyle: { color: text },
+      axisLabel: {
+        color: text,
+        formatter: (value: number) => formatValue(value, options, locale),
+      },
+      splitLine: { lineStyle: { color: border } },
+      scale: true,
+    });
+    return {
+      animation: !still,
+      color: palette(),
+      tooltip: {
+        formatter: (mark: { name: string; value: number[] }) =>
+          `${mark.name ? `${mark.name}<br/>` : ''}${x}: ${formatValue(mark.value[0], options, locale)}<br/>${y}: ${formatValue(mark.value[1], options, locale)}`,
+      },
+      legend: colorColumn ? { bottom: 0, textStyle: { color: text } } : undefined,
+      grid: { left: 8, right: 24, top: 24, bottom: colorColumn ? 36 : 8, containLabel: true },
+      xAxis: axis(x),
+      yAxis: axis(y),
+      series: [...series].map(([name, data]) => ({
+        name,
+        type: 'scatter',
+        data,
+        symbolSize: (value: number[]) => value[2],
+      })),
+    };
+  }, [rows, options, locale, still, t]);
+  if (rows.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
+  return <Plot option={option} label={`${String(options['x'])}, ${String(options['y'])}`} />;
+}
+
+/** A heatmap (#370): a matrix in colour, from what the matrix adds up. */
+export function Heatmap({
+  data,
+  options,
+  locale,
+  still,
+}: {
+  data: {
+    columns?: Array<string | null>;
+    rows?: Array<{ key: string | null; cells: Array<number | string | null> }>;
+  };
+  options: Record<string, unknown>;
+  locale: string;
+  still: boolean;
+}) {
+  const { t } = useTranslation();
+  const option = useMemo(() => {
+    const text = token('--text-soft');
+    const columns = (data.columns ?? []).map((column) => column ?? t('dashboards.none'));
+    const rows = data.rows ?? [];
+    const cells = rows.flatMap((row, y) =>
+      row.cells.flatMap((cell, x) => (cell === null ? [] : [[x, y, Number(cell)]])),
+    );
+    const values = cells.map((cell) => cell[2] as number);
+    return {
+      animation: !still,
+      tooltip: {
+        formatter: (mark: { value: number[] }) =>
+          `${rows[mark.value[1] as number]?.key ?? ''} · ${columns[mark.value[0] as number] ?? ''}: ${formatValue(mark.value[2], options, locale)}`,
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: 'category', data: columns, axisLabel: { color: text } },
+      yAxis: {
+        type: 'category',
+        data: rows.map((row) => row.key ?? t('dashboards.none')),
+        axisLabel: { color: text },
+      },
+      visualMap: {
+        show: false,
+        min: Math.min(0, ...values),
+        max: Math.max(1, ...values),
+        inRange: { color: [token('--track'), palette()[0]] },
+      },
+      series: [{ type: 'heatmap', data: cells }],
+    };
+  }, [data, options, locale, still, t]);
+  if ((data.rows ?? []).length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
+  return <Plot option={option} label={t('dashboards.total')} />;
+}
+
+/** A timeline (#370): the events of a table in the order they happen. */
+export function Timeline({
+  rows,
+  options,
+  locale,
+}: {
+  rows: Rows;
+  options: Record<string, unknown>;
+  locale: string;
+}) {
+  const { t } = useTranslation();
+  const date = String(options['date']);
+  const ordered = rows
+    .filter((row) => typeof row.values[date] === 'string')
+    .sort((a, b) => String(a.values[date]).localeCompare(String(b.values[date])));
+  if (ordered.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
+  const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' });
+  return (
+    <ol className="dash-timeline">
+      {ordered.map((row) => {
+        const when = String(row.values[date]);
+        const detail = options['detail'] ? row.values[String(options['detail'])] : undefined;
+        const group = options['group'] ? row.values[String(options['group'])] : undefined;
+        return (
+          <li key={row.rowId} className="dash-timeline-item">
+            <time dateTime={when}>
+              {day.format(new Date(when.length === 10 ? `${when}T00:00:00Z` : when))}
+            </time>
+            <span className="dash-timeline-title">
+              {String(row.values[String(options['title'])] ?? '')}
+            </span>
+            {group !== undefined ? <span className="dash-card-mark">{String(group)}</span> : null}
+            {detail !== undefined ? (
+              <span className="dash-card-detail">{String(detail)}</span>
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 /** The formatting a table component asks of a number column: a bar, a colour scale or icons. */

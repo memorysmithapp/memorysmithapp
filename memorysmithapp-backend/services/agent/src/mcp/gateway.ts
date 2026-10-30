@@ -431,6 +431,8 @@ export interface KnowledgeGateway {
       /** The view of that dashboard: its periods and a mark clicked (#369). */
       filters?: Record<string, string | null>;
       cross?: DashboardCross;
+      /** The language it is drawn in, the person's: en_US when it says none. */
+      locale?: string;
     },
   ): Promise<{ previewId: string }>;
   getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;

@@ -547,6 +547,7 @@
     "drawing": "Desenhando…",
     "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco.",
     "total": "Total",
+    "count": "Linhas",
     "crossFilter": "Filtrado por {{key}}",
     "clearFilter": "Limpar"
   },

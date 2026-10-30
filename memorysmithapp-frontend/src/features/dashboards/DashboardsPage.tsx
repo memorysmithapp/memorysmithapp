@@ -30,13 +30,20 @@ import {
   Chart,
   type ComponentDefinition,
   Gantt,
+  Gauge,
+  Heatmap,
   Kanban,
   Kpi,
   Matrix,
   RowsTable,
+  Scatter,
   TextBlock,
+  Timeline,
   Wbs,
 } from './components';
+
+/** What sits beside its like in the header of a dashboard. */
+const HEADLINE: ReadonlySet<string> = new Set(['kpi', 'gauge']);
 
 interface Filter {
   id: string;
@@ -238,6 +245,10 @@ export function DashboardView({
     ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(data.data.readAt))
     : null;
   const layout = definition.layout ?? 'one-column';
+  // The indicators of a header share its width, side by side.
+  const headline = components.filter(
+    (component) => component.slot === 'header' && HEADLINE.has(component.type),
+  ).length;
   /** A click on a mark narrows the other components, and on the same mark clears it (#369). */
   function mark(component: string, key: string): void {
     setPages({});
@@ -345,7 +356,11 @@ export function DashboardView({
                     gridColumn: `${component.grid.x + 1} / span ${component.grid.w}`,
                     gridRow: `${component.grid.y + 1} / span ${component.grid.h}`,
                   }
-                : undefined
+                : component.slot === 'header' && HEADLINE.has(component.type)
+                  ? ({
+                      '--headline-span': Math.max(2, Math.floor(12 / headline)),
+                    } as React.CSSProperties)
+                  : undefined
             }
           >
             {component.title ? <h2 className="dashboard-card-title">{component.title}</h2> : null}
@@ -426,6 +441,8 @@ function ComponentBody({
     case 'combo':
     case 'waterfall':
     case 'funnel':
+    case 'treemap':
+    case 'calendar':
       return (
         <Chart
           type={component.type}
@@ -436,6 +453,31 @@ function ComponentBody({
           still={still}
           selected={selected}
           onMark={onMark}
+        />
+      );
+    case 'gauge':
+      return (
+        <Gauge value={answer['value']} options={component.options} locale={locale} still={still} />
+      );
+    case 'scatter':
+      return (
+        <Scatter
+          rows={(answer['rows'] as never) ?? []}
+          options={component.options}
+          locale={locale}
+          still={still}
+        />
+      );
+    case 'heatmap':
+      return (
+        <Heatmap data={answer as never} options={component.options} locale={locale} still={still} />
+      );
+    case 'timeline':
+      return (
+        <Timeline
+          rows={(answer['rows'] as never) ?? []}
+          options={component.options}
+          locale={locale}
         />
       );
     case 'wbs':

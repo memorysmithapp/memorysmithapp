@@ -333,4 +333,103 @@ describe('a dashboard of a notebook', () => {
       ).toContain('one measure');
     });
   });
+
+  describe('the components of the third batch (#370)', () => {
+    it('draws them from the tables, and refuses what each one needs', async () => {
+      const source = { table: 'gastos' };
+      const created = await call(dashboards(), {
+        method: 'POST',
+        body: {
+          name: 'Terceiro',
+          definition: {
+            components: [
+              {
+                id: 'areas',
+                type: 'treemap',
+                source: { ...source, group: 'categoria', measures: ['sum(valor)'] },
+              },
+              {
+                id: 'pontos',
+                type: 'scatter',
+                source,
+                options: { x: 'valor', y: 'valor', color: 'status', label: 'categoria' },
+              },
+              {
+                id: 'calor',
+                type: 'heatmap',
+                source: { ...source, group: 'categoria', measures: ['sum(valor)'] },
+                options: { across: 'data:month' },
+              },
+              {
+                id: 'dias',
+                type: 'calendar',
+                source: { ...source, group: 'data:day', measures: ['sum(valor)'] },
+              },
+              {
+                id: 'meta',
+                type: 'gauge',
+                source: { ...source, measure: 'sum(valor)' },
+                options: { goal: 5000 },
+              },
+              {
+                id: 'fatos',
+                type: 'timeline',
+                source,
+                options: { date: 'data', title: 'categoria', detail: 'status' },
+              },
+            ],
+          },
+        },
+      });
+      expect(created.status).toBe(201);
+      const read = await data('Terceiro');
+      const kinds = Object.fromEntries(read.components.map((each) => [each.id, each.kind]));
+      expect(kinds).toEqual({
+        areas: 'groups',
+        pontos: 'rows',
+        calor: 'matrix',
+        dias: 'groups',
+        meta: 'value',
+        fatos: 'rows',
+      });
+
+      const refused = async (component: Record<string, unknown>) => {
+        const answer = await call(dashboards(), {
+          method: 'POST',
+          body: { name: 'Errado', definition: { components: [component] } },
+        });
+        expect(answer.status).toBe(400);
+        return JSON.stringify(await answer.json());
+      };
+      expect(
+        await refused({ id: 'a', type: 'gauge', source: { ...source, measure: 'count()' } }),
+      ).toContain('options.goal');
+      expect(
+        await refused({
+          id: 'a',
+          type: 'calendar',
+          source: { ...source, group: 'data:month', measures: ['count()'] },
+        }),
+      ).toContain('by day');
+      expect(
+        await refused({ id: 'a', type: 'scatter', source, options: { x: 'status', y: 'valor' } }),
+      ).toContain('numbers');
+      expect(
+        await refused({
+          id: 'a',
+          type: 'timeline',
+          source,
+          options: { date: 'status', title: 'status' },
+        }),
+      ).toContain('not a date');
+      expect(
+        await refused({
+          id: 'a',
+          type: 'bar',
+          source: { ...source, group: 'status', measures: ['count()'] },
+          options: { names: { 'sum(valor)': 'Valor' } },
+        }),
+      ).toContain('options.names');
+    });
+  });
 });

@@ -544,6 +544,7 @@
     "drawing": "Drawing…",
     "imageFailed": "The image could not be drawn. Try again in a moment.",
     "total": "Total",
+    "count": "Rows",
     "crossFilter": "Filtered by {{key}}",
     "clearFilter": "Clear"
   },

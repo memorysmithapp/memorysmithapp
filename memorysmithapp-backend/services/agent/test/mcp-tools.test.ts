@@ -2574,7 +2574,7 @@ describe('an agent sees how a note is drawn (#260, RN-AGT-050)', () => {
     }
     const preview = TOOL_CATALOG.find((tool) => tool.name === 'preview_note');
     expect(preview && toolSignature(preview)).toBe(
-      'preview_note(notebook, note?, content?, folder?, part?)',
+      'preview_note(notebook, note?, content?, folder?, part?, locale?)',
     );
     const get = TOOL_CATALOG.find((tool) => tool.name === 'get_preview');
     expect(get && toolSignature(get)).toBe('get_preview(notebook, preview)');

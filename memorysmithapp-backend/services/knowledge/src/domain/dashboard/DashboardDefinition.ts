@@ -45,7 +45,7 @@ export const SLOTS: Readonly<Record<Exclude<Layout, 'grid'>, readonly string[]>>
   sidebar: ['side', 'main'],
 };
 
-/** The components of the batches delivered (#368, #369); the others come with theirs. */
+/** The components a dashboard draws (#368, #369, #370). */
 export const COMPONENT_TYPES = [
   'kpi',
   'pie',
@@ -62,6 +62,12 @@ export const COMPONENT_TYPES = [
   'combo',
   'waterfall',
   'funnel',
+  'treemap',
+  'scatter',
+  'heatmap',
+  'calendar',
+  'gauge',
+  'timeline',
 ] as const;
 export type ComponentType = (typeof COMPONENT_TYPES)[number];
 
@@ -74,10 +80,19 @@ const CHARTS: ReadonlySet<string> = new Set([
   'combo',
   'waterfall',
   'funnel',
+  'treemap',
+  'calendar',
 ]);
 
 /** The charts that draw one measure by group. */
-const ONE_MEASURE: ReadonlySet<string> = new Set(['pie', 'donut', 'waterfall', 'funnel']);
+const ONE_MEASURE: ReadonlySet<string> = new Set([
+  'pie',
+  'donut',
+  'waterfall',
+  'funnel',
+  'treemap',
+  'calendar',
+]);
 
 /** What a table looks like to the check: its identifier, name and columns. */
 export interface TableShape {
@@ -154,24 +169,46 @@ const OPTION_COLUMNS: Readonly<Record<ComponentType, readonly string[]>> = {
   combo: [],
   waterfall: [],
   funnel: [],
+  treemap: [],
+  scatter: ['x', 'y', 'size', 'color', 'label'],
+  heatmap: [],
+  calendar: [],
+  gauge: [],
+  timeline: ['date', 'title', 'detail', 'group'],
 };
 
 const OPTION_NAMES: Readonly<Record<ComponentType, readonly string[]>> = {
   kpi: ['format', 'currency', 'decimals', 'compareWhere', 'goal'],
   pie: ['format', 'currency', 'decimals', 'legend', 'labels'],
   donut: ['format', 'currency', 'decimals', 'legend', 'labels'],
-  bar: ['format', 'currency', 'decimals', 'legend', 'labels', 'stacked', 'percent', 'horizontal'],
-  line: ['format', 'currency', 'decimals', 'legend', 'labels', 'smooth'],
-  area: ['format', 'currency', 'decimals', 'legend', 'labels', 'smooth', 'stacked'],
+  bar: [
+    'format',
+    'currency',
+    'decimals',
+    'legend',
+    'labels',
+    'names',
+    'stacked',
+    'percent',
+    'horizontal',
+  ],
+  line: ['format', 'currency', 'decimals', 'legend', 'labels', 'names', 'smooth'],
+  area: ['format', 'currency', 'decimals', 'legend', 'labels', 'names', 'smooth', 'stacked'],
   table: ['columns', 'sort', 'pageSize', 'rules'],
   gantt: ['title', 'start', 'end', 'progress', 'group'],
   kanban: ['lane', 'card', 'detail', 'color', 'lanes'],
   text: ['markdown'],
   wbs: ['code', 'title', 'progress', 'weight'],
   matrix: ['format', 'currency', 'decimals', 'across', 'totals'],
-  combo: ['format', 'currency', 'decimals', 'legend', 'labels', 'lines', 'smooth'],
+  combo: ['format', 'currency', 'decimals', 'legend', 'labels', 'names', 'lines', 'smooth'],
   waterfall: ['format', 'currency', 'decimals', 'labels', 'total'],
   funnel: ['format', 'currency', 'decimals', 'legend', 'labels'],
+  treemap: ['format', 'currency', 'decimals', 'labels'],
+  scatter: ['x', 'y', 'size', 'color', 'label', 'format', 'currency', 'decimals'],
+  heatmap: ['format', 'currency', 'decimals', 'across'],
+  calendar: ['format', 'currency', 'decimals'],
+  gauge: ['format', 'currency', 'decimals', 'goal'],
+  timeline: ['date', 'title', 'detail', 'group'],
 };
 
 const FORMATS = ['number', 'currency', 'percent'];
@@ -389,9 +426,12 @@ function readComponent(
       ? [String(source['measure'])]
       : [];
 
-  if (kind === 'kpi') {
+  if (kind === 'kpi' || kind === 'gauge') {
     if (measures.length !== 1 || group)
-      return invalid(`${named} is a KPI: one measure, as measure: "sum(amount)", and no group`);
+      return invalid(`${named} is a ${kind}: one measure, as measure: "sum(amount)", and no group`);
+    if (kind === 'gauge' && (typeof options['goal'] !== 'number' || options['goal'] <= 0)) {
+      return invalid(`${named} is a gauge: it says its goal, a positive number, in options.goal`);
+    }
     const checked = readAggregate(table.columns, { measures });
     if (!checked.ok) return invalid(`${named}: ${checked.error.message}`);
     if (options['compareWhere'] !== undefined) {
@@ -414,6 +454,20 @@ function readComponent(
     }
     const checked = readAggregate(table.columns, { group, measures });
     if (!checked.ok) return invalid(`${named}: ${checked.error.message}`);
+    if (kind === 'calendar' && !group.endsWith(':day')) {
+      return invalid(`${named} is a calendar: it groups by day, as data:day`);
+    }
+    if (options['names'] !== undefined) {
+      const names = options['names'];
+      if (
+        !isRecord(names) ||
+        !Object.entries(names).every(
+          ([measure, name]) => measures.includes(measure) && typeof name === 'string',
+        )
+      ) {
+        return invalid(`${named} names in options.names the measures it draws, each with a text`);
+      }
+    }
     if (kind === 'combo' && options['lines'] !== undefined) {
       const lines = options['lines'];
       if (!Array.isArray(lines) || !lines.every((line) => measures.includes(String(line)))) {
@@ -423,16 +477,16 @@ function readComponent(
         return invalid(`${named} is a combo: at least one measure stays a bar`);
       }
     }
-  } else if (kind === 'matrix') {
+  } else if (kind === 'matrix' || kind === 'heatmap') {
     if (!group || measures.length !== 1) {
       return invalid(
-        `${named} is a matrix: its rows in source.group, one measure, and its columns in options.across`,
+        `${named} is a ${kind}: its rows in source.group, one measure, and its columns in options.across`,
       );
     }
     const checked = readAggregate(table.columns, { group, measures });
     if (!checked.ok) return invalid(`${named}: ${checked.error.message}`);
     if (typeof options['across'] !== 'string') {
-      return invalid(`${named} is a matrix: it names its columns in options.across`);
+      return invalid(`${named} is a ${kind}: it names its columns in options.across`);
     }
     const across = readGrouping(table.columns, options['across']);
     if (!across.ok) return invalid(`${named}: ${across.error.message}`);
@@ -456,6 +510,29 @@ function readComponent(
   }
   if (kind === 'gantt' && (!options['title'] || !options['start'] || !options['end'])) {
     return invalid(`${named} is a Gantt: it names the columns of the title, the start and the end`);
+  }
+  if (kind === 'scatter') {
+    if (!options['x'] || !options['y']) {
+      return invalid(`${named} is a scatter: it names the columns of x and y, each of numbers`);
+    }
+    const wrong = ['x', 'y', 'size'].filter((option) => {
+      const column = table.columns.find((each) =>
+        sameColumnName(each.name, String(options[option])),
+      );
+      return column && column.type !== 'number' && column.type !== 'integer';
+    });
+    if (wrong.length > 0) {
+      return invalid(`${named} reads ${wrong.join(' and ')} from a column of numbers`);
+    }
+  }
+  if (kind === 'timeline') {
+    if (!options['date'] || !options['title']) {
+      return invalid(`${named} is a timeline: it names the column of its date and of its title`);
+    }
+    const column = table.columns.find((each) => sameColumnName(each.name, String(options['date'])));
+    if (column && column.type !== 'date' && column.type !== 'date-time') {
+      return invalid(`${named} reads its date from "${column.name}", which is not a date`);
+    }
   }
   if (kind === 'wbs') {
     if (!options['code'] || !options['title']) {

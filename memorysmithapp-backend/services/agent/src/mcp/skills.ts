@@ -1303,6 +1303,17 @@ the data, which you then change with \`update_dashboard\` instead of copying.
 - **waterfall**: one measure by group, each bar starting where the last one
   ended, for what adds up to a result; \`options.total\` closes with the sum.
 - **funnel**: one measure by group, the largest first, for stages that narrow.
+- **treemap**: one measure by group, as areas, for the parts of a whole with
+  too many groups for a pie.
+- **scatter**: a point per row, from the number columns \`options.x\` and
+  \`y\`, with \`size\`, \`color\` and \`label\` when the table has them.
+- **heatmap**: a matrix in colour: its rows in \`source.group\`, one measure,
+  its columns in \`options.across\`.
+- **calendar**: one measure grouped by day, \`data:day\`, as the days of the
+  year coloured by value.
+- **gauge**: one measure against \`options.goal\`.
+- **timeline**: the events of a table in order, \`options.date\` and
+  \`title\`, with \`detail\` and \`group\`.
 
 A click on a mark of a chart filters the rest of the dashboard: every other
 component whose table has the column that chart groups by keeps the rows of that
@@ -1310,6 +1321,10 @@ group, and a second click clears it. It needs nothing in the definition, so
 group charts by columns the tables share. \`read_dashboard\` and
 \`preview_dashboard\` take \`cross\`, \`{ "component", "key" }\`, to see the
 same thing.
+
+A legend reads the name of the column measured. \`options.names\` says it in the
+person's words, \`{ "sum(receita)": "Receita" }\`: write it on any chart of
+several measures.
 
 Every value can be formatted: \`options.format\` as \`number\`, \`currency\` with
 \`currency\`, or \`percent\`, and \`decimals\`.
@@ -1319,7 +1334,8 @@ Every value can be formatted: \`options.format\` as \`number\`, \`currency\` wit
 **Look at it before you call it done**: \`preview_dashboard\` draws it whole as
 a computer shows it, and \`get_preview\` answers the PNG. Fix what reads badly
 — a chart squeezed into a narrow column, a Kanban with one lane, a title that
-says nothing — and look again. Then tell the person where it is —
+says nothing — and look again. Pass \`locale\`, \`pt_BR\` for a person who speaks Portuguese, so it is drawn as they
+read it. Then tell the person where it is —
 *Dashboards* in the menu of the notebook — and read it with
 \`read_dashboard\` to say what it shows. A component whose table
 is gone, or whose filter no longer fits a changed schema, says so: fix the
