@@ -409,13 +409,28 @@ test.describe('the transfers of a person', () => {
     expect(after.transfers.map((each) => each.transferId)).not.toContain(transfer.transferId);
     // Measured against what each listing holds, because another case of this
     // account may keep an export between the two: what the listed exports do
-    // not account for stays the same, and this one left with its bytes.
+    // not account for stays the same, and this one left with its bytes. A
+    // version of a model counts and is not listed (RN-PRT-036), so a case that
+    // makes or deletes one in between crosses the measure, which is taken again
+    // with an export of its own.
     const beyond = (list: { transfers: TransferDto[]; keptBytes: number }) =>
       list.keptBytes -
       list.transfers
         .filter((each) => each.kind === 'export' && each.status === 'ready')
         .reduce((sum, each) => sum + each.bytes, 0);
-    expect(beyond(after)).toBe(beyond(listed));
+    await expect(async () => {
+      const measured = await exported(owner, notebook.notebookId);
+      const before = await owner.ok<{ transfers: TransferDto[]; keptBytes: number }>(
+        'GET',
+        '/portability/transfers',
+      );
+      await owner.ok('DELETE', `/portability/transfers/${measured.transferId}`);
+      const left = await owner.ok<{ transfers: TransferDto[]; keptBytes: number }>(
+        'GET',
+        '/portability/transfers',
+      );
+      expect(beyond(left)).toBe(beyond(before));
+    }).toPass({ timeout: 180_000 });
     expect(
       (await owner.call('POST', `/portability/transfers/${transfer.transferId}/download`)).status,
     ).toBe(404);
