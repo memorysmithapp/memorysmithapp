@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-30
+
 ### Added
 
 - **A dashboard draws a treemap, a scatter, a heatmap, a calendar, a gauge and a timeline.** With them every component the dashboards set out to have is there. (#370)
@@ -910,7 +912,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3
 [0.14.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.13.1...v0.14.0

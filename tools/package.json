@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/tools",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "The tools that operate and evaluate MemorySmith from outside: onboarding, product-data maintenance, the functional suite and the agent evaluation.",

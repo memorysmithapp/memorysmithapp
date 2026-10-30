@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/svc-agent",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "Agent Access bounded context: remote MCP server, OAuth resource server and CIMD registration proxy.",
