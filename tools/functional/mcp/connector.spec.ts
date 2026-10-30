@@ -1266,7 +1266,7 @@ test.describe('the dashboards of a notebook (#368)', () => {
     expect(image.isError, image.text).toBe(false);
     const png = Buffer.from(image.images[0]?.data ?? '', 'base64');
     // As wide as a computer draws it, wider than the reading width of a note.
-    expect(png.readUInt32BE(16)).toBeGreaterThan(760);
+    expect(png.readUInt32BE(16)).toBeGreaterThanOrEqual(1200);
     writeFileSync(test.info().outputPath('dashboard-crossed.png'), png);
 
     expect(

@@ -7575,6 +7575,7 @@ body.has-sheet .app-main {
 .dashboard-print {
   /* As wide as a computer draws it, whatever little it holds. */
   width: 1200px;
+  max-width: none;
   box-sizing: border-box;
   margin: 0 auto;
   padding: 24px;

@@ -269,6 +269,7 @@ export function Chart({
             right: 0,
             label: {
               show: options['labels'] !== false,
+              lineHeight: 18,
               formatter: (mark: { name: string; value: number }) =>
                 `${mark.name}\n${format(mark.value)}`,
             },
