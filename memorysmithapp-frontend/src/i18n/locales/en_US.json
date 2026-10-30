@@ -95,6 +95,7 @@
     "openShort": "Open"
   },
   "structure": {
+    "morePages": "Tables, dashboards and more",
     "guidance": "Guidance",
     "folders": "Folders",
     "foldersHint": "The tree, with the description of each folder",

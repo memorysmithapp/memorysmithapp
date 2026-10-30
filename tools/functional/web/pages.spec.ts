@@ -2235,17 +2235,18 @@ A note to rename.
 
     // The search the person opened from the sheet, where the zoom was seen.
     await app.locator('.sheet-peek').click();
+    await app.locator('.notebook-sheet button.sheet-tab').first().click();
     const search = app.locator('.notebook-sheet .search-box input');
     await expect(search).toBeVisible();
     await expect(search).toHaveCSS('font-size', '16px');
 
-    // Every page of the notebook is reached from the sheet, by its name (#375).
-    const links = app.locator('.notebook-sheet .notebook-nav a');
-    await expect(links).toHaveCount(5);
-    for (const path of ['/attachments', '/tables', '/dashboards', '/graph']) {
-      await expect(app.locator(`.notebook-sheet a[href$="${path}"]`)).toBeVisible();
+    // The last icon groups the other pages of the notebook, named (#375).
+    await app.locator('.notebook-sheet button.sheet-tab').last().click();
+    for (const path of ['/tables', '/dashboards', '/graph']) {
+      await expect(app.locator(`.sheet-pages a[href$="${path}"]`)).toBeVisible();
     }
-    await app.locator('.notebook-sheet a[href$="/dashboards"]').click();
+    await expect(app.locator('.sheet-tabs a[href$="/attachments"]')).toBeVisible();
+    await app.locator('.sheet-pages a[href$="/dashboards"]').click();
     await expect(app).toHaveURL(notebook.page('/dashboards'));
     await expect(app.locator('.notebook-sheet')).toHaveCount(0);
   });

@@ -35,14 +35,63 @@ import {
  * open is told by weight alone — 600 and a thicker icon among rows at 400 —
  * never by a rule and never in blue; the fill is only the cursor.
  */
-export function NotebookNav({
-  notebookId,
-  folded = false,
-}: {
-  notebookId: string;
-  /** The parts of the Context start closed, where height is short (#375). */
-  folded?: boolean;
-}) {
+/**
+ * The pages of a notebook beyond its Context, in one list, so the sidebar and
+ * the sheet of a phone can never disagree on what a notebook has (#375).
+ */
+export function useNotebookPages(notebookId: string): Array<{
+  key: 'model' | 'attachments' | 'tables' | 'dashboards' | 'graph';
+  to: string;
+  label: string;
+  icon: ReactNode;
+}> {
+  const { t } = useTranslation();
+  // What the notebook is as a model, to copy (#353), shown only where it is one (#373).
+  const model = useQuery({
+    queryKey: queryKeys.model(notebookId),
+    queryFn: () => getModel(notebookId),
+  });
+  return [
+    ...(model.data
+      ? [
+          {
+            key: 'model' as const,
+            to: modelAddress(notebookId),
+            label: t('model.title'),
+            icon: <CopyIcon />,
+          },
+        ]
+      : []),
+    {
+      key: 'attachments' as const,
+      to: attachmentsAddress(notebookId),
+      label: t('attachments.navLabel'),
+      icon: <PaperclipIcon />,
+    },
+    // The tables an agent keeps in the notebook (#366).
+    {
+      key: 'tables' as const,
+      to: tablesAddress(notebookId),
+      label: t('tables.navLabel'),
+      icon: <TableIcon />,
+    },
+    // What an agent built over the tables, to look at (#368).
+    {
+      key: 'dashboards' as const,
+      to: dashboardsAddress(notebookId),
+      label: t('dashboards.navLabel'),
+      icon: <DashboardIcon />,
+    },
+    {
+      key: 'graph' as const,
+      to: graphAddress(notebookId),
+      label: t('graph.navLabel'),
+      icon: <GraphIcon />,
+    },
+  ];
+}
+
+export function NotebookNav({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const parts = [guidanceAddress, templatesAddress, foldersAddress].map((address) =>
@@ -54,21 +103,18 @@ export function NotebookNav({
    * never hides what is open: arriving at one of the parts opens it again,
    * the way the tree reopens the path to the open note.
    */
-  const [open, setOpen] = useState(!folded);
-  // What the notebook is as a model, to copy (#353), shown only where it is one (#373).
-  const model = useQuery({
-    queryKey: queryKeys.model(notebookId),
-    queryFn: () => getModel(notebookId),
-  });
+  const [open, setOpen] = useState(true);
   useEffect(() => {
     if (inPart) setOpen(true);
   }, [inPart]);
+  const pages = useNotebookPages(notebookId);
+  const model = pages.find((page) => page.key === 'model');
 
   return (
     <nav className="notebook-nav" aria-label={t('structure.openNavigation')}>
-      {model.data ? (
-        <NavItem to={modelAddress(notebookId)} icon={<CopyIcon />}>
-          {t('model.title')}
+      {model ? (
+        <NavItem to={model.to} icon={model.icon}>
+          {model.label}
         </NavItem>
       ) : null}
       <div className="nav-row-wrap">
@@ -99,20 +145,13 @@ export function NotebookNav({
           </NavItem>
         </div>
       ) : null}
-      <NavItem to={attachmentsAddress(notebookId)} icon={<PaperclipIcon />}>
-        {t('attachments.navLabel')}
-      </NavItem>
-      {/* The tables an agent keeps in the notebook (#366). */}
-      <NavItem to={tablesAddress(notebookId)} icon={<TableIcon />}>
-        {t('tables.navLabel')}
-      </NavItem>
-      {/* What an agent built over the tables, to look at (#368). */}
-      <NavItem to={dashboardsAddress(notebookId)} icon={<DashboardIcon />}>
-        {t('dashboards.navLabel')}
-      </NavItem>
-      <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
-        {t('graph.navLabel')}
-      </NavItem>
+      {pages
+        .filter((page) => page.key !== 'model')
+        .map((page) => (
+          <NavItem key={page.key} to={page.to} icon={page.icon}>
+            {page.label}
+          </NavItem>
+        ))}
     </nav>
   );
 }

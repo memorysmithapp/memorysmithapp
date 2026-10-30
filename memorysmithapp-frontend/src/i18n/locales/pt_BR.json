@@ -95,6 +95,7 @@
     "openShort": "Abrir"
   },
   "structure": {
+    "morePages": "Tabelas, painéis e mais",
     "guidance": "Orientação",
     "folders": "Pastas",
     "foldersHint": "A árvore com a descrição de cada pasta",

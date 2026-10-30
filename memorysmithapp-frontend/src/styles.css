@@ -3533,6 +3533,62 @@ button.attachment-thumb:focus-visible {
   height: 18px;
 }
 /* The bar of icons that stays while the rest scrolls. */
+.sheet-tabs {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-tab {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.sheet-tab svg {
+  width: 18px;
+  height: 18px;
+}
+.sheet-tab:hover {
+  background: var(--hover);
+}
+/* The open page, and the search while it is open: filled in Tinta. */
+.sheet-tab.active,
+.sheet-tab[aria-pressed='true'] {
+  background: var(--chosen);
+  color: var(--on-chosen);
+}
+.sheet-pages {
+  flex: none;
+  display: grid;
+  padding: 4px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-page {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 8px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.sheet-page svg {
+  width: 18px;
+  height: 18px;
+}
+.sheet-page.active {
+  font-weight: 600;
+}
 .notebook-sheet-body {
   flex: 1;
   min-height: 0;

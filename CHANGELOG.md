@@ -70,7 +70,7 @@ issues each entry cites.
 
 ### Fixed
 
-- **A phone reaches every page of a notebook.** Tables, Dashboards and the Notebook model could only be reached from a computer. The sheet of a phone now holds the same menu as the sidebar, with the names of the pages instead of a bar of icons, and the search always showing. (#375)
+- **A phone reaches every page of a notebook.** Tables, Dashboards and the Notebook model could only be reached from a computer. The last icon of the bar of a phone groups them with the graph, each by its name, and the sheet and the sidebar read the pages of a notebook from one list. (#375)
 
 - **Dashboards read better.** A preview an agent asks for takes `locale`, to be drawn in the language of the person, the indicators of a header sit side by side, every step of a waterfall is named, a text has no grey box behind it, a legend says a name and not `sum(receita)`, which an agent can choose with `options.names`, and the PNG of a dashboard is always as wide as a computer, with a matrix of a year whole in it. (#374)
 
