@@ -132,14 +132,14 @@ export function NotebookSheet({
               >
                 <SearchIcon />
               </button>
+              <SheetTab to={notebookAddress(notebookId)} end label={t('structure.heading')}>
+                <ContextIcon />
+              </SheetTab>
               {model ? (
                 <SheetTab to={model.to} label={model.label}>
                   {model.icon}
                 </SheetTab>
               ) : null}
-              <SheetTab to={notebookAddress(notebookId)} end label={t('structure.heading')}>
-                <ContextIcon />
-              </SheetTab>
               <SheetTab to={guidanceAddress(notebookId)} label={t('structure.guidance')}>
                 <GuidanceIcon />
               </SheetTab>

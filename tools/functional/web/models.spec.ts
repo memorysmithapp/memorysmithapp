@@ -101,8 +101,8 @@ test.describe('notebook models', () => {
     await row.getByLabel(words.required, { exact: true }).check();
     await app.getByRole('button', { name: words.declare }).click();
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 60_000 });
-    // First of the menu, with no reload, and it is where the model is kept.
-    const item = app.locator('.notebook-nav a').first();
+    // A part of the Context, with no reload, and it is where the model is kept.
+    const item = app.locator('#notebook-nav-parts a').first();
     await expect(item).toHaveText(words.modelItem);
     await item.click();
     await expect(app.locator('.model-form textarea').first()).toHaveValue(

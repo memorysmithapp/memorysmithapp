@@ -112,11 +112,6 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
 
   return (
     <nav className="notebook-nav" aria-label={t('structure.openNavigation')}>
-      {model ? (
-        <NavItem to={model.to} icon={model.icon}>
-          {model.label}
-        </NavItem>
-      ) : null}
       <div className="nav-row-wrap">
         <NavItem to={notebookAddress(notebookId)} end icon={<ContextIcon />}>
           {t('structure.heading')}
@@ -134,6 +129,12 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
       </div>
       {open ? (
         <div className="nav-children" id="notebook-nav-parts">
+          {/* A notebook that is a model is one more part of its Context (#373). */}
+          {model ? (
+            <NavItem to={model.to} icon={model.icon} child>
+              {model.label}
+            </NavItem>
+          ) : null}
           <NavItem to={guidanceAddress(notebookId)} icon={<GuidanceIcon />} child>
             {t('structure.guidance')}
           </NavItem>

@@ -17,7 +17,7 @@ issues each entry cites.
 
 - **A dashboard draws a WBS, a matrix, a combo, a waterfall and a funnel, and a click filters it.** A WBS tree reads the hierarchy from an outline code column and rolls progress up from child to parent; a matrix crosses two groups with the total of each row and column. A click on a mark of a chart narrows the other components to that group, a second click clears it, and the PNG shows the period and the mark on screen. `read_dashboard` and `preview_dashboard` take the same mark. (#369)
 
-- **Home creates a notebook model.** The button *New notebook* offers a notebook or a notebook model, which asks its name and what it declares, its parameters optional. The menu of a notebook shows *Notebook model* only where the notebook is one, first of all, above *Context*, and no longer in every notebook. Turning a notebook that exists into a model stays with the agent, through the skill `derive-model`. (#373)
+- **Home creates a notebook model.** The button *New notebook* offers a notebook or a notebook model, which asks its name and what it declares, its parameters optional. The menu of a notebook shows *Notebook model* only where the notebook is one, as a part of *Context*, and no longer in every notebook. Turning a notebook that exists into a model stays with the agent, through the skill `derive-model`. (#373)
 
 - **The product can be installed in another AWS account.** An organization names its account, region and domain in variables, with no source to edit, and `install-account` checks the credentials, the region, the hosted zone and its delegation before changing anything, prepares the CDK bootstrap and the delivery role, and says what is left for a person. It delivers from a fork on GitHub, a fork on GitLab or `deliver` run against its own account, in any region with the services the product uses, on a domain of its own or on the default endpoints of AWS, and it can share an account with another installation. `memorysmith.app` keeps every name it has. This path has been verified by synthesis and has not yet been delivered to another account. (#342)
 
@@ -70,7 +70,7 @@ issues each entry cites.
 
 ### Fixed
 
-- **A phone reaches every page of a notebook.** Tables, Dashboards and the Notebook model could only be reached from a computer. The last icon of the bar of a phone groups Tables and Dashboards with the graph, each by its name, the Notebook model has its icon beside the Context, and the sheet and the sidebar read the pages of a notebook from one list. (#375)
+- **A phone reaches every page of a notebook.** Tables, Dashboards and the Notebook model could only be reached from a computer. The last icon of the bar of a phone groups Tables and Dashboards with the graph, each by its name, the Notebook model has its icon right after the Context, and the sheet and the sidebar read the pages of a notebook from one list. (#375)
 
 - **Dashboards read better.** A preview an agent asks for takes `locale`, to be drawn in the language of the person, the indicators of a header sit side by side, every step of a waterfall is named, a text has no grey box behind it, a legend says a name and not `sum(receita)`, which an agent can choose with `options.names`, and the PNG of a dashboard is always as wide as a computer, with a matrix of a year whole in it. (#374)
 

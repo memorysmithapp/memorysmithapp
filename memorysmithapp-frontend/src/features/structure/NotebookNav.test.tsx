@@ -1,6 +1,6 @@
 /**
- * The item of a notebook model (#373): first of the menu in a notebook that is
- * one, and absent from any other. Rendered to static markup from data the cache
+ * The item of a notebook model (#373): a part of the Context in a notebook that
+ * is one, its first, and absent from any other. Rendered to static markup from data the cache
  * already holds.
  */
 
@@ -30,8 +30,10 @@ function menu(model: unknown): string {
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 
 describe('the item of a notebook model', () => {
-  it('opens the menu in a notebook that is a model', () => {
-    expect(hrefs(menu({ objective: 'x', versions: [] }))[0]).toMatch(/\/model$/);
+  it('is the first part of the Context in a notebook that is a model', () => {
+    const shown = hrefs(menu({ objective: 'x', versions: [] }));
+    expect(shown[0]).toMatch(new RegExp(`${NOTEBOOK.toLowerCase()}$`, 'i'));
+    expect(shown[1]).toMatch(/\/model$/);
   });
 
   it('is absent from a notebook that is not one', () => {
