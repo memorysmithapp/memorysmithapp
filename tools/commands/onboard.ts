@@ -46,7 +46,7 @@ import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { workingPassword } from './lib/passwords.js';
 import { ProductApi } from './lib/product-api.js';
-import { declaredEnvironment } from './lib/environments.js';
+import { declaredEnvironment, stackIdOf } from './lib/environments.js';
 
 const QUOTAS = ['500MB', '1GB', '2GB'];
 const STATUSES = ['pending_approval', 'trial', 'active', 'rejected', 'suspended', 'canceled'];
@@ -124,9 +124,8 @@ async function choose(question: string, options: readonly string[], fallback: st
 // ---- What is being created ---------------------------------------------------
 
 const environment = values.environment;
-const zone =
-  declaredEnvironment(environment)?.hostedZoneName ??
-  fail(`There is no environment "${environment}".`);
+const declared =
+  declaredEnvironment(environment) ?? fail(`There is no environment "${environment}".`);
 
 const email = (values.email ?? (await ask('e-mail of the account'))).toLowerCase();
 if (!email) fail('No account to onboard: pass --email.');
@@ -137,19 +136,31 @@ if (!LOCALES.includes(locale)) fail(`"${locale}" is not one of ${LOCALES.join(',
 
 // ---- The environment ---------------------------------------------------------
 
-const stackName = `Memorysmith${environment.charAt(0).toUpperCase()}${environment.slice(1)}Identity`;
-const described = await new CloudFormationClient({}).send(
-  new DescribeStacksCommand({ StackName: stackName }),
-);
+const stackName = stackIdOf(environment, 'Identity');
+const cloudFormation = new CloudFormationClient({});
+const described = await cloudFormation.send(new DescribeStacksCommand({ StackName: stackName }));
 const outputs = Object.fromEntries(
   (described.Stacks?.[0]?.Outputs ?? []).map((output) => [output.OutputKey, output.OutputValue]),
 );
 const userPoolId = outputs['UserPoolId'] ?? fail(`${stackName} has no UserPoolId output.`);
 const clientId = outputs['WebClientId'] ?? fail(`${stackName} has no WebClientId output.`);
-const api = new ProductApi(`https://api.${zone}`);
+/** What a stack answers, for the hosts of an installation on the default endpoints of AWS. */
+const outputOf = async (stack: string, key: string): Promise<string> => {
+  const found = await cloudFormation.send(
+    new DescribeStacksCommand({ StackName: stackIdOf(environment, stack) }),
+  );
+  return (
+    found.Stacks?.[0]?.Outputs?.find((output) => output.OutputKey === key)?.OutputValue ??
+    fail(`${stack} has no ${key} output.`)
+  );
+};
+const zone = declared.hostedZoneName;
+const apiOrigin = `https://${zone ? `api.${zone}` : await outputOf('Api', 'ApiHost')}`;
+const siteOrigin = `https://${zone ?? (await outputOf('Frontend', 'SiteHost'))}`;
+const api = new ProductApi(apiOrigin);
 const cognito = new CognitoIdentityProviderClient({});
 
-say(`\nEnvironment ${environment}: https://api.${zone}, user pool ${userPoolId}`);
+say(`\nEnvironment ${environment}: ${apiOrigin}, user pool ${userPoolId}`);
 
 async function signIn(username: string, password: string): Promise<string> {
   const auth = await cognito.send(
@@ -162,7 +173,7 @@ async function signIn(username: string, password: string): Promise<string> {
   );
   if (auth.ChallengeName) {
     fail(
-      `Cognito answered the challenge ${auth.ChallengeName}. Finish it at https://auth.${zone} and run this again.`,
+      `Cognito answered the challenge ${auth.ChallengeName}. Finish it at ${siteOrigin} and run this again.`,
     );
   }
   return auth.AuthenticationResult?.AccessToken ?? fail('Signing in returned no access token.');
@@ -335,7 +346,7 @@ if (handOver) {
   );
 }
 
-say(`\n${email}${isAdmin ? ' (platform admin)' : ''} can sign in at https://${zone}.`);
+say(`\n${email}${isAdmin ? ' (platform admin)' : ''} can sign in at ${siteOrigin}.`);
 if (status !== null && !OPERATIONAL.includes(status)) {
   say(`Its subscription is ${status}, which grants no operational access to anyone.`);
 }

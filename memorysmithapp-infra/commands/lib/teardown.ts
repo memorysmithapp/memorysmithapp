@@ -26,9 +26,15 @@ export const DELIVERY_ORDER = [
 /** The only environment that is ever torn down. */
 export const DISPOSABLE = 'staging';
 
+const pascal = (text: string): string =>
+  text
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+
 /** The id of a stack of an environment, as `config/environments.ts` writes it. */
-export function stackIdOf(environment: string, name: string): string {
-  return `Memorysmith${environment.charAt(0).toUpperCase()}${environment.slice(1)}${name}`;
+export function stackIdOf(environment: string, name: string, installation?: string | null): string {
+  return `Memorysmith${pascal(installation ?? '')}${pascal(environment)}${name}`;
 }
 
 /**

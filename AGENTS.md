@@ -92,6 +92,7 @@ Each command with the directory it runs in, what it does, and the date somebody 
 | `pnpm test` | The root | The tests of those checks, then every unit suite of the workspace | 2026-10-18 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm depcruise` | The root | The rest of what CI runs ([SDLC §8](docs/SDLC.md#8-tests-and-review)) | 2026-10-18 |
 | `pnpm release-checks`, `pnpm release-notes [X.Y.Z]` | `memorysmithapp-infra` | Whether the version can be released; the notes of a version | 2026-10-18 |
+| `pnpm install-account --environment <name> --check` | `memorysmithapp-infra` | Checks an installation of somebody else without changing anything; the run without `--check` has not been executed | 2026-10-30 |
 | `pnpm tools --help`, `pnpm tools <command> --help` | The root | The tools that operate and evaluate the product, and what each takes | 2026-10-25 |
 
 ## 7. Before calling something done

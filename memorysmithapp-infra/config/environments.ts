@@ -14,59 +14,35 @@
  * any account but the one cdk.json names. Production and staging name the same
  * account, so what tells one environment from the other is the name chosen
  * here and every name it produces, never the credentials.
+ *
+ * An installation of somebody else (#342) names none of this in cdk.json: with
+ * `INSTALLATION` set, `installation/` reads all of it from variables, and
+ * cdk.json, which keeps only the project's own installation, is not read.
  */
 
-export type EnvironmentName = 'production' | 'staging';
+import {
+  choiceOf,
+  installationEnvironmentOf,
+  type ContextReader,
+  type Delegation,
+  type EnvironmentConfig,
+  type EnvironmentName,
+  type InstallationVariables,
+} from '../installation/index.js';
+
+export {
+  GITHUB_ISSUER,
+  physicalName,
+  stackId,
+  trustOf,
+  type DefaultHosts,
+  type Delegation,
+  type EnvironmentConfig,
+  type EnvironmentName,
+  type RepositoryHost,
+} from '../installation/index.js';
 
 export const ENVIRONMENT_NAMES: readonly EnvironmentName[] = ['production', 'staging'];
-
-/** A zone below this one, delegated by an NS record this environment declares. */
-export interface Delegation {
-  /** Relative to the zone of this environment, e.g. `stg`. */
-  readonly recordName: string;
-  /** The four name servers Route 53 drew when that zone was created. */
-  readonly nameServers: readonly string[];
-}
-
-export interface EnvironmentConfig {
-  readonly name: EnvironmentName;
-  readonly account: string;
-  readonly region: string;
-  readonly hostedZoneName: string;
-  readonly hostedZoneId: string;
-  readonly delegations: readonly Delegation[];
-  /** `owner/name`: the repository GitHub Actions delivers from. */
-  readonly repository: string;
-  /**
-   * What the `sub` of a token GitHub signs for that repository starts with.
-   * A repository with immutable subjects names its owner and itself with their
-   * ids, `repo:owner@123/name@456`, so a repository deleted and created again
-   * under the same name is another repository; `repo:owner/name` otherwise.
-   */
-  readonly repositorySubject: string;
-  /**
-   * Whether this delivery carries the alarms (#267, ADR-021). What costs money
-   * is chosen by the delivery and is off unless it is turned on: the context
-   * `alarms`, which `deliver --alarms` passes.
-   */
-  readonly alarms: boolean;
-  /** Whether this delivery draws the dashboards (#270, ADR-021): the context `dashboards`. */
-  readonly dashboards: boolean;
-  /** Whether this delivery traces its functions through X-Ray (#271, ADR-021): the context `tracing`. */
-  readonly tracing: boolean;
-  /**
-   * Who the alarms and the budgets notify, present in production, which owns
-   * the budgets of the account, and wherever `alarms` is on. It arrives as the
-   * context `alarmEmail`, which `deliver` takes from the variable `ALARM_EMAIL`
-   * of the GitHub environment, and it is never written into cdk.json, because
-   * the repository is public.
-   */
-  readonly alarmEmail?: string;
-}
-
-interface ContextReader {
-  tryGetContext(key: string): unknown;
-}
 
 function delegationOf(raw: unknown, environment: string): Delegation {
   const entry = (raw ?? {}) as Record<string, unknown>;
@@ -85,24 +61,19 @@ function delegationOf(raw: unknown, environment: string): Delegation {
   return { recordName, nameServers: nameServers as string[] };
 }
 
-/**
- * A choice of the delivery (ADR-021): off unless the context turns it on, as
- * `true` from a test or the text `true` from `cdk synth -c`.
- */
-function choiceOf(node: ContextReader, key: string): boolean {
-  const value = node.tryGetContext(key);
-  if (value === undefined || value === false || value === 'false') return false;
-  if (value === true || value === 'true') return true;
-  throw new Error(`The context "${key}" is "${String(value)}": it is true or false.`);
-}
-
 /** The environment a synth describes, validated field by field. */
-export function environmentOf(node: ContextReader): EnvironmentConfig {
+export function environmentOf(
+  node: ContextReader,
+  variables: InstallationVariables = process.env,
+): EnvironmentConfig {
   const requested = String(node.tryGetContext('environment') ?? 'production');
   if (!ENVIRONMENT_NAMES.includes(requested as EnvironmentName)) {
     throw new Error(
       `There is no environment called "${requested}". Choose one of: ${ENVIRONMENT_NAMES.join(', ')}.`,
     );
+  }
+  if (variables['INSTALLATION']?.trim()) {
+    return installationEnvironmentOf(requested as EnvironmentName, node, variables);
   }
   const all = node.tryGetContext('environments') as Record<string, unknown> | undefined;
   const raw = all?.[requested] as Record<string, unknown> | undefined;
@@ -144,12 +115,15 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
 
   return {
     name: requested as EnvironmentName,
+    installation: null,
     account,
     region: text('region'),
     hostedZoneName: text('hostedZoneName'),
     hostedZoneId: text('hostedZoneId'),
+    hosts: null,
     delegations: delegations.map((entry) => delegationOf(entry, requested)),
     repository,
+    repositoryHost: 'github',
     repositorySubject:
       typeof node.tryGetContext('repositorySubject') === 'string'
         ? String(node.tryGetContext('repositorySubject'))
@@ -159,19 +133,4 @@ export function environmentOf(node: ContextReader): EnvironmentConfig {
     tracing: choiceOf(node, 'tracing'),
     ...(notified ? { alarmEmail } : {}),
   };
-}
-
-/** The id of a stack, which says which environment it belongs to. */
-export function stackId(environment: Pick<EnvironmentConfig, 'name'>, name: string): string {
-  return `Memorysmith${environment.name.charAt(0).toUpperCase()}${environment.name.slice(1)}${name}`;
-}
-
-/**
- * A physical name that says which environment it belongs to. The two
- * environments share one account, so a name that did not say it would collide
- * with the other environment's, and nothing read from a console, a log line or
- * a bill could be told apart from the other environment's.
- */
-export function physicalName(environment: Pick<EnvironmentConfig, 'name'>, base: string): string {
-  return `${base}-${environment.name}`;
 }

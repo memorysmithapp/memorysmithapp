@@ -77,9 +77,11 @@ memorysmithapp/
 │                                  (api client, components, config), i18n/ (en_US, pt_BR)
 ├── memorysmithapp-infra/
 │   ├── bin/app.ts, config/, cdk.json   the CDK app and the two environments
+│   ├── installation/              what an environment is and how it is named, and the variables of
+│   │                              another installation; read by the app and by the commands
 │   ├── stacks/, constructs/       every resource of the three projects
-│   ├── commands/                  deliver, smoke, release, destroy-staging, DNS and e-mail readiness,
-│   │                              cost tags, the e-mail lockup
+│   ├── commands/                  install-account, deliver, smoke, release, destroy-staging, DNS and
+│   │                              e-mail readiness, cost tags, the e-mail lockup
 │   └── test/                      synth assertions and the tests of the commands
 └── tools/                         `pnpm tools`: what operates and evaluates the product from outside
     ├── cli.ts, cli/               the grouped commands and their help
@@ -89,7 +91,7 @@ memorysmithapp/
     └── test/                      the tests of the tools
 ```
 
-**The direction between the projects is single, and `.dependency-cruiser.cjs` checks it in CI:** `memorysmithapp-infra` references the artifacts of the other two; `memorysmithapp-backend` knows nothing of either; `tools` reaches the product through its surfaces, imports only `@memorysmithapp/contracts`, reads the environments in `memorysmithapp-infra/cdk.json` as data and runs an entrypoint of the core as a process, by its path, and nothing imports it; `memorysmithapp-frontend` imports `@memorysmithapp/contracts` and calls the API at runtime. Infrastructure code never lives in the backend, and a stack is never defined inside a service. A file goes where what it *is* belongs, not what it is *for*: a construct for the audit table is in `memorysmithapp-infra/constructs/`.
+**The direction between the projects is single, and `.dependency-cruiser.cjs` checks it in CI:** `memorysmithapp-infra` references the artifacts of the other two; `memorysmithapp-backend` knows nothing of either; `tools` reaches the product through its surfaces, imports only `@memorysmithapp/contracts`, reads the environments in `memorysmithapp-infra/cdk.json`, or the `.env.<environment>` of an installation, as data and runs an entrypoint of the core as a process, by its path, and nothing imports it; `memorysmithapp-frontend` imports `@memorysmithapp/contracts` and calls the API at runtime. Infrastructure code never lives in the backend, and a stack is never defined inside a service. A file goes where what it *is* belongs, not what it is *for*: a construct for the audit table is in `memorysmithapp-infra/constructs/`.
 
 Deployed names keep the identifier `memorysmith`: stacks are `Memorysmith{Production|Staging}{Name}` and physical resources `{name}-{environment}`, such as `mv-knowledge-production`.
 
@@ -247,6 +249,7 @@ What delivers and tears down the infrastructure runs from `memorysmithapp-infra`
 
 | Command | Does |
 |---|---|
+| `install-account --environment <name> [--check]` | Prepares an account for an [installation of somebody else](#56-another-installation) |
 | `deliver --environment <name>` | The delivery of [§5.2](#52-delivery) |
 | `destroy-staging [--preview]` | Deletes the stacks of staging in reverse order and purges what they retained; leaves the zone and the delivery roles |
 
@@ -273,6 +276,24 @@ When a delivery turns tracing on, every function is traced through X-Ray (`Servi
 The *Observability* stack holds no state and is deployed last: it finds the functions, queues and HTTP APIs the other stacks declared in their construct trees. Those stacks export every value a dashboard reads whether the dashboards are drawn or not, so a delivery that turns them off never deletes an export the *Observability* stack still imports. When a delivery turns them on, in either environment, it draws three dashboards, `memorysmith-usage`, `memorysmith-flows` and `memorysmith-health`, which read people from the operation lines through Logs Insights (`count_distinct(userId)`), so no metric is ever kept per person or per subscription. The one trend that has to outlive the month of logs is counted once a day, in both environments, by `ActivePeople` (`apps/core-monolith/src/active-people.handler.ts`): the distinct people of a day, a week and a month in the lines of the core API and the connector, written as `ActivePeopleDaily`, `ActivePeopleWeekly` and `ActivePeopleMonthly` in the namespace `MemorySmith`, which CloudWatch keeps fifteen months.
 
 When a delivery turns the alarms on, every function has an alarm on errors, the three a person or an agent waits on (`CoreApi`, `AgentFunction`, `PreTokenGeneration`) one on p99 duration, the account one on Lambda throttles (no function reserves concurrency, so a throttle is the account at its limit), and every dead-letter queue one on its depth, all notifying the SNS topic `memorysmith-alarms-<environment>`. The topic of production exists even while its alarms are off, so its confirmed subscription survives. Alarms are created only through `mandatoryAlarm`, and an aspect fails the synthesis of an alarm without an action, or of any alarm in a delivery without them (`memorysmithapp-infra/constructs/alarms.ts`). Two budgets, declared in the *Network* stack of production: the account at US$ 20 a month and staging, read through `app:environment`, at US$ 3.
+
+### 5.6 Another installation
+
+Anybody may run the product in their own AWS account, with `INSTALLATION` naming it. Every value comes from variables, from `memorysmithapp-infra/.env.<environment>` on the command path and from the variables of the GitHub or GitLab environment on a fork; `memorysmithapp-infra/.env.example` documents each name. `cdk.json` keeps only the project's own installation and is not read, so a name left out is refused and never falls back to `memorysmith.app`. The installation joins every name AWS keeps unique across a region (`<base>-<installation>-<environment>`, `Memorysmith<Installation><Environment><Stack>`), so it can share an account with another one; the project's own keeps the names it has.
+
+`pnpm -C memorysmithapp-infra install-account --environment <name>` checks the account of the credentials, the services of the region, the hosted zone and its delegation and the CDK bootstrap before it changes anything, and stops there with `--check`. Then it bootstraps what has none, us-east-1 too when the region is another, and on a fork creates the OIDC provider of the account if there is none and deploys the delivery role of the environment. A bootstrap it cannot use is reported and left alone. Every step asks first, so running it again reuses what exists and goes on from a failure. It ends listing what is left for a person: the environment and variables of the pipeline, the confirmation of the SNS subscription, `activate-cost-tags` and `pnpm tools onboard`.
+
+Three paths deliver it, the organization's choice: a fork on GitHub, through the workflows of the repository; a fork on GitLab, through `.gitlab-ci.yml`; or `deliver`, from a clone of a release, against the installation's account. The rule that production is never delivered from a workstation holds for `memorysmith.app`, not for an organization's installation. GitHub names the environment in the subject of its token, so a role trusts that environment; GitLab does not, so production trusts the branch `main`, which has to be protected, and staging any branch of the project. On a fork the steps after a delivery are skipped: the adapter tests, the functional suite and the maintenance jobs name the project's own stacks, and `destroy-staging` tears down only the project's own staging.
+
+| | Own domain | Default endpoints of AWS |
+|---|---|---|
+| Names | `DOMAIN_NAME` and `HOSTED_ZONE_ID`, a public zone of the account, already delegated | Neither: CloudFront, `execute-api` and the prefix domain of the pool |
+| Certificates | Declared by *Network*; another region declares the ones of CloudFront and of the sign-in page in the stack *Edge*, in us-east-1 | None |
+| E-mail of the pool | SES, from `no-reply@<domain>` | Cognito's own sender and its daily limit |
+| E-mail of the product | SES, from `no-reply@<domain>` | `SENDER_ADDRESS`, an address verified in SES; without one a withdrawal notice is not sent, which the log says |
+| First delivery | One pass | Two ([ADR-025](#adr-025-an-installation-is-named-by-variables-and-answers-on-the-hosts-aws-gave-after-a-second-pass)) |
+
+Texts of the product that name `*.memorysmith.app` as the host to allow in a client stay as they are in an installation. No installation has been delivered from these variables yet: what this section says is verified by synthesis and by the tests of `memorysmithapp-infra`, not by a deployment to another account.
 
 ## 6. Architecture decision records
 
@@ -471,3 +492,11 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 - **Rationale:** a definition that stores no data can never disagree with its tables, and an aggregate computed on the server sends a chart as a dozen numbers instead of ten thousand rows.
 - **Consequences:** a dashboard over ten tables reads all of them on every read, which the limits keep bounded (PRD §8). A table renamed keeps drawing; a table deleted is said in place of its components. A definition is not counted in the space of the subscription: it is a few kilobytes and holds nothing the person wrote.
 - **Date:** 2026-10-30. **Status:** Accepted. **Origin:** #367, #368.
+
+### ADR-025 An installation is named by variables, and answers on the hosts AWS gave after a second pass
+
+- **Context:** an organization wants the product in its own account, in its own region, with or without a domain, and the project's own installation must not move (#342). On the default endpoints a host exists only once its stack does, and the stacks need each other's: the identity needs the host of the connector for its callback, the connector the host of the API, and the API and the site each other's for CORS. Declaring them as cross-stack references is a cycle.
+- **Decision:** with `INSTALLATION` set, every value comes from variables and `cdk.json` is not read. On the default endpoints the hosts are context the delivery reads from the outputs of the stacks; the first delivery synthesises with placeholders, deploys, reads what AWS gave and goes round once more, and every later delivery reads them before it synthesises. Outside us-east-1 the certificates that rule binds there live in a stack of their own, read across regions. The OIDC provider of the account is created by `install-account` and owned by no stack, so two installations can trust one.
+- **Rationale:** variables are how a delivery already took its choices, and not reading `cdk.json` makes it impossible to deliver over `memorysmith.app` by leaving a name out. A second pass keeps every stack as it is, where moving the APIs and distributions to a stack of their own would rewrite the project's own templates.
+- **Consequences:** the templates of production are unchanged by this. The first delivery on default endpoints serves placeholders between its two passes, and a host that changes takes one more pass, which `deliver` does on its own. The path is verified by synthesis and has not been delivered to another account.
+- **Date:** 2026-10-30. **Status:** Accepted. **Origin:** #342.

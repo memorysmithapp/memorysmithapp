@@ -26,13 +26,27 @@
  * `ALARM_EMAIL` names nobody for them to notify: the address is a variable of
  * the GitHub environment, handed to the synthesis as context, and never
  * written into cdk.json, because the repository is public.
+ *
+ * An installation of somebody else (#342) names all of this in variables, from
+ * `.env.<environment>` here or from the environment of its pipeline, and
+ * `install` prepares its account first. On the default endpoints of AWS a host
+ * is only known once its stack exists, and the stacks need each other's hosts,
+ * so the first delivery goes round twice: the first pass makes the hosts, the
+ * second writes them in. Every later delivery reads them before it synthesises.
  */
 
+import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import {
+  installationEnvironmentOf,
+  loadInstallationFile,
+  type DefaultHosts,
+} from '../installation/index.js';
+import { hostsFromOutputs } from './lib/install.js';
 import { servedVersion, type ServingEnvironment } from './lib/release.js';
 import { commitsAheadOfMain, git, readText, REPOSITORY_ROOT } from './lib/repository.js';
 import { DELIVERY_ORDER, stackIdOf } from './lib/teardown.js';
@@ -62,20 +76,8 @@ if (environment !== 'production' && environment !== 'staging') {
   refuse(`There is no environment called "${environment}".`);
 }
 
-const declared = (
-  JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
-    context: {
-      environments: Record<
-        string,
-        { account?: string; region?: string; hostedZoneName?: string } | undefined
-      >;
-    };
-  }
-).context.environments[environment];
+loadInstallationFile(environment);
 
-const account = declared?.account ?? refuse(`cdk.json names no account for ${environment}.`);
-const region = declared?.region ?? 'us-east-1';
-const zone = declared?.hostedZoneName ?? refuse(`cdk.json names no zone for ${environment}.`);
 const alarmEmail = process.env['ALARM_EMAIL']?.trim() ?? '';
 if ((values.alarms || environment === 'production') && alarmEmail === '') {
   refuse(
@@ -83,6 +85,43 @@ if ((values.alarms || environment === 'production') && alarmEmail === '') {
   );
 }
 const choices = (['alarms', 'dashboards', 'tracing'] as const).filter((choice) => values[choice]);
+
+/** What this delivery goes to: the variables of an installation, or what cdk.json declares. */
+const destination = (): { account: string; region: string; zone: string | null } => {
+  if (process.env['INSTALLATION']?.trim()) {
+    const context: Record<string, unknown> = { alarms: values.alarms, alarmEmail };
+    const named = installationEnvironmentOf(
+      environment,
+      { tryGetContext: (key) => context[key] },
+      process.env,
+    );
+    return { account: named.account, region: named.region, zone: named.hostedZoneName };
+  }
+  const declared = (
+    JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
+      context: {
+        environments: Record<
+          string,
+          { account?: string; region?: string; hostedZoneName?: string } | undefined
+        >;
+      };
+    }
+  ).context.environments[environment];
+  return {
+    account: declared?.account ?? refuse(`cdk.json names no account for ${environment}.`),
+    region: declared?.region ?? 'us-east-1',
+    zone: declared?.hostedZoneName ?? refuse(`cdk.json names no zone for ${environment}.`),
+  };
+};
+
+const installation = process.env['INSTALLATION']?.trim() || null;
+const { account, region, zone } = (() => {
+  try {
+    return destination();
+  } catch (error) {
+    return refuse(`${(error as Error).message} Nothing was deployed.`);
+  }
+})();
 
 const caller = await new STSClient({ region }).send(new GetCallerIdentityCommand({}));
 if (caller.Account !== account) {
@@ -93,17 +132,29 @@ if (caller.Account !== account) {
 
 // ---- What it serves ---------------------------------------------------------
 
+/** A clone of a release has no `main` to count from, and an installation needs no count. */
+const aheadOfMain = (): number => {
+  try {
+    return commitsAheadOfMain();
+  } catch (error) {
+    if (installation) return 0;
+    throw error;
+  }
+};
+
 const sha = git('rev-parse', 'HEAD');
 const version = servedVersion({
   environment: environment as ServingEnvironment,
   packageVersion: (JSON.parse(readText('memorysmithapp-infra/package.json')) as { version: string })
     .version,
   branch: git('rev-parse', '--abbrev-ref', 'HEAD'),
-  commitsAhead: environment === 'production' ? 0 : commitsAheadOfMain(),
+  commitsAhead: environment === 'production' ? 0 : aheadOfMain(),
   sha,
 });
 
-say(`Delivering ${version} to ${environment}, account ${account}, ${region}.`);
+say(
+  `Delivering ${version} to ${installation ? `${installation} ` : ''}${environment}, account ${account}, ${region}.`,
+);
 say(`  with ${choices.length > 0 ? choices.join(', ') : 'no alarms, dashboards or tracing'}.`);
 if (git('status', '--porcelain').length > 0) {
   say(`  the working tree has changes that ${sha.slice(0, 7)} does not hold.`);
@@ -138,7 +189,24 @@ const deploy = (label: string, stacks: readonly string[]): void =>
   node(label, [cdk, 'deploy', '--app', 'cdk.out', '--require-approval', 'never', ...stacks]);
 
 const ids = (names: readonly string[]): string[] =>
-  names.map((name) => stackIdOf(environment, name));
+  names.map((name) => stackIdOf(environment, name, installation));
+
+/** The hosts AWS gave, read from the stacks of the last delivery; null before the first. */
+const readHosts = async (): Promise<DefaultHosts | null> => {
+  const client = new CloudFormationClient({ region });
+  const outputs: Record<string, string> = {};
+  for (const stack of ids(['Frontend', 'Api', 'Agent'])) {
+    try {
+      const found = await client.send(new DescribeStacksCommand({ StackName: stack }));
+      for (const output of found.Stacks?.[0]?.Outputs ?? []) {
+        if (output.OutputKey && output.OutputValue) outputs[output.OutputKey] = output.OutputValue;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return hostsFromOutputs(outputs);
+};
 
 if (!values['skip-build']) {
   // Through the pnpm that is running this when there is one, and through the
@@ -151,24 +219,44 @@ if (!values['skip-build']) {
   }
 }
 
-node('Synthesising', [
-  cdk,
-  'synth',
-  '--quiet',
-  '-c',
-  `environment=${environment}`,
-  '-c',
-  `version=${version}`,
-  '-c',
-  `commit=${sha}`,
-  ...(alarmEmail === '' ? [] : ['-c', `alarmEmail=${alarmEmail}`]),
-  ...choices.flatMap((choice) => ['-c', `${choice}=true`]),
-]);
+const synthesise = (hosts: DefaultHosts | null): void =>
+  node('Synthesising', [
+    cdk,
+    'synth',
+    '--quiet',
+    '-c',
+    `environment=${environment}`,
+    '-c',
+    `version=${version}`,
+    '-c',
+    `commit=${sha}`,
+    ...(alarmEmail === '' ? [] : ['-c', `alarmEmail=${alarmEmail}`]),
+    ...(hosts ? ['-c', `defaultHosts=${JSON.stringify(hosts)}`] : []),
+    ...choices.flatMap((choice) => ['-c', `${choice}=true`]),
+  ]);
+
+let hosts = zone ? null : await readHosts();
+synthesise(hosts);
 
 deploy('Deploying the network and the hosting', ids(['Network', 'Frontend']));
-command('Waiting on DNS', 'wait-for-dns.ts', ['--name', zone]);
-command('Waiting on the sending identity', 'wait-for-email-identity.ts', ['--identity', zone]);
+if (zone) {
+  command('Waiting on DNS', 'wait-for-dns.ts', ['--name', zone]);
+  command('Waiting on the sending identity', 'wait-for-email-identity.ts', ['--identity', zone]);
+}
 deploy('Deploying the product', ids(DELIVERY_ORDER));
+
+if (!zone) {
+  const given = await readHosts();
+  if (!given) refuse('The stacks answered no hosts after being deployed.');
+  if (JSON.stringify(given) !== JSON.stringify(hosts)) {
+    hosts = given;
+    synthesise(hosts);
+    deploy('Writing in the hosts AWS gave', ids(DELIVERY_ORDER));
+  }
+}
+
+const origin = (host: string | undefined, prefix: string): string =>
+  `https://${host ?? `${prefix}${zone}`}`;
 
 if (!values['skip-smoke']) {
   command('Smoke', 'smoke.ts', [
@@ -177,11 +265,11 @@ if (!values['skip-smoke']) {
     '--version',
     version,
     '--site',
-    `https://${zone}`,
+    origin(hosts?.site, ''),
     '--api',
-    `https://api.${zone}`,
+    origin(hosts?.api, 'api.'),
     '--mcp',
-    `https://mcp.${zone}`,
+    origin(hosts?.mcp, 'mcp.'),
   ]);
 }
 

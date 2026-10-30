@@ -19,6 +19,7 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { accessLogOf } from '../constructs/access-log.js';
+import { hostOf } from '../constructs/deployment.js';
 import { CONNECTOR_BINDING_ROUTE } from './api.stack.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -26,8 +27,9 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 
 export interface AgentStackProps extends StackProps {
-  hostedZone: route53.IHostedZone;
-  certificate: acm.ICertificate;
+  /** Absent on the default endpoints of AWS, where `mcpDomainName` is the name AWS gave. */
+  hostedZone?: route53.IHostedZone | undefined;
+  certificate?: acm.ICertificate | undefined;
   mcpDomainName: string;
   userPool: cognito.UserPool;
   /** Where the sign-in page answers, already assembled by the identity stack. */
@@ -119,30 +121,38 @@ export class AgentStack extends Stack {
       }),
     );
 
-    const domainName = new apigwv2.DomainName(this, 'McpDomain', {
-      domainName: props.mcpDomainName,
-      certificate: props.certificate,
-    });
+    const domainName =
+      props.hostedZone && props.certificate
+        ? new apigwv2.DomainName(this, 'McpDomain', {
+            domainName: props.mcpDomainName,
+            certificate: props.certificate,
+          })
+        : undefined;
 
     const api = new apigwv2.HttpApi(this, 'McpApi', {
       apiName: 'memorysmith-mcp',
       defaultIntegration: new HttpLambdaIntegration('AgentIntegration', fn),
-      defaultDomainMapping: { domainName },
+      ...(domainName ? { defaultDomainMapping: { domainName } } : {}),
     });
 
     // One line per request the gateway answered, its refusals included.
     accessLogOf(this, 'McpAccessLogs', api);
 
-    new route53.ARecord(this, 'McpAliasRecord', {
-      zone: props.hostedZone,
-      recordName: props.mcpDomainName,
-      target: route53.RecordTarget.fromAlias(
-        new targets.ApiGatewayv2DomainProperties(
-          domainName.regionalDomainName,
-          domainName.regionalHostedZoneId,
+    if (props.hostedZone && domainName) {
+      new route53.ARecord(this, 'McpAliasRecord', {
+        zone: props.hostedZone,
+        recordName: props.mcpDomainName,
+        target: route53.RecordTarget.fromAlias(
+          new targets.ApiGatewayv2DomainProperties(
+            domainName.regionalDomainName,
+            domainName.regionalHostedZoneId,
+          ),
         ),
-      ),
-    });
+      });
+    } else {
+      // What the next synthesis of the delivery reads back as this host (#342).
+      new CfnOutput(this, 'McpHost', { value: hostOf(api.apiEndpoint) });
+    }
 
     new CfnOutput(this, 'McpEndpoint', { value: `${publicOrigin}/mcp` });
     new CfnOutput(this, 'ApiId', { value: api.apiId });

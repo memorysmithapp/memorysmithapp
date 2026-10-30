@@ -33,8 +33,9 @@ export interface IdentityStackProps extends StackProps {
   mcpOrigin: string;
   /** The sign-in page lives here, e.g. auth.memorysmith.app */
   authDomainName: string;
-  authCertificate: ICertificate;
-  hostedZone: IHostedZone;
+  /** Absent on the default endpoints of AWS, with the zone: the prefix domain of the pool. */
+  authCertificate?: ICertificate | undefined;
+  hostedZone?: IHostedZone | undefined;
   /** The address the messages of the pool leave from, on a verified identity (network.stack). */
   readonly senderAddress: string;
 }
@@ -65,7 +66,10 @@ function subject(environment: EnvironmentConfig, text: string): string {
   return environment.name === 'production' ? text : `[${environment.name}] ${text}`;
 }
 
-const invitation = (environment: EnvironmentConfig): cognito.UserInvitationConfig => ({
+const invitation = (
+  environment: EnvironmentConfig,
+  site: string,
+): cognito.UserInvitationConfig => ({
   emailSubject: subject(environment, 'Your MemorySmith.app account'),
   emailBody: [
     'Your MemorySmith account has been created.',
@@ -73,7 +77,7 @@ const invitation = (environment: EnvironmentConfig): cognito.UserInvitationConfi
     'Username: {username}',
     'Temporary password: {####}',
     '',
-    'Sign in at https://memorysmith.app and choose a password of your own on',
+    `Sign in at https://${site} and choose a password of your own on`,
     'the first visit. The one above works once.',
     '',
     'MemorySmith keeps knowledge notebooks in Markdown and serves them to AI',
@@ -82,7 +86,10 @@ const invitation = (environment: EnvironmentConfig): cognito.UserInvitationConfi
   ].join('\n'),
 });
 
-const verification = (environment: EnvironmentConfig): cognito.UserVerificationConfig => ({
+const verification = (
+  environment: EnvironmentConfig,
+  site: string,
+): cognito.UserVerificationConfig => ({
   emailStyle: cognito.VerificationEmailStyle.CODE,
   emailSubject: subject(environment, 'Your MemorySmith code'),
   emailBody: [
@@ -91,7 +98,7 @@ const verification = (environment: EnvironmentConfig): cognito.UserVerificationC
     // as part of it often enough to be worth losing.
     'Your MemorySmith code is {####}',
     '',
-    'It was requested at https://memorysmith.app, to confirm your address or to',
+    `It was requested at https://${site}, to confirm your address or to`,
     'set a new password. If it was not you, ignore this message: without the',
     'code, nothing happens.',
   ].join('\n'),
@@ -187,13 +194,16 @@ export class IdentityStack extends Stack {
        * Through SES, from the domain of the environment (RN-ACC-017). The
        * identity is verified before this stack is deployed (network.stack).
        */
-      email: cognito.UserPoolEmail.withSES({
-        fromEmail: props.senderAddress,
-        fromName: 'MemorySmith',
-        sesVerifiedDomain: props.siteDomainName,
-      }),
-      userInvitation: invitation(props.environment),
-      userVerification: verification(props.environment),
+      email: props.hostedZone
+        ? cognito.UserPoolEmail.withSES({
+            fromEmail: props.senderAddress,
+            fromName: 'MemorySmith',
+            sesVerifiedDomain: props.siteDomainName,
+          })
+        : // No domain to verify (#342): Cognito's own sender, and its daily limit.
+          cognito.UserPoolEmail.withCognito(),
+      userInvitation: invitation(props.environment, props.siteDomainName),
+      userVerification: verification(props.environment, props.siteDomainName),
     });
     // Access-token claim customization requires the V2_0 trigger event.
     this.userPool.addTrigger(
@@ -204,8 +214,6 @@ export class IdentityStack extends Stack {
     this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_MESSAGE, customMessage);
 
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
-
-    this.hostedUiOrigin = `https://${props.authDomainName}`;
 
     /**
      * Managed login, not the classic hosted UI. The classic page accepts a
@@ -226,15 +234,28 @@ export class IdentityStack extends Stack {
      * that validates a token is affected by the change.
      */
     this.userPoolDomain = this.userPool.addDomain('HostedDomain', {
-      customDomain: { domainName: props.authDomainName, certificate: props.authCertificate },
+      ...(props.authCertificate
+        ? {
+            customDomain: { domainName: props.authDomainName, certificate: props.authCertificate },
+          }
+        : {
+            cognitoDomain: {
+              domainPrefix: physicalName(props.environment, 'memorysmith'),
+            },
+          }),
       managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
     });
+    this.hostedUiOrigin = props.hostedZone
+      ? `https://${props.authDomainName}`
+      : this.userPoolDomain.baseUrl();
 
-    new ARecord(this, 'AuthRecord', {
-      zone: props.hostedZone,
-      recordName: props.authDomainName,
-      target: RecordTarget.fromAlias(new UserPoolDomainTarget(this.userPoolDomain)),
-    });
+    if (props.hostedZone) {
+      new ARecord(this, 'AuthRecord', {
+        zone: props.hostedZone,
+        recordName: props.authDomainName,
+        target: RecordTarget.fromAlias(new UserPoolDomainTarget(this.userPoolDomain)),
+      });
+    }
 
     this.proxyClient = this.userPool.addClient('CimdProxyClient', {
       userPoolClientName: 'cimd-proxy',

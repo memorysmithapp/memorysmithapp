@@ -9,7 +9,7 @@
  * that says nothing is production, serving the version of this package.
  */
 
-import { Tags, type Stack } from 'aws-cdk-lib';
+import { Fn, Tags, type Stack } from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -51,4 +51,9 @@ export function deploymentVariables(deployment: Deployment): Record<string, stri
     APP_VERSION: deployment.version,
     APP_COMMIT: deployment.commit,
   };
+}
+
+/** The host of an API from its endpoint, `https://{id}.execute-api.{region}.amazonaws.com`. */
+export function hostOf(endpoint: string): string {
+  return Fn.select(2, Fn.split('/', endpoint));
 }

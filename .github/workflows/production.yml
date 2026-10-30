@@ -38,8 +38,10 @@ concurrency:
   group: deliver-production
   cancel-in-progress: false
 
+# A fork names its region and its installation as variables of its environment
+# (#342); this repository names neither, and cdk.json says the rest.
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
 
 jobs:
   release-checks:
@@ -117,11 +119,23 @@ jobs:
           ALARMS: ${{ inputs.alarms }}
           DASHBOARDS: ${{ inputs.dashboards }}
           TRACING: ${{ inputs.tracing }}
+          INSTALLATION: ${{ vars.INSTALLATION }}
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+          HOSTED_ZONE_ID: ${{ vars.HOSTED_ZONE_ID }}
+          DNS_DELEGATIONS: ${{ vars.DNS_DELEGATIONS }}
+          SENDER_ADDRESS: ${{ vars.SENDER_ADDRESS }}
+          REPOSITORY: ${{ vars.REPOSITORY }}
+          REPOSITORY_HOST: ${{ vars.REPOSITORY_HOST }}
+          REPOSITORY_SUBJECT: ${{ vars.REPOSITORY_SUBJECT }}
         run: pnpm -C memorysmithapp-infra deliver --environment production
 
+  # The tag and the release of the project, written by its own App: a fork
+  # delivers its installation and publishes nothing.
   release:
     name: Tag and release
     needs: deliver
+    if: vars.INSTALLATION == ''
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:

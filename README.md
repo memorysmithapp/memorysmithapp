@@ -34,6 +34,8 @@ pnpm test        # every unit suite
 pnpm typecheck
 ```
 
+To run the product in your own AWS account, from a fork or from a release, follow [Another installation](docs/ARCHITECTURE.md#56-another-installation).
+
 The unit suites run with no AWS account. There is no local backend: the web interface runs against a deployed environment, from `memorysmithapp-frontend/config.local.json` (a copy of `config.example.json` filled in with that environment's app client) and `pnpm -C memorysmithapp-frontend dev`.
 
 Deploying and operating an environment is in [`ARCHITECTURE.md` §5](docs/ARCHITECTURE.md#5-operation).

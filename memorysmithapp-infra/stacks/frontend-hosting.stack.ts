@@ -27,9 +27,10 @@ import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import type { Construct } from 'constructs';
 
 export interface FrontendHostingStackProps extends StackProps {
-  readonly hostedZone: IHostedZone;
+  /** Absent on the default endpoints of AWS: the distribution answers on its own host. */
+  readonly hostedZone?: IHostedZone | undefined;
   /** CloudFront requires its certificate in us-east-1, by its own rule. */
-  readonly certificate: ICertificate;
+  readonly certificate?: ICertificate | undefined;
   readonly domainName: string;
 }
 
@@ -93,8 +94,12 @@ function handler(event) {
         functionAssociations: [{ function: rewrite, eventType: FunctionEventType.VIEWER_REQUEST }],
       },
       defaultRootObject: 'index.html',
-      domainNames: [props.domainName, `www.${props.domainName}`],
-      certificate: props.certificate,
+      ...(props.certificate
+        ? {
+            domainNames: [props.domainName, `www.${props.domainName}`],
+            certificate: props.certificate,
+          }
+        : {}),
       httpVersion: HttpVersion.HTTP2_AND_3,
       priceClass: PriceClass.PRICE_CLASS_100,
       errorResponses: [
@@ -103,15 +108,21 @@ function handler(event) {
       ],
     });
 
-    for (const [id, recordName] of [
-      ['ApexRecord', props.domainName],
-      ['WwwRecord', `www.${props.domainName}`],
-    ] as const) {
-      new ARecord(this, id, {
-        zone: props.hostedZone,
-        recordName,
-        target: RecordTarget.fromAlias(new CloudFrontTarget(distribution)),
-      });
+    const zone = props.hostedZone;
+    if (zone) {
+      for (const [id, recordName] of [
+        ['ApexRecord', props.domainName],
+        ['WwwRecord', `www.${props.domainName}`],
+      ] as const) {
+        new ARecord(this, id, {
+          zone,
+          recordName,
+          target: RecordTarget.fromAlias(new CloudFrontTarget(distribution)),
+        });
+      }
+    } else {
+      // What the next synthesis of the delivery reads back as this host (#342).
+      new CfnOutput(this, 'SiteHost', { value: distribution.distributionDomainName });
     }
 
     this.bucket = bucket;

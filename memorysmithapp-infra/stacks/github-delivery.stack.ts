@@ -1,5 +1,5 @@
 /**
- * What lets GitHub Actions deliver.
+ * What lets a pipeline deliver: GitHub Actions, and GitLab CI/CD on a fork there.
  *
  * No AWS key is stored anywhere. A run of a workflow asks GitHub for a token
  * signed by GitHub's OIDC provider, which says which repository and which
@@ -28,13 +28,18 @@
  * so what keeps a branch away from production is who may assume which role.
  */
 
-import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import type { Construct } from 'constructs';
-import { physicalName, stackId, type EnvironmentConfig } from '../config/environments.js';
+import {
+  GITHUB_ISSUER,
+  physicalName,
+  stackId,
+  trustOf,
+  type EnvironmentConfig,
+} from '../config/environments.js';
 
-/** The issuer of the tokens GitHub Actions signs. */
-export const GITHUB_ISSUER = 'token.actions.githubusercontent.com';
+export { GITHUB_ISSUER } from '../config/environments.js';
 
 /** Where the adapter cases of staging write: subscriptions of time zero. */
 export const ADAPTER_SUBSCRIPTIONS = 's/0000000000*';
@@ -46,6 +51,69 @@ export interface GithubDeliveryStackProps extends StackProps {
   readonly subject: string;
   readonly production: EnvironmentConfig;
   readonly staging: EnvironmentConfig;
+}
+
+/**
+ * The role of one environment of an installation (#342). Its OIDC provider
+ * belongs to the account and is created by `install`, so no stack of an
+ * installation owns what another one trusts.
+ */
+export interface InstallationDeliveryStackProps extends StackProps {
+  readonly environment: EnvironmentConfig;
+}
+
+export class InstallationDeliveryStack extends Stack {
+  readonly role: iam.Role;
+
+  constructor(scope: Construct, id: string, props: InstallationDeliveryStackProps) {
+    super(scope, id, props);
+    const { environment } = props;
+    if (!environment.oidcProviderArn) {
+      throw new Error('The delivery role of an installation needs the context oidcProviderArn.');
+    }
+    const trust = trustOf(environment);
+    const reprojection = physicalName(environment, 'mv-reproject-links');
+    const arn = (service: string, resource: string): string =>
+      `arn:${this.partition}:${service}:${this.region}:${this.account}:${resource}`;
+
+    this.role = new iam.Role(this, 'Role', {
+      roleName: physicalName(environment, 'memorysmith-delivery'),
+      description: `Assumed by the pipeline of ${environment.repository} for ${environment.name}.`,
+      maxSessionDuration: Duration.hours(2),
+      assumedBy: new iam.WebIdentityPrincipal(environment.oidcProviderArn, {
+        StringEquals: { [`${trust.issuer}:aud`]: trust.audience },
+        StringLike: { [`${trust.issuer}:sub`]: trust.subject },
+      }),
+    });
+    this.role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['sts:AssumeRole'],
+        resources: [`arn:${this.partition}:iam::${this.account}:role/cdk-hnb659fds-*`],
+      }),
+    );
+    // A delivery on the default endpoints reads back the hosts AWS gave.
+    this.role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['cloudformation:DescribeStacks'],
+        resources: [arn('cloudformation', `stack/${stackId(environment, '*')}/*`)],
+      }),
+    );
+    if (environment.hostedZoneName) {
+      this.role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['ses:GetEmailIdentity'],
+          resources: [arn('ses', `identity/${environment.hostedZoneName}`)],
+        }),
+      );
+    }
+    this.role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['states:StartExecution'],
+        resources: [arn('states', `stateMachine:${reprojection}`)],
+      }),
+    );
+    new CfnOutput(this, 'RoleArn', { value: this.role.roleArn });
+  }
 }
 
 export class GithubDeliveryStack extends Stack {
@@ -91,7 +159,7 @@ export class GithubDeliveryStack extends Stack {
       role.addToPolicy(
         new iam.PolicyStatement({
           actions: ['ses:GetEmailIdentity'],
-          resources: [arn('ses', `identity/${environment.hostedZoneName}`)],
+          resources: [arn('ses', `identity/${environment.hostedZoneName ?? ''}`)],
         }),
       );
       return role;

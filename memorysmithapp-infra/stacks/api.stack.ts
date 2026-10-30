@@ -7,7 +7,7 @@
  * move (ADR-005).
  */
 
-import { Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
 import { HttpApi, CorsHttpMethod, DomainName, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpIamAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -49,6 +49,7 @@ import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { accessLogOf } from '../constructs/access-log.js';
+import { hostOf } from '../constructs/deployment.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
@@ -89,15 +90,16 @@ export const PURGE_DELAY = Duration.minutes(1);
 export interface ApiStackProps extends StackProps {
   readonly environment: EnvironmentConfig;
   readonly data: DataStack;
-  readonly hostedZone: IHostedZone;
-  readonly certificate: ICertificate;
+  /** Absent on the default endpoints of AWS, with the certificates (#342). */
+  readonly hostedZone?: IHostedZone | undefined;
+  readonly certificate?: ICertificate | undefined;
   readonly apiDomainName: string;
   /** The host the parts of an upload are sent to, and its certificate (#241). */
   readonly uploadsDomainName: string;
-  readonly uploadsCertificate: ICertificate;
+  readonly uploadsCertificate?: ICertificate | undefined;
   /** The host a kept file and an export are read from, and its certificate (#255). */
   readonly filesDomainName: string;
-  readonly filesCertificate: ICertificate;
+  readonly filesCertificate?: ICertificate | undefined;
   readonly cognitoIssuer: string;
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
@@ -660,10 +662,13 @@ export class ApiStack extends Stack {
 
     // ---- The HTTP surface ---------------------------------------------------
 
-    const domain = new DomainName(this, 'ApiDomain', {
-      domainName: props.apiDomainName,
-      certificate: props.certificate,
-    });
+    const domain =
+      props.hostedZone && props.certificate
+        ? new DomainName(this, 'ApiDomain', {
+            domainName: props.apiDomainName,
+            certificate: props.certificate,
+          })
+        : undefined;
 
     this.httpApi = new HttpApi(this, 'HttpApi', {
       apiName: 'memorysmith-api',
@@ -684,7 +689,7 @@ export class ApiStack extends Stack {
         exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version', 'x-correlation-id'],
         maxAge: Duration.hours(1),
       },
-      defaultDomainMapping: { domainName: domain },
+      ...(domain ? { defaultDomainMapping: { domainName: domain } } : {}),
     });
 
     // One line per request the gateway answered, its refusals included.
@@ -716,13 +721,18 @@ export class ApiStack extends Stack {
       integration: catalogIntegration,
     });
 
-    new ARecord(this, 'ApiRecord', {
-      zone: props.hostedZone,
-      recordName: props.apiDomainName,
-      target: RecordTarget.fromAlias(
-        new ApiGatewayv2DomainProperties(domain.regionalDomainName, domain.regionalHostedZoneId),
-      ),
-    });
+    if (props.hostedZone && domain) {
+      new ARecord(this, 'ApiRecord', {
+        zone: props.hostedZone,
+        recordName: props.apiDomainName,
+        target: RecordTarget.fromAlias(
+          new ApiGatewayv2DomainProperties(domain.regionalDomainName, domain.regionalHostedZoneId),
+        ),
+      });
+    } else {
+      // What the next synthesis of the delivery reads back as this host (#342).
+      new CfnOutput(this, 'ApiHost', { value: hostOf(this.httpApi.apiEndpoint) });
+    }
 
     this.apiOrigin = `https://${props.apiDomainName}`;
 
@@ -742,8 +752,9 @@ export class ApiStack extends Stack {
      */
     const uploads = new Distribution(this, 'UploadsDistribution', {
       comment: `MemorySmith uploads (${props.environment.name})`,
-      domainNames: [props.uploadsDomainName],
-      certificate: props.uploadsCertificate,
+      ...(props.uploadsCertificate
+        ? { domainNames: [props.uploadsDomainName], certificate: props.uploadsCertificate }
+        : {}),
       priceClass: PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
@@ -755,11 +766,15 @@ export class ApiStack extends Stack {
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
       },
     });
-    new ARecord(this, 'UploadsRecord', {
-      zone: props.hostedZone,
-      recordName: props.uploadsDomainName,
-      target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
-    });
+    if (props.hostedZone) {
+      new ARecord(this, 'UploadsRecord', {
+        zone: props.hostedZone,
+        recordName: props.uploadsDomainName,
+        target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
+      });
+    } else {
+      new CfnOutput(this, 'UploadsHost', { value: uploads.distributionDomainName });
+    }
     this.uploadsOrigin = `https://${props.uploadsDomainName}`;
 
     /**
@@ -813,8 +828,9 @@ export class ApiStack extends Stack {
     });
     const files = new Distribution(this, 'FilesDistribution', {
       comment: `MemorySmith files (${props.environment.name})`,
-      domainNames: [props.filesDomainName],
-      certificate: props.filesCertificate,
+      ...(props.filesCertificate
+        ? { domainNames: [props.filesDomainName], certificate: props.filesCertificate }
+        : {}),
       priceClass: PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
@@ -827,10 +843,14 @@ export class ApiStack extends Stack {
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
       },
     });
-    new ARecord(this, 'FilesRecord', {
-      zone: props.hostedZone,
-      recordName: props.filesDomainName,
-      target: RecordTarget.fromAlias(new CloudFrontTarget(files)),
-    });
+    if (props.hostedZone) {
+      new ARecord(this, 'FilesRecord', {
+        zone: props.hostedZone,
+        recordName: props.filesDomainName,
+        target: RecordTarget.fromAlias(new CloudFrontTarget(files)),
+      });
+    } else {
+      new CfnOutput(this, 'FilesHost', { value: files.distributionDomainName });
+    }
   }
 }
