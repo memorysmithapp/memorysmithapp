@@ -7,6 +7,7 @@
  * seconds of the API. What the interface polls is the record.
  */
 
+import type { TableChoice } from '../domain/NotebookDocumentBuilder.js';
 import {
   DomainError,
   err,
@@ -16,9 +17,19 @@ import {
   type Authorship,
   type Result,
 } from '@memorysmithapp/kernel';
-import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
+import {
+  startedTransfer,
+  type Transfer,
+  type TransferOrigin,
+  type TransferStore,
+} from '../domain/Transfer.js';
 import type { ArchiveStore } from './ExportNotebook.js';
-import { refusalOf, type ImportJob, type ImportSelection } from './ImportNotebook.js';
+import {
+  refusalOf,
+  type ImportJob,
+  type ImportSelection,
+  type ModelFill,
+} from './ImportNotebook.js';
 
 /** How long a download link lives. Issued at the moment of each download. */
 const URL_TTL_SECONDS = 900;
@@ -36,11 +47,24 @@ export interface TransferWork {
   readonly transferId: string;
   readonly kind: 'export' | 'import';
   readonly notebookId?: string | undefined;
+  /** An export that is a version of a notebook model (#353). */
+  readonly modelVersion?: boolean | undefined;
+  /**
+   * An import that creates a notebook from a version of a model (#359): the
+   * parameters it declared and the values supplied, filled in before anything
+   * is written (#354).
+   */
+  readonly fill?: ModelFill | undefined;
   /**
    * What the transfer carries, or nothing for the whole notebook: an export
    * chooses now as an import already did (RN-PRT-017, RN-PRT-024).
    */
   readonly selection?: ImportSelection | null | undefined;
+  /**
+   * What an export carries of each table, by name, whatever the selection is
+   * (#366, RN-PRT-049). Absent is every table with its rows.
+   */
+  readonly tables?: readonly TableChoice[] | undefined;
   readonly uploadKey?: string | undefined;
   readonly name?: string | undefined;
   /**
@@ -100,6 +124,8 @@ export class StartExport {
      * storage of the plan (RN-SUB-021).
      */
     selection?: ImportSelection | null;
+    /** What it carries of each table (#366, RN-PRT-049); absent is every table with its rows. */
+    tables?: readonly TableChoice[] | undefined;
   }): Promise<Result<Transfer, DomainError>> {
     const brief = await this.notebooks.brief(input.notebookId);
     if (!brief) return err(DomainError.notFound('Notebook not found'));
@@ -136,6 +162,7 @@ export class StartExport {
       kind: 'export',
       notebookId: input.notebookId,
       selection: input.selection ?? null,
+      ...(input.tables ? { tables: input.tables } : {}),
       ...(brief.sourceSubscriptionId ? { sourceSubscriptionId: brief.sourceSubscriptionId } : {}),
     });
     return ok(transfer);
@@ -172,6 +199,10 @@ export class StartImport {
      */
     fileName?: string | null;
     by: Authorship;
+    /** A creation from a version of a model: its parameters, filled in by the worker (#359). */
+    fill?: ModelFill | undefined;
+    /** Which version it came from, kept on the record as information only (#359). */
+    origin?: TransferOrigin | undefined;
   }): Promise<Result<Transfer, DomainError>> {
     if (!input.uploadKey.startsWith(`s/${this.subscriptionId}/imports/`)) {
       return err(DomainError.notFound('Upload not found'));
@@ -192,7 +223,7 @@ export class StartImport {
       total: input.selection ? input.selection.notes.length : 0,
       fileName: input.fileName?.trim() ? input.fileName.trim().slice(0, 200) : null,
     });
-    await this.transfers.put(transfer);
+    await this.transfers.put(input.origin ? { ...transfer, origin: input.origin } : transfer);
     await this.queue.send({
       subscriptionId: this.subscriptionId,
       userId: this.userId,
@@ -201,6 +232,7 @@ export class StartImport {
       uploadKey: input.uploadKey,
       name: transfer.notebookName,
       selection: input.selection,
+      ...(input.fill ? { fill: input.fill } : {}),
       authorship: {
         userId: input.by.user.value,
         agent: input.by.agent
@@ -271,7 +303,11 @@ export class ListTransfers {
       this.transfers.transitUsage(),
     ]);
     return ok({
-      transfers: await Promise.all(transfers.map((transfer) => this.observe(transfer))),
+      // A version of a model is shown with its model, not among the person's
+      // transfers, though it counts in the storage as any kept export (#353).
+      transfers: await Promise.all(
+        transfers.filter((transfer) => !transfer.model).map((transfer) => this.observe(transfer)),
+      ),
       keptBytes,
       transitBytes: transit.bytes,
     });
@@ -406,6 +442,7 @@ export interface ExportRunner {
     now: Instant;
     selection?: ImportSelection | null | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
+    modelVersion?: boolean | undefined;
   }): Promise<
     Result<{ key: string; versionId: string | null; noteCount: number; bytes: number }, DomainError>
   >;
@@ -446,7 +483,9 @@ export class RunExport {
         notebookId: work.notebookId ?? '',
         now: Instant.now(),
         selection: work.selection ?? null,
+        ...(work.tables ? { tables: work.tables } : {}),
         report,
+        ...(work.modelVersion ? { modelVersion: true } : {}),
       });
       await Promise.all(pending);
 
@@ -512,6 +551,7 @@ export interface ImportRunner {
     name: string | null;
     by: Authorship;
     selection?: ImportSelection | null | undefined;
+    fill?: ModelFill | undefined;
     progress?:
       | {
           wrote(written: number, total: number): Promise<void>;
@@ -562,6 +602,7 @@ export class RunImport {
         name: work.name ?? null,
         by: this.by,
         selection: work.selection ?? null,
+        ...(work.fill ? { fill: work.fill } : {}),
         progress,
       });
 

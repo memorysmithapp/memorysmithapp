@@ -7,7 +7,7 @@
  * move (ADR-005).
  */
 
-import { Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Size, Stack, type StackProps } from 'aws-cdk-lib';
 import { HttpApi, CorsHttpMethod, DomainName, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpIamAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -49,6 +49,7 @@ import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { accessLogOf } from '../constructs/access-log.js';
+import { hostOf } from '../constructs/deployment.js';
 import type { DataStack } from './data.stack.js';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
 
@@ -89,15 +90,16 @@ export const PURGE_DELAY = Duration.minutes(1);
 export interface ApiStackProps extends StackProps {
   readonly environment: EnvironmentConfig;
   readonly data: DataStack;
-  readonly hostedZone: IHostedZone;
-  readonly certificate: ICertificate;
+  /** Absent on the default endpoints of AWS, with the certificates (#342). */
+  readonly hostedZone?: IHostedZone | undefined;
+  readonly certificate?: ICertificate | undefined;
   readonly apiDomainName: string;
   /** The host the parts of an upload are sent to, and its certificate (#241). */
   readonly uploadsDomainName: string;
-  readonly uploadsCertificate: ICertificate;
+  readonly uploadsCertificate?: ICertificate | undefined;
   /** The host a kept file and an export are read from, and its certificate (#255). */
   readonly filesDomainName: string;
-  readonly filesCertificate: ICertificate;
+  readonly filesCertificate?: ICertificate | undefined;
   readonly cognitoIssuer: string;
   /** The app client of the connector proxy, whose tokens write as a connector. */
   readonly connectorClientId: string;
@@ -111,12 +113,20 @@ export interface ApiStackProps extends StackProps {
   readonly frontendOrigin: string;
   /** The pool whose accounts record the language they are written to in (RN-ACC-018). */
   readonly userPool: IUserPool;
+  /**
+   * The address the product writes from, on the verified domain of the
+   * environment: an author is told from it that the operator withdrew their
+   * model (#358).
+   */
+  readonly senderAddress: string;
 }
 
 export class ApiStack extends Stack {
   readonly apiOrigin: string;
   /** Where the parts of an upload are sent (#241). */
   readonly uploadsOrigin: string;
+  /** Where anybody reads the community catalog, through the edge (#360). */
+  readonly catalogOrigin: string;
   readonly httpApi: HttpApi;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -157,6 +167,51 @@ export class ApiStack extends Stack {
       deadLetterQueue: { queue: printDlq, maxReceiveCount: 1 },
     });
 
+    /**
+     * The edge in front of the public route of the community catalog (#356,
+     * #360). Anonymous reads are kept a minute, so a crowd reading the catalog
+     * does not become Lambda and DynamoDB; a withdrawal empties it at once,
+     * which is the API's one CloudFront permission. It answers on the
+     * distribution's own host, so no certificate or record is needed, and it
+     * carries the CORS of the site itself: the Origin of a request is not part
+     * of what it keeps, so the gateway's answer to it cannot be.
+     */
+    const catalogCors = new ResponseHeadersPolicy(this, 'CatalogHeaders', {
+      comment: `MemorySmith catalog (${props.environment.name})`,
+      corsBehavior: {
+        accessControlAllowCredentials: false,
+        accessControlAllowHeaders: ['content-type'],
+        accessControlAllowMethods: ['GET', 'HEAD', 'OPTIONS'],
+        accessControlAllowOrigins: [props.frontendOrigin, 'http://localhost:5173'],
+        accessControlExposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version'],
+        originOverride: true,
+      },
+    });
+    const catalogCache = new CachePolicy(this, 'CatalogCache', {
+      comment: `MemorySmith catalog (${props.environment.name}): a minute at the edge`,
+      defaultTtl: Duration.seconds(60),
+      minTtl: Duration.seconds(0),
+      maxTtl: Duration.minutes(5),
+      queryStringBehavior: CacheQueryStringBehavior.allowList('q', 'language'),
+      headerBehavior: CacheHeaderBehavior.none(),
+      cookieBehavior: CacheCookieBehavior.none(),
+    });
+    const catalogEdge = new Distribution(this, 'CatalogDistribution', {
+      comment: `MemorySmith community catalog (${props.environment.name})`,
+      priceClass: PriceClass.PRICE_CLASS_100,
+      defaultBehavior: {
+        origin: new HttpOrigin(props.apiDomainName, {
+          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+        }),
+        allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachePolicy: catalogCache,
+        originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        responseHeadersPolicy: catalogCors,
+        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+    });
+    this.catalogOrigin = `https://${catalogEdge.distributionDomainName}`;
+
     const environment = {
       ACCESS_TABLE: props.data.accessTable.table.tableName,
       KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
@@ -175,6 +230,9 @@ export class ApiStack extends Stack {
       UPLOADS_ORIGIN: `https://${props.uploadsDomainName}`,
       // Where a link to a kept file or an export is answered (#255).
       FILES_ORIGIN: `https://${props.filesDomainName}`,
+      // The edge a withdrawal empties, and who an author is told from (#360).
+      CATALOG_DISTRIBUTION_ID: catalogEdge.distributionId,
+      SENDER_ADDRESS: props.senderAddress,
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -221,12 +279,17 @@ export class ApiStack extends Stack {
      * `exports/` and to nothing else, so no revision of a note is within its
      * reach: the one principal allowed to destroy one of those is the purge
      * worker below (INV-08). The version is the one the worker recorded when
-     * it wrote the archive, so nothing is listed to find it.
+     * it wrote the archive, so nothing is listed to find it. A version of a
+     * notebook model is a kept export too, under `models/` (#353), and is
+     * destroyed the same way.
      */
     api.function.addToRolePolicy(
       new PolicyStatement({
         actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
-        resources: [props.data.contentBucket.arnForObjects('s/*/exports/*')],
+        resources: [
+          props.data.contentBucket.arnForObjects('s/*/exports/*'),
+          props.data.contentBucket.arnForObjects('s/*/models/*'),
+        ],
       }),
     );
     /**
@@ -244,6 +307,71 @@ export class ApiStack extends Stack {
     // The API READS the trail and can never write it: the Deny travels with
     // the grant (PE4).
     props.data.auditTable.grantRead(api.function);
+    /**
+     * The community catalog (#360): a withdrawal empties the edge of the public
+     * route, and the operator's withdrawal tells the author, from the address
+     * of the environment and from no other.
+     */
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['cloudfront:CreateInvalidation'],
+        resources: [
+          `arn:aws:cloudfront::${this.account}:distribution/${catalogEdge.distributionId}`,
+        ],
+      }),
+    );
+    api.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['ses:SendEmail'],
+        resources: ['*'],
+        conditions: { StringEquals: { 'ses:FromAddress': props.senderAddress } },
+      }),
+    );
+
+    /**
+     * The public route of the catalog, a function of its own (#356): what it
+     * may reach is what makes it safe to answer anybody. It reads the catalog
+     * partition of the portability table and nothing else of it, the status of
+     * a subscription and no other attribute of the access table, and the
+     * snapshots of versions of models; it writes nothing.
+     */
+    const publicCatalog = new ServiceLambda(this, 'PublicCatalog', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'catalog.handler.ts'),
+      description: 'MemorySmith community catalog: the public, read-only route.',
+      environment: {
+        PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
+        ACCESS_TABLE: props.data.accessTable.table.tableName,
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+      },
+      timeout: Duration.seconds(10),
+      memorySize: 512,
+    });
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:GetItem', 'dynamodb:Query'],
+        resources: [props.data.portabilityTable.table.tableArn],
+        conditions: { 'ForAllValues:StringEquals': { 'dynamodb:LeadingKeys': ['CATALOG'] } },
+      }),
+    );
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:GetItem'],
+        resources: [props.data.accessTable.table.tableArn],
+        conditions: {
+          'ForAllValues:StringEquals': { 'dynamodb:Attributes': ['PK', 'SK', 'status'] },
+          StringEqualsIfExists: { 'dynamodb:Select': 'SPECIFIC_ATTRIBUTES' },
+        },
+      }),
+    );
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:GetObject', 's3:GetObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/models/*')],
+      }),
+    );
+    if (props.data.contentBucket.encryptionKey) {
+      props.data.contentBucket.encryptionKey.grantDecrypt(publicCatalog.function);
+    }
     // ---- The outbox relay ---------------------------------------------------
 
     const relayDlq = new Queue(this, 'RelayDeadLetter', {
@@ -341,6 +469,10 @@ export class ApiStack extends Stack {
           'GuidanceDeleted',
           'FolderRemoved',
           'NotebookDeleted',
+          // The bytes of a file deleted on its own (#372).
+          'FileDeleted',
+          // The rows of a table deleted on its own (#366).
+          'TableDeleted',
         ],
       },
       targets: [new SqsQueue(purgeQueue)],
@@ -532,10 +664,13 @@ export class ApiStack extends Stack {
 
     // ---- The HTTP surface ---------------------------------------------------
 
-    const domain = new DomainName(this, 'ApiDomain', {
-      domainName: props.apiDomainName,
-      certificate: props.certificate,
-    });
+    const domain =
+      props.hostedZone && props.certificate
+        ? new DomainName(this, 'ApiDomain', {
+            domainName: props.apiDomainName,
+            certificate: props.certificate,
+          })
+        : undefined;
 
     this.httpApi = new HttpApi(this, 'HttpApi', {
       apiName: 'memorysmith-api',
@@ -556,7 +691,7 @@ export class ApiStack extends Stack {
         exposeHeaders: ['x-memorysmith-environment', 'x-memorysmith-version', 'x-correlation-id'],
         maxAge: Duration.hours(1),
       },
-      defaultDomainMapping: { domainName: domain },
+      ...(domain ? { defaultDomainMapping: { domainName: domain } } : {}),
     });
 
     // One line per request the gateway answered, its refusals included.
@@ -571,13 +706,35 @@ export class ApiStack extends Stack {
       authorizer: new HttpIamAuthorizer(),
     });
 
-    new ARecord(this, 'ApiRecord', {
-      zone: props.hostedZone,
-      recordName: props.apiDomainName,
-      target: RecordTarget.fromAlias(
-        new ApiGatewayv2DomainProperties(domain.regionalDomainName, domain.regionalHostedZoneId),
-      ),
+    // Anybody, an account or none, reaches the catalog on these paths (#360);
+    // the function answers what an entry says and nothing else.
+    const catalogIntegration = new HttpLambdaIntegration(
+      'PublicCatalogIntegration',
+      publicCatalog.function,
+    );
+    this.httpApi.addRoutes({
+      path: '/public/catalog',
+      methods: [HttpMethod.GET],
+      integration: catalogIntegration,
     });
+    this.httpApi.addRoutes({
+      path: '/public/catalog/{proxy+}',
+      methods: [HttpMethod.GET],
+      integration: catalogIntegration,
+    });
+
+    if (props.hostedZone && domain) {
+      new ARecord(this, 'ApiRecord', {
+        zone: props.hostedZone,
+        recordName: props.apiDomainName,
+        target: RecordTarget.fromAlias(
+          new ApiGatewayv2DomainProperties(domain.regionalDomainName, domain.regionalHostedZoneId),
+        ),
+      });
+    } else {
+      // What the next synthesis of the delivery reads back as this host (#342).
+      new CfnOutput(this, 'ApiHost', { value: hostOf(this.httpApi.apiEndpoint) });
+    }
 
     this.apiOrigin = `https://${props.apiDomainName}`;
 
@@ -597,8 +754,9 @@ export class ApiStack extends Stack {
      */
     const uploads = new Distribution(this, 'UploadsDistribution', {
       comment: `MemorySmith uploads (${props.environment.name})`,
-      domainNames: [props.uploadsDomainName],
-      certificate: props.uploadsCertificate,
+      ...(props.uploadsCertificate
+        ? { domainNames: [props.uploadsDomainName], certificate: props.uploadsCertificate }
+        : {}),
       priceClass: PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
@@ -610,15 +768,19 @@ export class ApiStack extends Stack {
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
       },
     });
-    new ARecord(this, 'UploadsRecord', {
-      zone: props.hostedZone,
-      recordName: props.uploadsDomainName,
-      target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
-    });
+    if (props.hostedZone) {
+      new ARecord(this, 'UploadsRecord', {
+        zone: props.hostedZone,
+        recordName: props.uploadsDomainName,
+        target: RecordTarget.fromAlias(new CloudFrontTarget(uploads)),
+      });
+    } else {
+      new CfnOutput(this, 'UploadsHost', { value: uploads.distributionDomainName });
+    }
     this.uploadsOrigin = `https://${props.uploadsDomainName}`;
 
     /**
-     * The host a kept file and an export are read from (#255, RN-KNW-050).
+     * The host a kept file and an export are read from (#255, RN-KNW-075).
      * The same arrangement as the uploads host, in the other direction: the
      * API signs the GET for the bucket's own host and answers it on this one,
      * and CloudFront hands S3 the very request it signed, so the link expires
@@ -652,7 +814,7 @@ export class ApiStack extends Stack {
      * `SignatureDoesNotMatch` — found on staging, where a plain signed GET
      * passed and one naming its disposition did not. Those two are what make
      * a PDF open where it is opened and save under its name where it is
-     * saved (RN-KNW-050), so they have to arrive. A query string travels
+     * saved (RN-KNW-075), so they have to arrive. A query string travels
      * whole when the cache policy names it, and naming it needs a TTL above
      * zero; the default stays at zero and S3 sends no Cache-Control, so
      * nothing is kept, and a link is its own key anyway.
@@ -668,8 +830,9 @@ export class ApiStack extends Stack {
     });
     const files = new Distribution(this, 'FilesDistribution', {
       comment: `MemorySmith files (${props.environment.name})`,
-      domainNames: [props.filesDomainName],
-      certificate: props.filesCertificate,
+      ...(props.filesCertificate
+        ? { domainNames: [props.filesDomainName], certificate: props.filesCertificate }
+        : {}),
       priceClass: PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
@@ -682,10 +845,14 @@ export class ApiStack extends Stack {
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
       },
     });
-    new ARecord(this, 'FilesRecord', {
-      zone: props.hostedZone,
-      recordName: props.filesDomainName,
-      target: RecordTarget.fromAlias(new CloudFrontTarget(files)),
-    });
+    if (props.hostedZone) {
+      new ARecord(this, 'FilesRecord', {
+        zone: props.hostedZone,
+        recordName: props.filesDomainName,
+        target: RecordTarget.fromAlias(new CloudFrontTarget(files)),
+      });
+    } else {
+      new CfnOutput(this, 'FilesHost', { value: files.distributionDomainName });
+    }
   }
 }

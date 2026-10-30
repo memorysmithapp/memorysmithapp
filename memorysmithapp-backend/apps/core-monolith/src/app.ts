@@ -44,6 +44,12 @@ import {
 } from '@memorysmithapp/svc-portability/adapters/http';
 import type { NotebookWriter } from '@memorysmithapp/svc-portability/application/import';
 import type { FileKeeper } from '@memorysmithapp/svc-portability/application/uploads';
+import {
+  createCatalogOperatorRoutes,
+  createPublicCatalogRoutes,
+  type CatalogOperatorUseCases,
+  type PublicCatalogUseCases,
+} from '@memorysmithapp/svc-portability/adapters/catalog-http';
 import { annotate, type Channel } from '@memorysmithapp/observability';
 import { operationErrorHandler, operationLog } from '@memorysmithapp/observability/hono';
 
@@ -57,6 +63,14 @@ export interface AppDependencies {
   readonly auditUseCases: AuditUseCases;
   readonly discoveryUseCases: DiscoveryUseCases;
   readonly portabilityUseCases: PortabilityUseCases;
+  /**
+   * The community catalog (#360): what anybody reads of it, served in
+   * production by a handler of its own, and what the operator does with it.
+   */
+  readonly publicCatalog: PublicCatalogUseCases;
+  readonly catalogOperator: CatalogOperatorUseCases;
+  /** The display name of an account, which the catalog shows of an author (#357). */
+  readonly nameOf: (email: string) => Promise<string | null>;
   /** Stage 1 of authorization, for the routes that need a notebook decision. */
   readonly resolveContext: (
     request: AccessRequest,
@@ -112,6 +126,7 @@ type Variables = {
   audit: AuditRequest;
   discovery: DiscoveryRequest;
   portability: PortabilityRequest;
+  operator: { userId: string; isPlatformAdmin: boolean };
 };
 
 function fail(c: Context, error: DomainError): Response {
@@ -191,6 +206,31 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
    */
   app.route('/access/connector-bindings', createConnectorBindingRoutes(deps.connectorBindings));
 
+  /**
+   * The community catalog as anybody reads it, an account or none (#360). In
+   * production the gateway hands these paths to a handler of their own, with
+   * permissions limited to the catalog; here they answer the same, for the
+   * suite and a workstation.
+   */
+  app.route('/public/catalog', createPublicCatalogRoutes(deps.publicCatalog));
+
+  /**
+   * The operator's side of the catalog (#358): a platform session, which holds
+   * no subscription, reads the reports and withdraws a model, which deletes its
+   * catalog entry and nothing else (INV-12).
+   */
+  app.use('/platform/*', async (c: Context<{ Variables: Variables }>, next: Next) => {
+    const session = await authenticate(deps.verifier, c.req.header('authorization'));
+    if (!session.ok) return fail(c, session.error);
+    annotateCaller(deps, session.value);
+    c.set('operator', {
+      userId: session.value.profile.userId.value,
+      isPlatformAdmin: session.value.profile.isPlatformAdmin,
+    });
+    await next();
+  });
+  app.route('/platform/catalog', createCatalogOperatorRoutes(deps.catalogOperator));
+
   app.use('/access/*', async (c: Context<{ Variables: Variables }>, next: Next) => {
     const session = await authenticate(deps.verifier, c.req.header('authorization'));
     if (!session.ok) return fail(c, session.error);
@@ -262,6 +302,13 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
         // A print is drawn as the person who asked (RN-PRT-031): the renderer
         // opens the page with the very token this request was authenticated by.
         accessToken: (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, ''),
+        // Declaring a model and creating its versions are the owner's (#353).
+        isOwner: resolved.value.ctx.isOwner,
+        // The catalog shows the name of an author, never the e-mail (#357).
+        author: async () => ({
+          name: await deps.nameOf(session.value.profile.email.value),
+          email: session.value.profile.email.value,
+        }),
       });
       await next();
     },

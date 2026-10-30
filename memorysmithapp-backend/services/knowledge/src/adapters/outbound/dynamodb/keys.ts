@@ -21,6 +21,7 @@ import {
   type Position,
   type SubscriptionId,
   type NotebookId,
+  type TableId,
 } from '@memorysmithapp/kernel';
 
 /** The sort key of the notebook item itself. */
@@ -57,6 +58,59 @@ export class KnowledgeKeys {
    */
   fileNameGuard(name: string): string {
     return `FNAME#${sha256Hex(name.normalize('NFC'))}`;
+  }
+
+  /**
+   * A Table of the notebook (#366): its schema, in the notebook's partition.
+   * `TABLE#` and `TNAME#` sort after `META`, outside the range that loads the
+   * tree, so a notebook with tables loads as fast as one with none.
+   */
+  table(tableId: TableId | string): string {
+    return `TABLE#${typeof tableId === 'string' ? tableId : tableId.value}`;
+  }
+
+  /** The name a live table holds, compared regardless of case (RN-KNW-066). */
+  tableNameGuard(name: string): string {
+    return `TNAME#${sha256Hex(name.normalize('NFC').toLowerCase())}`;
+  }
+
+  /**
+   * The rows of a table live in a partition of their own, so writing a row
+   * never contends with a write of the notebook, and reading a table reads
+   * its rows and nothing else.
+   */
+  tableRows(tableId: TableId | string): string {
+    return `S#${this.subscriptionId.value}#TABLE#${typeof tableId === 'string' ? tableId : tableId.value}`;
+  }
+
+  /**
+   * A row, under the generation of rows it belongs to. An alteration that
+   * rewrites the rows writes the next generation beside this one and moves the
+   * table to it in one write, so the generation is part of the key.
+   */
+  row(generation: number, rowId: string): string {
+    return `${this.rowsOf(generation)}${rowId}`;
+  }
+
+  rowsOf(generation: number): string {
+    return `ROW#${String(generation).padStart(6, '0')}#`;
+  }
+
+  /**
+   * A Dashboard of the notebook (#368) and the guard of its name, after `META`
+   * like a table, so the tree never reads them.
+   */
+  dashboard(dashboardId: { value: string } | string): string {
+    return `DASH#${typeof dashboardId === 'string' ? dashboardId : dashboardId.value}`;
+  }
+
+  dashboardNameGuard(name: string): string {
+    return `DNAME#${sha256Hex(name.normalize('NFC').toLowerCase())}`;
+  }
+
+  /** What the relay counted of a table, in the partition of its rows (ADR-010). */
+  tableStat(): string {
+    return 'TSTAT';
   }
 
   folder(folderId: FolderId): string {

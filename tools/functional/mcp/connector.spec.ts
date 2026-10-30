@@ -1,0 +1,1281 @@
+/**
+ * The connector, as an agent uses it (ADR-009): what it answers without a
+ * token, what it tells an agent in the handshake, and every tool of its
+ * catalog, called through the official MCP SDK with the token the OAuth flow
+ * handed the suite.
+ *
+ * Which tools there are is read from the live `tools/list`, so a tool added to
+ * the catalog without a case here fails the suite.
+ */
+
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { test as base, expect } from '@playwright/test';
+import { createHash, randomBytes } from 'node:crypto';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { readConnectorToken, type ConnectorToken } from '../support/connector-state.js';
+import { coverageGap, declaredCases, describeGap } from '../support/coverage.js';
+import { eventually } from '../support/eventually.js';
+import { callTool, connectAgent, parsed } from '../support/mcp.js';
+import { readState, type RunState } from '../support/state.js';
+
+interface AgentNotebook {
+  readonly notebookId: string;
+  readonly folderId: string;
+}
+
+interface Fixtures {
+  state: RunState;
+  connector: ConnectorToken;
+  agent: Client;
+  notebook: AgentNotebook;
+}
+
+const unique = (what: string): string => `${what} ${randomBytes(4).toString('hex')}`;
+
+const test = base.extend<Fixtures>({
+  // eslint-disable-next-line no-empty-pattern -- a fixture that depends on nothing
+  state: async ({}, use) => {
+    await use(readState());
+  },
+  // eslint-disable-next-line no-empty-pattern -- a fixture that depends on nothing
+  connector: async ({}, use) => {
+    await use(readConnectorToken());
+  },
+  agent: async ({ state, connector }, use) => {
+    const client = await connectAgent(state.surfaces.mcp, connector.accessToken);
+    try {
+      await use(client);
+    } finally {
+      await client.close();
+    }
+  },
+  notebook: async ({ agent }, use) => {
+    const notebook = parsed<{ notebookId: string }>(
+      await callTool(agent, 'create_notebook', {
+        name: unique('Agent'),
+        description: 'A notebook an agent case writes in.',
+      }),
+    );
+    const folder = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        notebook: notebook.notebookId,
+        name: 'Findings',
+        description: 'What an agent found.',
+      }),
+    );
+    await use({ notebookId: notebook.notebookId, folderId: folder.folderId });
+  },
+});
+
+test.describe('the connector before a tool is called', () => {
+  test('refuses a request without a token, and says where to authorize', async ({ state }) => {
+    const refused = await fetch(`${state.surfaces.mcp}/mcp`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    });
+    expect(refused.status).toBe(401);
+    expect(refused.headers.get('www-authenticate')).toContain(
+      `resource_metadata="${state.surfaces.mcp}/.well-known/oauth-protected-resource"`,
+    );
+
+    const resource = (await (
+      await fetch(`${state.surfaces.mcp}/.well-known/oauth-protected-resource`)
+    ).json()) as { resource: string };
+    const server = (await (
+      await fetch(`${state.surfaces.mcp}/.well-known/oauth-authorization-server`)
+    ).json()) as Record<string, unknown>;
+    expect(resource.resource).toBe(`${state.surfaces.mcp}/mcp`);
+    expect(server['client_id_metadata_document_supported']).toBe(true);
+    expect(server['code_challenge_methods_supported']).toEqual(['S256']);
+    expect(server['registration_endpoint']).toBeUndefined();
+  });
+
+  test('tells an agent which environment this is and which version it runs (RN-AGT-026)', async ({
+    agent,
+    state,
+  }) => {
+    if (state.version) expect(agent.getServerVersion()?.version).toBe(state.version);
+    expect(agent.getInstructions()).toContain(
+      `This is the ${state.environment} environment of MemorySmith`,
+    );
+  });
+
+  test('has a case for every tool it lists, and none for a tool that is gone', async ({
+    agent,
+  }) => {
+    const { tools } = await agent.listTools();
+    const here = dirname(fileURLToPath(import.meta.url));
+    const sources = readdirSync(here)
+      .filter((file) => file.endsWith('.spec.ts'))
+      .map((file) => readFileSync(join(here, file), 'utf8'));
+
+    expect(
+      describeGap(
+        'tool',
+        coverageGap(
+          tools.map((tool) => tool.name),
+          declaredCases(sources).tool,
+        ),
+      ),
+    ).toBeNull();
+  });
+});
+
+test.describe('the tools', () => {
+  test('[tool:whoami] names where this is before anything else, then the person and the connector', async ({
+    agent,
+    state,
+    connector,
+  }) => {
+    const answer = await callTool(agent, 'whoami');
+
+    expect(answer.isError).toBe(false);
+    expect(answer.text).toContain(state.accounts.owner.email);
+    expect(answer.text).toContain(`**Connector**: ${connector.clientName}`);
+    const where = answer.text.indexOf('## Where this is');
+    expect(where).toBeGreaterThanOrEqual(0);
+    expect(where).toBeLessThan(answer.text.indexOf('## Who is acting'));
+  });
+
+  test('[tool:whoami] lists every tool the server lists by its signature, and a tool it does not have says the list is old (#261)', async ({
+    agent,
+  }) => {
+    const answer = await callTool(agent, 'whoami');
+    expect(answer.text).toContain('## Your list of tools');
+    expect(answer.text).toMatch(/catalogue `[0-9a-f]{8}`/);
+    const { tools } = await agent.listTools();
+    for (const tool of tools) expect(answer.text).toContain(`\`${tool.name}(`);
+
+    // A client holding an older list calls what the server no longer serves.
+    const gone = await callTool(agent, 'read_notes_v0', { notebook: 'x' });
+    expect(gone.isError).toBe(true);
+    expect(gone.text).toContain('UNKNOWN_TOOL');
+    expect(gone.text).toContain('is older than the server');
+    const extra = await callTool(agent, 'list_notebooks', { owner: 'me' });
+    expect(extra.isError).toBe(true);
+    expect(extra.text).toContain('list_notebooks takes no argument "owner"');
+  });
+
+  test('[tool:get_skill] teaches the method of a task by name, and lists the names when one is wrong', async ({
+    agent,
+  }) => {
+    const skill = await callTool(agent, 'get_skill', { name: 'design-notebook' });
+    const wrong = await callTool(agent, 'get_skill', { name: 'no-such-skill' });
+
+    expect(skill.isError).toBe(false);
+    expect(skill.text.length).toBeGreaterThan(200);
+    expect(wrong.isError).toBe(true);
+    expect(wrong.text).toContain('write-notes');
+  });
+
+  test('[tool:create_notebook] [tool:list_notebooks] [tool:delete_notebook] creates a notebook once, finds it listed, and takes it out of every listing', async ({
+    agent,
+  }) => {
+    const name = unique('Listed');
+    const created = parsed<{ notebookId: string }>(
+      await callTool(agent, 'create_notebook', { name, description: 'Created by an agent case.' }),
+    );
+    const again = await callTool(agent, 'create_notebook', { name, description: 'The same name.' });
+
+    expect(again.isError).toBe(true);
+    expect(again.text).toContain(created.notebookId);
+    expect((await callTool(agent, 'list_notebooks')).text).toContain(created.notebookId);
+    expect(
+      (await callTool(agent, 'delete_notebook', { notebook: created.notebookId })).isError,
+    ).toBe(false);
+
+    /**
+     * The listing is answered from a global index, which DynamoDB never serves
+     * with a consistent read: it settles a moment after the write. The
+     * deletion itself is immediate — reading that notebook answers as missing
+     * at once (RN-KNW-046) — and what this waits for is the listing to agree.
+     */
+    const listed = await eventually(
+      'the listing to stop naming a deleted notebook',
+      async () => (await callTool(agent, 'list_notebooks')).text,
+      (text) => !text.includes(created.notebookId),
+    );
+    expect(listed).not.toContain(created.notebookId);
+  });
+
+  test('[tool:get_guidance] [tool:set_guidance] [tool:get_notebook_context] writes the Guidance on the revision it read, and the context carries it', async ({
+    agent,
+    notebook,
+  }) => {
+    const empty = await callTool(agent, 'get_guidance', { notebook: notebook.notebookId });
+    expect(empty.text).toContain('baseRevision: null');
+
+    const guidance = '# Guidance\n\nOne finding per note, linked to its evidence.\n';
+    const written = parsed<{ revision: string }>(
+      await callTool(agent, 'set_guidance', {
+        notebook: notebook.notebookId,
+        content: guidance,
+        baseRevision: null,
+      }),
+    );
+    const read = parsed<{ content: string; revision: string }>(
+      await callTool(agent, 'get_guidance', { notebook: notebook.notebookId }),
+    );
+    // The revision a write answers is the one the next write names, with no
+    // read in between.
+    const next = parsed<{ revision: string }>(
+      await callTool(agent, 'set_guidance', {
+        notebook: notebook.notebookId,
+        content: `${guidance}\nEvery finding says how it was verified.\n`,
+        baseRevision: written.revision,
+      }),
+    );
+    const stale = await callTool(agent, 'set_guidance', {
+      notebook: notebook.notebookId,
+      content: '# A guidance that saw nothing\n',
+      baseRevision: null,
+    });
+    const context = await callTool(agent, 'get_notebook_context', {
+      notebook: notebook.notebookId,
+    });
+
+    expect(read.content).toBe(guidance);
+    expect(read.revision).toBe(written.revision);
+    expect(next.revision).not.toBe(written.revision);
+    expect(stale.isError).toBe(true);
+    expect(stale.text).toContain('CONFLICT');
+    expect(context.text).toContain('One finding per note');
+    expect(context.text).toContain(notebook.folderId);
+  });
+
+  test('[tool:create_folder] [tool:set_template] [tool:get_template] [tool:delete_folder] builds a folder with a Template, and removes a folder only under a policy', async ({
+    agent,
+    notebook,
+  }) => {
+    const child = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        notebook: notebook.notebookId,
+        name: 'Evidence',
+        description: 'What a finding rests on.',
+        parent: notebook.folderId,
+      }),
+    );
+    const template = '---\nname:\n---\n\n## Evidence\n';
+    const folder = { notebook: notebook.notebookId, folder: child.folderId };
+    const set = parsed<{ revision: string }>(
+      await callTool(agent, 'set_template', { ...folder, content: template, baseRevision: null }),
+    );
+    const read = parsed<{ content: string; revision: string }>(
+      await callTool(agent, 'get_template', folder),
+    );
+    // The revision the read hands over replaces the Template on the first try,
+    // and so does the one a write answers, with no read in between.
+    const replaced = parsed<{ revision: string }>(
+      await callTool(agent, 'set_template', {
+        ...folder,
+        content: `${template}\n## Source\n`,
+        baseRevision: read.revision,
+      }),
+    );
+    const again = await callTool(agent, 'set_template', {
+      ...folder,
+      content: `${template}\n## Source\n\n## Date\n`,
+      baseRevision: replaced.revision,
+    });
+    const refused = await callTool(agent, 'delete_folder', {
+      notebook: notebook.notebookId,
+      folder: notebook.folderId,
+      policy: 'REJECT_IF_NOT_EMPTY',
+    });
+    const removed = parsed<{ removedFolderIds: string[] }>(
+      await callTool(agent, 'delete_folder', {
+        notebook: notebook.notebookId,
+        folder: notebook.folderId,
+        policy: 'CASCADE',
+      }),
+    );
+
+    expect(read.content).toBe(template);
+    expect(read.revision).toBe(set.revision);
+    expect(again.isError).toBe(false);
+    expect(refused.isError).toBe(true);
+    expect(removed.removedFolderIds).toEqual(
+      expect.arrayContaining([notebook.folderId, child.folderId]),
+    );
+  });
+
+  test('[tool:delete_guidance] [tool:delete_template] takes one away and leaves its parent standing', async ({
+    agent,
+    notebook,
+  }) => {
+    const folder = { notebook: notebook.notebookId, folder: notebook.folderId };
+    await callTool(agent, 'set_guidance', {
+      notebook: notebook.notebookId,
+      content: '# Guidance\n\nWritten so it can be taken away.\n',
+      baseRevision: null,
+    });
+    await callTool(agent, 'set_template', {
+      ...folder,
+      content: '---\nname:\n---\n\n## Written so it can be taken away\n',
+      baseRevision: null,
+    });
+
+    expect(
+      (await callTool(agent, 'delete_guidance', { notebook: notebook.notebookId })).isError,
+    ).toBe(false);
+    expect((await callTool(agent, 'delete_template', folder)).isError).toBe(false);
+
+    // Each one is gone, and its parent is not: the folder is still in the tree
+    // with its notes, and the notebook still answers (RN-KNW-045).
+    expect(
+      (await callTool(agent, 'get_guidance', { notebook: notebook.notebookId })).text,
+    ).toContain('baseRevision: null');
+    expect((await callTool(agent, 'get_template', folder)).text).toContain('no template');
+    const context = await callTool(agent, 'get_notebook_context', {
+      notebook: notebook.notebookId,
+    });
+    expect(context.text).toContain(notebook.folderId);
+    expect(context.text).not.toContain('has TEMPLATE.md');
+    // A second deletion has nothing to delete.
+    expect((await callTool(agent, 'delete_template', folder)).isError).toBe(true);
+  });
+
+  test('[tool:keep_file] [tool:list_files] [tool:delete_file] keeps a file a note shows by name, lists it, and deletes it', async ({
+    agent,
+    notebook,
+  }) => {
+    // The smallest real PNG, kept under a name with no extension (RN-KNW-075).
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const name = `picture ${Date.now()}`;
+    const kept = parsed<{ fileId: string; name: string; bytes: number; reference: string }>(
+      await callTool(agent, 'keep_file', {
+        notebook: notebook.notebookId,
+        name,
+        mimeType: 'image/png',
+        path: '/evidence',
+        contentBase64: png,
+      }),
+    );
+    expect(kept.name).toBe(name);
+    expect(kept.bytes).toBeGreaterThan(0);
+    // What the agent is told to write in a note is the name, never the id.
+    expect(kept.reference).toBe(`![[${name}]]`);
+
+    const listed = parsed<{ files: Array<{ fileId: string; name: string }> }>(
+      await callTool(agent, 'list_files', { notebook: notebook.notebookId }),
+    );
+    expect(listed.files.map((file) => file.name)).toContain(name);
+
+    expect(
+      (await callTool(agent, 'delete_file', { notebook: notebook.notebookId, file: kept.fileId }))
+        .isError,
+    ).toBe(false);
+    const after = parsed<{ files: Array<{ name: string }> }>(
+      await callTool(agent, 'list_files', { notebook: notebook.notebookId }),
+    );
+    expect(after.files.map((file) => file.name)).not.toContain(name);
+  });
+
+  test('[tool:begin_file_upload] [tool:send_file_part] [tool:file_upload_status] [tool:finish_file_upload] [tool:list_file_uploads] keeps a file whole, by URL and inline, as the skill keep-files teaches', async ({
+    agent,
+    notebook,
+  }) => {
+    const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+    const picture = (size: number): Buffer => {
+      const bytes = Buffer.alloc(size, 7);
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(bytes);
+      return bytes;
+    };
+
+    // By URL: the bytes go where the answer says, with a plain PUT, as a
+    // script of the agent would send them.
+    const big = picture(600 * 1024);
+    const byUrl = parsed<{ upload: string; targets: Array<{ part: number; url: string }> }>(
+      await callTool(agent, 'begin_file_upload', {
+        notebook: notebook.notebookId,
+        name: `whole ${Date.now()}`,
+        mimeType: 'image/png',
+        size: big.length,
+        sha256: sha(big),
+        purpose: 'A picture an agent case kept whole',
+        transport: 'url',
+      }),
+    );
+    expect(byUrl.targets).toHaveLength(1);
+    const put = await fetch(byUrl.targets[0]?.url ?? '', { method: 'PUT', body: big });
+    expect(put.status).toBe(200);
+    const status = parsed<{ missing: number[] }>(
+      await callTool(agent, 'file_upload_status', { upload: byUrl.upload }),
+    );
+    expect(status.missing).toEqual([]);
+    const kept = parsed<{ reference: string; bytes: number }>(
+      await callTool(agent, 'finish_file_upload', { upload: byUrl.upload }),
+    );
+    expect(kept.bytes).toBe(big.length);
+    expect(kept.reference).toMatch(/^!\[\[whole \d+\]\]$/);
+
+    // Inline: each part with its own hash; the open upload is found again by
+    // the hash of the whole.
+    const small = picture(1500);
+    const inline = parsed<{ upload: string }>(
+      await callTool(agent, 'begin_file_upload', {
+        notebook: notebook.notebookId,
+        name: `inline ${Date.now()}`,
+        mimeType: 'image/png',
+        size: small.length,
+        sha256: sha(small),
+        purpose: 'A picture an agent case sent inline',
+        transport: 'inline',
+        partSize: 1024,
+      }),
+    );
+    const open = parsed<{ uploads: Array<{ upload: string; sha256: string }> }>(
+      await callTool(agent, 'list_file_uploads', { notebook: notebook.notebookId }),
+    );
+    expect(open.uploads.find((each) => each.sha256 === sha(small))?.upload).toBe(inline.upload);
+    for (const part of [1, 2]) {
+      const bytes = small.subarray((part - 1) * 1024, part * 1024);
+      const sent = await callTool(agent, 'send_file_part', {
+        upload: inline.upload,
+        part,
+        sha256: sha(bytes),
+        contentBase64: bytes.toString('base64'),
+      });
+      expect(sent.isError).toBe(false);
+    }
+    expect((await callTool(agent, 'finish_file_upload', { upload: inline.upload })).isError).toBe(
+      false,
+    );
+  });
+
+  test('[tool:request_file] [tool:discard_file_upload] hands an upload no part reached to the person, and throws an attempt away (#253)', async ({
+    agent,
+    notebook,
+  }) => {
+    const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+    const whole = Buffer.alloc(3000, 9);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(whole);
+    const name = `requested ${Date.now()}`;
+
+    // An agent with no network opens an upload by URL and no part arrives.
+    const begun = parsed<{ upload: string }>(
+      await callTool(agent, 'begin_file_upload', {
+        notebook: notebook.notebookId,
+        name,
+        mimeType: 'image/png',
+        size: whole.length,
+        sha256: sha(whole),
+        purpose: 'A picture an agent could not send',
+        transport: 'url',
+      }),
+    );
+    const request = parsed<{ request: string; name: string; reference: string }>(
+      await callTool(agent, 'request_file', { upload: begun.upload }),
+    );
+    expect(request).toMatchObject({ name, reference: `![[${name}]]` });
+
+    // The upload became the request: the sweep sees it waiting for the person.
+    const check = parsed<{ openUploads: Array<{ upload: string; kind: string }> }>(
+      await callTool(agent, 'check_notebook', { notebook: notebook.notebookId }),
+    );
+    const open = check.openUploads.map((each) => [each.upload, each.kind]);
+    expect(open).toContainEqual([request.request, 'request']);
+    expect(open.map(([upload]) => upload)).not.toContain(begun.upload);
+
+    expect(
+      (await callTool(agent, 'discard_file_upload', { upload: request.request })).isError,
+    ).toBe(false);
+    const after = parsed<{ uploads: Array<{ upload: string }> }>(
+      await callTool(agent, 'list_file_uploads', { notebook: notebook.notebookId }),
+    );
+    expect(after.uploads.map((each) => each.upload)).not.toContain(request.request);
+  });
+
+  test('[tool:next_number] issues the next number of a folder', async ({ agent, notebook }) => {
+    const folder = { notebook: notebook.notebookId, folder: notebook.folderId };
+    const first = parsed<{ number: number }>(await callTool(agent, 'next_number', folder));
+    const second = parsed<{ number: number }>(await callTool(agent, 'next_number', folder));
+    expect(second.number).toBe(first.number + 1);
+  });
+
+  test('[tool:reorder_folder] [tool:reorder_note] orders the folders of a level and the notes of a folder, when they are written and afterwards', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const sources = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Sources',
+        description: 'Where a finding comes from.',
+      }),
+    );
+    const glossary = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Glossary',
+        description: 'The words of this notebook.',
+        after: notebook.folderId,
+      }),
+    );
+    // A notebook is not a folder of this level, so it anchors nothing.
+    const refused = await callTool(agent, 'reorder_folder', {
+      ...where,
+      folder: sources.folderId,
+      after: notebook.notebookId,
+    });
+    const level = parsed<Array<{ folderId: string }>>(
+      await callTool(agent, 'reorder_folder', { ...where, folder: sources.folderId, after: null }),
+    );
+    const context = await callTool(agent, 'get_notebook_context', where);
+
+    expect(refused.isError).toBe(true);
+    expect(level.map((folder) => folder.folderId)).toEqual([
+      sources.folderId,
+      notebook.folderId,
+      glossary.folderId,
+    ]);
+    const at = (id: string) => context.text.indexOf(id);
+    expect(at(sources.folderId)).toBeLessThan(at(notebook.folderId));
+    expect(at(notebook.folderId)).toBeLessThan(at(glossary.folderId));
+
+    const write = async (name: string, after?: string) =>
+      parsed<{ noteId: string }>(
+        await callTool(agent, 'create_note', {
+          ...where,
+          folder: notebook.folderId,
+          content: `---\nname: ${name}\n---\n`,
+          ...(after === undefined ? {} : { after }),
+        }),
+      );
+    const first = await write('First');
+    const third = await write('Third');
+    // Written right after the first, a moment later: the listing of the folder
+    // may not show the first yet, and it anchors all the same.
+    const second = await write('Second', first.noteId);
+    const notes = parsed<Array<{ noteId: string }>>(
+      await callTool(agent, 'reorder_note', { ...where, note: third.noteId, after: null }),
+    );
+    expect(notes[0]?.noteId).toBe(third.noteId);
+
+    const ours = new Set([first.noteId, second.noteId, third.noteId]);
+    await eventually(
+      'the notes of the folder in the order the agent gave them',
+      () => callTool(agent, 'list_notes', { ...where, folder: notebook.folderId }),
+      (answer) =>
+        (JSON.parse(answer.text) as { notes: Array<{ noteId: string }> }).notes
+          .map((note) => note.noteId)
+          .filter((id) => ours.has(id))
+          .join() === [third.noteId, first.noteId, second.noteId].join(),
+    );
+  });
+
+  test('[tool:move_note] [tool:note_history] moves a note to another folder with its history, and refuses a folder that holds its name (#265)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const published = parsed<{ folderId: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Published',
+        description: 'What was approved, moved here from Findings.',
+      }),
+    );
+    const write = async (folder: string, content: string) =>
+      parsed<{ noteId: string; revision: string }>(
+        await callTool(agent, 'create_note', { ...where, folder, content }),
+      );
+    const draft = await write(notebook.folderId, '---\nname: Draft\n---\n\nFirst take.\n');
+    await callTool(agent, 'update_note', {
+      ...where,
+      note: draft.noteId,
+      content: '---\nname: Draft\n---\n\nSecond take.\n',
+      baseRevision: draft.revision,
+    });
+
+    const moved = parsed<{ noteId: string; folderId: string; folder: string[] }>(
+      await callTool(agent, 'move_note', {
+        ...where,
+        note: draft.noteId,
+        folder: published.folderId,
+      }),
+    );
+    expect(moved.noteId).toBe(draft.noteId);
+    expect(moved.folderId).toBe(published.folderId);
+    expect(moved.folder).toEqual(['Published']);
+
+    // The same note where it now is, and every revision it had, plus the move.
+    const read = parsed<{ noteId: string; folderId: string; content: string }>(
+      await callTool(agent, 'read_note', { ...where, note: draft.noteId }),
+    );
+    expect(read.folderId).toBe(published.folderId);
+    expect(read.content).toContain('Second take.');
+    await eventually(
+      'both writes and the move in the history of the note',
+      async () =>
+        parsed<Array<{ type: string; revision: string | null }>>(
+          await callTool(agent, 'note_history', { ...where, note: draft.noteId }),
+        ),
+      (history) =>
+        history.filter((entry) => entry.revision !== null).length >= 2 &&
+        history.some((entry) => entry.type === 'NoteMoved'),
+    );
+
+    // A folder holds one note of each name, and the refusal names the one there.
+    const twin = await write(notebook.folderId, '---\nname: Draft\n---\n\nAnother take.\n');
+    const refused = await callTool(agent, 'move_note', {
+      ...where,
+      note: twin.noteId,
+      folder: published.folderId,
+    });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('ALREADY_EXISTS');
+    expect(refused.text).toContain(draft.noteId);
+    const stayed = parsed<{ folderId: string }>(
+      await callTool(agent, 'read_note', { ...where, note: twin.noteId }),
+    );
+    expect(stayed.folderId).toBe(notebook.folderId);
+  });
+
+  test('[tool:create_folder] [tool:set_note_order] [tool:list_notes] orders the notes of a folder by name, says so in the context, and refuses to move one there (#262)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const minutes = parsed<{ folderId: string; noteOrder: string }>(
+      await callTool(agent, 'create_folder', {
+        ...where,
+        name: 'Minutes',
+        description: 'One note per meeting, looked up by its name.',
+        noteOrder: 'alphabetical',
+      }),
+    );
+    expect(minutes.noteOrder).toBe('alphabetical');
+    const written: string[] = [];
+    for (const name of ['Ata 10', 'Ata 2', 'Ata 1']) {
+      written.push(
+        parsed<{ noteId: string }>(
+          await callTool(agent, 'create_note', {
+            ...where,
+            folder: minutes.folderId,
+            content: `---\nname: ${name}\n---\n\nWhat was decided.\n`,
+          }),
+        ).noteId,
+      );
+    }
+    const names = (answer: { text: string }) =>
+      (JSON.parse(answer.text) as { notes: Array<{ name: string | null }> }).notes
+        .map((note) => note.name)
+        .join();
+    await eventually(
+      'the notes of the folder by name',
+      () => callTool(agent, 'list_notes', { ...where, folder: minutes.folderId }),
+      (answer) => names(answer) === 'Ata 1,Ata 2,Ata 10',
+    );
+
+    const context = await callTool(agent, 'get_notebook_context', where);
+    expect(context.text).toMatch(new RegExp(`${minutes.folderId}\`:[^\n]*notes ordered by name`));
+
+    const moved = await callTool(agent, 'reorder_note', {
+      ...where,
+      note: written[2] ?? '',
+      after: null,
+    });
+    expect(moved.isError).toBe(true);
+    expect(moved.text).toContain('orders its notes by name');
+
+    // Back by hand: the order the notes were written in.
+    const manual = parsed<{ noteOrder: string }>(
+      await callTool(agent, 'set_note_order', {
+        ...where,
+        folder: minutes.folderId,
+        noteOrder: 'manual',
+      }),
+    );
+    expect(manual.noteOrder).toBe('manual');
+    await eventually(
+      'the notes of the folder in the order they were written',
+      () => callTool(agent, 'list_notes', { ...where, folder: minutes.folderId }),
+      (answer) => names(answer) === 'Ata 10,Ata 2,Ata 1',
+    );
+  });
+
+  test('[tool:create_note] [tool:check_notebook] answers where the page will not show a note as typed (#291)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const name = `Unclosed ${randomBytes(3).toString('hex')}`;
+    const created = parsed<{
+      noteId: string;
+      notices: Array<{ code: string; severity: string; line: number }>;
+    }>(
+      await callTool(agent, 'create_note', {
+        ...where,
+        folder: notebook.folderId,
+        content: `---\nname: ${name}\n---\n\n### Skipped\n\n\`\`\`\nnever closed\n`,
+      }),
+    );
+    expect(created.notices.map((each) => each.code)).toEqual(
+      expect.arrayContaining(['heading-first-level', 'fence-unclosed', 'aliases-missing']),
+    );
+    expect(created.notices.find((each) => each.code === 'fence-unclosed')?.line).toBe(7);
+
+    await eventually(
+      'the sweep reading the notices of the new note',
+      () => callTool(agent, 'check_notebook', where),
+      (answer) =>
+        (
+          JSON.parse(answer.text) as {
+            notices: Array<{ code: string; note: { noteId: string } }>;
+          }
+        ).notices.some(
+          (each) => each.note.noteId === created.noteId && each.code === 'fence-unclosed',
+        ),
+    );
+  });
+
+  test('[tool:update_folder] [tool:get_notebook_context] renames, redescribes and moves a folder, and refuses a name a sibling holds (#278)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const create = async (name: string, parent?: string) =>
+      parsed<{ folderId: string }>(
+        await callTool(agent, 'create_folder', {
+          ...where,
+          name,
+          description: `What ${name} holds.`,
+          ...(parent ? { parent } : {}),
+        }),
+      ).folderId;
+    const drafts = await create('Drafts');
+    const archive = await create('Archive');
+
+    const renamed = parsed<{ name: string; description: string; parentFolderId: string | null }>(
+      await callTool(agent, 'update_folder', {
+        ...where,
+        folder: drafts,
+        name: 'Proposals',
+        description: 'One proposal per note, until it is decided.',
+      }),
+    );
+    expect(renamed).toMatchObject({
+      name: 'Proposals',
+      description: 'One proposal per note, until it is decided.',
+    });
+
+    const moved = parsed<{ parentFolderId: string | null }>(
+      await callTool(agent, 'update_folder', { ...where, folder: drafts, parent: archive }),
+    );
+    expect(moved.parentFolderId).toBe(archive);
+    const context = await callTool(agent, 'get_notebook_context', where);
+    expect(context.text).toContain('Proposals');
+    expect(context.text).toContain('One proposal per note, until it is decided.');
+
+    // Back to the top, where a sibling now holds the name it asks for.
+    const top = parsed<{ parentFolderId: string | null }>(
+      await callTool(agent, 'update_folder', { ...where, folder: drafts, parent: null }),
+    );
+    expect(top.parentFolderId).toBeNull();
+    const refused = await callTool(agent, 'update_folder', {
+      ...where,
+      folder: drafts,
+      name: 'Archive',
+    });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('CONFLICT');
+  });
+
+  test('[tool:create_note] [tool:list_notes] [tool:read_note] [tool:update_note] [tool:delete_note] writes a note, edits it on the revision it read, and deletes it', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    const created = parsed<{ noteId: string; name: string | null }>(
+      await callTool(agent, 'create_note', {
+        ...where,
+        folder: notebook.folderId,
+        content: '---\nname: Agent finding\n---\n\nWritten by an agent.\n',
+      }),
+    );
+    expect(created.name).toBe('Agent finding');
+    expect(
+      (await callTool(agent, 'list_notes', { ...where, folder: notebook.folderId })).text,
+    ).toContain(created.noteId);
+    // A second note, so a page of one has a page after it.
+    await callTool(agent, 'create_note', {
+      ...where,
+      folder: notebook.folderId,
+      content: '---\nname: Agent finding, the second\n---\n\nWritten by an agent.\n',
+    });
+    // The index carries the four fields of each note and a cursor, and nothing
+    // else of the note (RN-AGT-031).
+    const page = parsed<{ notes: Array<Record<string, unknown>>; nextCursor: string | null }>(
+      await callTool(agent, 'list_notes', { ...where, folder: notebook.folderId, limit: 1 }),
+    );
+    expect(page.notes).toHaveLength(1);
+    expect(Object.keys(page.notes[0] ?? {}).sort()).toEqual([
+      'folderId',
+      'name',
+      'noteId',
+      'position',
+    ]);
+    expect(page.nextCursor).not.toBeNull();
+
+    const note = { ...where, note: created.noteId };
+    // The tool hands the revision over as the string to pass back, not as the
+    // content reference the API answers.
+    const read = parsed<{
+      content: string;
+      revision: string;
+      folder: string[];
+      links: unknown[];
+    }>(await callTool(agent, 'read_note', note));
+    // Where the note lives and where its links go come beside the body (#128).
+    expect(read.folder.length).toBeGreaterThan(0);
+    expect(Array.isArray(read.links)).toBe(true);
+    const updated = parsed<{ content: string }>(
+      await callTool(agent, 'update_note', {
+        ...note,
+        content: `${read.content}\nEdited on the revision it read.\n`,
+        baseRevision: read.revision,
+      }),
+    );
+    const stale = await callTool(agent, 'update_note', {
+      ...note,
+      content: 'An edit that saw nothing.\n',
+      baseRevision: read.revision,
+    });
+    expect(updated.content).toContain('Edited on the revision it read.');
+    expect(stale.isError).toBe(true);
+    expect(stale.text).toContain('CONFLICT');
+
+    expect((await callTool(agent, 'delete_note', note)).isError).toBe(false);
+    expect(
+      (await callTool(agent, 'list_notes', { ...where, folder: notebook.folderId })).text,
+    ).not.toContain(created.noteId);
+  });
+
+  test('[tool:search_notes] [tool:related_notes] [tool:backlinks] finds a note by its text and follows its links, once the projection has them', async ({
+    agent,
+    notebook,
+  }) => {
+    const word = `basalt${randomBytes(3).toString('hex')}`;
+    const write = async (content: string) =>
+      parsed<{ noteId: string }>(
+        await callTool(agent, 'create_note', {
+          notebook: notebook.notebookId,
+          folder: notebook.folderId,
+          content,
+        }),
+      );
+    const beta = await write(`---\nname: Beta\n---\n\nThe ${word} evidence.\n`);
+    const alpha = await write('---\nname: Alpha\n---\n\nIt rests on [[Beta]].\n');
+    const where = { notebook: notebook.notebookId };
+
+    await eventually(
+      `the note carrying ${word} in search`,
+      () => callTool(agent, 'search_notes', { ...where, query: word }),
+      (answer) => answer.text.includes(beta.noteId),
+    );
+    await eventually(
+      'Beta beneath Alpha',
+      () => callTool(agent, 'related_notes', { ...where, note: alpha.noteId, depth: 1 }),
+      (answer) => !answer.isError && answer.text.includes(beta.noteId),
+    );
+    await eventually(
+      'Alpha among the backlinks of Beta',
+      () => callTool(agent, 'backlinks', { ...where, note: beta.noteId }),
+      (answer) => answer.text.includes(alpha.noteId),
+    );
+  });
+
+  test('[tool:check_notebook] tells a pending link left on purpose from one that almost reaches a note (#217)', async ({
+    agent,
+    notebook,
+  }) => {
+    const tag = randomBytes(3).toString('hex');
+    const write = async (content: string) =>
+      parsed<{ noteId: string }>(
+        await callTool(agent, 'create_note', {
+          notebook: notebook.notebookId,
+          folder: notebook.folderId,
+          content,
+        }),
+      );
+    const meant = await write(`---\nname: Nebula${tag} Orion\n---\n\nThe target.\n`);
+    // One link cut short of a name the notebook has, one to a note still to write.
+    await write(`---\nname: Session ${tag}\n---\n\nSaw [[Nebula${tag}]] and [[Galaxy${tag}]].\n`);
+
+    type Check = {
+      pending: { target: string; likelyMeant: { noteId: string | null } | null }[];
+    };
+    const answer = await eventually(
+      'both links of the session pending',
+      async () =>
+        parsed<Check>(await callTool(agent, 'check_notebook', { notebook: notebook.notebookId })),
+      (check) =>
+        [`Nebula${tag}`, `Galaxy${tag}`].every((target) =>
+          check.pending.some((p) => p.target === target),
+        ),
+    );
+    const find = (target: string) => answer.pending.find((pending) => pending.target === target);
+    expect(find(`Nebula${tag}`)?.likelyMeant?.noteId).toBe(meant.noteId);
+    expect(find(`Galaxy${tag}`)?.likelyMeant).toBeNull();
+  });
+
+  test('[tool:preview_note] [tool:get_preview] draws a note, a part of it or a draft as the person reads it, and answers the image (#260)', async ({
+    agent,
+    notebook,
+  }, testInfo) => {
+    test.setTimeout(420_000);
+    const created = parsed<{ noteId: string }>(
+      await callTool(agent, 'create_note', {
+        notebook: notebook.notebookId,
+        folder: notebook.folderId,
+        content:
+          '---\nname: Plan limits\n---\n\nWhat each plan holds.\n\n## Limits\n\n' +
+          '> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n' +
+          '## Elsewhere\n\nNot part of the limits.\n',
+      }),
+    );
+
+    /** Starts a preview, and asks for it until it is drawn or says why not. */
+    const drawn = async (args: Record<string, unknown>) => {
+      const { preview } = parsed<{ preview: string }>(
+        await callTool(agent, 'preview_note', { notebook: notebook.notebookId, ...args }),
+      );
+      return eventually(
+        'the preview to be drawn',
+        () => callTool(agent, 'get_preview', { notebook: notebook.notebookId, preview }),
+        (answer) => answer.isError || answer.images.length > 0,
+        // A cold renderer unpacks a browser before it opens the page.
+        { timeoutMs: 180_000, intervalMs: 3_000 },
+      );
+    };
+    /** The width and the height a PNG declares in its header. */
+    const sizeOf = (png: Buffer) => {
+      expect(png.subarray(1, 4).toString('latin1')).toBe('PNG');
+      return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+    };
+
+    const part = await drawn({ note: created.noteId, part: '#Limits' });
+    expect(part.isError, part.text).toBe(false);
+    expect(part.images).toHaveLength(1);
+    expect(part.images[0]?.mimeType).toBe('image/png');
+    const png = Buffer.from(part.images[0]?.data ?? '', 'base64');
+    const size = sizeOf(png);
+    expect(size.width).toBe(760);
+    expect(size.height).toBeLessThanOrEqual(1600);
+    expect(part.text).toBe(`Drawn at 760×${size.height} px.`);
+    await testInfo.attach('part of a note.png', { body: png, contentType: 'image/png' });
+
+    const draft = await drawn({
+      content:
+        '---\nname: A draft\n---\n\nLinks to [[Plan limits]].\n\n```mermaid\ngraph LR; A-->B\n```\n',
+      folder: notebook.folderId,
+    });
+    expect(draft.isError, draft.text).toBe(false);
+    const drafted = Buffer.from(draft.images[0]?.data ?? '', 'base64');
+    expect(sizeOf(drafted).width).toBe(760);
+    await testInfo.attach('a draft.png', { body: drafted, contentType: 'image/png' });
+
+    const missing = await drawn({ note: created.noteId, part: '#Nowhere' });
+    expect(missing.isError).toBe(true);
+    expect(missing.text).toMatch(/^PART_NOT_FOUND: nothing was drawn/);
+
+    const both = await callTool(agent, 'preview_note', {
+      notebook: notebook.notebookId,
+      note: created.noteId,
+      content: '# x',
+    });
+    expect(both.isError).toBe(true);
+    expect(both.text).toContain('exactly one of the two');
+  });
+
+  test('[tool:note_history] [tool:read_note] records the connector of every write, and reads a note as it was', async ({
+    agent,
+    notebook,
+    connector,
+  }) => {
+    const created = parsed<{ noteId: string }>(
+      await callTool(agent, 'create_note', {
+        notebook: notebook.notebookId,
+        folder: notebook.folderId,
+        content: '---\nname: Dated finding\n---\n\nAs first written.\n',
+      }),
+    );
+    const note = { notebook: notebook.notebookId, note: created.noteId };
+    const first = parsed<{ content: string; revision: string }>(
+      await callTool(agent, 'read_note', note),
+    );
+    parsed(
+      await callTool(agent, 'update_note', {
+        ...note,
+        content: '---\nname: Dated finding\n---\n\nAs written later.\n',
+        baseRevision: first.revision,
+      }),
+    );
+
+    // The tool answers the timeline as a list, each write naming its revision
+    // and the connector that made it.
+    const history = await eventually(
+      'both writes in the history',
+      async () =>
+        parsed<
+          Array<{ occurredAt: string; revision: string | null; agentClientId: string | null }>
+        >(await callTool(agent, 'note_history', note)),
+      (answer) => answer.filter((entry) => entry.revision !== null).length >= 2,
+    );
+    for (const entry of history) {
+      expect(entry.agentClientId).toBe(connector.clientId);
+    }
+
+    const earliest = history.find((entry) => entry.revision !== null);
+    const asItWas = parsed<{ content: string }>(
+      await callTool(agent, 'read_note', { ...note, asOf: earliest?.occurredAt }),
+    );
+    expect(asItWas.content).toBe(first.content);
+  });
+});
+
+test.describe('the tables of a notebook (#366)', () => {
+  test('[tool:create_table] [tool:list_tables] [tool:insert_rows] [tool:query_table] [tool:update_rows] [tool:delete_rows] [tool:alter_table] [tool:delete_table] keeps rows checked against a schema, upserts by key and reads them through a filter', async ({
+    agent,
+    notebook,
+  }) => {
+    const name = `expenses-${randomBytes(4).toString('hex')}`;
+    const created = await callTool(agent, 'create_table', {
+      notebook: notebook.notebookId,
+      name,
+      description: 'Created by a functional case.',
+      schema: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', format: 'date' },
+          description: { type: 'string' },
+          amount: { type: 'number' },
+        },
+        required: ['date', 'description', 'amount'],
+      },
+      key: ['date', 'description'],
+    });
+    expect(created.isError).toBe(false);
+
+    const listed = parsed<{ tables: Array<{ name: string }> }>(
+      await callTool(agent, 'list_tables', { notebook: notebook.notebookId }),
+    );
+    expect(listed.tables.map((table) => table.name)).toContain(name);
+
+    const rows = [
+      { date: '2026-10-01', description: 'Market', amount: 120.5 },
+      { date: '2026-10-15', description: 'Pharmacy', amount: 30 },
+    ];
+    const written = parsed<{ inserted: number }>(
+      await callTool(agent, 'insert_rows', { notebook: notebook.notebookId, table: name, rows }),
+    );
+    expect(written.inserted).toBe(2);
+    const upserted = parsed<{ updated: number }>(
+      await callTool(agent, 'insert_rows', {
+        notebook: notebook.notebookId,
+        table: name,
+        rows,
+        mode: 'upsert',
+      }),
+    );
+    expect(upserted.updated).toBe(2);
+
+    const page = parsed<{ rows: Array<{ values: Record<string, unknown> }>; total: number }>(
+      await callTool(agent, 'query_table', {
+        notebook: notebook.notebookId,
+        table: name,
+        where: 'amount:>100',
+      }),
+    );
+    expect(page.total).toBe(1);
+    expect(page.rows[0]?.values['description']).toBe('Market');
+
+    const key = { date: '2026-10-15', description: 'Pharmacy' };
+    expect(
+      (
+        await callTool(agent, 'update_rows', {
+          notebook: notebook.notebookId,
+          table: name,
+          updates: [{ target: { key }, set: { amount: 31 } }],
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (
+        await callTool(agent, 'alter_table', {
+          notebook: notebook.notebookId,
+          table: name,
+          changes: [
+            { op: 'add-column', name: 'paid', schema: { type: 'boolean', default: false } },
+          ],
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (
+        await callTool(agent, 'delete_rows', {
+          notebook: notebook.notebookId,
+          table: name,
+          targets: [{ key }],
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (await callTool(agent, 'delete_table', { notebook: notebook.notebookId, table: name }))
+        .isError,
+    ).toBe(false);
+  });
+
+  test('[tool:import_table] proposes a schema out of a CSV it keeps, then imports its rows', async ({
+    agent,
+    notebook,
+  }) => {
+    const file = `statement-${randomBytes(4).toString('hex')}.csv`;
+    const kept = await callTool(agent, 'keep_file', {
+      notebook: notebook.notebookId,
+      name: file,
+      mimeType: 'text/csv',
+      content: 'Data;Descrição;Valor\n01/10/2026;Mercado;"1.250,75"\n15/10/2026;Farmácia;30\n',
+    });
+    expect(kept.isError).toBe(false);
+
+    const proposed = parsed<{ proposal: { rows: number; schema: Record<string, unknown> } }>(
+      await callTool(agent, 'import_table', { notebook: notebook.notebookId, fileName: file }),
+    );
+    expect(proposed.proposal.rows).toBe(2);
+
+    const table = file.replace('.csv', '');
+    await callTool(agent, 'create_table', {
+      notebook: notebook.notebookId,
+      name: table,
+      schema: proposed.proposal.schema,
+    });
+    const imported = parsed<{ imported: { inserted: number } }>(
+      await callTool(agent, 'import_table', {
+        notebook: notebook.notebookId,
+        fileName: file,
+        table,
+      }),
+    );
+    expect(imported.imported.inserted).toBe(2);
+  });
+});
+
+test.describe('the dashboards of a notebook (#368)', () => {
+  test('[tool:create_dashboard] [tool:list_dashboards] [tool:read_dashboard] [tool:update_dashboard] [tool:delete_dashboard] [tool:preview_dashboard] builds a dashboard over a table and reads what it shows', async ({
+    agent,
+    notebook,
+  }) => {
+    const table = `contas-${randomBytes(4).toString('hex')}`;
+    await callTool(agent, 'create_table', {
+      notebook: notebook.notebookId,
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          descricao: { type: 'string' },
+          valor: { type: 'number' },
+          status: { type: 'string', enum: ['aberta', 'paga'] },
+        },
+      },
+    });
+    await callTool(agent, 'insert_rows', {
+      notebook: notebook.notebookId,
+      table,
+      rows: [
+        { descricao: 'Luz', valor: 80, status: 'aberta' },
+        { descricao: 'Água', valor: 40, status: 'paga' },
+      ],
+    });
+
+    const name = `Contas ${randomBytes(3).toString('hex')}`;
+    const created = await callTool(agent, 'create_dashboard', {
+      notebook: notebook.notebookId,
+      name,
+      definition: {
+        layout: 'two-columns',
+        components: [
+          { id: 'total', type: 'kpi', slot: 'left', source: { table, measure: 'sum(valor)' } },
+          {
+            id: 'situacao',
+            type: 'bar',
+            slot: 'left',
+            source: { table, group: 'status', measures: ['count()'] },
+          },
+          {
+            id: 'quadro',
+            type: 'kanban',
+            slot: 'right',
+            source: { table },
+            options: { lane: 'status', card: 'descricao' },
+          },
+        ],
+      },
+    });
+    expect(created.isError).toBe(false);
+
+    const listed = parsed<{ dashboards: Array<{ name: string }> }>(
+      await callTool(agent, 'list_dashboards', { notebook: notebook.notebookId }),
+    );
+    expect(listed.dashboards.map((each) => each.name)).toContain(name);
+
+    const shown = parsed<{ components: Array<Record<string, unknown>> }>(
+      await callTool(agent, 'read_dashboard', { notebook: notebook.notebookId, dashboard: name }),
+    );
+    expect(shown.components[0]).toMatchObject({ status: 'ok', value: 120 });
+
+    // A mark clicked, as a person sees it (#369).
+    const crossed = parsed<{ components: Array<Record<string, unknown>> }>(
+      await callTool(agent, 'read_dashboard', {
+        notebook: notebook.notebookId,
+        dashboard: name,
+        cross: { component: 'situacao', key: 'paga' },
+      }),
+    );
+    expect(crossed.components[0]).toMatchObject({ status: 'ok', value: 40 });
+
+    expect(
+      (
+        await callTool(agent, 'update_dashboard', {
+          notebook: notebook.notebookId,
+          dashboard: name,
+          description: 'As contas da casa',
+        })
+      ).isError,
+    ).toBe(false);
+    const preview = parsed<{ preview: string }>(
+      await callTool(agent, 'preview_dashboard', {
+        notebook: notebook.notebookId,
+        dashboard: name,
+        cross: { component: 'situacao', key: 'paga' },
+      }),
+    );
+    const image = await eventually(
+      'the dashboard to be drawn',
+      () =>
+        callTool(agent, 'get_preview', { notebook: notebook.notebookId, preview: preview.preview }),
+      (answer) => answer.isError || answer.images.length > 0,
+      { timeoutMs: 180_000, intervalMs: 3_000 },
+    );
+    expect(image.isError, image.text).toBe(false);
+    const png = Buffer.from(image.images[0]?.data ?? '', 'base64');
+    // As wide as a computer draws it, wider than the reading width of a note.
+    expect(png.readUInt32BE(16)).toBeGreaterThanOrEqual(1200);
+    writeFileSync(test.info().outputPath('dashboard-crossed.png'), png);
+
+    expect(
+      (
+        await callTool(agent, 'delete_dashboard', {
+          notebook: notebook.notebookId,
+          dashboard: name,
+        })
+      ).isError,
+    ).toBe(false);
+  });
+});

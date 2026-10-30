@@ -109,6 +109,9 @@ export const NOTEBOOK_LIFE_EVENT_TYPES: readonly DomainEventType[] = [
   'NotebookShareRejected',
   'NotebookShareRevoked',
   'NotebookShareLeft',
+  'NotebookShareProfileChanged',
+  'NotebookShareIncreaseAccepted',
+  'NotebookShareIncreaseRejected',
 ];
 
 export const survivesTheNotebook = (type: DomainEventType): boolean =>

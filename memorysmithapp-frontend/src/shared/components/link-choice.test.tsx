@@ -60,6 +60,8 @@ const STRUCTURE = {
   notebook: { id: NOTEBOOK, slug: 'n', name: 'N', description: '', noteCount: 3, updatedAt: '' },
   guidance: null,
   guidanceRevision: null,
+  structureRevision: '1',
+  permissions: { writeContent: true, maintain: true, administer: true },
   effectiveRole: 'OWNER',
   folders: [
     folder('01J8X2K9QZ3M4N5P6R7S8T9VF1', 'Code', [

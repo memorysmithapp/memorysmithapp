@@ -8,6 +8,15 @@
 // never goes through the listing to find it.
 
 import type {
+  NotebookTableUsesDto,
+  PreviewDto,
+  DashboardCrossFilter as DashboardCross,
+  DashboardDataDto,
+  DashboardListDto,
+  NotebookDashboardDto,
+  NotebookTableDto,
+  TableListDto,
+  TablePageDto,
   AccountLocaleDto,
   ChangedPassword,
   AvatarSourceDto,
@@ -15,6 +24,8 @@ import type {
   NotificationDto,
   NotificationListDto,
   OutgoingShareDto,
+  ShareProfileDto,
+  NoteContextDto,
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
@@ -41,6 +52,14 @@ import type {
   NoteRefDto,
   NotebookSummaryDto,
   SubscriptionUsageDto,
+  DeclareModelRequest,
+  ModelListDto,
+  ModelVersionDto,
+  ModelVersionViewDto,
+  PublicModelDto,
+  PublicVersionViewDto,
+  NotebookModelDto,
+  ParameterValueDto,
 } from '@memorysmithapp/contracts';
 import type {
   FolderNode,
@@ -51,7 +70,8 @@ import type {
   NotebookSummary,
 } from '../types/api';
 import { splitFrontmatter } from './markdown';
-import { request } from './http';
+import { publicRequest, request } from './http';
+import { ApiError } from './error-mapper';
 import { adoptSession } from '../auth/oauth';
 
 export async function getSession(): Promise<SessionDto> {
@@ -132,6 +152,128 @@ export async function deleteNotebook(notebookId: string): Promise<void> {
   await request<void>(`/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
 }
 
+// ---- Notebook models (#353, #354, #359) ------------------------------------
+
+export async function listModels(): Promise<ModelListDto['models']> {
+  return (await request<ModelListDto>('/portability/models')).models;
+}
+
+/** The model of a notebook, or null when the notebook is no model. */
+export async function getModel(notebookId: string): Promise<NotebookModelDto | null> {
+  try {
+    return await request<NotebookModelDto>(`/portability/models/${notebookId}`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function declareModel(
+  notebookId: string,
+  declaration: DeclareModelRequest,
+): Promise<void> {
+  await request<unknown>(`/portability/models/${notebookId}`, {
+    method: 'PUT',
+    body: declaration,
+  });
+}
+
+export async function createModelVersion(
+  notebookId: string,
+  changelog: string,
+  tables?: Array<{ name: string; rows: boolean }>,
+): Promise<ModelVersionDto> {
+  return request<ModelVersionDto>(`/portability/models/${notebookId}/versions`, {
+    method: 'POST',
+    // Absent tables are every table with its rows (#366, RN-PRT-049).
+    body: { changelog, ...(tables ? { tables } : {}) },
+  });
+}
+
+export async function getModelVersion(
+  notebookId: string,
+  version: number,
+): Promise<ModelVersionViewDto> {
+  return request<ModelVersionViewDto>(`/portability/models/${notebookId}/versions/${version}`);
+}
+
+export async function deleteModelVersion(notebookId: string, version: number): Promise<void> {
+  await request<void>(`/portability/models/${notebookId}/versions/${version}`, {
+    method: 'DELETE',
+  });
+}
+
+/** An independent notebook created from a version; the answer is the import to follow. */
+export async function createFromVersion(
+  notebookId: string,
+  version: number,
+  input: { name: string; values: Record<string, ParameterValueDto> },
+): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/models/${notebookId}/versions/${version}/notebooks`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+// ---- The community catalog (#360) -----------------------------------------
+
+/** Publishes a model of this subscription, or says its entry again. */
+export async function publishModel(
+  notebookId: string,
+  input: { language: string; acceptLicence: boolean },
+): Promise<PublicModelDto> {
+  return request<PublicModelDto>(`/portability/models/${notebookId}/publication`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+export async function withdrawModel(notebookId: string): Promise<void> {
+  await request<void>(`/portability/models/${notebookId}/publication`, { method: 'DELETE' });
+}
+
+/** What anybody finds, with no session: read through the edge. */
+export async function searchCatalog(query: {
+  text: string;
+  language: string | null;
+}): Promise<PublicModelDto[]> {
+  const params = new URLSearchParams();
+  if (query.text.trim()) params.set('q', query.text.trim());
+  if (query.language) params.set('language', query.language);
+  const suffix = params.size > 0 ? `?${params.toString()}` : '';
+  return (await publicRequest<{ models: PublicModelDto[] }>(`/public/catalog${suffix}`)).models;
+}
+
+export async function getCatalogModel(publicId: string): Promise<PublicModelDto> {
+  return publicRequest<PublicModelDto>(`/public/catalog/${publicId}`);
+}
+
+export async function getCatalogVersion(
+  publicId: string,
+  version: number,
+): Promise<PublicVersionViewDto> {
+  return publicRequest<PublicVersionViewDto>(`/public/catalog/${publicId}/versions/${version}`);
+}
+
+/** A notebook of this subscription from a published version, for whoever signed in. */
+export async function createFromCatalog(
+  publicId: string,
+  version: number,
+  input: { name: string; values: Record<string, ParameterValueDto> },
+): Promise<TransferDto> {
+  return request<TransferDto>(`/portability/catalog/${publicId}/versions/${version}/notebooks`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function reportModel(publicId: string, reason: string): Promise<void> {
+  await request<void>(`/portability/catalog/${publicId}/reports`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
 export async function listNotebooks(): Promise<NotebookSummary[]> {
   const notebooks = await request<NotebookSummaryDto[]>('/knowledge/notebooks');
   return notebooks.map(toSummary);
@@ -169,6 +311,7 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
           id: note.noteId,
           name: note.name,
           folderId: note.folderId,
+          ...(note.staleContext ? { staleContext: note.staleContext } : {}),
         })),
       children: build(folder.folderId),
     }));
@@ -201,6 +344,103 @@ export async function getNotebookAttachments(
   return answer.attachments;
 }
 
+/** The tables the notes of a notebook name, each with those notes (#366, §5.9). */
+export async function getTableUses(notebookId: string): Promise<NotebookTableUsesDto['tables']> {
+  const answer = await request<NotebookTableUsesDto>(
+    `/discovery/notebooks/${notebookId}/table-uses`,
+  );
+  return answer.tables;
+}
+
+/** The Tables of a notebook, with their schemas and how many rows each holds (#366). */
+export async function listTables(notebookId: string): Promise<NotebookTableDto[]> {
+  const answer = await request<TableListDto>(`/knowledge/notebooks/${notebookId}/tables`);
+  return answer.tables;
+}
+
+/** One page of the rows of a table, filtered and sorted as asked (#366). */
+export async function queryTable(
+  notebookId: string,
+  table: string,
+  query: {
+    all?: boolean;
+    aggregate?: { group?: string; measures: string[] };
+    where?: string | null;
+    sort?: Array<{ column: string; direction: 'asc' | 'desc' }>;
+    page?: number;
+    pageSize?: number;
+  },
+): Promise<TablePageDto> {
+  return request<TablePageDto>(
+    `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}/query`,
+    { method: 'POST', body: query },
+  );
+}
+
+/** Deletes a table and its rows, for good (#366, RN-KNW-071). */
+export async function deleteTable(notebookId: string, table: string): Promise<{ rows: number }> {
+  return request<{ rows: number }>(
+    `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`,
+    { method: 'DELETE' },
+  );
+}
+
+/** The Dashboards of a notebook, each with its definition (#368). */
+export async function listDashboards(notebookId: string): Promise<NotebookDashboardDto[]> {
+  const answer = await request<DashboardListDto>(`/knowledge/notebooks/${notebookId}/dashboards`);
+  return answer.dashboards;
+}
+
+/** What every component of a dashboard shows now, under the periods and pages asked (#368). */
+export async function readDashboardData(
+  notebookId: string,
+  dashboard: string,
+  filters: Record<string, string | null>,
+  pages: Record<string, number>,
+  cross: DashboardCross | null = null,
+): Promise<DashboardDataDto> {
+  return request<DashboardDataDto>(
+    `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}/data`,
+    { method: 'POST', body: { filters, pages, cross } },
+  );
+}
+
+/**
+ * Starts drawing a dashboard as an image on the server (#368, RN-PRT-032), as
+ * the person who asks, and answers the preview to ask for until it is drawn.
+ */
+export async function startDashboardImage(
+  notebookId: string,
+  dashboard: string,
+  locale: string,
+  view: { filters: Record<string, string | null>; cross: DashboardCross | null },
+): Promise<{ previewId: string }> {
+  return request<{ previewId: string }>(`/portability/notebooks/${notebookId}/previews`, {
+    method: 'POST',
+    body: {
+      dashboard,
+      locale,
+      filters: view.filters,
+      ...(view.cross ? { cross: view.cross } : {}),
+    },
+  });
+}
+
+/** A preview, with its image once it is drawn. */
+export async function getPreview(previewId: string): Promise<PreviewDto> {
+  return request<PreviewDto>(`/portability/previews/${previewId}`);
+}
+
+/** Deletes a dashboard for good; its tables are untouched (#368). */
+export async function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
+  await request<void>(
+    `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}`,
+    {
+      method: 'DELETE',
+    },
+  );
+}
+
 /** The files a notebook keeps beside its notes (#166). */
 export async function getNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
   const answer = await request<FileListDto>(`/knowledge/notebooks/${notebookId}/files`);
@@ -228,6 +468,8 @@ export async function getNotebookStructure(notebookId: string): Promise<Notebook
     notebook: toSummary(detail),
     guidance: detail.guidance?.content ?? null,
     guidanceRevision: detail.guidance?.revision.versionId ?? null,
+    structureRevision: detail.structureRevision,
+    permissions: detail.permissions,
     effectiveRole: detail.effectiveRole,
     folders: nest(detail.folders, notes),
   };
@@ -363,12 +605,13 @@ export async function applyImport(
 export async function startExport(
   notebookId: string,
   selection: TransferSelection | null = null,
+  tables?: Array<{ name: string; rows: boolean }>,
 ): Promise<TransferDto> {
   return request<TransferDto>(`/portability/notebooks/${notebookId}/export`, {
     method: 'POST',
     // Absent is the whole notebook, which is what almost everyone wants
-    // (RN-PRT-024).
-    body: { selection },
+    // (RN-PRT-024); and absent tables are every table with its rows (#366).
+    body: { selection, ...(tables ? { tables } : {}) },
   });
 }
 
@@ -576,6 +819,8 @@ export async function updateNote(
     message?: string;
     /** The edit session of the interface the save belongs to (RN-AUD-013). */
     session?: string;
+    /** The context the page read before the edit, which the answer compares (RN-KNW-061). */
+    context?: NoteContextDto;
   },
   options: { keepalive?: boolean } = {},
 ): Promise<NoteDto> {
@@ -589,6 +834,17 @@ export async function updateNote(
 }
 
 /**
+ * A folder and everything under it (RN-KNW-007, RN-KNW-046): one write that
+ * takes it all out of reach at once, and a purge that destroys it after. The
+ * policy is always said: CASCADE is what the person confirmed.
+ */
+export async function deleteFolder(notebookId: string, folderId: string): Promise<void> {
+  await request<unknown>(`/knowledge/notebooks/${notebookId}/folders/${folderId}?policy=CASCADE`, {
+    method: 'DELETE',
+  });
+}
+
+/**
  * A note to another folder of its notebook (#265, RN-KNW-057): the same note,
  * its identifier and its history with it, last there or right after a note of
  * that folder. It writes no content, so it carries no revision.
@@ -596,7 +852,7 @@ export async function updateNote(
 export async function moveNote(
   notebookId: string,
   noteId: string,
-  input: { toFolderId: string; afterNoteId: string | null },
+  input: { toFolderId: string; afterNoteId: string | null; context?: NoteContextDto },
 ): Promise<NoteSummaryDto> {
   return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}/move`, {
     method: 'POST',
@@ -669,10 +925,39 @@ export async function listNotebookShares(notebookId: string): Promise<OutgoingSh
 }
 
 /** The answer is the same whatever the e-mail is (RN-ACC-025). */
-export async function shareNotebook(notebookId: string, email: string): Promise<void> {
+export async function shareNotebook(
+  notebookId: string,
+  email: string,
+  profile: ShareProfileDto,
+  /** Sharing a model distributes it under CC0 1.0, accepted once (#355). */
+  acceptLicence = false,
+): Promise<void> {
   await request<void>(`/access/notebooks/${notebookId}/shares`, {
     method: 'POST',
-    body: { email, access: 'read' },
+    body: { email, profile, acceptLicence },
+  });
+}
+
+/**
+ * The owner changes what a share grants (RN-ACC-033): a reduction applies at
+ * once, an increase waits for the grantee's renewed acceptance.
+ */
+export async function changeShareProfile(
+  notebookId: string,
+  granteeUserId: string,
+  profile: ShareProfileDto,
+  acceptLicence = false,
+): Promise<void> {
+  await request<void>(`/access/notebooks/${notebookId}/shares/${granteeUserId}/profile`, {
+    method: 'PUT',
+    body: { profile, acceptLicence },
+  });
+}
+
+/** The grantee answers an increase of a share they accepted (RN-ACC-033). */
+export async function answerShareIncrease(notebookId: string, accept: boolean): Promise<void> {
+  await request<void>(`/access/shared/${notebookId}/increase/${accept ? 'accept' : 'reject'}`, {
+    method: 'POST',
   });
 }
 

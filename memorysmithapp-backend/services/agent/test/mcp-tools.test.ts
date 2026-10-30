@@ -38,6 +38,8 @@ function gateways(overrides: Record<string, unknown> = {}) {
     ...((overrides['access'] as object) ?? {}),
   };
   const knowledge = {
+    // A notebook keeps no tables unless a case gives it some (#366).
+    listTables: async () => [],
     listNotebooks: async () => [
       {
         notebookId: '01JBQ2X00000000000000000V1',
@@ -64,6 +66,7 @@ function gateways(overrides: Record<string, unknown> = {}) {
     ],
     nextNumber: async () => 42,
     recentNotes: async () => [],
+    contextRevisions: async () => ({ guidance: 'g1', structure: '7' }),
     readNote: async () => ({
       noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
@@ -240,6 +243,23 @@ describe('The tool catalog is the public contract', () => {
       'discard_file_upload',
       'list_files',
       'delete_file',
+      // The Tables of a notebook and their rows (#366).
+      'list_tables',
+      'create_table',
+      'alter_table',
+      'delete_table',
+      'query_table',
+      'insert_rows',
+      'import_table',
+      'update_rows',
+      'delete_rows',
+      // The Dashboards drawn from the tables (#368).
+      'list_dashboards',
+      'create_dashboard',
+      'update_dashboard',
+      'read_dashboard',
+      'delete_dashboard',
+      'preview_dashboard',
       'update_note',
       'reorder_note',
       // A note changes folder keeping its history (#265).
@@ -253,6 +273,22 @@ describe('The tool catalog is the public contract', () => {
       // How a note is drawn, before or after it is written (#260).
       'preview_note',
       'get_preview',
+      // A notebook declared as a model, its versions, and a notebook created
+      // from one (#353, #354, #359).
+      'declare_model',
+      'get_model',
+      'list_models',
+      'create_model_version',
+      'read_model_version',
+      'delete_model_version',
+      'create_notebook_from_model',
+      // The community catalog (#360).
+      'publish_model',
+      'withdraw_model',
+      'search_community_models',
+      'read_community_model',
+      'read_community_version',
+      'create_notebook_from_community_model',
       'note_history',
     ]);
   });
@@ -300,10 +336,27 @@ describe('The tool catalog is the public contract', () => {
       'request_file',
       'discard_file_upload',
       'delete_file',
+      'create_table',
+      'alter_table',
+      'delete_table',
+      'insert_rows',
+      'import_table',
+      'update_rows',
+      'delete_rows',
+      'create_dashboard',
+      'update_dashboard',
+      'delete_dashboard',
       'update_note',
       'reorder_note',
       'move_note',
       'delete_note',
+      'declare_model',
+      'create_model_version',
+      'delete_model_version',
+      'create_notebook_from_model',
+      'publish_model',
+      'withdraw_model',
+      'create_notebook_from_community_model',
     ]);
     for (const tool of TOOL_CATALOG) {
       const readable = tool.annotations.readOnlyHint === true;
@@ -354,7 +407,7 @@ describe('a notebook shared from another subscription', () => {
     noteCount: 7,
     ownership: 'shared',
     owner: 'dona@example.com',
-    access: 'read',
+    access: 'reader',
   };
   const withShared = () =>
     gateways({
@@ -377,7 +430,7 @@ describe('a notebook shared from another subscription', () => {
     const answer = (await withShared().call('whoami', {}, caller)).content[0]?.text ?? '';
     expect(answer).toContain('**Normas**');
     expect(answer).toContain('Shared with this person from another subscription');
-    expect(answer).toContain('shared by dona@example.com, access `read`');
+    expect(answer).toContain('shared by dona@example.com, access `reader`');
   });
 
   it('opens its context saying it is shared and read-only, before the guidance', async () => {
@@ -478,7 +531,9 @@ describe('an agent working from a stale list of tools is told so (#261, RN-AGT-0
     const answer = (await gateways().call('whoami', {}, caller)).content[0]?.text ?? '';
     expect(answer).toContain('## Your list of tools');
     expect(answer).toContain(`\`${CATALOG_VERSION}\``);
-    expect(answer).toContain('`update_note(notebook, note, content, baseRevision, message?)`');
+    expect(answer).toContain(
+      '`update_note(notebook, note, content, baseRevision, message?, context?)`',
+    );
     expect(CATALOG_VERSION).toMatch(/^[0-9a-f]{8}$/);
   });
 
@@ -866,6 +921,7 @@ describe('The tool adapter translates in both directions', () => {
       openUploads: [],
       notices: [],
       noticesRead: { notes: 0, of: 0, complete: true },
+      staleContext: [],
     });
   });
 
@@ -1688,7 +1744,11 @@ describe('the path an agent takes passes through the method of its task', () => 
       await instructions(),
     ].join('\n');
     // A skill is the one thing served in backticks with a hyphen in its name.
-    const cited = [...served.matchAll(/`([a-z0-9]+(?:-[a-z0-9]+)+)`/g)].map((match) => match[1]);
+    // The access names of a share are values an answer carries, not skills.
+    const values = new Set(['content-editor', 'notebook-editor']);
+    const cited = [...served.matchAll(/`([a-z0-9]+(?:-[a-z0-9]+)+)`/g)]
+      .map((match) => match[1])
+      .filter((name) => !values.has(name ?? ''));
 
     expect(cited.length).toBeGreaterThan(0);
     for (const name of cited) expect(skillNamed(name ?? '')).toBeDefined();
@@ -2038,7 +2098,7 @@ describe('a note moves to another folder, keeping its history (#265, RN-AGT-049)
   it('declares a write that destroys nothing, signed with its optional anchor', () => {
     const tool = TOOL_CATALOG.find((each) => each.name === 'move_note');
     expect(tool?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
-    expect(tool && toolSignature(tool)).toBe('move_note(notebook, note, folder, after?)');
+    expect(tool && toolSignature(tool)).toBe('move_note(notebook, note, folder, after?, context?)');
     // What it keeps, and the one way it must never be done.
     expect(tool?.description).toContain('whole history');
     expect(tool?.description).toContain('a link finds a note by its name');
@@ -2514,7 +2574,7 @@ describe('an agent sees how a note is drawn (#260, RN-AGT-050)', () => {
     }
     const preview = TOOL_CATALOG.find((tool) => tool.name === 'preview_note');
     expect(preview && toolSignature(preview)).toBe(
-      'preview_note(notebook, note?, content?, folder?, part?)',
+      'preview_note(notebook, note?, content?, folder?, part?, locale?)',
     );
     const get = TOOL_CATALOG.find((tool) => tool.name === 'get_preview');
     expect(get && toolSignature(get)).toBe('get_preview(notebook, preview)');
@@ -2773,5 +2833,380 @@ describe('note_history groups an edit session (RN-AUD-013)', () => {
     expect((answer[1]!['revisions'] as Array<{ revision: string }>).map((r) => r.revision)).toEqual(
       ['v2', 'v3', 'v4'],
     );
+  });
+});
+
+describe('a note written against a context that changed (#348, #349)', () => {
+  const where = { notebook: '01JBQ2X00000000000000000V1', folder: '01JBQ2X00000000000000000F1' };
+  const declared = { guidance: 'g1', template: 't1', structure: '7' };
+  const changed = {
+    changed: ['guidance'],
+    current: { guidance: 'g2', template: 't1', structure: '7' },
+  };
+
+  it('ends the notebook context with the revisions to declare', async () => {
+    const text =
+      (await gateways().call('get_notebook_context', { notebook: where.notebook }, caller))
+        .content[0]?.text ?? '';
+    expect(text).toContain('## Context revisions');
+    expect(text).toContain('{"guidance":"g1","template":null,"structure":"7"}');
+  });
+
+  it('passes the declared context on, and answers what changed with what to do', async () => {
+    const sent: unknown[] = [];
+    const answer = await gateways({
+      knowledge: {
+        createNote: async (_caller: unknown, input: { context?: unknown }) => {
+          sent.push(input.context);
+          return {
+            noteId: '01JBQ2X00000000000000000N2',
+            name: 'Nova',
+            content: '# Nova',
+            revision: 'v1',
+            updatedAt: '2026-10-25T10:00:00.000Z',
+            contextChanged: changed,
+          };
+        },
+      },
+    }).call(
+      'create_note',
+      { ...where, content: '---\nname: Nova\n---\n\n# Nova\n', context: declared },
+      caller,
+    );
+    expect(sent).toEqual([declared]);
+    const body = JSON.parse(answer.content[0]?.text ?? '{}') as {
+      contextChanged?: unknown;
+      contextNotice?: string;
+    };
+    expect(body.contextChanged).toEqual(changed);
+    expect(body.contextNotice).toContain('review this note against it');
+    expect(body.contextNotice).toContain('Never resend the same content with the new revisions');
+  });
+
+  it('refuses a context that is not one, writing nothing', async () => {
+    let written = false;
+    const answer = await gateways({
+      knowledge: {
+        updateNote: async () => {
+          written = true;
+          throw new Error('unreachable');
+        },
+      },
+    }).call(
+      'update_note',
+      {
+        notebook: where.notebook,
+        note: '01JBQ2X00000000000000000N1',
+        content: '# x',
+        baseRevision: 'v3',
+        context: { guidance: 1 },
+      },
+      caller,
+    );
+    expect(answer.isError).toBe(true);
+    expect(written).toBe(false);
+  });
+
+  it('lists the notes written against a changed context in the sweep', async () => {
+    const answer = await gateways({
+      knowledge: {
+        recentNotes: async () => [
+          {
+            noteId: '01JBQ2X00000000000000000N2',
+            name: 'Stale',
+            updatedAt: '2026-10-25',
+            staleContext: ['template'],
+          },
+          { noteId: '01JBQ2X00000000000000000N1', name: 'Fine', updatedAt: '2026-10-24' },
+        ],
+      },
+      discovery: {
+        checkNotebook: async () => ({ pending: [], orphans: [], unshownFiles: [] }),
+      },
+    }).call('check_notebook', { notebook: where.notebook }, caller);
+    const body = JSON.parse(answer.content[0]?.text ?? '{}') as { staleContext: unknown };
+    expect(body.staleContext).toEqual([
+      { note: { noteId: '01JBQ2X00000000000000000N2', name: 'Stale' }, changed: ['template'] },
+    ]);
+  });
+
+  it('tells the agent in the skill to declare the context and weigh what changed', () => {
+    expect(skillNamed('write-notes')?.body).toContain(
+      '**Declare the context you read, and weigh what changed.**',
+    );
+  });
+});
+
+describe('a notebook shared for editing (#349)', () => {
+  const sharedAs = (access: string, pendingAccess: string | null = null) =>
+    gateways({
+      knowledge: {
+        listNotebooks: async () => [
+          {
+            notebookId: '01JBQ2X00000000000000000S1',
+            name: 'Pesquisa',
+            description: 'Da outra assinatura',
+            noteCount: 7,
+            ownership: 'shared',
+            owner: 'dona@example.com',
+            access,
+            pendingAccess,
+          },
+        ],
+        notebookContext: async () => '# Notebook: Pesquisa\n',
+      },
+    });
+
+  it('opens the context saying what the access lets the agent write', async () => {
+    const content = async (access: string) =>
+      (
+        await sharedAs(access).call(
+          'get_notebook_context',
+          { notebook: '01JBQ2X00000000000000000S1' },
+          caller,
+        )
+      ).content[0]?.text ?? '';
+    expect(await content('content-editor')).toContain(
+      'its folders, guidance and templates are refused',
+    );
+    expect(await content('notebook-editor')).toContain('It is written as any notebook is');
+  });
+
+  it('says an increase waits for the person, and grants nothing yet', async () => {
+    const answer =
+      (await sharedAs('reader', 'content-editor').call('whoami', {}, caller)).content[0]?.text ??
+      '';
+    expect(answer).toContain('access `reader`, `content-editor` offered and waiting');
+    const context =
+      (
+        await sharedAs('reader', 'content-editor').call(
+          'get_notebook_context',
+          { notebook: '01JBQ2X00000000000000000S1' },
+          caller,
+        )
+      ).content[0]?.text ?? '';
+    expect(context).toContain('which waits for this person to accept');
+    expect(context).toContain('every write here is refused');
+  });
+});
+
+describe('notebook models through the connector (#353, #354, #359)', () => {
+  it('declares a model with its parameters and answers it', async () => {
+    const declared: unknown[] = [];
+    const answer = await gateways({
+      knowledge: {
+        declareModel: async (_caller: unknown, notebookId: string, declaration: unknown) => {
+          declared.push([notebookId, declaration]);
+          return { notebookId, objective: 'x', versions: [] };
+        },
+      },
+    }).call(
+      'declare_model',
+      {
+        notebook: '01JBQ2X00000000000000000V1',
+        objective: 'Run one condominium',
+        parameters: [{ name: 'condominio', type: 'text', required: true }],
+      },
+      caller,
+    );
+    expect(answer.isError).toBe(false);
+    expect(declared).toEqual([
+      [
+        '01JBQ2X00000000000000000V1',
+        expect.objectContaining({
+          objective: 'Run one condominium',
+          parameters: [{ name: 'condominio', type: 'text', required: true }],
+          basedOn: null,
+        }),
+      ],
+    ]);
+  });
+
+  it('waits for the notebook created from a model, and answers it', async () => {
+    let reads = 0;
+    const answer = await gateways({
+      knowledge: {
+        createFromModel: async () => ({
+          transferId: '01JBQ2X00000000000000000T1',
+          status: 'running',
+          notebookId: null,
+          notebookName: 'Condomínio Aurora',
+        }),
+        transfer: async () => {
+          reads += 1;
+          return {
+            transferId: '01JBQ2X00000000000000000T1',
+            status: 'ready',
+            notebookId: '01JBQ2X00000000000000000V9',
+            notebookName: 'Condomínio Aurora',
+          };
+        },
+      },
+    }).call(
+      'create_notebook_from_model',
+      { notebook: '01JBQ2X00000000000000000V1', version: 1, values: { condominio: 'Aurora' } },
+      caller,
+    );
+    expect(reads).toBe(1);
+    expect(JSON.parse(answer.content[0]?.text ?? '{}')).toEqual({
+      notebook: '01JBQ2X00000000000000000V9',
+      name: 'Condomínio Aurora',
+      status: 'ready',
+    });
+  });
+
+  it('publishes a model only with the licence the person accepted, and searches the catalog (#360)', async () => {
+    const published: unknown[] = [];
+    const searched: unknown[] = [];
+    const tools = gateways({
+      knowledge: {
+        publishModel: async (_caller: unknown, notebookId: string, input: unknown) => {
+          published.push([notebookId, input]);
+          return { publicId: '01JBQ2X00000000000000000P1', licence: 'CC0-1.0' };
+        },
+        searchCommunity: async (_caller: unknown, query: unknown) => {
+          searched.push(query);
+          return [{ publicId: '01JBQ2X00000000000000000P1' }];
+        },
+      },
+    });
+    await tools.call(
+      'publish_model',
+      { notebook: '01JBQ2X00000000000000000V1', language: 'pt-BR' },
+      caller,
+    );
+    await tools.call('search_community_models', { query: 'condomínio', language: 'pt' }, caller);
+    expect(published).toEqual([
+      ['01JBQ2X00000000000000000V1', { language: 'pt-BR', acceptLicence: false }],
+    ]);
+    expect(searched).toEqual([{ text: 'condomínio', language: 'pt' }]);
+  });
+
+  it('creates a notebook from a community model and waits for it, as from a model of its own', async () => {
+    const answer = await gateways({
+      knowledge: {
+        createFromCommunity: async (_caller: unknown, input: unknown) => {
+          expect(input).toEqual({
+            publicId: '01JBQ2X00000000000000000P1',
+            version: 2,
+            name: '',
+            values: { condominio: 'Aurora' },
+          });
+          return {
+            transferId: '01JBQ2X00000000000000000T1',
+            status: 'ready',
+            notebookId: '01JBQ2X00000000000000000V9',
+            notebookName: 'Condomínio Aurora',
+          };
+        },
+      },
+    }).call(
+      'create_notebook_from_community_model',
+      { model: '01JBQ2X00000000000000000P1', version: 2, values: { condominio: 'Aurora' } },
+      caller,
+    );
+    expect(JSON.parse(answer.content[0]?.text ?? '{}')).toMatchObject({ status: 'ready' });
+  });
+
+  it('teaches deriving a model as a skill of its own, and designing one in design-notebook', () => {
+    const derive = skillNamed('derive-model')?.body ?? '';
+    expect(derive).toContain('**Ask the level of generality.**');
+    expect(derive).toContain('Do not change the source notebook.');
+    expect(skillNamed('design-notebook')?.body).toContain('## A notebook that is a model');
+  });
+});
+
+describe('the tables of a notebook (#366)', () => {
+  const expenses = {
+    tableId: '01JBQ2X00000000000000000T1',
+    notebookId: '01JBQ2X00000000000000000V1',
+    name: 'expenses',
+    description: 'Every expense of the house',
+    schema: {
+      type: 'object',
+      properties: { date: { type: 'string' }, amount: { type: 'number' } },
+    },
+    key: ['date'],
+    rows: 12,
+    bytes: 400,
+    updatedAt: '2026-10-29T10:00:00.000Z',
+    authorship: {},
+  };
+
+  it('names the tables in the notebook context, so an agent knows they exist', async () => {
+    const adapter = gateways({ knowledge: { listTables: async () => [expenses] } });
+    const answer =
+      (await adapter.call('get_notebook_context', { notebook: expenses.notebookId }, caller))
+        .content[0]?.text ?? '';
+    expect(answer).toContain('## Tables');
+    expect(answer).toContain(
+      '- **expenses** — Every expense of the house (12 rows; columns date, amount; key date)',
+    );
+  });
+
+  it('writes rows as given and answers how many, by row', async () => {
+    let sent: unknown = null;
+    const adapter = gateways({
+      knowledge: {
+        insertRows: async (_caller: unknown, _notebook: string, table: string, input: unknown) => {
+          sent = { table, input };
+          return { operationId: 'op', inserted: ['r1'], updated: ['r2'], deleted: [] };
+        },
+      },
+    });
+    const result = await adapter.call(
+      'insert_rows',
+      {
+        notebook: expenses.notebookId,
+        table: 'expenses',
+        rows: [{ date: '2026-10-01', amount: 1 }],
+        mode: 'upsert',
+      },
+      caller,
+    );
+    expect(result.isError).not.toBe(true);
+    expect(sent).toEqual({
+      table: 'expenses',
+      input: { rows: [{ date: '2026-10-01', amount: 1 }], mode: 'upsert' },
+    });
+    expect(JSON.parse(result.content[0]?.text ?? '{}')).toEqual({
+      operationId: 'op',
+      inserted: 1,
+      updated: 1,
+      deleted: 0,
+      rowIds: ['r1', 'r2'],
+    });
+  });
+
+  it('refuses a write of rows that names none', async () => {
+    const result = await gateways().call(
+      'delete_rows',
+      { notebook: expenses.notebookId, table: 'expenses', targets: [] },
+      caller,
+    );
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text ?? '').toContain('delete_rows requires "targets"');
+  });
+});
+
+describe('import_table (#366)', () => {
+  it('names the kept file by fileName, which is a name and never an identifier', async () => {
+    let sent: unknown = null;
+    const adapter = gateways({
+      knowledge: {
+        importTable: async (_caller: unknown, _notebook: string, input: unknown) => {
+          sent = input;
+          return { proposal: { rows: 2 } };
+        },
+      },
+    });
+    const result = await adapter.call(
+      'import_table',
+      { notebook: '01JBQ2X00000000000000000V1', fileName: 'statement-c3ae3d33.csv' },
+      caller,
+    );
+    expect(result.content[0]?.text ?? '').not.toContain('VALIDATION');
+    expect(result.isError).not.toBe(true);
+    expect(sent).toEqual({ file: 'statement-c3ae3d33.csv', mode: 'insert', dryRun: false });
   });
 });

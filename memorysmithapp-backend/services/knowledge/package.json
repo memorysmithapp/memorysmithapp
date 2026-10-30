@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/svc-knowledge",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
@@ -18,7 +18,8 @@
     "@memorysmithapp/contracts": "workspace:*",
     "@memorysmithapp/kernel": "workspace:*",
     "@memorysmithapp/observability": "workspace:*",
-    "hono": "^4.13.3"
+    "hono": "^4.13.3",
+    "read-excel-file": "6.0.3"
   },
   "exports": {
     "./adapters/notebooks": "./src/adapters/outbound/dynamodb/DynamoNotebookRepository.ts",
@@ -36,11 +37,18 @@
     "./adapters/recount": "./src/adapters/inbound/storage-recount.ts",
     "./adapters/slot-migration": "./src/adapters/inbound/slot-migration.ts",
     "./adapters/purge": "./src/adapters/inbound/content-purge.ts",
+    "./adapters/deleted-files": "./src/adapters/inbound/deleted-files.ts",
     "./adapters/purger": "./src/adapters/outbound/s3/S3ContentPurger.ts",
     "./application/notebooks": "./src/application/notebooks.ts",
     "./application/folders": "./src/application/folders.ts",
     "./application/notes": "./src/application/notes.ts",
     "./application/files": "./src/application/files.ts",
+    "./application/tables": "./src/application/tables.ts",
+    "./application/table-imports": "./src/application/table-imports.ts",
+    "./application/dashboards": "./src/application/dashboards.ts",
+    "./adapters/dashboards": "./src/adapters/outbound/dynamodb/DynamoDashboardRepository.ts",
+    "./adapters/sheets": "./src/adapters/outbound/sheets/SpreadsheetReader.ts",
+    "./adapters/tables": "./src/adapters/outbound/dynamodb/DynamoTableRepository.ts",
     "./application/usage": "./src/application/usage.ts",
     "./domain": "./src/domain/index.ts"
   }

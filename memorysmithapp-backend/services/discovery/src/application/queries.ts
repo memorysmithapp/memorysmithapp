@@ -194,6 +194,17 @@ export class NotebookNames {
   }
 }
 
+/** The tables the notes of a notebook name, each with the notes that name it (#366, §5.9). */
+export class TableUses {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: {
+    notebookId: string;
+  }): Promise<Result<{ tables: Array<{ table: string; notes: NoteRef[] }> }, DomainError>> {
+    return ok({ tables: await this.deps.graph.tableUses(input.notebookId) });
+  }
+}
+
 /**
  * The files of a notebook with the notes that show each one (#307,
  * RN-DSC-066), in one read: what a page listing them needs, and nothing a

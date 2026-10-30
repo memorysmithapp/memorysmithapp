@@ -3,6 +3,15 @@ import {
   type Notice,
   type NoticeSeverity,
 } from '@memorysmithapp/markdown-renderer/diagnose';
+import { tableColumnsOf } from '@memorysmithapp/contracts';
+
+/** A table's name as it is compared: after NFC, with case folded (§5.9). */
+const nameKey = (name: string): string => name.normalize('NFC').toLowerCase();
+
+/** Whether a note holds a `table` block, so its notices need the notebook's tables. */
+export function namesATable(content: string): boolean {
+  return /^[ \t>]*(?:[-*+][ \t]+)?(?:`{3,}|~{3,})table[ \t]*$/m.test(content);
+}
 
 /**
  * The notices of a note (§7.13 of the specification, RN-AGT-052): where the
@@ -37,8 +46,20 @@ export interface NoteNotice {
 export async function noticesOf(
   content: string,
   severities: readonly NoticeSeverity[] = ['notice', 'hint'],
+  tables?: ReadonlyArray<{ name: string; schema: Readonly<Record<string, unknown>> }>,
 ): Promise<NoteNotice[]> {
-  const found = await diagnose(content, { diagrams: false });
+  // With the tables of the notebook, a `table` block is checked against them;
+  // without them, nothing is known of them and no block is pending (§7.13).
+  const kept = new Map(
+    (tables ?? []).map((table) => [
+      nameKey(table.name),
+      { name: table.name, columns: tableColumnsOf(table.schema) },
+    ]),
+  );
+  const found = await diagnose(content, {
+    diagrams: false,
+    ...(tables ? { tables: (name: string) => kept.get(nameKey(name)) ?? null } : {}),
+  });
   return found
     .filter((notice) => severities.includes(notice.severity))
     .map(({ code, severity, section, message, line, column }) => ({

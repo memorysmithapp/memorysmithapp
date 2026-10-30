@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OutboxRelay, envelopeOf } from '../src/adapters/inbound/outbox-relay.js';
+import { isReplay, OutboxRelay, envelopeOf } from '../src/adapters/inbound/outbox-relay.js';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
 const NOTEBOOK = '01JBQ2X0000000000000000001';
@@ -372,5 +372,23 @@ describe('OutboxRelay', () => {
       expect(added(updateOf(writes, 'USAGE'))).toEqual({ revisions: -2 });
       expect(updateOf(writes, `NBUSAGE#${NOTEBOOK}`)).toBeUndefined();
     });
+  });
+});
+
+describe('a cancelled transaction of the counters (#362)', () => {
+  const cancelled = (...codes: Array<string | undefined>) =>
+    Object.assign(new Error('Transaction cancelled'), {
+      name: 'TransactionCanceledException',
+      CancellationReasons: codes.map((Code) => (Code ? { Code } : {})),
+    });
+
+  it('is a replay when the SEEN item alone refused it', () => {
+    expect(isReplay(cancelled('ConditionalCheckFailed', 'None', 'None'))).toBe(true);
+  });
+
+  it('is no replay when it conflicted, and is thrown for the stream to deliver again', () => {
+    expect(isReplay(cancelled('None', 'TransactionConflict', 'None'))).toBe(false);
+    expect(isReplay(cancelled('TransactionConflict'))).toBe(false);
+    expect(isReplay(new Error('anything else'))).toBe(false);
   });
 });

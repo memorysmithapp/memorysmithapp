@@ -20,7 +20,10 @@ export async function whenDrawn(root: HTMLElement | null, client: QueryClient): 
   while (Date.now() < deadline) {
     const settled =
       client.isFetching() === 0 &&
-      !root?.querySelector('.mermaid-loading, .attachment-loading, .skeleton') &&
+      // A `table` block marks itself busy until its rows arrive (§7.15).
+      !root?.querySelector(
+        '.mermaid-loading, .attachment-loading, .skeleton, [aria-busy="true"]',
+      ) &&
       [...(root?.querySelectorAll('img') ?? [])].every((image) => image.complete);
     quiet = settled ? quiet + 1 : 0;
     if (quiet >= 2) return;

@@ -87,8 +87,36 @@ export function attachmentsAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/attachments`;
 }
 
+/** The Tables of a notebook, one of them open when it is named (#366). */
+export function tablesAddress(notebookId: string, table?: string): string {
+  const base = `${notebookAddress(notebookId)}/tables`;
+  return table ? `${base}?table=${encodeURIComponent(table)}` : base;
+}
+
 export function graphAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/graph`;
+}
+
+/** What a notebook declared as a model says of itself, and its versions (#353). */
+export function modelAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/model`;
+}
+
+/** One version of a model, read whole (#353). */
+export function modelVersionAddress(notebookId: string, version: number): string {
+  return `${modelAddress(notebookId)}/versions/${version}`;
+}
+
+/**
+ * A model shared with the person as a model reader (#355), which opens the
+ * model and never the notebook, so it lives outside the notebook's pages.
+ */
+export function sharedModelAddress(notebookId: string): string {
+  return `/models/${written(notebookId)}`;
+}
+
+export function sharedModelVersionAddress(notebookId: string, version: number): string {
+  return `${sharedModelAddress(notebookId)}/versions/${version}`;
 }
 
 /**
@@ -97,4 +125,23 @@ export function graphAddress(notebookId: string): string {
  */
 export function linkTargetAddress(notebookId: string, target: string): string {
   return `${notebookAddress(notebookId)}/links/${encodeURIComponent(target.normalize('NFC'))}`;
+}
+
+/** The community catalog (#360), which anybody reads, signed in or not. */
+export function communityAddress(): string {
+  return '/community';
+}
+
+export function communityModelAddress(publicId: string): string {
+  return `/community/${publicId.toLowerCase()}`;
+}
+
+export function communityVersionAddress(publicId: string, version: number): string {
+  return `${communityModelAddress(publicId)}/versions/${version}`;
+}
+
+/** The Dashboards of a notebook, one of them open when it is named (#368). */
+export function dashboardsAddress(notebookId: string, dashboard?: string): string {
+  const base = `${notebookAddress(notebookId)}/dashboards`;
+  return dashboard ? `${base}?dashboard=${encodeURIComponent(dashboard)}` : base;
 }

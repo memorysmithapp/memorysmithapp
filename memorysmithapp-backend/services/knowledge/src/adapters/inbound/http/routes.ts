@@ -10,6 +10,8 @@
 import { Hono, type Context } from 'hono';
 import {
   type Authorship,
+  err,
+  ok,
   DomainError,
   FileId,
   FolderId,
@@ -22,6 +24,7 @@ import {
   type SubscriptionContext,
 } from '@memorysmithapp/kernel';
 import type { RequestContext } from '../../../domain/access/AuthorizationPolicy.js';
+import type { NoteContext } from '../../../domain/note/NoteContext.js';
 import type {
   ClearNotebookRoleLimit,
   CreateNotebook,
@@ -54,7 +57,9 @@ import type {
   UpdateNote,
 } from '../../../application/notes.js';
 import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
-import { NOTE_MESSAGE_MAX_LENGTH, ulidSchema } from '@memorysmithapp/contracts';
+import { NOTE_MESSAGE_MAX_LENGTH, noteContextSchema, ulidSchema } from '@memorysmithapp/contracts';
+import { registerTableRoutes, type TableUseCases } from './table-routes.js';
+import { registerDashboardRoutes, type DashboardUseCases } from './dashboard-routes.js';
 import {
   fileToDto,
   folderToDto,
@@ -80,7 +85,8 @@ export interface KnowledgeRequest {
   readonly subscriptionRole: Role;
 }
 
-export interface KnowledgeUseCases {
+export interface KnowledgeUseCases
+  extends TableUseCases<KnowledgeRequest>, DashboardUseCases<KnowledgeRequest> {
   readonly createNotebook: (request: KnowledgeRequest) => CreateNotebook;
   readonly listNotebooks: (request: KnowledgeRequest) => ListNotebooks;
   readonly getNotebook: (request: KnowledgeRequest) => GetNotebook;
@@ -138,6 +144,24 @@ function noContent(c: Context, result: Result<unknown, DomainError>): Response {
   return result.ok ? new Response(null, { status: 204 }) : fail(c, result.error);
 }
 
+/**
+ * The context a note write declares it read (#348): absent is nothing
+ * declared, and anything else that is not one is refused, so a caller that
+ * meant to declare it learns that it did not.
+ */
+function declaredContext(raw: unknown): Result<NoteContext | null, DomainError> {
+  if (raw === undefined || raw === null) return ok(null);
+  const parsed = noteContextSchema.safeParse(raw);
+  if (!parsed.success) {
+    return err(
+      DomainError.validation(
+        'context takes the revisions read: guidance and template (a versionId, or null when there is none) and structure',
+      ),
+    );
+  }
+  return ok(parsed.data);
+}
+
 function parseNotebookId(raw: string | undefined): Result<NotebookId, DomainError> {
   return NotebookId.create(raw ?? '');
 }
@@ -185,8 +209,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
     const found = await useCases
       .getNotebook(request)
       .execute({ ctx: request.ctx, notebookId: notebookId.value });
-    return present(c, found, ({ notebook, guidance, role }) =>
-      notebookToDetail(notebook, role, guidance),
+    return present(c, found, ({ notebook, guidance, role, permissions }) =>
+      notebookToDetail(notebook, role, guidance, permissions),
     );
   });
 
@@ -543,9 +567,12 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       folderId?: string;
       content?: string;
       afterNoteId?: string | null;
+      context?: unknown;
     };
     const folderId = FolderId.create(String(body.folderId ?? ''));
     if (!folderId.ok) return fail(c, folderId.error);
+    const context = declaredContext(body.context);
+    if (!context.ok) return fail(c, context.error);
     const after = body.afterNoteId ? NoteId.create(body.afterNoteId) : null;
     if (after && !after.ok) return fail(c, after.error);
 
@@ -555,6 +582,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       folderId: folderId.value,
       content: String(body.content ?? ''),
       afterNoteId: after?.ok ? after.value : null,
+      context: context.value,
       by: author.value,
     });
     return present(c, created, (note) => noteToSummary(note), 201);
@@ -590,8 +618,11 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       baseRevision?: string;
       message?: string;
       session?: string;
+      context?: unknown;
     };
     const content = String(body.content ?? '');
+    const context = declaredContext(body.context);
+    if (!context.ok) return fail(c, context.error);
     // The edit session of the interface, when the write belongs to one
     // (RN-AUD-013). Anything that is not an identifier is no session at all:
     // it groups the history and decides nothing else.
@@ -607,6 +638,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       message:
         typeof body.message === 'string' ? body.message.slice(0, NOTE_MESSAGE_MAX_LENGTH) : null,
       session: session.success ? session.data : null,
+      context: context.value,
       by: author.value,
     });
     /**
@@ -662,7 +694,10 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       toNotebookId?: string;
       toFolderId?: string;
       afterNoteId?: string | null;
+      context?: unknown;
     };
+    const context = declaredContext(body.context);
+    if (!context.ok) return fail(c, context.error);
     const toFolderId = FolderId.create(String(body.toFolderId ?? ''));
     if (!toFolderId.ok) return fail(c, toFolderId.error);
     const toNotebookId = body.toNotebookId ? NotebookId.create(body.toNotebookId) : null;
@@ -677,6 +712,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       toNotebookId: toNotebookId?.ok ? toNotebookId.value : null,
       toFolderId: toFolderId.value,
       afterNoteId: after?.ok ? after.value : null,
+      context: context.value,
       by: author.value,
     });
     return present(c, moved, (note) => noteToSummary(note));
@@ -842,6 +878,11 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       }),
     );
   });
+
+  // The Tables of a notebook (#366), beside its files.
+  registerTableRoutes(app, useCases, fail);
+  // And its Dashboards, drawn from the tables (#368).
+  registerDashboardRoutes(app, useCases, fail);
 
   return app;
 }

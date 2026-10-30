@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '../shared/components/AppShell';
@@ -16,10 +17,29 @@ import { PasswordPage } from '../features/profile/PasswordPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { AttachmentsPage } from '../features/attachments/AttachmentsPage';
+import { TablesPage } from '../features/tables/TablesPage';
+// The charts weigh, so the page that draws them arrives when it is opened (#368).
+const PrintDashboardPage = lazy(() =>
+  import('../features/dashboards/PrintDashboardPage').then((module) => ({
+    default: module.PrintDashboardPage,
+  })),
+);
+const DashboardsPage = lazy(() =>
+  import('../features/dashboards/DashboardsPage').then((module) => ({
+    default: module.DashboardsPage,
+  })),
+);
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
+import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
+import {
+  CommunityModelPage,
+  CommunityPage,
+  CommunityVersionPage,
+} from '../features/community/CommunityPages';
+import { ModelVersionPage, SharedModelVersionPage } from '../features/models/ModelVersionPage';
 import { RequireSession, RootLayout } from './RootLayout';
 
 /**
@@ -43,6 +63,10 @@ export const router = createBrowserRouter([
     children: [
       { path: '/login', element: <LoginPage /> },
       { path: '/auth/callback', element: <AuthCallbackPage /> },
+      // The community catalog, which anybody reads, signed in or not (#360).
+      { path: '/community', element: <CommunityPage /> },
+      { path: '/community/:publicId', element: <CommunityModelPage /> },
+      { path: '/community/:publicId/versions/:version', element: <CommunityVersionPage /> },
       {
         element: <RequireSession />,
         children: [
@@ -56,6 +80,15 @@ export const router = createBrowserRouter([
           // of the server and never from the interface (#260): outside the
           // frame of the application, at the reading width.
           { path: '/notebooks/:notebookId/preview', element: <PreviewNotePage /> },
+          // A dashboard drawn whole for its image, opened by the same renderer (#368).
+          {
+            path: '/notebooks/:notebookId/dashboards/print',
+            element: (
+              <Suspense fallback={null}>
+                <PrintDashboardPage />
+              </Suspense>
+            ),
+          },
           {
             element: <AppShell />,
             children: [
@@ -74,6 +107,12 @@ export const router = createBrowserRouter([
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },
               { path: '/transfers', element: <TransfersPage /> },
+              // A model shared as a model reader opens no notebook (#355).
+              { path: '/models/:notebookId', element: <SharedModelPage /> },
+              {
+                path: '/models/:notebookId/versions/:version',
+                element: <SharedModelVersionPage />,
+              },
               {
                 path: '/notebooks/:notebookId',
                 element: <NotebookLayout />,
@@ -82,7 +121,18 @@ export const router = createBrowserRouter([
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },
+                  { path: 'tables', element: <TablesPage /> },
+                  {
+                    path: 'dashboards',
+                    element: (
+                      <Suspense fallback={null}>
+                        <DashboardsPage />
+                      </Suspense>
+                    ),
+                  },
                   { path: 'graph', element: <GraphPage /> },
+                  { path: 'model', element: <ModelPage /> },
+                  { path: 'model/versions/:version', element: <ModelVersionPage /> },
                   { path: 'folders', element: <FoldersPage /> },
                   { path: 'folders/:folderId', element: <FolderPage /> },
                   { path: 'notes/:noteId', element: <NoteRoute /> },

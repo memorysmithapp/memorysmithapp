@@ -20,11 +20,12 @@ import {
   type UploadStatusDto,
   type NoteOrder,
 } from '@memorysmithapp/contracts';
+import type { DashboardCross } from './gateway.js';
 import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
 import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
-import { noticesOf, type NoteNotice } from './notices.js';
+import { namesATable, noticesOf, type NoteNotice } from './notices.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
@@ -35,7 +36,10 @@ import {
   type HistoryEntry,
   type KnowledgeGateway,
   type NoteContent,
+  type NoteContextRevisions,
+  type NotebookListing,
   type RelatedNode,
+  type ShareAccessName,
 } from './gateway.js';
 
 /**
@@ -111,6 +115,20 @@ function canonicalIdentifiers(
     canonical[name] = parsed.data;
   }
   return canonical;
+}
+
+/** The language a preview is drawn in, when the call names one (#374). */
+function localeOf(args: Record<string, unknown>): 'en_US' | 'pt_BR' | null {
+  const locale = args['locale'];
+  return locale === 'en_US' || locale === 'pt_BR' ? locale : null;
+}
+
+/** A mark clicked on a chart of a dashboard, when the call names one (#369). */
+function crossOf(args: Record<string, unknown>): DashboardCross | null {
+  const cross = args['cross'];
+  if (typeof cross !== 'object' || cross === null) return null;
+  const { component, key } = cross as Record<string, unknown>;
+  return typeof component === 'string' && typeof key === 'string' ? { component, key } : null;
 }
 
 function requireString(args: Record<string, unknown>, name: string, tool: string): string {
@@ -307,7 +325,7 @@ function optionalString(args: Record<string, unknown>, name: string): string | u
  * kept a 669-byte drawing as 678 bytes that way: copying characters it already
  * holds is what it does without a slip, encoding them is not.
  */
-const TEXT_FILE_TYPES: ReadonlySet<string> = new Set(['image/svg+xml']);
+const TEXT_FILE_TYPES: ReadonlySet<string> = new Set(['image/svg+xml', 'text/csv']);
 
 /** The bytes of keep_file, base64, from exactly one of `content` and `contentBase64`. */
 function keptBytes(args: Record<string, unknown>, mimeType: string): string {
@@ -333,6 +351,61 @@ function keptBytes(args: Record<string, unknown>, mimeType: string): string {
     return Buffer.from(text, 'utf8').toString('base64');
   }
   return encoded as string;
+}
+
+/**
+ * The Tables of the notebook, in its context (#366): what an agent has to know
+ * exists before it writes, so rows go where a table for them already is and a
+ * note shows a table rather than copying it. Nothing when there are none.
+ */
+function tablesSection(
+  tables: ReadonlyArray<{
+    name: string;
+    description: string;
+    schema: Record<string, unknown>;
+    key: string[] | null;
+    rows: number;
+  }>,
+): string {
+  if (tables.length === 0) return '';
+  const lines = tables.map((table) => {
+    const columns = Object.keys((table.schema['properties'] as Record<string, unknown>) ?? {});
+    const key = table.key ? `; key ${table.key.join(', ')}` : '';
+    const about = table.description ? ` \u2014 ${table.description}` : '';
+    return `- **${table.name}**${about} (${table.rows} rows; columns ${columns.join(', ')}${key})`;
+  });
+  return [
+    '## Tables',
+    '',
+    'Structured data this notebook keeps. Read the rows with query_table; list_tables gives each schema.',
+    '',
+    ...lines,
+  ].join('\n');
+}
+
+/** An array argument a tool requires, refused by name when it is missing. */
+function requireArray(args: Record<string, unknown>, name: string, tool: string): unknown[] {
+  const value = args[name];
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new GatewayError('VALIDATION', `${tool} requires "${name}", a list of at least one.`);
+  }
+  return value;
+}
+
+/** What a write of rows answers, in words and by row (#366). */
+function rowsWritten(written: {
+  operationId: string;
+  inserted: string[];
+  updated: string[];
+  deleted: string[];
+}) {
+  return {
+    operationId: written.operationId,
+    inserted: written.inserted.length,
+    updated: written.updated.length,
+    deleted: written.deleted.length,
+    rowIds: [...written.inserted, ...written.updated, ...written.deleted],
+  };
 }
 
 function optionalStrings(args: Record<string, unknown>, name: string): string[] | undefined {
@@ -460,8 +533,103 @@ function noteAnswer(note: NoteContent, notices: readonly NoteNotice[] = []): Too
   // diagnosis does not say it a second time.
   const said =
     note.name === null ? notices.filter((each) => each.code !== 'name-missing') : notices;
-  const body = note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : { ...note };
+  const named = note.name === null ? { notice: UNNAMED_NOTE_NOTICE, ...note } : { ...note };
+  // The note was saved; what changed of the context it was written against is
+  // for the agent to weigh, and this says how (RN-KNW-061).
+  const body = note.contextChanged ? { ...named, contextNotice: CONTEXT_CHANGED_NOTICE } : named;
   return json(said.length > 0 ? { ...body, notices: said } : body);
+}
+
+/**
+ * What an agent does when the context it declared changed while it wrote
+ * (RN-KNW-061): said once, so every write that can be told says it alike.
+ */
+export const CONTEXT_CHANGED_NOTICE =
+  'The note was saved, but what you declared in `context` had changed meanwhile: ' +
+  '`contextChanged` says which part and the current revisions. Somebody else changed it; it ' +
+  'is guidance, not a rule, so judge it. Read it again — get_notebook_context for the ' +
+  'guidance and the structure, get_template for the template — review this note against it, ' +
+  'and if it needs adjusting, update_note it under its own revision, declaring the current ' +
+  'context. Never resend the same content with the new revisions without that review.';
+
+/** The access a share grants, as an agent acts on it (RN-AGT-046, RN-ACC-032). */
+const ACCESS_SAYS: Record<ShareAccessName, string> = {
+  reader:
+    'Read it whole; every write here is refused, so do not follow the guidance below into ' +
+    'writing — say whose notebook it is instead.',
+  'content-editor':
+    'You may write, move and delete its notes and keep its files, following its guidance; ' +
+    'its folders, guidance and templates are refused: propose a change to them to the person ' +
+    'instead.',
+  'notebook-editor':
+    'It is written as any notebook is, its folders, guidance and templates included; sharing ' +
+    'it and deleting it stay with its owner.',
+};
+
+/** What a notebook shared with this person says before anything else. */
+export function sharedBanner(shared: NotebookListing): string {
+  const access = shared.access ?? 'reader';
+  const pending = shared.pendingAccess
+    ? ` The owner offered \`${shared.pendingAccess}\`, which waits for this person to accept ` +
+      'it in the web interface; until then, what is said here applies.'
+    : '';
+  return (
+    `> **Shared with this person by ${shared.owner ?? 'its owner'}, with \`${access}\` ` +
+    `access.** ${ACCESS_SAYS[access] ?? ACCESS_SAYS.reader}${pending}`
+  );
+}
+
+/** The revisions a note write declares as `context`, closing the notebook context (RN-KNW-061). */
+export function contextRevisionsSection(revisions: {
+  guidance: string | null;
+  structure: string;
+}): string {
+  return [
+    '## Context revisions',
+    '',
+    'What you read here, by revision. Declare it as `context` of create_note, update_note and ' +
+      'move_note, with the `revision` get_template answers for the folder you write in (null ' +
+      'when it has no template), and the answer tells you if any of it changed while you ' +
+      'wrote:',
+    '',
+    '```json',
+    JSON.stringify({
+      guidance: revisions.guidance,
+      template: null,
+      structure: revisions.structure,
+    }),
+    '```',
+  ].join('\n');
+}
+
+/** The `context` a write declares, or undefined when it declares none (RN-KNW-061). */
+function contextArgument(
+  args: Record<string, unknown>,
+  tool: string,
+): NoteContextRevisions | undefined {
+  const raw = args['context'];
+  if (raw === undefined || raw === null) return undefined;
+  const value = raw as Record<string, unknown>;
+  const revision = (key: string) =>
+    value[key] === null || typeof value[key] === 'string'
+      ? (value[key] as string | null)
+      : undefined;
+  const guidance = revision('guidance');
+  const template = revision('template');
+  if (
+    typeof raw !== 'object' ||
+    guidance === undefined ||
+    template === undefined ||
+    typeof value['structure'] !== 'string'
+  ) {
+    throw new GatewayError(
+      'VALIDATION',
+      `${tool} takes \`context\` as the revisions you read: guidance and template, each a ` +
+        'revision or null when there is none, and structure, as the end of ' +
+        'get_notebook_context and get_template answer them. Nothing was written.',
+    );
+  }
+  return { guidance, template, structure: value['structure'] };
 }
 
 /**
@@ -470,6 +638,44 @@ function noteAnswer(note: NoteContent, notices: readonly NoteNotice[] = []): Too
  * at about thirty seconds and the function at fifteen (RN-AGT-052).
  */
 export const CHECK_NOTICES_LIMIT = 200;
+
+/** How long create_notebook_from_model waits for the worker, and how often it looks. */
+const CREATION_WAIT_MS = 20_000;
+const CREATION_POLL_MS = 1_000;
+
+/** The values of the parameters an agent passed, by name. */
+function valuesOf(args: Record<string, unknown>): Record<string, unknown> {
+  return args['values'] && typeof args['values'] === 'object'
+    ? (args['values'] as Record<string, unknown>)
+    : {};
+}
+
+/**
+ * Waits for a notebook created from a version to be written (#359): most are
+ * written in seconds, and one that takes longer answers the transfer to follow.
+ */
+async function createdFrom(
+  started: TransferDto,
+  read: (transferId: string) => Promise<TransferDto>,
+): Promise<Record<string, unknown>> {
+  let transfer = started;
+  for (let waited = 0; transfer.status === 'running' && waited < CREATION_WAIT_MS;) {
+    await new Promise((resolve) => setTimeout(resolve, CREATION_POLL_MS));
+    waited += CREATION_POLL_MS;
+    transfer = await read(started.transferId);
+  }
+  return transfer.status === 'ready'
+    ? { notebook: transfer.notebookId, name: transfer.notebookName, status: 'ready' }
+    : {
+        transfer: transfer.transferId,
+        status: transfer.status,
+        failure: transfer.failure,
+        next:
+          transfer.status === 'running'
+            ? 'The notebook is still being written: list_notebooks shows it once it is.'
+            : 'The notebook was not created; the failure says why.',
+      };
+}
 const CHECK_NOTICES_BUDGET_MS = 8_000;
 const CHECK_NOTICES_PARALLEL = 10;
 
@@ -543,10 +749,20 @@ export class McpToolAdapter {
   ): Promise<{
     notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }>;
     read: { notes: number; of: number; complete: boolean };
+    stale: Array<{ note: { noteId: string; name: string | null }; changed: readonly string[] }>;
   }> {
     const started = Date.now();
     const recent = await this.gateways.knowledge.recentNotes(caller, notebookId);
+    // Every note whose live revision was written against a context that had
+    // already changed, from the same listing (RN-KNW-062).
+    const stale = recent
+      .filter((each) => (each.staleContext?.length ?? 0) > 0)
+      .map((each) => ({
+        note: { noteId: each.noteId, name: each.name },
+        changed: each.staleContext ?? [],
+      }));
     const wanted = recent.slice(0, CHECK_NOTICES_LIMIT);
+    const tables = await this.gateways.knowledge.listTables(caller, notebookId);
     const notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }> = [];
     let read = 0;
     for (let at = 0; at < wanted.length; at += CHECK_NOTICES_PARALLEL) {
@@ -555,7 +771,7 @@ export class McpToolAdapter {
       const found = await Promise.all(
         batch.map(async (each) => {
           const note = await this.gateways.knowledge.readNote(caller, notebookId, each.noteId);
-          const said = await noticesOf(note.content ?? '', ['notice']);
+          const said = await noticesOf(note.content ?? '', ['notice'], tables);
           return said.map((notice) => ({
             note: { noteId: each.noteId, name: each.name },
             ...notice,
@@ -565,7 +781,11 @@ export class McpToolAdapter {
       read += batch.length;
       notices.push(...found.flat());
     }
-    return { notices, read: { notes: read, of: recent.length, complete: read === recent.length } };
+    return {
+      notices,
+      read: { notes: read, of: recent.length, complete: read === recent.length },
+      stale,
+    };
   }
 
   /**
@@ -1022,31 +1242,252 @@ export class McpToolAdapter {
         );
       }
 
+      // The Tables of a notebook and their rows (#366).
+      case 'list_tables':
+        return json({
+          tables: await knowledge.listTables(
+            caller,
+            requireString(args, 'notebook', 'list_tables'),
+          ),
+        });
+
+      case 'create_table': {
+        const schema = args['schema'];
+        if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) {
+          throw new GatewayError(
+            'VALIDATION',
+            'create_table requires "schema", a JSON Schema object.',
+          );
+        }
+        return json(
+          await knowledge.createTable(caller, requireString(args, 'notebook', 'create_table'), {
+            name: requireString(args, 'name', 'create_table'),
+            description: optionalString(args, 'description') ?? '',
+            schema: schema as Record<string, unknown>,
+            key: optionalStrings(args, 'key') ?? null,
+          }),
+        );
+      }
+
+      case 'alter_table':
+        return json(
+          await knowledge.alterTable(
+            caller,
+            requireString(args, 'notebook', 'alter_table'),
+            requireString(args, 'table', 'alter_table'),
+            requireArray(args, 'changes', 'alter_table'),
+          ),
+        );
+
+      case 'delete_table': {
+        const table = requireString(args, 'table', 'delete_table');
+        const deleted = await knowledge.deleteTable(
+          caller,
+          requireString(args, 'notebook', 'delete_table'),
+          table,
+        );
+        return text(
+          `The table ${table} is gone, for good, with its ${deleted.rows} rows, destroyed shortly ` +
+            'after. Every note that showed it now says it is missing, and its name is free again.',
+        );
+      }
+
+      case 'query_table': {
+        const page = args['page'];
+        const pageSize = args['pageSize'];
+        return json(
+          await knowledge.queryTable(
+            caller,
+            requireString(args, 'notebook', 'query_table'),
+            requireString(args, 'table', 'query_table'),
+            {
+              where: optionalString(args, 'where') ?? null,
+              ...(Array.isArray(args['sort']) ? { sort: args['sort'] as never } : {}),
+              ...(typeof page === 'number' ? { page } : {}),
+              ...(typeof pageSize === 'number' ? { pageSize } : {}),
+              ...(typeof args['aggregate'] === 'object' && args['aggregate'] !== null
+                ? { aggregate: args['aggregate'] as never }
+                : {}),
+            },
+          ),
+        );
+      }
+
+      case 'insert_rows': {
+        const mode = args['mode'] === 'upsert' ? 'upsert' : 'insert';
+        return json(
+          rowsWritten(
+            await knowledge.insertRows(
+              caller,
+              requireString(args, 'notebook', 'insert_rows'),
+              requireString(args, 'table', 'insert_rows'),
+              { rows: requireArray(args, 'rows', 'insert_rows'), mode },
+            ),
+          ),
+        );
+      }
+
+      // The Dashboards of a notebook (#368).
+      case 'list_dashboards':
+        return json({
+          dashboards: await knowledge.listDashboards(
+            caller,
+            requireString(args, 'notebook', 'list_dashboards'),
+          ),
+        });
+
+      case 'create_dashboard': {
+        const definition = args['definition'];
+        if (typeof definition !== 'object' || definition === null || Array.isArray(definition)) {
+          throw new GatewayError(
+            'VALIDATION',
+            'create_dashboard requires "definition", an object.',
+          );
+        }
+        return json(
+          await knowledge.createDashboard(
+            caller,
+            requireString(args, 'notebook', 'create_dashboard'),
+            {
+              name: requireString(args, 'name', 'create_dashboard'),
+              description: optionalString(args, 'description') ?? '',
+              definition: definition as Record<string, unknown>,
+            },
+          ),
+        );
+      }
+
+      case 'update_dashboard': {
+        const definition = args['definition'];
+        const name = optionalString(args, 'name');
+        const description =
+          typeof args['description'] === 'string' ? args['description'] : undefined;
+        return json(
+          await knowledge.updateDashboard(
+            caller,
+            requireString(args, 'notebook', 'update_dashboard'),
+            requireString(args, 'dashboard', 'update_dashboard'),
+            {
+              ...(name ? { name } : {}),
+              ...(description !== undefined ? { description } : {}),
+              ...(typeof definition === 'object' &&
+              definition !== null &&
+              !Array.isArray(definition)
+                ? { definition: definition as Record<string, unknown> }
+                : {}),
+            },
+          ),
+        );
+      }
+
+      case 'read_dashboard': {
+        const filters = args['filters'];
+        return json(
+          await knowledge.readDashboard(
+            caller,
+            requireString(args, 'notebook', 'read_dashboard'),
+            requireString(args, 'dashboard', 'read_dashboard'),
+            typeof filters === 'object' && filters !== null && !Array.isArray(filters)
+              ? (filters as Record<string, string | null>)
+              : {},
+            crossOf(args),
+          ),
+        );
+      }
+
+      case 'preview_dashboard': {
+        const notebook = requireString(args, 'notebook', 'preview_dashboard');
+        const cross = crossOf(args);
+        const locale = localeOf(args);
+        const started = await knowledge.startPreview(caller, {
+          notebookId: notebook,
+          dashboard: requireString(args, 'dashboard', 'preview_dashboard'),
+          ...(typeof args['filters'] === 'object' && args['filters'] !== null
+            ? { filters: args['filters'] as Record<string, string | null> }
+            : {}),
+          ...(cross ? { cross } : {}),
+          ...(locale ? { locale } : {}),
+        });
+        return json({
+          preview: started.previewId,
+          notebook,
+          next:
+            'Call get_preview with this preview and notebook in a few seconds: a dashboard takes ' +
+            'from 5 to 20 seconds to draw.',
+        });
+      }
+
+      case 'delete_dashboard': {
+        const dashboard = requireString(args, 'dashboard', 'delete_dashboard');
+        await knowledge.deleteDashboard(
+          caller,
+          requireString(args, 'notebook', 'delete_dashboard'),
+          dashboard,
+        );
+        return text(
+          `The dashboard ${dashboard} is gone, for good, and its name is free again. Its tables ` +
+            'and their rows are untouched.',
+        );
+      }
+
+      case 'import_table': {
+        const table = optionalString(args, 'table');
+        const sheet = optionalString(args, 'sheet');
+        return json(
+          await knowledge.importTable(caller, requireString(args, 'notebook', 'import_table'), {
+            file: requireString(args, 'fileName', 'import_table'),
+            ...(table ? { table } : {}),
+            ...(sheet ? { sheet } : {}),
+            mode: args['mode'] === 'upsert' ? 'upsert' : 'insert',
+            dryRun: args['dryRun'] === true,
+          }),
+        );
+      }
+
+      case 'update_rows':
+        return json(
+          rowsWritten(
+            await knowledge.updateRows(
+              caller,
+              requireString(args, 'notebook', 'update_rows'),
+              requireString(args, 'table', 'update_rows'),
+              requireArray(args, 'updates', 'update_rows'),
+            ),
+          ),
+        );
+
+      case 'delete_rows':
+        return json(
+          rowsWritten(
+            await knowledge.deleteRows(
+              caller,
+              requireString(args, 'notebook', 'delete_rows'),
+              requireString(args, 'table', 'delete_rows'),
+              requireArray(args, 'targets', 'delete_rows'),
+            ),
+          ),
+        );
+
       case 'get_notebook_context': {
         // Markdown, not JSON: this document IS the product, and it is meant to
         // be read.
         const notebook = requireString(args, 'notebook', 'get_notebook_context');
-        const [context, reach] = await Promise.all([
+        const [context, reach, revisions, tables] = await Promise.all([
           knowledge.notebookContext(caller, notebook),
           knowledge.listNotebooks(caller),
+          knowledge.contextRevisions(caller, notebook),
+          knowledge.listTables(caller, notebook),
         ]);
         // A notebook shared from another subscription says so before anything
         // else, because the guidance it opens with asks to be written in, and
-        // with read access it cannot be (RN-AGT-046).
+        // what a share lets this person write is its access (RN-AGT-046).
         const shared = reach.find(
           (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
-        return text(
-          shared
-            ? `> **Shared with this person by ${shared.owner ?? 'its owner'}, with ` +
-                `\`${shared.access ?? 'read'}\` access.** ` +
-                (shared.access === 'read-write'
-                  ? 'It is written as any notebook is.'
-                  : 'Read it whole; every write here is refused, so do not follow the ' +
-                    'guidance below into writing — say whose notebook it is instead.') +
-                `\n\n${context}`
-            : context,
-        );
+        const body = [context.trimEnd(), tablesSection(tables), contextRevisionsSection(revisions)]
+          .filter((part) => part.length > 0)
+          .join('\n\n');
+        return text(shared ? `${sharedBanner(shared)}\n\n${body}` : body);
       }
 
       case 'get_template': {
@@ -1089,25 +1530,47 @@ export class McpToolAdapter {
       case 'create_note': {
         const after = optionalAnchor(args);
         const content = requireString(args, 'content', 'create_note');
+        const declared = contextArgument(args, 'create_note');
         const created = await knowledge.createNote(caller, {
           notebookId: requireString(args, 'notebook', 'create_note'),
           folderId: requireString(args, 'folder', 'create_note'),
           content,
           ...(after === undefined ? {} : { afterNoteId: after }),
+          ...(declared ? { context: declared } : {}),
         });
-        return noteAnswer(created, await noticesOf(content));
+        return noteAnswer(
+          created,
+          await noticesOf(
+            content,
+            undefined,
+            namesATable(content)
+              ? await knowledge.listTables(caller, requireString(args, 'notebook', 'create_note'))
+              : undefined,
+          ),
+        );
       }
 
       case 'update_note': {
         const content = requireString(args, 'content', 'update_note');
+        const declared = contextArgument(args, 'update_note');
         const updated = await knowledge.updateNote(caller, {
           notebookId: requireString(args, 'notebook', 'update_note'),
           noteId: requireString(args, 'note', 'update_note'),
           content,
           baseRevision: requireString(args, 'baseRevision', 'update_note'),
           message: optionalString(args, 'message'),
+          ...(declared ? { context: declared } : {}),
         });
-        return noteAnswer(updated, await noticesOf(content));
+        return noteAnswer(
+          updated,
+          await noticesOf(
+            content,
+            undefined,
+            namesATable(content)
+              ? await knowledge.listTables(caller, requireString(args, 'notebook', 'update_note'))
+              : undefined,
+          ),
+        );
       }
 
       case 'reorder_note':
@@ -1121,13 +1584,16 @@ export class McpToolAdapter {
 
       case 'move_note': {
         const after = optionalAnchor(args);
+        const declared = contextArgument(args, 'move_note');
+        const moved = await knowledge.moveNote(caller, {
+          notebookId: requireString(args, 'notebook', 'move_note'),
+          noteId: requireString(args, 'note', 'move_note'),
+          folderId: requireString(args, 'folder', 'move_note'),
+          ...(after === undefined ? {} : { afterNoteId: after }),
+          ...(declared ? { context: declared } : {}),
+        });
         return json(
-          await knowledge.moveNote(caller, {
-            notebookId: requireString(args, 'notebook', 'move_note'),
-            noteId: requireString(args, 'note', 'move_note'),
-            folderId: requireString(args, 'folder', 'move_note'),
-            ...(after === undefined ? {} : { afterNoteId: after }),
-          }),
+          moved.contextChanged ? { ...moved, contextNotice: CONTEXT_CHANGED_NOTICE } : moved,
         );
       }
 
@@ -1158,6 +1624,123 @@ export class McpToolAdapter {
           ),
         );
 
+      // ---- Notebook models (#353, #354, #359) -----------------------------
+      case 'declare_model': {
+        const parameters = Array.isArray(args['parameters']) ? args['parameters'] : [];
+        return json(
+          await knowledge.declareModel(caller, requireString(args, 'notebook', 'declare_model'), {
+            objective: requireString(args, 'objective', 'declare_model'),
+            description: optionalString(args, 'description') ?? '',
+            audience: optionalString(args, 'audience') ?? '',
+            parameters: parameters as never,
+            basedOn: optionalString(args, 'basedOn') ?? null,
+          }),
+        );
+      }
+
+      case 'get_model':
+        return json(await knowledge.model(caller, requireString(args, 'notebook', 'get_model')));
+
+      case 'list_models':
+        return json({ models: await knowledge.listModels(caller) });
+
+      case 'create_model_version': {
+        const notebook = requireString(args, 'notebook', 'create_model_version');
+        const tables = Array.isArray(args['tables'])
+          ? (args['tables'] as Array<Record<string, unknown>>).map((each) => ({
+              name: String(each['name'] ?? ''),
+              rows: each['rows'] === true,
+            }))
+          : undefined;
+        const version = await knowledge.createModelVersion(
+          caller,
+          notebook,
+          optionalString(args, 'changelog') ?? '',
+          tables,
+        );
+        return json({
+          ...version,
+          next:
+            `The version is being built. Call get_model with this notebook until version ` +
+            `${version.number} is ready, then read_model_version to review it with the person.`,
+        });
+      }
+
+      case 'read_model_version':
+        return json(
+          await knowledge.modelVersion(
+            caller,
+            requireString(args, 'notebook', 'read_model_version'),
+            requireInteger(args, 'version', 'read_model_version'),
+          ),
+        );
+
+      case 'delete_model_version':
+        await knowledge.deleteModelVersion(
+          caller,
+          requireString(args, 'notebook', 'delete_model_version'),
+          requireInteger(args, 'version', 'delete_model_version'),
+        );
+        return json({ deleted: true });
+
+      case 'create_notebook_from_model': {
+        const started = await knowledge.createFromModel(caller, {
+          notebookId: requireString(args, 'notebook', 'create_notebook_from_model'),
+          version: requireInteger(args, 'version', 'create_notebook_from_model'),
+          name: optionalString(args, 'name') ?? '',
+          values: valuesOf(args),
+        });
+        return json(await createdFrom(started, (id) => knowledge.transfer(caller, id)));
+      }
+
+      // ---- The community catalog (#360) -----------------------------------
+      case 'publish_model':
+        return json(
+          await knowledge.publishModel(caller, requireString(args, 'notebook', 'publish_model'), {
+            language: requireString(args, 'language', 'publish_model'),
+            acceptLicence: args['acceptLicence'] === true,
+          }),
+        );
+
+      case 'withdraw_model':
+        await knowledge.withdrawModel(caller, requireString(args, 'notebook', 'withdraw_model'));
+        return json({ withdrawn: true });
+
+      case 'search_community_models':
+        return json({
+          models: await knowledge.searchCommunity(caller, {
+            text: optionalString(args, 'query') ?? '',
+            language: optionalString(args, 'language') ?? null,
+          }),
+        });
+
+      case 'read_community_model':
+        return json(
+          await knowledge.communityModel(
+            caller,
+            requireString(args, 'model', 'read_community_model'),
+          ),
+        );
+
+      case 'read_community_version':
+        return json(
+          await knowledge.communityVersion(
+            caller,
+            requireString(args, 'model', 'read_community_version'),
+            requireInteger(args, 'version', 'read_community_version'),
+          ),
+        );
+
+      case 'create_notebook_from_community_model': {
+        const started = await knowledge.createFromCommunity(caller, {
+          publicId: requireString(args, 'model', 'create_notebook_from_community_model'),
+          version: requireInteger(args, 'version', 'create_notebook_from_community_model'),
+          name: optionalString(args, 'name') ?? '',
+          values: valuesOf(args),
+        });
+        return json(await createdFrom(started, (id) => knowledge.transfer(caller, id)));
+      }
+
       case 'check_notebook': {
         // The sweep reads the links from Discovery and what is still on its way
         // from Portability (RN-DSC-064): a name the person was asked for is a
@@ -1185,6 +1768,7 @@ export class McpToolAdapter {
           openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),
           notices: notices.notices,
           noticesRead: notices.read,
+          staleContext: notices.stale,
         });
       }
 
@@ -1212,8 +1796,10 @@ export class McpToolAdapter {
               'in; a note is drawn where it is. Nothing was drawn.',
           );
         }
+        const locale = localeOf(args);
         const started = await knowledge.startPreview(caller, {
           notebookId: notebook,
+          ...(locale ? { locale } : {}),
           ...(note === undefined ? {} : { noteId: note }),
           ...(content === undefined ? {} : { content }),
           ...(folder === undefined ? {} : { folderId: folder }),

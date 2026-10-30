@@ -211,6 +211,9 @@ export function previewStorageOf(job: PreviewJob, draft: string | null): Record<
       content: draft,
       folderId: job.folderId,
       part: job.part,
+      dashboard: job.dashboard ?? null,
+      filters: job.filters ?? null,
+      cross: job.cross ?? null,
     }),
   };
 }
@@ -235,6 +238,14 @@ const PREVIEW_VIEWPORT_WIDTH = 1280;
 /** The element the preview page draws into, marked once what arrives late has arrived. */
 const PREVIEW_READY = '.note-preview[data-ready="true"]';
 
+/** The element a dashboard is drawn into for its image, marked once every component is drawn (#368). */
+const DASHBOARD_READY = '.dashboard-print[data-ready="true"]';
+
+/** A dashboard is as wide as it was laid, and as tall, up to the tallest image a preview answers twice over. */
+function dashboardClipOf(width: number, height: number): { width: number; height: number } {
+  return { width: Math.ceil(width), height: Math.min(Math.max(1, Math.ceil(height)), 3200) };
+}
+
 /**
  * A note, a draft or a part of either, drawn by the application's preview page
  * at the reading width and in the light theme, and captured as a PNG (#260,
@@ -253,14 +264,18 @@ export async function renderPreview(
     height: 1000,
   });
   try {
-    const address = `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/preview`;
+    // A dashboard is drawn by a page of its own, as wide as a computer shows it (#368).
+    const ready = job.dashboard ? DASHBOARD_READY : PREVIEW_READY;
+    const address = job.dashboard
+      ? `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/dashboards/print`
+      : `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/preview`;
     await page.goto(address, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    const outcome = await outcomeOf(page, config.siteOrigin, PREVIEW_READY);
+    const outcome = await outcomeOf(page, config.siteOrigin, ready);
     if (outcome !== 'ready') return { ok: false, failure: outcome, diagnostics };
 
-    const box = await (await page.$(PREVIEW_READY))?.boundingBox();
+    const box = await (await page.$(ready))?.boundingBox();
     if (!box) return { ok: false, failure: 'FAILED', diagnostics };
-    const clip = clipOf(box.height);
+    const clip = job.dashboard ? dashboardClipOf(box.width, box.height) : clipOf(box.height);
     const png = await page.screenshot({
       type: 'png',
       clip: { x: box.x, y: box.y, width: clip.width, height: clip.height },

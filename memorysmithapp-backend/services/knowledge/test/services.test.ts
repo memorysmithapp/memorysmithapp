@@ -19,6 +19,7 @@ import { composeNotebookContext } from '../src/domain/services/NotebookContextCo
 import {
   AuthorizationPolicy,
   type RequestContext,
+  type ShareProfile,
 } from '../src/domain/access/AuthorizationPolicy.js';
 import {
   authorship,
@@ -328,8 +329,11 @@ describe('AuthorizationPolicy', () => {
     expect(error.revealsExistence).toBe(false);
   });
 
-  it('lets an EDITOR write', () => {
-    expect(unwrap(AuthorizationPolicy.require(context(), notebook, 'write'))).toBe(Role.EDITOR);
+  it('lets an EDITOR write content and maintain the notebook alike (#346)', () => {
+    expect(unwrap(AuthorizationPolicy.require(context(), notebook, 'write-content'))).toBe(
+      Role.EDITOR,
+    );
+    expect(unwrap(AuthorizationPolicy.require(context(), notebook, 'maintain'))).toBe(Role.EDITOR);
   });
 
   it('demotes an EDITOR to VIEWER through the notebook ceiling', () => {
@@ -338,7 +342,7 @@ describe('AuthorizationPolicy', () => {
     const ctx = context({ role: Role.EDITOR });
 
     expect(AuthorizationPolicy.effectiveRole(ctx, limited)).toBe(Role.VIEWER);
-    const error = expectErr(AuthorizationPolicy.require(ctx, limited, 'write'));
+    const error = expectErr(AuthorizationPolicy.require(ctx, limited, 'write-content'));
     // The one deliberate exception to the 404: the member already sees this
     // notebook in their list, so a 404 here would protect nothing (RN-ACC-012).
     expect(error.revealsExistence).toBe(true);
@@ -362,7 +366,57 @@ describe('AuthorizationPolicy', () => {
 
   it('refuses a VIEWER any write, by subscription role alone', () => {
     const viewer = context({ role: Role.VIEWER });
-    const error = expectErr(AuthorizationPolicy.require(viewer, notebook, 'write'));
-    expect(error.message).toContain('EDITOR');
+    for (const action of ['write-content', 'maintain'] as const) {
+      const error = expectErr(AuthorizationPolicy.require(viewer, notebook, action));
+      expect(error.message).toContain('EDITOR');
+    }
+  });
+
+  describe('through a share from another subscription (#346)', () => {
+    function shared(profile: ShareProfile, on: Notebook = notebook): RequestContext {
+      return context({
+        role: Role.VIEWER,
+        share: { notebookId: on.id, owner: 'owner@example.com', profile },
+      });
+    }
+
+    it('lets a reader read and write nothing, naming the owner', () => {
+      expect(AuthorizationPolicy.allows(shared('reader'), notebook, 'read')).toBe(true);
+      for (const action of ['write-content', 'maintain', 'administer'] as const) {
+        const error = expectErr(AuthorizationPolicy.require(shared('reader'), notebook, action));
+        expect(error.revealsExistence).toBe(true);
+        expect(error.message).toBe(
+          'This notebook is shared with you by owner@example.com with read access, and cannot be written',
+        );
+        expect(error.details).toEqual({ shared: true, owner: 'owner@example.com', access: 'read' });
+      }
+    });
+
+    it('lets a content editor write content but not maintain the notebook', () => {
+      const ctx = shared('content-editor');
+      expect(AuthorizationPolicy.allows(ctx, notebook, 'write-content')).toBe(true);
+      const error = expectErr(AuthorizationPolicy.require(ctx, notebook, 'maintain'));
+      expect(error.message).toContain('folders, Guidance or Templates');
+      expect(error.details).toMatchObject({ access: 'content-editor' });
+      expect(AuthorizationPolicy.allows(ctx, notebook, 'administer')).toBe(false);
+    });
+
+    it('lets a notebook editor maintain the notebook, and never administer it', () => {
+      const ctx = shared('notebook-editor');
+      expect(AuthorizationPolicy.allows(ctx, notebook, 'write-content')).toBe(true);
+      expect(AuthorizationPolicy.allows(ctx, notebook, 'maintain')).toBe(true);
+      const error = expectErr(AuthorizationPolicy.require(ctx, notebook, 'administer'));
+      expect(error.details).toMatchObject({ access: 'notebook-editor' });
+    });
+
+    it('reaches no other notebook of the owner, whatever the profile, as a 404', () => {
+      const another = newNotebook();
+      const ctx = shared('notebook-editor', notebook);
+      expect(AuthorizationPolicy.effectiveRole(ctx, another)).toBe(Role.NONE);
+      for (const action of ['read', 'write-content', 'maintain'] as const) {
+        const error = expectErr(AuthorizationPolicy.require(ctx, another, action));
+        expect(error.revealsExistence).toBe(false);
+      }
+    });
   });
 });

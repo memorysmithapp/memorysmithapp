@@ -27,6 +27,8 @@ import type {
 } from '@memorysmithapp/svc-knowledge/application/folders';
 import type { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
 import type { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import type { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
+import type { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import type { ContentStore, RequestContext } from '@memorysmithapp/svc-knowledge/domain';
 
 export interface KnowledgeWriteUseCases {
@@ -38,6 +40,10 @@ export interface KnowledgeWriteUseCases {
   readonly createNote: CreateNote;
   /** The files an archive carries back, through the door an upload uses (#166). */
   readonly keepFile: KeepFile;
+  /** The tables an archive carries, and their rows, through the doors an agent uses (#366). */
+  readonly createTable: CreateTable;
+  readonly insertRows: InsertRows;
+  readonly createDashboard: CreateDashboard;
   readonly deleteNotebook: DeleteNotebook;
 }
 
@@ -165,6 +171,70 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       by: input.by,
     });
     return kept.ok ? ok() : kept;
+  }
+
+  async createTable(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    schema: Record<string, unknown>;
+    key: readonly string[] | null;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const created = await this.useCases.createTable.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      name: input.name,
+      description: input.description,
+      schema: input.schema,
+      key: input.key,
+      by: input.by,
+    });
+    return created.ok ? ok() : created;
+  }
+
+  async createDashboard(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    definition: Record<string, unknown>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const created = await this.useCases.createDashboard.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      name: input.name,
+      description: input.description,
+      definition: input.definition,
+      by: input.by,
+    });
+    return created.ok ? ok() : created;
+  }
+
+  async insertRows(input: {
+    notebookId: string;
+    table: string;
+    rows: ReadonlyArray<Record<string, unknown>>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const written = await this.useCases.insertRows.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      table: input.table,
+      rows: input.rows,
+      // A table with a key was written once under each key, so an upsert
+      // and an insert write the same; upsert never refuses a row the call
+      // before it wrote.
+      mode: 'upsert',
+      by: input.by,
+    });
+    return written.ok ? ok() : written;
   }
 
   async createNote(input: {

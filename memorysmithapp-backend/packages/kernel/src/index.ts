@@ -7,7 +7,17 @@ export { DomainError, ConcurrencyError, httpStatusFor, type ErrorCode } from './
 export { ok, err, isOk, isErr, mapOk, allOk, type Result, type Ok, type Err } from './result.js';
 export { ulid, isUlid, canonicalUlid, ulidTime } from './ulid.js';
 export { sha256Hex } from './hash.js';
-export { SubscriptionId, NotebookId, FolderId, NoteId, FileId, ContentId, UserId } from './ids.js';
+export {
+  SubscriptionId,
+  NotebookId,
+  FolderId,
+  NoteId,
+  FileId,
+  TableId,
+  DashboardId,
+  ContentId,
+  UserId,
+} from './ids.js';
 export { Slug, slugify } from './slug.js';
 export {
   frontmatterBlock,
@@ -19,6 +29,27 @@ export {
   type FrontmatterForm,
 } from './frontmatter.js';
 export { noteName, NAME_KEY } from './note-name.js';
+export { codeRanges } from './markdown-code.js';
+export { tableNameKey, tableReferences } from './table-references.js';
+export {
+  COMPARISONS,
+  comparedFacets,
+  normalize,
+  parseQuery,
+  QuerySyntaxError,
+  STRUCTURAL_FIELDS,
+  type Comparison,
+  type QueryNode,
+  type StructuralField,
+} from './search-query.js';
+export {
+  isParameterName,
+  parameterNames,
+  parameterReferences,
+  textReferences,
+  type ParameterReference,
+  type ReferencePlace,
+} from './parameter-references.js';
 export { Instant } from './instant.js';
 export { Position, rebalancedPositions, REBALANCE_THRESHOLD } from './position.js';
 export { Role, NotebookRoleLimit, type RoleName } from './role.js';

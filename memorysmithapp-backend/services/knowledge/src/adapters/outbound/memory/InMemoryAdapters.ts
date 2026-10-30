@@ -25,7 +25,12 @@ import {
   type Slug,
   type SubscriptionContext,
   type NotebookId,
+  type TableId,
+  type DashboardId,
 } from '@memorysmithapp/kernel';
+import { Table } from '../../../domain/table/Table.js';
+import { Dashboard } from '../../../domain/dashboard/Dashboard.js';
+import { rowBytes, type Row } from '../../../domain/table/Row.js';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
 import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
@@ -34,6 +39,10 @@ import type { Guidance } from '../../../domain/content-slot/Guidance.js';
 import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
+  RowWrite,
+  DashboardRepository,
+  TableRepository,
+  TableUsage,
   FileDisposition,
   FileRepository,
   FileStore,
@@ -122,6 +131,7 @@ export class InMemoryStorageUsage implements StorageUsageReader {
             notes: floor(line.notes),
             folders: floor(line.folders),
             files: floor(line.files),
+            tables: floor(line.tables ?? 0),
           },
         ]),
       ),
@@ -578,6 +588,21 @@ export class InMemoryFileStore implements FileStore {
 
   constructor(private readonly sub: SubscriptionContext) {}
 
+  /** Whose assembled uploads this store adopts: its own, unless a share says otherwise. */
+  protected get uploads(): Map<string, Uint8Array> {
+    return this.assembled;
+  }
+
+  /**
+   * This store, adopting what another subscription's upload assembled: a person
+   * writing through a share keeps a file of the owner's (#347).
+   */
+  withUploadsOf(other: InMemoryFileStore): InMemoryFileStore {
+    const view = Object.create(this) as InMemoryFileStore;
+    Object.defineProperty(view, 'uploads', { get: () => other.assembled });
+    return view;
+  }
+
   private keyOf(contentId: ContentId, versionId: string): string {
     return `s/${this.sub.subscriptionId.value}/f/${contentId.value}@${versionId}`;
   }
@@ -601,7 +626,7 @@ export class InMemoryFileStore implements FileStore {
   }
 
   async peekAssembled(key: string, versionId: string, bytes: number): Promise<Uint8Array | null> {
-    return this.assembled.get(`${key}@${versionId}`)?.slice(0, bytes) ?? null;
+    return this.uploads.get(`${key}@${versionId}`)?.slice(0, bytes) ?? null;
   }
 
   async adoptAssembled(input: {
@@ -610,7 +635,7 @@ export class InMemoryFileStore implements FileStore {
     mimeType: string;
     sha256: string;
   }): Promise<ContentRef | 'mismatch' | null> {
-    const whole = this.assembled.get(`${input.key}@${input.versionId}`);
+    const whole = this.uploads.get(`${input.key}@${input.versionId}`);
     if (!whole) return null;
     if (createHash('sha256').update(whole).digest('hex') !== input.sha256) return 'mismatch';
     return this.put(whole, input.mimeType);
@@ -630,5 +655,249 @@ export class InMemoryFileStore implements FileStore {
       url: `memory://files/${ref.contentId.value}/${disposition}/${encodeURIComponent(downloadName)}`,
       expiresAt: expiresAt.value,
     };
+  }
+}
+
+/**
+ * The Tables of a notebook, in memory (#366). The table is kept as it was
+ * saved and handed back as a copy, so a version moves the way the conditioned
+ * write of the adapter moves it, and rows are kept by generation.
+ */
+export class InMemoryTableRepository implements TableRepository {
+  private readonly tables = new Map<string, Table>();
+  private readonly rowsByTable = new Map<string, Map<string, Row>>();
+
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly events: EventPublisher,
+  ) {}
+
+  private key(notebook: NotebookId, tableId: string): string {
+    return `${notebookKey(this.sub, notebook)}#TABLE#${tableId}`;
+  }
+
+  private rowsKey(table: Table, generation = table.generation): string {
+    return `${this.key(table.notebookId, table.id.value)}#ROW#${generation}`;
+  }
+
+  private copy(
+    table: Table,
+    overrides: { version?: number; lockedUntil?: Instant | null } = {},
+  ): Table {
+    return Table.rehydrate({
+      id: table.id,
+      subscriptionId: table.subscriptionId,
+      notebookId: table.notebookId,
+      name: table.name,
+      description: table.description,
+      columns: table.columns,
+      key: table.key,
+      nextColumn: table.nextColumn,
+      generation: table.generation,
+      createdBy: table.createdBy,
+      updatedBy: table.updatedBy,
+      deletedAt: table.deletedAt,
+      version: overrides.version ?? table.version,
+      lockedUntil: overrides.lockedUntil === undefined ? table.lockedUntil : overrides.lockedUntil,
+    });
+  }
+
+  async findById(notebook: NotebookId, table: TableId): Promise<Table | null> {
+    const found = this.tables.get(this.key(notebook, table.value));
+    return found && !found.isDeleted ? this.copy(found) : null;
+  }
+
+  async findByName(notebook: NotebookId, name: string): Promise<Table | null> {
+    const wanted = name.normalize('NFC').trim().toLowerCase();
+    return (await this.list(notebook)).find((table) => table.name.toLowerCase() === wanted) ?? null;
+  }
+
+  async list(notebook: NotebookId): Promise<Table[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#TABLE#`;
+    return [...this.tables.entries()]
+      .filter(([key, table]) => key.startsWith(prefix) && !table.isDeleted)
+      .map(([, table]) => this.copy(table))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async usage(table: Table): Promise<TableUsage> {
+    const rows = [...(this.rowsByTable.get(this.rowsKey(table))?.values() ?? [])];
+    return { rows: rows.length, bytes: rows.reduce((sum, row) => sum + rowBytes(row.values), 0) };
+  }
+
+  async save(table: Table): Promise<Result<void, DomainError>> {
+    const key = this.key(table.notebookId, table.id.value);
+    const held = this.tables.get(key);
+    if ((held?.version ?? 0) !== table.version || (!held && table.version !== 0)) {
+      return {
+        ok: false,
+        error: DomainError.conflict('The table changed while this write was in flight'),
+      };
+    }
+    const named = await this.findByName(table.notebookId, table.name);
+    if (!table.isDeleted && named && !named.id.equals(table.id)) {
+      return {
+        ok: false,
+        error: DomainError.conflict(
+          `This notebook already has a table called "${table.name}"`,
+          named.id.value,
+        ),
+      };
+    }
+    const events = table.pullEvents();
+    this.tables.set(key, this.copy(table, { version: table.nextVersion(), lockedUntil: null }));
+    await this.events.publish(events);
+    return { ok: true, value: undefined };
+  }
+
+  async rows(table: Table): Promise<Row[]> {
+    return [...(this.rowsByTable.get(this.rowsKey(table))?.values() ?? [])].sort((a, b) =>
+      a.seq < b.seq ? -1 : a.seq > b.seq ? 1 : 0,
+    );
+  }
+
+  async findRows(table: Table, rowIds: readonly string[]): Promise<Row[]> {
+    const rows = this.rowsByTable.get(this.rowsKey(table));
+    return rowIds.map((id) => rows?.get(id)).filter((row): row is Row => row !== undefined);
+  }
+
+  async writeRows(
+    table: Table,
+    writes: readonly RowWrite[],
+    events: readonly DomainEvent[],
+  ): Promise<Result<void, DomainError>> {
+    const held = this.tables.get(this.key(table.notebookId, table.id.value));
+    const conflict = {
+      ok: false as const,
+      error: DomainError.conflict(
+        'The table or one of these rows changed while this write was in flight: read them and write again',
+      ),
+    };
+    if (!held || held.isDeleted || held.version !== table.version || held.isLocked(Instant.now()))
+      return conflict;
+    const key = this.rowsKey(table);
+    const rows = new Map(this.rowsByTable.get(key) ?? []);
+    for (const write of writes) {
+      const id = write.kind === 'delete' ? write.rowId : write.row.rowId;
+      const existing = rows.get(id);
+      if (
+        write.kind === 'insert'
+          ? existing !== undefined
+          : existing?.version !== write.expectedVersion
+      ) {
+        return conflict;
+      }
+      if (write.kind === 'delete') rows.delete(id);
+      else rows.set(id, { ...write.row, version: write.row.version + 1 });
+    }
+    this.rowsByTable.set(key, rows);
+    await this.events.publish([...events]);
+    return { ok: true, value: undefined };
+  }
+
+  async lock(table: Table): Promise<Result<Table, DomainError>> {
+    const key = this.key(table.notebookId, table.id.value);
+    const held = this.tables.get(key);
+    const now = Instant.now();
+    if (!held || held.version !== table.version || held.isLocked(now)) {
+      return {
+        ok: false,
+        error: DomainError.conflict(
+          'The table is being altered, or changed meanwhile: alter it again in a moment',
+        ),
+      };
+    }
+    const until = Instant.fromEpochMillis(Date.parse(now.toISOString()) + 120_000);
+    const locked = this.copy(held, {
+      version: held.version + 1,
+      lockedUntil: until.ok ? until.value : null,
+    });
+    this.tables.set(key, locked);
+    return { ok: true, value: this.copy(locked) };
+  }
+
+  async unlock(table: Table): Promise<void> {
+    const key = this.key(table.notebookId, table.id.value);
+    const held = this.tables.get(key);
+    if (held && held.version === table.version) {
+      this.tables.set(key, this.copy(held, { version: held.version + 1, lockedUntil: null }));
+    }
+  }
+
+  async replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>> {
+    const written = new Map(rows.map((row) => [row.rowId, { ...row, version: row.version + 1 }]));
+    this.rowsByTable.set(this.rowsKey(next), written);
+    const saved = await this.save(next);
+    if (!saved.ok) {
+      this.rowsByTable.delete(this.rowsKey(next));
+      return saved;
+    }
+    const prefix = `${this.key(next.notebookId, next.id.value)}#ROW#`;
+    for (const key of [...this.rowsByTable.keys()]) {
+      if (key.startsWith(prefix) && key !== this.rowsKey(next)) this.rowsByTable.delete(key);
+    }
+    return { ok: true, value: undefined };
+  }
+}
+
+/** The Dashboards of a notebook, in memory (#368), kept as saved and handed back as copies. */
+export class InMemoryDashboardRepository implements DashboardRepository {
+  private readonly dashboards = new Map<string, Dashboard>();
+
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly events: EventPublisher,
+  ) {}
+
+  private key(notebook: NotebookId, id: string): string {
+    return `${notebookKey(this.sub, notebook)}#DASH#${id}`;
+  }
+
+  private copy(dashboard: Dashboard, version = dashboard.version): Dashboard {
+    return Dashboard.rehydrate({
+      id: dashboard.id,
+      subscriptionId: dashboard.subscriptionId,
+      notebookId: dashboard.notebookId,
+      name: dashboard.name,
+      description: dashboard.description,
+      definition: dashboard.definition,
+      createdBy: dashboard.createdBy,
+      updatedBy: dashboard.updatedBy,
+      version,
+    });
+  }
+
+  async findById(notebook: NotebookId, dashboard: DashboardId): Promise<Dashboard | null> {
+    const found = this.dashboards.get(this.key(notebook, dashboard.value));
+    return found ? this.copy(found) : null;
+  }
+
+  async findByName(notebook: NotebookId, name: string): Promise<Dashboard | null> {
+    const wanted = name.normalize('NFC').trim().toLowerCase();
+    return (await this.list(notebook)).find((each) => each.name.toLowerCase() === wanted) ?? null;
+  }
+
+  async list(notebook: NotebookId): Promise<Dashboard[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#DASH#`;
+    return [...this.dashboards.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, each]) => this.copy(each))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async save(dashboard: Dashboard): Promise<Result<void, DomainError>> {
+    const key = this.key(dashboard.notebookId, dashboard.id.value);
+    const held = this.dashboards.get(key);
+    if ((held?.version ?? 0) !== dashboard.version) {
+      return {
+        ok: false,
+        error: DomainError.conflict('The dashboard changed while this write was in flight'),
+      };
+    }
+    const events = dashboard.pullEvents();
+    if (dashboard.isDeleted) this.dashboards.delete(key);
+    else this.dashboards.set(key, this.copy(dashboard, dashboard.nextVersion()));
+    await this.events.publish(events);
+    return { ok: true, value: undefined };
   }
 }

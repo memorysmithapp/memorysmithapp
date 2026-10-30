@@ -3,9 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { NotebookStructure } from '../../shared/types/api';
 import {
-  attachmentsAddress,
   foldersAddress,
-  graphAddress,
   guidanceAddress,
   notebookAddress,
   templatesAddress,
@@ -14,9 +12,8 @@ import {
   ArrowLeftIcon,
   ContextIcon,
   FolderIcon,
-  GraphIcon,
   GuidanceIcon,
-  PaperclipIcon,
+  MoreIcon,
   SearchIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
@@ -25,6 +22,7 @@ import { SkeletonBar } from '../../shared/components/Skeleton';
 import { FolderTreeSkeleton } from '../../shared/components/skeletons';
 import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
+import { useNotebookPages } from './NotebookNav';
 
 /**
  * The navigation of a notebook on a phone (#229): the sidebar becomes the
@@ -33,7 +31,8 @@ import { FolderTree } from './FolderTree';
  * raises it to 88 % of the height, over a dimmed page.
  *
  * Under its handle, a bar of icons that stays: the search, the Context, its
- * three parts, the attachments and the graph, the one of the open page filled
+ * three parts, the attachments, and a last one that groups the other pages of
+ * the notebook, named, under the bar (#375). The icon of the open page is filled
  * in Tinta. Below
  * it scroll the way back to every notebook, the name and the tree. It closes
  * by dragging the handle down, a tap outside, Esc, and by opening a page.
@@ -49,6 +48,12 @@ export function NotebookSheet({
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [grouped, setGrouped] = useState(false);
+  const pages = useNotebookPages(notebookId);
+  const attachments = pages.find((page) => page.key === 'attachments');
+  const model = pages.find((page) => page.key === 'model');
+  const others = pages.filter((page) => page.key !== 'attachments' && page.key !== 'model');
+  const inGroup = others.some((page) => pathname.startsWith(page.to));
   const trigger = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const close = () => setOpen(false);
@@ -66,6 +71,7 @@ export function NotebookSheet({
   useEffect(() => {
     if (!open) {
       setSearching(false);
+      setGrouped(false);
       return;
     }
     box.current?.focus({ preventScroll: true });
@@ -129,6 +135,11 @@ export function NotebookSheet({
               <SheetTab to={notebookAddress(notebookId)} end label={t('structure.heading')}>
                 <ContextIcon />
               </SheetTab>
+              {model ? (
+                <SheetTab to={model.to} label={model.label}>
+                  {model.icon}
+                </SheetTab>
+              ) : null}
               <SheetTab to={guidanceAddress(notebookId)} label={t('structure.guidance')}>
                 <GuidanceIcon />
               </SheetTab>
@@ -138,13 +149,33 @@ export function NotebookSheet({
               <SheetTab to={foldersAddress(notebookId)} label={t('structure.folders')}>
                 <FolderIcon />
               </SheetTab>
-              <SheetTab to={attachmentsAddress(notebookId)} label={t('attachments.navLabel')}>
-                <PaperclipIcon />
-              </SheetTab>
-              <SheetTab to={graphAddress(notebookId)} label={t('graph.navLabel')}>
-                <GraphIcon />
-              </SheetTab>
+              {attachments ? (
+                <SheetTab to={attachments.to} label={attachments.label}>
+                  {attachments.icon}
+                </SheetTab>
+              ) : null}
+              <button
+                type="button"
+                className={`sheet-tab${grouped || inGroup ? ' active' : ''}`}
+                aria-label={t('structure.morePages')}
+                title={t('structure.morePages')}
+                aria-expanded={grouped}
+                aria-controls="sheet-pages"
+                onClick={() => setGrouped((on) => !on)}
+              >
+                <MoreIcon />
+              </button>
             </nav>
+            {grouped ? (
+              <nav id="sheet-pages" className="sheet-pages" aria-label={t('structure.morePages')}>
+                {others.map((page) => (
+                  <NavLink key={page.key} to={page.to} className="sheet-page">
+                    {page.icon}
+                    {page.label}
+                  </NavLink>
+                ))}
+              </nav>
+            ) : null}
             <div className="notebook-sheet-body">
               {searching && structure ? (
                 <SearchBox

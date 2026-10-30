@@ -73,6 +73,7 @@ const usage = (notebooks: SubscriptionUsageDto['notebooks']): SubscriptionUsageD
   byType: {
     notes: { count: 192, bytes: 148 },
     files: { count: 86, bytes: 402 },
+    tables: { count: 2, bytes: 20 },
     exports: { count: 3, bytes: 52 },
     transit: { count: 0, bytes: 0 },
     others: { count: 15, bytes: 10 },
@@ -88,6 +89,7 @@ const line = (notebookId: string, bytes: number) => ({
   notes: 1,
   folders: 2,
   files: 0,
+  tables: 0,
   exports: 1,
   uploads: 0,
 });
@@ -98,6 +100,7 @@ describe('the space of the subscription', () => {
       'files',
       'notes',
       'exports',
+      'tables',
       'others',
       // Nothing is in transit here, so it goes last, with its zero.
       'transit',

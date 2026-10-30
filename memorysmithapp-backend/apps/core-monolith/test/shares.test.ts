@@ -9,6 +9,7 @@
  * grantee were a reader of the owner's subscription.
  */
 
+import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UserId } from '@memorysmithapp/kernel';
 import { Email } from '@memorysmithapp/svc-access/domain/values';
@@ -75,10 +76,18 @@ async function onboard(input: { token: string; sub: string; email: string }): Pr
   return subscriptionId;
 }
 
-async function share(email = GRANTEE.email): Promise<Response> {
+async function share(email = GRANTEE.email, profile?: string): Promise<Response> {
   return call(OWNER.token, `/access/notebooks/${notebookId}/shares`, {
     method: 'POST',
-    body: { email, access: 'read' },
+    // Without a profile, as a client from before the profiles asks: a reader.
+    body: profile ? { email, profile } : { email, access: 'read' },
+  });
+}
+
+async function changeProfile(profile: string): Promise<Response> {
+  return call(OWNER.token, `/access/notebooks/${notebookId}/shares/${GRANTEE.sub}/profile`, {
+    method: 'PUT',
+    body: { profile },
   });
 }
 
@@ -128,7 +137,8 @@ describe('sharing a notebook with a person of another subscription', () => {
         name: 'Normas',
         description: 'Texto normativo por artigo',
         ownerEmail: OWNER.email,
-        access: 'read',
+        profile: 'reader',
+        pendingProfile: null,
         state: 'pending',
         noteCount: null,
         updatedAt: null,
@@ -158,10 +168,10 @@ describe('sharing a notebook with a person of another subscription', () => {
     expect(listed).toEqual([]);
   });
 
-  it('refuses read-write, which no share grants yet', async () => {
+  it('refuses a profile it does not know', async () => {
     const refused = await call(OWNER.token, `/access/notebooks/${notebookId}/shares`, {
       method: 'POST',
-      body: { email: GRANTEE.email, access: 'read-write' },
+      body: { email: GRANTEE.email, profile: 'owner' },
     });
     expect(refused.status).toBe(400);
   });
@@ -434,5 +444,328 @@ describe('sharing a notebook with a person of another subscription', () => {
         parseEvent(envelopeOf(outboxItemFor(event, `S#${event.subscriptionId.value}`))),
       ).not.toThrow();
     }
+  });
+});
+
+describe('the profiles of a share (#347)', () => {
+  async function noteOf(): Promise<string> {
+    const notes = await json<{ notes: Array<{ noteId: string }> } | Array<{ noteId: string }>>(
+      await call(OWNER.token, `/knowledge/notebooks/${notebookId}/notes`),
+    );
+    return (Array.isArray(notes) ? notes : notes.notes)[0]!.noteId;
+  }
+
+  async function createNote(name: string): Promise<Response> {
+    return call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/notes`, {
+      method: 'POST',
+      body: { folderId, content: `---\nname: ${name}\n---\n\n# ${name}\n` },
+    });
+  }
+
+  async function createFolder(name: string): Promise<Response> {
+    return call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/folders`, {
+      method: 'POST',
+      body: { name, description: 'Uma pasta.' },
+    });
+  }
+
+  it('lets a content editor work with the notes, and nothing of the structure', async () => {
+    expect((await share(GRANTEE.email, 'content-editor')).status).toBe(204);
+    await accept();
+
+    const detail = await json<{ permissions: Record<string, boolean> }>(
+      await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}`),
+    );
+    expect(detail.permissions).toEqual({ writeContent: true, maintain: false, administer: false });
+
+    expect((await createNote('Lei 8.666')).status).toBe(201);
+    const noteId = await noteOf();
+    const edited = await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/notes/${noteId}`, {
+      method: 'GET',
+    });
+    expect(edited.status).toBe(200);
+
+    const folder = await createFolder('Minhas');
+    expect(folder.status).toBe(403);
+    const refusal = await json<{ message: string; details?: Record<string, unknown> }>(folder);
+    expect(refusal.message).toContain(OWNER.email);
+    expect(refusal.message).toContain('folders, Guidance or Templates');
+
+    const guidance = await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/guidance`, {
+      method: 'PUT',
+      body: { content: '# Outra orientação' },
+    });
+    expect(guidance.status).toBe(403);
+    expect(
+      (await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' }))
+        .status,
+    ).toBe(403);
+    // Sharing stays the owner's: the grantee's own session holds no such notebook.
+    expect(
+      (
+        await call(GRANTEE.token, `/access/notebooks/${notebookId}/shares`, {
+          method: 'POST',
+          body: { email: 'third@example.com', profile: 'reader' },
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it('lets a notebook editor maintain the structure, and never administer', async () => {
+    expect((await share(GRANTEE.email, 'notebook-editor')).status).toBe(204);
+    await accept();
+
+    expect((await createFolder('Decretos')).status).toBe(201);
+    expect((await createNote('Decreto 1')).status).toBe(201);
+    expect(
+      (await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' }))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}`, {
+          method: 'PATCH',
+          body: { name: 'Outro nome' },
+        })
+      ).status,
+    ).toBe(403);
+  });
+
+  it('grants an increase only once the grantee accepts it again', async () => {
+    await share();
+    await accept();
+    expect((await changeProfile('content-editor')).status).toBe(204);
+
+    // Until the renewed acceptance, the accepted reader is what applies.
+    expect((await createNote('Antes do aceite')).status).toBe(403);
+    const waiting = await json<Array<{ profile: string; pendingProfile: string | null }>>(
+      await call(GRANTEE.token, '/access/shared'),
+    );
+    expect(waiting).toEqual([
+      expect.objectContaining({ profile: 'reader', pendingProfile: 'content-editor' }),
+    ]);
+    const notices = await json<{ notifications: Array<{ kind: string }> }>(
+      await call(GRANTEE.token, '/access/notifications'),
+    );
+    expect(notices.notifications.map((notice) => notice.kind)).toEqual(['increase']);
+    const owners = await json<Array<{ profile: string; pendingProfile: string | null }>>(
+      await call(OWNER.token, `/access/notebooks/${notebookId}/shares`),
+    );
+    expect(owners).toEqual([
+      expect.objectContaining({ profile: 'reader', pendingProfile: 'content-editor' }),
+    ]);
+
+    expect(
+      (
+        await call(GRANTEE.token, `/access/shared/${notebookId}/increase/accept`, {
+          method: 'POST',
+        })
+      ).status,
+    ).toBe(204);
+    expect((await createNote('Depois do aceite')).status).toBe(201);
+    expect(harness.events.ofType('NotebookShareProfileChanged')).toHaveLength(1);
+    expect(harness.events.ofType('NotebookShareIncreaseAccepted')).toHaveLength(1);
+  });
+
+  it('keeps the accepted profile when an increase is rejected', async () => {
+    await share(GRANTEE.email, 'content-editor');
+    await accept();
+    await changeProfile('notebook-editor');
+    expect(
+      (
+        await call(GRANTEE.token, `/access/shared/${notebookId}/increase/reject`, {
+          method: 'POST',
+        })
+      ).status,
+    ).toBe(204);
+    expect((await createFolder('Recusada')).status).toBe(403);
+    expect((await createNote('Ainda posso')).status).toBe(201);
+  });
+
+  it('applies a reduction from the next request, asking nobody', async () => {
+    await share(GRANTEE.email, 'notebook-editor');
+    await accept();
+    expect((await createFolder('Antes')).status).toBe(201);
+    expect((await changeProfile('reader')).status).toBe(204);
+    expect((await createFolder('Depois')).status).toBe(403);
+    expect((await createNote('Depois')).status).toBe(403);
+  });
+
+  it('reaches no other notebook of the owner, whatever the profile', async () => {
+    await share(GRANTEE.email, 'notebook-editor');
+    await accept();
+    const other = (
+      await json<{ notebookId: string; folderId?: string }>(
+        await call(OWNER.token, '/knowledge/notebooks', {
+          method: 'POST',
+          body: { name: 'Privado', description: 'Só do dono' },
+        }),
+      )
+    ).notebookId;
+    const otherFolder = (
+      await json<{ folderId: string }>(
+        await call(OWNER.token, `/knowledge/notebooks/${other}/folders`, {
+          method: 'POST',
+          body: { name: 'Privada', description: 'Só do dono.' },
+        }),
+      )
+    ).folderId;
+    // A move out of the shared notebook into one that is not shared is not a door.
+    const noteId = await noteOf();
+    const move = await call(
+      GRANTEE.token,
+      `/knowledge/notebooks/${notebookId}/notes/${noteId}/move`,
+      { method: 'POST', body: { toNotebookId: other, toFolderId: otherFolder } },
+    );
+    expect(move.status).toBe(404);
+    expect((await call(GRANTEE.token, `/knowledge/notebooks/${other}`)).status).toBe(404);
+  });
+
+  it('lets a content editor keep a file in parts, refusing the next step once reduced', async () => {
+    await share(GRANTEE.email, 'content-editor');
+    await accept();
+    const whole = Buffer.alloc(3000);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(whole);
+    for (let index = 8; index < whole.length; index += 1) whole[index] = (index * 31) % 251;
+    const sha = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+    const begin = (name: string) =>
+      call(GRANTEE.token, '/portability/uploads', {
+        method: 'POST',
+        body: {
+          notebookId,
+          name,
+          mimeType: 'image/png',
+          purpose: 'A photo for the notebook',
+          size: whole.length,
+          sha256: sha(whole),
+          transport: 'inline',
+          partSize: 2048,
+        },
+      });
+    const sendAll = async (transferId: string) => {
+      for (const [part, bytes] of [whole.subarray(0, 2048), whole.subarray(2048)].entries()) {
+        const sent = await call(
+          GRANTEE.token,
+          `/portability/uploads/${transferId}/parts/${part + 1}`,
+          {
+            method: 'PUT',
+            body: { sha256: sha(bytes), contentBase64: Buffer.from(bytes).toString('base64') },
+          },
+        );
+        expect(sent.status).toBe(200);
+      }
+    };
+
+    const started = await begin('foto do grantee');
+    expect(started.status).toBe(201);
+    const { transfer } = (await started.json()) as { transfer: { transferId: string } };
+    await sendAll(transfer.transferId);
+    const finished = await call(
+      GRANTEE.token,
+      `/portability/uploads/${transfer.transferId}/finish`,
+      {
+        method: 'POST',
+      },
+    );
+    expect(finished.status).toBe(200);
+    // The file is the owner's notebook's, kept where its owner reads it.
+    const files = (await (
+      await call(OWNER.token, `/knowledge/notebooks/${notebookId}/files`)
+    ).json()) as { files: Array<{ name: string }> };
+    expect(files.files.map((file) => file.name)).toEqual(['foto do grantee']);
+
+    // Reduced between two steps, the next one is refused.
+    const second = await begin('outra foto');
+    const { transfer: next } = (await second.json()) as { transfer: { transferId: string } };
+    await sendAll(next.transferId);
+    await changeProfile('reader');
+    const refused = await call(GRANTEE.token, `/portability/uploads/${next.transferId}/finish`, {
+      method: 'POST',
+    });
+    expect(refused.status).toBe(403);
+    expect((await begin('mais uma')).status).toBe(403);
+  });
+});
+
+describe('the tables and dashboards of a shared notebook (#366, #368)', () => {
+  const tables = () => `/knowledge/notebooks/${notebookId}/tables`;
+  const SCHEMA = { type: 'object', properties: { valor: { type: 'number' } } };
+
+  async function seed(): Promise<void> {
+    await call(OWNER.token, tables(), { method: 'POST', body: { name: 'gastos', schema: SCHEMA } });
+    await call(OWNER.token, `${tables()}/gastos/rows`, {
+      method: 'POST',
+      body: { rows: [{ valor: 10 }] },
+    });
+    await call(OWNER.token, `/knowledge/notebooks/${notebookId}/dashboards`, {
+      method: 'POST',
+      body: {
+        name: 'Total',
+        definition: {
+          components: [{ type: 'kpi', source: { table: 'gastos', measure: 'sum(valor)' } }],
+        },
+      },
+    });
+  }
+
+  it('reach a reader to read, and to write nothing', async () => {
+    await seed();
+    await share(GRANTEE.email, 'reader');
+    await accept();
+    const read = await call(GRANTEE.token, `${tables()}/gastos/query`, {
+      method: 'POST',
+      body: {},
+    });
+    expect(read.status).toBe(200);
+    expect((await json<{ total: number }>(read)).total).toBe(1);
+    const drawn = await call(
+      GRANTEE.token,
+      `/knowledge/notebooks/${notebookId}/dashboards/Total/data`,
+      {
+        method: 'POST',
+        body: {},
+      },
+    );
+    expect(drawn.status).toBe(200);
+    expect(
+      (
+        await call(GRANTEE.token, `${tables()}/gastos/rows`, {
+          method: 'POST',
+          body: { rows: [{ valor: 1 }] },
+        })
+      ).status,
+    ).toBe(403);
+    expect((await call(GRANTEE.token, `${tables()}/gastos`, { method: 'DELETE' })).status).toBe(
+      403,
+    );
+  });
+
+  it('let a content editor write rows, and leave the structure to a notebook editor', async () => {
+    await seed();
+    await share(GRANTEE.email, 'content-editor');
+    await accept();
+    expect(
+      (
+        await call(GRANTEE.token, `${tables()}/gastos/rows`, {
+          method: 'POST',
+          body: { rows: [{ valor: 1 }] },
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await call(GRANTEE.token, tables(), {
+          method: 'POST',
+          body: { name: 'outra', schema: SCHEMA },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/dashboards/Total`, {
+          method: 'DELETE',
+        })
+      ).status,
+    ).toBe(403);
   });
 });

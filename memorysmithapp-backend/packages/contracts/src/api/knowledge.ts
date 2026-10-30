@@ -53,6 +53,43 @@ export const folderSchema = z.object({
 export const notebookDetailSchema = notebookSummarySchema.extend({
   folders: z.array(folderSchema),
   guidance: z.object({ content: z.string(), revision: contentRefSchema }).nullable(),
+  /**
+   * The revision of the notebook itself, which every change of its folders
+   * advances (and of its name or description): the `structure` of the context
+   * a note is written against (#348).
+   */
+  structureRevision: z.string(),
+  /**
+   * What the person asking may do here (#346): write its notes and files,
+   * maintain its folders, Guidance and Templates, and administer it. A share
+   * decides them by its profile, a member by role.
+   */
+  permissions: z.object({
+    writeContent: z.boolean(),
+    maintain: z.boolean(),
+    administer: z.boolean(),
+  }),
+});
+
+/**
+ * What a note is written against (#348), each part by its revision: the
+ * Guidance (`versionId` of its revision, or null when there is none), the
+ * Template of the folder the note goes to (the same, or null) and the
+ * structure of the notebook (`structureRevision`). It is advisory: a write
+ * that declares a context that changed meanwhile is saved, and told so.
+ */
+export const contextPartSchema = z.enum(['guidance', 'template', 'structure']);
+
+export const noteContextSchema = z.object({
+  guidance: z.string().nullable(),
+  template: z.string().nullable(),
+  structure: z.string(),
+});
+
+/** What a write answers when the context it declared had changed: what, and the current one. */
+export const contextChangedSchema = z.object({
+  changed: z.array(contextPartSchema).min(1),
+  current: noteContextSchema,
 });
 
 export const createNotebookRequestSchema = z.object({
@@ -119,6 +156,13 @@ export const noteSummarySchema = z.object({
   bytes: z.number().int().nonnegative(),
   updatedAt: instantSchema,
   updatedBy: authorshipSchema,
+  /**
+   * What had changed of the context the live revision declared, when it was
+   * written (#348); absent when it declared none, or nothing had changed.
+   */
+  staleContext: z.array(contextPartSchema).optional(),
+  /** On the answer of a write only: the context it declared had changed (#348). */
+  contextChanged: contextChangedSchema.optional(),
 });
 
 /** The number a folder issued, once and never again (RN-KNW-043). */
@@ -147,6 +191,8 @@ export const createNoteRequestSchema = z.object({
   folderId: ulidSchema,
   content: z.string().max(1_048_576),
   afterNoteId: ulidSchema.nullable().default(null),
+  /** The context the caller read before writing, which the answer compares (#348). */
+  context: noteContextSchema.optional(),
 });
 
 /**
@@ -180,6 +226,8 @@ export const updateNoteRequestSchema = z.object({
    * none, which is every write of an agent, is an entry of its own.
    */
   session: ulidSchema.optional(),
+  /** The context the caller read before writing, which the answer compares (#348). */
+  context: noteContextSchema.optional(),
 });
 
 export const reorderNoteRequestSchema = z.object({
@@ -195,6 +243,8 @@ export const moveNoteRequestSchema = z.object({
   toNotebookId: ulidSchema.optional(),
   toFolderId: ulidSchema,
   afterNoteId: ulidSchema.nullable().default(null),
+  /** The context of the destination the caller read, which the answer compares (#348). */
+  context: noteContextSchema.optional(),
 });
 
 /**
@@ -264,6 +314,9 @@ export type NotebookSummaryDto = z.infer<typeof notebookSummarySchema>;
 export type FolderDto = z.infer<typeof folderSchema>;
 export type NotebookDetailDto = z.infer<typeof notebookDetailSchema>;
 export type ContentDto = z.infer<typeof contentSchema>;
+export type ContextPartDto = z.infer<typeof contextPartSchema>;
+export type NoteContextDto = z.infer<typeof noteContextSchema>;
+export type ContextChangedDto = z.infer<typeof contextChangedSchema>;
 export type NoteSummaryDto = z.infer<typeof noteSummarySchema>;
 export type NoteDto = z.infer<typeof noteSchema>;
 export type FolderNumberDto = z.infer<typeof folderNumberSchema>;

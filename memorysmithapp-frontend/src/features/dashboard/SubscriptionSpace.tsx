@@ -19,6 +19,7 @@ import {
 const KIND_LABEL: Record<KindKey, string> = {
   files: 'dashboard.kindFiles',
   notes: 'dashboard.kindNotes',
+  tables: 'dashboard.kindTables',
   exports: 'dashboard.kindExports',
   transit: 'dashboard.kindTransit',
   others: 'dashboard.kindOthers',

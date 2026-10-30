@@ -66,6 +66,11 @@ export interface ConformanceCase {
   readonly notation: string;
   readonly markdown: string;
   readonly links?: ReadonlyArray<{ readonly name: string; readonly anchor: string | null }>;
+  /**
+   * The parameters the input references (§7.14), distinct, in the order each
+   * first appears, compared after NFC.
+   */
+  readonly parameters?: readonly string[];
   readonly facets?: Readonly<Record<string, { readonly kind: string; readonly values: string[] }>>;
   /** The `name:` of `markdown` as §5.3 reads it, or `null` for no name. */
   readonly name?: string | null;
@@ -73,13 +78,20 @@ export interface ConformanceCase {
   readonly notebook?: {
     readonly notes?: readonly string[];
     readonly attachments?: readonly string[];
+    /** The tables it keeps, each with its columns (§5.9). */
+    readonly tables?: ReadonlyArray<{
+      readonly name: string;
+      readonly columns: ReadonlyArray<{ readonly name: string; readonly kind: string }>;
+    }>;
   };
   /** What each target becomes, and how many edges it produces. */
   readonly resolution?: ReadonlyArray<{
     readonly target: string;
-    readonly kind: 'note' | 'attachment' | 'pending';
+    readonly kind: 'note' | 'attachment' | 'pending' | 'table';
     readonly edges: number;
   }>;
+  /** The tables the input names (§5.9), distinct, compared with case folded. */
+  readonly tables?: readonly string[];
 }
 
 /**

@@ -34,8 +34,28 @@ import {
 } from '@memorysmithapp/kernel';
 import type { Email } from '../values.js';
 
-/** What a share lets its grantee do. Only `read` is granted (RN-ACC-024). */
-export type ShareAccess = 'read' | 'read-write';
+/**
+ * What a share lets its grantee do, as its owner chose it (#347). A reader
+ * reads and exports; a content editor also writes the notes and the files; a
+ * notebook editor also maintains the folders, the Guidance and the Templates.
+ * A model reader reaches only the model of a notebook declared as one, its
+ * versions and the notebooks created from them, and never the notebook
+ * itself (#355). Sharing, the profiles and deleting stay with the owner.
+ */
+export type ShareProfile = 'model-reader' | 'reader' | 'content-editor' | 'notebook-editor';
+
+/** The profiles from the one that grants least to the one that grants most. */
+export const SHARE_PROFILES: readonly ShareProfile[] = [
+  'model-reader',
+  'reader',
+  'content-editor',
+  'notebook-editor',
+];
+
+/** Whether `a` grants more than `b`. */
+export function grantsMore(a: ShareProfile, b: ShareProfile): boolean {
+  return SHARE_PROFILES.indexOf(a) > SHARE_PROFILES.indexOf(b);
+}
 
 /**
  * Where a share stands. `revoked` is never seen by the owner, whose item goes
@@ -51,7 +71,15 @@ export interface ShareProps {
   readonly ownerEmail: Email;
   readonly granteeUserId: UserId;
   readonly granteeEmail: Email;
-  readonly access: ShareAccess;
+  /** What the grantee may do now: the profile they accepted, or were offered. */
+  readonly profile: ShareProfile;
+  /**
+   * An increase the owner offered on an accepted share, waiting for the
+   * grantee's renewed acceptance; until then `profile` is what applies.
+   */
+  readonly pendingProfile: ShareProfile | null;
+  /** When the increase waiting was offered, or null. */
+  readonly pendingSince: Instant | null;
   readonly state: ShareState;
   readonly sharedAt: Instant;
   /** When the grantee answered, left, or the owner revoked. */
@@ -67,23 +95,27 @@ export class Share {
 
   private constructor(private props: ShareProps) {}
 
-  /**
-   * A share the owner asks for. Only `read` is granted: `read-write` exists in
-   * the contract so that offering it changes no shape, and asking for it is
-   * refused until then (RN-ACC-024).
-   */
+  /** A share the owner asks for, with the profile they chose (RN-ACC-024). */
   static offer(
-    input: Omit<ShareProps, 'state' | 'sharedAt' | 'answeredAt' | 'notifyOwner' | 'ownerSeenAt'>,
+    input: Omit<
+      ShareProps,
+      | 'state'
+      | 'sharedAt'
+      | 'answeredAt'
+      | 'notifyOwner'
+      | 'ownerSeenAt'
+      | 'pendingProfile'
+      | 'pendingSince'
+    >,
     by: Authorship,
   ): Result<Share, DomainError> {
-    if (input.access !== 'read') {
-      return err(DomainError.validation('A notebook is shared with read access only'));
-    }
     if (input.granteeUserId.equals(input.ownerUserId)) {
       return err(DomainError.validation('A notebook is not shared with its own owner'));
     }
     const share = new Share({
       ...input,
+      pendingProfile: null,
+      pendingSince: null,
       state: 'pending',
       sharedAt: by.at,
       answeredAt: null,
@@ -116,8 +148,14 @@ export class Share {
   get granteeEmail(): Email {
     return this.props.granteeEmail;
   }
-  get access(): ShareAccess {
-    return this.props.access;
+  get profile(): ShareProfile {
+    return this.props.profile;
+  }
+  get pendingProfile(): ShareProfile | null {
+    return this.props.pendingProfile;
+  }
+  get pendingSince(): Instant | null {
+    return this.props.pendingSince;
   }
   get state(): ShareState {
     return this.props.state;
@@ -209,6 +247,61 @@ export class Share {
     return ok();
   }
 
+  /**
+   * The owner changes what the share grants (#347). Before the grantee answered,
+   * the offer itself changes. Once accepted, a reduction applies at once and
+   * needs no consent, and an increase waits for the grantee's renewed
+   * acceptance, the accepted profile applying until then. Asking for the profile
+   * already held withdraws an increase still waiting.
+   */
+  changeProfile(to: ShareProfile, by: Authorship): Result<void, DomainError> {
+    const { state, profile, pendingProfile } = this.props;
+    if (state === 'pending') {
+      if (to === profile) return ok();
+      this.props = { ...this.props, profile: to };
+      this.record('NotebookShareProfileChanged', by, { from: profile, pending: false });
+      return ok();
+    }
+    if (state !== 'accepted') {
+      return err(DomainError.notFound('This notebook is not shared with that person'));
+    }
+    if (to === profile) {
+      if (!pendingProfile) return ok();
+      this.props = { ...this.props, pendingProfile: null, pendingSince: null };
+      this.record('NotebookShareProfileChanged', by, { from: profile, pending: false });
+      return ok();
+    }
+    if (grantsMore(to, profile)) {
+      if (to === pendingProfile) return ok();
+      this.props = { ...this.props, pendingProfile: to, pendingSince: by.at };
+      this.record('NotebookShareProfileChanged', by, { from: profile, pending: true });
+      return ok();
+    }
+    this.props = { ...this.props, profile: to, pendingProfile: null, pendingSince: null };
+    this.record('NotebookShareProfileChanged', by, { from: profile, pending: false });
+    return ok();
+  }
+
+  /** The grantee answers an increase waiting for them (#347). */
+  answerIncrease(accept: boolean, by: Authorship): Result<void, DomainError> {
+    const { state, pendingProfile } = this.props;
+    if (state !== 'accepted' || !pendingProfile) {
+      return err(DomainError.conflict('No increase of this share is waiting for an answer'));
+    }
+    const from = this.props.profile;
+    this.props = {
+      ...this.props,
+      profile: accept ? pendingProfile : from,
+      pendingProfile: null,
+      pendingSince: null,
+    };
+    this.record(accept ? 'NotebookShareIncreaseAccepted' : 'NotebookShareIncreaseRejected', by, {
+      from,
+      offered: pendingProfile,
+    });
+    return ok();
+  }
+
   /** The owner dismissed the notice of an answer (RN-ACC-029). */
   markSeen(at: Instant): void {
     this.props = { ...this.props, ownerSeenAt: at };
@@ -224,7 +317,10 @@ export class Share {
       | 'NotebookShareAccepted'
       | 'NotebookShareRejected'
       | 'NotebookShareRevoked'
-      | 'NotebookShareLeft',
+      | 'NotebookShareLeft'
+      | 'NotebookShareProfileChanged'
+      | 'NotebookShareIncreaseAccepted'
+      | 'NotebookShareIncreaseRejected',
     by: Authorship,
     extra: Record<string, unknown> = {},
   ): void {
@@ -239,7 +335,8 @@ export class Share {
           notebookId: this.props.notebookId.value,
           granteeUserId: this.props.granteeUserId.value,
           granteeEmail: this.props.granteeEmail.value,
-          access: this.props.access,
+          profile: this.props.profile,
+          pendingProfile: this.props.pendingProfile,
           ...extra,
         },
       }),

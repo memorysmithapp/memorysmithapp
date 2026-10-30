@@ -23,10 +23,15 @@ import type {
   NotebookId,
   ConcurrencyError,
   Result,
+  TableId,
+  DashboardId,
 } from '@memorysmithapp/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
 import type { NotebookFile } from '../file/NotebookFile.js';
+import type { Table } from '../table/Table.js';
+import type { Row } from '../table/Row.js';
+import type { Dashboard } from '../dashboard/Dashboard.js';
 import type { ContentSlot } from '../content-slot/ContentSlot.js';
 import type { Guidance } from '../content-slot/Guidance.js';
 import type { Template } from '../content-slot/Template.js';
@@ -150,7 +155,7 @@ export interface FolderNumbers {
 
 /**
  * Which types a notebook accepts, and whether bytes support the one they were
- * declared under (#166, RN-KNW-050).
+ * declared under (#166, RN-KNW-075).
  *
  * It is a PORT and not a table in here, for the reason the reserved vocabulary
  * is injected rather than transcribed: the list is a decision of the product,
@@ -242,6 +247,89 @@ export interface FileRepository {
   /** Every live file of the notebook, in the order they were kept. */
   list(notebook: NotebookId): Promise<NotebookFile[]>;
   save(file: NotebookFile): Promise<Result<void, DomainError>>;
+}
+
+/** One row written by one operation (#366): kept, replaced or deleted. */
+export type RowWrite =
+  | { readonly kind: 'insert'; readonly row: Row }
+  | { readonly kind: 'replace'; readonly row: Row; readonly expectedVersion: number }
+  | { readonly kind: 'delete'; readonly rowId: string; readonly expectedVersion: number };
+
+/** What the relay counted of a table: rows and bytes (ADR-010). */
+export interface TableUsage {
+  readonly rows: number;
+  readonly bytes: number;
+}
+
+/**
+ * The Tables of a notebook and their rows (#366, RN-KNW-066).
+ *
+ * `save` guards the name, as the file repository does. `writeRows` is one
+ * transaction holding the rows, the events, and a check that the table is
+ * still at the version the rows were validated against, so a schema changed
+ * meanwhile refuses the write instead of letting a row that no longer fits in.
+ * An alteration that rewrites the rows first `lock`s the table, so no row is
+ * written while its rows are read and rewritten, and `replaceRows` then moves
+ * the table to a new generation of rows, written beside the old one: a reader
+ * sees one generation or the other, never both. A lock lapses on its own, so
+ * an alteration that died midway leaves the table writable again.
+ */
+export interface TableRepository {
+  findById(notebook: NotebookId, table: TableId): Promise<Table | null>;
+  findByName(notebook: NotebookId, name: string): Promise<Table | null>;
+  list(notebook: NotebookId): Promise<Table[]>;
+  usage(table: Table): Promise<TableUsage>;
+  save(table: Table): Promise<Result<void, DomainError>>;
+  /** Every row of the table's generation, in the order they were inserted. */
+  rows(table: Table): Promise<Row[]>;
+  findRows(table: Table, rowIds: readonly string[]): Promise<Row[]>;
+  writeRows(
+    table: Table,
+    writes: readonly RowWrite[],
+    events: readonly DomainEvent[],
+  ): Promise<Result<void, DomainError>>;
+  /** The table, locked against row writes; refused when it changed or is locked. */
+  lock(table: Table): Promise<Result<Table, DomainError>>;
+  unlock(table: Table): Promise<void>;
+  /**
+   * Writes `rows` as the generation `next` names, then saves `next`, which
+   * unlocks it, then removes every other generation. `next` was planned from
+   * the locked table, so a change made meanwhile refuses the move.
+   */
+  replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>>;
+}
+
+/**
+ * The Dashboards of a notebook (#368), each one item beside the guard of its
+ * name. `save` writes a dashboard as created or changed, and removes it, its
+ * name with it, once it is deleted: a dashboard holds no data to purge.
+ */
+export interface DashboardRepository {
+  findById(notebook: NotebookId, dashboard: DashboardId): Promise<Dashboard | null>;
+  findByName(notebook: NotebookId, name: string): Promise<Dashboard | null>;
+  list(notebook: NotebookId): Promise<Dashboard[]>;
+  save(dashboard: Dashboard): Promise<Result<void, DomainError>>;
+}
+
+/** A cell of a sheet as a file holds it: text, a number, true or false, a date as ISO, or nothing. */
+export type SheetCell = string | number | boolean | null;
+
+/** One sheet of a spreadsheet, or the one sheet of a CSV: its header and its rows. */
+export interface Sheet {
+  readonly name: string;
+  readonly header: readonly string[];
+  readonly rows: ReadonlyArray<readonly SheetCell[]>;
+}
+
+/**
+ * Reads the rows of a CSV or an Excel file a notebook keeps (#366). It is a
+ * port because reading a spreadsheet takes a library, and the domain of a
+ * context imports the kernel and nothing else.
+ */
+export interface SheetReader {
+  /** The types it reads, which a refusal names. */
+  readonly accepted: readonly string[];
+  read(bytes: Uint8Array, mimeType: string): Promise<Result<Sheet[], DomainError>>;
 }
 
 export interface EventPublisher {

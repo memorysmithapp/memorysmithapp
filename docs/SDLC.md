@@ -61,6 +61,7 @@ No stage is skipped out of haste, with one named exception: a **defect that bloc
 | `layer:web` | The web interface |
 | `layer:backend` | The services, the kernel and the contracts |
 | `layer:infra` | Infrastructure, CDK, deployment |
+| `layer:tools` | Operating and evaluation tools of the product |
 
 Each is created with `gh label create <label> --color <color> --description "<description>"`, so a new value is added to this section and to GitHub in the same change.
 
@@ -195,13 +196,13 @@ Collect the data from the git history and the diff, without guessing and without
 
 **What staging adds.** The workflow *Staging* delivers a branch to staging and closes with the smoke; on request it also runs the adapter tests against the real services and the functional suite, a browser driving the deployed product. A defect found there becomes a case of the suite before it is fixed.
 
-**The agent evaluation.** Before the pull request of a release is merged, a round of the agent evaluation (`memorysmithapp-infra/agent-eval/`) runs against staging, and its scorecard is posted on the issue of the cycle. Like the staging validation, it informs the merge and never blocks it. A case changes only in a commit of its own, never inside the round that reads it.
+**The agent evaluation.** Before the pull request of a release is merged, a round of the agent evaluation (`pnpm tools agent-eval`, in `tools/agent-eval/`) runs against staging, and its scorecard is posted on the issue of the cycle. Like the staging validation, it informs the merge and never blocks it. A case changes only in a commit of its own, never inside the round that reads it.
 
 **The owner reviews and merges** the pull request of a cycle; nobody merges their own cycle without that review.
 
 ## 9. Versioning
 
-**The version lives in the `version` field of the root `package.json`.** Every other `package.json` of the monorepo carries the same version, because the three projects are deployed together; `release-checks` refuses a merge where one disagrees. No document repeats it; `CHANGELOG.md` records the versions that were cut.
+**The version lives in the `version` field of the root `package.json`.** Every other `package.json` of the monorepo carries the same version, because the three projects are deployed together and the tools are released with them; `release-checks` refuses a merge where one disagrees. No document repeats it; `CHANGELOG.md` records the versions that were cut.
 
 | Kind of change | Bump |
 |---|---|

@@ -45,15 +45,28 @@ import {
   type Authorship,
   type Result,
 } from '@memorysmithapp/kernel';
-import type { DocumentHistory, NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
+import {
+  type DocumentHistory,
+  type NotebookDocument,
+  dashboardsCarried,
+  tablesChosen,
+} from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
+import type { ParameterDeclaration, ParameterValue } from '../domain/NotebookModel.js';
+import { fillDocument, resolveValues } from '../domain/ParameterFilling.js';
 
 /**
  * The versions of the document format this build reads. `1.1` added the
  * history an export may carry and changed nothing else, so a `1.0` document is
  * read exactly as it always was (RN-PRT-022).
  */
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2'];
+/** The parameters a creation from a version fills in, and the values supplied (#354). */
+export interface ModelFill {
+  readonly declarations: readonly ParameterDeclaration[];
+  readonly values: Readonly<Record<string, ParameterValue>>;
+}
+
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3'];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -151,6 +164,33 @@ export interface NotebookWriter {
     bytes: Uint8Array;
     by: Authorship;
   }): Promise<Result<void, DomainError>>;
+  /**
+   * Creates one table of the archive, and writes its rows in calls of up to 50
+   * (#366): through the same doors an agent uses, so a row the schema refuses
+   * is refused here exactly as it would be there.
+   */
+  createTable(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    schema: Record<string, unknown>;
+    key: readonly string[] | null;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
+  insertRows(input: {
+    notebookId: string;
+    table: string;
+    rows: ReadonlyArray<Record<string, unknown>>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
+  /** Creates one dashboard of the archive, once its tables are written (#368). */
+  createDashboard(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    definition: Record<string, unknown>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
   /** Brings the counter of a folder up to the last number it had issued (RN-PRT-016). */
   restoreNumber(input: {
     notebookId: string;
@@ -236,6 +276,11 @@ export interface ImportSelection {
    * what the two chooser tabs tick. Absent is every file the archive holds.
    */
   readonly files?: readonly string[] | undefined;
+  /**
+   * The tables, by name, each with or without its rows (RN-PRT-049). Absent is
+   * every table the archive holds, with the rows it carries.
+   */
+  readonly tables?: ReadonlyArray<{ readonly name: string; readonly rows: boolean }> | undefined;
 }
 
 /** How an import says where it got to, and whether it should still be running. */
@@ -253,7 +298,7 @@ const UPLOAD_TTL_SECONDS = 900;
  * product stores (INV-01), and under `imports/`, which is the
  * one prefix an import reads from and the one its worker may discard.
  */
-function freshUploadKey(subscriptionId: string): string {
+export function freshUploadKey(subscriptionId: string): string {
   return `s/${subscriptionId}/imports/${ulid()}.notebook`;
 }
 
@@ -311,7 +356,10 @@ export class ImportFromExport {
       !found.key ||
       // A key the worker wrote is always under this prefix; one that is not
       // is not copied, whatever the record says (INV-01).
-      !found.key.startsWith(`s/${this.subscriptionId}/exports/`)
+      !(
+        found.key.startsWith(`s/${this.subscriptionId}/exports/`) ||
+        found.key.startsWith(`s/${this.subscriptionId}/models/`)
+      )
     ) {
       return err(DomainError.notFound('Export not found'));
     }
@@ -367,6 +415,8 @@ export class ImportNotebook {
     name: string | null;
     by: Authorship;
     selection?: ImportSelection | null | undefined;
+    /** The parameters of a model, filled in before anything is written (#354). */
+    fill?: ModelFill | undefined;
     progress?: ImportProgress | undefined;
   }): Promise<Result<ImportJob, DomainError>> {
     // A key of another subscription is not readable and not addressable: the
@@ -382,7 +432,15 @@ export class ImportNotebook {
       const selection = input.selection ?? null;
       const document = this.readDocument(archive, selection);
       if (!document.ok) return document;
-      return await this.write(document.value, input.name, input.by, selection, input.progress);
+      let written = document.value;
+      if (input.fill) {
+        // The values were checked when the creation was asked for, and are
+        // checked again here, against the declarations the version froze.
+        const values = resolveValues(input.fill.declarations, input.fill.values);
+        if (!values.ok) return values;
+        written = fillDocument(written, values.value);
+      }
+      return await this.write(written, input.name, input.by, selection, input.progress);
     } finally {
       // The upload is discarded whichever way the import ended: it was the
       // means of getting the bytes here and it is not a copy of the notebook.
@@ -627,6 +685,51 @@ export class ImportNotebook {
         by,
       });
       if (!keep.ok) return undo(keep);
+    }
+
+    // The tables, after the files: a note that shows one is already written
+    // by the time it arrives (#366, RN-PRT-049).
+    const tables = selection?.tables
+      ? tablesChosen(document.tables ?? [], selection.tables)
+      : (document.tables ?? []);
+    for (const table of tables) {
+      if (await stopped()) {
+        return err(
+          DomainError.validation('The import was cancelled', { reason: IMPORT_REFUSALS.cancelled }),
+        );
+      }
+      const created = await this.writer.createTable({
+        notebookId,
+        name: table.name,
+        description: table.description,
+        schema: table.schema,
+        key: table.key,
+        by,
+      });
+      if (!created.ok) return undo(created);
+      const rows = table.rows ?? [];
+      for (let index = 0; index < rows.length; index += 50) {
+        const wrote = await this.writer.insertRows({
+          notebookId,
+          table: table.name,
+          rows: rows.slice(index, index + 50),
+          by,
+        });
+        if (!wrote.ok) return undo(wrote);
+      }
+    }
+
+    // The dashboards last: each one is checked against the tables it draws
+    // from, and goes only when all of them came (#368, RN-PRT-053).
+    for (const dashboard of dashboardsCarried(document.dashboards ?? [], tables)) {
+      const created = await this.writer.createDashboard({
+        notebookId,
+        name: dashboard.name,
+        description: dashboard.description,
+        definition: dashboard.definition,
+        by,
+      });
+      if (!created.ok) return undo(created);
     }
 
     if (chosen.history && document.history && this.trail) {

@@ -46,6 +46,12 @@ export const transferSelectionSchema = z.object({
    * carried and what almost everyone wants.
    */
   files: z.array(z.string().min(1).max(512)).optional(),
+  /**
+   * The tables the transfer carries, by name, each with its rows or with its
+   * schema alone (#366, RN-PRT-049). Absent is every table with its rows; a
+   * table not named is left out.
+   */
+  tables: z.array(z.object({ name: z.string().min(1).max(64), rows: z.boolean() })).optional(),
 });
 
 export type TransferSelection = z.infer<typeof transferSelectionSchema>;
@@ -60,6 +66,12 @@ export const exportRequestSchema = z.object({
    * of the plan (RN-SUB-021).
    */
   selection: transferSelectionSchema.nullish(),
+  /**
+   * What the archive carries of each table, by name, whatever the selection
+   * is; a table not named is left out (#366, RN-PRT-049). Absent is every
+   * table with its rows.
+   */
+  tables: z.array(z.object({ name: z.string().min(1).max(64), rows: z.boolean() })).optional(),
 });
 
 /**
@@ -288,6 +300,11 @@ export const previewRequestSchema = z.object({
   content: z.string().max(1_048_576).optional(),
   folderId: z.string().min(1).optional(),
   part: z.string().min(1).max(512).optional(),
+  /** A Dashboard, by its name or its identifier, drawn instead of a note (#368). */
+  dashboard: z.string().min(1).max(128).optional(),
+  /** What the image shows as the person sees it: the periods, and a mark clicked (#369). */
+  filters: z.record(z.string(), z.string().nullable()).optional(),
+  cross: z.object({ component: z.string().min(1).max(64), key: z.string().max(500) }).optional(),
   locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
 });
 

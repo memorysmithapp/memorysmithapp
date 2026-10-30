@@ -95,29 +95,30 @@
     "openShort": "Abrir"
   },
   "structure": {
+    "morePages": "Tabelas, painéis e mais",
     "guidance": "Orientação",
     "folders": "Pastas",
     "foldersHint": "A árvore com a descrição de cada pasta",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
-    "hasTemplate": "modelo",
+    "hasTemplate": "modelo de pasta",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "backToNotebooks": "Todos os cadernos",
     "openNavigation": "Navegação do caderno",
     "heading": "Contexto do caderno",
-    "contextParts": "Orientação, Modelos e Pastas",
-    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo da pasta diz como a nota se estrutura.",
+    "contextParts": "Orientação, Modelos de pasta e Pastas",
+    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo de pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
     "deleteGuidance": "Apagar a Orientação",
     "noGuidanceWrite": "Este caderno ainda não tem Orientação. Use o lápis para escrever uma: ela orienta todo agente que escreve aqui.",
-    "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
-    "templates": "Modelos",
+    "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos de pasta e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
+    "templates": "Modelos de pasta",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
     "templatesPageHint_one": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pasta deste caderno declara um, mostrado abaixo; o servidor nunca valida uma nota contra ele.",
     "templatesPageHint_other": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pastas deste caderno declaram um, cada um mostrado abaixo; o servidor nunca valida uma nota contra eles.",
-    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo.",
-    "templateOf": "Modelo da pasta {{folder}}",
+    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo de pasta.",
+    "templateOf": "Modelo de pasta de {{folder}}",
     "openFolder": "Abrir pasta",
     "content": "Conteúdo",
     "breadcrumb": "Trilha do contexto do caderno"
@@ -125,11 +126,11 @@
   "folder": {
     "subfolders": "Subpastas",
     "notesHeading": "Notas nesta pasta",
-    "template": "Modelo",
+    "template": "Modelo de pasta",
     "templateCardHint": "Leiaute sugerido para as notas desta pasta",
-    "deleteTemplate": "Apagar o Modelo",
-    "noTemplateWrite": "Esta pasta ainda não tem Modelo. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
-    "deleteTemplateConfirm": "Apagar o Modelo desta pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
+    "deleteTemplate": "Apagar o Modelo de pasta",
+    "noTemplateWrite": "Esta pasta ainda não tem Modelo de pasta. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
+    "deleteTemplateConfirm": "Apagar o Modelo de pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta.",
     "noteOrder": "Ordem das notas",
     "noteOrderManual": "Manual",
@@ -138,7 +139,9 @@
     "noteOrderHintManual": "As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.",
     "noteOrderHintAlphabetical": "As notas seguem o nome, com os números pelo valor: Ata 2 vem antes de Ata 10. A posição de cada uma fica guardada e volta se a ordem voltar a ser manual.",
     "notesByName": "Em ordem alfabética",
-    "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo."
+    "noteOrderFailed": "A ordem das notas não foi alterada. Tente de novo.",
+    "staleContext": "Contexto mudou",
+    "staleContextHint": "Escrita quando {{parts}} já tinha mudado: vale revisar."
   },
   "folderEdit": {
     "short": "Editar",
@@ -148,10 +151,25 @@
     "description": "Descrição",
     "descriptionHint": "É o que orienta o próximo agente que escrever aqui.",
     "count": "{{used}}/{{max}}",
-    "explain": "A pasta mantém as notas, as subpastas e o Modelo, e todo link continua funcionando.",
+    "explain": "A pasta mantém as notas, as subpastas e o Modelo de pasta, e todo link continua funcionando.",
     "save": "Salvar",
     "saving": "Salvando…",
     "nameTaken": "Já existe uma pasta chamada “{{name}}” neste nível. Nada foi alterado."
+  },
+  "folderDelete": {
+    "short": "Apagar",
+    "open": "Apagar esta pasta",
+    "title": "Apagar a pasta",
+    "holds": "Ela guarda {{notes}} e {{folders}}.",
+    "notes_one": "{{count}} nota",
+    "notes_other": "{{count}} notas",
+    "folders_one": "{{count}} subpasta",
+    "folders_other": "{{count}} subpastas",
+    "consequences": "Apagá-la tira tudo isso do caderno na hora, de vez: é destruído logo depois, com todas as revisões, e os links para essas notas ficam pendentes. Nada traz de volta.",
+    "understood": "Entendo que tudo nesta pasta é apagado de vez",
+    "empty": "A pasta está vazia. Apagá-la não tem volta.",
+    "delete": "Apagar a pasta",
+    "deleting": "Apagando…"
   },
   "note": {
     "propertyTrue": "Sim",
@@ -166,6 +184,8 @@
     "remoteImages_one": "Abrir esta nota buscou uma imagem em {{hosts}}, então esse site recebeu seu endereço e o momento em que você leu.",
     "remoteImages_other": "Abrir esta nota buscou imagens em {{count}} outros sites — {{hosts}} —, então cada um deles recebeu seu endereço e o momento em que você leu.",
     "refusedLink": "Este endereço não é dos que a superfície de leitura segue, então o texto fica e o link não.",
+    "parameter": "Um parâmetro deste Modelo de caderno, preenchido quando um caderno é criado a partir dele.",
+    "parameterLink": "Este link nomeia um parâmetro e leva a uma nota quando um caderno criado a partir do Modelo de caderno o preenche.",
     "copy": "Copiar",
     "copied": "Copiado",
     "unnamed": "Nota sem nome",
@@ -180,7 +200,24 @@
     "attachmentOpen": "Abrir",
     "attachmentDownload": "Baixar",
     "changedElsewhere": "Esta nota mudou desde que você a abriu, e o que está na tela é a versão atual.",
-    "changedElsewhereDismiss": "Entendi"
+    "changedElsewhereDismiss": "Entendi",
+    "tableRows_one": "{{count}} linha",
+    "tableRows_other": "{{count}} linhas",
+    "tablePage": "Página {{page}} de {{pages}}",
+    "tablePrevious": "Anterior",
+    "tableNext": "Próxima",
+    "tableTotal": "Total",
+    "tableEmpty": "Nenhuma linha atende a este filtro.",
+    "tableSortBy": "Ordenar por {{column}}",
+    "tableRead": "lido em {{when}}",
+    "tableProblem": {
+      "table-unnamed": "Este bloco não nomeia uma tabela: escreva table: e o nome dela.",
+      "table-key-unknown": "Este bloco tem uma linha que ele não lê: ele aceita table, columns, where, sort, page e total.",
+      "table-key-invalid": "Uma linha deste bloco tem um valor que não pode ser lido.",
+      "table-column-unknown": "Este bloco cita uma coluna que a tabela {{table}} não tem.",
+      "table-filter-invalid": "O filtro deste bloco não pode ser lido.",
+      "table-pending": "Este caderno não tem uma tabela chamada {{table}}."
+    }
   },
   "print": {
     "short": "Imprimir",
@@ -221,7 +258,7 @@
     "expandNotebooks": "Mostrar todos os cadernos",
     "collapseNotebooks": "Voltar a uma linha",
     "goToNotebook": "Ir para o caderno {{number}}",
-    "noNotebooks": "Nenhum caderno ainda. Um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
+    "noNotebooks": "Nenhum caderno ainda. Crie um aqui; um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
     "space": "Espaço da assinatura",
     "planChip": "{{plan}} · {{quota}}",
     "plan": {
@@ -235,9 +272,10 @@
     "bytes": "Espaço",
     "kindFiles": "Anexos",
     "kindNotes": "Notas",
+    "kindTables": "Tabelas",
     "kindExports": "Exportações guardadas",
     "kindOthers": "Outros",
-    "kindOthersHint": "Orientações e Modelos",
+    "kindOthersHint": "Orientações e Modelos de pasta",
     "byNotebook": "Por caderno",
     "moreNotebooks_one": "Mais {{count}} caderno",
     "moreNotebooks_other": "Mais {{count}} cadernos",
@@ -338,12 +376,12 @@
     "tab": {
       "context": "Contexto",
       "folders": "Pastas",
-      "templates": "Modelos",
+      "templates": "Modelos de pasta",
       "notes": "Notas",
       "conflicts": "Inconsistências",
       "files": "Arquivos"
     },
-    "noTemplate": "sem Modelo",
+    "noTemplate": "sem Modelo de pasta",
     "wholeNotebook": "O caderno todo",
     "whatToCarry": {
       "export": "O que vai no arquivo",
@@ -361,16 +399,16 @@
     "onlyChosenFolders": "Só aparecem as pastas escolhidas na aba Pastas.",
     "noFolderChosen": {
       "folders": "Este caderno não tem pasta.",
-      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos aqui.",
+      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos de pasta aqui.",
       "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
     },
     "pathFolder": "caminho",
     "countFolders_zero": "{{count}} pastas",
     "countFolders_one": "{{count}} pasta",
     "countFolders_other": "{{count}} pastas",
-    "countTemplates_zero": "{{count}} Modelos",
-    "countTemplates_one": "{{count}} Modelo",
-    "countTemplates_other": "{{count}} Modelos",
+    "countTemplates_zero": "{{count}} Modelos de pasta",
+    "countTemplates_one": "{{count}} Modelo de pasta",
+    "countTemplates_other": "{{count}} Modelos de pasta",
     "twinsBlock_one": "1 nome é carregado duas vezes na pasta dele.",
     "twinsBlock_other": "{{count}} nomes são carregados duas vezes na pasta deles.",
     "showTwins": "Ver o motivo",
@@ -420,6 +458,99 @@
     "notesUnknown": "Não foi possível ler quais notas mostram este arquivo.",
     "download": "Baixar",
     "enlarge": "Ampliar"
+  },
+  "tables": {
+    "heading": "Tabelas",
+    "navLabel": "Tabelas",
+    "intro": "Os dados estruturados que este caderno guarda: linhas que um agente escreve, lidas aqui página por página.",
+    "none": "Este caderno ainda não tem tabelas. Uma tabela criada por um agente aparece aqui.",
+    "count_one": "{{count}} tabela",
+    "count_other": "{{count}} tabelas",
+    "columns_one": "{{count}} coluna",
+    "columns_other": "{{count}} colunas",
+    "rows_one": "{{count}} linha",
+    "rows_other": "{{count}} linhas",
+    "keyIs": "chave {{columns}}",
+    "tab": {
+      "data": "Dados",
+      "schema": "Schema"
+    },
+    "empty": "Esta tabela ainda não tem linhas.",
+    "pages": "Páginas da tabela",
+    "showing": "{{first}}–{{last}} de {{total}}",
+    "previous": "Anterior",
+    "next": "Próxima",
+    "true": "Sim",
+    "false": "Não",
+    "type": {
+      "string": "Texto",
+      "number": "Número",
+      "integer": "Número inteiro",
+      "boolean": "Sim ou não",
+      "date": "Data",
+      "date-time": "Data e hora",
+      "list": "Lista de textos"
+    },
+    "schema": {
+      "column": "Coluna",
+      "type": "Tipo",
+      "required": "Obrigatória",
+      "default": "Padrão",
+      "description": "Descrição",
+      "key": "chave",
+      "yes": "Sim",
+      "no": "Não"
+    },
+    "delete": "Apagar tabela",
+    "deleteTitle": "Apagar esta tabela?",
+    "deleteHolds_one": "Ela tem {{count}} linha.",
+    "deleteHolds_other": "Ela tem {{count}} linhas.",
+    "deleteConsequences": "A tabela e suas linhas saem de uma vez e para sempre, e toda nota que a mostra vai dizer que ela não existe. Nada a traz de volta.",
+    "deleteUnderstood": "Entendo que as linhas são apagadas de vez",
+    "deleteConfirm": "Apagar de vez",
+    "deleting": "Apagando…",
+    "carry": {
+      "heading": "Tabelas",
+      "rows": "Com as linhas",
+      "schema": "Só o schema",
+      "none": "Fora",
+      "publicHint": "As linhas que vão ficam públicas quando o modelo é publicado na comunidade.",
+      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}.",
+      "dashboardLeftOut": "O painel {{dashboard}} fica de fora, porque usa a tabela {{table}}."
+    },
+    "shownBy_one": "Aparece em {{count}} nota",
+    "shownBy_other": "Aparece em {{count}} notas",
+    "shownByNone": "Nenhuma nota mostra esta tabela.",
+    "deleteShownBy_one": "{{count}} nota a mostra, e vai dizer que a tabela não existe.",
+    "deleteShownBy_other": "{{count}} notas a mostram, e vão dizer que a tabela não existe."
+  },
+  "dashboards": {
+    "heading": "Painéis",
+    "navLabel": "Painéis",
+    "intro": "O que um agente montou sobre as tabelas deste caderno: indicadores, gráficos, um Gantt, um Kanban, lidos das tabelas toda vez que abrem.",
+    "none": "(sem valor)",
+    "components_one": "{{count}} componente",
+    "components_other": "{{count}} componentes",
+    "readAt": "Dados de {{time}}",
+    "refresh": "Atualizar",
+    "allPeriods": "Tudo",
+    "compared": "na comparação",
+    "ofGoal": "de {{goal}}",
+    "noRows": "Nenhuma linha para mostrar.",
+    "moreRows_one": "E mais {{count}} linha.",
+    "moreRows_other": "E mais {{count}} linhas.",
+    "missingTable": "A tabela de onde isto vinha não existe mais.",
+    "delete": "Apagar painel",
+    "deleteTitle": "Apagar este painel?",
+    "deleteConsequences": "O painel sai para sempre. As tabelas e suas linhas continuam como estão.",
+    "deleteConfirm": "Apagar de vez",
+    "downloadImage": "Baixar PNG",
+    "drawing": "Desenhando…",
+    "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco.",
+    "total": "Total",
+    "count": "Linhas",
+    "crossFilter": "Filtrado por {{key}}",
+    "clearFilter": "Limpar"
   },
   "graph": {
     "heading": "Grafo do caderno",
@@ -555,7 +686,7 @@
     "what": {
       "heading": "O que é isto",
       "body": "O MemorySmith é onde você e seus agentes de IA constroem conhecimento juntos. Um caderno tem pastas, uma pasta tem notas em Markdown, e as mesmas notas são lidas e escritas pelos dois lados: por você, nesta interface, e pelo agente, pelo conector. Nada fica preso aqui dentro: cada nota continua sendo texto puro e guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
-      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
+      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo de pasta. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
     },
     "interface": {
       "heading": "O que você encontra aqui",
@@ -569,7 +700,7 @@
         "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades e o seu texto, e cada link leva à nota que alcança — ou diz que ainda não alcança nenhuma."
       },
       "guidance": {
-        "term": "Orientação e Modelos",
+        "term": "Orientação e Modelos de pasta",
         "definition": "Podem ser lidos em telas próprias, então você vê as regras que um agente está seguindo antes de ler o que ele escreveu."
       },
       "graph": {
@@ -582,12 +713,12 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos de pasta, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
       "heading": "Conectando seu assistente de IA",
-      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de cada pasta. O endereço deste ambiente é:",
+      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de pasta de cada pasta. O endereço deste ambiente é:",
       "claude": {
         "heading": "No Claude",
         "one": "No menu lateral, abra <b>Personalizar</b> e depois <b>Conectores</b>.",
@@ -688,7 +819,7 @@
     "attachPurpose": "Anexado pela interface à nota “{{note}}”",
     "attachPurposeUnnamed": "Anexado pela interface a uma nota",
     "attachPurposeGuidance": "Anexado pela interface à Orientação do caderno",
-    "attachPurposeTemplate": "Anexado pela interface ao Modelo da pasta “{{folder}}”",
+    "attachPurposeTemplate": "Anexado pela interface ao Modelo de pasta de “{{folder}}”",
     "attachRefusal": {
       "TOO_LARGE": "Um arquivo anexado vai até 100 MB.",
       "EMPTY": "Esse arquivo está vazio.",
@@ -706,7 +837,14 @@
     "unnamed": "A nota não tem mais nome: continua sendo desenhada e apontando para fora, e nenhum link consegue chegar a ela. {{losing}}.",
     "keepBroken": "Manter os links quebrados",
     "understood": "Entendi",
-    "attachKept": "“{{name}}” foi guardado inteiro no caderno"
+    "attachKept": "“{{name}}” foi guardado inteiro no caderno",
+    "contextChangedTitle": "O caderno mudou enquanto você escrevia",
+    "contextChanged": "Sua nota foi salva, mas {{parts}} mudou desde que você a abriu. Leia o que mudou e ajuste a nota se precisar.",
+    "contextPart": {
+      "guidance": "a Orientação",
+      "template": "o Modelo de pasta desta pasta",
+      "structure": "as pastas do caderno"
+    }
   },
   "move": {
     "short": "Mover",
@@ -802,10 +940,6 @@
       "sharedByMe": "Seu caderno, compartilhado por você",
       "sharedWithMe": "Compartilhado com você por {{owner}}"
     },
-    "access": {
-      "read": "Leitura",
-      "readWrite": "Leitura e gravação"
-    },
     "accept": "Aceitar",
     "reject": "Recusar",
     "dialog": {
@@ -813,14 +947,18 @@
       "email": "E-mail da pessoa",
       "emailPlaceholder": "nome@exemplo.com",
       "access": "Acesso",
-      "readWriteLater": "Leitura e gravação ainda não está disponível: a pessoa lê o caderno inteiro e não escreve nada.",
       "share": "Compartilhar",
       "sharing": "Compartilhando…",
       "sent": "Pronto. Se {{email}} tem uma assinatura do MemorySmith, o caderno está esperando a resposta dessa pessoa.",
       "people": "Compartilhado com",
       "nobody": "Ainda não está compartilhado com ninguém.",
       "revoke": "Revogar",
-      "remove": "Remover"
+      "remove": "Remover",
+      "profileOf": "Acesso de {{email}}",
+      "increasePending": "Continua {{profile}} até a pessoa aceitar o aumento.",
+      "changeExplained": "Reduzir o acesso vale na hora. Aumentá-lo espera a pessoa aceitar de novo.",
+      "licence": "Este caderno é um Modelo de caderno. Quem o receber pode reutilizá-lo e republicá-lo livremente, inclusive na comunidade: toda distribuição de um modelo é sob CC0 1.0.",
+      "acceptLicence": "Aceito que este modelo seja distribuído sob CC0 1.0"
     },
     "state": {
       "pending": "Aguardando",
@@ -839,7 +977,21 @@
       "leaveForGood": "Sair",
       "pendingLabel": "{{name}}, aguardando a sua resposta",
       "invitedBy": "{{owner}} compartilhou com você",
-      "waiting": "Aguardando a sua resposta"
+      "waiting": "Aguardando a sua resposta",
+      "sharedAs": "Compartilhado por {{owner}} · {{profile}}",
+      "increaseOffered": "{{owner}} oferece a você o acesso {{profile}}. Até você aceitar, continua {{current}}."
+    },
+    "profile": {
+      "reader": "Leitor",
+      "contentEditor": "Editor de conteúdo",
+      "notebookEditor": "Editor do caderno",
+      "modelReader": "Leitor do modelo"
+    },
+    "profileHint": {
+      "reader": "Lê e exporta o caderno inteiro, e não escreve nada.",
+      "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos de pasta continuam sendo seus para mudar.",
+      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de pasta. Compartilhar e apagar o caderno continuam com você.",
+      "modelReader": "Lê este modelo e as versões dele e cria cadernos a partir delas, e nunca abre o caderno em si."
     }
   },
   "notifications": {
@@ -850,7 +1002,8 @@
     "aNotebook": "um caderno",
     "dismiss": "Dispensar",
     "kind": {
-      "shared": "<b>{{person}}</b> compartilhou <b>{{notebook}}</b> com você, para leitura.",
+      "shared": "<b>{{person}}</b> compartilhou <b>{{notebook}}</b> com você.",
+      "increase": "<b>{{person}}</b> oferece a você mais acesso a <b>{{notebook}}</b>.",
       "revoked": "<b>{{person}}</b> deixou de compartilhar <b>{{notebook}}</b> com você.",
       "accepted": "<b>{{person}}</b> aceitou <b>{{notebook}}</b>.",
       "rejected": "<b>{{person}}</b> recusou <b>{{notebook}}</b>.",
@@ -966,5 +1119,132 @@
     "updating": "Atualizando…",
     "notSaved": "Não salvo",
     "editUnavailable": "Esta nota mistura quebras de linha, que o editor não consegue manter byte a byte, então ela abre só para leitura."
+  },
+  "model": {
+    "title": "Modelo de caderno",
+    "intro": "Um caderno declarado como Modelo de caderno é copiado em cadernos novos, cada um preenchido com os próprios valores. Não é um Modelo de pasta: o Modelo de pasta é a forma sugerida das notas de uma pasta; o Modelo de caderno é um caderno inteiro.",
+    "notAModel": "Este caderno não é um Modelo de caderno.",
+    "declareHint": "Um Modelo de caderno cria outros cadernos a partir dele. Escreva {{reference}} nas notas onde vai um valor, e declare cada nome abaixo.",
+    "objective": "Objetivo",
+    "objectiveHint": "Para que serve um caderno criado a partir dele.",
+    "description": "Descrição",
+    "audience": "Para quem é",
+    "basedOn": "Baseado em",
+    "basedOnHint": "Crédito opcional, mostrado com o modelo. Nunca é obrigatório.",
+    "parameters": "Parâmetros",
+    "parametersHint": "Cada valor que um caderno criado a partir do modelo preenche. Um parâmetro é obrigatório, ou tem um valor padrão, que pode ser vazio.",
+    "noParameters": "Nenhum parâmetro.",
+    "parameterLegend": "Parâmetro {{name}}",
+    "parameterName": "Nome",
+    "parameterType": "Tipo",
+    "parameterDescription": "O que é",
+    "parameterExample": "Exemplo",
+    "parameterRequired": "Obrigatório",
+    "parameterDefault": "Padrão",
+    "listHint": "Um item por linha",
+    "removeParameter": "Remover",
+    "addParameter": "Adicionar um parâmetro",
+    "writtenAs": "Escrito {{reference}} nas notas.",
+    "problem": {
+      "name": "Um nome começa com letra ou _, e segue com letras, dígitos, _ e -.",
+      "duplicate": "Outro parâmetro tem este nome.",
+      "default": "Um parâmetro que não é obrigatório precisa de um valor padrão do seu tipo."
+    },
+    "type": {
+      "text": "Texto",
+      "list": "Lista",
+      "boolean": "Sim ou não",
+      "date": "Data"
+    },
+    "defaultsTo": "padrão “{{value}}”",
+    "forExample": "por exemplo {{example}}",
+    "declare": "Declarar como Modelo de caderno",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "saved": "Salvo.",
+    "versions": "Versões",
+    "changelog": "O que mudou desde a última versão",
+    "versionHint": "Uma versão congela o caderno como está agora. Ela não muda depois, e conta uma vez no armazenamento.",
+    "createVersion": "Criar uma versão",
+    "creatingVersion": "Criando…",
+    "noVersions": "Nenhuma versão ainda.",
+    "status": {
+      "running": "Sendo criada",
+      "ready": "Pronta",
+      "failed": "Falhou",
+      "cancelled": "Cancelada"
+    },
+    "openVersion": "Abrir",
+    "deleteVersion": "Apagar…",
+    "deleteVersionForGood": "Apagar v{{number}}",
+    "versionTitle": "Versão {{number}}",
+    "undeclared": "Esta versão escreve {{names}}, que nenhum parâmetro declara: um caderno criado a partir dela os manteria como estão.",
+    "unused": "Declarados e não escritos em lugar nenhum: {{names}}.",
+    "contents": "O que ela guarda",
+    "none": "Nenhuma.",
+    "create": "Criar um caderno a partir desta versão",
+    "creating": "Criando…",
+    "newName": "Nome do caderno novo",
+    "newNameHint": "Vazio, é o nome do modelo, preenchido.",
+    "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
+    "creationFailed": "O caderno não foi criado. Transferências diz por quê.",
+    "referenceExample": "nome",
+    "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo e as versões dele e cria cadernos a partir delas; o caderno que ele é fica com o dono.",
+    "community": "Comunidade",
+    "publishHint": "Publicar mostra o modelo e todas as versões que você mantém a qualquer pessoa, com ou sem conta, pelo nome da sua conta e nunca pelo seu e-mail; quem entra cria cadernos a partir dele. Você o retira quando quiser.",
+    "publishLicence": "Toda distribuição de um modelo é sob CC0 1.0: qualquer pessoa pode reutilizá-lo e republicá-lo livremente, inclusive na comunidade.",
+    "publish": "Publicar na comunidade",
+    "publishNeedsVersion": "Crie uma versão antes: a comunidade lê versões, nunca o caderno.",
+    "publishNeedsName": "Escreva seu nome no perfil antes: o catálogo mostra o nome, nunca o e-mail.",
+    "publishedAs": "Publicado por {{author}}, em {{language}}.",
+    "publicPage": "Abrir a página pública",
+    "withdraw": "Retirar da comunidade"
+  },
+  "newNotebook": {
+    "open": "Novo caderno",
+    "openModel": "Novo Modelo de caderno",
+    "title": "Novo caderno",
+    "modelTitle": "Novo Modelo de caderno",
+    "notDeclared": "O caderno foi criado e ainda não é um Modelo de caderno. Tente de novo para declarar.",
+    "kind": "Como começar",
+    "blank": "Em branco",
+    "fromModel": "De um Modelo de caderno",
+    "name": "Nome",
+    "description": "Para que serve",
+    "create": "Criar",
+    "creating": "Criando…",
+    "model": "Modelo de caderno",
+    "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
+    "noVersion": "Este modelo ainda não tem versão pronta.",
+    "fromVersion": "Da versão {{number}}: {{changelog}}",
+    "community": "Ou encontre um modelo na comunidade"
+  },
+  "community": {
+    "title": "Modelos da comunidade",
+    "menu": "Modelos da comunidade",
+    "home": "Início",
+    "signIn": "Entrar",
+    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. Qualquer pessoa os lê; criar um caderno a partir de um pede que você entre.",
+    "search": "Buscar",
+    "searchHint": "Palavras do nome, do objetivo, do autor…",
+    "find": "Buscar",
+    "language": "Idioma",
+    "languages": {
+      "any": "Qualquer idioma",
+      "pt": "Português",
+      "en": "Inglês",
+      "es": "Espanhol"
+    },
+    "nothing": "Nenhum modelo publicado responde a esta busca.",
+    "byline_one": "Por {{author}} · {{language}} · atualizado em {{date}} · {{count}} versão",
+    "byline_other": "Por {{author}} · {{language}} · atualizado em {{date}} · {{count}} versões",
+    "author": "Autor",
+    "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
+    "report": "Denunciar este modelo",
+    "reportWhy": "O que há de errado com ele",
+    "sendReport": "Enviar a denúncia",
+    "reported": "Obrigado: a denúncia chegou ao operador da plataforma.",
+    "signInToReport": "Entre para denunciar este modelo",
+    "signInToCreate": "Entre para criar um caderno a partir desta versão"
   }
 }

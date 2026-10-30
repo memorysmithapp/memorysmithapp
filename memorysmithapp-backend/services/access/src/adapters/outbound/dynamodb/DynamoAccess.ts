@@ -43,7 +43,12 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Subscription } from '../../../domain/subscription/Subscription.js';
 import type { Membership } from '../../../domain/subscription/Subscription.js';
-import { Share, type ShareState } from '../../../domain/share/Share.js';
+import {
+  Share,
+  SHARE_PROFILES,
+  type ShareProfile,
+  type ShareState,
+} from '../../../domain/share/Share.js';
 import {
   AvatarSource,
   Email,
@@ -603,13 +608,19 @@ function shareItem(share: Share, key: Item, entity: 'SHARE' | 'SHARED'): Item {
     ownerEmail: share.ownerEmail.value,
     granteeUserId: share.granteeUserId.value,
     granteeEmail: share.granteeEmail.value,
-    access: share.access,
+    profile: share.profile,
+    pendingProfile: share.pendingProfile,
+    pendingSince: share.pendingSince?.toISOString() ?? null,
     state: share.state,
     sharedAt: share.sharedAt.toISOString(),
     answeredAt: share.answeredAt?.toISOString() ?? null,
     notifyOwner: share.notifyOwner,
     ownerSeenAt: share.ownerSeenAt?.toISOString() ?? null,
   };
+}
+
+function profileOf(value: unknown): ShareProfile | null {
+  return SHARE_PROFILES.includes(value as ShareProfile) ? (value as ShareProfile) : null;
 }
 
 function parseShare(item: Item): Share {
@@ -620,7 +631,10 @@ function parseShare(item: Item): Share {
     ownerEmail: need(Email.create(String(item['ownerEmail']))),
     granteeUserId: need(UserId.create(String(item['granteeUserId']))),
     granteeEmail: need(Email.create(String(item['granteeEmail']))),
-    access: item['access'] === 'read-write' ? 'read-write' : 'read',
+    // A share written before the profiles (#347) carries `access: read`, and is a reader.
+    profile: profileOf(item['profile']) ?? 'reader',
+    pendingProfile: profileOf(item['pendingProfile']),
+    pendingSince: item['pendingSince'] ? need(Instant.fromISO(String(item['pendingSince']))) : null,
     state: String(item['state']) as ShareState,
     sharedAt: need(Instant.fromISO(String(item['sharedAt']))),
     answeredAt: item['answeredAt'] ? need(Instant.fromISO(String(item['answeredAt']))) : null,

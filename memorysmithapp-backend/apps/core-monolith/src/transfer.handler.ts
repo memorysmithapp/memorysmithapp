@@ -49,6 +49,8 @@ import {
 } from '@memorysmithapp/svc-knowledge/application/folders';
 import { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
 import { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
+import { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
 import { DynamoTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import { KnowledgeExportSource } from './export-source.js';
@@ -63,11 +65,15 @@ import {
 import {
   buildAccess,
   buildKnowledge,
+  buildModels,
   buildShares,
   parseNotebookDocument,
   serializeNotebookDocument,
   type Infrastructure,
 } from './composition-root.js';
+import { DynamoCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
+import { refreshPublication } from '@memorysmithapp/svc-portability/application/catalog';
+import { NO_EDGE_CACHE } from './catalog.js';
 
 interface QueueEvent {
   Records?: Array<{
@@ -163,6 +169,9 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
       createNote: new CreateNote(knowledge),
       keepFile: new KeepFile(knowledge),
+      createTable: new CreateTable(knowledge),
+      insertRows: new InsertRows(knowledge),
+      createDashboard: new CreateDashboard(knowledge),
       deleteNotebook: new DeleteNotebook(knowledge),
     },
     resolved.value,
@@ -268,4 +277,16 @@ async function run(work: TransferWork): Promise<void> {
     ),
   );
   await new RunExport(transfers, exporter, unexpected).execute(work);
+  // A version made ready joins the catalog entry of a published model (#360).
+  if (work.modelVersion && work.notebookId) {
+    await refreshPublication(
+      {
+        models: buildModels(infra, context),
+        transfers,
+        catalog: new DynamoCatalogStore(infra.db, infra.portabilityTable),
+        cache: NO_EDGE_CACHE,
+      },
+      work.notebookId,
+    );
+  }
 }

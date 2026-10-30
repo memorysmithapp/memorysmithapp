@@ -5,6 +5,7 @@ packages:
   - memorysmithapp-backend/services/*
   - memorysmithapp-backend/apps/*
   - memorysmithapp-infra
+  - tools
 
 allowBuilds:
   # Dependencies of pagedjs whose install scripts only print a message.

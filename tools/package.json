@@ -1,0 +1,27 @@
+{
+  "name": "@memorysmithapp/tools",
+  "version": "0.15.0",
+  "private": true,
+  "type": "module",
+  "description": "The tools that operate and evaluate MemorySmith from outside: onboarding, product-data maintenance, the functional suite and the agent evaluation.",
+  "scripts": {
+    "cli": "tsx cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.1131.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",
+    "@aws-sdk/client-s3": "^3.1117.0",
+    "@aws-sdk/client-sfn": "^3.1152.0",
+    "@aws-sdk/client-sts": "^3.1131.0",
+    "@memorysmithapp/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.4",
+    "typescript": "~5.7.3"
+  }
+}

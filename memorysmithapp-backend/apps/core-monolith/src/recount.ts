@@ -4,7 +4,7 @@
  * A third entrypoint on the same bundle, next to the request handler and the
  * outbox relay, and for the same reason they are separate: it is triggered by
  * an operator rather than by a request or a stream, and it needs no session at
- * all. Run it with `pnpm -C memorysmithapp-infra recount-storage`.
+ * all. Run it with `pnpm tools data recount-storage`.
  *
  * It recounts the counters of three contexts at once, and this is where they
  * meet, because none of them may read the table of another: the content and

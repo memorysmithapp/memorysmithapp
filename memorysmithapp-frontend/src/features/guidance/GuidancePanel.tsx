@@ -1,11 +1,6 @@
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  canWrite,
-  deleteGuidance,
-  getNotebookStructure,
-  putGuidance,
-} from '../../shared/api/source';
+import { deleteGuidance, getNotebookStructure, putGuidance } from '../../shared/api/source';
 import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -19,7 +14,7 @@ export function GuidancePanel() {
   const { t } = useTranslation();
   const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
-  const writable = canWrite(structure.effectiveRole);
+  const writable = structure.permissions.maintain;
 
   useDocumentTitle(t('structure.guidance'), structure.notebook.name);
 

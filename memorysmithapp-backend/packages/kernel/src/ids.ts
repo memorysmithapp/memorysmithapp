@@ -104,6 +104,28 @@ export class FileId extends UlidIdentifier {
   }
 }
 
+/** A Table of a notebook: a schema and its rows (#366). */
+export class TableId extends UlidIdentifier {
+  private readonly __tableId!: void;
+  static create(raw: string): Result<TableId, DomainError> {
+    return parseUlid(raw, 'TableId', (value) => new TableId(value));
+  }
+  static generate(): TableId {
+    return new TableId(ulid());
+  }
+}
+
+/** A Dashboard of a notebook: a layout and components drawn from its Tables (#368). */
+export class DashboardId extends UlidIdentifier {
+  private readonly __dashboardId!: void;
+  static create(raw: string): Result<DashboardId, DomainError> {
+    return parseUlid(raw, 'DashboardId', (value) => new DashboardId(value));
+  }
+  static generate(): DashboardId {
+    return new DashboardId(ulid());
+  }
+}
+
 /**
  * Addresses a Content Slot. Stored explicitly and never derived from a NoteId:
  * one day the same slot may be pointed at by another Content Role (INV-04).

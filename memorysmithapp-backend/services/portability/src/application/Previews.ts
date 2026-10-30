@@ -59,6 +59,11 @@ export interface PreviewJob {
    * `^block`. Null for the whole note.
    */
   readonly part: string | null;
+  /** A Dashboard drawn instead of a note, by its name or identifier (#368). */
+  readonly dashboard?: string | null;
+  /** The view of that dashboard the image shows: its periods and a mark clicked (#369). */
+  readonly filters?: Readonly<Record<string, string | null>> | null;
+  readonly cross?: { readonly component: string; readonly key: string } | null;
   readonly accessToken: string;
   readonly locale: string;
 }
@@ -132,9 +137,45 @@ export class StartPreview {
     content?: string | undefined;
     folderId?: string | undefined;
     part?: string | undefined;
+    dashboard?: string | undefined;
+    filters?: Readonly<Record<string, string | null>> | undefined;
+    cross?: { readonly component: string; readonly key: string } | undefined;
     accessToken: string;
     locale: string;
   }): Promise<Result<{ previewId: string }, DomainError>> {
+    /**
+     * A Dashboard is drawn as the person reads it (#368): the whole of it, at
+     * the width of a computer, as a PNG the person keeps or an agent looks at.
+     */
+    if (input.dashboard !== undefined) {
+      if (input.noteId !== undefined || input.content !== undefined || input.part !== undefined) {
+        return err(
+          DomainError.validation(
+            'A preview draws a dashboard, or a note or a draft, and never both',
+          ),
+        );
+      }
+      if (!input.accessToken) {
+        return err(DomainError.validation('A preview is drawn as the person who asks for it'));
+      }
+      const previewId = ulid();
+      await this.queue.send({
+        kind: 'preview',
+        previewId,
+        subscriptionId: this.subscriptionId,
+        notebookId: input.notebookId,
+        noteId: null,
+        draft: false,
+        folderId: null,
+        part: null,
+        dashboard: input.dashboard,
+        filters: input.filters ?? null,
+        cross: input.cross ?? null,
+        accessToken: input.accessToken,
+        locale: input.locale,
+      });
+      return ok({ previewId });
+    }
     const hasNote = input.noteId !== undefined;
     const hasDraft = input.content !== undefined;
     if (hasNote === hasDraft) {

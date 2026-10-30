@@ -127,15 +127,20 @@ function reach(notebooks: readonly NotebookListing[]): string {
     ...(shared.length > 0
       ? [
           ...(own.length > 0 ? [''] : []),
-          '**Shared with this person from another subscription.** Each is read whole, as a',
-          'reader, and written only when its access says `read-write`; with',
-          '`read`, every write is refused. When the person asks you to write in one, say whose',
-          'notebook it is and that the share is read-only, instead of trying:',
+          '**Shared with this person from another subscription.** What each lets you write is',
+          'its access: `reader` writes nothing; `content-editor` writes, moves and deletes',
+          'notes and keeps files, and leaves the folders, guidance and templates to the owner;',
+          '`notebook-editor` writes all of it. Sharing and deleting stay with the owner. When',
+          'the person asks for a write the access refuses, say whose notebook it is and what the',
+          'access allows, instead of trying:',
           '',
           ...shared.map(
             (notebook) =>
               `${line(notebook)} — shared by ${notebook.owner ?? 'its owner'}, access ` +
-              `\`${notebook.access ?? 'read'}\``,
+              `\`${notebook.access ?? 'reader'}\`` +
+              (notebook.pendingAccess
+                ? `, \`${notebook.pendingAccess}\` offered and waiting for this person to accept it`
+                : ''),
           ),
         ]
       : []),

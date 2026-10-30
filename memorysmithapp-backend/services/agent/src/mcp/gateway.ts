@@ -10,6 +10,26 @@
  */
 
 import type {
+  DashboardDataDto,
+  ImportTableRequest,
+  NotebookDashboardDto,
+  NotebookTableDto,
+  RowsWrittenDto,
+  TableImportDto,
+  TableAlteredDto,
+  TablePageDto,
+  TableQueryRequest,
+} from '@memorysmithapp/contracts';
+import type {
+  DeclareModelRequest,
+  ModelListDto,
+  ModelVersionDto,
+  ModelVersionViewDto,
+  PublicModelDto,
+  PublicVersionViewDto,
+  NotebookModelDto,
+} from '@memorysmithapp/contracts';
+import type {
   BeginUploadRequest,
   FinishedUploadDto,
   NoteOrder,
@@ -18,6 +38,12 @@ import type {
   TransferDto,
   UploadStatusDto,
 } from '@memorysmithapp/contracts';
+
+/** A mark clicked on a chart of a dashboard (#369). */
+export interface DashboardCross {
+  readonly component: string;
+  readonly key: string;
+}
 
 export interface AgentCaller {
   /** The human who authorized the connector; always present. */
@@ -45,13 +71,33 @@ export interface NotebookListing {
   /**
    * Whether the notebook is of the subscription of this connection or shared
    * with its person from another one (RN-AGT-046). A shared one names its
-   * owner and the access the share grants, which is `read` for every share
-   * today; `read-write` is in the contract so the day it is offered changes no
-   * shape (RN-ACC-024).
+   * owner and the access the share grants, its profile (RN-ACC-032), and an
+   * increase the owner offered that waits for this person (RN-ACC-033).
    */
   readonly ownership: 'own' | 'shared';
   readonly owner?: string;
-  readonly access?: 'read' | 'read-write';
+  readonly access?: ShareAccessName;
+  readonly pendingAccess?: ShareAccessName | null;
+}
+
+/** The access a share grants, as the connector names it. */
+export type ShareAccessName = 'reader' | 'content-editor' | 'notebook-editor';
+
+/**
+ * The context a note is written against (RN-KNW-061): the Guidance, the
+ * Template of its folder and the structure of the notebook, each by its
+ * revision, as the reads answer them.
+ */
+export interface NoteContextRevisions {
+  readonly guidance: string | null;
+  readonly template: string | null;
+  readonly structure: string;
+}
+
+/** A write whose declared context had changed: what changed, and what is current. */
+export interface ContextChanged {
+  readonly changed: readonly string[];
+  readonly current: NoteContextRevisions;
 }
 
 /**
@@ -127,6 +173,8 @@ export interface NoteContent {
   readonly content: string;
   readonly revision: string;
   readonly updatedAt: string;
+  /** On the answer of a write only: the context it declared had changed (RN-KNW-061). */
+  readonly contextChanged?: ContextChanged;
   /**
    * Every link target the content writes and what it reaches (RN-AGT-034),
    * beside the body and never inside it. Left out of a revision from the
@@ -148,6 +196,8 @@ export interface MovedNote {
   readonly position: string;
   readonly revision: string;
   readonly updatedAt: string;
+  /** The context of the destination it declared had changed (RN-KNW-061). */
+  readonly contextChanged?: ContextChanged;
 }
 
 /** A file of a notebook, as the connector answers it (#166). */
@@ -376,10 +426,90 @@ export interface KnowledgeGateway {
       content?: string;
       folderId?: string;
       part?: string;
+      /** A Dashboard, by name or identifier, drawn instead of a note (#368). */
+      dashboard?: string;
+      /** The view of that dashboard: its periods and a mark clicked (#369). */
+      filters?: Record<string, string | null>;
+      cross?: DashboardCross;
+      /** The language it is drawn in, the person's: en_US when it says none. */
+      locale?: string;
     },
   ): Promise<{ previewId: string }>;
   getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;
   deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void>;
+  /**
+   * The Tables of a notebook and their rows (#366), named by their name or
+   * their identifier. Every write answers what it wrote, by row.
+   */
+  listTables(caller: AgentCaller, notebookId: string): Promise<NotebookTableDto[]>;
+  createTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: {
+      name: string;
+      description: string;
+      schema: Record<string, unknown>;
+      key: string[] | null;
+    },
+  ): Promise<NotebookTableDto>;
+  alterTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    changes: unknown[],
+  ): Promise<TableAlteredDto>;
+  deleteTable(caller: AgentCaller, notebookId: string, table: string): Promise<{ rows: number }>;
+  queryTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    query: Partial<TableQueryRequest>,
+  ): Promise<TablePageDto>;
+  insertRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    input: { rows: unknown[]; mode: 'insert' | 'upsert' },
+  ): Promise<RowsWrittenDto>;
+  updateRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    updates: unknown[],
+  ): Promise<RowsWrittenDto>;
+  deleteRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    targets: unknown[],
+  ): Promise<RowsWrittenDto>;
+  /** The Dashboards of a notebook (#368), named by their name or their identifier. */
+  listDashboards(caller: AgentCaller, notebookId: string): Promise<NotebookDashboardDto[]>;
+  createDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { name: string; description: string; definition: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto>;
+  updateDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    input: { name?: string; description?: string; definition?: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto>;
+  readDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    filters: Record<string, string | null>,
+    cross?: DashboardCross | null,
+  ): Promise<DashboardDataDto>;
+  deleteDashboard(caller: AgentCaller, notebookId: string, dashboard: string): Promise<void>;
+  /** Rows from a CSV or an Excel file the notebook keeps, or the schema it suggests. */
+  importTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: Partial<ImportTableRequest> & { file: string },
+  ): Promise<TableImportDto>;
   notebookContext(caller: AgentCaller, notebookId: string): Promise<string>;
   template(
     caller: AgentCaller,
@@ -399,11 +529,33 @@ export interface KnowledgeGateway {
   recentNotes(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<Array<{ noteId: string; name: string | null; updatedAt: string }>>;
+  ): Promise<
+    Array<{
+      noteId: string;
+      name: string | null;
+      updatedAt: string;
+      /** What had changed of the context the live revision declared (RN-KNW-062). */
+      staleContext?: readonly string[];
+    }>
+  >;
+  /**
+   * The revisions of the notebook's part of a note's context: its Guidance and
+   * its structure. The Template's is answered by `template`.
+   */
+  contextRevisions(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<{ guidance: string | null; structure: string }>;
   /** Without an anchor the note goes last in its folder. */
   createNote(
     caller: AgentCaller,
-    input: { notebookId: string; folderId: string; content: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      folderId: string;
+      content: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<NoteContent>;
   updateNote(
     caller: AgentCaller,
@@ -413,6 +565,7 @@ export interface KnowledgeGateway {
       content: string;
       baseRevision: string;
       message?: string | null;
+      context?: NoteContextRevisions;
     },
   ): Promise<NoteContent>;
   /**
@@ -430,9 +583,66 @@ export interface KnowledgeGateway {
    */
   moveNote(
     caller: AgentCaller,
-    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      noteId: string;
+      folderId: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<MovedNote>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
+  // ---- Notebook models (#353, #354, #359) ---------------------------------
+  declareModel(
+    caller: AgentCaller,
+    notebookId: string,
+    declaration: DeclareModelRequest,
+  ): Promise<NotebookModelDto>;
+  model(caller: AgentCaller, notebookId: string): Promise<NotebookModelDto>;
+  listModels(caller: AgentCaller): Promise<ModelListDto['models']>;
+  createModelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    changelog: string,
+    tables?: ReadonlyArray<{ name: string; rows: boolean }>,
+  ): Promise<ModelVersionDto>;
+  modelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    number: number,
+  ): Promise<ModelVersionViewDto>;
+  deleteModelVersion(caller: AgentCaller, notebookId: string, number: number): Promise<void>;
+  createFromModel(
+    caller: AgentCaller,
+    input: {
+      notebookId: string;
+      version: number;
+      name: string;
+      values: Record<string, unknown>;
+    },
+  ): Promise<TransferDto>;
+  transfer(caller: AgentCaller, transferId: string): Promise<TransferDto>;
+  // ---- The community catalog (#360) ---------------------------------------
+  publishModel(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { language: string; acceptLicence: boolean },
+  ): Promise<PublicModelDto>;
+  withdrawModel(caller: AgentCaller, notebookId: string): Promise<void>;
+  searchCommunity(
+    caller: AgentCaller,
+    query: { text: string; language: string | null },
+  ): Promise<PublicModelDto[]>;
+  communityModel(caller: AgentCaller, publicId: string): Promise<PublicModelDto>;
+  communityVersion(
+    caller: AgentCaller,
+    publicId: string,
+    number: number,
+  ): Promise<PublicVersionViewDto>;
+  createFromCommunity(
+    caller: AgentCaller,
+    input: { publicId: string; version: number; name: string; values: Record<string, unknown> },
+  ): Promise<TransferDto>;
 }
 
 export interface DiscoveryGateway {

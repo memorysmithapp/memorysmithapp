@@ -238,6 +238,7 @@ export class OutboxRelay {
     partition: string,
     envelope: {
       eventId: string;
+      type: string;
       occurredAt: string;
       subscriptionId: string;
       payload: Record<string, unknown>;
@@ -351,15 +352,86 @@ export class OutboxRelay {
       });
     }
 
+    // What one table holds, rows and bytes (#366), in the partition of its
+    // rows: what a write checks the limit of rows against, and what the list
+    // of tables shows.
+    const table = tableStatOf(envelope, bytes);
+    if (table) {
+      writes.push({
+        Update: {
+          TableName: this.deps.tableName,
+          Key: { PK: `S#${envelope.subscriptionId}#TABLE#${table.tableId}`, SK: 'TSTAT' },
+          UpdateExpression:
+            'ADD #rows :rows, #bytes :bytes SET #updatedAt = :at, #entity = :entity',
+          ExpressionAttributeNames: {
+            '#rows': 'rows',
+            '#bytes': 'bytes',
+            '#updatedAt': 'updatedAt',
+            '#entity': 'entity',
+          },
+          ExpressionAttributeValues: {
+            ':rows': table.rows,
+            ':bytes': bytes,
+            ':at': envelope.occurredAt,
+            ':entity': 'TSTAT',
+          },
+        },
+      });
+    }
+
     if (writes.length === 1) return;
 
     try {
       await this.deps.db.send(new TransactWriteCommand({ TransactItems: writes }));
     } catch (error) {
       // A duplicate SEEN item means the stream is replaying: the counters were
-      // already applied, and doing nothing is the correct outcome.
-      const name = (error as { name?: string })?.name ?? '';
-      if (name !== 'TransactionCanceledException') throw error;
+      // already applied, and doing nothing is the correct outcome. Anything
+      // else that cancelled the transaction — a conflict with another event of
+      // the subscription on its USAGE item, above all — applied nothing, and
+      // fails the batch so the stream delivers it again (#362).
+      if (!isReplay(error)) throw error;
     }
   }
+}
+
+/**
+ * Which table an event moves the count of, and by how many rows (#366). A
+ * deleted table's count is not moved: its rows are purged with it, and the
+ * item goes with them.
+ */
+function tableStatOf(
+  envelope: { type: string; payload: Record<string, unknown> },
+  bytes: number,
+): { tableId: string; rows: number } | null {
+  const tableId = String(envelope.payload['tableId'] ?? '');
+  if (!tableId) return null;
+  const rows = Array.isArray(envelope.payload['rows']) ? envelope.payload['rows'].length : 0;
+  switch (envelope.type) {
+    case 'RowsInserted':
+      return { tableId, rows };
+    case 'RowsDeleted':
+      return { tableId, rows: -rows };
+    case 'RowsUpdated':
+    case 'TableAltered':
+      return bytes === 0 ? null : { tableId, rows: 0 };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Whether a cancelled transaction was cancelled by its SEEN item alone, the
+ * first of its writes: the one cancellation that means "already applied".
+ */
+export function isReplay(error: unknown): boolean {
+  const cancelled = error as {
+    name?: string;
+    CancellationReasons?: Array<{ Code?: string } | undefined>;
+  } | null;
+  if (cancelled?.name !== 'TransactionCanceledException') return false;
+  const reasons = cancelled.CancellationReasons ?? [];
+  return (
+    reasons[0]?.Code === 'ConditionalCheckFailed' &&
+    reasons.slice(1).every((reason) => !reason?.Code || reason.Code === 'None')
+  );
 }

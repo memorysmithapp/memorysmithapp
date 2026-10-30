@@ -210,8 +210,20 @@ describe('the recount of what fills the space (RN-SUB-024)', () => {
       notebooks: 2,
       stale: ['01GONE'],
     });
-    expect(usage?.byNotebook.get(NB1)).toEqual({ bytes: 1150, notes: 1, folders: 2, files: 1 });
-    expect(usage?.byNotebook.get(NB2)).toEqual({ bytes: 7, notes: 1, folders: 1, files: 0 });
+    expect(usage?.byNotebook.get(NB1)).toEqual({
+      bytes: 1150,
+      notes: 1,
+      folders: 2,
+      files: 1,
+      tables: 0,
+    });
+    expect(usage?.byNotebook.get(NB2)).toEqual({
+      bytes: 7,
+      notes: 1,
+      folders: 1,
+      files: 0,
+      tables: 0,
+    });
   });
 
   it('takes the revisions from whoever can count them, and keeps them when nobody can', async () => {

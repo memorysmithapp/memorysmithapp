@@ -34,6 +34,10 @@ export const eventSubjectSchema = z.enum([
   'NOTE',
   // What a notebook keeps beside its notes: bytes with a name (#166).
   'FILE',
+  // A schema and its rows, kept beside the notes (#366).
+  'TABLE',
+  // A layout of components drawn from the tables (#368).
+  'DASHBOARD',
 ]);
 
 export const domainEventTypeSchema = z.enum([
@@ -63,6 +67,9 @@ export const domainEventTypeSchema = z.enum([
   'NotebookShareRejected',
   'NotebookShareRevoked',
   'NotebookShareLeft',
+  'NotebookShareProfileChanged',
+  'NotebookShareIncreaseAccepted',
+  'NotebookShareIncreaseRejected',
   // Knowledge
   'NotebookCreated',
   'NotebookRenamed',
@@ -91,6 +98,17 @@ export const domainEventTypeSchema = z.enum([
   // replaced by keeping them again under the same name (#166).
   'FileKept',
   'FileDeleted',
+  // A Table of a notebook and its rows (#366); a row event never carries a value.
+  'TableCreated',
+  'TableAltered',
+  'TableDeleted',
+  'RowsInserted',
+  'RowsUpdated',
+  'RowsDeleted',
+  // A Dashboard of a notebook (#368).
+  'DashboardCreated',
+  'DashboardChanged',
+  'DashboardDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -215,7 +233,21 @@ export const notebookSharePayload = z.object({
   notebookId: ulidSchema,
   granteeUserId: userIdSchema,
   granteeEmail: z.string(),
-  access: z.enum(['read', 'read-write']),
+  /** On an entry written before the profiles (#347), the only access there was. */
+  access: z.enum(['read', 'read-write']).optional(),
+  /** What the share grants once this happened (#347). */
+  profile: z.enum(['model-reader', 'reader', 'content-editor', 'notebook-editor']).optional(),
+  /** An increase waiting for the grantee's renewed acceptance, or null. */
+  pendingProfile: z
+    .enum(['model-reader', 'reader', 'content-editor', 'notebook-editor'])
+    .nullable()
+    .optional(),
+  /** On a change of profile or an answer to an increase: the profile before it. */
+  from: z.enum(['model-reader', 'reader', 'content-editor', 'notebook-editor']).optional(),
+  /** On an answer to an increase: the profile that was offered. */
+  offered: z.enum(['model-reader', 'reader', 'content-editor', 'notebook-editor']).optional(),
+  /** On a change of profile: whether it waits for the grantee's acceptance. */
+  pending: z.boolean().optional(),
   /** On a departure only: whether the grantee chose to tell the owner (RN-ACC-028). */
   notifyOwner: z.boolean().optional(),
 });
@@ -417,6 +449,53 @@ export const fileKeptPayload = z.object({
 
 export const fileDeletedPayload = fileKeptPayload;
 
+/**
+ * A Table of a notebook (#366). What changed is said in words, `changes`,
+ * because a schema change is read by a person in the trail and is not
+ * replayed by anybody.
+ */
+export const tableCreatedPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  name: z.string().min(1),
+  columns: z.array(z.string()),
+});
+
+export const tableAlteredPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  name: z.string().min(1),
+  changes: z.array(z.string()),
+});
+
+export const tableDeletedPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  name: z.string().min(1),
+  rows: z.number().int().nonnegative(),
+});
+
+/**
+ * Rows written by one operation (#366): which rows and which columns, and
+ * never a value, so deleting a row leaves no copy of it in the trail (INV-06,
+ * INV-08). Every event of one operation, a call or an import, shares its
+ * `operationId`.
+ */
+export const rowsChangedPayload = z.object({
+  notebookId: ulidSchema,
+  tableId: ulidSchema,
+  table: z.string().min(1),
+  operationId: z.string().min(1),
+  rows: z.array(z.object({ rowId: z.string().min(1), columns: z.array(z.string()) })),
+});
+
+/** A Dashboard of a notebook (#368): named, and never its definition, which is data. */
+export const dashboardPayload = z.object({
+  notebookId: ulidSchema,
+  dashboardId: ulidSchema,
+  name: z.string().min(1),
+});
+
 export const noteCreatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
@@ -513,6 +592,9 @@ export const eventPayloadSchemas = {
   NotebookShareRejected: notebookSharePayload,
   NotebookShareRevoked: notebookSharePayload,
   NotebookShareLeft: notebookSharePayload,
+  NotebookShareProfileChanged: notebookSharePayload,
+  NotebookShareIncreaseAccepted: notebookSharePayload,
+  NotebookShareIncreaseRejected: notebookSharePayload,
   NotebookCreated: notebookCreatedPayload,
   NotebookRenamed: notebookRenamedPayload,
   NotebookDeleted: notebookDeletedPayload,
@@ -534,6 +616,15 @@ export const eventPayloadSchemas = {
   NotebookPurged: notebookPurgedPayload,
   FileKept: fileKeptPayload,
   FileDeleted: fileDeletedPayload,
+  TableCreated: tableCreatedPayload,
+  TableAltered: tableAlteredPayload,
+  TableDeleted: tableDeletedPayload,
+  RowsInserted: rowsChangedPayload,
+  RowsUpdated: rowsChangedPayload,
+  RowsDeleted: rowsChangedPayload,
+  DashboardCreated: dashboardPayload,
+  DashboardChanged: dashboardPayload,
+  DashboardDeleted: dashboardPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

@@ -1,0 +1,2584 @@
+/**
+ * Every page of the interface, in the locale of the project that runs it. Which
+ * pages there are is read from the router, so a page added without a case fails
+ * the Quality stage.
+ */
+
+import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { apiToken } from '../support/accounts.js';
+import { Api } from '../support/api.js';
+import { eventually } from '../support/eventually.js';
+import { signInOnManagedLogin } from '../support/managed-login.js';
+import { expect, speak, test } from './fixtures.js';
+import type { Page } from '@playwright/test';
+
+test.describe('signing in', () => {
+  test('[page:/login] [page:/auth/callback] hands a person to the managed login and back, signed in', async ({
+    page,
+    state,
+    appLocale,
+    words,
+  }) => {
+    await speak(page, state, appLocale);
+    const authorize = page.waitForRequest((request) =>
+      request.url().startsWith(`${state.surfaces.auth}/oauth2/authorize`),
+    );
+    await page.goto(`${state.surfaces.site}/login`);
+
+    const asked = new URL((await authorize).url());
+    expect(asked.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(asked.searchParams.get('redirect_uri')).toBe(`${state.surfaces.site}/auth/callback`);
+    expect(asked.searchParams.get('lang')).toBe(appLocale === 'pt_BR' ? 'pt-BR' : 'en');
+
+    await signInOnManagedLogin(page, state.accounts.owner);
+    await page.waitForURL(`${state.surfaces.site}/`, { timeout: 60_000 });
+    await expect(page.getByRole('heading', { name: words.openNotebook })).toBeVisible();
+  });
+
+  test('[page:/auth/callback] says why a sign-in did not complete, and offers to try again', async ({
+    page,
+    state,
+    appLocale,
+    words,
+  }) => {
+    await speak(page, state, appLocale);
+    await page.goto(
+      `${state.surfaces.site}/auth/callback?error=access_denied&error_description=${encodeURIComponent('Refused by a functional case')}`,
+    );
+
+    await expect(page.getByText('Refused by a functional case')).toBeVisible();
+    await expect(page.getByRole('button', { name: words.tryAgain })).toBeVisible();
+  });
+});
+
+test.describe('the pages of an account', () => {
+  test('[page:/] lists the notebooks of the account, and says which environment and version this is', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+
+    await expect(app.getByRole('heading', { name: words.openNotebook })).toBeVisible();
+    const card = app.locator('article.notebook-card', { hasText: notebook.name });
+    await expect(card).toBeVisible();
+    // The card is drawn with its graph, which is decoration and says so (#198).
+    await expect(card.locator('svg.card-graph')).toHaveAttribute('aria-hidden', 'true');
+
+    /**
+     * The notebooks by name in the reader's language, and the space of the
+     * subscription where the four counts about links used to be (#198).
+     */
+    const names = await app.locator('article.notebook-card h2').allTextContents();
+    const collator = new Intl.Collator(words.locale, { sensitivity: 'base', numeric: true });
+    expect(names).toEqual([...names].sort((a, b) => collator.compare(a, b)));
+    await expect(app.getByRole('heading', { name: words.space })).toBeVisible();
+    await expect(app.locator('.home-counts')).toBeVisible();
+    await expect(app).toHaveTitle(`[${state.environment}] MemorySmith`);
+    await expect(app.locator('.environment-banner')).toContainText(
+      state.version ? `Staging · ${state.version}` : 'Staging',
+    );
+
+    /**
+     * And the window holds the whole shell: the banner is a ROW of it, not
+     * something fixed over the page with a padding on the body to make room —
+     * which is a document taller than the window, scrolling the layout and no
+     * content at all (#158). What scrolls is what has content: the sidebar of a
+     * notebook, and the middle.
+     */
+    const scrolls = await app.evaluate(() => {
+      // This suite is typed for Node, so the document is named rather than
+      // assumed: what runs here runs in the browser.
+      const page = globalThis as unknown as {
+        document: { documentElement: { scrollHeight: number; clientHeight: number } };
+      };
+      const root = page.document.documentElement;
+      return root.scrollHeight > root.clientHeight + 1;
+    });
+    expect(scrolls, 'the document scrolls, and nothing of it needs to').toBe(false);
+    if (state.version) {
+      await app.locator('button.user-menu-trigger').click();
+      await expect(app.locator('p.user-menu-version')).toHaveText(
+        `${words.version} ${state.version}`,
+      );
+    }
+  });
+
+  test('ends the row of notebooks on the margins of Home, on a computer and on a phone (#212, #213)', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    const edges = async (selector: string) => {
+      const box = await app.locator(selector).first().boundingBox();
+      expect(box, selector).not.toBeNull();
+      return { left: box!.x, right: box!.x + box!.width };
+    };
+
+    // A computer: the row is cut on the right margin, with the rule of its title.
+    await app.setViewportSize({ width: 1280, height: 800 });
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('article.notebook-card', { hasText: notebook.name })).toBeVisible();
+    await expect(app.getByRole('heading', { name: words.openNotebook })).toBeVisible();
+    const head = await edges('.carousel-head');
+    const row = await edges('.notebook-grid');
+    expect(Math.abs(row.right - head.right)).toBeLessThanOrEqual(1);
+
+    // A phone: the first card rests on the left margin, where the title starts.
+    await app.setViewportSize({ width: 390, height: 800 });
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('article.notebook-card').first()).toBeVisible();
+    const title = await edges('.carousel-head');
+    const first = await edges('article.notebook-card');
+    expect(Math.abs(first.left - title.left)).toBeLessThanOrEqual(1);
+  });
+
+  test('opens the user menu as a menu: arrows move, the theme changes at once, Esc closes it (#201)', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+    const trigger = app.locator('button.user-menu-trigger');
+    await trigger.click();
+    const menu = app.getByRole('menu', { name: words.accountMenu });
+    await expect(menu).toBeVisible();
+
+    // Opened by a click, no item wears the ring of a keyboard; the first arrow
+    // key takes the focus to the first item, and the next one moves on (#204).
+    const first = menu.getByRole('menuitemradio').first();
+    await expect(first).not.toBeFocused();
+    await app.keyboard.press('ArrowDown');
+    await expect(first).toBeFocused();
+    await app.keyboard.press('ArrowDown');
+    await expect(first).not.toBeFocused();
+
+    // What is chosen is filled; choosing takes effect with nothing to save.
+    const dark = menu.getByRole('menuitemradio', { name: words.themeDark });
+    await dark.click();
+    await expect(dark).toHaveAttribute('aria-checked', 'true');
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await menu.getByRole('menuitemradio', { name: words.themeLight }).click();
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await app.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test('exports a notebook from its card, and its owner deletes it there after saying so (#199)', async ({
+    app,
+    owner,
+    state,
+    words,
+  }) => {
+    const name = `Delete ${randomBytes(4).toString('hex')}`;
+    const { notebookId } = await owner.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+      name,
+      description: 'A notebook a web case deletes.',
+    });
+    await app.goto(`${state.surfaces.site}/`);
+    const card = app.locator('article.notebook-card', { hasText: name });
+    const more = card.getByRole('button', { name: words.moreActions });
+
+    // Export lands in the dialog with this notebook already chosen.
+    await more.click();
+    await app.getByRole('menuitem', { name: words.exportNotebook }).click();
+    await expect(
+      app.locator('.transfer-dialog').getByLabel(words.notebookField, { exact: true }),
+    ).toHaveValue(notebookId);
+    await app.keyboard.press('Escape');
+
+    // Deleting asks on the card, and keeping it puts the card back as it was.
+    await more.click();
+    await app.getByRole('menuitem', { name: words.deleteNotebook }).click();
+    await expect(card.getByRole('heading', { name: new RegExp(name) })).toBeVisible();
+    await card.getByRole('button', { name: words.keep }).click();
+    await expect(card.getByRole('button', { name: words.moreActions })).toBeVisible();
+
+    await more.click();
+    await app.getByRole('menuitem', { name: words.deleteNotebook }).click();
+    await card.getByRole('button', { name: words.deleteForGood }).click();
+    await expect(app.locator('article.notebook-card', { hasText: name })).toHaveCount(0);
+    const gone = await owner.call('GET', `/knowledge/notebooks/${notebookId}`);
+    expect(gone.status).toBe(404);
+  });
+
+  test('[page:/about] says what the product is, and where an agent is pointed at it', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+
+    // From the user menu, which is where it lives once it has opened by
+    // itself: the fixture account has been here before (#167).
+    await app.locator('button.user-menu-trigger').click();
+    await app.getByRole('menuitem', { name: words.aboutMenu, exact: true }).click();
+    await app.waitForURL(`${state.surfaces.site}/about`);
+
+    await expect(app.getByRole('heading', { name: words.aboutHeading })).toBeVisible();
+    await expect(app.getByRole('heading', { name: words.aboutConnector })).toBeVisible();
+    // The address of THIS environment, published by its own configuration:
+    // a page that shows the wrong one sends every agent somewhere else.
+    // The endpoint, not the host: a client pointed at the host finds no server (#180).
+    await expect(app.locator('.about-connector code')).toHaveText(`${state.surfaces.mcp}/mcp`);
+
+    // One client at a time: the steps of the other are a tab away (#216).
+    const panel = app.locator('#about-clients-panel');
+    await expect(panel.locator('li')).toHaveCount(5);
+    const first = await panel.locator('li').first().textContent();
+    await app.locator('#about-clients-tab-chatgpt').click();
+    await expect(app.locator('#about-clients-tab-chatgpt')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(panel.locator('li').first()).not.toHaveText(first ?? '');
+
+    // What sending a file through an assistant needs, and the host its parts
+    // go to, the one a client that allows hosts one by one is asked for (#244).
+    await expect(app.locator('.about-uploads code')).toHaveText(
+      `uploads.${new URL(state.surfaces.site).host}`,
+    );
+    await expect(app.locator('#about-files-panel li')).toHaveCount(3);
+    // And the foot says which version this is, beside the way in.
+    if (state.version) {
+      await expect(app.locator('.about-version')).toContainText(state.version);
+    }
+  });
+
+  test('[page:/profile] [page:/profile/password] draws the initials nobody is asked for, and asks for the current password before changing it', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/`);
+    await app.locator('button.user-menu-trigger').click();
+    await app.getByRole('menuitem', { name: words.profileMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile`);
+
+    // The e-mail is shown and cannot be typed: changing it is another
+    // delivery with another rule (RN-ACC-021).
+    const email = app.locator('.field input[type="email"]');
+    await expect(email).toHaveValue(state.accounts.owner.email);
+    await expect(email).toBeDisabled();
+
+    /**
+     * The source that asks nothing of anybody: choosing it draws two letters
+     * HERE, and no request leaves for them. Which is the whole point of the
+     * option, so the case proves the drawing and not the label.
+     */
+    await app.getByText(words.initials, { exact: true }).click();
+    await expect(app.locator('.profile-face .avatar-initials')).toBeVisible();
+
+    await app.getByRole('link', { name: words.passwordMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile/password`);
+    // Drawn as the sign-in screen: the card and the lockup of the managed
+    // login, outside the frame of the application (#214).
+    await expect(app.locator('.password-card img.password-logo')).toBeVisible();
+    await expect(app.locator('button.user-menu-trigger')).toHaveCount(0);
+    // It says what it will do to the other sessions BEFORE it happens.
+    await expect(app.getByText(words.endsOtherSessions)).toBeVisible();
+    // And giving up is free: nothing about the account was touched.
+    await app.getByRole('button', { name: words.cancel }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile`);
+  });
+
+  test('gives up a change of password back on the page it was asked from', async ({
+    app,
+    state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/transfers`);
+    await app.locator('button.user-menu-trigger').click();
+    await app.getByRole('menuitem', { name: words.passwordMenu }).click();
+    await app.waitForURL(`${state.surfaces.site}/profile/password`);
+    await app.getByRole('button', { name: words.cancel }).click();
+    await app.waitForURL(`${state.surfaces.site}/transfers`);
+  });
+
+  test('[page:/notebooks/:notebookId] opens a notebook on its context: the trail and its three parts', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+
+    // The trail names the page and no heading repeats it (#225).
+    const trail = app.locator('.notebook-bar .notebook-breadcrumb');
+    await expect(trail.locator('.crumb.is-notebook')).toHaveText(notebook.name);
+    await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
+    await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
+    // Three parts of the same weight, each a way into a page of its own (#227).
+    const cards = app.locator('a.context-card');
+    await expect(cards).toHaveCount(3);
+    await expect(cards.filter({ hasText: words.guidance })).toBeVisible();
+    await expect(cards.filter({ hasText: words.folders })).toBeVisible();
+    await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
+  });
+
+  test('[page:/notebooks/:notebookId] comes back to the note last read every time the notebook is entered, and answers its context from inside', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+    const last = app.locator('.notebook-bar .notebook-breadcrumb .crumb.is-last');
+    await expect(last).toHaveText(words.context);
+
+    await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
+    await app.locator('a.note-row', { hasText: 'Checklist' }).click();
+    // The trail of a note ends at its folder, so the address says which it is.
+    const checklist = new RegExp(`/notes/${notebook.noteId}$`, 'i');
+    await expect(app).toHaveURL(checklist);
+
+    // Out to Home and back in, inside the application: the defect this guards
+    // resumed only on the first arrival of the page session, and a notebook is
+    // shared, accepted and answered from Home, so every return landed on the
+    // context.
+    for (let round = 0; round < 2; round++) {
+      await app.locator('aside#notebook-sidebar a.back-link').click();
+      await expect(app).toHaveURL(`${state.surfaces.site}/`);
+      await app
+        .locator('article.notebook-card', { hasText: notebook.name })
+        .locator('a.notebook-open')
+        .click();
+      await expect(app).toHaveURL(checklist);
+    }
+
+    // From inside, the name of the notebook is a request for its context.
+    await app.locator('.notebook-bar .notebook-breadcrumb .crumb.is-notebook').click();
+    await expect(last).toHaveText(words.context);
+  });
+
+  test('[page:/notebooks/:notebookId/folders] lists the folders of a notebook with what each keeps, under the Context', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page('/folders'));
+
+    const trail = app.locator('.notebook-bar .notebook-breadcrumb');
+    await expect(trail.getByRole('link', { name: words.context })).toBeVisible();
+    await expect(trail.locator('.crumb.is-last')).toHaveText(words.folders);
+    const row = app.locator('a.folder-row', { hasText: 'Findings' });
+    await expect(row).toBeVisible();
+    await expect(app).toHaveTitle(
+      `[${state.environment}] ${words.folders} · ${notebook.name} · MemorySmith`,
+    );
+
+    // The whole row opens the folder.
+    await row.click();
+    await expect(app).toHaveURL(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
+  });
+
+  test('closes the results of the search with Esc wherever the focus went (#192)', async ({
+    app,
+    notebook,
+  }) => {
+    await app.goto(notebook.page());
+
+    const box = app.locator('.search-box input[type="search"]');
+    await box.fill('Checklist');
+    const results = app.locator('.search-results');
+    await expect(results).toBeVisible();
+
+    // The focus leaves the box, which is where the only handler used to be.
+    await app.locator('aside#notebook-sidebar .sidebar-notebook').click();
+    // A click outside puts the list away and keeps the query (#232); the
+    // field brings it back.
+    await expect(results).toBeHidden();
+    await expect(box).toHaveValue('Checklist');
+    await box.focus();
+    await expect(results).toBeVisible();
+    await app.locator('aside#notebook-sidebar .back-link').focus();
+    await app.keyboard.press('Escape');
+
+    await expect(results).toBeHidden();
+    await expect(box).toHaveValue('');
+  });
+
+  test('[page:/notebooks/:notebookId/guidance] reads the Guidance of a notebook, rendered', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page('/guidance'));
+
+    await expect(app.locator('article.content-pane .markdown[data-theme]')).toContainText(
+      'Write one finding per note',
+    );
+    await expect(app).toHaveTitle(
+      `[${state.environment}] ${words.guidance} · ${notebook.name} · MemorySmith`,
+    );
+  });
+
+  test('writes the Guidance in place, and a Template a folder did not have (#301)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const typeAtEnd = async (scope: ReturnType<Page['locator']>, text: string) => {
+      const editor = scope.locator('.markdown-editor .cm-content');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await app.keyboard.press('Control+End');
+      await app.keyboard.type(text, { delay: 20 });
+    };
+
+    await app.goto(notebook.page('/guidance'));
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    await typeAtEnd(app.locator('article.content-pane'), '\n\nOne more rule, typed on the page.');
+    await expect
+      .poll(
+        async () =>
+          (await owner.ok<{ guidance: { content: string } | null }>('GET', path)).guidance
+            ?.content ?? '',
+        { timeout: 20_000 },
+      )
+      .toContain('One more rule, typed on the page.');
+
+    // A folder with no Template is offered an empty one, which the first save creates.
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: `No Template ${Date.now()}`,
+      description: 'A folder for the case',
+    });
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    const card = app.locator('details.template-card');
+    await card.locator('summary').click();
+    await card.getByRole('button', { name: words.editNote, exact: true }).click();
+    await typeAtEnd(card, '## Context\n\nWhat led here.');
+    await expect
+      .poll(
+        async () =>
+          (
+            await owner.ok<{ content: string | null }>(
+              'GET',
+              `${path}/folders/${folderId}/template`,
+            )
+          ).content ?? '',
+        { timeout: 20_000 },
+      )
+      .toContain('What led here.');
+    // The editor stays open through the save that created the Template.
+    await expect(card.locator('.markdown-editor .cm-content')).toBeVisible();
+  });
+
+  test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, opens one and deletes it', async ({
+    app,
+    notebook,
+    words,
+  }) => {
+    await app.goto(notebook.page('/templates'));
+
+    const box = app.locator('details.template-card', { hasText: 'Findings' });
+    await box.locator('summary').click();
+    await expect(box.getByRole('heading', { name: 'Verification' })).toBeVisible();
+
+    // The Template is an object of its own and is deleted on its own: the
+    // card goes and the folder stays (RN-KNW-045). It asks first, in the page,
+    // because what a person needs in order to answer is what survives; and
+    // its button says what it deletes (#230).
+    await box.getByRole('button', { name: words.deleteTemplate, exact: true }).click();
+    await box.getByRole('button', { name: words.deleteSlotForGood }).click();
+    await expect(app.locator('details.template-card', { hasText: 'Findings' })).toHaveCount(0);
+
+    await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+  });
+
+  test('[page:/notebooks/:notebookId/graph] draws the graph of a notebook from its projection', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    /**
+     * The panel holds what the frontmatter declares, and a notebook that
+     * declares nothing offers no panel at all. So the case writes a note with
+     * a property first, and opens the graph once the projection has it.
+     */
+    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
+    const tagged = await api.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: `---\nname: Graph ${Date.now()}\nstatus: draft\n---\n\nA note with a property.\n`,
+      },
+    );
+    await eventually(
+      'the note with a property in the graph',
+      () =>
+        api.ok<{ nodes: { id?: string; noteId?: string }[] }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/graph`,
+        ),
+      (graph) => JSON.stringify(graph).includes(tagged.noteId),
+    );
+
+    const graph = app.waitForResponse((response) =>
+      new URL(response.url()).pathname.endsWith(
+        `/discovery/notebooks/${notebook.notebookId}/graph`,
+      ),
+    );
+    await app.goto(notebook.page('/graph'));
+
+    expect((await graph).status()).toBe(200);
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(words.graph);
+    await expect(app.locator('.graph-canvas-wrap canvas')).toBeAttached();
+
+    // The panel opens behind the gear, and only when it is asked for (#220).
+    const gear = app.getByRole('button', { name: words.openGraphControls });
+    await expect(gear).toBeVisible();
+    await expect(app.getByRole('button', { name: words.closeGraphControls })).toHaveCount(0);
+    await gear.click();
+    await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
+  });
+
+  test('[page:/notebooks/:notebookId/dashboards] draws a dashboard an agent built over a table, under its period (#368)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+    appLocale,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `contas-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          data: { type: 'string', format: 'date' },
+          categoria: { type: 'string' },
+          valor: { type: 'number' },
+          status: { type: 'string', enum: ['aberta', 'paga'] },
+          inicio: { type: 'string', format: 'date' },
+          fim: { type: 'string', format: 'date' },
+        },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        {
+          data: '2026-10-01',
+          categoria: 'mercado',
+          valor: 1250.75,
+          status: 'paga',
+          inicio: '2026-10-01',
+          fim: '2026-10-10',
+        },
+        {
+          data: '2026-10-12',
+          categoria: 'casa',
+          valor: 300,
+          status: 'aberta',
+          inicio: '2026-10-08',
+          fim: '2026-10-25',
+        },
+        {
+          data: '2026-09-20',
+          categoria: 'saúde',
+          valor: 80,
+          status: 'aberta',
+          inicio: '2026-09-20',
+          fim: '2026-10-02',
+        },
+      ],
+    });
+    const name = `Contas ${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        layout: 'header-two-columns',
+        filters: [{ id: 'mes', type: 'period', column: 'data', label: 'Mês', default: '2026-10' }],
+        components: [
+          {
+            id: 'total',
+            type: 'kpi',
+            slot: 'header',
+            title: 'Total',
+            source: { table, measure: 'sum(valor)' },
+          },
+          {
+            id: 'pizza',
+            type: 'donut',
+            slot: 'left',
+            title: 'Categorias',
+            source: { table, group: 'categoria', measures: ['sum(valor)'] },
+          },
+          {
+            id: 'quadro',
+            type: 'kanban',
+            slot: 'right',
+            title: 'Quadro',
+            source: { table },
+            options: { lane: 'status', card: 'categoria' },
+          },
+          {
+            id: 'gantt',
+            type: 'gantt',
+            slot: 'footer',
+            title: 'Prazos',
+            source: { table },
+            options: { title: 'categoria', start: 'inicio', end: 'fim' },
+          },
+        ],
+      },
+    });
+
+    await app.goto(notebook.page('/tables'));
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    await expect(nav.filter({ hasText: words.dashboards })).toBeVisible();
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
+    expect(labels.indexOf(words.dashboards)).toBe(labels.indexOf(words.tables) + 1);
+    await nav.filter({ hasText: words.dashboards }).click();
+    await expect(app).toHaveURL(notebook.page('/dashboards'));
+
+    await app.locator('.table-row', { hasText: name }).click();
+    // October holds two of the three rows: the KPI says their sum in the reader's language.
+    await expect(app.locator('.dash-kpi-value')).toHaveText(
+      appLocale === 'pt_BR' ? '1.550,75' : '1,550.75',
+    );
+    await expect(app.locator('.dash-chart svg')).toBeVisible();
+    await expect(app.locator('.dash-lane')).toHaveCount(2);
+    await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
+    await app.screenshot({
+      path: test.info().outputPath(`dashboard-${appLocale}.png`),
+      fullPage: true,
+    });
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.screenshot({
+      path: test.info().outputPath(`dashboard-${appLocale}-phone.png`),
+      fullPage: true,
+    });
+  });
+
+  test('[page:/notebooks/:notebookId/tables] lists the tables of a notebook, opens one on its rows and its schema, and deletes it (#366)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+    appLocale,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `gastos-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name,
+      description: 'Os gastos da casa',
+      schema: {
+        type: 'object',
+        properties: {
+          data: { type: 'string', format: 'date', description: 'Quando foi pago' },
+          valor: { type: 'number' },
+        },
+        required: ['data'],
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(name)}/rows`, {
+      rows: [
+        { data: '2026-10-29', valor: 1250.75 },
+        { data: '2026-10-01', valor: 30 },
+      ],
+    });
+
+    // A note shows the table through a block, paged and in the reader's language.
+    const shows = `Mostra ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${shows}\n---\n\n\`\`\`table\ntable: ${name}\nsort: data desc\ntotal: valor\n\`\`\`\n`,
+    });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(
+      app
+        .locator('main, article')
+        .getByText(appLocale === 'pt_BR' ? '1.250,75' : '1,250.75')
+        .first(),
+    ).toBeVisible();
+    await expect(app.getByText(appLocale === 'pt_BR' ? '1.280,75' : '1,280.75')).toBeVisible();
+    await app.screenshot({
+      path: test.info().outputPath(`table-block-${appLocale}.png`),
+      fullPage: true,
+    });
+
+    await app.goto(notebook.page('/attachments'));
+    // The entry sits between the attachments and the graph in the navigation.
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    await expect(nav.filter({ hasText: words.tables })).toBeVisible();
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
+    expect(labels.indexOf(words.tables)).toBe(labels.indexOf(words.attachments) + 1);
+    expect(labels.indexOf(words.dashboards)).toBe(labels.indexOf(words.tables) + 1);
+    await nav.filter({ hasText: words.tables }).click();
+    await expect(app).toHaveURL(notebook.page('/tables'));
+
+    await app.locator('.table-row', { hasText: name }).click();
+    const grid = app.locator('table.data-table');
+    // A value in the reader's language, and a sort by clicking the column.
+    await expect(grid).toContainText(appLocale === 'pt_BR' ? '1.250,75' : '1,250.75');
+    await grid.getByRole('button', { name: 'valor' }).click();
+    await expect(grid.locator('tbody tr').first()).not.toContainText(
+      appLocale === 'pt_BR' ? '1.250,75' : '1,250.75',
+    );
+    await app.getByRole('tab', { name: words.tableSchema }).click();
+    await expect(app.locator('table.schema-table')).toContainText('Quando foi pago');
+    await app.screenshot({
+      path: test.info().outputPath(`tables-${appLocale}.png`),
+      fullPage: true,
+    });
+
+    await app.getByRole('button', { name: words.deleteTable }).click();
+    const dialog = app.getByRole('dialog');
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: words.deleteForGood }).click();
+    await expect(app.locator('.table-row', { hasText: name })).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const name = `curva-${randomBytes(3).toString('hex')}.png`;
+    await owner.ok('POST', `${path}/files`, {
+      name,
+      description: 'A curva do relatório',
+      mimeType: 'image/png',
+      contentBase64: png,
+    });
+    const shows = `Mostra ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${shows}\n---\n\n![Curva|50%](../assets/${name})\n`,
+    });
+    await eventually(
+      'the note showing the file',
+      () =>
+        owner.ok<{ attachments: Array<{ name: string; notes: Array<{ noteId: string }> }> }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/attachments`,
+        ),
+      (found) => found.attachments.some((each) => each.name === name && each.notes.length === 1),
+    );
+
+    await app.goto(notebook.page('/graph'));
+    // The entry sits above the tables and the graph in the navigation (#366), and opens the page.
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    await expect(nav.filter({ hasText: words.graph })).toBeVisible();
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
+    expect(labels.indexOf(words.attachments)).toBe(labels.indexOf(words.tables) - 1);
+    await nav.filter({ hasText: words.attachments }).click();
+    await expect(app).toHaveURL(notebook.page('/attachments'));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(words.attachments);
+
+    const row = app.locator('.attachment-row', { hasText: name });
+    await expect(row).toContainText('A curva do relatório');
+    await expect(row.getByRole('link', { name: `${words.download}: ${name}` })).toHaveAttribute(
+      'href',
+      /^https:\/\//,
+    );
+    // An image is previewed, and opens larger.
+    await expect(row.locator('.attachment-thumb img')).toBeVisible();
+    await row.locator('button.attachment-thumb').click();
+    const dialog = app.getByRole('dialog', { name });
+    await expect(dialog.locator('img.attachment-zoom')).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+
+    // The note that shows it is a link to the note.
+    await row.getByRole('link', { name: shows }).click();
+    await expect(app).toHaveURL(notebook.page(`/notes/${noteId.toLowerCase()}`));
+  });
+
+  test('opens the tree on the top-level folders, with no Root above them (#196)', async ({
+    app,
+    notebook,
+  }) => {
+    await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
+
+    const tree = app.locator('aside#notebook-sidebar ul.tree-root');
+    await expect(
+      tree.locator(':scope > li > .tree-folder a', { hasText: 'Findings' }),
+    ).toBeVisible();
+    // The trail starts at the notebook and goes straight to the folder.
+    const crumbs = app.locator('.notebook-breadcrumb a');
+    await expect(crumbs.first()).toHaveText(notebook.name);
+  });
+
+  test('widens the sidebar with the window and names every row of the tree whole (#274)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    let parentFolderId: string | null = null;
+    const folders: string[] = [];
+    for (const name of ['Decisions of the board', 'Year of the review', 'Third quarter']) {
+      const { folderId }: { folderId: string } = await owner.ok<{ folderId: string }>(
+        'POST',
+        `${path}/folders`,
+        { name, description: 'Where the case keeps a long name.', parentFolderId },
+      );
+      folders.push(folderId);
+      parentFolderId = folderId;
+    }
+    const long = 'Resolution on the renewal of the maintenance contract of the archive';
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: parentFolderId,
+      content: `---\nname: ${long}\n---\n\nWhat was resolved.\n`,
+    });
+
+    for (const width of [1280, 1440, 1920]) {
+      await app.setViewportSize({ width, height: 900 });
+      if (width === 1280) await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      const row = app.locator('aside#notebook-sidebar a.tree-note', { hasText: long });
+      // The structure reads again until it shows the note.
+      await expect(row).toBeVisible({ timeout: 60_000 });
+      // Pointing at a row reads its name whole, wherever the column cuts it.
+      await expect(row).toHaveAttribute('title', long);
+      // A name the column cuts is cut by an ellipsis: the row is a block, the
+      // only box whose text draws one, and it overflows its own width.
+      await expect(row).toHaveCSS('display', 'block');
+      await expect(row).toHaveCSS('text-overflow', 'ellipsis');
+      await expect(
+        app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Third quarter' }),
+      ).toHaveAttribute('title', /^Third quarter\n/);
+
+      // Measured once the note is drawn: a read of the page in between
+      // redraws the pane, and a box measured then is no box at all.
+      await expect(app.locator('article.content-pane .markdown[data-theme]')).toBeVisible();
+      const sidebar = await app.locator('aside#notebook-sidebar').boundingBox();
+      const pane = await app.locator('article.content-pane').first().boundingBox();
+      // Wider than it was on a window that has the room, and never at the
+      // cost of the reading column, which keeps its 780 px.
+      if (width >= 1440) expect(sidebar?.width ?? 0).toBeGreaterThan(272);
+      expect(pane?.width ?? 0).toBeGreaterThanOrEqual(779);
+      expect((pane?.x ?? 0) + 1).toBeGreaterThanOrEqual((sidebar?.x ?? 0) + (sidebar?.width ?? 0));
+      await testInfo.attach(`sidebar-${width}.png`, {
+        body: await app.screenshot(),
+        contentType: 'image/png',
+      });
+    }
+  });
+
+  test('[page:/notebooks/:notebookId/folders/:folderId] lists the notes of a folder', async ({
+    app,
+    notebook,
+    words,
+  }) => {
+    await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
+
+    // The folder is named by the trail alone (#225, #231).
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
+    await expect(app.getByRole('heading', { name: words.notesInFolder })).toBeVisible();
+    await expect(app.locator('a.note-row', { hasText: 'Checklist' })).toBeVisible();
+  });
+
+  test('[page:/notebooks/:notebookId/folders/:folderId] orders the notes of a folder by name, chosen beside their heading (#262)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: 'Minutes',
+      description: 'One note per meeting, looked up by its name.',
+    });
+    for (const name of ['Ata 10', 'Ata 2', 'Ata 1']) {
+      await owner.ok('POST', `${path}/notes`, {
+        folderId,
+        content: `---\nname: ${name}\n---\n\nWhat was decided.\n`,
+      });
+    }
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    const rows = app.locator('.folder-page a.note-row');
+    // By hand, the order they were written in; the structure reads again until it shows them.
+    await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1'], { timeout: 60_000 });
+
+    const group = app.locator('.folder-note-order').getByRole('radiogroup');
+    const order = group.getByRole('radio');
+    // What each order does is the description of the group, heard without
+    // opening the (i) (#273).
+    await expect(group).toHaveAccessibleDescription(words.noteOrderHintManual);
+    await order.nth(1).click();
+    await expect(order.nth(1)).toHaveAttribute('aria-checked', 'true');
+    await expect(rows).toHaveText(['Ata 1', 'Ata 2', 'Ata 10']);
+    await expect(group).toHaveAccessibleDescription(words.noteOrderHintAlphabetical);
+
+    // The (i) opens it on a click, and the chosen label wears the colour of
+    // its button rather than the grey of the count beside the heading (#273).
+    const hint = app.getByRole('button', { name: words.noteOrderHint });
+    await hint.click();
+    await expect(hint).toHaveAttribute('aria-expanded', 'true');
+    await expect(app.locator('.folder-note-order').getByRole('note')).toHaveText(
+      words.noteOrderHintAlphabetical,
+    );
+    const colours = await order.nth(1).evaluate((button) => {
+      const scope = globalThis as unknown as {
+        getComputedStyle(element: object): { color: string };
+      };
+      const label = (button as unknown as { querySelector(s: string): object }).querySelector(
+        '.segmented-label',
+      );
+      return {
+        button: scope.getComputedStyle(button).color,
+        label: scope.getComputedStyle(label).color,
+      };
+    });
+    expect(colours.label).toBe(colours.button);
+    await testInfo.attach('order-hint.png', {
+      body: await app.locator('.folder-group', { has: group }).screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.folder-note-order').getByRole('note')).toBeHidden();
+    await expect(hint).toHaveAttribute('aria-expanded', 'false');
+    // And the tree beside the page agrees.
+    await expect(
+      app.locator('aside#notebook-sidebar .tree-folder', { hasText: 'Minutes' }).first(),
+    ).toBeVisible();
+    await order.nth(0).click();
+    await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1']);
+  });
+
+  test('[page:/notebooks/:notebookId/folders/:folderId] renames a folder and changes its description from its bar, and refuses a name a sibling holds (#278)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const suffix = randomBytes(3).toString('hex');
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: `Drafts ${suffix}`,
+      description: 'Whatever is still being written.',
+    });
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
+      `Drafts ${suffix}`,
+      { timeout: 60_000 },
+    );
+
+    await app.getByRole('button', { name: words.folderEdit, exact: true }).click();
+    const dialog = app.getByRole('dialog', { name: words.folderEditHeading });
+    await dialog.getByLabel(words.folderEditName, { exact: true }).fill(`Proposals ${suffix}`);
+    await dialog
+      .getByLabel(words.folderEditDescription, { exact: true })
+      .fill('One proposal per note, until it is decided.');
+    await expect(dialog.getByText('43/500')).toBeVisible();
+    await testInfo.attach('folder-edit-dialog.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await dialog.getByRole('button', { name: words.folderEditSave, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The trail, the page and the tree show it at once, and the API agrees.
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
+      `Proposals ${suffix}`,
+    );
+    await expect(app.locator('.folder-description')).toHaveText(
+      'One proposal per note, until it is decided.',
+    );
+    await expect(
+      app.locator('aside#notebook-sidebar .tree-folder a', { hasText: `Proposals ${suffix}` }),
+    ).toBeVisible();
+
+    // Findings sits at the same level, so its name is refused in the dialog.
+    await app.getByRole('button', { name: words.folderEdit, exact: true }).click();
+    const refusing = app.getByRole('dialog', { name: words.folderEditHeading });
+    await refusing.getByLabel(words.folderEditName, { exact: true }).fill('Findings');
+    await refusing.getByRole('button', { name: words.folderEditSave, exact: true }).click();
+    await expect(refusing.getByRole('alert')).toContainText(words.folderEditNameTaken);
+    await testInfo.attach('folder-edit-refused.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    // Closed before the window narrows, or it would come back as a sheet. The
+    // native dialog leaves the screen on Escape and tells the page a moment
+    // later; narrowing in between swaps it for a sheet that never heard it
+    // closed, so the case waits for the element to leave the page itself.
+    await expect(refusing).toHaveCount(0);
+    await expect(app.locator('dialog.move-dialog')).toHaveCount(0);
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(
+      `Proposals ${suffix}`,
+    );
+
+    // On a phone it rises as a sheet from the foot of the screen.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.locator('.notebook-bar button.bar-button').first().click();
+    const sheet = app.getByRole('dialog', { name: words.folderEditHeading });
+    await expect(sheet.getByLabel(words.folderEditDescription, { exact: true })).toBeVisible();
+    await testInfo.attach('folder-edit-sheet-phone.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] draws a note through the published renderer, in light, dark and on a phone, and ticks a box inside a callout (#291)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const suffix = randomBytes(3).toString('hex');
+    await owner.ok('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Embedded ${suffix}\n---\n\nThe embedded text, drawn in place.\n`,
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: [
+        '---',
+        `name: Renderer ${suffix}`,
+        '---',
+        '',
+        `A claim with a footnote.[^1] And [[Nobody wrote ${suffix}]].`,
+        '',
+        `![[Embedded ${suffix}]]`,
+        '',
+        '> [!note] Inside a callout',
+        '> - [ ] A box in a callout',
+        '',
+        '$$',
+        'E = mc^2',
+        '$$',
+        '',
+        '```mermaid',
+        'flowchart LR',
+        '  A --> B',
+        '```',
+        '',
+        '[^1]: The definition, after the embed.',
+        '',
+      ].join('\n'),
+    });
+
+    const look = async (name: string) => {
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      const note = app.locator('.content-pane .markdown[data-theme]').first();
+      await expect(note.locator('.embed')).toContainText('The embedded text, drawn in place.', {
+        timeout: 60_000,
+      });
+      await expect(
+        note.locator('.wikilink-pending', { hasText: `Nobody wrote ${suffix}` }),
+      ).toBeVisible();
+      await expect(note.locator('.katex').first()).toBeVisible();
+      await expect(note.locator('.mermaid-diagram svg')).toBeVisible({ timeout: 30_000 });
+      // The reference before the embed and the definition after it are one
+      // footnote, numbered once, at the end of the note.
+      await expect(note.locator('section.footnotes')).toContainText(
+        'The definition, after the embed.',
+      );
+      await testInfo.attach(name, {
+        body: await app.screenshot({ fullPage: true }),
+        contentType: 'image/png',
+      });
+      return note;
+    };
+
+    const note = await look('renderer-light.png');
+    await expect(note).toHaveAttribute('data-theme', 'light');
+
+    // The box inside the callout writes its own line back, and nothing else.
+    await note.locator('.callout li.task-item').getByRole('checkbox').check();
+    await expect(app.locator('.write-status')).toHaveAttribute('data-state', 'saved', {
+      timeout: 15_000,
+    });
+    const stored = await owner.ok<{ content: string }>('GET', `${path}/notes/${noteId}`);
+    expect(stored.content).toContain('> - [x] A box in a callout');
+    expect(stored.content).toContain('[^1]: The definition, after the embed.');
+
+    await app.addInitScript(() => {
+      localStorage.setItem(
+        'memorysmith.preferences',
+        JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+      );
+    });
+    const dark = await look('renderer-dark.png');
+    await expect(dark).toHaveAttribute('data-theme', 'dark');
+
+    await app.setViewportSize({ width: 390, height: 844 });
+    await look('renderer-phone.png');
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] ticks two boxes whose writes chain, and shows them ticked on coming back', async ({
+    app,
+    notebook,
+    owner,
+  }) => {
+    await app.goto(notebook.page(`/notes/${notebook.noteId.toLowerCase()}`));
+    await expect(app.getByRole('heading', { level: 1, name: 'Checklist' })).toBeVisible();
+
+    const status = app.locator('.write-status');
+    const box = (item: string) =>
+      app.locator('li.task-item', { hasText: item }).getByRole('checkbox');
+
+    // The defect this guards: the second write of a checklist conflicted with
+    // the first, because the page kept the revision it loaded with.
+    await box('first').check();
+    await expect(status).toHaveAttribute('data-state', 'saved', { timeout: 15_000 });
+    await box('second').check();
+    await expect(status).toHaveAttribute('data-state', 'saved', { timeout: 15_000 });
+
+    const stored = await owner.ok<{ content: string }>(
+      'GET',
+      `/knowledge/notebooks/${notebook.notebookId}/notes/${notebook.noteId}`,
+    );
+    expect(stored.content).toContain('- [x] first');
+    expect(stored.content).toContain('- [x] second');
+
+    // And this one: coming back to a note inside the application showed the
+    // state from before its own write, from a cache nobody told to forget. It
+    // leaves through the folder: the title of the notebook resumes the note
+    // last read, which is this one, so it would never leave at all.
+    await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    await app.locator('a.note-row', { hasText: 'Checklist' }).click();
+    await expect(box('first')).toBeChecked();
+    await expect(box('second')).toBeChecked();
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] edits a note in place, saving as it goes, shows the session as one entry of the history, and lets a write it did not see be kept or overwritten (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    // Its own note: the cases of this run that read the fixture's note by its
+    // content would see this one's edits.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `In place ${randomBytes(3).toString('hex')}`;
+    // A wikilink that resolves, in a callout and in a table: the editor draws
+    // both in a React root of its own, outside the router of the page (#300).
+    const target = `${name} target`;
+    await owner.ok('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${target}\n---\n\nReached.\n`,
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${name}\nstatus: draft\n---\n\n> [!abstract] Who\n> A callout reaching [[${target}]].\n\n| a  | b |\n|---|:-:|\n| 1 | [[${target}]] |\n\nFirst take.\n`,
+    });
+    const crashes: string[] = [];
+    app.on('pageerror', (error) => crashes.push(error.message));
+    const stored = () =>
+      owner.ok<{ content: string; revision: { versionId: string } }>(
+        'GET',
+        `${path}/notes/${noteId}`,
+      );
+    const opened = await stored();
+
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    const toEdit = app.getByRole('button', { name: words.editNote, exact: true });
+    const toRead = app.getByRole('button', { name: words.readNote, exact: true });
+    const editor = app.locator('.markdown-editor .cm-content');
+    const save = app.locator('.edit-save');
+
+    // Opening the editor and leaving it writes nothing: a byte nobody touched
+    // is never rewritten (RN-KNW-028).
+    await toEdit.click();
+    await expect(editor).toBeVisible();
+    // Every block is drawn, the ones holding a resolved link included.
+    await expect(editor.locator('.callout')).toContainText('A callout reaching');
+    await expect(editor.locator('table')).toContainText(target);
+    expect(crashes).toEqual([]);
+    await toRead.click();
+    await expect(editor).toHaveCount(0);
+    expect(await stored()).toEqual(opened);
+
+    // Typing saves after a pause, a revision per pause and never per key.
+    await toEdit.click();
+    await editor.click();
+    await app.keyboard.press('ControlOrMeta+End');
+    await app.keyboard.type(' A sentence this case typed.');
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    await app.keyboard.type(' And a second pause.');
+    await expect
+      .poll(async () => (await stored()).content, { timeout: 15_000 })
+      // The end of the note is the empty line after its last line break.
+      .toContain('First take.\n A sentence this case typed. And a second pause.');
+    await testInfo.attach('editor.png', { body: await app.screenshot(), contentType: 'image/png' });
+    await toRead.click();
+    await expect(app.getByText('And a second pause.')).toBeVisible();
+    // The table keeps the spacing it was typed with: only the edited line changed.
+    expect((await stored()).content).toContain('| a  | b |\n|---|:-:|');
+
+    // The saves of the session are one entry of the history (RN-AUD-013).
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    const history = app.getByRole('dialog', { name: words.historyHeading });
+    await expect(history.locator('.history-session')).toHaveCount(1, { timeout: 15_000 });
+    await expect(history.locator('.history-session')).toContainText(words.editSession);
+    await app.keyboard.press('Escape');
+
+    /**
+     * A write the screen did not see, made while the editor is open: the next
+     * save is refused, and the person chooses — here, to save anyway, which
+     * writes on the revision that now exists and keeps theirs in the history.
+     */
+    await toEdit.click();
+    const before = await stored();
+    await owner.ok('PUT', `${path}/notes/${noteId}`, {
+      content: `${before.content}\nWritten around the interface.\n`,
+      baseRevision: before.revision.versionId,
+      message: 'A write the screen never saw',
+    });
+    await editor.click();
+    await app.keyboard.press('ControlOrMeta+End');
+    await app.keyboard.type(' And one more.');
+    await expect(save).toHaveAttribute('data-save', 'failed', { timeout: 15_000 });
+    // The choice opens by itself, without a click on the status: the person
+    // typing is told, and the note is held until they choose (#300).
+    const notice = app.getByRole('dialog', { name: words.conflict });
+    await expect(notice).toBeVisible();
+    await testInfo.attach('editor-conflict.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await notice.getByRole('button', { name: words.saveAnyway }).click();
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    const after = (await stored()).content;
+    expect(after).toContain('And one more.');
+    expect(after).not.toContain('Written around the interface.');
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    await expect(history.getByText('A write the screen never saw')).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] keeps the bar and the corner of a long note in view while it is read, on a computer and on a phone (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const lines = Array.from(
+      { length: 40 },
+      (_, i) => `Paragraph ${i}, long enough to fill a line of the note.`,
+    ).join('\n\n');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Long ${randomBytes(3).toString('hex')}\n---\n\n${lines}\n`,
+    });
+    const edit = app.getByRole('button', { name: words.editNote, exact: true });
+    const bar = app.locator('.notebook-bar').first();
+    for (const [width, height] of [
+      [1280, 800],
+      [390, 844],
+    ] as const) {
+      await app.setViewportSize({ width, height });
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      await expect(edit).toBeVisible();
+      // Read down the note, as a person does, far past its top.
+      await app.mouse.move(width - 40, height / 2);
+      for (let step = 0; step < 10; step++) await app.mouse.wheel(0, 300);
+      await expect(app.getByText('Paragraph 0,', { exact: false })).not.toBeInViewport();
+      // The bar stays at the top, and the corner of the note under it.
+      const barBox = await bar.boundingBox();
+      const editBox = await edit.boundingBox();
+      expect(barBox!.y).toBeGreaterThanOrEqual(0);
+      expect(editBox!.y).toBeGreaterThanOrEqual(barBox!.y + barBox!.height - 1);
+      expect(editBox!.y).toBeLessThan(barBox!.y + barBox!.height + 40);
+    }
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] keeps the line being typed where it is on the screen, across a save (#300)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    // A long note with blocks above the line typed: the editor draws each of
+    // them in a root of its own, and a block drawn again is empty for an
+    // instant, which shrank the note under the caret and scrolled the pane by
+    // hundreds of pixels on the first key and on the first after each save.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const filler = (word: string) =>
+      Array.from(
+        { length: 8 },
+        (_, i) => `${word} paragraph ${i}, long enough to fill a line of the note.`,
+      ).join('\n\n');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Steady ${randomBytes(3).toString('hex')}\nstatus: draft\n---\n\n${filler('Upper')}\n\n> [!note] A callout\n> Inside it.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n$$\nE = mc^2\n$$\n\nThe line typed here.\n\n${filler('Lower')}\n`,
+    });
+    await app.setViewportSize({ width: 1280, height: 800 });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    const editor = app.locator('.markdown-editor .cm-content');
+    await expect(editor).toBeVisible();
+
+    // The editor draws only the lines near the screen: the pane is scrolled by
+    // the wheel, as a person does, until the line is in the middle of it.
+    const line = editor.locator('.cm-line', { hasText: 'The line typed here.' });
+    await app.mouse.move(780, 400);
+    await expect(async () => {
+      const box = (await line.count()) ? await line.boundingBox() : null;
+      if (!box || box.y > 600) await app.mouse.wheel(0, 200);
+      else if (box.y < 300) await app.mouse.wheel(0, -100);
+      expect(box !== null && box.y >= 300 && box.y <= 600).toBe(true);
+    }).toPass({ intervals: [150], timeout: 30_000 });
+    await line.click();
+    await app.keyboard.press('End');
+    // Where the caret stands on the screen, which is what a person typing watches.
+    const caretY = () =>
+      app.evaluate(() => {
+        const page = globalThis as unknown as {
+          getSelection: () => {
+            getRangeAt: (index: number) => { getBoundingClientRect: () => { top: number } };
+          };
+        };
+        return Math.round(page.getSelection().getRangeAt(0).getBoundingClientRect().top);
+      });
+    const before = await caretY();
+
+    const save = app.locator('.edit-save');
+    await app.keyboard.type(' First', { delay: 50 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    await app.keyboard.type(' and after the save.', { delay: 50 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    expect(Math.abs((await caretY()) - before)).toBeLessThan(8);
+    expect(
+      (await owner.ok<{ content: string }>('GET', `${path}/notes/${noteId}`)).content,
+    ).toContain('The line typed here. First and after the save.');
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, with its properties on a page of their own, its tables inside the margins and either orientation (#258)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    test.setTimeout(300_000);
+    const long = 'anIdentifierWithNoPlaceToBreak_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJ';
+    const wide = [
+      '| Field | Kind | Example | Default | Owner | Since | Notes | Status |',
+      '| --- | --- | --- | --- | --- | --- | --- | --- |',
+      `| \`${long}\` | string | \`${long}\` | none | platform team | 0.10.0 | Read by every agent before it writes anything in the notebook | kept |`,
+    ].join('\n');
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content:
+          '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).\n\n' +
+          '> [!warning] Mind this\n> A callout keeps its colour.\n\n```ts\nconst answer = 42;\n```\n\n' +
+          `${wide}\n`,
+      },
+    );
+    // The reader chose the dark theme, and the dialog of the browser is
+    // counted rather than opened.
+    await app.addInitScript(() => {
+      localStorage.setItem(
+        'memorysmith.preferences',
+        JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+      );
+    });
+    await app.context().addInitScript(() => {
+      const scope = globalThis as unknown as { printed: number; print: () => void };
+      scope.printed = 0;
+      scope.print = () => {
+        scope.printed += 1;
+      };
+    });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    const opening = app.context().waitForEvent('page');
+    await app.getByRole('link', { name: words.printNote, exact: true }).click();
+    const paper = await opening;
+
+    // The note alone, in a tab of its own, which previews its pages and waits
+    // for the person to print.
+    await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
+    // The note as drawn, off screen, carries the choices; the preview, its pages.
+    const body = paper.locator('.print-source article[data-placement]');
+    const cover = paper.locator('.print-source article.print-cover');
+    const end = paper.locator('.print-source article.print-end');
+    const preview = paper.locator('.print-preview');
+    const pages = preview.locator('.pagedjs_page');
+    await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
+    await expect(preview).toHaveAttribute('data-ready', 'true');
+    await expect(paper).toHaveTitle('On paper');
+    const printed = () =>
+      paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
+    expect(await printed()).toBe(0);
+    await paper.getByRole('button', { name: words.printNote, exact: true }).click();
+    expect(await printed()).toBe(1);
+
+    // Light while it is open, and the choice of the reader is left as it was.
+    await expect(paper.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await paper.evaluate(() => localStorage.getItem('memorysmith.preferences'))).toContain(
+      '"dark"',
+    );
+
+    const groups = paper.getByRole('radiogroup');
+    const [properties, tables, orientation] = [groups.nth(0), groups.nth(1), groups.nth(2)];
+    const status = paper.locator('.print-source .metadata-property-value', { hasText: 'draft' });
+    // A choice lays the pages again; the preview says when they are laid.
+    const laid = async () => {
+      await expect(preview).toHaveAttribute('data-ready', 'true');
+      return pages.count();
+    };
+    // A table is measured on the note as drawn, at the width of the paper less
+    // its margins, which is the width a page gives it.
+    type Measured = { fits: boolean; size: string };
+    const measure = () =>
+      paper.evaluate((): Measured => {
+        type Box = { scrollWidth: number; parentElement: { clientWidth: number } | null };
+        const scope = globalThis as unknown as {
+          document: { querySelector(selector: string): object | null };
+          getComputedStyle(element: object): { fontSize: string };
+        };
+        const table = scope.document.querySelector('.print-source article[data-placement] table');
+        const box = table as Box | null;
+        return {
+          fits: box !== null && box.scrollWidth <= (box.parentElement?.clientWidth ?? 0) + 1,
+          size: table ? scope.getComputedStyle(table).fontSize : '',
+        };
+      });
+    // Each page of the preview is pictured, and the PDF is made in print media,
+    // which is the media it is laid out in.
+    const pdfOf = async (name: string) => {
+      const viewport = paper.viewportSize();
+      await paper.setViewportSize({ width: 1400, height: 1400 });
+      for (let index = 0; index < (await pages.count()); index++) {
+        await testInfo.attach(`${name}-${index + 1}.png`, {
+          body: await pages.nth(index).screenshot({
+            style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
+          }),
+          contentType: 'image/png',
+        });
+      }
+      if (viewport) await paper.setViewportSize(viewport);
+      await paper.emulateMedia({ media: 'print' });
+      const bytes = await paper.pdf({ preferCSSPageSize: true });
+      await paper.emulateMedia({ media: 'screen' });
+      await testInfo.attach(`${name}.pdf`, { body: bytes, contentType: 'application/pdf' });
+      const text = bytes.toString('latin1');
+      const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
+      return {
+        width: Number(box?.[1]),
+        height: Number(box?.[2]),
+        pages: (text.match(/\/Type\s*\/Page[^s]/g) ?? []).length,
+      };
+    };
+
+    // By default the properties take a cover of their own, opening with them
+    // and the name of the note below, and the text starts on the next page.
+    await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
+    // The drawn note is never seen, so it is read by its elements and not by
+    // the roles a reader would be given; the pages are what is seen.
+    await expect(cover.locator('h1')).toHaveText('On paper');
+    await expect(body.locator('h1')).toHaveCount(0);
+    expect(await laid()).toBe(2);
+    await expect(pages.nth(0)).toContainText('draft');
+    await expect(pages.nth(0)).toContainText('On paper');
+    await expect(pages.nth(0)).not.toContainText('A line with');
+    await expect(pages.nth(1)).toContainText('A line with');
+    // The page scrolls inside itself, so the banner of the environment keeps
+    // the last row of the window and never runs over a page.
+    expect(
+      await paper.evaluate(() => {
+        const scope = globalThis as unknown as {
+          document: { documentElement: { scrollHeight: number } };
+          innerHeight: number;
+        };
+        return scope.document.documentElement.scrollHeight <= scope.innerHeight;
+      }),
+    ).toBe(true);
+    await paper.emulateMedia({ media: 'print' });
+    await expect(paper.locator('.print-toolbar')).toBeHidden();
+    await paper.emulateMedia({ media: 'screen' });
+
+    // A wide table wraps inside the margins, a short word whole and only what
+    // has no place to break broken, and the Copy button of a block is not on
+    // the paper. The paper is upright A4, 595.28 by 841.89 points as Chromium
+    // rounds them (594.96 by 841.92), and it is the pages of the preview.
+    expect((await measure()).fits).toBe(true);
+    const lines = await paper.evaluate(() => {
+      type Range = { selectNodeContents(node: object): void; getClientRects(): { length: number } };
+      const scope = globalThis as unknown as {
+        document: {
+          querySelectorAll(selector: string): Iterable<{ textContent: string | null }>;
+          createRange(): Range;
+        };
+      };
+      const kind = [...scope.document.querySelectorAll('.print-preview th')].find(
+        (cell) => cell.textContent?.trim() === 'Kind',
+      );
+      if (!kind) return -1;
+      const range = scope.document.createRange();
+      range.selectNodeContents(kind);
+      return range.getClientRects().length;
+    });
+    expect(lines).toBe(1);
+    await expect(preview.locator('.copy-action').first()).toBeHidden();
+    const upright = await pdfOf('portrait-cover-wrap');
+    expect(upright.width).toBeCloseTo(595.28, 0);
+    expect(upright.height).toBeCloseTo(841.89, 0);
+    expect(upright.pages).toBe(await pages.count());
+
+    // Or it keeps its lines and shrinks its type until it fits.
+    const wrapped = (await measure()).size;
+    await tables.getByRole('radio').nth(1).click();
+    await expect(body).toHaveAttribute('data-tables', 'shrink');
+    await laid();
+    const shrunk = await measure();
+    expect(shrunk.fits).toBe(true);
+    expect(parseFloat(shrunk.size)).toBeLessThan(parseFloat(wrapped));
+    await pdfOf('portrait-cover-shrink');
+
+    // The page lies sideways, on A4 just the same, in the preview and on paper.
+    await orientation.getByRole('radio').nth(1).click();
+    await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
+    await laid();
+    const page = await pages.nth(0).boundingBox();
+    expect((page?.width ?? 0) / (page?.height ?? 1)).toBeCloseTo(297 / 210, 1);
+    expect((await measure()).fits).toBe(true);
+    const sideways = await pdfOf('landscape-cover-shrink');
+    expect(sideways.width).toBeCloseTo(841.89, 0);
+    expect(sideways.height).toBeCloseTo(595.28, 0);
+
+    // At the end the properties take the last page; with none they are not printed.
+    await properties.getByRole('radio').nth(1).click();
+    await expect(cover).toHaveCount(0);
+    await expect(end.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
+    await expect(body.locator('h1')).toHaveText('On paper');
+    expect(await laid()).toBe(2);
+    await expect(pages.nth(1)).toContainText('draft');
+    expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
+    await properties.getByRole('radio').nth(2).click();
+    await expect(status).toHaveCount(0);
+    expect(await laid()).toBe(1);
+
+    // And this browser remembers all three.
+    await paper.reload();
+    await expect(body).toHaveAttribute('data-placement', 'none');
+    await expect(body).toHaveAttribute('data-tables', 'shrink');
+    await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
+
+    // On a phone the pages keep the proportions of A4, scaled to the width of
+    // the screen, and the bar shows its choices as icons, each still named.
+    await orientation.getByRole('radio').nth(0).click();
+    await paper.setViewportSize({ width: 390, height: 844 });
+    await laid();
+    const small = await pages.nth(0).boundingBox();
+    expect(small?.width ?? 0).toBeLessThanOrEqual(390);
+    expect((small?.height ?? 0) / (small?.width ?? 1)).toBeCloseTo(297 / 210, 1);
+    const label = await paper.locator('.print-toolbar .segmented-label').first().boundingBox();
+    expect(label?.width ?? 0).toBeLessThanOrEqual(1);
+    await expect(
+      properties.getByRole('radio', {
+        name: words.locale === 'pt-BR' ? 'Folha de rosto' : 'Cover page',
+      }),
+    ).toBeVisible();
+    await testInfo.attach('phone.png', {
+      body: await paper.screenshot(),
+      contentType: 'image/png',
+    });
+    await paper.setViewportSize({ width: 1280, height: 720 });
+
+    // On paper: white, nothing but the pages, a link in ink and the callout in colour.
+    await paper.emulateMedia({ media: 'print' });
+    const colours = await paper.evaluate(() => {
+      type Style = {
+        backgroundColor: string;
+        color: string;
+        getPropertyValue(name: string): string;
+      };
+      const scope = globalThis as unknown as {
+        document: { querySelector(selector: string): object | null };
+        getComputedStyle(element: object): Style;
+      };
+      const of = (selector: string) => {
+        const element = scope.document.querySelector(selector);
+        return element ? scope.getComputedStyle(element) : null;
+      };
+      return {
+        body: of('body')?.backgroundColor,
+        link: of('.print-preview .markdown a')?.color,
+        title: of('.print-preview .callout-title')?.color,
+        adjust: of('.print-preview .callout')?.getPropertyValue('print-color-adjust'),
+      };
+    });
+    expect(colours.body).toBe('rgb(255, 255, 255)');
+    expect(colours.link).toBe('rgb(14, 21, 38)');
+    expect(colours.title).not.toBe('rgb(14, 21, 38)');
+    expect(colours.adjust).toBe('exact');
+
+    // And the PDF made by the server, which the browser downloads named after
+    // the note, without its print dialog (#263).
+    await paper.emulateMedia({ media: 'screen' });
+    const downloading = paper.waitForEvent('download', { timeout: 180_000 });
+    await paper.getByRole('button', { name: words.downloadPdf, exact: true }).click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toBe('On paper.pdf');
+  });
+
+  test('[page:/notebooks/:notebookId/dashboards/print] draws a dashboard whole and still, in the light theme, for the renderer to capture (#368)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `leituras-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: { type: 'object', properties: { mes: { type: 'string' }, kwh: { type: 'number' } } },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        { mes: 'agosto', kwh: 210 },
+        { mes: 'setembro', kwh: 180 },
+      ],
+    });
+    const name = `Energia ${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        components: [
+          { id: 'total', type: 'kpi', title: 'Total', source: { table, measure: 'sum(kwh)' } },
+          {
+            id: 'barras',
+            type: 'bar',
+            title: 'Por mês',
+            source: { table, group: 'mes', measures: ['sum(kwh)'] },
+          },
+        ],
+      },
+    });
+    await app.addInitScript(
+      ([wanted]) => {
+        localStorage.setItem(
+          'memorysmith.preferences',
+          JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+        );
+        localStorage.setItem('memorysmith.preview', JSON.stringify({ dashboard: wanted }));
+      },
+      [name] as const,
+    );
+    await app.goto(notebook.page('/dashboards/print'));
+    const drawn = app.locator('.dashboard-print[data-ready="true"]');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(drawn.locator('.dash-chart svg')).toBeVisible();
+    // Nothing is offered on an image.
+    await expect(drawn.getByRole('button')).toHaveCount(0);
+    await testInfo.attach('dashboard.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+  });
+
+  test('[page:/notebooks/:notebookId/dashboards] draws the second batch of components, and a click on a mark filters the rest and clears (#369)', async ({
+    app,
+    notebook,
+    owner,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `tarefas-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          codigo: { type: 'string' },
+          tarefa: { type: 'string' },
+          fase: { type: 'string' },
+          mes: { type: 'string', format: 'date' },
+          horas: { type: 'number' },
+          feito: { type: 'integer' },
+        },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${table}/rows`, {
+      rows: [
+        { codigo: '1', tarefa: 'Obra', fase: 'fundo', mes: '2026-09-01', horas: 10, feito: 0 },
+        { codigo: '1.1', tarefa: 'Base', fase: 'fundo', mes: '2026-09-02', horas: 40, feito: 100 },
+        { codigo: '1.2', tarefa: 'Teto', fase: 'topo', mes: '2026-10-02', horas: 20, feito: 50 },
+        { codigo: '2', tarefa: 'Fim', fase: 'topo', mes: '2026-10-03', horas: 5, feito: 0 },
+      ],
+    });
+    const name = `Obra ${randomBytes(3).toString('hex')}`;
+    const measures = ['sum(horas)'];
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        layout: 'two-columns',
+        components: [
+          {
+            id: 'funil',
+            type: 'funnel',
+            slot: 'left',
+            source: { table, group: 'fase', measures },
+          },
+          { id: 'total', type: 'kpi', slot: 'right', source: { table, measure: 'sum(horas)' } },
+          {
+            id: 'mistura',
+            type: 'combo',
+            slot: 'left',
+            source: { table, group: 'fase', measures: ['sum(horas)', 'count()'] },
+          },
+          {
+            id: 'cascata',
+            type: 'waterfall',
+            slot: 'right',
+            source: { table, group: 'mes:month', measures },
+            options: { total: true },
+          },
+          {
+            id: 'pivo',
+            type: 'matrix',
+            slot: 'left',
+            source: { table, group: 'fase', measures },
+            options: { across: 'mes:month' },
+          },
+          {
+            id: 'arvore',
+            type: 'wbs',
+            slot: 'right',
+            source: { table },
+            options: { code: 'codigo', title: 'tarefa', progress: 'feito' },
+          },
+        ],
+      },
+    });
+    await app.goto(`${notebook.page('/dashboards')}?dashboard=${encodeURIComponent(name)}`);
+    const total = app.locator('.dashboard-card.is-kpi .dash-kpi-value');
+    await expect(total).toContainText('75');
+    await expect(app.locator('.dash-wbs-row')).toHaveCount(4);
+    await expect(app.locator('.dash-matrix tfoot')).toContainText('75');
+    const combo = app.locator('.dashboard-card.is-combo .dash-chart');
+    await expect(combo.locator('svg')).toBeVisible();
+    await combo.scrollIntoViewIfNeeded();
+    // A chart answers a click once it has finished rising.
+    await app.waitForTimeout(1500);
+    await app.locator('.dashboard').screenshot({ path: testInfo.outputPath('second-batch.png') });
+
+    // The first bar of the combo is the phase `fundo`.
+    const box = await combo.boundingBox();
+    if (!box) throw new Error('The combo drew nothing');
+    await app.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.75);
+    await expect(app.locator('.dashboard-cross')).toBeVisible();
+    await expect(total).toContainText('50');
+    await app.waitForTimeout(1500);
+    await app
+      .locator('.dashboard')
+      .screenshot({ path: testInfo.outputPath('second-batch-filtered.png') });
+    await app.locator('.dashboard-cross button').click();
+    await expect(total).toContainText('75');
+    await expect(app.locator('.dashboard-cross')).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/dashboards] draws the third batch of components (#370)', async ({
+    app,
+    notebook,
+    owner,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `vendas-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          dia: { type: 'string', format: 'date' },
+          loja: { type: 'string' },
+          itens: { type: 'number' },
+          total: { type: 'number' },
+        },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${table}/rows`, {
+      rows: [
+        { dia: '2026-09-01', loja: 'Centro', itens: 10, total: 100 },
+        { dia: '2026-09-15', loja: 'Sul', itens: 4, total: 60 },
+        { dia: '2026-10-02', loja: 'Centro', itens: 8, total: 90 },
+        { dia: '2026-10-20', loja: 'Norte', itens: 2, total: 50 },
+      ],
+    });
+    const name = `Vendas ${randomBytes(3).toString('hex')}`;
+    const sum = ['sum(total)'];
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        layout: 'two-columns',
+        components: [
+          {
+            id: 'areas',
+            type: 'treemap',
+            slot: 'left',
+            source: { table, group: 'loja', measures: sum },
+          },
+          {
+            id: 'meta',
+            type: 'gauge',
+            slot: 'right',
+            source: { table, measure: 'sum(total)' },
+            options: { goal: 400 },
+          },
+          {
+            id: 'pontos',
+            type: 'scatter',
+            slot: 'left',
+            source: { table },
+            options: { x: 'itens', y: 'total', color: 'loja' },
+          },
+          {
+            id: 'calor',
+            type: 'heatmap',
+            slot: 'right',
+            source: { table, group: 'loja', measures: sum },
+            options: { across: 'dia:month' },
+          },
+          {
+            id: 'dias',
+            type: 'calendar',
+            slot: 'left',
+            source: { table, group: 'dia:day', measures: sum },
+          },
+          {
+            id: 'fatos',
+            type: 'timeline',
+            slot: 'right',
+            source: { table },
+            options: { date: 'dia', title: 'loja' },
+          },
+        ],
+      },
+    });
+    await app.goto(`${notebook.page('/dashboards')}?dashboard=${encodeURIComponent(name)}`);
+    await expect(app.locator('.dash-timeline-item')).toHaveCount(4);
+    await expect(app.locator('.dashboard-card .dash-chart svg')).toHaveCount(5);
+    await expect(app.locator('.dash-problem')).toHaveCount(0);
+    await app.waitForTimeout(1500);
+    await app.locator('.dashboard').screenshot({ path: testInfo.outputPath('third-batch.png') });
+  });
+
+  test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
+    app,
+    notebook,
+  }, testInfo) => {
+    // What the renderer of the server leaves in the storage before it opens
+    // the page: a draft, the folder it would be written in, and a part. The
+    // reader chose the dark theme, which an image for an agent never wears.
+    const draft =
+      '---\nname: Plan limits\nstatus: draft\n---\n\nWhat each plan holds.\n\n## Limits\n\n' +
+      '> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n' +
+      '## Elsewhere\n\nNot part of the limits.\n';
+    const ask = async (part: string | null) => {
+      await app.addInitScript(
+        ([content, folderId, wanted]) => {
+          localStorage.setItem(
+            'memorysmith.preferences',
+            JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+          );
+          localStorage.setItem(
+            'memorysmith.preview',
+            JSON.stringify({ noteId: null, content, folderId, part: wanted }),
+          );
+        },
+        [draft, notebook.folderId, part] as const,
+      );
+      await app.goto(notebook.page('/preview'));
+    };
+
+    await ask(null);
+    const drawn = app.locator('.note-preview[data-ready="true"]');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(drawn.locator('h1')).toHaveText('Plan limits');
+    await expect(drawn.locator('.callout table')).toBeVisible();
+    // Exactly the reading width, from the top left of the page, which is the
+    // rectangle the renderer cuts the image from.
+    const box = await drawn.boundingBox();
+    expect(box).toMatchObject({ x: 0, y: 0, width: 760 });
+    await testInfo.attach('draft.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+
+    await ask('#Limits');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(drawn.locator('.callout table')).toBeVisible();
+    await expect(drawn.locator('h1')).toHaveCount(0);
+    await expect(drawn).not.toContainText('Not part of the limits');
+    await testInfo.attach('part.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // A part the draft does not hold is said on the element the renderer reads.
+    await ask('#Nowhere');
+    await expect(app.locator('.note-preview[data-failure="PART_NOT_FOUND"]')).toBeVisible();
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] draws the rules of a table inside a callout in the colour of the callout (#259)', async ({
+    app,
+    owner,
+    notebook,
+  }) => {
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content:
+          '---\nname: Limits\n---\n\n> [!warning] Limits\n> | Plan | Notes |\n> | --- | --- |\n> | Free | 100 |\n\n| Plan | Notes |\n| --- | --- |\n| Free | 100 |\n',
+      },
+    );
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    const inside = app.locator('.callout td').first();
+    const outside = app.locator('.markdown > table td').first();
+    await expect(inside).toBeVisible();
+    // The tint of a warning, at the alpha its rules are drawn with; a table
+    // outside a callout keeps the neutral border.
+    await expect(inside).toHaveCSS('border-top-color', 'rgba(158, 71, 0, 0.35)');
+    await expect(outside).toHaveCSS('border-top-color', 'rgb(220, 224, 218)');
+  });
+
+  test('renames a note from the editor, and the tree follows without a reload', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    /**
+     * Its own note, never the one of the fixture: renaming a note other cases
+     * of this run read by name would break them, and a case that depends on
+     * the order it runs in is not a case.
+     */
+    const api = new Api(state.surfaces.api, await apiToken(state, state.accounts.owner));
+    const before = `Before ${Date.now()}`;
+    const after = `After ${Date.now()}`;
+    const made = await api.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: `---
+name: ${before}
+---
+
+A note to rename.
+`,
+      },
+    );
+
+    await app.goto(`${state.surfaces.site}/notebooks/${notebook.notebookId}/notes/${made.noteId}`);
+    await expect(app.locator('.tree-note', { hasText: before })).toBeVisible();
+
+    // The name is the title field of the editor's frontmatter form (#300).
+    await app.getByRole('button', { name: words.editNote, exact: true }).click();
+    const title = app.getByRole('textbox', { name: words.noteTitle, exact: true });
+    await title.fill(after);
+    await title.press('Tab');
+
+    // The save that renamed it says so once it landed, and offers the old
+    // name as an alias, so the links to it keep arriving (RN-KNW-052).
+    const save = app.locator('.edit-save');
+    await expect(save).toHaveAttribute('data-save', 'alert', { timeout: 15_000 });
+    const notice = app.getByRole('dialog', { name: words.renamedTitle });
+    await expect(notice).toBeVisible();
+    await notice.getByRole('button', { name: words.keepAlias.replace('{name}', before) }).click();
+    await expect(save).toHaveAttribute('data-save', 'saved', { timeout: 15_000 });
+    const kept = await api.ok<{ content: string }>(
+      'GET',
+      `/knowledge/notebooks/${notebook.notebookId}/notes/${made.noteId}`,
+    );
+    expect(kept.content).toContain(`name: ${after}`);
+    expect(kept.content).toContain(before);
+    await app.getByRole('button', { name: words.readNote, exact: true }).click();
+
+    /**
+     * No reload anywhere in this case (#170). The structure draws the tree and
+     * is also what every `[[…]]` resolves against, so a rename that does not
+     * reach it leaves the whole notebook painting by the old name.
+     */
+    await expect(app.locator('article.content-pane .note-title')).toHaveText(after);
+    // The corner of the note stands above its name, never under its properties.
+    await expect(app.locator('article.content-pane > .markdown > :first-child')).toHaveClass(
+      /note-corner/,
+    );
+    await expect(app.locator('article.content-pane .note-corner + .note-title')).toHaveText(after);
+    // What the note lays out of the flow hangs from the note, never from the
+    // page, where it stretched the page under the pane into a second scrollbar.
+    expect(
+      await app.locator('article.content-pane > .markdown > p.visually-hidden').evaluate((hidden) =>
+        (
+          hidden as unknown as {
+            offsetParent: { classList: { contains(name: string): boolean } } | null;
+          }
+        ).offsetParent?.classList.contains('markdown'),
+      ),
+    ).toBe(true);
+    await expect(app.locator('.tree-note', { hasText: after })).toBeVisible();
+    await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/notes/:noteId] moves a note to another folder from its bar, with its history, and refuses a folder that holds its name (#265)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    // Its own note, written twice, so the history has something to keep.
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `Draft ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${name}\n---\n\nFirst take.\n`,
+    });
+    const read = await owner.ok<{ revision: { versionId: string } }>(
+      'GET',
+      `${path}/notes/${noteId}`,
+    );
+    await owner.ok('PUT', `${path}/notes/${noteId}`, {
+      content: `---\nname: ${name}\n---\n\nSecond take.\n`,
+      baseRevision: read.revision.versionId,
+    });
+
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+
+    // It says beforehand that the links keep working, and only then asks where.
+    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
+    const dialog = app.getByRole('dialog', { name: words.moveHeading });
+    await expect(dialog.getByText(words.moveLinksKeep)).toBeVisible();
+    await dialog.getByLabel(words.moveFolder, { exact: true }).selectOption({ label: 'Concepts' });
+    await testInfo.attach('move-dialog.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await dialog.getByRole('button', { name: words.moveNote, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The same address, the same note, in its new folder, and the tree follows.
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
+    await expect(app.getByText('Second take.')).toBeVisible();
+    const moved = await owner.ok<{ folderId: string }>('GET', `${path}/notes/${noteId}`);
+    expect(moved.folderId).not.toBe(notebook.folderId);
+
+    // And its history goes with it: both writes, and the move.
+    await app.getByRole('button', { name: words.historyButton, exact: true }).click();
+    const history = app.getByRole('dialog', { name: words.historyHeading });
+    await expect(history.getByText(words.historyMoved, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(history.locator('.history-list li')).toHaveCount(3);
+    await app.keyboard.press('Escape');
+
+    // A folder holds one note of each name: Facet is in both, so the one in
+    // Findings cannot join the one in Concepts, and the dialog says so.
+    await app.goto(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
+    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
+    const refusing = app.getByRole('dialog', { name: words.moveHeading });
+    await refusing
+      .getByLabel(words.moveFolder, { exact: true })
+      .selectOption({ label: 'Concepts' });
+    await refusing.getByRole('button', { name: words.moveNote, exact: true }).click();
+    await expect(refusing.getByRole('alert')).toContainText(words.moveNameTaken);
+    await testInfo.attach('move-refused.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    // Closed by its own button before the window narrows: an Escape may land on
+    // the select that last held the focus, and the dialog would come back as a
+    // sheet over the bar.
+    await refusing.getByRole('button', { name: words.cancel, exact: true }).click();
+    await expect(refusing).toHaveCount(0);
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+
+    // On a phone it rises as a sheet from the foot of the screen.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.locator(`button.bar-button[title="${words.moveNoteTitle}"]`).click();
+    const sheet = app.getByRole('dialog', { name: words.moveHeading });
+    await expect(sheet.getByText(words.moveLinksKeep)).toBeVisible();
+    await testInfo.attach('move-sheet-phone.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({
+    app,
+    notebook,
+    owner,
+    words,
+  }) => {
+    await app.goto(notebook.page(`/links/${encodeURIComponent('Nowhere yet')}`));
+    await expect(app.getByRole('heading', { level: 1, name: 'Nowhere yet' })).toBeVisible();
+    await expect(app.getByText(words.pending('Nowhere yet'), { exact: false })).toBeVisible();
+
+    await eventually(
+      'the name Checklist resolved',
+      () =>
+        owner.ok<{ kind: string }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/links/Checklist`,
+        ),
+      (answer) => answer.kind === 'note',
+    );
+    await app.goto(notebook.page('/links/Checklist'));
+    await expect(app).toHaveURL(notebook.page(`/notes/${notebook.noteId.toLowerCase()}`));
+
+    // On the note itself the pending link is drawn pending and can still be
+    // clicked: the choice opens over the page and says nobody carries the name
+    // yet (RN-DSC-060, #138, #144).
+    const pending = app.locator('a.wikilink-pending', { hasText: 'Nowhere yet' });
+    await expect(pending).toHaveAttribute('aria-haspopup', 'dialog');
+    await pending.click();
+    await expect(
+      app.getByRole('dialog').getByText(words.pending('Nowhere yet'), { exact: false }),
+    ).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(app.getByRole('dialog')).toHaveCount(0);
+  });
+
+  /**
+   * #144: the choice was a menu positioned inside whatever held the link, and
+   * a table of a note scrolls on its own, so a link written in a table cell
+   * opened its menu inside the scroll box of the table — clipped by it, with a
+   * scrollbar of its own.
+   */
+  test('[page:/notebooks/:notebookId/notes/:noteId] opens the choice of a link written in a table over the page, and at phone width as a sheet', async ({
+    app,
+    notebook,
+    words,
+  }) => {
+    await app.goto(notebook.page(`/notes/${notebook.tableNoteId.toLowerCase()}`));
+    const link = app.locator('table a.wikilink', { hasText: 'Facet' });
+    await link.click();
+
+    const dialog = app.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeInViewport();
+    await expect(dialog.getByRole('heading', { name: words.linkToSeveral })).toBeVisible();
+
+    // Above the table and not inside it: the top layer is what no ancestor
+    // clips, so the choice is wider than the cell that held the link.
+    const table = await app.locator('table').boundingBox();
+    const card = await app.locator('.link-choice-card').boundingBox();
+    expect(card?.width ?? 0).toBeGreaterThan(280);
+    expect((card?.height ?? 0) + (card?.y ?? 0)).toBeGreaterThan(table?.y ?? 0);
+
+    // Each option is a folder trail, because both notes carry the same name.
+    const options = app.locator('.link-choice-option');
+    await expect(options).toHaveCount(2);
+    await expect(options.first()).toContainText('Findings');
+
+    // Esc closes it and the focus goes back to the link.
+    await app.keyboard.press('Escape');
+    await expect(app.getByRole('dialog')).toHaveCount(0);
+    await expect(link).toBeFocused();
+
+    // At phone width it rises from the bottom, with comfortable targets.
+    await app.setViewportSize({ width: 390, height: 780 });
+    await link.click();
+    const sheet = await app.locator('.link-choice-card').boundingBox();
+    expect(Math.round((sheet?.y ?? 0) + (sheet?.height ?? 0))).toBeGreaterThanOrEqual(770);
+    const option = await app.locator('.link-choice-option').first().boundingBox();
+    expect(option?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    // And choosing one opens that note.
+    await app.locator('.link-choice-option').first().click();
+    await expect(app).toHaveURL(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
+  });
+
+  /**
+   * On a phone nothing moves the note but a scroll up or down (#238). Safari
+   * enlarges the page when a field under 16 px takes the focus, and the page
+   * left enlarged panned in every direction with its bar; a block wider than
+   * the column would have done the same without any zoom.
+   */
+  test('[page:/notebooks/:notebookId/notes/:noteId] at phone width sets every field at 16 px and never scrolls the note sideways', async ({
+    app,
+    notebook,
+  }) => {
+    await app.setViewportSize({ width: 390, height: 780 });
+    await app.goto(notebook.page(`/notes/${notebook.tableNoteId.toLowerCase()}`));
+    await expect(app.locator('table a.wikilink', { hasText: 'Facet' })).toBeVisible();
+
+    // Measured with the overflow counted, hidden or not, and before the sheet
+    // opens: whatever is wider than the column shows up here instead of being
+    // guessed.
+    const main = await app
+      .locator('.app-main')
+      .evaluate((row) => ({ scroll: row.scrollWidth, client: row.clientWidth }));
+    expect(main.scroll).toBeLessThanOrEqual(main.client);
+
+    // The search the person opened from the sheet, where the zoom was seen.
+    await app.locator('.sheet-peek').click();
+    await app.locator('.notebook-sheet button.sheet-tab').first().click();
+    const search = app.locator('.notebook-sheet .search-box input');
+    await expect(search).toBeVisible();
+    await expect(search).toHaveCSS('font-size', '16px');
+
+    // The last icon groups the other pages of the notebook, named (#375).
+    await app.locator('.notebook-sheet button.sheet-tab').last().click();
+    for (const path of ['/tables', '/dashboards', '/graph']) {
+      await expect(app.locator(`.sheet-pages a[href$="${path}"]`)).toBeVisible();
+    }
+    await expect(app.locator('.sheet-tabs a[href$="/attachments"]')).toBeVisible();
+    await app.locator('.sheet-pages a[href$="/dashboards"]').click();
+    await expect(app).toHaveURL(notebook.page('/dashboards'));
+    await expect(app.locator('.notebook-sheet')).toHaveCount(0);
+  });
+
+  test('[page:/notebooks/:notebookId/*] answers an address no page names inside a notebook with not found', async ({
+    app,
+    notebook,
+    words,
+  }) => {
+    await app.goto(notebook.page('/nowhere'));
+
+    await expect(app.getByText(words.notFound, { exact: true })).toBeVisible();
+    await expect(app.locator('aside#notebook-sidebar')).toBeVisible();
+  });
+
+  test('shows nothing at the address of a notebook of another subscription', async ({
+    app,
+    state,
+    words,
+  }) => {
+    const other = new Api(state.surfaces.api, await apiToken(state, state.accounts.other));
+    const { notebookId } = await other.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+      name: `Foreign ${Date.now().toString(36)}`,
+      description: 'A notebook of another subscription.',
+    });
+
+    await app.goto(`${state.surfaces.site}/notebooks/${notebookId.toLowerCase()}`);
+    await expect(app.getByText(words.notFound, { exact: true })).toBeVisible();
+    await expect(app.locator('aside#notebook-sidebar')).toHaveCount(0);
+  });
+});
+
+/**
+ * The case that would have caught #142: a `.notebook` had never been imported
+ * through the interface, because the browser asks the content bucket whether it
+ * may upload and the bucket answered no. Everything else in the suite uploads
+ * from Node, where nobody asks.
+ *
+ * It is also the whole of the import dialog (#143, #160): the document is read
+ * in the browser before a byte is uploaded, the name comes from the document
+ * and is checked as it is typed, what is imported may be chosen, and the job
+ * that follows is watched in Transfers like every other one.
+ */
+/**
+ * Starts an export of one notebook, from wherever the page is (#151).
+ *
+ * Transfers is on every screen and is where a transfer is followed: it is
+ * where one is started, so this opens it, asks for a new export, names the
+ * notebook and confirms. The panel closes as the dialog opens, which is why
+ * everything after the first click is scoped to the dialog (#160).
+ */
+async function startExport(
+  app: Page,
+  words: { transfers: string; newExport: string; notebookField: string; startExport: string },
+  notebookName: string,
+): Promise<void> {
+  await app.getByRole('button', { name: words.transfers }).click();
+  await app.getByRole('button', { name: words.newExport }).click();
+  // Scoped to the dialog and exact: `Notebook` is the start of several
+  // accessible names on the page behind it.
+  await app
+    .locator('.transfer-dialog')
+    .getByLabel(words.notebookField, { exact: true })
+    .selectOption({ label: notebookName });
+  // Inside the dialog and exact: `Export` is also the start of the button that
+  // opened it.
+  await app
+    .locator('.transfer-dialog')
+    .getByRole('button', { name: words.startExport, exact: true })
+    .click();
+  /**
+   * The dialog closes when the job has been ACCEPTED, and not when the button
+   * is pressed. Leaving the page before that aborts the request that starts
+   * the export, and nothing is ever exported (#160).
+   */
+  await expect(app.locator('.transfer-dialog')).toHaveCount(0);
+}
+
+/**
+ * Saves the archive of the one export of this person, from Transfers.
+ *
+ * Nothing downloads by itself any more: an export used to save itself the
+ * moment it was ready, wherever the person had moved to, which was one way too
+ * many beside the two buttons that ask for it (#160).
+ */
+async function saveTheExport(
+  app: Page,
+  words: { download: string },
+  site: string,
+  notebookName: string,
+  to: string,
+): Promise<void> {
+  await app.goto(`${site}/transfers`);
+  // The row of THIS notebook, because Transfers holds every transfer of the
+  // subscription and the newest is as likely to be an import of another case.
+  const download = app
+    .locator('.transfers-row', { hasText: notebookName })
+    .getByRole('button', { name: words.download, exact: true })
+    .first();
+  await expect(download).toBeVisible({ timeout: 120_000 });
+  const downloading = app.waitForEvent('download');
+  await download.click();
+  await (await downloading).saveAs(to);
+}
+
+test.describe('a notebook out and back in, through the browser', () => {
+  test('[page:/transfers] reads the file, refuses the name it came with, and imports the structure alone', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+
+    /**
+     * An export is started from Transfers, from wherever the person is: it
+     * used to be a button inside the notebook, which meant navigating to the
+     * notebook to export it (#151).
+     */
+    await startExport(app, words, notebook.name);
+    const archive = join(tmpdir(), `${notebook.name}.notebook`);
+    await saveTheExport(app, words, state.surfaces.site, notebook.name, archive);
+
+    /**
+     * And an import is asked for in the same dialog, from the same place: it
+     * used to be a page of its own, so the two halves of one job were asked
+     * for in two shapes (#160).
+     */
+    await app
+      .locator('.transfers-page')
+      .getByRole('button', { name: words.importNotebook, exact: true })
+      .click();
+    const dialog = app.locator('.transfer-dialog');
+    const choosing = app.waitForEvent('filechooser');
+    await dialog.getByRole('button', { name: words.chooseFile }).click();
+    await (await choosing).setFiles(archive);
+
+    /**
+     * The name comes from the DOCUMENT and not from the file, and this document
+     * came home to the subscription it left: the page says so before anything
+     * is uploaded, which is what a person used to find out as raw text on a
+     * button (RN-KNW-032).
+     */
+    const name = dialog.getByLabel(words.notebookName);
+    await expect(name).toHaveValue(notebook.name);
+    await expect(
+      dialog.getByRole('button', { name: words.importAction, exact: true }),
+    ).toBeDisabled();
+
+    /**
+     * And it says so where a refusal is said, and nowhere else: in the foot,
+     * in one line that counts and does not grow, which the field points at;
+     * and in the tab of the inconsistencies, in full with the way out. Never a
+     * line under the field or in the body of the dialog (#161).
+     */
+    await expect(name).toHaveAttribute('aria-describedby', 'transfer-refusal');
+    await expect(dialog.locator('.field-hint.is-wrong, p.status')).toHaveCount(0);
+    await expect(dialog.locator('#transfer-refusal')).toContainText(words.inconsistency);
+    await dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) }).click();
+    await expect(dialog.getByRole('tab', { name: new RegExp(words.tabConflicts) })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(dialog.getByText(words.nameTakenTitle, { exact: false })).toBeVisible();
+
+    /**
+     * The strip of tabs never draws a vertical scrollbar beside the tabs
+     * (#161). It scrolls sideways on a narrow screen now (#201), which is
+     * safe only because nothing of a tab sticks out of its row any more: the
+     * rule under the open tab is drawn inside it. So what is asserted is that
+     * the strip has nothing to scroll vertically.
+     */
+    const strip = dialog.locator('.chooser-tabs');
+    const vertical = await strip.evaluate((el) => el.scrollHeight - el.clientHeight);
+    expect(vertical).toBeLessThanOrEqual(0);
+
+    const free = `${notebook.name} again`;
+    await name.fill(free);
+    await expect(dialog.locator('#transfer-refusal')).toHaveCount(0);
+
+    /**
+     * The design of the notebook and not one note of it (RN-PRT-017).
+     *
+     * The chooser asks the SCOPE before the items (#161): five species, each
+     * saying whether it travels. So the design alone is one box — the notes
+     * let go — where it used to be a loop unticking every row of a tab, and
+     * the tab of the notes closes with them, because there is nothing left in
+     * it to choose.
+     */
+    await dialog.getByRole('radio', { name: words.partOfIt, exact: true }).check();
+    await dialog.getByRole('checkbox', { name: words.tabNotes, exact: true }).uncheck();
+    await expect(dialog.getByRole('tab', { name: words.tabNotes, exact: true })).toBeDisabled();
+    // The summary names what goes and leaves out what does not: a species
+    // nobody chose is not written as a zero (#205).
+    const summary = dialog.locator('.transfer-summary');
+    await expect(summary).toContainText(words.willCreateFolders);
+    await expect(summary).not.toContainText(words.willCreateNotes);
+
+    /**
+     * Starting it closes the dialog: the decision is over and the job is
+     * followed where every transfer is, which is the row that ends in the
+     * notebook it wrote (#160).
+     */
+    await dialog.getByRole('button', { name: words.importAction, exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The row of THIS import: Transfers holds every transfer of the
+    // subscription, and several of them ended in a notebook of their own.
+    const imported = app
+      .locator('.transfers-row', { hasText: free })
+      .getByRole('link', { name: words.openImported });
+    await expect(imported).toBeVisible({ timeout: 120_000 });
+    await imported.click();
+
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-notebook')).toHaveText(free);
+    // Structure only: the folders arrived and the notes did not.
+    await app.goto(app.url().replace(/\/?$/, '/folders'));
+    const findings = app.locator('a.folder-row', { hasText: 'Findings' });
+    await expect(findings).toBeVisible();
+    await findings.click();
+    await expect(app.locator('a.note-row')).toHaveCount(0);
+
+    /**
+     * And its row leaves Transfers when it is asked to, with its record alone:
+     * the notebook it created stays (#221, RN-PRT-026).
+     */
+    await app.goto(`${state.surfaces.site}/transfers`);
+    const row = app.locator('.transfers-row', { hasText: free });
+    await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();
+    await row.getByRole('button', { name: words.deleteForGood, exact: true }).click();
+    await expect(row).toHaveCount(0);
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('article.notebook-card', { hasText: free })).toBeVisible();
+  });
+});
+
+/**
+ * Transfers: where an export is followed and kept (#145, RN-PRT-019,
+ * RN-PRT-020). An export used to be a link of fifteen minutes that nothing
+ * listed, and the bucket threw the file away the next day.
+ */
+test.describe('the transfers of a person', () => {
+  test('ends a page that scrolls with its padding below the last line (#209)', async ({
+    app,
+    state,
+  }) => {
+    // Short enough that the list of transfers scrolls.
+    await app.setViewportSize({ width: 1280, height: 480 });
+    await app.goto(`${state.surfaces.site}/transfers`);
+    await expect(app.locator('.transfers-page h1')).toBeVisible();
+
+    const gap = await app.evaluate(() => {
+      const page = globalThis as unknown as {
+        document: {
+          querySelector: (selector: string) => {
+            scrollTop: number;
+            scrollHeight: number;
+            lastElementChild: { getBoundingClientRect: () => { bottom: number } } | null;
+            firstElementChild: {
+              lastElementChild: { getBoundingClientRect: () => { bottom: number } } | null;
+            } | null;
+            getBoundingClientRect: () => { bottom: number };
+          } | null;
+        };
+      };
+      const main = page.document.querySelector('.app-main');
+      if (!main) return -1;
+      main.scrollTop = main.scrollHeight;
+      const last = main.firstElementChild?.lastElementChild;
+      if (!last) return -1;
+      return main.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom;
+    });
+    expect(gap, 'room between the last line and the foot of the window').toBeGreaterThanOrEqual(24);
+  });
+
+  test('opens the Transfers panel inside a phone screen (#195)', async ({ app, state, words }) => {
+    await app.setViewportSize({ width: 320, height: 640 });
+    await app.goto(`${state.surfaces.site}/`);
+    await app.getByRole('button', { name: words.transfers }).click();
+
+    const panel = app.locator('.transfers-panel');
+    await expect(panel).toBeVisible();
+    const box = await panel.boundingBox();
+    expect(box, 'the panel has a box').not.toBeNull();
+    expect(box!.x, 'the panel starts on the screen').toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width, 'and ends on it').toBeLessThanOrEqual(320);
+  });
+
+  test('[page:/transfers] exports a notebook from its page, keeps it, downloads it again and deletes it', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    await app.goto(notebook.page());
+
+    await startExport(app, words, notebook.name);
+
+    await app.goto(`${state.surfaces.site}/transfers`);
+    await expect(app.getByRole('heading', { level: 1, name: words.transfers })).toBeVisible();
+    const row = app.locator('.transfers-row', { hasText: notebook.name });
+    await expect(row).toBeVisible();
+
+    /**
+     * Downloaded from a link minted at this moment, and only when it is asked
+     * for: nothing saves itself any more (#160). The export is kept until it
+     * is deleted, and it counts towards the space of the plan.
+     */
+    await expect(app.locator('.transfers-kept')).toContainText(words.ofYourPlan);
+
+    /**
+     * What is shown is chosen in a TAB STRIP and no longer in three chips: one
+     * of three, one at a time, switching the list below it, which is what a
+     * tab is — and a chip is a label (#157, #161). The export just made is an
+     * export, so it survives that filter and would not survive the other.
+     */
+    await app.getByRole('tab', { name: new RegExp(`^${words.filterExports}`) }).click();
+    await expect(row).toBeVisible();
+    await app.getByRole('tab', { name: new RegExp(`^${words.filterImports}`) }).click();
+    await expect(app.locator('.transfers-row', { hasText: notebook.name })).toHaveCount(0);
+    await app.getByRole('tab', { name: new RegExp(`^${words.filterAll}`) }).click();
+
+    const download = row.getByRole('button', { name: words.download, exact: true });
+    await expect(download).toBeVisible({ timeout: 120_000 });
+    const downloading = app.waitForEvent('download');
+    await download.click();
+    expect(await (await downloading).suggestedFilename()).toContain('.notebook');
+
+    // Deleting asks on the page, saying that the notebook is not touched.
+    await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();
+    await expect(row.getByText(words.deleteUntouched, { exact: false })).toBeVisible();
+    await row.getByRole('button', { name: words.deleteSlotForGood }).click();
+    await expect(app.locator('.transfers-row', { hasText: notebook.name })).toHaveCount(0);
+  });
+});

@@ -30,6 +30,7 @@ export function NotebookCard({
   corner,
   children,
   byline,
+  to,
 }: {
   notebook: NotebookSummary;
   /** The strip on top: the brand, or the red of a card that is asking. */
@@ -40,6 +41,8 @@ export function NotebookCard({
   children?: ReactNode;
   /** A line under the description: whose a notebook shared with me is (#256). */
   byline?: string;
+  /** Where the card opens, when it is not the notebook: a model shared as a model reader (#355). */
+  to?: string;
 }) {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
@@ -63,7 +66,7 @@ export function NotebookCard({
               <span className="is-long">{t('notebooks.updatedAt', { date: day })}</span>
               <span className="is-short">{day}</span>
             </span>
-            <Link to={notebookAddress(notebook.id)} className="notebook-open">
+            <Link to={to ?? notebookAddress(notebook.id)} className="notebook-open">
               <span className="is-long">{t('notebooks.open')}</span>
               <span className="is-short">{t('notebooks.openShort')}</span> →
             </Link>

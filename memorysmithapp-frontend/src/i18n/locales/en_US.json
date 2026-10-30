@@ -95,6 +95,7 @@
     "openShort": "Open"
   },
   "structure": {
+    "morePages": "Tables, dashboards and more",
     "guidance": "Guidance",
     "folders": "Folders",
     "foldersHint": "The tree, with the description of each folder",
@@ -138,7 +139,9 @@
     "noteOrderHintManual": "The notes keep the position they were given in this folder, by you or by an agent.",
     "noteOrderHintAlphabetical": "The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.",
     "notesByName": "In alphabetical order",
-    "noteOrderFailed": "The order of the notes was not changed. Try again."
+    "noteOrderFailed": "The order of the notes was not changed. Try again.",
+    "staleContext": "Context changed",
+    "staleContextHint": "Written while {{parts}} had changed: worth reviewing."
   },
   "folderEdit": {
     "short": "Edit",
@@ -153,6 +156,21 @@
     "saving": "Saving…",
     "nameTaken": "A folder named “{{name}}” already exists at this level. Nothing was changed."
   },
+  "folderDelete": {
+    "short": "Delete",
+    "open": "Delete this folder",
+    "title": "Delete the folder",
+    "holds": "It holds {{notes}} and {{folders}}.",
+    "notes_one": "{{count}} note",
+    "notes_other": "{{count}} notes",
+    "folders_one": "{{count}} subfolder",
+    "folders_other": "{{count}} subfolders",
+    "consequences": "Deleting it takes all of them out of the notebook at once, for good: they are destroyed shortly after, with every revision, and links to those notes become pending. Nothing brings them back.",
+    "understood": "I understand that everything in this folder is deleted for good",
+    "empty": "The folder is empty. Deleting it cannot be undone.",
+    "delete": "Delete the folder",
+    "deleting": "Deleting…"
+  },
   "note": {
     "propertyTrue": "Yes",
     "propertyFalse": "No",
@@ -166,6 +184,8 @@
     "remoteImages_one": "Opening this note fetched an image from {{hosts}}, so that site was told your address and the moment you read this.",
     "remoteImages_other": "Opening this note fetched images from {{count}} other sites — {{hosts}} — so each of them was told your address and the moment you read this.",
     "refusedLink": "This address is not one the reading surface follows, so the text stays and the link does not.",
+    "parameter": "A parameter of this model, filled in when a notebook is created from it.",
+    "parameterLink": "This link names a parameter, and leads to a note once a notebook created from the model fills it in.",
     "copy": "Copy",
     "copied": "Copied",
     "unnamed": "Unnamed note",
@@ -180,7 +200,24 @@
     "attachmentOpen": "Open",
     "attachmentDownload": "Download",
     "changedElsewhere": "This note changed since you opened it, and what you see is the current version.",
-    "changedElsewhereDismiss": "Got it"
+    "changedElsewhereDismiss": "Got it",
+    "tableRows_one": "{{count}} row",
+    "tableRows_other": "{{count}} rows",
+    "tablePage": "Page {{page}} of {{pages}}",
+    "tablePrevious": "Previous",
+    "tableNext": "Next",
+    "tableTotal": "Total",
+    "tableEmpty": "No row matches this filter.",
+    "tableSortBy": "Sort by {{column}}",
+    "tableRead": "read {{when}}",
+    "tableProblem": {
+      "table-unnamed": "This block names no table: write table: and its name.",
+      "table-key-unknown": "This block has a line it does not read: it takes table, columns, where, sort, page and total.",
+      "table-key-invalid": "A line of this block has a value that cannot be read.",
+      "table-column-unknown": "This block names a column the table {{table}} does not have.",
+      "table-filter-invalid": "The filter of this block cannot be read.",
+      "table-pending": "This notebook keeps no table called {{table}}."
+    }
   },
   "print": {
     "short": "Print",
@@ -221,7 +258,7 @@
     "expandNotebooks": "Show all notebooks",
     "collapseNotebooks": "Back to one row",
     "goToNotebook": "Go to notebook {{number}}",
-    "noNotebooks": "No notebook yet. An agent creates one through the connector, and an export comes back in through Transfers.",
+    "noNotebooks": "No notebook yet. Create one here, an agent creates one through the connector, and an export comes back in through Transfers.",
     "space": "Subscription space",
     "planChip": "{{plan}} · {{quota}}",
     "plan": {
@@ -235,6 +272,7 @@
     "bytes": "Space",
     "kindFiles": "Files",
     "kindNotes": "Notes",
+    "kindTables": "Tables",
     "kindExports": "Kept exports",
     "kindOthers": "Others",
     "kindOthersHint": "Guidance and Templates",
@@ -417,6 +455,99 @@
     "notesUnknown": "Could not read which notes show this file.",
     "download": "Download",
     "enlarge": "Enlarge"
+  },
+  "tables": {
+    "heading": "Tables",
+    "navLabel": "Tables",
+    "intro": "The structured data this notebook keeps: rows an agent writes, read here page by page.",
+    "none": "This notebook keeps no tables yet. A table an agent creates appears here.",
+    "count_one": "{{count}} table",
+    "count_other": "{{count}} tables",
+    "columns_one": "{{count}} column",
+    "columns_other": "{{count}} columns",
+    "rows_one": "{{count}} row",
+    "rows_other": "{{count}} rows",
+    "keyIs": "key {{columns}}",
+    "tab": {
+      "data": "Data",
+      "schema": "Schema"
+    },
+    "empty": "This table holds no rows yet.",
+    "pages": "Pages of the table",
+    "showing": "{{first}}–{{last}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "true": "Yes",
+    "false": "No",
+    "type": {
+      "string": "Text",
+      "number": "Number",
+      "integer": "Whole number",
+      "boolean": "Yes or no",
+      "date": "Date",
+      "date-time": "Date and time",
+      "list": "List of texts"
+    },
+    "schema": {
+      "column": "Column",
+      "type": "Type",
+      "required": "Required",
+      "default": "Default",
+      "description": "Description",
+      "key": "key",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "delete": "Delete table",
+    "deleteTitle": "Delete this table?",
+    "deleteHolds_one": "It holds {{count}} row.",
+    "deleteHolds_other": "It holds {{count}} rows.",
+    "deleteConsequences": "The table and its rows go at once and for good, and every note that shows it will say it is missing. Nothing brings it back.",
+    "deleteUnderstood": "I understand the rows are deleted for good",
+    "deleteConfirm": "Delete for good",
+    "deleting": "Deleting…",
+    "carry": {
+      "heading": "Tables",
+      "rows": "With its rows",
+      "schema": "Its schema alone",
+      "none": "Left out",
+      "publicHint": "The rows that go are public once the model is published to the community.",
+      "published": "These tables go with their rows, which anybody will read: {{tables}}.",
+      "dashboardLeftOut": "The dashboard {{dashboard}} stays out, because it draws from {{table}}."
+    },
+    "shownBy_one": "Shown in {{count}} note",
+    "shownBy_other": "Shown in {{count}} notes",
+    "shownByNone": "No note shows this table.",
+    "deleteShownBy_one": "{{count}} note shows it, and will say the table is missing.",
+    "deleteShownBy_other": "{{count}} notes show it, and will say the table is missing."
+  },
+  "dashboards": {
+    "heading": "Dashboards",
+    "navLabel": "Dashboards",
+    "intro": "What an agent built over the tables of this notebook: indicators, charts, a Gantt, a Kanban, read from the tables every time they open.",
+    "none": "(none)",
+    "components_one": "{{count}} component",
+    "components_other": "{{count}} components",
+    "readAt": "Data of {{time}}",
+    "refresh": "Refresh",
+    "allPeriods": "All",
+    "compared": "compared",
+    "ofGoal": "of {{goal}}",
+    "noRows": "No rows to show.",
+    "moreRows_one": "And {{count}} more row.",
+    "moreRows_other": "And {{count}} more rows.",
+    "missingTable": "The table this drew from is gone.",
+    "delete": "Delete dashboard",
+    "deleteTitle": "Delete this dashboard?",
+    "deleteConsequences": "The dashboard goes for good. Its tables and their rows stay as they are.",
+    "deleteConfirm": "Delete for good",
+    "downloadImage": "Download PNG",
+    "drawing": "Drawing…",
+    "imageFailed": "The image could not be drawn. Try again in a moment.",
+    "total": "Total",
+    "count": "Rows",
+    "crossFilter": "Filtered by {{key}}",
+    "clearFilter": "Clear"
   },
   "graph": {
     "heading": "Notebook graph",
@@ -703,7 +834,14 @@
     "unnamed": "The note no longer has a name: it still renders and still links outward, and no link can reach it. {{losing}}.",
     "keepBroken": "Keep the links broken",
     "understood": "Understood",
-    "attachKept": "“{{name}}” was kept whole in the notebook"
+    "attachKept": "“{{name}}” was kept whole in the notebook",
+    "contextChangedTitle": "The notebook changed while you wrote",
+    "contextChanged": "Your note was saved, but {{parts}} changed since you opened it. Read what changed and adjust the note if it needs it.",
+    "contextPart": {
+      "guidance": "the Guidance",
+      "template": "the Template of this folder",
+      "structure": "the folders of the notebook"
+    }
   },
   "move": {
     "short": "Move",
@@ -799,10 +937,6 @@
       "sharedByMe": "Your notebook, shared by you",
       "sharedWithMe": "Shared with you by {{owner}}"
     },
-    "access": {
-      "read": "Read",
-      "readWrite": "Read and write"
-    },
     "accept": "Accept",
     "reject": "Decline",
     "dialog": {
@@ -810,14 +944,18 @@
       "email": "E-mail of the person",
       "emailPlaceholder": "name@example.com",
       "access": "Access",
-      "readWriteLater": "Read and write is not offered yet: the person reads the whole notebook and writes nothing.",
       "share": "Share",
       "sharing": "Sharing…",
       "sent": "Done. If {{email}} has a MemorySmith subscription, the notebook is waiting for their answer.",
       "people": "Shared with",
       "nobody": "Not shared with anybody yet.",
       "revoke": "Revoke",
-      "remove": "Remove"
+      "remove": "Remove",
+      "profileOf": "Access of {{email}}",
+      "increasePending": "Still {{profile}} until they accept the increase.",
+      "changeExplained": "Reducing access applies at once. Increasing it waits for the person to accept again.",
+      "licence": "This notebook is a model. Whoever you share it with may reuse and republish it freely, the community included: every distribution of a model is under CC0 1.0.",
+      "acceptLicence": "I accept that this model is distributed under CC0 1.0"
     },
     "state": {
       "pending": "Waiting",
@@ -836,7 +974,21 @@
       "leaveForGood": "Leave",
       "pendingLabel": "{{name}}, waiting for your answer",
       "invitedBy": "{{owner}} shared it with you",
-      "waiting": "Waiting for your answer"
+      "waiting": "Waiting for your answer",
+      "sharedAs": "Shared by {{owner}} · {{profile}}",
+      "increaseOffered": "{{owner}} offers you {{profile}} access. Until you accept, you stay {{current}}."
+    },
+    "profile": {
+      "reader": "Reader",
+      "contentEditor": "Content editor",
+      "notebookEditor": "Notebook editor",
+      "modelReader": "Model reader"
+    },
+    "profileHint": {
+      "reader": "Reads and exports the whole notebook, and writes nothing.",
+      "contentEditor": "Also writes, moves and deletes notes and keeps files. The folders, the Guidance and the Templates stay yours to change.",
+      "notebookEditor": "Also creates, edits and deletes folders, the Guidance and the Templates. Sharing and deleting the notebook stay with you.",
+      "modelReader": "Reads this model and its versions and creates notebooks from them, and never opens the notebook itself."
     }
   },
   "notifications": {
@@ -847,7 +999,8 @@
     "aNotebook": "a notebook",
     "dismiss": "Dismiss",
     "kind": {
-      "shared": "<b>{{person}}</b> shared <b>{{notebook}}</b> with you, to read.",
+      "shared": "<b>{{person}}</b> shared <b>{{notebook}}</b> with you.",
+      "increase": "<b>{{person}}</b> offers you more access to <b>{{notebook}}</b>.",
       "revoked": "<b>{{person}}</b> stopped sharing <b>{{notebook}}</b> with you.",
       "accepted": "<b>{{person}}</b> accepted <b>{{notebook}}</b>.",
       "rejected": "<b>{{person}}</b> declined <b>{{notebook}}</b>.",
@@ -963,5 +1116,132 @@
     "updating": "Updating…",
     "notSaved": "Not saved",
     "editUnavailable": "This note mixes line endings, which the editor cannot keep byte for byte, so it opens read-only."
+  },
+  "model": {
+    "title": "Model",
+    "intro": "A notebook declared as a model is copied into new notebooks, each filled in with its own values. It is not a Template: a Template is the suggested shape of the notes of one folder; a model is a whole notebook.",
+    "notAModel": "This notebook is not a model.",
+    "declareHint": "A model creates other notebooks from it. Write {{reference}} in its notes wherever a value goes, and declare each name below.",
+    "objective": "Objective",
+    "objectiveHint": "What a notebook created from it is for.",
+    "description": "Description",
+    "audience": "Who it is for",
+    "basedOn": "Based on",
+    "basedOnHint": "Optional credit, shown with the model. Never required.",
+    "parameters": "Parameters",
+    "parametersHint": "Each value a notebook created from the model fills in. A parameter is required, or has a default, which may be empty.",
+    "noParameters": "No parameters.",
+    "parameterLegend": "Parameter {{name}}",
+    "parameterName": "Name",
+    "parameterType": "Type",
+    "parameterDescription": "What it is",
+    "parameterExample": "Example",
+    "parameterRequired": "Required",
+    "parameterDefault": "Default",
+    "listHint": "One item per line",
+    "removeParameter": "Remove",
+    "addParameter": "Add a parameter",
+    "writtenAs": "Written {{reference}} in the notes.",
+    "problem": {
+      "name": "A name starts with a letter or _, and goes on in letters, digits, _ and -.",
+      "duplicate": "Another parameter has this name.",
+      "default": "A parameter that is not required needs a default of its type."
+    },
+    "type": {
+      "text": "Text",
+      "list": "List",
+      "boolean": "Yes or no",
+      "date": "Date"
+    },
+    "defaultsTo": "defaults to “{{value}}”",
+    "forExample": "for example {{example}}",
+    "declare": "Declare as a model",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved.",
+    "versions": "Versions",
+    "changelog": "What changed since the last version",
+    "versionHint": "A version freezes the notebook as it is now. It never changes afterwards, and it counts once in the storage.",
+    "createVersion": "Create a version",
+    "creatingVersion": "Creating…",
+    "noVersions": "No version yet.",
+    "status": {
+      "running": "Being created",
+      "ready": "Ready",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "openVersion": "Open",
+    "deleteVersion": "Delete…",
+    "deleteVersionForGood": "Delete v{{number}}",
+    "versionTitle": "Version {{number}}",
+    "undeclared": "This version writes {{names}}, which no parameter declares: a notebook created from it would keep them as written.",
+    "unused": "Declared and not written anywhere: {{names}}.",
+    "contents": "What it holds",
+    "none": "None.",
+    "create": "Create a notebook from this version",
+    "creating": "Creating…",
+    "newName": "Name of the new notebook",
+    "newNameHint": "Left empty, it is the name of the model, filled in.",
+    "stillCreating": "The notebook is still being written; it appears on Home when it is.",
+    "creationFailed": "The notebook was not created. Transfers says why.",
+    "referenceExample": "name",
+    "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner.",
+    "community": "Community",
+    "publishHint": "Publishing shows the model and every version you keep to anybody, signed in or not, by the name of your account and never your e-mail; whoever signs in creates notebooks from it. You withdraw it at any time.",
+    "publishLicence": "Every distribution of a model is under CC0 1.0: anybody may reuse and republish it freely, the community included.",
+    "publish": "Publish to the community",
+    "publishNeedsVersion": "Create a version first: the community reads versions, never the notebook.",
+    "publishNeedsName": "Write your name in your profile first: the catalog shows it, never your e-mail.",
+    "publishedAs": "Published by {{author}}, in {{language}}.",
+    "publicPage": "Open its public page",
+    "withdraw": "Withdraw from the community"
+  },
+  "newNotebook": {
+    "open": "New notebook",
+    "openModel": "New notebook model",
+    "title": "New notebook",
+    "modelTitle": "New notebook model",
+    "notDeclared": "The notebook was created, and it is not a model yet. Try again to declare it.",
+    "kind": "How to start",
+    "blank": "Blank",
+    "fromModel": "From a model",
+    "name": "Name",
+    "description": "What it is for",
+    "create": "Create",
+    "creating": "Creating…",
+    "model": "Model",
+    "noModels": "No notebook of this subscription is declared as a model yet.",
+    "noVersion": "This model has no ready version yet.",
+    "fromVersion": "From version {{number}}: {{changelog}}",
+    "community": "Or find a model in the community"
+  },
+  "community": {
+    "title": "Community models",
+    "menu": "Community models",
+    "home": "Home",
+    "signIn": "Sign in",
+    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. Anybody may read them; creating a notebook from one asks you to sign in.",
+    "search": "Find",
+    "searchHint": "Words of the name, the objective, the author…",
+    "find": "Find",
+    "language": "Language",
+    "languages": {
+      "any": "Any language",
+      "pt": "Portuguese",
+      "en": "English",
+      "es": "Spanish"
+    },
+    "nothing": "No published model answers this search.",
+    "byline_one": "By {{author}} · {{language}} · updated {{date}} · {{count}} version",
+    "byline_other": "By {{author}} · {{language}} · updated {{date}} · {{count}} versions",
+    "author": "Author",
+    "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
+    "report": "Report this model",
+    "reportWhy": "What is wrong with it",
+    "sendReport": "Send the report",
+    "reported": "Thank you: the report reached the operator of the platform.",
+    "signInToReport": "Sign in to report this model",
+    "signInToCreate": "Sign in to create a notebook from this version"
   }
 }

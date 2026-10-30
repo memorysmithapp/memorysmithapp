@@ -25,6 +25,11 @@ export interface RuntimeConfig {
    * trailing slash, or `null` for a configuration published before it existed.
    */
   readonly uploadsOrigin: string | null;
+  /**
+   * Where anybody reads the community catalog, through the edge (#360), or
+   * `null` for a configuration published before it existed: the API then.
+   */
+  readonly catalogOrigin: string | null;
   /** Where the sign-in page answers, with no trailing slash. */
   readonly cognitoDomain: string;
   /** The app client of the interface. */
@@ -61,6 +66,10 @@ export function parseRuntimeConfig(raw: unknown): RuntimeConfig {
     uploadsOrigin:
       typeof fields['uploadsOrigin'] === 'string' && fields['uploadsOrigin'].trim()
         ? fields['uploadsOrigin'].trim().replace(/\/$/, '')
+        : null,
+    catalogOrigin:
+      typeof fields['catalogOrigin'] === 'string' && fields['catalogOrigin'].trim()
+        ? fields['catalogOrigin'].trim().replace(/\/$/, '')
         : null,
     cognitoDomain: text(fields, 'cognitoDomain').replace(/\/$/, ''),
     cognitoClientId: text(fields, 'cognitoClientId'),

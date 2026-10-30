@@ -36,11 +36,11 @@ tmp/
 .DS_Store
 
 # The functional suite: its report, and what a run knows while it runs
-memorysmithapp-infra/functional-report/
-memorysmithapp-infra/functional/.state/
+tools/functional-report/
+tools/functional/.state/
 
 # The agent evaluation: the transcripts, snapshots and scorecard of every round
-memorysmithapp-infra/agent-eval/runs/
+tools/agent-eval/runs/
 
 # What Claude Code writes under .claude/ that is personal: the worktrees of its
 # agents and the settings of one person

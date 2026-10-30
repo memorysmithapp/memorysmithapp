@@ -26,7 +26,7 @@
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.2';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.3';
 
 /**
  * One entry of the trail, as the archive carries it, and the revisions those
@@ -74,6 +74,69 @@ export interface DocumentFile {
   readonly bytes: string;
 }
 
+/**
+ * One Table of the notebook (#366): its schema in JSON Schema, its key by
+ * column name, and its rows by column name — or no rows, when the transfer
+ * chose to carry the schema alone. No identifier travels, as none of a file
+ * does: an import mints its own, and a note names a table by its name.
+ */
+export interface DocumentTable {
+  readonly name: string;
+  readonly description: string;
+  readonly schema: Record<string, unknown>;
+  readonly key: readonly string[] | null;
+  readonly rows?: ReadonlyArray<Record<string, unknown>>;
+}
+
+/**
+ * One Dashboard of the notebook (#368): its definition, each component naming
+ * its table by name, which is what an import finds it by. No identifier
+ * travels, and no data: a dashboard holds none.
+ */
+export interface DocumentDashboard {
+  readonly name: string;
+  readonly description: string;
+  readonly definition: Record<string, unknown>;
+}
+
+/** The tables a dashboard draws from, by name. */
+export function tablesOfDashboard(dashboard: DocumentDashboard): string[] {
+  const components = (dashboard.definition['components'] ?? []) as Array<{
+    source?: { table?: string | null };
+  }>;
+  return [
+    ...new Set(components.flatMap((each) => (each.source?.table ? [each.source.table] : []))),
+  ];
+}
+
+/**
+ * The dashboards that can go (RN-PRT-053): those whose every table goes, with
+ * its rows or with its schema alone. One that lost a table cannot be read
+ * where it lands, so it stays behind.
+ */
+export function dashboardsCarried(
+  dashboards: readonly DocumentDashboard[],
+  tables: ReadonlyArray<{ readonly name: string }>,
+): DocumentDashboard[] {
+  const kept = new Set(tables.map((table) => table.name.normalize('NFC').toLowerCase()));
+  return dashboards.filter((dashboard) => {
+    // A component whose table is gone already names none, and cannot be read anywhere.
+    const components = (dashboard.definition['components'] ?? []) as Array<{
+      source?: { table?: string | null };
+    }>;
+    if (components.some((each) => each.source && !each.source.table)) return false;
+    return tablesOfDashboard(dashboard).every((name) =>
+      kept.has(name.normalize('NFC').toLowerCase()),
+    );
+  });
+}
+
+/** What a transfer carries of one table, by name (RN-PRT-049). */
+export interface TableChoice {
+  readonly name: string;
+  readonly rows: boolean;
+}
+
 export interface NotebookDocument {
   readonly documentVersion: string;
   readonly exportedAt: string;
@@ -104,6 +167,10 @@ export interface NotebookDocument {
   readonly history?: DocumentHistory;
   /** Absent from every document written before `1.2` (RN-PRT-025). */
   readonly files?: readonly DocumentFile[];
+  /** Absent from every document written before `1.3` (#366). */
+  readonly tables?: readonly DocumentTable[];
+  /** Absent from every document written before `1.3` (#368). */
+  readonly dashboards?: readonly DocumentDashboard[];
 }
 
 /** What the Knowledge context hands over, with nothing computed. */
@@ -144,6 +211,10 @@ export interface ExportInput {
    * a larger archive (RN-PRT-025).
    */
   readonly files?: readonly DocumentFile[] | undefined;
+  /** The tables of the notebook, each with its rows (#366). */
+  readonly tables?: readonly DocumentTable[] | undefined;
+  /** The dashboards of the notebook (#368). */
+  readonly dashboards?: readonly DocumentDashboard[] | undefined;
 }
 
 /**
@@ -171,6 +242,11 @@ export function carried(
      * archive written before this carried.
      */
     files?: readonly string[] | undefined;
+    /**
+     * The tables, by name, each with or without its rows (RN-PRT-049). Absent
+     * is every table with its rows; a table not named is left out.
+     */
+    tables?: readonly TableChoice[] | undefined;
   } | null,
 ): ExportInput {
   if (!selection) return input;
@@ -210,7 +286,31 @@ export function carried(
     ...(selection.files === undefined
       ? {}
       : { files: (input.files ?? []).filter((file) => selection.files?.includes(file.name)) }),
+    ...(selection.tables === undefined
+      ? {}
+      : { tables: tablesChosen(input.tables ?? [], selection.tables) }),
   };
+}
+
+/**
+ * The tables a transfer carries (RN-PRT-049): those it names, each with its
+ * rows or with its schema alone. The choice is made at each transfer and
+ * stored on nothing; what is stored is the archive.
+ */
+export function tablesChosen(
+  tables: readonly DocumentTable[],
+  choices: readonly TableChoice[],
+): DocumentTable[] {
+  const wanted = new Map(
+    choices.map((choice) => [choice.name.normalize('NFC').toLowerCase(), choice.rows]),
+  );
+  return tables.flatMap((table) => {
+    const rows = wanted.get(table.name.normalize('NFC').toLowerCase());
+    if (rows === undefined) return [];
+    if (rows) return [table];
+    const { rows: _left, ...schema } = table;
+    return [schema];
+  });
 }
 
 /**
@@ -326,6 +426,13 @@ export function buildNotebookDocument(input: ExportInput, now: string): Notebook
     ...(input.history ? { history: input.history } : {}),
     // And the files, whenever the notebook keeps any (RN-PRT-025).
     ...(input.files && input.files.length > 0 ? { files: input.files } : {}),
+    // And the tables, whenever it has any (#366).
+    ...(input.tables && input.tables.length > 0 ? { tables: input.tables } : {}),
+    // And the dashboards whose tables travel with them (#368).
+    ...(() => {
+      const dashboards = dashboardsCarried(input.dashboards ?? [], input.tables ?? []);
+      return dashboards.length > 0 ? { dashboards } : {};
+    })(),
   };
 }
 

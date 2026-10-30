@@ -52,6 +52,9 @@ import { DynamoFolderNumbers } from '@memorysmithapp/svc-knowledge/adapters/numb
 import { DynamoNotebookRepository } from '@memorysmithapp/svc-knowledge/adapters/notebooks';
 import { S3ContentStore } from '@memorysmithapp/svc-knowledge/adapters/content';
 import { DynamoFileRepository } from '@memorysmithapp/svc-knowledge/adapters/files';
+import { DynamoTableRepository } from '@memorysmithapp/svc-knowledge/adapters/tables';
+import { SpreadsheetReader } from '@memorysmithapp/svc-knowledge/adapters/sheets';
+import { DynamoDashboardRepository } from '@memorysmithapp/svc-knowledge/adapters/dashboards';
 import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
 import type { FileTypes } from '@memorysmithapp/svc-knowledge/domain';
 import { DynamoStorageMeter } from '@memorysmithapp/svc-knowledge/adapters/storage';
@@ -64,11 +67,15 @@ import {
   DynamoLinkGraph,
   DynamoStructureProjection,
 } from '@memorysmithapp/svc-discovery/adapters/aws';
-import { DynamoTransferStore } from '@memorysmithapp/svc-portability/adapters/dynamo';
+import {
+  DynamoModelStore,
+  DynamoTransferStore,
+} from '@memorysmithapp/svc-portability/adapters/dynamo';
+import type { ModelStore } from '@memorysmithapp/svc-portability/domain/model';
 import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters/http';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
-import { KnowledgeSharedNotebooks } from './shares.js';
+import { KnowledgeSharedNotebooks, modelLicencesOf } from './shares.js';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -143,6 +150,31 @@ export function parseNotebookDocument(json: string): NotebookDocument {
 }
 
 /**
+ * The snapshot a version of a notebook model froze (#353): the archive of a
+ * kept export, unzipped and read against the published schema, or null when
+ * the object is gone or is not one.
+ */
+export async function readVersionDocument(
+  read: (key: string) => Promise<Buffer | null>,
+  unzip: (archive: Buffer) => Record<string, string>,
+  key: string,
+): Promise<NotebookDocument | null> {
+  const archive = await read(key);
+  if (!archive) return null;
+  try {
+    const json = Object.entries(unzip(archive)).find(([name]) => name.endsWith('.json'))?.[1];
+    return json === undefined ? null : parseNotebookDocument(json);
+  } catch {
+    return null;
+  }
+}
+
+/** The models of a subscription (#353), beside its transfers. */
+export function buildModels(infra: Infrastructure, context: SubscriptionContext): ModelStore {
+  return new DynamoModelStore(infra.db, infra.portabilityTable, context.subscriptionId.value);
+}
+
+/**
  * Which types a notebook accepts, from the list the product publishes (#166).
  *
  * The same shape the reserved vocabulary takes: the domain and the application
@@ -168,6 +200,8 @@ export const FILE_TYPE_CATALOGUE: FileTypes = {
   opens: (mimeType) => opensInBrowser(mimeType),
 };
 
+const SPREADSHEETS = new SpreadsheetReader();
+
 export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {
   return {
     notebooks: new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable),
@@ -184,6 +218,13 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     files: new DynamoFileRepository(context, infra.db, infra.knowledgeTable),
     fileStore: new S3FileStore(context, infra.s3, infra.contentBucket, infra.filesOrigin ?? null),
     fileTypes: FILE_TYPE_CATALOGUE,
+    // A schema and its rows (#366): the schema in the notebook's partition,
+    // the rows in one of the table's own.
+    tables: new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
+    // What reads the rows of a CSV or an Excel file the notebook keeps.
+    sheets: SPREADSHEETS,
+    // The dashboards drawn from the tables (#368).
+    dashboards: new DynamoDashboardRepository(context, infra.db, infra.knowledgeTable),
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the
     // product implements. The Notebook Context declares these names to the agent
@@ -332,6 +373,8 @@ export function buildShares(infra: Infrastructure) {
     notebooks: new KnowledgeSharedNotebooks(
       (context) => buildKnowledge(infra, context).notebooks,
       async (id) => (await platform.findById(id))?.status.name ?? null,
+      // Whether a notebook is a model, and its licence (#355, #357).
+      (context) => modelLicencesOf(buildModels(infra, context)),
     ),
   };
 }

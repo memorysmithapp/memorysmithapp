@@ -34,6 +34,9 @@ export interface SubscriptionUsageCounters {
   readonly noteBytes: number;
   readonly fileCount: number;
   readonly fileBytes: number;
+  /** The Tables and the rows they hold (#366). */
+  readonly tableCount: number;
+  readonly tableBytes: number;
   /** A Guidance and the Templates, together: the screen calls them others. */
   readonly otherCount: number;
   readonly otherBytes: number;
@@ -45,6 +48,7 @@ export interface NotebookUsageCounters {
   readonly notes: number;
   readonly folders: number;
   readonly files: number;
+  readonly tables: number;
 }
 
 export type SubscriptionCounter = keyof SubscriptionUsageCounters;
@@ -94,6 +98,8 @@ export const EMPTY_SUBSCRIPTION_USAGE: SubscriptionUsageCounters = {
   noteBytes: 0,
   fileCount: 0,
   fileBytes: 0,
+  tableCount: 0,
+  tableBytes: 0,
   otherCount: 0,
   otherBytes: 0,
 };
@@ -103,6 +109,7 @@ export const EMPTY_NOTEBOOK_USAGE: NotebookUsageCounters = {
   notes: 0,
   folders: 0,
   files: 0,
+  tables: 0,
 };
 
 const NONE: UsageChange = { subscription: {}, notebooks: [], forget: null };
@@ -236,6 +243,33 @@ export function usageChangeOf(event: UsageEvent): UsageChange {
       return {
         subscription: { fileCount: -1, fileBytes: bytes },
         notebooks: one(notebookId, { files: -1, bytes }),
+        forget: null,
+      };
+
+    // A table counts as one, and its bytes are the bytes of its rows (#366):
+    // they move with every row written, and leave at the deletion, as a
+    // file's do.
+    case 'TableCreated':
+      return {
+        subscription: { tableCount: 1 },
+        notebooks: one(notebookId, { tables: 1 }),
+        forget: null,
+      };
+
+    case 'TableDeleted':
+      return {
+        subscription: { tableCount: -1, tableBytes: bytes },
+        notebooks: one(notebookId, { tables: -1, bytes }),
+        forget: null,
+      };
+
+    case 'TableAltered':
+    case 'RowsInserted':
+    case 'RowsUpdated':
+    case 'RowsDeleted':
+      return {
+        subscription: { tableBytes: bytes },
+        notebooks: one(notebookId, { bytes }),
         forget: null,
       };
 

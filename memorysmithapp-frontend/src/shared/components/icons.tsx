@@ -182,6 +182,28 @@ export function PaperclipIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** A Table of a notebook, in its menu (#366). */
+export function TableIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18M3 15h18M9 10v10" />
+    </svg>
+  );
+}
+
+/** A Dashboard of a notebook, in its menu (#368). */
+export function DashboardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
 /** A file, on the card of the one an import read (#205). */
 export function FileIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -415,6 +437,15 @@ export function SignInIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
       <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+    </svg>
+  );
+}
+
+/** A new notebook, the action of Home (#371). */
+export function PlusIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }

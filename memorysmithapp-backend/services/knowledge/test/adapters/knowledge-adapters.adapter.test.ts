@@ -1020,6 +1020,79 @@ describe('Delivery 4 done criteria', () => {
     expect(meta.Item?.['version']).toBe(1);
   }, 120_000);
 
+  it('writes 50 notes in parallel that declare their context, while the Guidance changes (#348)', async () => {
+    // What a write adds to read its context is the notebook it already loads
+    // and the Guidance, read outside the note's transaction; the context it
+    // records is an attribute of the note's own item. So fifty creates still
+    // cancel nothing, and the META item is still never written by a note.
+    const context = contextFor();
+    const { notebook, folder } = await seedNotebook(context);
+    const { content, slots } = repositories(context);
+    const guidance = Guidance.create({
+      subscriptionId: context.subscriptionId,
+      notebookId: notebook.id,
+      ref: await content.create('# Guidance\n'),
+      by: authorshipOf(context),
+    });
+    expect((await slots.save(guidance)).ok).toBe(true);
+    const read = { guidance: guidance.revision, template: null, structure: String(1) };
+
+    const rewrite = (async () => {
+      // One repository reads and writes: the revision it read is what the
+      // write is conditioned on.
+      const writer = repositories(context).slots;
+      const held = (await writer.findGuidance(notebook.id)) as Guidance;
+      unwrap(held.replace(await content.create('# Guidance, again\n'), authorshipOf(context)));
+      return writer.save(held);
+    })();
+    const outcomes = await Promise.all(
+      Array.from({ length: 50 }, async (_unused, index) => {
+        const { notes, notebooks, slots: reader } = repositories(context);
+        const markdown = `---\nname: Contexto ${index}\n---\n\nCorpo.`;
+        const body = await content.create(markdown);
+        const note = unwrap(
+          Note.create({
+            id: NoteId.generate(),
+            subscriptionId: context.subscriptionId,
+            notebookId: notebook.id,
+            folderId: folder.id,
+            body: markdown,
+            position: NotePlacement.append([]),
+            bodyRef: body,
+            by: authorshipOf(context),
+          }),
+        );
+        const [loaded, current] = await Promise.all([
+          notebooks.findById(notebook.id, { for: 'write' }),
+          reader.findGuidance(notebook.id),
+        ]);
+        note.recordContext({
+          read,
+          current: {
+            guidance: current?.revision ?? null,
+            template: null,
+            structure: String((loaded as Notebook).version),
+          },
+        });
+        return notes.save(note);
+      }),
+    );
+    expect((await rewrite).ok).toBe(true);
+    expect(outcomes.filter((result) => !result.ok)).toHaveLength(0);
+
+    const meta = await db.send(
+      new GetCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `S#${context.subscriptionId.value}#NOTEBOOK#${notebook.id.value}`,
+          SK: 'META',
+        },
+        ConsistentRead: true,
+      }),
+    );
+    expect(meta.Item?.['version']).toBe(1);
+  }, 120_000);
+
   it('writes the Templates of 20 folders in parallel while one of them is renamed', async () => {
     const context = contextFor();
     const seeded = await seedNotebook(context);

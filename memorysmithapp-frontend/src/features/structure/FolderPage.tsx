@@ -3,11 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { canWrite, getTemplate, setNoteOrder } from '../../shared/api/source';
+import { getTemplate, setNoteOrder } from '../../shared/api/source';
 import { Segmented } from '../../shared/components/Segmented';
 import { Hint } from '../../shared/components/Hint';
-import { identifierOf, noteAddress } from '../../shared/api/note-address';
-import { ChevronRightIcon, PencilIcon } from '../../shared/components/icons';
+import {
+  folderAddress,
+  identifierOf,
+  notebookAddress,
+  noteAddress,
+} from '../../shared/api/note-address';
+import { ChevronRightIcon, PencilIcon, TrashIcon } from '../../shared/components/icons';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { FolderRows } from './FolderRows';
 import { TemplateBody } from './TemplateBody';
@@ -16,6 +21,7 @@ import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrailOf } from './trail';
 import { BarButton, NotebookBar, folderCrumbs } from './NotebookBreadcrumb';
 import { EditFolderDialog } from './EditFolder';
+import { DeleteFolderDialog } from './DeleteFolder';
 import { useNotebookId } from './route-ids';
 import { queryKeys } from '../../shared/api/query-keys';
 
@@ -46,6 +52,7 @@ export function FolderPage() {
    */
   const client = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const editButton = useRef<HTMLButtonElement>(null);
   const ordering = useMutation({
     mutationFn: (noteOrder: 'manual' | 'alphabetical') =>
@@ -63,7 +70,9 @@ export function FolderPage() {
 
   if (!folder) return <p className="status">{t('common.notFound')}</p>;
 
-  const writable = canWrite(structure.effectiveRole);
+  // The folder, its Template and its order are the notebook's structure,
+  // which only who may maintain it is offered (#350).
+  const writable = structure.permissions.maintain;
   const shownOrder = ordering.isPending
     ? (ordering.variables ?? folder.noteOrder)
     : folder.noteOrder;
@@ -89,6 +98,14 @@ export function FolderPage() {
             label={t('folderEdit.short')}
             title={t('folderEdit.open')}
             onClick={() => setEditOpen(true)}
+          />
+        ) : null}
+        {writable ? (
+          <BarButton
+            icon={<TrashIcon />}
+            label={t('folderDelete.short')}
+            title={t('folderDelete.open')}
+            onClick={() => setDeleteOpen(true)}
           />
         ) : null}
       </NotebookBar>
@@ -177,6 +194,21 @@ export function FolderPage() {
                 <li key={note.id}>
                   <Link to={noteAddress(notebookId, note.id)} className="note-row">
                     {note.name ?? t('note.unnamed')}
+                    {/* Written against a context that had already changed
+                        (RN-KNW-062): a mark to review it, never a lock. */}
+                    {note.staleContext && note.staleContext.length > 0 ? (
+                      <span
+                        className="state-chip note-row-stale"
+                        data-state="waiting"
+                        title={t('folder.staleContextHint', {
+                          parts: note.staleContext
+                            .map((part) => t(`editor.contextPart.${part}`))
+                            .join(', '),
+                        })}
+                      >
+                        {t('folder.staleContext')}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               ))}
@@ -192,6 +224,18 @@ export function FolderPage() {
         notebookId={notebookId}
         folder={folder}
         returnFocus={editButton}
+      />
+      <DeleteFolderDialog
+        key={deleteOpen ? 'delete-open' : 'delete-closed'}
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        notebookId={notebookId}
+        folder={folder}
+        parentAddress={
+          chain.length > 1
+            ? folderAddress(notebookId, chain[chain.length - 2]!.id)
+            : notebookAddress(notebookId)
+        }
       />
     </>
   );

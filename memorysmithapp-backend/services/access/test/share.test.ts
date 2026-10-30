@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Authorship, NotebookId, SubscriptionId, UserId } from '@memorysmithapp/kernel';
-import { Share } from '../src/domain/share/Share.js';
+import { Share, type ShareProfile } from '../src/domain/share/Share.js';
 import { Email } from '../src/domain/values.js';
 
 function value<T>(result: { ok: true; value: T } | { ok: false }): T {
@@ -17,7 +17,7 @@ function value<T>(result: { ok: true; value: T } | { ok: false }): T {
 const OWNER = value(UserId.create('user-owner'));
 const GRANTEE = value(UserId.create('user-grantee'));
 
-function offered(access: 'read' | 'read-write' = 'read') {
+function offered(profile: ShareProfile = 'reader') {
   return Share.offer(
     {
       notebookId: value(NotebookId.create('01JBQ2X0000000000000000001')),
@@ -26,16 +26,17 @@ function offered(access: 'read' | 'read-write' = 'read') {
       ownerEmail: value(Email.create('owner@example.com')),
       granteeUserId: GRANTEE,
       granteeEmail: value(Email.create('grantee@example.com')),
-      access,
+      profile,
     },
     Authorship.byHuman(OWNER),
   );
 }
 
 describe('a share of a notebook', () => {
-  it('is offered with read access only, and waits for an answer', () => {
-    expect(offered('read-write').ok).toBe(false);
+  it('is offered with the profile its owner chose, and waits for an answer', () => {
+    expect(value(offered('content-editor')).profile).toBe('content-editor');
     const share = value(offered());
+    expect(share.profile).toBe('reader');
     expect(share.state).toBe('pending');
     expect(share.isOpen).toBe(false);
     expect(share.standsInTheWay).toBe(true);
@@ -94,10 +95,82 @@ describe('a share of a notebook', () => {
         ownerEmail: value(Email.create('owner@example.com')),
         granteeUserId: OWNER,
         granteeEmail: value(Email.create('owner@example.com')),
-        access: 'read',
+        profile: 'reader',
       },
       Authorship.byHuman(OWNER),
     );
     expect(own.ok).toBe(false);
+  });
+});
+
+describe('the profile of a share (#347)', () => {
+  const owner = Authorship.byHuman(OWNER);
+  const grantee = Authorship.byHuman(GRANTEE);
+
+  function accepted(profile: ShareProfile): Share {
+    const share = value(offered(profile));
+    share.accept(grantee);
+    share.pullEvents();
+    return share;
+  }
+
+  it('changes the offer itself while the grantee has not answered', () => {
+    const share = value(offered());
+    share.pullEvents();
+    expect(share.changeProfile('notebook-editor', owner).ok).toBe(true);
+    expect(share.profile).toBe('notebook-editor');
+    expect(share.pendingProfile).toBeNull();
+    expect(share.pullEvents().map((event) => event.payload['pending'])).toEqual([false]);
+  });
+
+  it('holds an increase until the grantee accepts it, granting nothing more meanwhile', () => {
+    const share = accepted('reader');
+    expect(share.changeProfile('content-editor', owner).ok).toBe(true);
+    expect(share.profile).toBe('reader');
+    expect(share.pendingProfile).toBe('content-editor');
+    expect(share.pendingSince).not.toBeNull();
+
+    expect(share.answerIncrease(true, grantee).ok).toBe(true);
+    expect(share.profile).toBe('content-editor');
+    expect(share.pendingProfile).toBeNull();
+    expect(share.pullEvents().map((event) => event.type)).toEqual([
+      'NotebookShareProfileChanged',
+      'NotebookShareIncreaseAccepted',
+    ]);
+  });
+
+  it('keeps the accepted profile when the grantee rejects an increase', () => {
+    const share = accepted('content-editor');
+    share.changeProfile('notebook-editor', owner);
+    expect(share.answerIncrease(false, grantee).ok).toBe(true);
+    expect(share.profile).toBe('content-editor');
+    expect(share.pendingProfile).toBeNull();
+    expect(share.answerIncrease(true, grantee).ok).toBe(false);
+  });
+
+  it('reduces at once, with no consent, and drops an increase waiting', () => {
+    const share = accepted('notebook-editor');
+    expect(share.changeProfile('reader', owner).ok).toBe(true);
+    expect(share.profile).toBe('reader');
+
+    const waiting = accepted('content-editor');
+    waiting.changeProfile('notebook-editor', owner);
+    waiting.changeProfile('reader', owner);
+    expect(waiting.profile).toBe('reader');
+    expect(waiting.pendingProfile).toBeNull();
+  });
+
+  it('withdraws an increase when the owner asks for the profile already held', () => {
+    const share = accepted('reader');
+    share.changeProfile('notebook-editor', owner);
+    share.changeProfile('reader', owner);
+    expect(share.pendingProfile).toBeNull();
+    expect(share.profile).toBe('reader');
+  });
+
+  it('changes nothing on a share that closed', () => {
+    const share = accepted('reader');
+    share.leave(false, grantee);
+    expect(share.changeProfile('content-editor', owner).ok).toBe(false);
   });
 });

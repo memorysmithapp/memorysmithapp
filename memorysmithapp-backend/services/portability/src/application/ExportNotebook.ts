@@ -30,8 +30,11 @@ import {
   type DocumentHistory,
   type ExportInput,
   type NotebookDocument,
+  type TableChoice,
+  tablesChosen,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { ImportSelection } from './ImportNotebook.js';
+import { modelVersionPrefixOf } from '../domain/NotebookModel.js';
 
 /** What the Knowledge context hands over for an export. */
 export interface ExportSource {
@@ -123,18 +126,35 @@ export class ExportNotebook {
      * export (RN-SUB-021).
      */
     selection?: ImportSelection | null | undefined;
+    /** What the archive carries of each table, by name (#366, RN-PRT-049). */
+    tables?: readonly TableChoice[] | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
+    /**
+     * A version of a notebook model (#353): the whole notebook WITHOUT its
+     * history, which a notebook created from the model never carries, kept
+     * under the prefix of the versions of that model (#356).
+     */
+    modelVersion?: boolean | undefined;
   }): Promise<Result<StoredArchive, DomainError>> {
     const source = await this.source.load(input.notebookId, input.report);
     if (!source) return err(DomainError.notFound('Notebook not found'));
 
-    const wanted = carried(source, input.selection ?? null);
+    const selected = carried(source, input.selection ?? null);
+    // The tables are chosen apart from the rest, and a choice made either way
+    // narrows them (#366, RN-PRT-049).
+    const wanted = input.tables
+      ? { ...selected, tables: tablesChosen(selected.tables ?? [], input.tables) }
+      : selected;
     /**
      * The WHOLE notebook carries its history: a selection of nothing is the
      * whole notebook, and the whole notebook is the context, the notes and the
      * history (RN-PRT-024). A selection says so item by item.
      */
-    const wantsHistory = input.selection ? (input.selection.history ?? false) : true;
+    const wantsHistory = input.modelVersion
+      ? false
+      : input.selection
+        ? (input.selection.history ?? false)
+        : true;
     /**
      * And it carries the history OF WHAT IT CARRIES. Without a selection that
      * is everything, entries about notes that were deleted included — the one
@@ -160,7 +180,9 @@ export class ExportNotebook {
     );
 
     // The archive lives under the same subscription prefix as everything else.
-    const key = `s/${this.subscriptionId}/exports/${ulid()}.notebook`;
+    const key = input.modelVersion
+      ? `${modelVersionPrefixOf(this.subscriptionId)}${ulid()}.notebook`
+      : `s/${this.subscriptionId}/exports/${ulid()}.notebook`;
     const { versionId } = await this.archives.put(key, archive);
 
     return ok({

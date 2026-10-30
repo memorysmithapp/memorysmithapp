@@ -80,6 +80,11 @@ export interface SubscriptionUsage {
   readonly noteBytes: number;
   readonly files: number;
   readonly fileBytes: number;
+  /** The live Tables and the bytes of the rows of their generation (#366). */
+  readonly tables: number;
+  readonly tableBytes: number;
+  /** What each live table holds, which is what its `TSTAT` is rewritten to. */
+  readonly tableStats: ReadonlyArray<{ tableId: string; rows: number; bytes: number }>;
   readonly otherBytes: number;
   readonly folders: number;
   readonly notebooks: number;
@@ -110,6 +115,10 @@ export interface OrphanFiles {
 /** `S#{subscriptionId}#NOTEBOOK#{notebookId}` and `S#{subscriptionId}#NOTEBOOKS`. */
 const SUBSCRIPTION_OF_KEY = /^S#([^#]+)#/;
 const NOTEBOOK_OF_KEY = /^S#[^#]+#NOTEBOOK#([^#]+)$/;
+/** `S#{subscriptionId}#TABLE#{tableId}`, the partition of the rows of a table. */
+const TABLE_OF_KEY = /^S#[^#]+#TABLE#([^#]+)$/;
+/** `ROW#{generation}#{rowId}`. */
+const GENERATION_OF_ROW = /^ROW#(\d+)#/;
 
 /** Reads `bytes` off a serialized ContentRef, tolerating a missing pointer. */
 function bytesOf(ref: unknown): number {
@@ -128,8 +137,15 @@ interface Tally {
   templates: number;
   folders: number;
   notebooks: Set<string>;
-  byNotebook: Map<string, { bytes: number; notes: number; folders: number; files: number }>;
+  byNotebook: Map<
+    string,
+    { bytes: number; notes: number; folders: number; files: number; tables: number }
+  >;
   lines: Set<string>;
+  /** Each table by its identifier, as its schema item says, deleted or not. */
+  tables: Map<string, { notebookId: string; generation: number; deleted: boolean }>;
+  /** The rows found, by table and generation: which one counts is known only at the end. */
+  rows: Map<string, { rows: number; bytes: number }>;
   /**
    * The live files of each notebook, apart: whether their notebook still
    * exists is known only once the whole table was read.
@@ -152,6 +168,8 @@ function emptyTally(): Tally {
     notebooks: new Set(),
     byNotebook: new Map(),
     lines: new Set(),
+    tables: new Map(),
+    rows: new Map(),
     filesByNotebook: new Map(),
     revisions: null,
   };
@@ -177,7 +195,7 @@ export class StorageRecount {
         new ScanCommand({
           TableName: this.deps.tableName,
           ProjectionExpression:
-            'PK, SK, entity, bodyRef, contentRef, deletedAt, notebookId, revisions',
+            'PK, SK, entity, bodyRef, contentRef, deletedAt, notebookId, revisions, tableId, generation, v',
           ...(startKey ? { ExclusiveStartKey: startKey } : {}),
         }),
       );
@@ -189,7 +207,13 @@ export class StorageRecount {
 
         const current = totals.get(subscriptionId) ?? emptyTally();
         const notebookId = NOTEBOOK_OF_KEY.exec(key)?.[1] ?? '';
-        const line = (): { bytes: number; notes: number; folders: number; files: number } => {
+        const line = (): {
+          bytes: number;
+          notes: number;
+          folders: number;
+          files: number;
+          tables: number;
+        } => {
           const found = current.byNotebook.get(notebookId) ?? { ...EMPTY_NOTEBOOK_USAGE };
           current.byNotebook.set(notebookId, found);
           return found;
@@ -243,6 +267,27 @@ export class StorageRecount {
             if (notebookId) line().bytes += bytes;
             break;
           }
+          // A table and its rows (#366): only the rows of the generation the
+          // table names count, and only once the table is known, so both are
+          // gathered and added at the end.
+          case 'TABLE':
+            current.tables.set(String(item['tableId'] ?? ''), {
+              notebookId,
+              generation: Number(item['generation'] ?? 1),
+              deleted: Boolean(item['deletedAt']),
+            });
+            break;
+          case 'ROW': {
+            const tableId = TABLE_OF_KEY.exec(key)?.[1];
+            const generation = GENERATION_OF_ROW.exec(String(item['SK'] ?? ''))?.[1];
+            if (!tableId || generation === undefined) break;
+            const at = `${tableId}#${Number(generation)}`;
+            const held = current.rows.get(at) ?? { rows: 0, bytes: 0 };
+            held.rows += 1;
+            held.bytes += new TextEncoder().encode(String(item['v'] ?? '{}')).byteLength;
+            current.rows.set(at, held);
+            break;
+          }
           case 'USAGE': {
             const held = Number(item['revisions']);
             current.revisions = Number.isFinite(held) && held > 0 ? held : null;
@@ -286,6 +331,21 @@ export class StorageRecount {
             line.files += files.files;
           }
         }
+        const tableStats: Array<{ tableId: string; rows: number; bytes: number }> = [];
+        let tables = 0;
+        let tableBytes = 0;
+        for (const [tableId, table] of t.tables) {
+          if (table.deleted || !t.notebooks.has(table.notebookId)) continue;
+          const held = t.rows.get(`${tableId}#${table.generation}`) ?? { rows: 0, bytes: 0 };
+          tables += 1;
+          tableBytes += held.bytes;
+          tableStats.push({ tableId, ...held });
+          const line = t.byNotebook.get(table.notebookId);
+          if (line) {
+            line.bytes += held.bytes;
+            line.tables += 1;
+          }
+        }
         // A line for a notebook whose items are all gone is left over, and a
         // line that exists only because of an item outside any notebook is
         // not a notebook at all.
@@ -294,13 +354,16 @@ export class StorageRecount {
         );
         return {
           subscriptionId,
-          storedBytes: t.noteBytes + t.fileBytes + t.otherBytes,
+          storedBytes: t.noteBytes + t.fileBytes + tableBytes + t.otherBytes,
           notes: t.notes,
           guidances: t.guidances,
           templates: t.templates,
           noteBytes: t.noteBytes,
           files: t.files,
           fileBytes: t.fileBytes,
+          tables,
+          tableBytes,
+          tableStats,
           otherBytes: t.otherBytes,
           folders: t.folders,
           notebooks: t.notebooks.size,
@@ -346,6 +409,8 @@ export class StorageRecount {
             noteBytes: each.noteBytes,
             fileCount: each.files,
             fileBytes: each.fileBytes,
+            tableCount: each.tables,
+            tableBytes: each.tableBytes,
             otherCount: each.guidances + each.templates,
             otherBytes: each.otherBytes,
             ...(revisions === null ? {} : { revisions }),
@@ -365,6 +430,22 @@ export class StorageRecount {
               entity: 'NBUSAGE',
               notebookId,
               ...line,
+              updatedAt: now,
+              recountedAt: now,
+            },
+          }),
+        );
+      }
+      for (const stat of each.tableStats) {
+        await this.deps.db.send(
+          new PutCommand({
+            TableName: this.deps.tableName,
+            Item: {
+              PK: `S#${each.subscriptionId}#TABLE#${stat.tableId}`,
+              SK: 'TSTAT',
+              entity: 'TSTAT',
+              rows: stat.rows,
+              bytes: stat.bytes,
               updatedAt: now,
               recountedAt: now,
             },

@@ -6,7 +6,7 @@ Every statement here was checked against the code; where a guarantee does not fu
 
 ## 1. Overview
 
-MemorySmith is three projects in one pnpm monorepo, deployed together to one AWS account in `us-east-1`, as two environments: production on `memorysmith.app` and staging on `stg.memorysmith.app`.
+MemorySmith is three projects in one pnpm monorepo, with the tools that operate and evaluate them, deployed together to one AWS account in `us-east-1`, as two environments: production on `memorysmith.app` and staging on `stg.memorysmith.app`.
 
 ```
  person ── memorysmith.app (SPA, CloudFront) ──► api.<zone> ── CoreApi Lambda (modular monolith)
@@ -32,9 +32,9 @@ MemorySmith is three projects in one pnpm monorepo, deployed together to one AWS
 | `discovery` | Projections of the knowledge events: the link graph, pending links, aliases, facets and the text search. It owns no source data |
 | `audit` | The append-only trail of every event, and the history reads |
 | `agent` | The remote MCP server, the OAuth resource server and the CIMD proxy |
-| `portability` | Export and import of a notebook, transfers, uploads in parts, prints and previews |
+| `portability` | Export and import of a notebook, transfers, uploads in parts, prints and previews, notebook models and their versions |
 
-Every context except `agent` runs inside one Lambda, *CoreApi*, composed in `memorysmithapp-backend/apps/core-monolith/src/composition-root.ts`; the other entry points of that app (`*.handler.ts`) are the relays, the purge, the transfer worker, the print renderer and the link reprojection. `agent` is deployed on its own and calls `api.<zone>` over HTTPS with the user's bearer token, as any client does ([ADR-005](#adr-005-a-modular-monolith-with-the-audit-consumer-and-the-agent-apart)).
+Every context except `agent` runs inside one Lambda, *CoreApi*, composed in `memorysmithapp-backend/apps/core-monolith/src/composition-root.ts`; the other entry points of that app (`*.handler.ts`) are the relays, the purge, the transfer worker, the print renderer, the link reprojection and the public route of the community catalog. `agent` is deployed on its own and calls `api.<zone>` over HTTPS with the user's bearer token, as any client does ([ADR-005](#adr-005-a-modular-monolith-with-the-audit-consumer-and-the-agent-apart)).
 
 Contexts never import each other. A write and its event commit in one DynamoDB transaction, a relay on the table's stream publishes the event, and every consumer is idempotent ([ADR-006](#adr-006-a-transactional-outbox-drained-by-dynamodb-streams)). The event types and their envelope are Zod schemas in `memorysmithapp-backend/packages/contracts/src/events.ts`.
 
@@ -75,16 +75,23 @@ memorysmithapp/
 ├── memorysmithapp-frontend/
 │   └── src/                       app/ (router, layout), features/ (one folder per screen), shared/
 │                                  (api client, components, config), i18n/ (en_US, pt_BR)
-└── memorysmithapp-infra/
-    ├── bin/app.ts, config/, cdk.json   the CDK app and the two environments
-    ├── stacks/, constructs/       every resource of the three projects
-    ├── commands/                  deliver, smoke, release, onboard, maintenance, destroy-staging
+├── memorysmithapp-infra/
+│   ├── bin/app.ts, config/, cdk.json   the CDK app and the two environments
+│   ├── installation/              what an environment is and how it is named, and the variables of
+│   │                              another installation; read by the app and by the commands
+│   ├── stacks/, constructs/       every resource of the three projects
+│   ├── commands/                  install-account, deliver, smoke, release, destroy-staging, DNS and
+│   │                              e-mail readiness, cost tags, the e-mail lockup
+│   └── test/                      synth assertions and the tests of the commands
+└── tools/                         `pnpm tools`: what operates and evaluates the product from outside
+    ├── cli.ts, cli/               the grouped commands and their help
+    ├── commands/                  onboard, and the product-data maintenance jobs
     ├── functional/                Playwright suites against staging: api, mcp, connector, web, journeys
     ├── agent-eval/                the blind evaluation of agents writing through the connector
-    └── test/                      synth assertions and the tests of the commands
+    └── test/                      the tests of the tools
 ```
 
-**The direction between the projects is single, and `.dependency-cruiser.cjs` checks it in CI:** `memorysmithapp-infra` references the artifacts of the other two; `memorysmithapp-backend` knows nothing of either; `memorysmithapp-frontend` imports `@memorysmithapp/contracts` and calls the API at runtime. Infrastructure code never lives in the backend, and a stack is never defined inside a service. A file goes where what it *is* belongs, not what it is *for*: a construct for the audit table is in `memorysmithapp-infra/constructs/`.
+**The direction between the projects is single, and `.dependency-cruiser.cjs` checks it in CI:** `memorysmithapp-infra` references the artifacts of the other two; `memorysmithapp-backend` knows nothing of either; `tools` reaches the product through its surfaces, imports only `@memorysmithapp/contracts`, reads the environments in `memorysmithapp-infra/cdk.json`, or the `.env.<environment>` of an installation, as data and runs an entrypoint of the core as a process, by its path, and nothing imports it; `memorysmithapp-frontend` imports `@memorysmithapp/contracts` and calls the API at runtime. Infrastructure code never lives in the backend, and a stack is never defined inside a service. A file goes where what it *is* belongs, not what it is *for*: a construct for the audit table is in `memorysmithapp-infra/constructs/`.
 
 Deployed names keep the identifier `memorysmith`: stacks are `Memorysmith{Production|Staging}{Name}` and physical resources `{name}-{environment}`, such as `mv-knowledge-production`.
 
@@ -96,11 +103,15 @@ Breaking one of these is not a defect to fix later; it is a rewrite. When a task
 
 Every DynamoDB key starts with `S#{subscriptionId}` and every S3 key with `s/{subscriptionId}/`. Repositories take a `SubscriptionContext` in their constructor, and the key builders (`services/knowledge/src/adapters/outbound/dynamodb/keys.ts`) accept only a `SubscriptionId`. On S3, IAM backs it: the API and the workers are granted only `s/*/…` prefixes (`memorysmithapp-infra/stacks/api.stack.ts`). There is no IAM condition on DynamoDB keys; the type is the mechanism.
 
-The only keys outside a subscription are the **links of a person** (`USER#{user}` with `SUB#{subscription}` and `SHARED#{notebook}`, in `mv-access`) and the **platform queue** (`GSI2PK = PLATFORM#{status}`). There is no third. A share its grantee accepted is the one door through the boundary: `SubscriptionContext.fromAcceptedShare`.
+The only keys outside a subscription are the **links of a person** (`USER#{user}` with `SUB#{subscription}` and `SHARED#{notebook}`, in `mv-access`), the **platform queue** (`GSI2PK = PLATFORM#{status}`) and the **community catalog** in `mv-portability`: an entry per published model under `PK = CATALOG`, and the reports for the operator under `PK = CATALOG#REPORTS` (`services/portability/src/adapters/catalog.ts`, [ADR-022](#adr-022-the-community-catalog-reads-the-authors-subscription-through-its-entry)). There is no fourth. A share its grantee accepted is the one door through the boundary: `SubscriptionContext.fromAcceptedShare`. Both items of a share carry its profile and an increase waiting for acceptance, and the core reads them on every request that goes through it, uncached, so a reduction or a revocation applies from the grantee's next request; the request carries the share bound to its notebook, never as a role. A file a grantee sends in parts is assembled in the grantee's own subscription, counted there in transit, and the owner's file store adopts it into the owner's: it accepts an upload key of the person writing through the share, and of nobody else (`S3FileStore`).
 
 ### INV-02 The subscription comes from the token, never from the request
 
 `SubscriptionContext` has a private constructor and is built from the token claims (`fromClaims`) or from a stored accepted share (`packages/kernel/src/subscription-context.ts`). The claim `subscription_id` is written by the Cognito pre-token generation trigger from the user's default link, and read only in `authenticate` (`services/access/src/adapters/inbound/http/authentication.ts`); handlers receive it as `request.subscription`. Workers take it from the event envelope the core wrote.
+
+A share opens the owner's subscription in two places only, both in `apps/core-monolith/src/shares.ts`, each from the share stored under the person of the token: `openShared` on the path of a notebook, which a model reader's share never opens, and `modelSourcesOf`, which reads the model of a shared notebook and its versions in the owner's subscription while the notebook created from one is written in the caller's own.
+
+One route resolves a subscription with no token at all, and only read-only: the public route of the community catalog (`GET /public/catalog…`, `apps/core-monolith/src/catalog.handler.ts`) takes a public identifier from the path, reads the catalog entry it names, and reads in the subscription that entry names its status and the snapshots of the retained versions, and nothing else; its function is granted exactly that by IAM ([ADR-022](#adr-022-the-community-catalog-reads-the-authors-subscription-through-its-entry)). A notebook created from a published version is written in the subscription of the caller's token.
 
 Two routes read a subscription id from the request, and neither acts in it on the request's word: switching the default subscription checks the id against the caller's own links, and the platform routes are for a platform administrator only.
 
@@ -110,17 +121,19 @@ Two routes read a subscription id from the request, and neither acts in it on th
 
 ### INV-04 The S3 key is opaque
 
-A note, a Guidance or a Template is stored at `s/{subscriptionId}/c/{contentId}.md`, and a kept file at `s/{subscriptionId}/f/{contentId}` (`S3ContentStore.ts`, `S3FileStore.ts`). The key holds no notebook, folder, name or role, and the object metadata only immutable facts. Renaming, moving and reordering write DynamoDB only and never a byte to S3 ([ADR-002](#adr-002-the-s3-key-is-opaque-and-never-shared)).
+A note, a Guidance or a Template is stored at `s/{subscriptionId}/c/{contentId}.md`, and a kept file at `s/{subscriptionId}/f/{contentId}` (`S3ContentStore.ts`, `S3FileStore.ts`). A kept export is an archive at `s/{subscriptionId}/exports/{id}.notebook`, and a version of a notebook model, a kept export of the model notebook without history, at `s/{subscriptionId}/models/{id}.notebook`, apart so that what reads versions can be granted them alone; the record of the export, in `mv-portability` under its owner, says which model and number it is. The key holds no notebook, folder, name or role, and the object metadata only immutable facts. Renaming, moving and reordering write DynamoDB only and never a byte to S3 ([ADR-002](#adr-002-the-s3-key-is-opaque-and-never-shared)).
 
 ### INV-05 The backend reads only the notation the specification declares
 
 The backend never interprets what a note means: frontmatter and convention belong to the Guidance and the Template. It reads the notation `@memorysmithapp/markdown-spec` declares, and only in these places:
 
 - **Discovery**, which extracts links (`LinkExtractor`), facets (`FacetExtractor`) and aliases (`Aliases`), and keeps a text portrait of each note for search (`application/projections.ts`);
+- **`tableReferences`** in the kernel, which reads the `table` key of a `table` block and nothing else of it (§5.9), so a table can say which notes show it; a reference is kept beside the graph, in `TREF#{noteId}`, and is never an edge;
 - **`noteName`** in the kernel, which reads one key of the frontmatter, `name`, to name a note (RN-KNW-035), called by Knowledge and by the import;
+- **`parameterReferences`** in the kernel, which reads the parameter references of a model (§7.14) and where each stands, and never what a parameter is; Discovery asks it which wikilinks name no note yet and which attributes are not given, and the creation of a notebook from a model asks it where each value goes. It reads code where `codeRanges`, also in the kernel, says code is, the one function `LinkExtractor` uses too;
 - **the notices of the connector**, which hand an agent the renderer's own `diagnose` of what it wrote and decide nothing (`services/agent/src/mcp/notices.ts`, RN-AGT-052).
 
-The extractors pass the conformance suite of the published specification on every build (`services/discovery/test/notation-conformance.test.ts`).
+The extractors and the reader of parameters pass the conformance suite of the published specification on every build (`services/discovery/test/notation-conformance.test.ts`).
 
 ### INV-06 The audit trail is append-only
 
@@ -140,7 +153,7 @@ A refusal answers `404` unless it reveals nothing, because a `403` confirms that
 
 ### INV-10 A note transaction never writes the notebook META
 
-A note's `TransactWriteItems` holds the `NOTE` item under its version lock, its outbox event and, when a name moves, the name guard; never the notebook `META`, never even a `ConditionCheck` on a `FOLDER` (`DynamoNoteRepository.ts`). Counters are kept by the relay, outside the transaction ([ADR-003](#adr-003-no-note-transaction-includes-an-item-another-one-includes), [ADR-010](#adr-010-counters-and-storage-usage-are-kept-by-the-relay)).
+A note's `TransactWriteItems` holds the `NOTE` item under its version lock, its outbox event and, when a name moves, the name guard; never the notebook `META`, never even a `ConditionCheck` on a `FOLDER` (`DynamoNoteRepository.ts`). The context a note write declares it read (RN-KNW-061) is compared outside that transaction, against the `META` already loaded to authorize the write and the `GUIDANCE` and `FTPL#` items read for it, and what it found is an attribute of the `NOTE` item (`contextRead`, `contextStale`): a notice, never a condition of the write. Counters are kept by the relay, outside the transaction ([ADR-003](#adr-003-no-note-transaction-includes-an-item-another-one-includes), [ADR-010](#adr-010-counters-and-storage-usage-are-kept-by-the-relay)).
 
 ### INV-11 The subscription identifier is perpetual
 
@@ -152,7 +165,7 @@ The platform routes are reserved to the Cognito group `platform-admin` (`require
 
 ### INV-13 The per-notebook ceiling only lowers a role
 
-The effective role is the owner's when the requester owns the subscription, and otherwise `Role.min(subscription role, notebook ceiling)`; a notebook with no ceiling for a member limits nothing (`services/knowledge/src/domain/access/AuthorizationPolicy.ts`, `packages/kernel/src/role.ts`).
+The effective role is the owner's when the requester owns the subscription, and otherwise `Role.min(subscription role, notebook ceiling)`; a notebook with no ceiling for a member limits nothing (`services/knowledge/src/domain/access/AuthorizationPolicy.ts`, `packages/kernel/src/role.ts`). Every Knowledge use case authorizes one action, pinned by a test per use case: `read`, `write-content` (notes, their order and moves, the numbers a folder issues, kept files), `maintain` (folders, Guidance, Templates) or `administer`. A member holds both writing actions or neither, by role; a share from another subscription reaches the notebook with the VIEWER role and a `share` bound to that one notebook, whose profile decides the actions, so a share never reads as a role and reaches no other notebook of its owner, which answers `404`.
 
 ### INV-14 The version has one home
 
@@ -226,19 +239,30 @@ Once per account, with the owner supervising each step:
 4. On GitHub: the environments `production` and `staging`, the two role variables, and `ALARM_EMAIL` in `production`.
 5. The first delivery of production, then confirm the subscription of the SNS topic `memorysmith-alarms-production` from the e-mail AWS sends.
 6. `pnpm -C memorysmithapp-infra activate-cost-tags`, once.
-7. `pnpm -C memorysmithapp-infra onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator, with no subscription; run it again for the account the product is used with, giving the administrator's credentials when it asks.
+7. `pnpm tools onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator, with no subscription; run it again for the account the product is used with, giving the administrator's credentials when it asks.
 
 ### 5.4 Commands
 
-Run from `memorysmithapp-infra` with `pnpm <command>`, credentials from the default AWS chain (`AWS_PROFILE`). Each refuses an account other than the environment's.
+Credentials from the default AWS chain (`AWS_PROFILE`); each refuses an account other than the environment's.
+
+What delivers and tears down the infrastructure runs from `memorysmithapp-infra` with `pnpm <command>`:
+
+| Command | Does |
+|---|---|
+| `install-account --environment <name> [--check]` | Prepares an account for an [installation of somebody else](#56-another-installation) |
+| `deliver --environment <name>` | The delivery of [§5.2](#52-delivery) |
+| `destroy-staging [--preview]` | Deletes the stacks of staging in reverse order and purges what they retained; leaves the zone and the delivery roles |
+
+What operates and evaluates the product runs from the root with `pnpm tools <command>`, and `pnpm tools --help` lists it:
 
 | Command | Does |
 |---|---|
 | `onboard` | Creates or hands over an account and its subscription, with its quota and status; the first account of a pool gets the platform and no subscription |
-| `cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
-| `recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
-| `reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
-| `destroy-staging [--preview]` | Deletes the stacks of staging in reverse order and purges what they retained; leaves the zone and the delivery roles |
+| `data cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
+| `data recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
+| `data purge-deleted-files [--apply]` | Hands the purge every file deleted on its own that it never heard of |
+| `data reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
+| `data migrate-slots [--apply]` | Rebuilds the Guidance and the Templates written before they had a life of their own |
 | `functional` | The Playwright suites against staging; never production |
 | `agent-eval` | A round of the agent evaluation against staging; never production |
 
@@ -253,6 +277,24 @@ When a delivery turns tracing on, every function is traced through X-Ray (`Servi
 The *Observability* stack holds no state and is deployed last: it finds the functions, queues and HTTP APIs the other stacks declared in their construct trees. Those stacks export every value a dashboard reads whether the dashboards are drawn or not, so a delivery that turns them off never deletes an export the *Observability* stack still imports. When a delivery turns them on, in either environment, it draws three dashboards, `memorysmith-usage`, `memorysmith-flows` and `memorysmith-health`, which read people from the operation lines through Logs Insights (`count_distinct(userId)`), so no metric is ever kept per person or per subscription. The one trend that has to outlive the month of logs is counted once a day, in both environments, by `ActivePeople` (`apps/core-monolith/src/active-people.handler.ts`): the distinct people of a day, a week and a month in the lines of the core API and the connector, written as `ActivePeopleDaily`, `ActivePeopleWeekly` and `ActivePeopleMonthly` in the namespace `MemorySmith`, which CloudWatch keeps fifteen months.
 
 When a delivery turns the alarms on, every function has an alarm on errors, the three a person or an agent waits on (`CoreApi`, `AgentFunction`, `PreTokenGeneration`) one on p99 duration, the account one on Lambda throttles (no function reserves concurrency, so a throttle is the account at its limit), and every dead-letter queue one on its depth, all notifying the SNS topic `memorysmith-alarms-<environment>`. The topic of production exists even while its alarms are off, so its confirmed subscription survives. Alarms are created only through `mandatoryAlarm`, and an aspect fails the synthesis of an alarm without an action, or of any alarm in a delivery without them (`memorysmithapp-infra/constructs/alarms.ts`). Two budgets, declared in the *Network* stack of production: the account at US$ 20 a month and staging, read through `app:environment`, at US$ 3.
+
+### 5.6 Another installation
+
+Anybody may run the product in their own AWS account, with `INSTALLATION` naming it. Every value comes from variables, from `memorysmithapp-infra/.env.<environment>` on the command path and from the variables of the GitHub or GitLab environment on a fork; `memorysmithapp-infra/.env.example` documents each name. `cdk.json` keeps only the project's own installation and is not read, so a name left out is refused and never falls back to `memorysmith.app`. The installation joins every name AWS keeps unique across a region (`<base>-<installation>-<environment>`, `Memorysmith<Installation><Environment><Stack>`), so it can share an account with another one; the project's own keeps the names it has.
+
+`pnpm -C memorysmithapp-infra install-account --environment <name>` checks the account of the credentials, the services of the region, the hosted zone and its delegation and the CDK bootstrap before it changes anything, and stops there with `--check`. Then it bootstraps what has none, us-east-1 too when the region is another, and on a fork creates the OIDC provider of the account if there is none and deploys the delivery role of the environment. A bootstrap it cannot use is reported and left alone. Every step asks first, so running it again reuses what exists and goes on from a failure. It ends listing what is left for a person: the environment and variables of the pipeline, the confirmation of the SNS subscription, `activate-cost-tags` and `pnpm tools onboard`.
+
+Three paths deliver it, the organization's choice: a fork on GitHub, through the workflows of the repository; a fork on GitLab, through `.gitlab-ci.yml`; or `deliver`, from a clone of a release, against the installation's account. The rule that production is never delivered from a workstation holds for `memorysmith.app`, not for an organization's installation. GitHub names the environment in the subject of its token, so a role trusts that environment; GitLab does not, so production trusts the branch `main`, which has to be protected, and staging any branch of the project. On a fork the steps after a delivery are skipped: the adapter tests, the functional suite and the maintenance jobs name the project's own stacks, and `destroy-staging` tears down only the project's own staging.
+
+| | Own domain | Default endpoints of AWS |
+|---|---|---|
+| Names | `DOMAIN_NAME` and `HOSTED_ZONE_ID`, a public zone of the account, already delegated | Neither: CloudFront, `execute-api` and the prefix domain of the pool |
+| Certificates | Declared by *Network*; another region declares the ones of CloudFront and of the sign-in page in the stack *Edge*, in us-east-1 | None |
+| E-mail of the pool | SES, from `no-reply@<domain>` | Cognito's own sender and its daily limit |
+| E-mail of the product | SES, from `no-reply@<domain>` | `SENDER_ADDRESS`, an address verified in SES; without one a withdrawal notice is not sent, which the log says |
+| First delivery | One pass | Two ([ADR-025](#adr-025-an-installation-is-named-by-variables-and-answers-on-the-hosts-aws-gave-after-a-second-pass)) |
+
+Texts of the product that name `*.memorysmith.app` as the host to allow in a client stay as they are in an installation. No installation has been delivered from these variables yet: what this section says is verified by synthesis and by the tests of `memorysmithapp-infra`, not by a deployment to another account.
 
 ## 6. Architecture decision records
 
@@ -427,3 +469,35 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 - **Rationale:** the code that defines the observability stays whole and proved, and costs nothing until somebody means to use it. A choice per delivery rather than per environment keeps a test of observability one run away; dashboards and alarms read metrics and logs that exist anyway, so turning them on shows the past too.
 - **Consequences:** a delivery that does not choose something removes it, so a merge after a manual run turns everything off again. A trace is never recovered for a time when tracing was off; the correlation id in the logs covers that time. A manual run of *Production* delivers the released commit again, which `release-checks` admits because the tag names that very commit. Staging is delivered with alarms only when its environment on GitHub has an `ALARM_EMAIL`.
 - **Date:** 2026-10-20. **Status:** Accepted. **Origin:** #338.
+
+### ADR-022 The community catalog reads the author's subscription through its entry
+
+- **Context:** a published model is public, visitors with no account included, yet every key starts with the subscription (INV-01) and the subscription comes from the token (INV-02); a visitor has neither. Copying a published version into a public key space would keep both invariants whole and add a storage cost to the platform for every model published (#356).
+- **Decision:** publishing writes one entry at the level of the platform, `PK = CATALOG` in `mv-portability`, mapping a public identifier to the subscription, the model and the versions its author retains, with what the catalog shows and is searched by; withdrawing, by the author or the operator, deletes it. The public route is a function of its own, `PublicCatalog`, granted `GetItem` and `Query` on the `CATALOG` partition, the `status` attribute of the access table and `GetObject` on `s/*/models/*`, and nothing to write. A CloudFront distribution in front of it keeps an answer a minute; a withdrawal invalidates it, the API's one CloudFront permission.
+- **Rationale:** the version is the snapshot already counted in the author's storage (#353), so publishing costs nobody storage, and the boundary is held by what the public function may reach rather than by a copy. A subscription that grants no access hides its models, read from its status.
+- **Consequences:** INV-01 gains the catalog partitions as exceptions and INV-02 one read-only route that resolves a subscription from an entry. An operator's withdrawal deletes the entry and nothing of the author's (INV-12), and the author is told by e-mail through SES from the sender of the environment. The search reads the whole `CATALOG` partition per request, which the edge cache absorbs while the catalog is small.
+- **Date:** 2026-10-25. **Status:** Accepted. **Origin:** #356, #360.
+
+### ADR-023 A Table is an aggregate of Knowledge, its rows in a partition of their own, read whole
+
+- **Context:** an agent keeps structured data a note holds badly: rows written one at a time, checked against a type, filtered, sorted and paged (#366). Redshift, Aurora and Athena were weighed: each brings a fixed cost or a latency a page cannot wait for, and isolation as a clause of a query instead of the key (INV-01).
+- **Decision:** a Table is an aggregate of Knowledge in `mv-knowledge`. Its schema is one item, `TABLE#{tableId}`, in the notebook's partition beside the guard of its name, both after `META` and so outside the range that loads the tree; its rows are items `ROW#{generation}#{rowId}` in a partition of their own, `S#{subscriptionId}#TABLE#{tableId}`, the values of each row one attribute of JSON text keyed by column identifier, beside `TSTAT`, the relay's count of rows and bytes (ADR-010). A row write is one transaction: the rows, their events and a check that the table is at the version the rows were validated against and not locked. A table with a key derives each row's identifier from the values of the key, so an upsert finds its row without a read. An alteration that rewrites the rows locks the table, writes the next generation and moves the table to it in one conditioned write; a reader sees one generation, never two. A read loads every row of the generation and filters, sorts and pages in the function, in the grammar of the search, which moved to the kernel for both contexts to read.
+- **Rationale:** a table is bounded at 10,000 rows of at most 4 KB (PRD §8), and at that size reading it whole costs less than an index costs to keep, the same trade-off as ADR-012. The rows never contend with the notebook, and a number keeps every digit as text.
+- **Consequences:** a filter over a large table reads up to 40 MB. A schema change of a full table rewrites every row in the request that asked for it. A row event names rows and columns and never a value, so the trail holds no copy of what deleting a row destroys. The purge takes the rows of a table deleted on its own (`TableDeleted`) and of a deleted notebook. A transfer carries a table inside `notebook.json`, its schema and its rows by column name (document version `1.3`), so an archive stays one entry.
+- **Date:** 2026-10-29. **Status:** Accepted. **Origin:** #366.
+
+### ADR-024 A Dashboard is a definition kept beside the tables, its data computed on each read
+
+- **Context:** a person wants to see the data an agent keeps in Tables the way Excel, Power BI or Project show it, and only an agent builds the view (#367, #368).
+- **Decision:** a Dashboard is an aggregate of Knowledge: one item, `DASH#{dashboardId}`, in the notebook's partition beside the guard of its name, holding the definition as JSON text — a layout, period filters and components, each naming the table it draws from by identifier. The definition is checked whole against the tables when it is written. Reading it is one request that reads each table it draws from once and computes every component on the server: a value, groups of an aggregate (RN-KNW-078), or rows. A dashboard keeps no data, so deleting one removes its item at once, and the purge of a notebook removes them with its tree.
+- **Rationale:** a definition that stores no data can never disagree with its tables, and an aggregate computed on the server sends a chart as a dozen numbers instead of ten thousand rows.
+- **Consequences:** a dashboard over ten tables reads all of them on every read, which the limits keep bounded (PRD §8). A table renamed keeps drawing; a table deleted is said in place of its components. A definition is not counted in the space of the subscription: it is a few kilobytes and holds nothing the person wrote.
+- **Date:** 2026-10-30. **Status:** Accepted. **Origin:** #367, #368.
+
+### ADR-025 An installation is named by variables, and answers on the hosts AWS gave after a second pass
+
+- **Context:** an organization wants the product in its own account, in its own region, with or without a domain, and the project's own installation must not move (#342). On the default endpoints a host exists only once its stack does, and the stacks need each other's: the identity needs the host of the connector for its callback, the connector the host of the API, and the API and the site each other's for CORS. Declaring them as cross-stack references is a cycle.
+- **Decision:** with `INSTALLATION` set, every value comes from variables and `cdk.json` is not read. On the default endpoints the hosts are context the delivery reads from the outputs of the stacks; the first delivery synthesises with placeholders, deploys, reads what AWS gave and goes round once more, and every later delivery reads them before it synthesises. Outside us-east-1 the certificates that rule binds there live in a stack of their own, read across regions. The OIDC provider of the account is created by `install-account` and owned by no stack, so two installations can trust one.
+- **Rationale:** variables are how a delivery already took its choices, and not reading `cdk.json` makes it impossible to deliver over `memorysmith.app` by leaving a name out. A second pass keeps every stack as it is, where moving the APIs and distributions to a stack of their own would rewrite the project's own templates.
+- **Consequences:** the templates of production are unchanged by this. The first delivery on default endpoints serves placeholders between its two passes, and a host that changes takes one more pass, which `deliver` does on its own. The path is verified by synthesis and has not been delivered to another account.
+- **Date:** 2026-10-30. **Status:** Accepted. **Origin:** #342.

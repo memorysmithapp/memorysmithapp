@@ -1,0 +1,59 @@
+# Delivers an installation from a fork on GitLab (#342), as the workflows of
+# .github/workflows do on GitHub. Its variables live in the GitLab environments
+# `staging` and `production`, named in memorysmithapp-infra/.env.example, with
+# AWS_STAGING_ROLE_ARN and AWS_PRODUCTION_ROLE_ARN from `install-account`.
+#
+# No AWS key is stored: the job writes the token GitLab signs into a file, and
+# the AWS SDK and the CDK exchange it for the credentials of the role.
+
+default:
+  image: node:24
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+
+stages: [quality, deliver]
+
+quality:
+  stage: quality
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: never
+  script:
+    - pnpm quality
+    - pnpm lint
+    - pnpm typecheck
+    - VITEST_MAX_FORKS=4 pnpm -r --workspace-concurrency=2 --if-present test
+
+.deliver:
+  stage: deliver
+  variables:
+    GIT_DEPTH: '0'
+    AWS_WEB_IDENTITY_TOKEN_FILE: $CI_PROJECT_DIR/.oidc-token
+    AWS_ROLE_SESSION_NAME: gitlab-$CI_PIPELINE_ID
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://$CI_SERVER_HOST
+  script:
+    - printf '%s' "$GITLAB_OIDC_TOKEN" > "$AWS_WEB_IDENTITY_TOKEN_FILE"
+    - pnpm -C memorysmithapp-infra deliver --environment "$CI_ENVIRONMENT_NAME"
+  resource_group: $CI_ENVIRONMENT_NAME
+
+deliver staging:
+  extends: .deliver
+  environment: staging
+  rules:
+    - if: $CI_COMMIT_BRANCH
+      when: manual
+      allow_failure: true
+  variables:
+    AWS_ROLE_ARN: $AWS_STAGING_ROLE_ARN
+
+deliver production:
+  extends: .deliver
+  environment: production
+  needs: [quality]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  variables:
+    AWS_ROLE_ARN: $AWS_PRODUCTION_ROLE_ARN

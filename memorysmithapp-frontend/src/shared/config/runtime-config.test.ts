@@ -16,6 +16,7 @@ const STAGING = {
   apiOrigin: 'https://api.stg.memorysmith.app/',
   connectorOrigin: 'https://mcp.stg.memorysmith.app/',
   uploadsOrigin: 'https://uploads.stg.memorysmith.app/',
+  catalogOrigin: 'https://d111111abcdef8.cloudfront.net/',
   cognitoDomain: 'https://auth.stg.memorysmith.app',
   cognitoClientId: 'client-id',
   environment: 'staging',
@@ -29,6 +30,7 @@ describe('the runtime configuration', () => {
       apiOrigin: 'https://api.stg.memorysmith.app',
       connectorOrigin: 'https://mcp.stg.memorysmith.app',
       uploadsOrigin: 'https://uploads.stg.memorysmith.app',
+      catalogOrigin: 'https://d111111abcdef8.cloudfront.net',
     });
   });
 

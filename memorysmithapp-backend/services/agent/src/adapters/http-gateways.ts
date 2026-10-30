@@ -16,6 +16,13 @@
 import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmithapp/observability';
 import { pageOf } from '../mcp/note-pages.js';
 import type {
+  DeclareModelRequest,
+  ModelListDto,
+  ModelVersionDto,
+  ModelVersionViewDto,
+  PublicModelDto,
+  PublicVersionViewDto,
+  NotebookModelDto,
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
@@ -36,6 +43,17 @@ import type {
   NotebookNamesDto,
   PreviewDto,
   SearchResultDto,
+  DashboardDataDto,
+  DashboardListDto,
+  ImportTableRequest,
+  NotebookDashboardDto,
+  NotebookTableDto,
+  RowsWrittenDto,
+  TableAlteredDto,
+  TableImportDto,
+  TableListDto,
+  TablePageDto,
+  TableQueryRequest,
 } from '@memorysmithapp/contracts';
 import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmithapp/contracts';
 import {
@@ -43,6 +61,9 @@ import {
   type AccessGateway,
   type AgentCaller,
   type ConnectorIdentity,
+  type ContextChanged,
+  type NoteContextRevisions,
+  type ShareAccessName,
   type AuditGateway,
   type DiscoveryGateway,
   type FolderListing,
@@ -66,6 +87,11 @@ import {
  * by hand as the shape the tools wanted, so related_notes printed
  * "- undefined (undefined)" for every note and no test could see it.
  */
+/** A note read back after a write, with what the write said of its context. */
+function withContext(note: NoteContent, changed: ContextChanged | undefined): NoteContent {
+  return changed ? { ...note, contextChanged: changed } : note;
+}
+
 function referenceOf(note: NoteRefDto): NoteReference {
   return {
     noteId: note.noteId,
@@ -159,6 +185,16 @@ async function callApi<T>(
   return payload as T;
 }
 
+/** A dashboard is named in the path by its name or its identifier, encoded (#368). */
+function dashboardPath(notebookId: string, dashboard: string): string {
+  return `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}`;
+}
+
+/** A table is named in the path by its name or its identifier, encoded (#366). */
+function tablePath(notebookId: string, table: string): string {
+  return `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`;
+}
+
 export class HttpAccessGateway implements AccessGateway {
   constructor(private readonly origin: string) {}
 
@@ -195,7 +231,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           name: string;
           description: string;
           ownerEmail: string;
-          access: 'read' | 'read-write';
+          profile: ShareAccessName | 'model-reader';
+          pendingProfile: ShareAccessName | 'model-reader' | null;
           state: string;
           noteCount: number | null;
         }>
@@ -210,7 +247,12 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         ownership: 'own' as const,
       })),
       ...shared
-        .filter((notebook) => notebook.state === 'accepted')
+        // A model reader's share opens the model and never the notebook
+        // (#355): it is reached through list_models, not as a notebook.
+        .filter(
+          (notebook): notebook is typeof notebook & { profile: ShareAccessName } =>
+            notebook.state === 'accepted' && notebook.profile !== 'model-reader',
+        )
         .map((notebook) => ({
           notebookId: notebook.notebookId,
           name: notebook.name,
@@ -218,7 +260,9 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           noteCount: notebook.noteCount ?? 0,
           ownership: 'shared' as const,
           owner: notebook.ownerEmail,
-          access: notebook.access,
+          access: notebook.profile,
+          pendingAccess:
+            notebook.pendingProfile === 'model-reader' ? null : notebook.pendingProfile,
         })),
     ];
   }
@@ -471,6 +515,139 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return fileRefOf(kept);
   }
 
+  async declareModel(
+    caller: AgentCaller,
+    notebookId: string,
+    declaration: DeclareModelRequest,
+  ): Promise<NotebookModelDto> {
+    await callApi(this.origin, caller, `/portability/models/${notebookId}`, {
+      method: 'PUT',
+      body: declaration,
+    });
+    return this.model(caller, notebookId);
+  }
+
+  async model(caller: AgentCaller, notebookId: string): Promise<NotebookModelDto> {
+    return callApi<NotebookModelDto>(this.origin, caller, `/portability/models/${notebookId}`);
+  }
+
+  async listModels(caller: AgentCaller): Promise<ModelListDto['models']> {
+    return (await callApi<ModelListDto>(this.origin, caller, '/portability/models')).models;
+  }
+
+  async createModelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    changelog: string,
+    tables?: ReadonlyArray<{ name: string; rows: boolean }>,
+  ): Promise<ModelVersionDto> {
+    return callApi<ModelVersionDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/versions`,
+      { method: 'POST', body: { changelog, ...(tables ? { tables } : {}) } },
+    );
+  }
+
+  async modelVersion(
+    caller: AgentCaller,
+    notebookId: string,
+    number: number,
+  ): Promise<ModelVersionViewDto> {
+    return callApi<ModelVersionViewDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/versions/${number}`,
+    );
+  }
+
+  async deleteModelVersion(caller: AgentCaller, notebookId: string, number: number): Promise<void> {
+    await callApi(this.origin, caller, `/portability/models/${notebookId}/versions/${number}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createFromModel(
+    caller: AgentCaller,
+    input: { notebookId: string; version: number; name: string; values: Record<string, unknown> },
+  ): Promise<TransferDto> {
+    return callApi<TransferDto>(
+      this.origin,
+      caller,
+      `/portability/models/${input.notebookId}/versions/${input.version}/notebooks`,
+      { method: 'POST', body: { name: input.name, values: input.values } },
+    );
+  }
+
+  async transfer(caller: AgentCaller, transferId: string): Promise<TransferDto> {
+    return callApi<TransferDto>(this.origin, caller, `/portability/transfers/${transferId}`);
+  }
+
+  async publishModel(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { language: string; acceptLicence: boolean },
+  ): Promise<PublicModelDto> {
+    return callApi<PublicModelDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/publication`,
+      { method: 'PUT', body: input },
+    );
+  }
+
+  async withdrawModel(caller: AgentCaller, notebookId: string): Promise<void> {
+    await callApi(this.origin, caller, `/portability/models/${notebookId}/publication`, {
+      method: 'DELETE',
+    });
+  }
+
+  /** The catalog is read on its public route, as anybody reads it (#360). */
+  async searchCommunity(
+    caller: AgentCaller,
+    query: { text: string; language: string | null },
+  ): Promise<PublicModelDto[]> {
+    const params = new URLSearchParams();
+    if (query.text) params.set('q', query.text);
+    if (query.language) params.set('language', query.language);
+    const suffix = params.size > 0 ? `?${params.toString()}` : '';
+    return (
+      await callApi<{ models: PublicModelDto[] }>(this.origin, caller, `/public/catalog${suffix}`)
+    ).models;
+  }
+
+  async communityModel(caller: AgentCaller, publicId: string): Promise<PublicModelDto> {
+    return callApi<PublicModelDto>(
+      this.origin,
+      caller,
+      `/public/catalog/${encodeURIComponent(publicId)}`,
+    );
+  }
+
+  async communityVersion(
+    caller: AgentCaller,
+    publicId: string,
+    number: number,
+  ): Promise<PublicVersionViewDto> {
+    return callApi<PublicVersionViewDto>(
+      this.origin,
+      caller,
+      `/public/catalog/${encodeURIComponent(publicId)}/versions/${number}`,
+    );
+  }
+
+  async createFromCommunity(
+    caller: AgentCaller,
+    input: { publicId: string; version: number; name: string; values: Record<string, unknown> },
+  ): Promise<TransferDto> {
+    return callApi<TransferDto>(
+      this.origin,
+      caller,
+      `/portability/catalog/${encodeURIComponent(input.publicId)}/versions/${input.version}/notebooks`,
+      { method: 'POST', body: { name: input.name, values: input.values } },
+    );
+  }
+
   async beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto> {
     return callApi<UploadStatusDto>(this.origin, caller, '/portability/uploads', {
       method: 'POST',
@@ -541,6 +718,10 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       content?: string;
       folderId?: string;
       part?: string;
+      dashboard?: string;
+      filters?: Record<string, string | null>;
+      cross?: { component: string; key: string };
+      locale?: string;
     },
   ): Promise<{ previewId: string }> {
     const { notebookId, ...body } = input;
@@ -565,6 +746,191 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return listed.files.map(fileRefOf);
   }
 
+  async listTables(caller: AgentCaller, notebookId: string): Promise<NotebookTableDto[]> {
+    const listed = await callApi<TableListDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/tables`,
+    );
+    return listed.tables;
+  }
+
+  async createTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: {
+      name: string;
+      description: string;
+      schema: Record<string, unknown>;
+      key: string[] | null;
+    },
+  ): Promise<NotebookTableDto> {
+    return callApi<NotebookTableDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/tables`,
+      {
+        method: 'POST',
+        body: input,
+      },
+    );
+  }
+
+  async alterTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    changes: unknown[],
+  ): Promise<TableAlteredDto> {
+    return callApi<TableAlteredDto>(this.origin, caller, tablePath(notebookId, table), {
+      method: 'PATCH',
+      body: { changes },
+    });
+  }
+
+  async deleteTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+  ): Promise<{ rows: number }> {
+    return callApi<{ rows: number }>(this.origin, caller, tablePath(notebookId, table), {
+      method: 'DELETE',
+    });
+  }
+
+  async queryTable(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    query: Partial<TableQueryRequest>,
+  ): Promise<TablePageDto> {
+    return callApi<TablePageDto>(this.origin, caller, `${tablePath(notebookId, table)}/query`, {
+      method: 'POST',
+      body: query,
+    });
+  }
+
+  async insertRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    input: { rows: unknown[]; mode: 'insert' | 'upsert' },
+  ): Promise<RowsWrittenDto> {
+    return callApi<RowsWrittenDto>(this.origin, caller, `${tablePath(notebookId, table)}/rows`, {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async updateRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    updates: unknown[],
+  ): Promise<RowsWrittenDto> {
+    return callApi<RowsWrittenDto>(this.origin, caller, `${tablePath(notebookId, table)}/rows`, {
+      method: 'PATCH',
+      body: { updates },
+    });
+  }
+
+  async deleteRows(
+    caller: AgentCaller,
+    notebookId: string,
+    table: string,
+    targets: unknown[],
+  ): Promise<RowsWrittenDto> {
+    return callApi<RowsWrittenDto>(
+      this.origin,
+      caller,
+      `${tablePath(notebookId, table)}/rows/delete`,
+      {
+        method: 'POST',
+        body: { targets },
+      },
+    );
+  }
+
+  async listDashboards(caller: AgentCaller, notebookId: string): Promise<NotebookDashboardDto[]> {
+    const listed = await callApi<DashboardListDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/dashboards`,
+    );
+    return listed.dashboards;
+  }
+
+  async createDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { name: string; description: string; definition: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto> {
+    return callApi<NotebookDashboardDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/dashboards`,
+      {
+        method: 'POST',
+        body: input,
+      },
+    );
+  }
+
+  async updateDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    input: { name?: string; description?: string; definition?: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto> {
+    return callApi<NotebookDashboardDto>(
+      this.origin,
+      caller,
+      dashboardPath(notebookId, dashboard),
+      {
+        method: 'PATCH',
+        body: input,
+      },
+    );
+  }
+
+  async readDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    filters: Record<string, string | null>,
+    cross: { component: string; key: string } | null = null,
+  ): Promise<DashboardDataDto> {
+    return callApi<DashboardDataDto>(
+      this.origin,
+      caller,
+      `${dashboardPath(notebookId, dashboard)}/data`,
+      {
+        method: 'POST',
+        body: { filters, cross },
+      },
+    );
+  }
+
+  async deleteDashboard(caller: AgentCaller, notebookId: string, dashboard: string): Promise<void> {
+    await callApi(this.origin, caller, dashboardPath(notebookId, dashboard), { method: 'DELETE' });
+  }
+
+  async importTable(
+    caller: AgentCaller,
+    notebookId: string,
+    input: Partial<ImportTableRequest> & { file: string },
+  ): Promise<TableImportDto> {
+    return callApi<TableImportDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/tables/import`,
+      {
+        method: 'POST',
+        body: input,
+      },
+    );
+  }
+
   async deleteFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<void> {
     await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/files/${fileId}`, {
       method: 'DELETE',
@@ -575,6 +941,20 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     await callApi(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes/${noteId}`, {
       method: 'DELETE',
     });
+  }
+
+  async contextRevisions(
+    caller: AgentCaller,
+    notebookId: string,
+  ): Promise<{ guidance: string | null; structure: string }> {
+    const detail = await callApi<{
+      guidance: { revision: { versionId: string } } | null;
+      structureRevision: string;
+    }>(this.origin, caller, `/knowledge/notebooks/${notebookId}`);
+    return {
+      guidance: detail.guidance?.revision.versionId ?? null,
+      structure: detail.structureRevision,
+    };
   }
 
   async notebookContext(caller: AgentCaller, notebookId: string): Promise<string> {
@@ -622,14 +1002,29 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async recentNotes(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<Array<{ noteId: string; name: string | null; updatedAt: string }>> {
-    const notes = await callApi<Array<{ noteId: string; name: string | null; updatedAt: string }>>(
-      this.origin,
-      caller,
-      `/knowledge/notebooks/${notebookId}/notes`,
-    );
+  ): Promise<
+    Array<{
+      noteId: string;
+      name: string | null;
+      updatedAt: string;
+      staleContext?: readonly string[];
+    }>
+  > {
+    const notes = await callApi<
+      Array<{
+        noteId: string;
+        name: string | null;
+        updatedAt: string;
+        staleContext?: string[];
+      }>
+    >(this.origin, caller, `/knowledge/notebooks/${notebookId}/notes`);
     return notes
-      .map(({ noteId, name, updatedAt }) => ({ noteId, name, updatedAt }))
+      .map(({ noteId, name, updatedAt, staleContext }) => ({
+        noteId,
+        name,
+        updatedAt,
+        ...(staleContext && staleContext.length > 0 ? { staleContext } : {}),
+      }))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }
 
@@ -725,7 +1120,13 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async createNote(
     caller: AgentCaller,
-    input: { notebookId: string; folderId: string; content: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      folderId: string;
+      content: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<NoteContent> {
     const created = await callApi<NoteSummaryDto>(
       this.origin,
@@ -737,10 +1138,16 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           folderId: input.folderId,
           content: input.content,
           afterNoteId: input.afterNoteId ?? null,
+          ...(input.context ? { context: input.context } : {}),
         },
       },
     );
-    return this.noteOf(caller, input.notebookId, created.noteId);
+    // The note is read back, which is where its links are; what the write said
+    // of its context is the write's alone, and travels with it (RN-KNW-061).
+    return withContext(
+      await this.noteOf(caller, input.notebookId, created.noteId),
+      created.contextChanged,
+    );
   }
 
   async reorderNote(
@@ -773,15 +1180,25 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
   async moveNote(
     caller: AgentCaller,
-    input: { notebookId: string; noteId: string; folderId: string; afterNoteId?: string },
+    input: {
+      notebookId: string;
+      noteId: string;
+      folderId: string;
+      afterNoteId?: string;
+      context?: NoteContextRevisions;
+    },
   ): Promise<MovedNote> {
-    await callApi<NoteSummaryDto>(
+    const written = await callApi<NoteSummaryDto>(
       this.origin,
       caller,
       `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}/move`,
       {
         method: 'POST',
-        body: { toFolderId: input.folderId, afterNoteId: input.afterNoteId ?? null },
+        body: {
+          toFolderId: input.folderId,
+          afterNoteId: input.afterNoteId ?? null,
+          ...(input.context ? { context: input.context } : {}),
+        },
       },
     );
     // Read back from the note itself, which says the folder by its names as
@@ -795,6 +1212,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       position: note.position ?? '',
       revision: note.revision,
       updatedAt: note.updatedAt,
+      ...(written.contextChanged ? { contextChanged: written.contextChanged } : {}),
     };
   }
 
@@ -806,9 +1224,10 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       content: string;
       baseRevision: string;
       message?: string | null;
+      context?: NoteContextRevisions;
     },
   ): Promise<NoteContent> {
-    await callApi(
+    const written = await callApi<NoteSummaryDto>(
       this.origin,
       caller,
       `/knowledge/notebooks/${input.notebookId}/notes/${input.noteId}`,
@@ -820,10 +1239,14 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
           // Only when there is one: an empty line is no line, and the entry
           // is written without it (RN-AUD-012).
           ...(input.message ? { message: input.message } : {}),
+          ...(input.context ? { context: input.context } : {}),
         },
       },
     );
-    return this.noteOf(caller, input.notebookId, input.noteId);
+    return withContext(
+      await this.noteOf(caller, input.notebookId, input.noteId),
+      written.contextChanged,
+    );
   }
 
   async searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]> {

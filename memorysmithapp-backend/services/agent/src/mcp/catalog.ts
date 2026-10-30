@@ -15,7 +15,12 @@
  */
 
 import { createHash } from 'node:crypto';
-import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL } from './skills.js';
+import {
+  BUILD_DASHBOARDS_SKILL,
+  DESIGN_NOTEBOOK_SKILL,
+  KEEP_FILES_SKILL,
+  KEEP_TABLES_SKILL,
+} from './skills.js';
 
 export interface ToolDefinition {
   readonly name: string;
@@ -30,9 +35,26 @@ export interface ToolDefinition {
   };
 }
 
+const previewLocaleArgument = {
+  type: 'string',
+  enum: ['en_US', 'pt_BR'],
+  description: 'The language it is drawn in, the one the person reads: en_US when absent.',
+};
+
 const notebookArgument = {
   type: 'string',
   description: 'Identifier of the notebook, as returned by list_notebooks.',
+};
+
+const dashboardArgument = {
+  type: 'string',
+  description: 'The name of the dashboard, or its identifier, as list_dashboards prints them.',
+};
+
+/** A table is named as a note names it: by its name, or by its identifier (#366). */
+const tableArgument = {
+  type: 'string',
+  description: 'The name of the table, or its identifier, as list_tables prints them.',
 };
 
 /**
@@ -81,6 +103,32 @@ const noteOrderArgument = {
     'Optional: how the folder orders its notes. manual, the default, keeps the order they are ' +
     'written in; alphabetical orders them by name.',
 };
+
+/**
+ * The context a note write declares it read (RN-KNW-061): optional, and never
+ * a reason to refuse. Said once, so the three tools that take it say it alike.
+ */
+const contextArgument = {
+  type: 'object',
+  description:
+    'Optional, and asked for: the revisions you read before writing, so the answer can tell ' +
+    'you if somebody changed them meanwhile. guidance and structure as the end of ' +
+    'get_notebook_context answers them, template as get_template answers the revision of the ' +
+    "folder's template (null when it has none). The note is saved either way.",
+  properties: {
+    guidance: { type: ['string', 'null'] },
+    template: { type: ['string', 'null'] },
+    structure: { type: 'string' },
+  },
+  required: ['guidance', 'template', 'structure'],
+  additionalProperties: false,
+};
+
+/** What a write answers when its declared context changed (RN-KNW-061). */
+const CONTEXT_ANSWERED =
+  'When the context you declared changed while you wrote, the note is still saved, and the ' +
+  'answer carries `contextChanged` with what changed and the current revisions: reread it, ' +
+  'review the note against it and update it if needed. It is a notice, never a lock.';
 
 function object(
   properties: Record<string, unknown>,
@@ -141,8 +189,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Lists the notebooks this connector can reach, with their description and note count, ' +
       'and every notebook tool takes its identifier from this list. Each says its ownership: ' +
       '`own`, of this subscription, or `shared`, shared with this person from another one, ' +
-      'which also names its owner and the access the share grants — with `read`, every write ' +
-      'in it is refused. Call whoami before it: ' +
+      'which also names its owner and the access the share grants: `reader` writes nothing, ' +
+      '`content-editor` writes notes and files but not folders, guidance or templates, ' +
+      '`notebook-editor` writes all of them; `pendingAccess` is an increase waiting for the ' +
+      "person's acceptance, which grants nothing until accepted. Call whoami before it: " +
       'whoami lists the same notebooks, together with how to write in them and the skills to ' +
       'read before a task.',
     inputSchema: object({}),
@@ -198,7 +248,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'directly and those in its subfolders, how many notes and folders the notebook holds, ' +
       'and which folders carry a template. Read this before writing anything: the guidance ' +
       'declares the conventions of this notebook, the folder descriptions say what belongs where, ' +
-      'and the identifiers are what you pass to get_template, create_note and list_notes.',
+      'and the identifiers are what you pass to get_template, create_note and list_notes. It ' +
+      'ends with the revisions of what you read, to declare as `context` when you write a note.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -527,7 +578,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'so retrying one of those writes a second. Another folder may hold a note of the same ' +
       'name. The note goes last in its folder unless you pass after; in a folder that orders ' +
       'its notes by name it appears by its name, wherever after puts it. ' +
-      NOTICES_ANSWERED,
+      NOTICES_ANSWERED +
+      ' ' +
+      CONTEXT_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -544,6 +597,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: identifier of the note this one goes right after, as list_notes prints ' +
             'it. Without it the note goes last in its folder.',
         },
+        context: contextArgument,
       },
       ['notebook', 'folder', 'content'],
     ),
@@ -558,8 +612,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG as ' +
-      'its text in `content`, copied exactly as you were given it, and any other type in ' +
+      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG or a ' +
+      'CSV as its text in `content`, copied exactly as you were given it, and any other type in ' +
       '`contentBase64`, which you write without a slip only when code encodes it \u2014 base64 ' +
       'written by hand slips even on a small file. A photo, a recording or a document ' +
       'of any real size is sent with begin_file_upload instead, whole and at its own ' +
@@ -586,7 +640,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'The type of the content, which is what decides how it is drawn. One of: ' +
             'image/png, image/jpeg, image/webp, image/gif, image/svg+xml, application/pdf, ' +
             'audio/mpeg, audio/wav, audio/ogg, audio/webm, video/mp4, video/webm, ' +
-            'video/quicktime, and the three Office documents (docx, xlsx, pptx).',
+            'video/quicktime, the three Office documents (docx, xlsx, pptx) and text/csv, the ' +
+            'rows a table imports.',
         },
         tags: {
           type: 'array',
@@ -602,7 +657,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         content: {
           type: 'string',
           description:
-            'The file as text, for an SVG: every character exactly as you were given it, ' +
+            'The file as text, for an SVG or a CSV: every character exactly as you were given it, ' +
             'nothing reformatted. Give this or contentBase64, never both.',
         },
         contentBase64: {
@@ -859,6 +914,368 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {
+    name: 'list_tables',
+    title: 'List the tables of a notebook',
+    description:
+      'Every Table the notebook keeps: its name, what it is for, its schema in JSON Schema, its ' +
+      'key and how many rows it holds. Read it before creating a table, so rows go where a table ' +
+      'for them already is, and before writing rows, so they fit the schema. The count of rows ' +
+      'is kept as the rows are written and may take a moment to show the last write.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_table',
+    title: 'Create a table',
+    description:
+      `Creates a Table in the notebook: structured data a note shows through a query. Read the skill \`${KEEP_TABLES_SKILL}\` first. \`schema\` ` +
+      'is JSON Schema: { "type": "object", "properties": { column: { "type": ... } }, "required": ' +
+      '[...] }. A column is "string", "number", "integer", "boolean", { "type": "string", ' +
+      '"format": "date" } (2026-10-29), { "type": "string", "format": "date-time" } or ' +
+      '{ "type": "array", "items": { "type": "string" } }, and may take enum, default, ' +
+      'description, minimum, maximum and maxLength. Nothing else is accepted, and what is ' +
+      'refused is named. A column name is one word (letters, digits, _ and -), because a filter ' +
+      'names it as column:value. `key` names the columns that identify a row, such as the date, ' +
+      'description and amount of a bank statement, so writing the same rows again changes them ' +
+      'instead of adding them twice; leave it out when rows have no identity of their own. ' +
+      'Describe each column: the description is what the next agent reads to know what goes ' +
+      'there. Show the person the schema before creating it.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        name: { type: 'string', description: 'The name of the table, unique in the notebook.' },
+        description: { type: 'string', description: 'What the table is for.' },
+        schema: { type: 'object', description: 'The columns, in JSON Schema.' },
+        key: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The columns that identify a row, when rows have an identity.',
+        },
+      },
+      ['notebook', 'name', 'schema'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'alter_table',
+    title: 'Change the schema of a table',
+    description:
+      'Changes a table with one or more changes, applied in order, all or none: ' +
+      '{ "op": "rename-table", "to" }, { "op": "describe", "description" }, ' +
+      '{ "op": "add-column", "name", "schema", "required"? }, { "op": "rename-column", "column", ' +
+      '"to" }, { "op": "remove-column", "column" }, { "op": "change-column", "column", "schema", ' +
+      '"required"? } and { "op": "set-key", "columns" } (null removes the key). A change never ' +
+      'leaves a row invalid: converting a column, tightening a constraint, making a column ' +
+      'required or setting a key happens only when every row fits, and otherwise nothing changes ' +
+      'and the answer names the rows that do not fit, so you can fix them first. Removing a ' +
+      'column removes its values from every row, for good. Renaming does not rewrite the notes ' +
+      'that show the table.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        changes: {
+          type: 'array',
+          items: { type: 'object' },
+          description: 'The changes, in order.',
+        },
+      },
+      ['notebook', 'table', 'changes'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+  },
+  {
+    name: 'delete_table',
+    title: 'Delete a table',
+    description:
+      'Deletes a table and every row it holds. It is DEFINITIVE — there is no undo and no ' +
+      'trash — the rows are destroyed shortly after, and every note that shows the table says ' +
+      'it is missing from that instant. Its name is free again at once. Say how many rows go ' +
+      'before you ask the person to confirm.',
+    inputSchema: object({ notebook: notebookArgument, table: tableArgument }, [
+      'notebook',
+      'table',
+    ]),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'query_table',
+    title: 'Read the rows of a table',
+    description:
+      'Reads the rows of a table, filtered, sorted and paged, each with its rowId and its values ' +
+      'by column. `where` is the language of the search, where a field is a column: ' +
+      '`status:paid`, `amount:>100`, `amount:30..200`, `date:2026-10` (October), ' +
+      '`date:>=2026-10-01`, `-status:cancelled`, `a OR b`, and a bare word looks in every column ' +
+      'that holds text, with case and accents ignored. A column the table does not have is ' +
+      'refused, naming it. `sort` orders by up to five columns; pages hold up to 100 rows. ' +
+      'This is how an agent reads the data a note shows: read_note returns the query as written. ' +
+      '`aggregate` adds the rows the filter keeps up: { "group": "date:month", "measures": ' +
+      '["sum(amount)", "count()"] } answers `groups`, each with its key and the value of each ' +
+      'measure; a sum is exact. Group by a column or by a period of a date (day, week, month, ' +
+      'quarter, year).',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        where: { type: 'string', description: 'The filter, in the language of the search.' },
+        sort: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              column: { type: 'string' },
+              direction: { type: 'string', enum: ['asc', 'desc'] },
+            },
+            required: ['column'],
+          },
+          description: 'The order, first column first. Insertion order when absent.',
+        },
+        page: { type: 'integer', minimum: 1, description: 'The page, from 1.' },
+        pageSize: { type: 'integer', minimum: 1, maximum: 100, description: 'Rows per page; 25.' },
+        aggregate: {
+          type: 'object',
+          properties: {
+            group: { type: 'string', description: 'A column, or a period of a date: date:month.' },
+            measures: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6 },
+          },
+          required: ['measures'],
+          description:
+            'Adds the filtered rows up instead of listing them: measures count(), sum(col), ' +
+            'avg(col), min(col), max(col), by group when given.',
+        },
+      },
+      ['notebook', 'table'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'insert_rows',
+    title: 'Insert rows into a table',
+    description:
+      'Writes up to 50 rows into a table, each an object of values by column name, all or none: ' +
+      'every value is checked against its column, a default fills what a row leaves out, and one ' +
+      'row that does not fit refuses the call, naming it, and keeps nothing. A number travels ' +
+      'as a JSON number, or as text when it carries more digits than a float holds; a date as ' +
+      '2026-10-29. With mode "insert", a row whose key the table already holds is refused; with ' +
+      '"upsert", that row is changed with the columns given and keeps the others, which is how ' +
+      'the same statement read twice is written once. For more rows, call again; for a CSV or an ' +
+      'Excel file, send the file and use import_table.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        rows: {
+          type: 'array',
+          items: { type: 'object' },
+          minItems: 1,
+          maxItems: 50,
+          description: 'The rows, each by column name.',
+        },
+        mode: {
+          type: 'string',
+          enum: ['insert', 'upsert'],
+          description: 'insert, the default, or upsert.',
+        },
+      },
+      ['notebook', 'table', 'rows'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'import_table',
+    title: 'Import rows from a CSV or an Excel file',
+    description:
+      'Reads the rows of a CSV or an Excel workbook (.xlsx) the notebook keeps, by its name, `fileName`, as ' +
+      'list_files prints it: the first line is the header, each line after it a row. With no ' +
+      '`table`, or with `dryRun: true`, it writes NOTHING and answers the schema the sheet ' +
+      'suggests, the column each header becomes and the first rows: show them to the person, ' +
+      'then create_table and call this again with the table. With a table, every header must be ' +
+      'one of its columns, and every line is checked before the first is written: one that does ' +
+      'not fit refuses the whole file, naming its line. A CSV may be written in pt-BR: a ' +
+      'semicolon between fields, 1.250,75 as a number and 29/10/2026 as a date. `sheet` picks a ' +
+      'sheet of a workbook, the first one by default. `mode: "upsert"` changes the rows whose ' +
+      'key the table already holds instead of refusing them. Keep the file first, as the skill ' +
+      `\`${KEEP_FILES_SKILL}\` says, or ask the person for it with request_file.`,
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        fileName: {
+          type: 'string',
+          description: 'The name of the kept file, as list_files prints it.',
+        },
+        table: tableArgument,
+        sheet: { type: 'string', description: 'The sheet of a workbook; the first by default.' },
+        mode: {
+          type: 'string',
+          enum: ['insert', 'upsert'],
+          description: 'insert, the default, or upsert.',
+        },
+        dryRun: { type: 'boolean', description: 'true reads and proposes, and writes nothing.' },
+      },
+      ['notebook', 'fileName'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'update_rows',
+    title: 'Update rows of a table',
+    description:
+      'Changes up to 50 rows, each named by its rowId, as query_table prints it, or by the values ' +
+      'of its key: [{ "target": { "rowId" } | { "key": { column: value } }, "set": { column: ' +
+      'value } }]. The columns set change and the others stay; null clears a column that is not ' +
+      'required. A column of the key is never changed here, because the key names the row: ' +
+      'delete the row and insert it again instead. All or none.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        updates: { type: 'array', items: { type: 'object' }, minItems: 1, maxItems: 50 },
+      },
+      ['notebook', 'table', 'updates'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'delete_rows',
+    title: 'Delete rows of a table',
+    description:
+      'Deletes up to 50 rows, each named by its rowId or by the values of its key: ' +
+      '[{ "rowId" } | { "key": { column: value } }]. It is DEFINITIVE: the history keeps that ' +
+      'the rows were deleted, by whom and when, and never what they held. All or none.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        table: tableArgument,
+        targets: { type: 'array', items: { type: 'object' }, minItems: 1, maxItems: 50 },
+      },
+      ['notebook', 'table', 'targets'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'list_dashboards',
+    title: 'List the dashboards of a notebook',
+    description:
+      'Every Dashboard the notebook keeps, with what it is for and its definition: the layout, ' +
+      'the filters and each component with the table it draws from. Read it before building one, ' +
+      'so a dashboard that already shows the data is changed instead of copied.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_dashboard',
+    title: 'Create a dashboard',
+    description:
+      `Builds a Dashboard over the tables of the notebook. Read the skill \`${BUILD_DASHBOARDS_SKILL}\` ` +
+      'first: it has the whole definition. In short: { "layout": one-column | two-columns | ' +
+      'three-columns | header-two-columns | sidebar | grid, "refreshSeconds"?: 60 or more, ' +
+      '"filters"?: [{ "id", "type": "period", "column": a date column, "default"?: "2026-10" }], ' +
+      '"components": [{ "id", "type", "title"?, "slot" (or "grid": { x, y, w, h } on 12 ' +
+      'columns), "source": { "table", "where"?, "group"?, "measure" | "measures" }, "options"? }] ' +
+      '}. Types: kpi (one measure), pie, donut, bar, line, area (a group and measures), table ' +
+      '(rows), gantt (options title, start, end), kanban (options lane, card), text (options ' +
+      'markdown), wbs (options code, title, progress), matrix (a group, one measure, options ' +
+      'across), combo (a group, measures, options lines), waterfall, funnel and treemap (a group ' +
+      'and one measure), scatter (options x, y), heatmap (like matrix), calendar (group by day, ' +
+      'one measure), gauge (one measure, options goal) and timeline (options date, title). ' +
+      'The definition is checked against the tables and refused naming what they ' +
+      'cannot answer. A dashboard keeps no data: it shows what the tables hold when it is read. ' +
+      'Look at it with preview_dashboard before you call it done.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        name: { type: 'string', description: 'The name of the dashboard, unique in the notebook.' },
+        description: { type: 'string', description: 'What the dashboard is for.' },
+        definition: { type: 'object', description: 'The layout, filters and components.' },
+      },
+      ['notebook', 'name', 'definition'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'update_dashboard',
+    title: 'Change a dashboard',
+    description:
+      'Changes the name, the description or the definition of a dashboard. A definition given ' +
+      'replaces the one kept, whole: read it with list_dashboards, change it, and send it all. ' +
+      'It is checked against the tables as a new one is.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        dashboard: dashboardArgument,
+        name: { type: 'string', description: 'A new name.' },
+        description: { type: 'string', description: 'A new description.' },
+        definition: {
+          type: 'object',
+          description: 'The whole definition, replacing the one kept.',
+        },
+      },
+      ['notebook', 'dashboard'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'read_dashboard',
+    title: 'Read what a dashboard shows',
+    description:
+      'What every component of a dashboard shows now: the value of an indicator, the groups of ' +
+      'a chart, the rows of a table, a Gantt or a Kanban, computed from the tables at this ' +
+      'moment. `filters` chooses a period for each filter of the dashboard, null for all. A ' +
+      'component whose table is gone, or whose filter no longer fits, says so with its status.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        dashboard: dashboardArgument,
+        filters: {
+          type: 'object',
+          description: 'A period by filter id, as { "periodo": "2026-10" }.',
+        },
+        cross: {
+          type: 'object',
+          description:
+            'A mark clicked on a chart: { "component": its id, "key": the group of the mark }. ' +
+            'The other components keep the rows of that group, as a person sees them.',
+        },
+      },
+      ['notebook', 'dashboard'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'delete_dashboard',
+    title: 'Delete a dashboard',
+    description:
+      'Deletes a dashboard. It is DEFINITIVE, and its name is free again at once. Its tables and ' +
+      'their rows are untouched: a dashboard only shows them.',
+    inputSchema: object({ notebook: notebookArgument, dashboard: dashboardArgument }, [
+      'notebook',
+      'dashboard',
+    ]),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'preview_dashboard',
+    title: 'See how a dashboard is drawn',
+    description:
+      'Starts drawing a dashboard whole, as the person sees it on a computer, and answers a ' +
+      '`preview` at once: get_preview answers the PNG once it is drawn, a few seconds later. ' +
+      'Look at it after you build or change a dashboard, and fix what reads badly before you ' +
+      'call it done: a chart squeezed into a narrow column, a Kanban with one lane, a title that ' +
+      'says nothing. `filters` and `cross` draw it under a period and a mark clicked, as ' +
+      'read_dashboard takes them.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        dashboard: dashboardArgument,
+        filters: { type: 'object', description: 'A period by filter id.' },
+        cross: { type: 'object', description: 'A mark clicked: { "component", "key" }.' },
+        locale: previewLocaleArgument,
+      },
+      ['notebook', 'dashboard'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'update_note',
     title: 'Update a note',
     description:
@@ -868,7 +1285,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'also how a note is renamed: change the `name:` of its frontmatter. Pass message to say ' +
       'what you changed and why: it is recorded in the history of the note beside the instant ' +
       'and who wrote, and it is what a person reads there months later. ' +
-      NOTICES_ANSWERED,
+      NOTICES_ANSWERED +
+      ' ' +
+      CONTEXT_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -882,6 +1301,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'string',
           description: 'One line about this change, recorded in the history of the note. Optional.',
         },
+        context: contextArgument,
       },
       ['notebook', 'note', 'content', 'baseRevision'],
     ),
@@ -923,7 +1343,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'in the destination unless you pass after; in a folder that orders its notes by name it ' +
       'appears by its name, wherever after puts it. A note already in that folder is refused: ' +
       'reorder_note moves it within its folder. Answers the note in its new folder and ' +
-      'position.',
+      'position. Declare the context of the destination folder as `context` to be told if it ' +
+      'changed. ' +
+      CONTEXT_ANSWERED,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -940,6 +1362,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: identifier of a note of the destination folder this one goes right ' +
             'after, as list_notes prints it. Without it the note goes last there.',
         },
+        context: contextArgument,
       },
       ['notebook', 'note', 'folder'],
     ),
@@ -1029,7 +1452,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '`notices` lists, note by note, where the page will not show what was typed — a fence ' +
       'never closed, a heading that skips a level, a footnote with no definition — read from ' +
       'the most recently written notes, up to 200, with `noticesRead` saying how many were read ' +
-      'of how many. It is as recent as the link index, which follows a write within seconds, so ' +
+      'of how many. `staleContext` lists the notes written against a context — guidance, ' +
+      'template or structure — that had already changed when they were written: review each ' +
+      'against the current one, and it leaves the list once rewritten declaring the current ' +
+      'context. It is as recent as the link index, which follows a write within seconds, so ' +
       'right after the last write, run it again.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
@@ -1069,6 +1495,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'string',
           description: 'Optional: one section, `#Section`, or one block, `#^block`, alone.',
         },
+        locale: previewLocaleArgument,
       },
       ['notebook'],
     ),
@@ -1092,6 +1519,292 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     ),
     annotations: { readOnlyHint: true },
   },
+  // ---- Notebook models (#353, #354, #359) ---------------------------------
+  {
+    name: 'declare_model',
+    title: 'Declare a notebook as a model',
+    description:
+      'Declares a notebook of this subscription as a MODEL, from which other notebooks are ' +
+      'created, or declares it again to change what it says of itself. Only the owner of the ' +
+      'subscription may. A model is not a template: a template is the suggested shape of the ' +
+      'notes of one folder, a model is a whole notebook to be copied. Write in the notebook ' +
+      'itself `{{name}}` wherever a value goes, and declare each name here once, with what it ' +
+      `is, an example, its type and whether it is required or what it defaults to. Read the skill ` +
+      '`derive-model` first when the model comes from a notebook that worked, and `design-notebook` ' +
+      'when it is designed from scratch. Answers the model and its versions.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        objective: { type: 'string', description: 'What a notebook created from it is for.' },
+        description: { type: 'string', description: 'Optional: what it holds, in one line.' },
+        audience: { type: 'string', description: 'Optional: who it is for.' },
+        parameters: {
+          type: 'array',
+          description:
+            'Each value a notebook created from it fills in, by the name its `{{name}}` writes.',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              description: { type: 'string' },
+              example: { type: 'string' },
+              type: { type: 'string', enum: ['text', 'list', 'boolean', 'date'] },
+              required: { type: 'boolean' },
+              default: {
+                description:
+                  'The value of one not required, of its type: a text, a list of texts, true or ' +
+                  'false, or a date as YYYY-MM-DD. It may be empty: "" for a text or a date, [] for ' +
+                  'a list, and an empty one writes nothing where the parameter stands.',
+              },
+            },
+            required: ['name', 'type', 'required'],
+            additionalProperties: false,
+          },
+        },
+        basedOn: {
+          type: ['string', 'null'],
+          description: 'Optional credit to what it is based on, shown with it; never required.',
+        },
+      },
+      ['notebook', 'objective'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'get_model',
+    title: 'Read the model of a notebook',
+    description:
+      'What a notebook declared as a model says of itself — its objective, audience and ' +
+      'parameters — and its versions, the newest first, each with its number, changelog and ' +
+      'status. A model shared with this person from another subscription names its owner in ' +
+      '`sharedBy`, and only its owner versions it. `licence` is `CC0-1.0` once the model was ' +
+      'distributed: whoever receives it may reuse and republish it freely, the community ' +
+      'included, so say so before the person shares one. A notebook that is no model answers ' +
+      'NOT_FOUND.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'list_models',
+    title: 'List the models this person can use',
+    description:
+      'The notebooks of this subscription declared as models, and the models shared with this ' +
+      'person from another subscription, which name their owner in `sharedBy`, each with its ' +
+      'objective and parameters: what create_notebook_from_model can create a notebook from. A ' +
+      'notebook created from a shared model is written in this subscription and counts here.',
+    inputSchema: object({}),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_model_version',
+    title: 'Create a version of a model',
+    description:
+      'Freezes the model notebook as it is now into its next version, 1, 2, …, with a ' +
+      'changelog saying what changed since the last. A version never changes afterwards, ' +
+      'counts once in the storage, and is what notebooks are created from. Only the owner of ' +
+      'the subscription may, after reviewing the notebook with them. It is built in the ' +
+      'background: get_model says when its status is ready, and read_model_version then shows ' +
+      'exactly what it holds, and what it writes as `{{name}}` without declaring. The tables of ' +
+      'the notebook go with their rows unless `tables` says otherwise: each named table with ' +
+      '`rows: true` or with its schema alone, `rows: false`, and a table not named stays out, ' +
+      'with every dashboard that draws from it. ' +
+      'Rows that go are public once the model is published: ask the person.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        changelog: { type: 'string', description: 'What changed since the last version.' },
+        tables: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: { name: { type: 'string' }, rows: { type: 'boolean' } },
+            required: ['name', 'rows'],
+          },
+          description:
+            'What the version carries of each table; every table with its rows when absent.',
+        },
+      },
+      ['notebook'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'read_model_version',
+    title: 'Read a version of a model whole',
+    description:
+      'Everything a version holds — its guidance, folders, templates, notes and files, its ' +
+      'parameters and changelog — and `references`: the `{{name}}` it writes that no parameter ' +
+      'declares, which a notebook created from it would keep, and the parameters nothing ' +
+      'uses. Review it with the person before the version is shared.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        version: { type: 'integer', description: 'The number of the version.' },
+      },
+      ['notebook', 'version'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'delete_model_version',
+    title: 'Delete a version of a model',
+    description:
+      'Deletes one version of a model and frees its storage. Notebooks already created from it ' +
+      'are not touched. Only the owner of the subscription may; confirm with them first.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        version: { type: 'integer', description: 'The number of the version.' },
+      },
+      ['notebook', 'version'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'create_notebook_from_model',
+    title: 'Create a notebook from a model',
+    description:
+      'Creates an independent notebook of this subscription from a version of a model, with ' +
+      'a value for each of its parameters, by name: one not given takes its default, and a ' +
+      'required one missing, or a value not of its type, is refused before anything is ' +
+      'written, naming each. Ask the person for the values first, using the description and ' +
+      'example of each parameter. Every `{{name}}` is filled in; the new notebook depends on ' +
+      'nothing of the model afterwards. It waits for the notebook to be written and answers ' +
+      'its identifier, or the transfer to follow when it takes longer.',
+    inputSchema: object(
+      {
+        notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' },
+        version: {
+          type: 'integer',
+          description: 'The version to create from, usually the latest.',
+        },
+        name: {
+          type: 'string',
+          description: 'Optional: the name of the new notebook; the name of the model, filled in.',
+        },
+        values: {
+          type: 'object',
+          description: 'The value of each parameter, by its name.',
+          additionalProperties: true,
+        },
+      },
+      ['notebook', 'version', 'values'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'publish_model',
+    title: 'Publish a model to the community',
+    description:
+      'Publishes a model of this subscription to the community catalog, where anybody, with ' +
+      'an account or not, finds it and reads every version kept, and whoever signs in creates ' +
+      'notebooks from it. Only the owner of the subscription publishes, and the model needs a ' +
+      'ready version. Every distribution of a model is under CC0 1.0: anybody may reuse and ' +
+      'republish it freely, so say so to the person and pass acceptLicence only once they ' +
+      'agree. The catalog shows the name of their account, never the e-mail; a refusal with ' +
+      'reason AUTHOR_NAME means they write their name in their profile first. Publishing again ' +
+      'says the entry again. It answers what anybody will see of the model.',
+    inputSchema: object(
+      {
+        notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' },
+        language: {
+          type: 'string',
+          description: 'The language the model is written in, as a BCP 47 tag: pt-BR, en.',
+        },
+        acceptLicence: {
+          type: 'boolean',
+          description: 'True once the person accepted CC0 1.0 for this model.',
+        },
+      },
+      ['notebook', 'language'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'withdraw_model',
+    title: 'Withdraw a model from the community',
+    description:
+      'Withdraws a published model from the community catalog. The model and its versions ' +
+      'stay in this subscription, and nothing anybody created from it is touched; what was ' +
+      'already copied stays with whoever copied it.',
+    inputSchema: object(
+      { notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' } },
+      ['notebook'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'search_community_models',
+    title: 'Search the community models',
+    description:
+      'Finds the models published to the community, by every word given in their name, ' +
+      'objective, description, audience or author, and by language. Each answers its public ' +
+      'identifier, what it is for, its author, its parameters and its versions. Offer one ' +
+      'before designing a notebook from scratch, when it fits what the person wants.',
+    inputSchema: object({
+      query: { type: 'string', description: 'Optional: words to find.' },
+      language: { type: 'string', description: 'Optional: a BCP 47 tag, such as pt or en.' },
+    }),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'read_community_model',
+    title: 'Read a community model',
+    description:
+      'A model published to the community, by its public identifier: what it is for, who it ' +
+      'is for, its author and credit, its parameters, and every version its author keeps, the ' +
+      'newest first, each with its number, date and changelog.',
+    inputSchema: object(
+      { model: { type: 'string', description: 'The public identifier of the model.' } },
+      ['model'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'read_community_version',
+    title: 'Read a version of a community model',
+    description:
+      'A version of a published model, whole: its Guidance, every folder with its Template, ' +
+      'every note and the files it keeps, with `{{name}}` where a value goes. Read it with the ' +
+      'person before creating a notebook from it.',
+    inputSchema: object(
+      {
+        model: { type: 'string', description: 'The public identifier of the model.' },
+        version: { type: 'integer', description: 'The number of the version.' },
+      },
+      ['model', 'version'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_notebook_from_community_model',
+    title: 'Create a notebook from a community model',
+    description:
+      'Creates an independent notebook of this subscription from a version of a model ' +
+      'published to the community, with a value for each of its parameters, by name, as ' +
+      'create_notebook_from_model does; it is written and counted here, and depends on ' +
+      'nothing of the model afterwards. Ask the person for the values first.',
+    inputSchema: object(
+      {
+        model: { type: 'string', description: 'The public identifier of the model.' },
+        version: {
+          type: 'integer',
+          description: 'The version to create from, usually the latest.',
+        },
+        name: {
+          type: 'string',
+          description: 'Optional: the name of the new notebook; the name of the model, filled in.',
+        },
+        values: {
+          type: 'object',
+          description: 'The value of each parameter, by its name.',
+          additionalProperties: true,
+        },
+      },
+      ['model', 'version', 'values'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
   {
     name: 'note_history',
     title: 'Read the history of a note',
@@ -1113,13 +1826,13 @@ const DEFINITIONS: readonly ToolDefinition[] = [
 ];
 
 /**
- * What every tool that writes in a notebook says of a shared one (RN-AGT-046):
+ * What every tool that writes in a notebook says of a shared one (RN-AGT-054):
  * said once here and appended, so no write tool can be added without it.
  */
 const SHARED_REFUSAL =
-  ' A notebook shared with this person from another subscription with `read` access refuses ' +
-  'this with FORBIDDEN, naming its owner: list_notebooks says which notebooks are shared and ' +
-  'with which access.';
+  ' A notebook shared with this person from another subscription refuses what its access does ' +
+  'not allow with FORBIDDEN, naming its owner: list_notebooks says which notebooks are shared ' +
+  'and with which access.';
 
 function writesInANotebook(tool: ToolDefinition): boolean {
   const writes =

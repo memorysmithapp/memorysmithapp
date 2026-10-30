@@ -56,6 +56,7 @@ export const FORMATTING_USES: Readonly<Record<string, string>> = {
   'list-bullet': 'Items with no order among them',
   'task-list': 'What is still to be done, which a person can tick on the page',
   table: 'A comparison, or the same few fields across several items',
+  'table-block': 'Rows the notebook keeps in a Table, shown in a note through a query, paged',
   callout: 'A rule, a warning or a decision a reader must not miss',
   'block-quote': 'A passage quoted from a source, word for word',
   mermaid: 'A flow, a sequence or how the parts of something relate, drawn instead of described',
@@ -100,6 +101,9 @@ export const FORMATTING_LEFT_TO_WRITE_NOTES: ReadonlySet<string> = new Set([
   'raw-html',
   'attachment',
   'pending-link-display',
+  // A model's parameters (§7.14) are taught where a model is made, and their
+  // syntax and effect with every other form, in write-notes.
+  'parameter-reference',
 ]);
 
 /** A code span that holds any text, backticks included, inside a table cell. */
@@ -353,6 +357,129 @@ say what you built. Without it, when you can propose the whole structure in one
 message — the guidance in a paragraph, the folders with their descriptions, the
 properties, the maps and the templates — and the person can accept it or adjust
 it. Then build it.
+
+## Starting from a model
+
+Before designing a notebook for a kind of work, call \`list_models\`: a model of
+this subscription may already be that design. When one fits, say so and offer
+it; with the person's agreement, ask them for the value of each parameter, by
+its description and example, and call \`create_notebook_from_model\`. The new
+notebook is theirs, independent of the model, and is then read and written like
+any other.
+
+When none of the subscription fits, \`search_community_models\` finds the models
+others published to the community. Read the one that fits with the person —
+\`read_community_model\` and \`read_community_version\` — and create from it with
+\`create_notebook_from_community_model\` the same way: the notebook is written in
+this subscription and depends on nothing of the model.
+
+## A notebook that is a model
+
+When the person asks for a model — a notebook to be copied, one per client,
+case or place — and not for a notebook of their own work, design it from scratch
+as this skill says, with four differences:
+
+1. **Ask the objective and the audience first.** A model is written for whoever
+   creates a notebook from it, so its guidance says what such a notebook is for
+   and who keeps it, never one case.
+2. **Keep the structure generic.** Folders, descriptions and templates name the
+   kind of thing they hold, never one instance of it.
+3. **Propose the parameters.** What changes from one notebook to the next — the
+   name of the condominium, the client, the start date — is written \`{{name}}\`
+   wherever it goes, and declared once with \`declare_model\`: what it is, an
+   example, its type, and whether it is required or what it defaults to. The
+   person approves the list.
+4. **Write illustrative examples.** Each folder with a template holds one note
+   that shows it, written for the model, with parameters where a case would put
+   its own words.
+
+Then, with the person, call \`declare_model\`, review the notebook, and create
+its first version with \`create_model_version\`. Offer to try it: create a
+notebook from that version with sample values, read it together, and delete it.
+The trial is recommended and never required.
+`;
+
+/**
+ * Deriving a model from a notebook that worked (#352): the method, because
+ * generalizing is rewriting, not search and replace, and an agent that does it
+ * by intuition leaks the circumstances of the source into the model.
+ */
+const DERIVE_MODEL = `# Deriving a model from a notebook that worked
+
+A notebook that worked carries its circumstances: the name of whoever wrote it
+and of their organization in the guidance, the system it evaluates, local
+decisions, real notes. A **model** carries the method, with the objective its
+author chooses: instead of evaluating one mobile application, evaluating any
+source code and structuring what is learned. Getting from one to the other is
+rewriting, and this is how.
+
+The source notebook is never changed. The model is a **new notebook** of the
+subscription, created for it and declared as a model at the end. Only the owner
+of the subscription declares a model and creates its versions.
+
+## The method
+
+Do these in order, and do not skip the questions: each one is a decision of the
+author, never yours.
+
+1. **Understand the notebook.** Read \`get_notebook_context\`, every template with
+   \`get_template\`, and a sample of the notes of each folder. Say, in a short
+   paragraph, the method the notebook actually applies: what it collects, in what
+   order, how it decides, what it produces.
+2. **Ask the level of generality.** Offer the author two or three objectives, from
+   the one closest to the source to the broadest that still holds — "evaluate
+   mobile applications", "evaluate any source code", "evaluate any system". Keep
+   the one they choose. A domain-specific model is a good model: never broaden
+   the purpose on your own.
+3. **Separate the method from the circumstance.** List everything specific to the
+   case: people, organizations, the system evaluated, dates, places, decisions,
+   internal references and figures. For each, propose one of three outcomes and
+   let the author decide:
+   - **remove it**, when the model is better without it;
+   - **generalize it**, rewriting the sentence for the chosen objective;
+   - **make it a parameter**, when it changes from one notebook to the next and
+     the next notebook has to say it: \`{{client}}\`, \`{{system}}\`.
+4. **Rewrite, do not substitute.** Replacing the name of the organization with
+   \`{{organization}}\` is not enough when the whole sentence only makes sense for
+   that case. Rewrite the guidance, the folder descriptions and the templates for
+   the new objective.
+5. **Write the examples anew.** A real note almost always carries facts of the
+   case. Write one illustrative note per folder with a template, for the model;
+   copy a real one only when the author asks for it, and only after reviewing it
+   with them line by line.
+6. **Review it with the author.** Show what was removed, what was generalized,
+   what became a parameter, and every assumption you made. Nothing becomes a
+   version without their approval.
+
+## Building it
+
+1. Create the model notebook with \`create_notebook\`, and write its guidance,
+   folders, templates and examples as \`design-notebook\` says, with the rewritten
+   text.
+2. Declare it with \`declare_model\`: the objective the author chose, who it is
+   for, and each parameter — its name, what it is, an example, its type
+   (\`text\`, \`list\`, \`boolean\` or \`date\`), and whether it is required or what
+   it defaults to.
+3. Create its first version with \`create_model_version\`, with a changelog that
+   says what it is. When \`get_model\` says it is ready, read it with
+   \`read_model_version\`: \`references.undeclared\` must be empty, and every
+   parameter in \`references.unused\` is either written where it belongs or
+   removed from the declaration.
+4. Offer the trial: create a notebook from the version with sample values, read
+   it with the author, and delete it. It is recommended, never required.
+5. Sharing or publishing it is the author's decision, never a step of this
+   method. When they ask to publish it to the community with \`publish_model\`,
+   say first that every distribution of a model is under CC0 1.0 — anybody may
+   reuse and republish it freely — and pass \`acceptLicence\` only once they
+   agree. Giving credit to a model it was based on is optional.
+
+## What not to do
+
+- Do not change the source notebook.
+- Do not keep a name of a person or of an organization of the source in the
+  model, unless the author asked to.
+- Do not broaden the objective, or narrow it, without the author's agreement.
+- Do not create a version the author has not reviewed.
 `;
 
 /**
@@ -791,6 +918,20 @@ note lacks something the specification reserves, \`aliases\` or \`tags\`: add it
 when the guidance asks for it, and leave it otherwise. \`check_notebook\` lists
 the notices of the notebook's latest notes the same way.
 
+**Declare the context you read, and weigh what changed.** Another person, or
+another agent, may be writing in the same notebook. \`get_notebook_context\` ends
+with the revisions of what you read, and \`get_template\` answers the revision of
+the folder's template: pass them as \`context\` to \`create_note\`,
+\`update_note\` and \`move_note\`. When any of it changed while you wrote, the
+note is saved all the same and the answer carries \`contextChanged\`, naming the
+guidance, the template or the structure. The guidance is guidance, not a rule:
+read again what changed, review the note against it, and when it needs
+adjusting, \`update_note\` it under its own revision, declaring the current
+context. Never send the same note again with the new revisions just to make the
+notice go away. \`check_notebook\` lists in \`staleContext\` every note written
+against a context that had already changed; treat each the same way before
+saying the work is done.
+
 ## Searching what you wrote
 
 \`search_notes\` reads the body, not the frontmatter, and its query language is
@@ -995,6 +1136,212 @@ without telling the person why. A file no note shows may be kept on purpose,
 such as the source of a figure: say which ones to the person. A pending link
 with \`waitingFor: "person"\` is a file they were asked for.
 `;
+const KEEP_TABLES = `# Keeping structured data in a Table
+
+A notebook keeps Tables beside its notes: rows of typed data a note shows
+through a query. Use a table for what has rows — expenses, readings, an
+inventory, the tasks of a project, the lines of a bank statement — and a note
+for what is read as prose. A Markdown table typed into a note is a picture of
+data: nothing checks it, nothing filters it, and every change rewrites the note.
+
+${SHARED_NOTEBOOKS} Writing rows is writing content; creating, altering and
+deleting a table is maintaining the notebook.
+
+## Before anything
+
+Read \`get_notebook_context\`: it names the tables the notebook already has,
+with their columns. Rows go into the table that is already there for them;
+\`list_tables\` gives each schema whole.
+
+## Where the rows come from
+
+1. **A file the person has: a CSV or an Excel workbook.** Keep it whole, the
+   way the skill \`${'keep-files'}\` says — \`begin_file_upload\` and its parts, or
+   \`keep_file\` with \`content\` for a small CSV — or, when the file is with
+   the person and not with you, ask for it with \`request_file\`. Then call
+   \`import_table\` with the file and no table: it writes nothing and answers
+   the schema the sheet suggests, the column each header becomes, and the
+   first rows. Show that to the person, change what they want changed, create
+   the table, and call \`import_table\` again with the table. Every line is
+   checked before the first is written, so a file with one bad line is refused
+   whole, naming the line: fix it in the file, or widen the column, and import
+   again.
+2. **No file: a page on the screen, a PDF you read, what the person tells
+   you.** You are the one who turns it into rows. Write them with
+   \`insert_rows\`, up to 50 a call, each an object by column name.
+
+## The schema
+
+Write it in JSON Schema, and describe every column: the description is what
+the next agent reads to know what goes there. Prefer the narrowest type that
+holds the data — a date as \`{ "type": "string", "format": "date" }\`, an amount
+as a number, a status as a string with \`enum\` — because a filter compares by
+type: \`amount:>100\` compares numbers only in a number column. Show the person
+the schema before \`create_table\`.
+
+## The key, and reading the same data twice
+
+When rows have an identity — a bank line is its date, description and amount,
+or an identifier the bank prints — declare it as the \`key\`. Then write with
+\`mode: "upsert"\`: reading the same statement tomorrow changes the rows it
+already holds and adds only the new ones, and nothing is duplicated. Without a
+key, every row written is a new row.
+
+## Changing what is there
+
+\`update_rows\` and \`delete_rows\` name a row by its \`rowId\`, as
+\`query_table\` prints it, or by the values of its key. A column of the key is
+never changed in place: delete the row and insert it again. \`alter_table\`
+changes the schema and never leaves a row invalid: when it refuses, it names
+the rows that do not fit, and you fix those first. Deleting rows or a table is
+definitive; say how many go and ask before you do it.
+
+## Reading
+
+\`query_table\` filters in the language of the search — \`status:paid\`,
+\`date:2026-10\`, \`amount:30..200\`, \`-status:cancelled\` — sorts and pages.
+Read the data through it, never by copying rows into a note.
+
+## Showing a table in a note
+
+A note shows a table with a \`table\` block, which holds the question and never
+the answer, so the note is always as current as its rows:
+
+\`\`\`\`markdown
+\`\`\`table
+table: gastos
+columns: data, descricao, valor, status
+where: status:pendente data:2026-10
+sort: data desc
+page: 20
+total: valor
+\`\`\`
+\`\`\`\`
+
+Only \`table\` is required. \`where\` is the language of \`query_table\`, \`sort\`
+is columns each with \`asc\` or \`desc\`, \`page\` goes up to 100 rows, and
+\`total\` sums a number column that is drawn, over every row the filter
+returns. The answer of a write says, as \`notices\`, what the block got wrong.
+A table renamed does not rewrite the notes that name it: find them with the
+*Tables* page and update them.
+`;
+
+const BUILD_DASHBOARDS = `# Building a dashboard
+
+A Dashboard shows the Tables of a notebook the way a spreadsheet, Power BI or
+Project would: indicators, charts, a table of rows, a Gantt, a Kanban, side by
+side and under one filter. **Only you build it**: the person asks in plain
+words — "a panel of my expenses by category and by month" — and never sees
+the definition. It keeps no data: every component asks its table when the
+dashboard is read, so a row you change shows at the next read.
+
+${SHARED_NOTEBOOKS} Building and changing a dashboard is maintaining the
+notebook.
+
+## Before anything
+
+\`list_tables\` gives each table with its columns and types: a dashboard can
+only draw what they hold. \`list_dashboards\` says whether one already shows
+the data, which you then change with \`update_dashboard\` instead of copying.
+
+## The definition
+
+\`\`\`json
+{
+  "layout": "header-two-columns",
+  "refreshSeconds": 300,
+  "filters": [{ "id": "periodo", "type": "period", "column": "data", "label": "Mês", "default": "2026-10" }],
+  "components": [
+    { "id": "total", "type": "kpi", "slot": "header", "title": "Gasto no mês",
+      "source": { "table": "gastos", "measure": "sum(valor)" },
+      "options": { "format": "currency", "currency": "BRL" } },
+    { "id": "categorias", "type": "donut", "slot": "left", "title": "Por categoria",
+      "source": { "table": "gastos", "group": "categoria", "measures": ["sum(valor)"] } },
+    { "id": "semanas", "type": "bar", "slot": "right", "title": "Por semana",
+      "source": { "table": "gastos", "group": "data:week", "measures": ["sum(valor)"] } },
+    { "id": "contas", "type": "kanban", "slot": "footer", "title": "Contas a pagar",
+      "source": { "table": "contas" }, "options": { "lane": "status", "card": "descricao" } }
+  ]
+}
+\`\`\`
+
+- **layout**: \`one-column\` (slot \`main\`), \`two-columns\` (\`left\`, \`right\`),
+  \`three-columns\` (\`left\`, \`middle\`, \`right\`), \`header-two-columns\`
+  (\`header\`, \`left\`, \`right\`, \`footer\`), \`sidebar\` (\`side\`, \`main\`), or
+  \`grid\`, where each component says \`"grid": { "x", "y", "w", "h" }\` on 12
+  columns. On a phone every layout becomes one column.
+- **filters**: a period over a date column, applied to every component whose
+  table has that column; \`default\` is the period it opens on, as \`2026\`,
+  \`2026-10\` or \`2026-10-29\`.
+- **source**: the table by name, a \`where\` in the language of the search,
+  and what the type adds up: \`count()\`, \`sum(col)\`, \`avg(col)\`, \`min(col)\`,
+  \`max(col)\`, grouped by a column or by a period, \`data:month\`.
+
+## The components
+
+- **kpi**: one \`measure\`; \`options.compareWhere\` is the filter of the value it
+  is compared with, as last month; \`options.goal\` a number it is measured
+  against.
+- **pie**, **donut**: one measure by group. **bar**: measures by group,
+  \`options.stacked\`, \`percent\`, \`horizontal\`. **line**, **area**: a measure
+  over a period, \`options.smooth\`.
+- **table**: rows; \`options.columns\`, \`sort\`, \`pageSize\`, and \`rules\` to
+  format a number column as a \`bar\`, a colour \`scale\` or \`icons\`.
+- **gantt**: \`options.title\`, \`start\`, \`end\`, and \`progress\` (0 to 100) and
+  \`group\` when the table has them.
+- **kanban**: \`options.lane\`, the column whose values are the lanes — an
+  \`enum\` gives them their order — and \`card\`, \`detail\` and \`color\`.
+- **text**: \`options.markdown\`, to title, explain or close the panel.
+- **wbs**: a tree from an outline code column, \`options.code\` as \`1\`,
+  \`1.2\`, \`1.2.3\`, with \`title\`; \`progress\` (0 to 100) on the rows
+  rolls up from child to parent, weighted by \`weight\` when the table has it.
+- **matrix**: a pivot table: its rows in \`source.group\`, one measure, its
+  columns in \`options.across\` (a column or a period, \`data:month\`), with
+  the totals of each row and column unless \`options.totals\` is false.
+- **combo**: a group and two measures or more: bars, and lines for the measures
+  in \`options.lines\`, the last one when it says none.
+- **waterfall**: one measure by group, each bar starting where the last one
+  ended, for what adds up to a result; \`options.total\` closes with the sum.
+- **funnel**: one measure by group, the largest first, for stages that narrow.
+- **treemap**: one measure by group, as areas, for the parts of a whole with
+  too many groups for a pie.
+- **scatter**: a point per row, from the number columns \`options.x\` and
+  \`y\`, with \`size\`, \`color\` and \`label\` when the table has them.
+- **heatmap**: a matrix in colour: its rows in \`source.group\`, one measure,
+  its columns in \`options.across\`.
+- **calendar**: one measure grouped by day, \`data:day\`, as the days of the
+  year coloured by value.
+- **gauge**: one measure against \`options.goal\`.
+- **timeline**: the events of a table in order, \`options.date\` and
+  \`title\`, with \`detail\` and \`group\`.
+
+A click on a mark of a chart filters the rest of the dashboard: every other
+component whose table has the column that chart groups by keeps the rows of that
+group, and a second click clears it. It needs nothing in the definition, so
+group charts by columns the tables share. \`read_dashboard\` and
+\`preview_dashboard\` take \`cross\`, \`{ "component", "key" }\`, to see the
+same thing.
+
+A legend reads the name of the column measured. \`options.names\` says it in the
+person's words, \`{ "sum(receita)": "Receita" }\`: write it on any chart of
+several measures.
+
+Every value can be formatted: \`options.format\` as \`number\`, \`currency\` with
+\`currency\`, or \`percent\`, and \`decimals\`.
+
+## Showing it
+
+**Look at it before you call it done**: \`preview_dashboard\` draws it whole as
+a computer shows it, and \`get_preview\` answers the PNG. Fix what reads badly
+— a chart squeezed into a narrow column, a Kanban with one lane, a title that
+says nothing — and look again. Pass \`locale\`, \`pt_BR\` for a person who speaks Portuguese, so it is drawn as they
+read it. Then tell the person where it is —
+*Dashboards* in the menu of the notebook — and read it with
+\`read_dashboard\` to say what it shows. A component whose table
+is gone, or whose filter no longer fits a changed schema, says so: fix the
+definition rather than leaving it.
+`;
+
 /**
  * The skill a text names outside the registry, as a constant of it: a
  * description that cites a skill by a literal would still cite it the day it is
@@ -1002,6 +1349,9 @@ with \`waitingFor: "person"\` is a file they were asked for.
  */
 export const DESIGN_NOTEBOOK_SKILL = 'design-notebook';
 export const KEEP_FILES_SKILL = 'keep-files';
+export const DERIVE_MODEL_SKILL = 'derive-model';
+export const KEEP_TABLES_SKILL = 'keep-tables';
+export const BUILD_DASHBOARDS_SKILL = 'build-dashboards';
 
 /**
  * One skill per task, and only tasks the reading path does not teach. The path
@@ -1018,6 +1368,11 @@ export const SKILLS: readonly Skill[] = [
     body: DESIGN_NOTEBOOK,
   },
   {
+    name: DERIVE_MODEL_SKILL,
+    task: 'Derive a notebook model from a notebook that worked: keep the method, leave the circumstance',
+    body: DERIVE_MODEL,
+  },
+  {
     name: 'write-notes',
     task: 'Write a note this product can read: the notation it interprets, and the notation it does not',
     body: WRITE_NOTES,
@@ -1026,6 +1381,16 @@ export const SKILLS: readonly Skill[] = [
     name: KEEP_FILES_SKILL,
     task: 'Keep a file in a notebook — a photo, a recording, a document — whole, at its own size',
     body: KEEP_FILES,
+  },
+  {
+    name: KEEP_TABLES_SKILL,
+    task: 'Keep structured data in a Table — from a CSV, an Excel file or what is on the screen — and read it back',
+    body: KEEP_TABLES,
+  },
+  {
+    name: BUILD_DASHBOARDS_SKILL,
+    task: 'Build a dashboard over the tables of a notebook — indicators, charts, a Gantt, a Kanban — from what the person asks',
+    body: BUILD_DASHBOARDS,
   },
   {
     name: 'convert-inline-tags',

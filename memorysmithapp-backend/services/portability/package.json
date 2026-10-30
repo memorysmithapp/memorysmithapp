@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/svc-portability",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "Portability bounded context: export of a notebook as a readable folder of Markdown files. Zero lock-in is a requirement, not a courtesy.",
@@ -21,7 +21,13 @@
     "./adapters/prints": "./src/adapters/prints.ts",
     "./adapters/chromium": "./src/adapters/chromium.ts",
     "./application/previews": "./src/application/Previews.ts",
-    "./adapters/previews": "./src/adapters/previews.ts"
+    "./adapters/previews": "./src/adapters/previews.ts",
+    "./application/models": "./src/application/Models.ts",
+    "./domain/model": "./src/domain/NotebookModel.ts",
+    "./adapters/catalog": "./src/adapters/catalog.ts",
+    "./application/catalog": "./src/application/Catalog.ts",
+    "./domain/catalog": "./src/domain/CommunityCatalog.ts",
+    "./adapters/catalog-http": "./src/adapters/catalog-http.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

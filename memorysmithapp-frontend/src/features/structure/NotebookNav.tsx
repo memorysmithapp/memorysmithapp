@@ -1,21 +1,30 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   attachmentsAddress,
+  tablesAddress,
+  dashboardsAddress,
   foldersAddress,
   graphAddress,
   guidanceAddress,
+  modelAddress,
   notebookAddress,
   templatesAddress,
 } from '../../shared/api/note-address';
+import { queryKeys } from '../../shared/api/query-keys';
+import { getModel } from '../../shared/api/source';
 import {
   ChevronRightIcon,
   ContextIcon,
+  CopyIcon,
   FolderIcon,
   GraphIcon,
   GuidanceIcon,
   PaperclipIcon,
+  TableIcon,
+  DashboardIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
 
@@ -26,15 +35,71 @@ import {
  * open is told by weight alone — 600 and a thicker icon among rows at 400 —
  * never by a rule and never in blue; the fill is only the cursor.
  */
+/**
+ * The pages of a notebook beyond its Context, in one list, so the sidebar and
+ * the sheet of a phone can never disagree on what a notebook has (#375).
+ */
+export function useNotebookPages(notebookId: string): Array<{
+  key: 'model' | 'attachments' | 'tables' | 'dashboards' | 'graph';
+  to: string;
+  label: string;
+  icon: ReactNode;
+}> {
+  const { t } = useTranslation();
+  // What the notebook is as a model, to copy (#353), shown only where it is one (#373).
+  const model = useQuery({
+    queryKey: queryKeys.model(notebookId),
+    queryFn: () => getModel(notebookId),
+  });
+  return [
+    ...(model.data
+      ? [
+          {
+            key: 'model' as const,
+            to: modelAddress(notebookId),
+            label: t('model.title'),
+            icon: <CopyIcon />,
+          },
+        ]
+      : []),
+    {
+      key: 'attachments' as const,
+      to: attachmentsAddress(notebookId),
+      label: t('attachments.navLabel'),
+      icon: <PaperclipIcon />,
+    },
+    // The tables an agent keeps in the notebook (#366).
+    {
+      key: 'tables' as const,
+      to: tablesAddress(notebookId),
+      label: t('tables.navLabel'),
+      icon: <TableIcon />,
+    },
+    // What an agent built over the tables, to look at (#368).
+    {
+      key: 'dashboards' as const,
+      to: dashboardsAddress(notebookId),
+      label: t('dashboards.navLabel'),
+      icon: <DashboardIcon />,
+    },
+    {
+      key: 'graph' as const,
+      to: graphAddress(notebookId),
+      label: t('graph.navLabel'),
+      icon: <GraphIcon />,
+    },
+  ];
+}
+
 export function NotebookNav({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const parts = [guidanceAddress, templatesAddress, foldersAddress].map((address) =>
     address(notebookId),
   );
-  const inPart = parts.includes(pathname);
+  const inPart = parts.includes(pathname) || pathname.startsWith(modelAddress(notebookId));
   /**
-   * The chevron folds the three parts, and the group starts open. Folding it
+   * The chevron folds the parts, and the group starts open. Folding it
    * never hides what is open: arriving at one of the parts opens it again,
    * the way the tree reopens the path to the open note.
    */
@@ -42,6 +107,8 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
   useEffect(() => {
     if (inPart) setOpen(true);
   }, [inPart]);
+  const pages = useNotebookPages(notebookId);
+  const model = pages.find((page) => page.key === 'model');
 
   return (
     <nav className="notebook-nav" aria-label={t('structure.openNavigation')}>
@@ -62,6 +129,12 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
       </div>
       {open ? (
         <div className="nav-children" id="notebook-nav-parts">
+          {/* A notebook that is a model is one more part of its Context (#373). */}
+          {model ? (
+            <NavItem to={model.to} icon={model.icon} child>
+              {model.label}
+            </NavItem>
+          ) : null}
           <NavItem to={guidanceAddress(notebookId)} icon={<GuidanceIcon />} child>
             {t('structure.guidance')}
           </NavItem>
@@ -73,12 +146,13 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
           </NavItem>
         </div>
       ) : null}
-      <NavItem to={attachmentsAddress(notebookId)} icon={<PaperclipIcon />}>
-        {t('attachments.navLabel')}
-      </NavItem>
-      <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
-        {t('graph.navLabel')}
-      </NavItem>
+      {pages
+        .filter((page) => page.key !== 'model')
+        .map((page) => (
+          <NavItem key={page.key} to={page.to} icon={page.icon}>
+            {page.label}
+          </NavItem>
+        ))}
     </nav>
   );
 }

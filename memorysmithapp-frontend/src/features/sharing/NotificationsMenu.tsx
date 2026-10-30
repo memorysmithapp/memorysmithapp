@@ -3,7 +3,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import type { NotificationDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { answerShare, dismissRevokedShare, dismissShareAnswer } from '../../shared/api/source';
+import {
+  answerShare,
+  answerShareIncrease,
+  dismissRevokedShare,
+  dismissShareAnswer,
+} from '../../shared/api/source';
 import { Menu } from '../../shared/components/Menu';
 import { BellIcon, CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { sharesChanged, useNotifications } from './shares';
@@ -92,6 +97,13 @@ function Notice({ notice }: { notice: NotificationDto }) {
     }
   }
 
+  // A share waiting for an answer, or an increase of one already accepted
+  // (RN-ACC-033), is answered here as on its card.
+  const answer = (accept: boolean): Promise<void> =>
+    notice.kind === 'increase'
+      ? answerShareIncrease(notice.notebookId, accept)
+      : answerShare(notice.notebookId, accept);
+
   const dismiss = (): Promise<void> =>
     notice.kind === 'revoked'
       ? dismissRevokedShare(notice.notebookId)
@@ -108,13 +120,13 @@ function Notice({ notice }: { notice: NotificationDto }) {
       </p>
       {failure ? <p className="notification-failure">{failure}</p> : null}
       <div className="notification-actions">
-        {notice.kind === 'shared' ? (
+        {notice.kind === 'shared' || notice.kind === 'increase' ? (
           <>
             <button
               type="button"
               className="button is-quiet is-small"
               disabled={busy}
-              onClick={() => void act(() => answerShare(notice.notebookId, false))}
+              onClick={() => void act(() => answer(false))}
             >
               <ActionWord icon={<CloseIcon />} word={t('sharing.reject')} />
             </button>
@@ -122,7 +134,7 @@ function Notice({ notice }: { notice: NotificationDto }) {
               type="button"
               className="button is-primary is-small"
               disabled={busy}
-              onClick={() => void act(() => answerShare(notice.notebookId, true))}
+              onClick={() => void act(() => answer(true))}
             >
               <ActionWord icon={<CheckIcon />} word={t('sharing.accept')} />
             </button>

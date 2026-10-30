@@ -43,15 +43,16 @@ import { domainEventTypeSchema, eventSubjectSchema } from '../events.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.2';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.3';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
- * carry and `1.2` the files the notebook keeps, and neither added anything
- * else: an older document is a newer one with that part missing, so it is read
- * exactly as it always was (RN-PRT-022, RN-PRT-025).
+ * carry, `1.2` the files the notebook keeps and `1.3` its tables, and none
+ * added anything else: an older document is a newer one with that part
+ * missing, so it is read exactly as it always was (RN-PRT-022, RN-PRT-025,
+ * RN-PRT-049).
  */
-export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2'] as const;
+export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3'] as const;
 
 export const documentFolderSchema = z.object({
   folderId: ulidSchema,
@@ -146,13 +147,37 @@ export const documentHistorySchema = z.object({
 export const documentFileSchema = z.object({
   name: z.string().min(1).max(512),
   description: z.string().max(500),
-  /** What the file IS, which is what decides how it is drawn (RN-KNW-050). */
+  /** What the file IS, which is what decides how it is drawn (RN-KNW-075). */
   mimeType: z.string().min(1).max(128),
   tags: z.array(z.string().min(1).max(40)).max(20),
   /** Where it was filed, written like a path of a filesystem. */
   path: z.string().max(512),
   /** The bytes, base64. */
   bytes: z.string(),
+});
+
+/**
+ * One Table of the notebook (#366): its schema in JSON Schema, its key by
+ * column name and its rows by column name. `rows` is absent when the transfer
+ * carried the schema alone (RN-PRT-049). No identifier travels: an import mints
+ * its own, and a note names a table by its name.
+ */
+export const documentTableSchema = z.object({
+  name: z.string().min(1).max(64),
+  description: z.string().max(500),
+  schema: z.record(z.string(), z.unknown()),
+  key: z.array(z.string()).nullable(),
+  rows: z.array(z.record(z.string(), z.unknown())).max(10_000).optional(),
+});
+
+/**
+ * One Dashboard of the notebook (#368): its definition, each component naming
+ * its table by name. It goes only with every table it draws from.
+ */
+export const documentDashboardSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(500),
+  definition: z.record(z.string(), z.unknown()),
 });
 
 export const notebookDocumentSchema = z.object({
@@ -180,10 +205,16 @@ export const notebookDocumentSchema = z.object({
    * worse default than a larger archive (RN-PRT-025).
    */
   files: z.array(documentFileSchema).optional(),
+  /** The tables of the notebook, absent from every document written before `1.3`. */
+  tables: z.array(documentTableSchema).optional(),
+  /** The dashboards whose tables it carries. */
+  dashboards: z.array(documentDashboardSchema).optional(),
 });
 
 export type NotebookDocument = z.infer<typeof notebookDocumentSchema>;
 export type DocumentFile = z.infer<typeof documentFileSchema>;
+export type DocumentTable = z.infer<typeof documentTableSchema>;
+export type DocumentDashboard = z.infer<typeof documentDashboardSchema>;
 export type DocumentHistory = z.infer<typeof documentHistorySchema>;
 export type DocumentHistoryEntry = z.infer<typeof documentHistoryEntrySchema>;
 export type DocumentFolder = z.infer<typeof documentFolderSchema>;

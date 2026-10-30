@@ -62,6 +62,10 @@ export const ACCESS_EVENT_TYPES = [
   'NotebookShareRejected',
   'NotebookShareRevoked',
   'NotebookShareLeft',
+  /** What a share grants changed, or an increase was answered (#347). */
+  'NotebookShareProfileChanged',
+  'NotebookShareIncreaseAccepted',
+  'NotebookShareIncreaseRejected',
 ] as const;
 
 export const KNOWLEDGE_EVENT_TYPES = [
@@ -95,6 +99,19 @@ export const KNOWLEDGE_EVENT_TYPES = [
   // them again under the same name (#166).
   'FileKept',
   'FileDeleted',
+  // A Table of a notebook and its rows (#366). A row event names the rows and
+  // the columns it touched and never a value, so the trail keeps no copy of
+  // what deleting a row destroys.
+  'TableCreated',
+  'TableAltered',
+  'TableDeleted',
+  'RowsInserted',
+  'RowsUpdated',
+  'RowsDeleted',
+  // A Dashboard of a notebook (#368): its definition, kept whole each time.
+  'DashboardCreated',
+  'DashboardChanged',
+  'DashboardDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -131,7 +148,11 @@ export type EventSubject =
   | 'FOLDER'
   | 'NOTE'
   // What a notebook keeps beside its notes: bytes with a name (#166).
-  | 'FILE';
+  | 'FILE'
+  // A schema and its rows, kept beside the notes (#366).
+  | 'TABLE'
+  // A layout of components drawn from the tables (#368).
+  | 'DASHBOARD';
 
 export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** ULID: orders the outbox and the audit sort key by generation time. */

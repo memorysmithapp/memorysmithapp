@@ -69,6 +69,63 @@ export function fileKept(notebookId: string, name: string): NotebookFileDto | nu
   return files.get(notebookId)?.get(name.normalize('NFC')) ?? null;
 }
 
+/** The Tables of a notebook, a page of rows of one, and its deletion (#366). */
+export function listTables(notebookId: string): ReturnType<typeof backend.listTables> {
+  return backend.listTables(notebookId);
+}
+
+export function queryTable(
+  ...args: Parameters<typeof backend.queryTable>
+): ReturnType<typeof backend.queryTable> {
+  return backend.queryTable(...args);
+}
+
+export function deleteTable(
+  notebookId: string,
+  table: string,
+): ReturnType<typeof backend.deleteTable> {
+  return backend.deleteTable(notebookId, table);
+}
+
+/** The Dashboards of a notebook, what one shows now, and its deletion (#368). */
+export function listDashboards(notebookId: string): ReturnType<typeof backend.listDashboards> {
+  return backend.listDashboards(notebookId);
+}
+
+export function readDashboardData(
+  ...args: Parameters<typeof backend.readDashboardData>
+): ReturnType<typeof backend.readDashboardData> {
+  return backend.readDashboardData(...args);
+}
+
+/**
+ * A dashboard as a PNG drawn by the server (#368): asked for, and asked again
+ * until it is drawn, for at most a minute.
+ */
+export async function dashboardImage(
+  notebookId: string,
+  dashboard: string,
+  locale: string,
+  view: Parameters<typeof backend.startDashboardImage>[3],
+): Promise<Blob> {
+  const { previewId } = await backend.startDashboardImage(notebookId, dashboard, locale, view);
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const preview = await backend.getPreview(previewId);
+    if (preview.status === 'failed') throw new Error(preview.failure ?? 'FAILED');
+    if (preview.status === 'ready' && preview.image) {
+      const bytes = Uint8Array.from(atob(preview.image.base64), (char) => char.charCodeAt(0));
+      return new Blob([bytes], { type: 'image/png' });
+    }
+  }
+  throw new Error('TIMED_OUT');
+}
+
+export function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
+  return backend.deleteDashboard(notebookId, dashboard);
+}
+
 export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
   return backend.linkToFile(notebookId, fileId);
 }
@@ -267,8 +324,9 @@ export function applyImport(
 export function startExport(
   notebookId: string,
   selection: TransferSelection | null = null,
+  tables?: Array<{ name: string; rows: boolean }>,
 ): Promise<TransferDto> {
-  return backend.startExport(notebookId, selection);
+  return backend.startExport(notebookId, selection, tables);
 }
 
 export function listTransfers(): Promise<TransferListDto> {
@@ -405,6 +463,10 @@ export function deleteTemplate(notebookId: string, folderId: string): Promise<vo
   return backend.deleteTemplate(notebookId, folderId);
 }
 
+export function deleteFolder(notebookId: string, folderId: string): Promise<void> {
+  return backend.deleteFolder(notebookId, folderId);
+}
+
 /**
  * Who may tick a box: whoever may write in THIS notebook. The effective role is
  * min(subscription role, notebook ceiling), and it is the only thing that
@@ -419,6 +481,8 @@ export function canWrite(effectiveRole: string): boolean {
 // the API, because nothing a screen already holds answers any of it.
 export {
   answerShare,
+  answerShareIncrease,
+  changeShareProfile,
   dismissRevokedShare,
   dismissShareAnswer,
   leaveShare,
@@ -428,4 +492,29 @@ export {
   listOwnShares,
   revokeShare,
   shareNotebook,
+} from './backend';
+
+// Notebook models (#353, #354, #359), and a blank notebook beside them: straight
+// to the API, as sharing is.
+export {
+  createFromVersion,
+  createModelVersion,
+  declareModel,
+  deleteModelVersion,
+  getModel,
+  getModelVersion,
+  listModels,
+  createNotebook,
+} from './backend';
+
+// The community catalog (#360): what anybody reads, and what a person signed
+// in does with it.
+export {
+  createFromCatalog,
+  getCatalogModel,
+  getCatalogVersion,
+  publishModel,
+  reportModel,
+  searchCatalog,
+  withdrawModel,
 } from './backend';

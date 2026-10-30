@@ -112,6 +112,11 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).not.toContain('[!warning]');
     expect(html).not.toContain('<blockquote>');
   },
+  // The notebook answers a block, so it is drawn as a table waiting for its
+  // rows rather than as code; the rows are exercised on staging.
+  'table-block': (html) => {
+    expect(html).toContain('aria-busy="true"');
+  },
   mermaid: (html) => {
     // The container is rendered before the library is imported, which is the
     // whole point: the fence became a diagram and not a code block.
@@ -256,6 +261,12 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).not.toContain('>Footnotes<');
     // What react-markdown hands a component is not an attribute of the page.
     expect(html).not.toContain('node="[object Object]"');
+  },
+  'parameter-reference': (html) => {
+    // Drawn as a parameter, braces and all, never as broken text (§7.14).
+    expect(html).toContain('class="parameter"');
+    expect(html).toContain('data-parameter=');
+    expect(html).toContain('{{');
   },
   'autolink-extended': (html) => {
     // Bare, and still a link. External, so it is a plain anchor and never one

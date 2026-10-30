@@ -14,13 +14,14 @@ Accounts are created on request. Once signed in, the *About* page says how to co
 
 ## The repository
 
-A pnpm monorepo of three projects, deployed together to AWS:
+A pnpm monorepo of three projects, deployed together to AWS, and the tools that operate and evaluate them:
 
 | Project | Holds |
 |---|---|
 | [`memorysmithapp-backend`](memorysmithapp-backend) | Six bounded contexts (access, knowledge, discovery, audit, agent, portability), the shared kernel and the contracts, in TypeScript |
 | [`memorysmithapp-frontend`](memorysmithapp-frontend) | The web interface, in React |
-| [`memorysmithapp-infra`](memorysmithapp-infra) | All of the infrastructure in AWS CDK, and the commands that deliver and operate it |
+| [`memorysmithapp-infra`](memorysmithapp-infra) | All of the infrastructure in AWS CDK, and the commands that deliver it |
+| [`tools`](tools) | `pnpm tools`: onboarding, product-data maintenance, the functional suite and the agent evaluation |
 
 ## Run it locally
 
@@ -32,6 +33,8 @@ pnpm quality     # the checks of the documents and the version
 pnpm test        # every unit suite
 pnpm typecheck
 ```
+
+To run the product in your own AWS account, from a fork or from a release, follow [Another installation](docs/ARCHITECTURE.md#56-another-installation).
 
 The unit suites run with no AWS account. There is no local backend: the web interface runs against a deployed environment, from `memorysmithapp-frontend/config.local.json` (a copy of `config.example.json` filled in with that environment's app client) and `pnpm -C memorysmithapp-frontend dev`.
 

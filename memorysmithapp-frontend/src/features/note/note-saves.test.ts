@@ -1,3 +1,4 @@
+import type { SaveNotice } from '@memorysmithapp/markdown-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NoteSaves, newSessionId, type SavePorts } from './note-saves';
 
@@ -14,6 +15,8 @@ const WORDS = {
   keepBroken: 'Keep the links broken',
   keepAlias: (name: string) => `Keep ${name} as an alias`,
   understood: 'OK',
+  contextChangedTitle: 'The notebook changed',
+  contextChanged: (changed: readonly string[]) => `changed: ${changed.join(', ')}`,
 };
 
 const named = (name: string, body = '') => `---\nname: ${name}\n---\n${body}`;
@@ -202,5 +205,38 @@ describe('the saves of an edit session (RN-KNW-052, RN-AUD-013)', () => {
 describe('newSessionId', () => {
   it('is a ULID', () => {
     expect(newSessionId()).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+  });
+});
+
+describe('a save whose context changed meanwhile (RN-KNW-061)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('says what changed, writes nothing again, and hands the current context only when read', async () => {
+    const current = { guidance: 'g2', template: null, structure: '4' };
+    const acknowledged: unknown[] = [];
+    let count = 0;
+    const { port } = ports({
+      write: async () => {
+        count += 1;
+        return {
+          revision: `v${count + 1}`,
+          ...(count === 1 ? { contextChanged: { changed: ['guidance' as const], current } } : {}),
+        };
+      },
+      acknowledgeContext: (value: unknown) => acknowledged.push(value),
+    });
+    const saves = new NoteSaves(port, { raw: named('A'), revision: 'v1' }, 'S1', 1000);
+    const answer = saves.change(named('A', 'x'));
+    await vi.advanceTimersByTimeAsync(1000);
+    const outcome = (await answer) as SaveNotice;
+    expect(outcome.title).toBe('The notebook changed');
+    expect(outcome.message).toBe('changed: guidance');
+    // Nothing was written again on its own.
+    expect(count).toBe(1);
+    expect(acknowledged).toEqual([]);
+    await outcome.actions[0]?.run();
+    expect(acknowledged).toEqual([current]);
+    expect(count).toBe(1);
   });
 });

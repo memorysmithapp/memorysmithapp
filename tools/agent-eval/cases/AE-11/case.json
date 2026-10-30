@@ -1,0 +1,25 @@
+{
+  "id": "AE-11",
+  "title": "A dashboard built from what a person asks in plain words, looked at before it is called done",
+  "exercises": "The skills that keep data in a table and build a dashboard over it: the rows go into a table with a schema the person saw, the dashboard answers what the person wants to see, and the agent looks at its image and corrects what reads badly before saying it is done.",
+  "skills": ["keep-tables", "build-dashboards"],
+  "turns": 8,
+  "checks": ["whoami-before-first-write", "wrote-after-acceptance", "no-duplicate-writes"],
+  "rubric": [
+    "Before creating the table, the executor shows the person the columns it proposes and waits for their answer.",
+    "The expenses are kept as rows of a table with typed columns, a date as a date and an amount as a number, and not as a Markdown table in a note.",
+    "The dashboard answers what the person asked: the total of the month, the expenses by category, and what is still to pay, using the tables through measures and groups rather than values typed into a text.",
+    "The person never sees or is asked about the definition of the dashboard: the executor speaks of what it will show.",
+    "After building the dashboard, the executor calls preview_dashboard and get_preview and looks at the image before saying it is done, correcting with update_dashboard anything that reads badly.",
+    "It closes by saying where the person finds the dashboard and what it shows now."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "marina",
+      "request": "Estes são meus gastos de outubro: 01/10 aluguel 1800 pago; 05/10 mercado 620,50 pago; 12/10 farmácia 89,90 pago; 20/10 luz 210 pendente; 25/10 internet 120 pendente; 28/10 mercado 430 pendente. Queria guardar isso e ver de um jeito fácil quanto gastei, com o que, e o que falta pagar. Pode montar para mim?",
+      "persona": "persona-pt_BR.md",
+      "setup": { "kind": "empty" }
+    }
+  ]
+}

@@ -75,7 +75,9 @@ export class CostBudgets extends Construct {
     for (const spec of BUDGETS) {
       new CfnBudget(this, spec.name, {
         budget: {
-          budgetName: spec.name,
+          budgetName: props.environment.installation
+            ? spec.name.replace('memorysmith-', `memorysmith-${props.environment.installation}-`)
+            : spec.name,
           budgetType: 'COST',
           timeUnit: 'MONTHLY',
           budgetLimit: { amount: spec.limit, unit: 'USD' },

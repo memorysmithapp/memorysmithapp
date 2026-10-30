@@ -20,7 +20,11 @@ import {
   type Result,
   type UserId,
 } from '@memorysmithapp/kernel';
-import { AuthorizationPolicy, type RequestContext } from '../domain/access/AuthorizationPolicy.js';
+import {
+  AuthorizationPolicy,
+  type Action,
+  type RequestContext,
+} from '../domain/access/AuthorizationPolicy.js';
 import { composeNotebookContext } from '../domain/services/NotebookContextComposer.js';
 import { Guidance } from '../domain/content-slot/Guidance.js';
 import { Notebook } from '../domain/notebook/Notebook.js';
@@ -47,12 +51,19 @@ export interface NotebookDependencies {
   readonly reservedVocabulary: readonly string[];
 }
 
+/** What a request may do in a notebook, by action (#346). */
+export interface NotebookPermissions {
+  readonly writeContent: boolean;
+  readonly maintain: boolean;
+  readonly administer: boolean;
+}
+
 /** Loads a notebook and authorizes in one step, so no caller can forget. */
 async function loadAuthorized(
   deps: NotebookDependencies,
   ctx: RequestContext,
   notebookId: NotebookId,
-  action: 'read' | 'write' | 'administer',
+  action: Action,
 ): Promise<Result<Notebook, DomainError>> {
   /**
    * A write loads the newest state of the notebook, because it is validated
@@ -153,12 +164,14 @@ export class ListNotebooks {
 export class GetNotebook {
   constructor(private readonly deps: NotebookDependencies) {}
 
-  async execute(input: {
-    ctx: RequestContext;
-    notebookId: NotebookId;
-  }): Promise<
+  async execute(input: { ctx: RequestContext; notebookId: NotebookId }): Promise<
     Result<
-      { notebook: Notebook; guidance: { content: string; ref: ContentRef } | null; role: Role },
+      {
+        notebook: Notebook;
+        guidance: { content: string; ref: ContentRef } | null;
+        role: Role;
+        permissions: NotebookPermissions;
+      },
       DomainError
     >
   > {
@@ -175,6 +188,13 @@ export class GetNotebook {
         ? { content: await this.deps.content.read(guidance.ref), ref: guidance.ref }
         : null,
       role: AuthorizationPolicy.effectiveRole(input.ctx, notebook.value),
+      // What this request may do here, which a share decides by its profile
+      // and a member by role (#346): the interface offers exactly that.
+      permissions: {
+        writeContent: AuthorizationPolicy.allows(input.ctx, notebook.value, 'write-content'),
+        maintain: AuthorizationPolicy.allows(input.ctx, notebook.value, 'maintain'),
+        administer: AuthorizationPolicy.allows(input.ctx, notebook.value, 'administer'),
+      },
     });
   }
 }
@@ -288,7 +308,7 @@ export class PutGuidance {
     baseRevision: string | null;
     by: Authorship;
   }): Promise<Result<ContentRef, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     const guidance = await this.deps.slots.findGuidance(input.notebookId);
@@ -349,7 +369,7 @@ export class DeleteGuidance {
     notebookId: NotebookId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
     if (!notebook.ok) return notebook;
 
     const guidance = await this.deps.slots.findGuidance(input.notebookId);

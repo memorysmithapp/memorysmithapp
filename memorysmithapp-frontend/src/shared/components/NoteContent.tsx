@@ -1,3 +1,5 @@
+import type { TableRequest } from '@memorysmithapp/markdown-renderer';
+import { answerTableBlock } from '../api/table-block';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -112,8 +114,31 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     no: t('note.propertyFalse'),
     footnotes: t('note.footnotes'),
     footnoteBack: (number) => t('note.footnoteBack', { number }),
+    tableRows: (count) => t('note.tableRows', { count }),
+    tablePage: (page, pages) => t('note.tablePage', { page, pages }),
+    tablePrevious: t('note.tablePrevious'),
+    tableNext: t('note.tableNext'),
+    tableTotal: t('note.tableTotal'),
+    tableEmpty: t('note.tableEmpty'),
+    tableSortBy: (column) => t('note.tableSortBy', { column }),
+    tableProblem: (code, table) => t(`note.tableProblem.${code}`, { table: table ?? '' }),
+    tablePrinted: ({ table, filter, count, readAt }) =>
+      [
+        table,
+        filter,
+        t('note.tableRows', { count }),
+        t('note.tableRead', {
+          when: new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
+            new Date(readAt),
+          ),
+        }),
+      ]
+        .filter(Boolean)
+        .join(' · '),
     pendingLink: t('note.pendingLink'),
     refusedLink: t('note.refusedLink'),
+    parameter: t('note.parameter'),
+    parameterLink: t('note.parameterLink'),
     attachmentMissing: t('note.attachmentMissing'),
     copy: t('note.copy'),
     copied: t('note.copied'),
@@ -219,7 +244,10 @@ export function NoteContent({
   actions = true,
   editing,
   header,
+  printing = false,
 }: {
+  /** Drawn for paper: a `table` block carries every row its filter returns (§7.15). */
+  printing?: boolean;
   raw: string;
   notebookId: string;
   baseRevision: string | null;
@@ -246,6 +274,11 @@ export function NoteContent({
   const client = useQueryClient();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  // The block asks, and the notebook's tables answer (#366).
+  const queryTable = useCallback(
+    (request: TableRequest) => answerTableBlock(notebookId, request),
+    [notebookId],
+  );
   const theme = usePreferences((state) => state.theme);
   const paper = usePreferences((state) => state.paper);
   const scheme = effectiveTheme(theme, paper);
@@ -404,6 +437,8 @@ export function NoteContent({
   return (
     <NoteHeader.Provider value={header ?? null}>
       <NoteBody
+        queryTable={queryTable}
+        printing={printing}
         markdown={editing?.mode === 'edit' ? editing.markdown : text}
         resolve={resolve}
         reaches={reaches}

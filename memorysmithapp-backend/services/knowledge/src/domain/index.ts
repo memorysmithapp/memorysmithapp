@@ -8,6 +8,13 @@ export { Notebook } from './notebook/Notebook.js';
 export { Folder } from './notebook/Folder.js';
 export { FolderTree } from './notebook/FolderTree.js';
 export { Note } from './note/Note.js';
+export {
+  NoteContexts,
+  type ContextNotice,
+  type ContextPart,
+  type NoteContext,
+  type NoteContextRecord,
+} from './note/NoteContext.js';
 export { ContentSlot, type ContentSlotRole } from './content-slot/ContentSlot.js';
 export { Guidance } from './content-slot/Guidance.js';
 export { Template } from './content-slot/Template.js';
@@ -22,6 +29,10 @@ export {
 export { FolderTreePlacement, type Placement } from './services/FolderTreePlacement.js';
 export { NotePlacement, type NoteOrder } from './services/NotePlacement.js';
 export { NotebookFile } from './file/NotebookFile.js';
+export { Table, type TableChange } from './table/Table.js';
+export type { Row } from './table/Row.js';
+export { presentCell, tableSchema, type Column } from './table/TableSchema.js';
+export { presentDefinition } from './dashboard/DashboardDefinition.js';
 export type { FileTypes } from './ports/index.js';
 export {
   composeNotebookContext,
@@ -42,6 +53,8 @@ export {
   AuthorizationPolicy,
   type Action,
   type RequestContext,
+  type ShareAccess,
+  type ShareProfile,
 } from './access/AuthorizationPolicy.js';
 export type {
   ContentSlotRepository,
@@ -49,6 +62,8 @@ export type {
   EventPublisher,
   FileRepository,
   FileStore,
+  TableRepository,
+  DashboardRepository,
   FolderNumbers,
   NoteRepository,
   NotebookRepository,

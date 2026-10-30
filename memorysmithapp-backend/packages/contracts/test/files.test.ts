@@ -1,6 +1,6 @@
 /**
  * The closed list of types a notebook keeps, and the one thing that makes the
- * type mean anything: the bytes (#166, RN-KNW-050).
+ * type mean anything: the bytes (#166, RN-KNW-075).
  *
  * The extension decides nothing here, on purpose, so every case below names a
  * type and hands it bytes — and the cases that matter most are the ones where
@@ -23,8 +23,9 @@ const iso = (brand: string): Uint8Array =>
   new Uint8Array([0, 0, 0, 0x18, ...text('ftyp'), ...text(brand), 0, 0, 0, 0]);
 
 describe('the list of types is closed', () => {
-  it('holds the sixteen and nothing else', () => {
-    expect(FILE_MIME_TYPES).toHaveLength(16);
+  it('holds the seventeen and nothing else', () => {
+    // The sixteen, and the CSV a Table imports its rows from (#366).
+    expect(FILE_MIME_TYPES).toHaveLength(17);
     expect(fileTypeOf('application/x-msdownload')).toBeNull();
     expect(fileTypeOf('text/html')).toBeNull();
     expect(bytesSupport('text/html', text('<!doctype html>'))).toBe(false);
@@ -49,6 +50,12 @@ describe('the list of types is closed', () => {
 });
 
 describe('the bytes have to support the type that was declared', () => {
+  it('takes a CSV as text, and refuses bytes that are not', () => {
+    expect(bytesSupport('text/csv', text('date;amount\n2026-10-01;120,50\n'))).toBe(true);
+    expect(bytesSupport('text/csv', text('descrição,valor\nfarmácia,30\n'))).toBe(true);
+    expect(bytesSupport('text/csv', PNG)).toBe(false);
+  });
+
   it('accepts each format under its own signature', () => {
     expect(bytesSupport('image/png', PNG)).toBe(true);
     expect(bytesSupport('image/jpeg', JPEG)).toBe(true);

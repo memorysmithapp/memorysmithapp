@@ -19,7 +19,7 @@ import {
   type SubscriptionContext,
   type UserId,
 } from '@memorysmithapp/kernel';
-import { Share, type ShareAccess } from '../domain/share/Share.js';
+import { Share, type ShareProfile } from '../domain/share/Share.js';
 import { Email } from '../domain/values.js';
 import type {
   AccountLookup,
@@ -51,8 +51,45 @@ async function ownerOf(
 }
 
 /**
+ * Whether the owner may distribute this notebook with this profile (#355): a
+ * model reader is offered only a notebook declared as a model, and sharing a
+ * model distributes it under CC0 1.0, which its owner accepts once, on its
+ * first distribution, and is refused until then, whoever the e-mail is
+ * (RN-ACC-037, RN-ACC-038).
+ */
+async function mayDistribute(
+  deps: ShareDependencies,
+  input: {
+    context: SubscriptionContext;
+    notebookId: NotebookId;
+    notebook: SharedNotebookView;
+    profile: ShareProfile;
+    acceptLicence: boolean;
+    by: Authorship;
+  },
+): Promise<Result<void, DomainError>> {
+  const { model } = input.notebook;
+  if (input.profile === 'model-reader' && !model) {
+    return err(
+      DomainError.validation('Only a notebook declared as a model is shared as a model reader'),
+    );
+  }
+  if (!model || model.licenceAccepted) return ok();
+  if (!input.acceptLicence) {
+    return err(
+      DomainError.conflict(
+        'This notebook is a model, and a model is distributed under CC0 1.0: whoever receives it may reuse and republish it freely, the community included. Accept the licence to share it',
+        { reason: 'LICENCE', licence: 'CC0-1.0' },
+      ),
+    );
+  }
+  await deps.notebooks.acceptModelLicence(input.context, input.notebookId, input.by);
+  return ok();
+}
+
+/**
  * Shares a notebook of the subscription with an e-mail (RN-ACC-024,
- * RN-ACC-025). Only its owner may, and only with read access.
+ * RN-ACC-025). Only its owner may, with the profile they choose (#347).
  *
  * It answers the same thing whether the e-mail has an account or not, and
  * whether the notebook was already shared with it: an e-mail nobody holds
@@ -66,17 +103,21 @@ export class ShareNotebook {
     ownerEmail: string;
     notebookId: NotebookId;
     email: string;
-    access: ShareAccess;
+    profile: ShareProfile;
+    acceptLicence?: boolean;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const owned = await ownerOf(this.deps, input.context);
     if (!owned.ok) return owned;
 
-    if (input.access !== 'read') {
-      return err(DomainError.validation('A notebook is shared with read access only'));
-    }
     const notebook = await this.deps.notebooks.own(input.context, input.notebookId);
     if (!notebook) return err(DomainError.notFound('Notebook not found'));
+    const distributable = await mayDistribute(this.deps, {
+      ...input,
+      notebook,
+      acceptLicence: input.acceptLicence ?? false,
+    });
+    if (!distributable.ok) return distributable;
 
     const email = Email.create(input.email);
     if (!email.ok) return email;
@@ -99,7 +140,7 @@ export class ShareNotebook {
         ownerEmail: ownerEmail.value,
         granteeUserId: grantee,
         granteeEmail: email.value,
-        access: input.access,
+        profile: input.profile,
       },
       input.by,
     );
@@ -169,6 +210,68 @@ export class RevokeShare {
     const revoked = share.revoke(input.by);
     if (!revoked.ok) return revoked;
     await this.deps.shares.saveRevoked(share);
+    return ok();
+  }
+}
+
+/**
+ * The owner changes what a share grants (#347): a reduction applies from the
+ * next request and needs no consent; an increase of an accepted share waits
+ * for the grantee's renewed acceptance.
+ */
+export class ChangeShareProfile {
+  constructor(private readonly deps: ShareDependencies) {}
+
+  async execute(input: {
+    context: SubscriptionContext;
+    notebookId: NotebookId;
+    grantee: UserId;
+    profile: ShareProfile;
+    acceptLicence?: boolean;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const owned = await ownerOf(this.deps, input.context);
+    if (!owned.ok) return owned;
+    const notebook = await this.deps.notebooks.own(input.context, input.notebookId);
+    if (!notebook) return err(DomainError.notFound('This notebook is not shared with that person'));
+    const share = await this.deps.shares.findOutgoing(
+      input.context,
+      input.notebookId,
+      input.grantee,
+    );
+    if (!share?.standsInTheWay) {
+      return err(DomainError.notFound('This notebook is not shared with that person'));
+    }
+    const distributable = await mayDistribute(this.deps, {
+      ...input,
+      notebook,
+      acceptLicence: input.acceptLicence ?? false,
+    });
+    if (!distributable.ok) return distributable;
+    const changed = share.changeProfile(input.profile, input.by);
+    if (!changed.ok) return changed;
+    await this.deps.shares.save(share);
+    return ok();
+  }
+}
+
+/** The grantee answers an increase of a share they accepted (#347). */
+export class AnswerShareIncrease {
+  constructor(private readonly deps: ShareDependencies) {}
+
+  async execute(input: {
+    user: UserId;
+    notebookId: NotebookId;
+    accept: boolean;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const share = await this.deps.shares.findIncoming(input.user, input.notebookId);
+    if (!share?.isOpen || !(await this.deps.notebooks.ownerGrantsAccess(share))) {
+      return err(DomainError.notFound('Notebook not found'));
+    }
+    const answered = share.answerIncrease(input.accept, input.by);
+    if (!answered.ok) return answered;
+    await this.deps.shares.save(share);
     return ok();
   }
 }
@@ -290,7 +393,7 @@ export class DismissRevokedShare {
 }
 
 export interface ShareNotice {
-  readonly kind: 'shared' | 'revoked' | 'accepted' | 'rejected' | 'left';
+  readonly kind: 'shared' | 'increase' | 'revoked' | 'accepted' | 'rejected' | 'left';
   readonly share: Share;
   readonly notebookName: string | null;
 }
@@ -315,10 +418,11 @@ export class ListNotifications {
         notices.push({ kind: 'revoked', share, notebookName: notebook?.name ?? null });
         continue;
       }
-      if (share.state !== 'pending') continue;
+      const waits = share.state === 'pending' ? 'shared' : share.pendingProfile ? 'increase' : null;
+      if (!waits) continue;
       if (!(await this.deps.notebooks.ownerGrantsAccess(share))) continue;
       const notebook = await this.deps.notebooks.through(share);
-      if (notebook) notices.push({ kind: 'shared', share, notebookName: notebook.name });
+      if (notebook) notices.push({ kind: waits, share, notebookName: notebook.name });
     }
 
     if (input.context && this.deps.subscriptions) {
@@ -342,7 +446,12 @@ export class ListNotifications {
   }
 }
 
-function noticeAt(notice: ShareNotice): string {
+/** When the change a notice tells of happened. */
+export function noticeAt(notice: ShareNotice): string {
+  if (notice.kind === 'shared') return notice.share.sharedAt.toISOString();
+  if (notice.kind === 'increase') {
+    return (notice.share.pendingSince ?? notice.share.sharedAt).toISOString();
+  }
   return (notice.share.answeredAt ?? notice.share.sharedAt).toISOString();
 }
 

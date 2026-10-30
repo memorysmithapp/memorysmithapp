@@ -25,6 +25,8 @@ loadRuntimeConfig()
   .then((config) => {
     configureHttp({
       origin: config.apiOrigin,
+      // The community catalog is read through the edge (#360).
+      publicOrigin: config.catalogOrigin ?? config.apiOrigin,
       auth: authConfig(),
       onUnauthenticated: endExpiredSession,
     });

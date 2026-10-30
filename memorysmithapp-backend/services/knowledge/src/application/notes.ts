@@ -28,6 +28,7 @@ import {
 import type { RequestContext } from '../domain/access/AuthorizationPolicy.js';
 import type { Notebook } from '../domain/notebook/Notebook.js';
 import { Note } from '../domain/note/Note.js';
+import type { NoteContext } from '../domain/note/NoteContext.js';
 import { NotePlacement, type NoteOrder } from '../domain/services/NotePlacement.js';
 import { NOTEBOOK_LIMITS, type FolderNoteOrder } from '../domain/values.js';
 import type { NoteRepository } from '../domain/ports/index.js';
@@ -39,6 +40,39 @@ export interface NoteDependencies extends NotebookDependencies {
 }
 
 const MAX_RETRIES = 3;
+
+/**
+ * The context a note in this folder is written against now (#348): read
+ * outside the transaction of the note, which holds the note alone (INV-10).
+ * The notebook is the one already loaded to authorize the write, so the
+ * structure costs nothing; the Guidance and the Template are two small reads.
+ */
+async function currentContext(
+  deps: NoteDependencies,
+  notebook: Notebook,
+  folderId: FolderId,
+): Promise<NoteContext> {
+  const [guidance, template] = await Promise.all([
+    deps.slots.findGuidance(notebook.id),
+    deps.slots.findTemplate(notebook.id, folderId),
+  ]);
+  return {
+    guidance: guidance?.revision ?? null,
+    template: template?.revision ?? null,
+    structure: String(notebook.version),
+  };
+}
+
+/** What a write records of its context, when its caller declared one. */
+async function observedContext(
+  deps: NoteDependencies,
+  read: NoteContext | null | undefined,
+  notebook: Notebook,
+  folderId: FolderId,
+): Promise<{ read: NoteContext; current: NoteContext } | null> {
+  if (!read) return null;
+  return { read, current: await currentContext(deps, notebook, folderId) };
+}
 
 /**
  * A note, and only while every unit above it is valid (RN-KNW-046).
@@ -250,9 +284,11 @@ export class CreateNote {
     folderId: FolderId;
     content: string;
     afterNoteId: NoteId | null;
+    /** The context the caller read before writing, or nothing (#348). */
+    context?: NoteContext | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     if (!notebook.value.folders.has(input.folderId)) {
@@ -305,6 +341,9 @@ export class CreateNote {
       by: input.by,
     });
     if (!note.ok) return note;
+    note.value.recordContext(
+      await observedContext(this.deps, input.context, notebook.value, input.folderId),
+    );
 
     const saved = await this.deps.notes.save(note.value);
     if (saved.ok) return ok(note.value);
@@ -333,9 +372,11 @@ export class UpdateNote {
     message?: string | null;
     /** The edit session of the interface this save belongs to, or nothing (RN-AUD-013). */
     session?: string | null;
+    /** The context the caller read before writing, or nothing (#348). */
+    context?: NoteContext | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
     if (Buffer.byteLength(input.content, 'utf8') > NOTEBOOK_LIMITS.maxNoteBytes) {
       return err(DomainError.limitExceeded('A note holds at most 1 MB of content'));
@@ -394,6 +435,9 @@ export class UpdateNote {
       );
       if (!replaced.ok) return replaced;
       if (!note.hasChanges) return ok(note); // identical bytes (RN-KNW-028)
+      note.recordContext(
+        await observedContext(this.deps, input.context, notebook.value, note.folderId),
+      );
 
       const saved = await this.deps.notes.save(note);
       if (saved.ok) return ok(note);
@@ -414,7 +458,7 @@ export class ReorderNote {
     afterNoteId: NoteId | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);
@@ -471,15 +515,17 @@ export class MoveNote {
     toNotebookId: NotebookId | null;
     toFolderId: FolderId;
     afterNoteId: NoteId | null;
+    /** The context of the destination the caller read, or nothing (#348). */
+    context?: NoteContext | null;
     by: Authorship;
   }): Promise<Result<Note, DomainError>> {
-    const origin = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const origin = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!origin.ok) return origin;
 
     const destinationNotebookId = input.toNotebookId ?? input.notebookId;
     const crossNotebook = !destinationNotebookId.equals(input.notebookId);
     const destination = crossNotebook
-      ? await loadAuthorized(this.deps, input.ctx, destinationNotebookId, 'write')
+      ? await loadAuthorized(this.deps, input.ctx, destinationNotebookId, 'write-content')
       : origin;
     if (!destination.ok) return destination;
 
@@ -522,6 +568,13 @@ export class MoveNote {
       input.by,
     );
     if (!moved.ok) return moved;
+    // A move that declares nothing keeps what the content was written against:
+    // the mark is about the content, which a move does not rewrite.
+    if (input.context) {
+      note.recordContext(
+        await observedContext(this.deps, input.context, destination.value, input.toFolderId),
+      );
+    }
 
     const saved = crossNotebook
       ? await this.deps.notes.saveMoved(note, { notebookId: input.notebookId })
@@ -553,7 +606,7 @@ export class DeleteNote {
     noteId: NoteId;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
-    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write');
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
     const found = await liveNote(this.deps, notebook.value, input.notebookId, input.noteId);

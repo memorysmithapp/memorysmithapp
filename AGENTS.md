@@ -53,8 +53,8 @@ One line each; the reason lives where the link points.
 - Code cites a rule, an invariant or a decision by its identifier (`RN-KNW-035`, `INV-04`, `ADR-003`), never by a section number ([SDLC §4.1](docs/SDLC.md#41-when-a-commit-touches-each-document)).
 - A business rule code is append-only: never renumbered, never reused; a rule that stops holding keeps its row, marked removed ([PRD §7](docs/PRD.md#7-features-and-rules)).
 - Infrastructure code lives in `memorysmithapp-infra`, never in the backend, and a stack is never defined inside a service ([ARCHITECTURE §2](docs/ARCHITECTURE.md#2-layout)).
-- Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `memorysmithapp-infra/agent-eval/`.
-- In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
+- Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `tools/agent-eval/`.
+- In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo de pasta*, Notebook model is *Modelo de caderno* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
 - The repository builds no container image; a Dockerfile, if one ever appears, comes with its `.dockerignore` in the same change.
 - Create or delete a GitHub repository, change a ruleset, or act on production data only with the owner's go-ahead in the session.
 
@@ -62,8 +62,8 @@ One line each; the reason lives where the link points.
 
 Breaking one is a rewrite, not a defect: when a task seems to require it, stop and raise the question. The mechanism of each is in [`ARCHITECTURE.md` §3](docs/ARCHITECTURE.md#3-invariants-and-their-mechanisms).
 
-- **INV-01** Every key starts with the subscription, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3; the only exceptions are the links of a person and the platform queue ([mechanism](docs/ARCHITECTURE.md#inv-01-every-key-starts-with-the-subscription)).
-- **INV-02** The subscription comes from the token, never from the path, the query, the body or a header ([mechanism](docs/ARCHITECTURE.md#inv-02-the-subscription-comes-from-the-token-never-from-the-request)).
+- **INV-01** Every key starts with the subscription, `S#{subscriptionId}` in DynamoDB and `s/{subscriptionId}/` in S3; the only exceptions are the links of a person, the platform queue and the community catalog ([mechanism](docs/ARCHITECTURE.md#inv-01-every-key-starts-with-the-subscription)).
+- **INV-02** The subscription comes from the token, never from the path, the query, the body or a header; the one exception is the read-only public catalog route, through its catalog entry ([mechanism](docs/ARCHITECTURE.md#inv-02-the-subscription-comes-from-the-token-never-from-the-request)).
 - **INV-03** `domain/` and `application/` never import the AWS SDK, "just to get a type" included ([mechanism](docs/ARCHITECTURE.md#inv-03-the-domain-does-not-import-the-aws-sdk)).
 - **INV-04** The S3 key is only a `ContentId`; renaming, moving and reordering never write to S3 ([mechanism](docs/ARCHITECTURE.md#inv-04-the-s3-key-is-opaque)).
 - **INV-05** The backend reads only the notation the specification declares, in its named readers, and never interprets what a note means ([mechanism](docs/ARCHITECTURE.md#inv-05-the-backend-reads-only-the-notation-the-specification-declares)).
@@ -92,6 +92,8 @@ Each command with the directory it runs in, what it does, and the date somebody 
 | `pnpm test` | The root | The tests of those checks, then every unit suite of the workspace | 2026-10-18 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm depcruise` | The root | The rest of what CI runs ([SDLC §8](docs/SDLC.md#8-tests-and-review)) | 2026-10-18 |
 | `pnpm release-checks`, `pnpm release-notes [X.Y.Z]` | `memorysmithapp-infra` | Whether the version can be released; the notes of a version | 2026-10-18 |
+| `pnpm install-account --environment <name> --check` | `memorysmithapp-infra` | Checks an installation of somebody else without changing anything; the run without `--check` has not been executed | 2026-10-30 |
+| `pnpm tools --help`, `pnpm tools <command> --help` | The root | The tools that operate and evaluate the product, and what each takes | 2026-10-25 |
 
 ## 7. Before calling something done
 

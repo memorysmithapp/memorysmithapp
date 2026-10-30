@@ -55,7 +55,7 @@ jobs:
         # bash as GitHub names it runs with pipefail, so the exit code of the
         # command, and not of tee, decides the job: a run not good fails it.
         shell: bash
-        run: pnpm -C memorysmithapp-infra reproject-links --environment production ${{ inputs.mode == 'apply' && '--apply' || '' }} | tee reprojection.txt
+        run: pnpm -s tools data reproject-links --environment production ${{ inputs.mode == 'apply' && '--apply' || '' }} | tee reprojection.txt
 
       - name: Summary
         if: always()

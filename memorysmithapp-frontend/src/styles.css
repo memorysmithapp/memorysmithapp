@@ -60,6 +60,15 @@
   --cat-2: #0f56d7;
   --cat-3: #16a34a;
   --cat-other: #8b96a8;
+  --chart-1: var(--accent);
+  --chart-2: var(--signal);
+  --chart-3: var(--node-green);
+  --chart-4: var(--val-2);
+  --chart-5: var(--seq-growing);
+  --chart-6: #8b5cf6;
+  --chart-7: var(--text-soft);
+  --chart-8: var(--seq-seed);
+  --chart-bar: color-mix(in srgb, var(--accent) 22%, transparent);
   --val-1: #ff8a2b;
   --val-2: #db2777;
   --val-3: #008300;
@@ -620,6 +629,9 @@ a:hover {
 .home-space [data-kind='notes'],
 .home-space [data-kind='all'] {
   --kind: var(--accent);
+}
+.home-space [data-kind='tables'] {
+  --kind: var(--seq-growing);
 }
 .home-space [data-kind='exports'] {
   --kind: var(--text-soft);
@@ -1493,6 +1505,30 @@ a:hover {
   background: var(--hover);
   text-decoration: none;
 }
+/* A note written against a context that had changed (#350), marked at the end
+   of its row. */
+.note-row-stale {
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+/* Deleting a folder (#350): what it holds and what follows, and the box that
+   says it was understood before the delete is offered. */
+.folder-delete p {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.folder-delete-understood {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 16px;
+  font-size: 0.85rem;
+}
+.folder-delete-understood input {
+  margin-top: 3px;
+}
 .note-row:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--accent);
@@ -2307,6 +2343,15 @@ body:has(.markdown dialog[open]) {
   --cat-2: #2f6ee0;
   --cat-3: #16a34a;
   --cat-other: #55617a;
+  --chart-1: var(--accent);
+  --chart-2: var(--signal);
+  --chart-3: var(--node-green);
+  --chart-4: var(--val-2);
+  --chart-5: var(--seq-growing);
+  --chart-6: #8b5cf6;
+  --chart-7: var(--text-soft);
+  --chart-8: var(--seq-seed);
+  --chart-bar: color-mix(in srgb, var(--accent) 22%, transparent);
   --val-1: #e0821f;
   --val-2: #c94f8a;
   --val-3: #29b06a;
@@ -3496,7 +3541,9 @@ button.attachment-thumb:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 .sheet-tab {
-  width: 44px;
+  /* Eight icons in a model, which give way on the narrowest phone. */
+  flex: 0 1 44px;
+  min-width: 0;
   height: 44px;
   display: flex;
   align-items: center;
@@ -3520,6 +3567,29 @@ button.attachment-thumb:focus-visible {
 .sheet-tab[aria-pressed='true'] {
   background: var(--chosen);
   color: var(--on-chosen);
+}
+.sheet-pages {
+  flex: none;
+  display: grid;
+  padding: 4px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-page {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 8px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.sheet-page svg {
+  width: 18px;
+  height: 18px;
+}
+.sheet-page.active {
+  font-weight: 600;
 }
 .notebook-sheet-body {
   flex: 1;
@@ -6238,6 +6308,31 @@ body.has-sheet .app-main {
   white-space: nowrap;
   font-size: 0.84rem;
 }
+/* What a person may do in the notebook, changed in place (#350): an increase
+   waits for them, said under the row, and the row wraps on a phone. */
+.share-person {
+  flex-wrap: wrap;
+}
+.share-person-profile {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+}
+.share-person-profile:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.share-person-pending {
+  flex-basis: 100%;
+  font-size: 0.76rem;
+  color: var(--text-soft);
+}
 
 /* The notifications of the top bar: the button of the Controles, and a panel
    of the width and placement of Transfers (#205, #256). */
@@ -6640,4 +6735,849 @@ body.has-sheet .app-main {
    so its tools stay whole while the note scrolls under both. */
 .content-pane > .markdown .edit-bar {
   top: var(--bar-h);
+}
+
+/* ── Notebook models (#353, #354, #359) ──────────────────────────────────────
+   The page of a model, its versions, and a notebook created from one. The
+   fields are the fields of the Controles; a textarea and a select take the
+   same edge and the same focus as an input. */
+.field textarea,
+.field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+.field textarea {
+  resize: vertical;
+}
+.field textarea:focus-visible,
+.field select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.model-page,
+.model-version-page {
+  max-width: 48rem;
+}
+.model-form,
+.model-versions,
+.model-summary,
+.model-create {
+  margin-top: 1.5rem;
+}
+.model-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.parameters-editor {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.parameter-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.75rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.parameter-row .field {
+  margin-bottom: 0.75rem;
+}
+.parameter-description,
+.parameter-default,
+.parameter-problem,
+.parameter-written {
+  grid-column: 1 / -1;
+}
+.parameter-required {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.parameter-remove {
+  justify-self: end;
+}
+@media (max-width: 40rem) {
+  .parameter-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.parameter-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+}
+.parameter-list li + li {
+  margin-top: 0.35rem;
+}
+.model-version-new {
+  margin-bottom: 1rem;
+}
+.model-version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.model-version {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.model-version:last-child {
+  border-bottom: 0;
+}
+.model-version-number {
+  font-family: var(--display);
+  font-weight: 700;
+}
+.model-version-when {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+.model-version-changelog {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+.model-version-confirm {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+@media (max-width: 40rem) {
+  .model-version {
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+  .model-version-changelog {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
+.model-source {
+  overflow-x: auto;
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.callout-warning {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--signal);
+  border-radius: 8px;
+  background: var(--code-bg);
+  font-size: 0.875rem;
+}
+.new-notebook .ask-dialog-box {
+  width: min(36rem, calc(100vw - 2rem));
+}
+.new-notebook-form,
+.new-notebook-model,
+.create-from-model {
+  margin-top: 1rem;
+}
+.home-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.share-licence {
+  margin-bottom: 0.75rem;
+}
+.share-licence .callout-warning {
+  margin: 0 0 0.5rem;
+}
+
+/* ── The community catalog (#360) ────────────────────────────────────────────
+   Pages a visitor with no account reaches, so they carry a head of their own
+   instead of the frame of the application. */
+.community-frame {
+  min-height: 100vh;
+  background: var(--bg);
+}
+.community-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.community-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.community-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+.community-main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+.community-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12rem auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+.community-search .field {
+  margin-bottom: 0;
+}
+@media (max-width: 40rem) {
+  .community-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.community-results {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.community-card {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.community-card h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--display);
+  font-size: 1rem;
+}
+.community-card p {
+  margin: 0.25rem 0 0;
+}
+.community-report,
+.model-publication {
+  margin-top: 1.5rem;
+}
+
+/* The Tables of a notebook (#366): a list like the attachments, and a table
+   of data that scrolls sideways on its own, never the page. */
+.table-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.table-row + .table-row {
+  border-top: 1px solid var(--border);
+}
+.table-row-open {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.table-row-open:hover {
+  background: var(--hover);
+}
+.table-row-icon {
+  color: var(--accent);
+  padding-top: 2px;
+}
+.table-row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.table-row-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.table-row-meta,
+.table-count,
+.table-detail-meta {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.table-row-desc,
+.table-detail-desc {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+.table-detail {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.table-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.table-detail-name {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+.table-detail-desc,
+.table-detail-meta {
+  margin: 0;
+}
+.data-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: top;
+}
+.data-table tbody tr:last-child th,
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.data-table thead th {
+  background: var(--bg);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+.data-table .is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table-sort {
+  display: inline-flex;
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.data-table-arrow {
+  color: var(--accent);
+  min-width: 0.7em;
+}
+.schema-table td:last-child {
+  white-space: normal;
+  min-width: 14rem;
+}
+.schema-key,
+.schema-allowed {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+.data-table-pages {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.data-table-page-buttons {
+  display: flex;
+  gap: 6px;
+}
+.table-choices {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0 0;
+  min-width: 0;
+}
+.table-choices legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.table-choices ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.table-choices-hint {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  margin: 0 0 8px;
+}
+.table-choice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.table-choice label {
+  overflow-wrap: anywhere;
+}
+.table-choice-rows {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
+/* The Dashboards of a notebook (#368): a layout of cards that becomes one
+   column on a phone, and charts that take the width they are given. */
+.dashboards-page.is-open {
+  max-width: none;
+}
+.dashboard {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dashboard-read {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.dashboard-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dashboard-slicer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+.dashboard-slicer label {
+  font-weight: 600;
+}
+.dashboard-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+@media (min-width: 861px) {
+  .dashboard-grid[data-layout='two-columns'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-grid[data-layout='three-columns'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dashboard-grid[data-layout='two-columns'] [data-slot='left'],
+  .dashboard-grid[data-layout='three-columns'] [data-slot='left'] {
+    grid-column: 1;
+  }
+  .dashboard-grid[data-layout='two-columns'] [data-slot='right'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='three-columns'] [data-slot='middle'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='three-columns'] [data-slot='right'] {
+    grid-column: 3;
+  }
+  .dashboard-grid[data-layout='header-two-columns'] {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='header'],
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='footer'] {
+    grid-column: 1 / -1;
+  }
+  .dashboard-grid[data-layout='header-two-columns'] .is-kpi[data-slot='header'],
+  .dashboard-grid[data-layout='header-two-columns'] .is-gauge[data-slot='header'] {
+    grid-column: span var(--headline-span, 12);
+  }
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='left'] {
+    grid-column: 1 / span 6;
+  }
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='right'] {
+    grid-column: 7 / span 6;
+  }
+  .dashboard-grid[data-layout='sidebar'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  }
+  .dashboard-grid[data-layout='sidebar'] [data-slot='side'] {
+    grid-column: 1;
+  }
+  .dashboard-grid[data-layout='sidebar'] [data-slot='main'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='grid'] {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: minmax(120px, auto);
+  }
+}
+@media (max-width: 860px) {
+  .dashboard-grid .dashboard-card {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+}
+.dashboard-grid[data-layout='header-two-columns'] [data-slot='header'] {
+  order: -1;
+}
+.dashboard-grid [data-slot='footer'] {
+  order: 1;
+}
+.dashboard-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.content-pane .dashboard-card-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+.dash-chart {
+  width: 100%;
+  height: 260px;
+}
+.dash-empty,
+.dash-problem {
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  margin: 0;
+}
+.dash-problem {
+  color: var(--danger);
+}
+.dash-kpi {
+  display: grid;
+  gap: 4px;
+}
+.dash-kpi-value {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dash-kpi-change {
+  font-size: 0.84rem;
+}
+.dash-kpi-change.is-up {
+  color: var(--node-green);
+}
+.dash-kpi-change.is-down {
+  color: var(--danger);
+}
+.dash-kpi-against {
+  color: var(--text-soft);
+}
+.dash-kpi-goal {
+  display: grid;
+  gap: 4px;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.dash-kpi-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.dash-kpi-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.dash-rule-icon {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+}
+.dash-gantt {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+.dash-gantt-scale {
+  position: relative;
+  height: 18px;
+  margin-left: 36%;
+  color: var(--text-soft);
+  border-bottom: 1px solid var(--border);
+}
+.dash-gantt-scale span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  padding-left: 2px;
+  border-left: 1px solid var(--border);
+}
+.dash-gantt ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.dash-gantt-row {
+  display: grid;
+  grid-template-columns: 36% 1fr;
+  align-items: center;
+  gap: 0;
+}
+.dash-gantt-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+.dash-gantt-group {
+  color: var(--text-soft);
+}
+.dash-gantt-track {
+  position: relative;
+  height: 16px;
+  background: var(--track);
+  border-radius: 4px;
+}
+.dash-gantt-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  overflow: hidden;
+}
+.dash-gantt-done {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.dash-wbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-wbs-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-wbs-row.is-parent .dash-wbs-title {
+  font-weight: 600;
+}
+
+.dash-wbs-code {
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-wbs-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-wbs-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 8rem;
+}
+
+.dash-wbs-progress .dash-kpi-track {
+  flex: 1;
+}
+
+.dash-wbs-percent {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-matrix tbody th,
+.dash-matrix tfoot th {
+  text-align: left;
+  font-weight: 600;
+}
+
+.dash-matrix .is-total {
+  font-weight: 600;
+}
+
+.dashboard-cross {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.dash-kanban {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(200px, 1fr);
+  gap: 10px;
+  overflow-x: auto;
+  min-width: 0;
+}
+.dash-lane {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.content-pane .dash-lane-head {
+  margin: 0;
+  font-size: 0.86rem;
+  display: flex;
+  justify-content: space-between;
+}
+.dash-lane-count {
+  color: var(--text-soft);
+  font-weight: 400;
+}
+.dash-lane ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+  font-size: 0.84rem;
+}
+.dash-card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dash-card-detail,
+.dash-card-mark {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+/* A text sits on its card, not on the fill of a reading pane. */
+.dashboard-card.is-text :is(div, section, article) {
+  background: transparent;
+}
+.dash-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--border);
+  display: grid;
+  gap: 12px;
+}
+.dash-timeline-item {
+  position: relative;
+  display: grid;
+  gap: 2px;
+}
+.dash-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.dash-timeline time {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+.dash-timeline-title {
+  font-weight: 600;
+}
+/* An image cannot be scrolled, so a matrix has to fit in it. */
+.dashboard-print .dash-matrix {
+  font-size: 0.75rem;
+}
+.dashboard-print .dash-matrix :is(th, td) {
+  padding-inline: 5px;
+}
+.dashboard-print .data-table-scroll {
+  overflow: visible;
+}
+.dashboard-print {
+  /* As wide as a computer draws it, whatever little it holds. */
+  width: 1200px;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 24px;
+  background: var(--bg);
 }

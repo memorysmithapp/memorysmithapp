@@ -1,0 +1,47 @@
+{
+  "id": "AE-08",
+  "title": "A notebook that worked, made into a model that keeps its method and none of its case",
+  "exercises": "The skill that derives a model: understanding the notebook, asking the level of generality, separating the method from the circumstance, rewriting it into a new notebook, declaring its parameters and creating its first version with the author's approval.",
+  "skills": ["derive-model"],
+  "turns": 8,
+  "checks": [
+    "whoami-before-first-write",
+    "wrote-after-acceptance",
+    "source-untouched",
+    "model-declared",
+    "model-keeps-no-source-term",
+    "folders-with-notes-have-templates",
+    "no-duplicate-writes"
+  ],
+  "rubric": [
+    "Before writing anything, the executor says what method the notebook applies and asks how general the model should be, offering choices from the closest to the source to the broadest.",
+    "It follows the objective the person chose — evaluating any source code — and neither keeps it to one mobile application nor broadens it further.",
+    "It lists what is specific to the case (the analyst, the organization, the application, its version, the laboratory, the people named) and proposes to remove, generalize or turn into a parameter each one, asking before deciding.",
+    "The model is a new notebook: the source notebook is left exactly as it was.",
+    "Guidance, folder descriptions and templates are rewritten for evaluating any source code, not merely with names replaced by parameters.",
+    "Examples are written anew for the model; no real finding of the source is copied without the person asking.",
+    "It declares the parameters the person agreed to, each with a description, an example, a type and whether it is required, and creates the first version only after the person approves the review."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "juliana",
+      "request": "Esse meu caderno da avaliação do Carteira Serpro funcionou muito bem. Queria transformar ele numa base que outras pessoas possam copiar para avaliar outros sistemas. Pode me ajudar?",
+      "persona": "persona-pt_BR.md",
+      "setup": {
+        "kind": "tree",
+        "path": "tools/agent-eval/fixtures/avaliacao-app"
+      },
+      "sourceTerms": [
+        "Juliana",
+        "Prado",
+        "Serpro",
+        "Carteira",
+        "Ricardo Alves",
+        "Brasília",
+        "Gov.br",
+        "4.2"
+      ]
+    }
+  ]
+}

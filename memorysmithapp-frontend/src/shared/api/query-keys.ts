@@ -40,6 +40,13 @@ export const queryKeys = {
 
   /** The files a notebook keeps, which a note reaches by name. */
   notebookFiles: (notebookId: string) => ['notebook-files', notebookId] as const,
+  notebookTables: (notebookId: string) => ['notebook-tables', notebookId] as const,
+  tableUses: (notebookId: string) => ['table-uses', notebookId] as const,
+  notebookDashboards: (notebookId: string) => ['notebook-dashboards', notebookId] as const,
+  dashboardData: (notebookId: string, dashboard: string, query: unknown) =>
+    ['dashboard-data', notebookId, dashboard, query] as const,
+  tableRows: (notebookId: string, table: string, query: unknown) =>
+    ['table-rows', notebookId, table, query] as const,
 
   /** Which notes show each file, read from Discovery (#307). */
   notebookAttachments: (notebookId: string) => ['notebook-attachments', notebookId] as const,
@@ -75,6 +82,16 @@ export const queryKeys = {
   ownShares: () => ['own-shares'] as const,
   /** The people one notebook is shared with, in its Share dialog. */
   notebookShares: (notebookId: string) => ['notebook-shares', notebookId] as const,
+  // Notebook models and their versions (#353).
+  models: () => ['models'] as const,
+  model: (notebookId: string) => ['model', notebookId] as const,
+  modelVersion: (notebookId: string, version: number) =>
+    ['model-version', notebookId, version] as const,
+  /** The community catalog (#360): a search, a published model and a version of one. */
+  catalog: (text: string, language: string | null) => ['catalog', text, language] as const,
+  catalogModel: (publicId: string) => ['catalog-model', publicId] as const,
+  catalogVersion: (publicId: string, version: number) =>
+    ['catalog-version', publicId, version] as const,
   /** The notebooks shared with the person, pending and accepted. */
   incomingShares: () => ['incoming-shares'] as const,
   /** What the notifications button lists (RN-ACC-029). */
