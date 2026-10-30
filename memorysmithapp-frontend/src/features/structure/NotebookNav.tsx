@@ -97,9 +97,9 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
   const parts = [guidanceAddress, templatesAddress, foldersAddress].map((address) =>
     address(notebookId),
   );
-  const inPart = parts.includes(pathname);
+  const inPart = parts.includes(pathname) || pathname.startsWith(modelAddress(notebookId));
   /**
-   * The chevron folds the three parts, and the group starts open. Folding it
+   * The chevron folds the parts, and the group starts open. Folding it
    * never hides what is open: arriving at one of the parts opens it again,
    * the way the tree reopens the path to the open note.
    */
