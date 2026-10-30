@@ -473,7 +473,7 @@ describe('a file the person hands over (#295)', () => {
 describe('the catalogue', () => {
   const cases = loadCases();
 
-  it('holds AE-00 to AE-03 and AE-06 to AE-10, each with a variant, a check and a rubric', () => {
+  it('holds AE-00 to AE-03 and AE-06 to AE-11, each with a variant, a check and a rubric', () => {
     expect(cases.map((each) => each.id)).toEqual([
       'AE-00',
       'AE-01',
@@ -486,6 +486,8 @@ describe('the catalogue', () => {
       'AE-09',
       // A model of a regulated domain that keeps its domain (#361).
       'AE-10',
+      // A dashboard built from plain words, looked at before it is done (#368).
+      'AE-11',
     ]);
     for (const each of cases) {
       expect(each.variants.length).toBeGreaterThan(0);
