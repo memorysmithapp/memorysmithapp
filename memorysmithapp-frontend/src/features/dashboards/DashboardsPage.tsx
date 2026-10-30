@@ -229,45 +229,48 @@ export function DashboardView({
             <p className="table-detail-desc">{dashboard.description}</p>
           ) : null}
         </div>
-        <div className="dashboard-actions" hidden={still}>
-          {readAt ? (
-            <span className="dashboard-read">{t('dashboards.readAt', { time: readAt })}</span>
-          ) : null}
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            onClick={() => void data.refetch()}
-            disabled={data.isFetching}
-          >
-            {t('dashboards.refresh')}
-          </button>
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            disabled={drawing}
-            onClick={() => void download()}
-          >
-            <ActionWord
-              icon={<DownloadIcon />}
-              word={drawing ? t('dashboards.drawing') : t('dashboards.downloadImage')}
-            />
-          </button>
-          {maintains && onDeleted ? (
+        {still ? null : (
+          <div className="dashboard-actions">
+            {readAt ? (
+              <span className="dashboard-read">{t('dashboards.readAt', { time: readAt })}</span>
+            ) : null}
             <button
               type="button"
-              className="button is-quiet is-small is-danger"
-              onClick={() => setDeleting(true)}
+              className="button is-quiet is-small"
+              onClick={() => void data.refetch()}
+              disabled={data.isFetching}
             >
-              <ActionWord icon={<TrashIcon />} word={t('dashboards.delete')} />
+              {t('dashboards.refresh')}
             </button>
-          ) : null}
-        </div>
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              disabled={drawing}
+              onClick={() => void download()}
+            >
+              <ActionWord
+                icon={<DownloadIcon />}
+                word={drawing ? t('dashboards.drawing') : t('dashboards.downloadImage')}
+              />
+            </button>
+            {maintains && onDeleted ? (
+              <button
+                type="button"
+                className="button is-quiet is-small is-danger"
+                onClick={() => setDeleting(true)}
+              >
+                <ActionWord icon={<TrashIcon />} word={t('dashboards.delete')} />
+              </button>
+            ) : null}
+          </div>
+        )}
       </header>
 
       {filters.length > 0 ? (
         <div className="dashboard-filters">
           {filters.map((filter) => (
             <PeriodSlicer
+              still={still}
               key={filter.id}
               filter={filter}
               value={chosen[filter.id] ?? null}
@@ -418,7 +421,10 @@ function PeriodSlicer({
   filter,
   value,
   onChange,
+  still,
 }: {
+  /** On an image a period is said, and offers nothing. */
+  still: boolean;
   filter: Filter;
   value: string | null;
   onChange: (value: string | null) => void;
@@ -426,6 +432,13 @@ function PeriodSlicer({
   const { t } = useTranslation();
   const grain = (filter.default ?? value ?? '0000-00').length;
   const id = `period-${filter.id}`;
+  if (still) {
+    return (
+      <p className="dashboard-slicer">
+        <strong>{filter.label}</strong> {value ?? t('dashboards.allPeriods')}
+      </p>
+    );
+  }
   return (
     <div className="dashboard-slicer">
       <label htmlFor={id}>{filter.label}</label>

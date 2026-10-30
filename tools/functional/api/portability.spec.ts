@@ -407,7 +407,15 @@ test.describe('the transfers of a person', () => {
       '/portability/transfers',
     );
     expect(after.transfers.map((each) => each.transferId)).not.toContain(transfer.transferId);
-    expect(after.keptBytes).toBe(listed.keptBytes - transfer.bytes);
+    // Measured against what each listing holds, because another case of this
+    // account may keep an export between the two: what the listed exports do
+    // not account for stays the same, and this one left with its bytes.
+    const beyond = (list: { transfers: TransferDto[]; keptBytes: number }) =>
+      list.keptBytes -
+      list.transfers
+        .filter((each) => each.kind === 'export' && each.status === 'ready')
+        .reduce((sum, each) => sum + each.bytes, 0);
+    expect(beyond(after)).toBe(beyond(listed));
     expect(
       (await owner.call('POST', `/portability/transfers/${transfer.transferId}/download`)).status,
     ).toBe(404);

@@ -7258,7 +7258,7 @@ body.has-sheet .app-main {
   gap: 10px;
   align-content: start;
 }
-.dashboard-card-title {
+.content-pane .dashboard-card-title {
   margin: 0;
   font-family: var(--display);
   font-size: 0.98rem;
@@ -7398,7 +7398,7 @@ body.has-sheet .app-main {
   gap: 8px;
   align-content: start;
 }
-.dash-lane-head {
+.content-pane .dash-lane-head {
   margin: 0;
   font-size: 0.86rem;
   display: flex;
