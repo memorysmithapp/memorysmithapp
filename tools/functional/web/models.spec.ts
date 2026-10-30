@@ -105,7 +105,9 @@ test.describe('notebook models', () => {
     const item = app.locator('.notebook-nav a').first();
     await expect(item).toHaveText(words.modelItem);
     await item.click();
-    await expect(app.getByLabel(words.objective, { exact: true })).toBeVisible();
+    await expect(app.locator('.model-form textarea').first()).toHaveValue(
+      'Keep the findings of one review',
+    );
 
     await app.getByLabel(words.changelog).fill('The first version');
     await app.getByRole('button', { name: words.createVersion }).click();
