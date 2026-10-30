@@ -3541,7 +3541,9 @@ button.attachment-thumb:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 .sheet-tab {
-  width: 44px;
+  /* Eight icons in a model, which give way on the narrowest phone. */
+  flex: 0 1 44px;
+  min-width: 0;
   height: 44px;
   display: flex;
   align-items: center;

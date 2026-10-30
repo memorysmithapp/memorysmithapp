@@ -51,7 +51,8 @@ export function NotebookSheet({
   const [grouped, setGrouped] = useState(false);
   const pages = useNotebookPages(notebookId);
   const attachments = pages.find((page) => page.key === 'attachments');
-  const others = pages.filter((page) => page.key !== 'attachments');
+  const model = pages.find((page) => page.key === 'model');
+  const others = pages.filter((page) => page.key !== 'attachments' && page.key !== 'model');
   const inGroup = others.some((page) => pathname.startsWith(page.to));
   const trigger = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -131,6 +132,11 @@ export function NotebookSheet({
               >
                 <SearchIcon />
               </button>
+              {model ? (
+                <SheetTab to={model.to} label={model.label}>
+                  {model.icon}
+                </SheetTab>
+              ) : null}
               <SheetTab to={notebookAddress(notebookId)} end label={t('structure.heading')}>
                 <ContextIcon />
               </SheetTab>
