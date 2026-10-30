@@ -1,14 +1,21 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { communityAddress, notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
-import { createNotebook, getModel, getModelVersion, listModels } from '../../shared/api/source';
+import {
+  createNotebook,
+  declareModel,
+  getModel,
+  getModelVersion,
+  listModels,
+} from '../../shared/api/source';
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
 import { CreateFromModelForm } from './CreateFromModel';
+import { ModelForm } from './ModelPage';
 
 /**
  * A new notebook from Home (#359): blank, with a name and a line saying what it
@@ -31,6 +38,68 @@ export function NewNotebookDialog({ open, onClose }: { open: boolean; onClose: (
         ]}
       />
       {kind === 'blank' ? <BlankNotebook onClose={onClose} /> : <FromModel onClose={onClose} />}
+    </Modal>
+  );
+}
+
+/**
+ * A new notebook model from Home (#373): a notebook, and what it declares in the
+ * same step. Its parameters may wait, because one only means something once a
+ * text uses it. Turning a notebook that exists into a model is not here: that
+ * is reading and rewriting it, which an agent does with the skill `derive-model`.
+ */
+export function NewModelDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [plain, setPlain] = useState(false);
+  // Kept across a failed declaration, so trying again does not make a second notebook.
+  const created = useRef<string | null>(null);
+  if (!open) return null;
+
+  async function declare(input: Parameters<typeof declareModel>[1]): Promise<void> {
+    created.current ??= (
+      await createNotebook({ name: name.trim(), description: input.description ?? '' })
+    ).id;
+    await client.invalidateQueries({ queryKey: queryKeys.notebooks() });
+    try {
+      await declareModel(created.current, input);
+    } catch (error) {
+      setPlain(true);
+      throw error;
+    }
+    void client.invalidateQueries({ queryKey: queryKeys.models() });
+    navigate(notebookAddress(created.current));
+  }
+
+  return (
+    <Modal open title={t('newNotebook.modelTitle')} onClose={onClose} className="new-notebook">
+      <ModelForm
+        model={null}
+        onSaved={onClose}
+        declare={declare}
+        allowed={name.trim().length > 0}
+        onCancel={onClose}
+        lead={
+          <>
+            <label className="field">
+              <span className="field-label">{t('newNotebook.name')}</span>
+              <input
+                value={name}
+                required
+                disabled={plain}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </label>
+            {plain ? (
+              <p className="share-failure" role="alert">
+                {t('newNotebook.notDeclared')}
+              </p>
+            ) : null}
+          </>
+        }
+      />
     </Modal>
   );
 }

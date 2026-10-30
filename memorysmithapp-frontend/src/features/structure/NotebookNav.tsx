@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   attachmentsAddress,
@@ -12,6 +13,8 @@ import {
   notebookAddress,
   templatesAddress,
 } from '../../shared/api/note-address';
+import { queryKeys } from '../../shared/api/query-keys';
+import { getModel } from '../../shared/api/source';
 import {
   ChevronRightIcon,
   ContextIcon,
@@ -45,12 +48,22 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
    * the way the tree reopens the path to the open note.
    */
   const [open, setOpen] = useState(true);
+  // What the notebook is as a model, to copy (#353), shown only where it is one (#373).
+  const model = useQuery({
+    queryKey: queryKeys.model(notebookId),
+    queryFn: () => getModel(notebookId),
+  });
   useEffect(() => {
     if (inPart) setOpen(true);
   }, [inPart]);
 
   return (
     <nav className="notebook-nav" aria-label={t('structure.openNavigation')}>
+      {model.data ? (
+        <NavItem to={modelAddress(notebookId)} icon={<CopyIcon />}>
+          {t('model.title')}
+        </NavItem>
+      ) : null}
       <div className="nav-row-wrap">
         <NavItem to={notebookAddress(notebookId)} end icon={<ContextIcon />}>
           {t('structure.heading')}
@@ -92,10 +105,6 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
       </NavItem>
       <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
         {t('graph.navLabel')}
-      </NavItem>
-      {/* What the notebook is as a model, to copy (#353). */}
-      <NavItem to={modelAddress(notebookId)} icon={<CopyIcon />}>
-        {t('model.title')}
       </NavItem>
     </nav>
   );

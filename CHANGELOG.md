@@ -13,6 +13,8 @@ issues each entry cites.
 
 ### Added
 
+- **Home creates a notebook model.** The button *New notebook* offers a notebook or a notebook model, which asks its name and what it declares, its parameters optional. The menu of a notebook shows *Notebook model* only where the notebook is one, first of all, above *Context*, and no longer in every notebook. Turning a notebook that exists into a model stays with the agent, through the skill `derive-model`. (#373)
+
 - **The product can be installed in another AWS account.** An organization names its account, region and domain in variables, with no source to edit, and `install-account` checks the credentials, the region, the hosted zone and its delegation before changing anything, prepares the CDK bootstrap and the delivery role, and says what is left for a person. It delivers from a fork on GitHub, a fork on GitLab or `deliver` run against its own account, in any region with the services the product uses, on a domain of its own or on the default endpoints of AWS, and it can share an account with another installation. `memorysmith.app` keeps every name it has. This path has been verified by synthesis and has not yet been delivered to another account. (#342)
 
 - **A note shows a table.** A `table` block names a table, its columns, a filter, an order, the rows per page and a total, and the page draws its rows paged, in the reader's language and sortable by a column for the reader alone; a printed note carries every filtered row and says when they were read. A block that cannot be answered says what is wrong in its place, and an agent is told the same when it writes the note. The *Tables* page says which notes show each table, and deleting one says how many will miss it. (#366)

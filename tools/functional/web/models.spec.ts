@@ -15,6 +15,10 @@ const MODEL_WORDS: Record<
   AppLocale,
   {
     readonly objective: string;
+    readonly newNotebook: string;
+    readonly newModel: string;
+    readonly name: string;
+    readonly notAModel: string;
     readonly addParameter: string;
     readonly parameterName: string;
     readonly required: string;
@@ -31,6 +35,10 @@ const MODEL_WORDS: Record<
 > = {
   en_US: {
     objective: 'Objective',
+    newNotebook: 'New notebook',
+    newModel: 'New notebook model',
+    name: 'Name',
+    notAModel: 'This notebook is not a model.',
     addParameter: 'Add a parameter',
     parameterName: 'Name',
     required: 'Required',
@@ -46,6 +54,10 @@ const MODEL_WORDS: Record<
   },
   pt_BR: {
     objective: 'Objetivo',
+    newNotebook: 'Novo caderno',
+    newModel: 'Novo Modelo de caderno',
+    name: 'Nome',
+    notAModel: 'Este caderno não é um Modelo de caderno.',
     addParameter: 'Adicionar um parâmetro',
     parameterName: 'Nome',
     required: 'Obrigatório',
@@ -62,22 +74,33 @@ const MODEL_WORDS: Record<
 };
 
 test.describe('notebook models', () => {
-  test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] declares a model, freezes a version and creates a notebook from it', async ({
+  test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] creates a model from Home, freezes a version and creates a notebook from it', async ({
     app,
     notebook,
     owner,
     appLocale,
   }) => {
     const words = MODEL_WORDS[appLocale];
+    // A notebook that is no model offers none.
     await app.goto(notebook.page('/model'));
+    await expect(app.getByText(words.notAModel, { exact: true })).toBeVisible();
+    await expect(app.getByLabel(words.objective, { exact: true })).toHaveCount(0);
 
+    await app.goto('/');
+    await app.getByRole('button', { name: words.newNotebook }).click();
+    await app.getByRole('menuitem', { name: words.newModel }).click();
+    const modelName = `${notebook.name} model`;
+    await app.getByLabel(words.name, { exact: true }).first().fill(modelName);
     await app.getByLabel(words.objective, { exact: true }).fill('Keep the findings of one review');
     await app.getByRole('button', { name: words.addParameter }).click();
     const row = app.locator('.parameter-row').first();
     await row.getByLabel(words.parameterName, { exact: true }).fill('client');
     await row.getByLabel(words.required, { exact: true }).check();
     await app.getByRole('button', { name: words.declare }).click();
-    await expect(app.getByText(words.saved, { exact: true })).toBeVisible();
+    await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 60_000 });
+    // First of the menu, with no reload, and it is where the model is kept.
+    await app.locator('.notebook-nav a').first().click();
+    await expect(app.getByLabel(words.objective, { exact: true })).toBeVisible();
 
     await app.getByLabel(words.changelog).fill('The first version');
     await app.getByRole('button', { name: words.createVersion }).click();
@@ -101,6 +124,9 @@ test.describe('notebook models', () => {
     const created = listed.find((each) => each.name === name);
     expect(created).toBeDefined();
     if (created) await owner.ok('DELETE', `/knowledge/notebooks/${created.notebookId}`);
+    const model = listed.find((each) => each.name === modelName);
+    expect(model).toBeDefined();
+    if (model) await owner.ok('DELETE', `/knowledge/notebooks/${model.notebookId}`);
   });
 
   test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, and never its notebook', async ({

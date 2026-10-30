@@ -1,5 +1,5 @@
 import { TableChoices, tablesOf, type TableCarry } from '../portability/TableChoices';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -62,7 +62,7 @@ export function ModelPage() {
           <p className="hint">{t('common.loading')}</p>
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
-        ) : owner ? (
+        ) : owner && model.data ? (
           <ModelForm
             notebookId={notebookId}
             model={model.data}
@@ -131,14 +131,27 @@ export function SharedModelPage() {
 }
 
 /** What the owner declares, and declares again to change it. */
-function ModelForm({
-  notebookId,
+/**
+ * What a model declares. It changes the model of a notebook, and it is what a
+ * new model says of itself on Home (#373), where `declare` also makes the
+ * notebook and `lead` asks its name.
+ */
+export function ModelForm({
+  notebookId = null,
   model,
   onSaved,
+  declare = null,
+  lead = null,
+  allowed = true,
+  onCancel = null,
 }: {
-  notebookId: string;
+  notebookId?: string | null;
   model: NotebookModelDto | null;
   onSaved: () => void;
+  declare?: ((input: Parameters<typeof declareModel>[1]) => Promise<void>) | null;
+  lead?: ReactNode;
+  allowed?: boolean;
+  onCancel?: (() => void) | null;
 }) {
   const { t } = useTranslation();
   const [objective, setObjective] = useState(model?.objective ?? '');
@@ -153,20 +166,22 @@ function ModelForm({
   useEffect(() => setSaid(null), [objective, description, audience, basedOn, parameters]);
 
   const declared = declarationsOf(parameters);
-  const ready = objective.trim().length > 0 && declared !== null;
+  const ready = objective.trim().length > 0 && declared !== null && allowed;
 
   async function save(): Promise<void> {
     if (!declared) return;
     setBusy(true);
     setSaid(null);
     try {
-      await declareModel(notebookId, {
+      const input = {
         objective,
         description,
         audience,
         parameters: declared,
         basedOn: basedOn.trim() ? basedOn : null,
-      });
+      };
+      if (declare) await declare(input);
+      else await declareModel(notebookId ?? '', input);
       setSaid(t('model.saved'));
       onSaved();
     } catch (error) {
@@ -184,6 +199,7 @@ function ModelForm({
         void save();
       }}
     >
+      {lead}
       {model ? null : (
         <p className="hint">
           {t('model.declareHint', { reference: `{{${t('model.referenceExample')}}}` })}
@@ -220,6 +236,11 @@ function ModelForm({
       <p className="hint">{t('model.parametersHint')}</p>
       <ParametersEditor parameters={parameters} onChange={setParameters} />
       <div className="model-form-actions">
+        {onCancel ? (
+          <button type="button" className="button is-quiet" onClick={onCancel}>
+            {t('common.cancel')}
+          </button>
+        ) : null}
         <button type="submit" className="button is-primary" disabled={busy || !ready}>
           {busy ? t('model.saving') : model ? t('model.save') : t('model.declare')}
         </button>
