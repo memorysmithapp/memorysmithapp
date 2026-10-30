@@ -331,10 +331,23 @@ export function Chart({
       legend: legend ? { bottom: 0, textStyle: { color: text } } : undefined,
       grid: { left: 8, right: 16, top: 16, bottom: legend ? 36 : 8, containLabel: true },
       xAxis: horizontal ? values : category,
-      yAxis: horizontal ? category : values,
+      // The lines of a combo measure something else, on an axis of their own.
+      yAxis: horizontal
+        ? category
+        : type === 'combo'
+          ? [
+              values,
+              {
+                type: 'value',
+                axisLabel: { color: text },
+                splitLine: { show: false },
+              },
+            ]
+          : values,
       series: measures.map((measure, index) => ({
         name: measure,
         type: type === 'bar' || (type === 'combo' && !lines.includes(measure)) ? 'bar' : 'line',
+        ...(lines.includes(measure) ? { yAxisIndex: 1 } : {}),
         smooth: options['smooth'] === true,
         ...(type === 'area' ? { areaStyle: { opacity: 0.25 } } : {}),
         ...(stacked ? { stack: 'all' } : {}),

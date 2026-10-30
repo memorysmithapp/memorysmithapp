@@ -1772,23 +1772,23 @@ test.describe('the pages of an account', () => {
     await expect(total).toContainText('75');
     await expect(app.locator('.dash-wbs-row')).toHaveCount(4);
     await expect(app.locator('.dash-matrix tfoot')).toContainText('75');
-    await testInfo.attach('second-batch.png', {
-      body: await app.locator('.dashboard').screenshot(),
-      contentType: 'image/png',
-    });
+    const combo = app.locator('.dashboard-card.is-combo .dash-chart');
+    await expect(combo.locator('svg')).toBeVisible();
+    await combo.scrollIntoViewIfNeeded();
+    // A chart answers a click once it has finished rising.
+    await app.waitForTimeout(1500);
+    await app.locator('.dashboard').screenshot({ path: testInfo.outputPath('second-batch.png') });
 
     // The first bar of the combo is the phase `fundo`.
-    const bars = app.locator('.dashboard-card.is-combo .dash-chart svg path[fill]');
-    await expect(bars.first()).toBeVisible();
-    const box = await app.locator('.dashboard-card.is-combo .dash-chart').boundingBox();
+    const box = await combo.boundingBox();
     if (!box) throw new Error('The combo drew nothing');
     await app.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.75);
     await expect(app.locator('.dashboard-cross')).toBeVisible();
     await expect(total).toContainText('50');
-    await testInfo.attach('second-batch-filtered.png', {
-      body: await app.locator('.dashboard').screenshot(),
-      contentType: 'image/png',
-    });
+    await app.waitForTimeout(1500);
+    await app
+      .locator('.dashboard')
+      .screenshot({ path: testInfo.outputPath('second-batch-filtered.png') });
     await app.locator('.dashboard-cross button').click();
     await expect(total).toContainText('75');
     await expect(app.locator('.dashboard-cross')).toHaveCount(0);

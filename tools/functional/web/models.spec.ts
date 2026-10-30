@@ -86,7 +86,7 @@ test.describe('notebook models', () => {
     await expect(app.getByText(words.notAModel, { exact: true })).toBeVisible();
     await expect(app.getByLabel(words.objective, { exact: true })).toHaveCount(0);
 
-    await app.goto('/');
+    await app.goto(new URL('/', app.url()).href);
     await app.getByRole('button', { name: words.newNotebook }).click();
     await app.getByRole('menuitem', { name: words.newModel }).click();
     const modelName = `${notebook.name} model`;
