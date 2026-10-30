@@ -11,7 +11,7 @@
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { test as base, expect } from '@playwright/test';
 import { createHash, randomBytes } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readConnectorToken, type ConnectorToken } from '../support/connector-state.js';
