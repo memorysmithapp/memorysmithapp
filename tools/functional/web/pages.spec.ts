@@ -575,10 +575,12 @@ test.describe('the pages of an account', () => {
     });
 
     await app.goto(notebook.page('/attachments'));
-    // The entry sits right below the attachments in the navigation.
+    // The entry sits between the attachments and the graph in the navigation.
     const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    await expect(nav.filter({ hasText: words.tables })).toBeVisible();
     const labels = (await nav.allInnerTexts()).map((label) => label.trim());
     expect(labels.indexOf(words.tables)).toBe(labels.indexOf(words.attachments) + 1);
+    expect(labels.indexOf(words.graph)).toBe(labels.indexOf(words.tables) + 1);
     await nav.filter({ hasText: words.tables }).click();
     await expect(app).toHaveURL(notebook.page('/tables'));
 
@@ -636,11 +638,11 @@ test.describe('the pages of an account', () => {
     );
 
     await app.goto(notebook.page('/graph'));
-    // The entry sits right above the graph in the navigation, and opens the page.
+    // The entry sits above the tables and the graph in the navigation (#366), and opens the page.
     const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
     await expect(nav.filter({ hasText: words.graph })).toBeVisible();
     const labels = (await nav.allInnerTexts()).map((label) => label.trim());
-    expect(labels.indexOf(words.attachments)).toBe(labels.indexOf(words.graph) - 1);
+    expect(labels.indexOf(words.attachments)).toBe(labels.indexOf(words.tables) - 1);
     await nav.filter({ hasText: words.attachments }).click();
     await expect(app).toHaveURL(notebook.page('/attachments'));
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText(words.attachments);

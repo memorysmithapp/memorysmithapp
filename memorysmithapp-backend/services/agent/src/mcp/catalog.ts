@@ -1054,7 +1054,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     name: 'import_table',
     title: 'Import rows from a CSV or an Excel file',
     description:
-      'Reads the rows of a CSV or an Excel workbook (.xlsx) the notebook keeps, by its name as ' +
+      'Reads the rows of a CSV or an Excel workbook (.xlsx) the notebook keeps, by its name, `fileName`, as ' +
       'list_files prints it: the first line is the header, each line after it a row. With no ' +
       '`table`, or with `dryRun: true`, it writes NOTHING and answers the schema the sheet ' +
       'suggests, the column each header becomes and the first rows: show them to the person, ' +
@@ -1068,7 +1068,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     inputSchema: object(
       {
         notebook: notebookArgument,
-        file: {
+        fileName: {
           type: 'string',
           description: 'The name of the kept file, as list_files prints it.',
         },
@@ -1081,7 +1081,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         },
         dryRun: { type: 'boolean', description: 'true reads and proposes, and writes nothing.' },
       },
-      ['notebook', 'file'],
+      ['notebook', 'fileName'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },

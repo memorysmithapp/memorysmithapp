@@ -1146,7 +1146,7 @@ test.describe('the tables of a notebook (#366)', () => {
     expect(kept.isError).toBe(false);
 
     const proposed = parsed<{ proposal: { rows: number; schema: Record<string, unknown> } }>(
-      await callTool(agent, 'import_table', { notebook: notebook.notebookId, file }),
+      await callTool(agent, 'import_table', { notebook: notebook.notebookId, fileName: file }),
     );
     expect(proposed.proposal.rows).toBe(2);
 
@@ -1157,7 +1157,11 @@ test.describe('the tables of a notebook (#366)', () => {
       schema: proposed.proposal.schema,
     });
     const imported = parsed<{ imported: { inserted: number } }>(
-      await callTool(agent, 'import_table', { notebook: notebook.notebookId, file, table }),
+      await callTool(agent, 'import_table', {
+        notebook: notebook.notebookId,
+        fileName: file,
+        table,
+      }),
     );
     expect(imported.imported.inserted).toBe(2);
   });

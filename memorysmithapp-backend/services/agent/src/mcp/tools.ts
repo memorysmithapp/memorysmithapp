@@ -1313,7 +1313,7 @@ export class McpToolAdapter {
         const sheet = optionalString(args, 'sheet');
         return json(
           await knowledge.importTable(caller, requireString(args, 'notebook', 'import_table'), {
-            file: requireString(args, 'file', 'import_table'),
+            file: requireString(args, 'fileName', 'import_table'),
             ...(table ? { table } : {}),
             ...(sheet ? { sheet } : {}),
             mode: args['mode'] === 'upsert' ? 'upsert' : 'insert',

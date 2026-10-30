@@ -3178,3 +3178,25 @@ describe('the tables of a notebook (#366)', () => {
     expect(result.content[0]?.text ?? '').toContain('delete_rows requires "targets"');
   });
 });
+
+describe('import_table (#366)', () => {
+  it('names the kept file by fileName, which is a name and never an identifier', async () => {
+    let sent: unknown = null;
+    const adapter = gateways({
+      knowledge: {
+        importTable: async (_caller: unknown, _notebook: string, input: unknown) => {
+          sent = input;
+          return { proposal: { rows: 2 } };
+        },
+      },
+    });
+    const result = await adapter.call(
+      'import_table',
+      { notebook: '01JBQ2X00000000000000000V1', fileName: 'statement-c3ae3d33.csv' },
+      caller,
+    );
+    expect(result.content[0]?.text ?? '').not.toContain('VALIDATION');
+    expect(result.isError).not.toBe(true);
+    expect(sent).toEqual({ file: 'statement-c3ae3d33.csv', mode: 'insert', dryRun: false });
+  });
+});
