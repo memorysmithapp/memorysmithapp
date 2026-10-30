@@ -8,6 +8,9 @@
 // never goes through the listing to find it.
 
 import type {
+  DashboardDataDto,
+  DashboardListDto,
+  NotebookDashboardDto,
   NotebookTableDto,
   TableListDto,
   TablePageDto,
@@ -366,6 +369,35 @@ export async function deleteTable(notebookId: string, table: string): Promise<{ 
   return request<{ rows: number }>(
     `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`,
     { method: 'DELETE' },
+  );
+}
+
+/** The Dashboards of a notebook, each with its definition (#368). */
+export async function listDashboards(notebookId: string): Promise<NotebookDashboardDto[]> {
+  const answer = await request<DashboardListDto>(`/knowledge/notebooks/${notebookId}/dashboards`);
+  return answer.dashboards;
+}
+
+/** What every component of a dashboard shows now, under the periods and pages asked (#368). */
+export async function readDashboardData(
+  notebookId: string,
+  dashboard: string,
+  filters: Record<string, string | null>,
+  pages: Record<string, number>,
+): Promise<DashboardDataDto> {
+  return request<DashboardDataDto>(
+    `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}/data`,
+    { method: 'POST', body: { filters, pages } },
+  );
+}
+
+/** Deletes a dashboard for good; its tables are untouched (#368). */
+export async function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
+  await request<void>(
+    `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}`,
+    {
+      method: 'DELETE',
+    },
   );
 }
 

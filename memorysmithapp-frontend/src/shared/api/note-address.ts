@@ -139,3 +139,9 @@ export function communityModelAddress(publicId: string): string {
 export function communityVersionAddress(publicId: string, version: number): string {
   return `${communityModelAddress(publicId)}/versions/${version}`;
 }
+
+/** The Dashboards of a notebook, one of them open when it is named (#368). */
+export function dashboardsAddress(notebookId: string, dashboard?: string): string {
+  const base = `${notebookAddress(notebookId)}/dashboards`;
+  return dashboard ? `${base}?dashboard=${encodeURIComponent(dashboard)}` : base;
+}

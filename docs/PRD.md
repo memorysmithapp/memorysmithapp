@@ -260,6 +260,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-080 | A dashboard's definition is checked whole before it is kept: every component names a table of the notebook and only the columns, measures and groupings that table answers, and what is refused is named; a component keeps its table by identifier, so renaming the table breaks nothing. | |
 | RN-KNW-081 | Reading a dashboard computes every component from its tables at that moment, each table read once, under the periods chosen; a table deleted or a filter that no longer fits is said in place of its component, and the others are drawn. | |
 | RN-KNW-082 | A share reaches a notebook's dashboards by its profile: a Reader reads them, and a Notebook editor also creates, changes and deletes them; a dashboard is changed whole, and deleting one is definitive. | |
+| RN-KNW-083 | The interface offers, in a notebook's menu below its tables, its Dashboards: each drawn in its layout, one column on a phone, with its period filters, the time its data was read and a refresh, read again on the interval it declares and when the page is looked at again; whoever maintains the notebook deletes one there. | |
 
 ### Discovery
 

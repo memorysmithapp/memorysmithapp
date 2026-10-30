@@ -42,6 +42,7 @@ export interface Words {
   /** The files of a notebook, above the graph (#307). */
   readonly attachments: string;
   readonly tables: string;
+  readonly dashboards: string;
   readonly tableData: string;
   readonly tableSchema: string;
   readonly deleteTable: string;
@@ -170,6 +171,7 @@ export const WORDS: Record<AppLocale, Words> = {
     graph: 'Notebook graph',
     attachments: 'Attachments',
     tables: 'Tables',
+    dashboards: 'Dashboards',
     tableData: 'Data',
     tableSchema: 'Schema',
     deleteTable: 'Delete table',
@@ -266,6 +268,7 @@ export const WORDS: Record<AppLocale, Words> = {
     graph: 'Grafo do caderno',
     attachments: 'Anexos',
     tables: 'Tabelas',
+    dashboards: 'Painéis',
     tableData: 'Dados',
     tableSchema: 'Schema',
     deleteTable: 'Apagar tabela',

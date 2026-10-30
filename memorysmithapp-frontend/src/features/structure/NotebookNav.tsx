@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   attachmentsAddress,
   tablesAddress,
+  dashboardsAddress,
   foldersAddress,
   graphAddress,
   guidanceAddress,
@@ -20,6 +21,7 @@ import {
   GuidanceIcon,
   PaperclipIcon,
   TableIcon,
+  DashboardIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
 
@@ -83,6 +85,10 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
       {/* The tables an agent keeps in the notebook (#366). */}
       <NavItem to={tablesAddress(notebookId)} icon={<TableIcon />}>
         {t('tables.navLabel')}
+      </NavItem>
+      {/* What an agent built over the tables, to look at (#368). */}
+      <NavItem to={dashboardsAddress(notebookId)} icon={<DashboardIcon />}>
+        {t('dashboards.navLabel')}
       </NavItem>
       <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
         {t('graph.navLabel')}

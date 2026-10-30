@@ -497,6 +497,27 @@
       "published": "These tables go with their rows, which anybody will read: {{tables}}."
     }
   },
+  "dashboards": {
+    "heading": "Dashboards",
+    "navLabel": "Dashboards",
+    "intro": "What an agent built over the tables of this notebook: indicators, charts, a Gantt, a Kanban, read from the tables every time they open.",
+    "none": "(none)",
+    "components_one": "{{count}} component",
+    "components_other": "{{count}} components",
+    "readAt": "Data of {{time}}",
+    "refresh": "Refresh",
+    "allPeriods": "All",
+    "compared": "compared",
+    "ofGoal": "of {{goal}}",
+    "noRows": "No rows to show.",
+    "moreRows_one": "And {{count}} more row.",
+    "moreRows_other": "And {{count}} more rows.",
+    "missingTable": "The table this drew from is gone.",
+    "delete": "Delete dashboard",
+    "deleteTitle": "Delete this dashboard?",
+    "deleteConsequences": "The dashboard goes for good. Its tables and their rows stay as they are.",
+    "deleteConfirm": "Delete for good"
+  },
   "graph": {
     "heading": "Notebook graph",
     "navLabel": "Notebook graph",

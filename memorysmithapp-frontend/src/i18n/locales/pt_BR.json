@@ -500,6 +500,27 @@
       "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}."
     }
   },
+  "dashboards": {
+    "heading": "Painéis",
+    "navLabel": "Painéis",
+    "intro": "O que um agente montou sobre as tabelas deste caderno: indicadores, gráficos, um Gantt, um Kanban, lidos das tabelas toda vez que abrem.",
+    "none": "(sem valor)",
+    "components_one": "{{count}} componente",
+    "components_other": "{{count}} componentes",
+    "readAt": "Dados de {{time}}",
+    "refresh": "Atualizar",
+    "allPeriods": "Tudo",
+    "compared": "na comparação",
+    "ofGoal": "de {{goal}}",
+    "noRows": "Nenhuma linha para mostrar.",
+    "moreRows_one": "E mais {{count}} linha.",
+    "moreRows_other": "E mais {{count}} linhas.",
+    "missingTable": "A tabela de onde isto vinha não existe mais.",
+    "delete": "Apagar painel",
+    "deleteTitle": "Apagar este painel?",
+    "deleteConsequences": "O painel sai para sempre. As tabelas e suas linhas continuam como estão.",
+    "deleteConfirm": "Apagar de vez"
+  },
   "graph": {
     "heading": "Grafo do caderno",
     "navLabel": "Grafo do caderno",

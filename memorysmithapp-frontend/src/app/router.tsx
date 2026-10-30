@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '../shared/components/AppShell';
@@ -17,6 +18,12 @@ import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { AttachmentsPage } from '../features/attachments/AttachmentsPage';
 import { TablesPage } from '../features/tables/TablesPage';
+// The charts weigh, so the page that draws them arrives when it is opened (#368).
+const DashboardsPage = lazy(() =>
+  import('../features/dashboards/DashboardsPage').then((module) => ({
+    default: module.DashboardsPage,
+  })),
+);
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
@@ -101,6 +108,14 @@ export const router = createBrowserRouter([
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },
                   { path: 'tables', element: <TablesPage /> },
+                  {
+                    path: 'dashboards',
+                    element: (
+                      <Suspense fallback={null}>
+                        <DashboardsPage />
+                      </Suspense>
+                    ),
+                  },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'model', element: <ModelPage /> },
                   { path: 'model/versions/:version', element: <ModelVersionPage /> },

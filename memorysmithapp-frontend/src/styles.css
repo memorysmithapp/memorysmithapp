@@ -60,6 +60,15 @@
   --cat-2: #0f56d7;
   --cat-3: #16a34a;
   --cat-other: #8b96a8;
+  --chart-1: var(--accent);
+  --chart-2: var(--signal);
+  --chart-3: var(--node-green);
+  --chart-4: var(--val-2);
+  --chart-5: var(--seq-growing);
+  --chart-6: #8b5cf6;
+  --chart-7: var(--text-soft);
+  --chart-8: var(--seq-seed);
+  --chart-bar: color-mix(in srgb, var(--accent) 22%, transparent);
   --val-1: #ff8a2b;
   --val-2: #db2777;
   --val-3: #008300;
@@ -2334,6 +2343,15 @@ body:has(.markdown dialog[open]) {
   --cat-2: #2f6ee0;
   --cat-3: #16a34a;
   --cat-other: #55617a;
+  --chart-1: var(--accent);
+  --chart-2: var(--signal);
+  --chart-3: var(--node-green);
+  --chart-4: var(--val-2);
+  --chart-5: var(--seq-growing);
+  --chart-6: #8b5cf6;
+  --chart-7: var(--text-soft);
+  --chart-8: var(--seq-seed);
+  --chart-bar: color-mix(in srgb, var(--accent) 22%, transparent);
   --val-1: #e0821f;
   --val-2: #c94f8a;
   --val-3: #29b06a;
@@ -7122,4 +7140,297 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   font-size: 0.8rem;
   margin-left: 6px;
+}
+
+/* The Dashboards of a notebook (#368): a layout of cards that becomes one
+   column on a phone, and charts that take the width they are given. */
+.dashboards-page.is-open {
+  max-width: none;
+}
+.dashboard {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dashboard-read {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.dashboard-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dashboard-slicer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+.dashboard-slicer label {
+  font-weight: 600;
+}
+.dashboard-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+@media (min-width: 861px) {
+  .dashboard-grid[data-layout='two-columns'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-grid[data-layout='three-columns'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dashboard-grid[data-layout='two-columns'] [data-slot='left'],
+  .dashboard-grid[data-layout='three-columns'] [data-slot='left'] {
+    grid-column: 1;
+  }
+  .dashboard-grid[data-layout='two-columns'] [data-slot='right'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='three-columns'] [data-slot='middle'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='three-columns'] [data-slot='right'] {
+    grid-column: 3;
+  }
+  .dashboard-grid[data-layout='header-two-columns'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='header'],
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='footer'] {
+    grid-column: 1 / -1;
+  }
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='left'] {
+    grid-column: 1;
+  }
+  .dashboard-grid[data-layout='header-two-columns'] [data-slot='right'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='sidebar'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  }
+  .dashboard-grid[data-layout='sidebar'] [data-slot='side'] {
+    grid-column: 1;
+  }
+  .dashboard-grid[data-layout='sidebar'] [data-slot='main'] {
+    grid-column: 2;
+  }
+  .dashboard-grid[data-layout='grid'] {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: minmax(120px, auto);
+  }
+}
+@media (max-width: 860px) {
+  .dashboard-grid .dashboard-card {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+}
+.dashboard-grid[data-layout='header-two-columns'] [data-slot='header'] {
+  order: -1;
+}
+.dashboard-grid [data-slot='footer'] {
+  order: 1;
+}
+.dashboard-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.dashboard-card-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+.dash-chart {
+  width: 100%;
+  height: 260px;
+}
+.dash-empty,
+.dash-problem {
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  margin: 0;
+}
+.dash-problem {
+  color: var(--danger);
+}
+.dash-kpi {
+  display: grid;
+  gap: 4px;
+}
+.dash-kpi-value {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dash-kpi-change {
+  font-size: 0.84rem;
+}
+.dash-kpi-change.is-up {
+  color: var(--node-green);
+}
+.dash-kpi-change.is-down {
+  color: var(--danger);
+}
+.dash-kpi-against {
+  color: var(--text-soft);
+}
+.dash-kpi-goal {
+  display: grid;
+  gap: 4px;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.dash-kpi-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.dash-kpi-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.dash-rule-icon {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+}
+.dash-gantt {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+.dash-gantt-scale {
+  position: relative;
+  height: 18px;
+  margin-left: 36%;
+  color: var(--text-soft);
+  border-bottom: 1px solid var(--border);
+}
+.dash-gantt-scale span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  padding-left: 2px;
+  border-left: 1px solid var(--border);
+}
+.dash-gantt ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.dash-gantt-row {
+  display: grid;
+  grid-template-columns: 36% 1fr;
+  align-items: center;
+  gap: 0;
+}
+.dash-gantt-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+.dash-gantt-group {
+  color: var(--text-soft);
+}
+.dash-gantt-track {
+  position: relative;
+  height: 16px;
+  background: var(--track);
+  border-radius: 4px;
+}
+.dash-gantt-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  overflow: hidden;
+}
+.dash-gantt-done {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.dash-kanban {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(200px, 1fr);
+  gap: 10px;
+  overflow-x: auto;
+  min-width: 0;
+}
+.dash-lane {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.dash-lane-head {
+  margin: 0;
+  font-size: 0.86rem;
+  display: flex;
+  justify-content: space-between;
+}
+.dash-lane-count {
+  color: var(--text-soft);
+  font-weight: 400;
+}
+.dash-lane ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+  font-size: 0.84rem;
+}
+.dash-card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dash-card-detail,
+.dash-card-mark {
+  color: var(--text-soft);
+  font-size: 0.78rem;
 }

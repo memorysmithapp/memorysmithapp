@@ -87,6 +87,21 @@ export function deleteTable(
   return backend.deleteTable(notebookId, table);
 }
 
+/** The Dashboards of a notebook, what one shows now, and its deletion (#368). */
+export function listDashboards(notebookId: string): ReturnType<typeof backend.listDashboards> {
+  return backend.listDashboards(notebookId);
+}
+
+export function readDashboardData(
+  ...args: Parameters<typeof backend.readDashboardData>
+): ReturnType<typeof backend.readDashboardData> {
+  return backend.readDashboardData(...args);
+}
+
+export function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
+  return backend.deleteDashboard(notebookId, dashboard);
+}
+
 export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
   return backend.linkToFile(notebookId, fileId);
 }

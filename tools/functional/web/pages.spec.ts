@@ -546,6 +546,125 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
   });
 
+  test('[page:/notebooks/:notebookId/dashboards] draws a dashboard an agent built over a table, under its period (#368)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+    appLocale,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `contas-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          data: { type: 'string', format: 'date' },
+          categoria: { type: 'string' },
+          valor: { type: 'number' },
+          status: { type: 'string', enum: ['aberta', 'paga'] },
+          inicio: { type: 'string', format: 'date' },
+          fim: { type: 'string', format: 'date' },
+        },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        {
+          data: '2026-10-01',
+          categoria: 'mercado',
+          valor: 1250.75,
+          status: 'paga',
+          inicio: '2026-10-01',
+          fim: '2026-10-10',
+        },
+        {
+          data: '2026-10-12',
+          categoria: 'casa',
+          valor: 300,
+          status: 'aberta',
+          inicio: '2026-10-08',
+          fim: '2026-10-25',
+        },
+        {
+          data: '2026-09-20',
+          categoria: 'saúde',
+          valor: 80,
+          status: 'aberta',
+          inicio: '2026-09-20',
+          fim: '2026-10-02',
+        },
+      ],
+    });
+    const name = `Contas ${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        layout: 'header-two-columns',
+        filters: [{ id: 'mes', type: 'period', column: 'data', label: 'Mês', default: '2026-10' }],
+        components: [
+          {
+            id: 'total',
+            type: 'kpi',
+            slot: 'header',
+            title: 'Total',
+            source: { table, measure: 'sum(valor)' },
+          },
+          {
+            id: 'pizza',
+            type: 'donut',
+            slot: 'left',
+            title: 'Categorias',
+            source: { table, group: 'categoria', measures: ['sum(valor)'] },
+          },
+          {
+            id: 'quadro',
+            type: 'kanban',
+            slot: 'right',
+            title: 'Quadro',
+            source: { table },
+            options: { lane: 'status', card: 'categoria' },
+          },
+          {
+            id: 'gantt',
+            type: 'gantt',
+            slot: 'footer',
+            title: 'Prazos',
+            source: { table },
+            options: { title: 'categoria', start: 'inicio', end: 'fim' },
+          },
+        ],
+      },
+    });
+
+    await app.goto(notebook.page('/tables'));
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    await expect(nav.filter({ hasText: words.dashboards })).toBeVisible();
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
+    expect(labels.indexOf(words.dashboards)).toBe(labels.indexOf(words.tables) + 1);
+    await nav.filter({ hasText: words.dashboards }).click();
+    await expect(app).toHaveURL(notebook.page('/dashboards'));
+
+    await app.locator('.table-row', { hasText: name }).click();
+    // October holds two of the three rows: the KPI says their sum in the reader's language.
+    await expect(app.locator('.dash-kpi-value')).toHaveText(
+      appLocale === 'pt_BR' ? '1.550,75' : '1,550.75',
+    );
+    await expect(app.locator('.dash-chart svg')).toBeVisible();
+    await expect(app.locator('.dash-lane')).toHaveCount(2);
+    await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
+    await app.screenshot({
+      path: test.info().outputPath(`dashboard-${appLocale}.png`),
+      fullPage: true,
+    });
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.screenshot({
+      path: test.info().outputPath(`dashboard-${appLocale}-phone.png`),
+      fullPage: true,
+    });
+  });
+
   test('[page:/notebooks/:notebookId/tables] lists the tables of a notebook, opens one on its rows and its schema, and deletes it (#366)', async ({
     app,
     owner,
@@ -580,7 +699,7 @@ test.describe('the pages of an account', () => {
     await expect(nav.filter({ hasText: words.tables })).toBeVisible();
     const labels = (await nav.allInnerTexts()).map((label) => label.trim());
     expect(labels.indexOf(words.tables)).toBe(labels.indexOf(words.attachments) + 1);
-    expect(labels.indexOf(words.graph)).toBe(labels.indexOf(words.tables) + 1);
+    expect(labels.indexOf(words.dashboards)).toBe(labels.indexOf(words.tables) + 1);
     await nav.filter({ hasText: words.tables }).click();
     await expect(app).toHaveURL(notebook.page('/tables'));
 

@@ -192,6 +192,18 @@ export function TableIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** A Dashboard of a notebook, in its menu (#368). */
+export function DashboardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
 /** A file, on the card of the one an import read (#205). */
 export function FileIcon(props: SVGProps<SVGSVGElement>) {
   return (
