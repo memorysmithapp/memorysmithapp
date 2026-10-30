@@ -39,6 +39,12 @@ import type {
   UploadStatusDto,
 } from '@memorysmithapp/contracts';
 
+/** A mark clicked on a chart of a dashboard (#369). */
+export interface DashboardCross {
+  readonly component: string;
+  readonly key: string;
+}
+
 export interface AgentCaller {
   /** The human who authorized the connector; always present. */
   readonly userId: string;
@@ -422,6 +428,9 @@ export interface KnowledgeGateway {
       part?: string;
       /** A Dashboard, by name or identifier, drawn instead of a note (#368). */
       dashboard?: string;
+      /** The view of that dashboard: its periods and a mark clicked (#369). */
+      filters?: Record<string, string | null>;
+      cross?: DashboardCross;
     },
   ): Promise<{ previewId: string }>;
   getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;
@@ -490,6 +499,7 @@ export interface KnowledgeGateway {
     notebookId: string,
     dashboard: string,
     filters: Record<string, string | null>,
+    cross?: DashboardCross | null,
   ): Promise<DashboardDataDto>;
   deleteDashboard(caller: AgentCaller, notebookId: string, dashboard: string): Promise<void>;
   /** Rows from a CSV or an Excel file the notebook keeps, or the schema it suggests. */

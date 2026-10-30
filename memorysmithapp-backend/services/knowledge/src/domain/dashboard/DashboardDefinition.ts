@@ -45,7 +45,7 @@ export const SLOTS: Readonly<Record<Exclude<Layout, 'grid'>, readonly string[]>>
   sidebar: ['side', 'main'],
 };
 
-/** The components of the first batch (#368); the others come with theirs. */
+/** The components of the batches delivered (#368, #369); the others come with theirs. */
 export const COMPONENT_TYPES = [
   'kpi',
   'pie',
@@ -57,10 +57,27 @@ export const COMPONENT_TYPES = [
   'gantt',
   'kanban',
   'text',
+  'wbs',
+  'matrix',
+  'combo',
+  'waterfall',
+  'funnel',
 ] as const;
 export type ComponentType = (typeof COMPONENT_TYPES)[number];
 
-const CHARTS: ReadonlySet<string> = new Set(['pie', 'donut', 'bar', 'line', 'area']);
+const CHARTS: ReadonlySet<string> = new Set([
+  'pie',
+  'donut',
+  'bar',
+  'line',
+  'area',
+  'combo',
+  'waterfall',
+  'funnel',
+]);
+
+/** The charts that draw one measure by group. */
+const ONE_MEASURE: ReadonlySet<string> = new Set(['pie', 'donut', 'waterfall', 'funnel']);
 
 /** What a table looks like to the check: its identifier, name and columns. */
 export interface TableShape {
@@ -132,6 +149,11 @@ const OPTION_COLUMNS: Readonly<Record<ComponentType, readonly string[]>> = {
   gantt: ['title', 'start', 'end', 'progress', 'group'],
   kanban: ['lane', 'card', 'detail', 'color'],
   text: [],
+  wbs: ['code', 'title', 'progress', 'weight'],
+  matrix: [],
+  combo: [],
+  waterfall: [],
+  funnel: [],
 };
 
 const OPTION_NAMES: Readonly<Record<ComponentType, readonly string[]>> = {
@@ -145,6 +167,11 @@ const OPTION_NAMES: Readonly<Record<ComponentType, readonly string[]>> = {
   gantt: ['title', 'start', 'end', 'progress', 'group'],
   kanban: ['lane', 'card', 'detail', 'color', 'lanes'],
   text: ['markdown'],
+  wbs: ['code', 'title', 'progress', 'weight'],
+  matrix: ['format', 'currency', 'decimals', 'across', 'totals'],
+  combo: ['format', 'currency', 'decimals', 'legend', 'labels', 'lines', 'smooth'],
+  waterfall: ['format', 'currency', 'decimals', 'labels', 'total'],
+  funnel: ['format', 'currency', 'decimals', 'legend', 'labels'],
 };
 
 const FORMATS = ['number', 'currency', 'percent'];
@@ -379,11 +406,36 @@ function readComponent(
       );
     if (measures.length === 0)
       return invalid(`${named} is a ${kind}: it measures each group, as measures: ["sum(amount)"]`);
-    if ((kind === 'pie' || kind === 'donut') && measures.length > 1) {
+    if (ONE_MEASURE.has(kind) && measures.length > 1) {
       return invalid(`${named} is a ${kind}, which draws one measure`);
+    }
+    if (kind === 'combo' && measures.length < 2) {
+      return invalid(`${named} is a combo: bars and lines, so at least two measures`);
     }
     const checked = readAggregate(table.columns, { group, measures });
     if (!checked.ok) return invalid(`${named}: ${checked.error.message}`);
+    if (kind === 'combo' && options['lines'] !== undefined) {
+      const lines = options['lines'];
+      if (!Array.isArray(lines) || !lines.every((line) => measures.includes(String(line)))) {
+        return invalid(`${named} lists in options.lines measures it draws: ${measures.join(', ')}`);
+      }
+      if (lines.length >= measures.length) {
+        return invalid(`${named} is a combo: at least one measure stays a bar`);
+      }
+    }
+  } else if (kind === 'matrix') {
+    if (!group || measures.length !== 1) {
+      return invalid(
+        `${named} is a matrix: its rows in source.group, one measure, and its columns in options.across`,
+      );
+    }
+    const checked = readAggregate(table.columns, { group, measures });
+    if (!checked.ok) return invalid(`${named}: ${checked.error.message}`);
+    if (typeof options['across'] !== 'string') {
+      return invalid(`${named} is a matrix: it names its columns in options.across`);
+    }
+    const across = readGrouping(table.columns, options['across']);
+    if (!across.ok) return invalid(`${named}: ${across.error.message}`);
   } else {
     if (measures.length > 0 || group)
       return invalid(`${named} is a ${kind}, which draws rows and adds nothing up`);
@@ -404,6 +456,22 @@ function readComponent(
   }
   if (kind === 'gantt' && (!options['title'] || !options['start'] || !options['end'])) {
     return invalid(`${named} is a Gantt: it names the columns of the title, the start and the end`);
+  }
+  if (kind === 'wbs') {
+    if (!options['code'] || !options['title']) {
+      return invalid(
+        `${named} is a WBS: it names the column of its outline code, as 1.2.3, and of its title`,
+      );
+    }
+    const numeric = ['progress', 'weight'].filter((option) => {
+      const column = table.columns.find((each) =>
+        sameColumnName(each.name, String(options[option])),
+      );
+      return column && column.type !== 'number' && column.type !== 'integer';
+    });
+    if (numeric.length > 0) {
+      return invalid(`${named} reads ${numeric.join(' and ')} from a column of numbers`);
+    }
   }
   if (kind === 'kanban') {
     if (!options['lane'] || !options['card'])

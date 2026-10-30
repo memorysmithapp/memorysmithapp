@@ -1694,6 +1694,106 @@ test.describe('the pages of an account', () => {
     });
   });
 
+  test('[page:/notebooks/:notebookId/dashboards] draws the second batch of components, and a click on a mark filters the rest and clears (#369)', async ({
+    app,
+    notebook,
+    owner,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `tarefas-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          codigo: { type: 'string' },
+          tarefa: { type: 'string' },
+          fase: { type: 'string' },
+          mes: { type: 'string', format: 'date' },
+          horas: { type: 'number' },
+          feito: { type: 'integer' },
+        },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${table}/rows`, {
+      rows: [
+        { codigo: '1', tarefa: 'Obra', fase: 'fundo', mes: '2026-09-01', horas: 10, feito: 0 },
+        { codigo: '1.1', tarefa: 'Base', fase: 'fundo', mes: '2026-09-02', horas: 40, feito: 100 },
+        { codigo: '1.2', tarefa: 'Teto', fase: 'topo', mes: '2026-10-02', horas: 20, feito: 50 },
+        { codigo: '2', tarefa: 'Fim', fase: 'topo', mes: '2026-10-03', horas: 5, feito: 0 },
+      ],
+    });
+    const name = `Obra ${randomBytes(3).toString('hex')}`;
+    const measures = ['sum(horas)'];
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        layout: 'two-columns',
+        components: [
+          {
+            id: 'funil',
+            type: 'funnel',
+            slot: 'left',
+            source: { table, group: 'fase', measures },
+          },
+          { id: 'total', type: 'kpi', slot: 'right', source: { table, measure: 'sum(horas)' } },
+          {
+            id: 'mistura',
+            type: 'combo',
+            slot: 'left',
+            source: { table, group: 'fase', measures: ['sum(horas)', 'count()'] },
+          },
+          {
+            id: 'cascata',
+            type: 'waterfall',
+            slot: 'right',
+            source: { table, group: 'mes:month', measures },
+            options: { total: true },
+          },
+          {
+            id: 'pivo',
+            type: 'matrix',
+            slot: 'left',
+            source: { table, group: 'fase', measures },
+            options: { across: 'mes:month' },
+          },
+          {
+            id: 'arvore',
+            type: 'wbs',
+            slot: 'right',
+            source: { table },
+            options: { code: 'codigo', title: 'tarefa', progress: 'feito' },
+          },
+        ],
+      },
+    });
+    await app.goto(`${notebook.page('/dashboards')}?dashboard=${encodeURIComponent(name)}`);
+    const total = app.locator('.dashboard-card.is-kpi .dash-kpi-value');
+    await expect(total).toContainText('75');
+    await expect(app.locator('.dash-wbs-row')).toHaveCount(4);
+    await expect(app.locator('.dash-matrix tfoot')).toContainText('75');
+    await testInfo.attach('second-batch.png', {
+      body: await app.locator('.dashboard').screenshot(),
+      contentType: 'image/png',
+    });
+
+    // The first bar of the combo is the phase `fundo`.
+    const bars = app.locator('.dashboard-card.is-combo .dash-chart svg path[fill]');
+    await expect(bars.first()).toBeVisible();
+    const box = await app.locator('.dashboard-card.is-combo .dash-chart').boundingBox();
+    if (!box) throw new Error('The combo drew nothing');
+    await app.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.75);
+    await expect(app.locator('.dashboard-cross')).toBeVisible();
+    await expect(total).toContainText('50');
+    await testInfo.attach('second-batch-filtered.png', {
+      body: await app.locator('.dashboard').screenshot(),
+      contentType: 'image/png',
+    });
+    await app.locator('.dashboard-cross button').click();
+    await expect(total).toContainText('75');
+    await expect(app.locator('.dashboard-cross')).toHaveCount(0);
+  });
+
   test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
     app,
     notebook,

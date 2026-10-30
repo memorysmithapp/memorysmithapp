@@ -13,6 +13,8 @@ issues each entry cites.
 
 ### Added
 
+- **A dashboard draws a WBS, a matrix, a combo, a waterfall and a funnel, and a click filters it.** A WBS tree reads the hierarchy from an outline code column and rolls progress up from child to parent; a matrix crosses two groups with the total of each row and column. A click on a mark of a chart narrows the other components to that group, a second click clears it, and the PNG shows the period and the mark on screen. `read_dashboard` and `preview_dashboard` take the same mark. (#369)
+
 - **Home creates a notebook model.** The button *New notebook* offers a notebook or a notebook model, which asks its name and what it declares, its parameters optional. The menu of a notebook shows *Notebook model* only where the notebook is one, first of all, above *Context*, and no longer in every notebook. Turning a notebook that exists into a model stays with the agent, through the skill `derive-model`. (#373)
 
 - **The product can be installed in another AWS account.** An organization names its account, region and domain in variables, with no source to edit, and `install-account` checks the credentials, the region, the hosted zone and its delegation before changing anything, prepares the CDK bootstrap and the delivery role, and says what is left for a person. It delivers from a fork on GitHub, a fork on GitLab or `deliver` run against its own account, in any region with the services the product uses, on a domain of its own or on the default endpoints of AWS, and it can share an account with another installation. `memorysmith.app` keeps every name it has. This path has been verified by synthesis and has not yet been delivered to another account. (#342)

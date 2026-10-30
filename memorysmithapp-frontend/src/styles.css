@@ -7382,6 +7382,71 @@ body.has-sheet .app-main {
   height: 100%;
   background: var(--accent);
 }
+.dash-wbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-wbs-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-wbs-row.is-parent .dash-wbs-title {
+  font-weight: 600;
+}
+
+.dash-wbs-code {
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-wbs-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-wbs-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 8rem;
+}
+
+.dash-wbs-progress .dash-kpi-track {
+  flex: 1;
+}
+
+.dash-wbs-percent {
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-matrix tbody th,
+.dash-matrix tfoot th {
+  text-align: left;
+  font-weight: 600;
+}
+
+.dash-matrix .is-total {
+  font-weight: 600;
+}
+
+.dashboard-cross {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+
 .dash-kanban {
   display: grid;
   grid-auto-flow: column;

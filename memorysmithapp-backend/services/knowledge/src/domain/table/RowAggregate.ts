@@ -170,6 +170,11 @@ function keysOf(grouping: Grouping, value: CellValue | undefined): Array<string 
   return [value as string];
 }
 
+/** The groups a row falls in under a grouping: several for a list column, none is `null`. */
+export function groupKeysOf(row: Row, grouping: Grouping): Array<string | null> {
+  return keysOf(grouping, row.values[grouping.column.id]);
+}
+
 /** Exact addition of decimal text. */
 function addDecimal(a: string, b: string): string {
   const scale = Math.max((a.split('.')[1] ?? '').length, (b.split('.')[1] ?? '').length);

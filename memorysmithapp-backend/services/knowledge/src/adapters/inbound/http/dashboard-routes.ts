@@ -187,6 +187,7 @@ export function registerDashboardRoutes<R extends DashboardRequest>(
       dashboard: dashboardOf(c),
       filters: body.value.filters,
       pages: body.value.pages,
+      cross: body.value.cross,
     });
     if (!read.ok) return fail(c, read.error);
     const found = await useCases.getDashboard(request).execute({

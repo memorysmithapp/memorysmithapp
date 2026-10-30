@@ -221,4 +221,116 @@ describe('a dashboard of a notebook', () => {
     expect((await call(`${dashboards()}/Outubro`, { method: 'DELETE' })).status).toBe(204);
     expect((await call(`${dashboards()}/Outubro`)).status).toBe(404);
   });
+
+  describe('the components of the second batch (#369)', () => {
+    const SECOND = {
+      layout: 'one-column',
+      components: [
+        {
+          id: 'pivo',
+          type: 'matrix',
+          source: { table: 'gastos', group: 'categoria', measures: ['sum(valor)'] },
+          options: { across: 'data:month' },
+        },
+        {
+          id: 'combo',
+          type: 'combo',
+          source: {
+            table: 'gastos',
+            group: 'categoria',
+            measures: ['sum(valor)', 'count()'],
+          },
+          options: { lines: ['count()'] },
+        },
+        {
+          id: 'fluxo',
+          type: 'waterfall',
+          source: { table: 'gastos', group: 'data:month', measures: ['sum(valor)'] },
+          options: { total: true },
+        },
+        {
+          id: 'etapas',
+          type: 'funnel',
+          source: { table: 'gastos', group: 'status', measures: ['count()'] },
+        },
+        {
+          id: 'arvore',
+          type: 'wbs',
+          source: { table: 'gastos' },
+          options: { code: 'categoria', title: 'status', progress: 'valor' },
+        },
+        { id: 'linhas', type: 'table', source: { table: 'gastos' } },
+        {
+          id: 'total',
+          type: 'kpi',
+          source: { table: 'gastos', measure: 'sum(valor)' },
+        },
+      ],
+    };
+    const create = () =>
+      call(dashboards(), { method: 'POST', body: { name: 'Segundo', definition: SECOND } });
+    const read = async (cross: { component: string; key: string } | null) =>
+      dashboardDataSchema.parse(
+        await (
+          await call(`${dashboards()}/Segundo/data`, { method: 'POST', body: { cross } })
+        ).json(),
+      ).components;
+    const byId = (components: Array<{ id: string }>, id: string) =>
+      components.find((each) => each.id === id) as Record<string, unknown>;
+
+    it('adds a matrix up by row and by column, with its totals', async () => {
+      expect((await create()).status).toBe(201);
+      const matrix = byId(await read(null), 'pivo');
+      expect(matrix['kind']).toBe('matrix');
+      expect(matrix['columns']).toEqual(['2026-09', '2026-10']);
+      expect(matrix['totals']).toEqual([2000, 230]);
+      expect(matrix['grand']).toBe(2230);
+      const rows = matrix['rows'] as Array<{ key: string; cells: unknown[]; total: unknown }>;
+      expect(rows.find((row) => row.key === 'mercado')).toEqual({
+        key: 'mercado',
+        cells: [null, 200],
+        total: 200,
+      });
+    });
+
+    it('narrows the other components by a mark clicked, and leaves the chart whole', async () => {
+      await create();
+      const crossed = await read({ component: 'etapas', key: 'pendente' });
+      expect(byId(crossed, 'total')['value']).toBe(109.5);
+      expect(byId(crossed, 'linhas')['total']).toBe(2);
+      expect((byId(crossed, 'etapas')['groups'] as unknown[]).length).toBe(2);
+      const cleared = await read(null);
+      expect(byId(cleared, 'total')['value']).toBe(2230);
+    });
+
+    it('narrows by the period a chart groups by', async () => {
+      await create();
+      const crossed = await read({ component: 'fluxo', key: '2026-09' });
+      expect(byId(crossed, 'total')['value']).toBe(2000);
+    });
+
+    it('refuses what the new components need and were not given', async () => {
+      const refused = async (component: Record<string, unknown>) => {
+        const answer = await call(dashboards(), {
+          method: 'POST',
+          body: { name: 'Errado', definition: { components: [component] } },
+        });
+        expect(answer.status).toBe(400);
+        return JSON.stringify(await answer.json());
+      };
+      const source = { table: 'gastos', group: 'categoria', measures: ['sum(valor)'] };
+      expect(await refused({ id: 'a', type: 'matrix', source })).toContain('options.across');
+      expect(await refused({ id: 'a', type: 'combo', source })).toContain('two measures');
+      expect(
+        await refused({ id: 'a', type: 'wbs', source: { table: 'gastos' }, options: {} }),
+      ).toContain('outline code');
+      expect(
+        await refused({
+          id: 'a',
+          type: 'waterfall',
+          source: { ...source, measures: ['sum(valor)', 'count()'] },
+        }),
+      ).toContain('one measure');
+    });
+  });
 });

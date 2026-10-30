@@ -34,10 +34,17 @@ export const updateDashboardRequestSchema = z.object({
   definition: dashboardDefinitionDocument.nullable().default(null),
 });
 
+/** A mark clicked on a chart, which narrows the other components (#369). */
+export const dashboardCrossFilterSchema = z.object({
+  component: z.string().min(1).max(64),
+  key: z.string().max(500),
+});
+
 /** The periods chosen on the dashboard, by filter, and the page of each table component. */
 export const dashboardDataRequestSchema = z.object({
   filters: z.record(z.string(), z.string().nullable()).default({}),
   pages: z.record(z.string(), z.number().int().positive()).default({}),
+  cross: dashboardCrossFilterSchema.nullable().default(null),
 });
 
 /** What one component draws now, by its kind; `status` says when it cannot. */
@@ -45,7 +52,7 @@ export const componentDataSchema = z
   .object({
     id: z.string(),
     status: z.enum(['ok', 'missing-table', 'refused']),
-    kind: z.enum(['text', 'value', 'groups', 'rows']).optional(),
+    kind: z.enum(['text', 'value', 'groups', 'rows', 'matrix']).optional(),
     message: z.string().optional(),
   })
   .passthrough();
@@ -61,6 +68,7 @@ export type NotebookDashboardDto = z.infer<typeof notebookDashboardSchema>;
 export type DashboardListDto = z.infer<typeof dashboardListSchema>;
 export type CreateDashboardRequest = z.infer<typeof createDashboardRequestSchema>;
 export type UpdateDashboardRequest = z.infer<typeof updateDashboardRequestSchema>;
+export type DashboardCrossFilter = z.infer<typeof dashboardCrossFilterSchema>;
 export type DashboardDataRequest = z.infer<typeof dashboardDataRequestSchema>;
 export type ComponentDataDto = z.infer<typeof componentDataSchema>;
 export type DashboardDataDto = z.infer<typeof dashboardDataSchema>;

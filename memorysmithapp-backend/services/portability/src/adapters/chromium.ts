@@ -212,6 +212,8 @@ export function previewStorageOf(job: PreviewJob, draft: string | null): Record<
       folderId: job.folderId,
       part: job.part,
       dashboard: job.dashboard ?? null,
+      filters: job.filters ?? null,
+      cross: job.cross ?? null,
     }),
   };
 }

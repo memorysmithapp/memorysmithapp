@@ -106,8 +106,9 @@ export async function dashboardImage(
   notebookId: string,
   dashboard: string,
   locale: string,
+  view: Parameters<typeof backend.startDashboardImage>[3],
 ): Promise<Blob> {
-  const { previewId } = await backend.startDashboardImage(notebookId, dashboard, locale);
+  const { previewId } = await backend.startDashboardImage(notebookId, dashboard, locale, view);
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 1500));

@@ -302,6 +302,9 @@ export const previewRequestSchema = z.object({
   part: z.string().min(1).max(512).optional(),
   /** A Dashboard, by its name or its identifier, drawn instead of a note (#368). */
   dashboard: z.string().min(1).max(128).optional(),
+  /** What the image shows as the person sees it: the periods, and a mark clicked (#369). */
+  filters: z.record(z.string(), z.string().nullable()).optional(),
+  cross: z.object({ component: z.string().min(1).max(64), key: z.string().max(500) }).optional(),
   locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
 });
 

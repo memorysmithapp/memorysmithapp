@@ -601,6 +601,8 @@ export function createPortabilityRoutes(
       folderId: body.data.folderId,
       part: body.data.part,
       dashboard: body.data.dashboard,
+      filters: body.data.filters,
+      cross: body.data.cross,
       accessToken: request.accessToken,
       locale: body.data.locale,
     });

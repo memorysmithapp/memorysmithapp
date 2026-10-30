@@ -542,7 +542,10 @@
     "deleteConfirm": "Delete for good",
     "downloadImage": "Download PNG",
     "drawing": "Drawing…",
-    "imageFailed": "The image could not be drawn. Try again in a moment."
+    "imageFailed": "The image could not be drawn. Try again in a moment.",
+    "total": "Total",
+    "crossFilter": "Filtered by {{key}}",
+    "clearFilter": "Clear"
   },
   "graph": {
     "heading": "Notebook graph",

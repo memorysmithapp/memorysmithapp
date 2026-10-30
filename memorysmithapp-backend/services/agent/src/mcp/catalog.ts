@@ -1167,8 +1167,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '"components": [{ "id", "type", "title"?, "slot" (or "grid": { x, y, w, h } on 12 ' +
       'columns), "source": { "table", "where"?, "group"?, "measure" | "measures" }, "options"? }] ' +
       '}. Types: kpi (one measure), pie, donut, bar, line, area (a group and measures), table ' +
-      '(rows), gantt (options title, start, end), kanban (options lane, card) and text (options ' +
-      'markdown). The definition is checked against the tables and refused naming what they ' +
+      '(rows), gantt (options title, start, end), kanban (options lane, card), text (options ' +
+      'markdown), wbs (options code, title, progress), matrix (a group, one measure, options ' +
+      'across), combo (a group, measures, options lines), waterfall and funnel (a group and one ' +
+      'measure). The definition is checked against the tables and refused naming what they ' +
       'cannot answer. A dashboard keeps no data: it shows what the tables hold when it is read. ' +
       'Look at it with preview_dashboard before you call it done.',
     inputSchema: object(
@@ -1220,6 +1222,12 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'object',
           description: 'A period by filter id, as { "periodo": "2026-10" }.',
         },
+        cross: {
+          type: 'object',
+          description:
+            'A mark clicked on a chart: { "component": its id, "key": the group of the mark }. ' +
+            'The other components keep the rows of that group, as a person sees them.',
+        },
       },
       ['notebook', 'dashboard'],
     ),
@@ -1245,11 +1253,17 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '`preview` at once: get_preview answers the PNG once it is drawn, a few seconds later. ' +
       'Look at it after you build or change a dashboard, and fix what reads badly before you ' +
       'call it done: a chart squeezed into a narrow column, a Kanban with one lane, a title that ' +
-      'says nothing.',
-    inputSchema: object({ notebook: notebookArgument, dashboard: dashboardArgument }, [
-      'notebook',
-      'dashboard',
-    ]),
+      'says nothing. `filters` and `cross` draw it under a period and a mark clicked, as ' +
+      'read_dashboard takes them.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        dashboard: dashboardArgument,
+        filters: { type: 'object', description: 'A period by filter id.' },
+        cross: { type: 'object', description: 'A mark clicked: { "component", "key" }.' },
+      },
+      ['notebook', 'dashboard'],
+    ),
     annotations: { readOnlyHint: true },
   },
   {

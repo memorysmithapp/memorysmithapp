@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { DashboardCrossFilter } from '@memorysmithapp/contracts';
 import { listDashboards } from '../../shared/api/source';
 import { queryKeys } from '../../shared/api/query-keys';
 import { useNotebookId } from '../structure/route-ids';
@@ -9,6 +10,24 @@ import { whenDrawn } from '../note/drawn';
 import { PREVIEW_STORAGE_KEY } from '../note/PreviewNotePage';
 import { usePreferences } from '../../shared/store/preferences';
 import { DashboardView } from './DashboardsPage';
+
+/** The view of the dashboard the renderer asked for: its periods and a mark clicked (#369). */
+export function readDashboardView(
+  storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage,
+): {
+  filters: Record<string, string | null> | null;
+  cross: DashboardCrossFilter | null;
+} {
+  try {
+    const kept = JSON.parse(storage?.getItem(PREVIEW_STORAGE_KEY) ?? 'null') as {
+      filters?: Record<string, string | null> | null;
+      cross?: DashboardCrossFilter | null;
+    } | null;
+    return { filters: kept?.filters ?? null, cross: kept?.cross ?? null };
+  } catch {
+    return { filters: null, cross: null };
+  }
+}
 
 /** The dashboard the renderer of the server asked this page to draw, by name or identifier. */
 export function readDashboardRequest(
@@ -36,6 +55,7 @@ export function PrintDashboardPage() {
   const client = useQueryClient();
   const [ready, setReady] = useState(false);
   const [asked] = useState(() => readDashboardRequest());
+  const [view] = useState(() => readDashboardView());
   const setPaper = usePreferences((s) => s.setPaper);
   // An image is the light theme, whatever the person chose, as a note's is.
   useEffect(() => {
@@ -68,6 +88,7 @@ export function PrintDashboardPage() {
           maintains={false}
           still
           onDrawn={drawn}
+          view={view}
         />
       ) : null}
     </main>

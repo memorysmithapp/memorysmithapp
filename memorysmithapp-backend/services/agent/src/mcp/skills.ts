@@ -1292,6 +1292,24 @@ the data, which you then change with \`update_dashboard\` instead of copying.
 - **kanban**: \`options.lane\`, the column whose values are the lanes — an
   \`enum\` gives them their order — and \`card\`, \`detail\` and \`color\`.
 - **text**: \`options.markdown\`, to title, explain or close the panel.
+- **wbs**: a tree from an outline code column, \`options.code\` as \`1\`,
+  \`1.2\`, \`1.2.3\`, with \`title\`; \`progress\` (0 to 100) on the rows
+  rolls up from child to parent, weighted by \`weight\` when the table has it.
+- **matrix**: a pivot table: its rows in \`source.group\`, one measure, its
+  columns in \`options.across\` (a column or a period, \`data:month\`), with
+  the totals of each row and column unless \`options.totals\` is false.
+- **combo**: a group and two measures or more: bars, and lines for the measures
+  in \`options.lines\`, the last one when it says none.
+- **waterfall**: one measure by group, each bar starting where the last one
+  ended, for what adds up to a result; \`options.total\` closes with the sum.
+- **funnel**: one measure by group, the largest first, for stages that narrow.
+
+A click on a mark of a chart filters the rest of the dashboard: every other
+component whose table has the column that chart groups by keeps the rows of that
+group, and a second click clears it. It needs nothing in the definition, so
+group charts by columns the tables share. \`read_dashboard\` and
+\`preview_dashboard\` take \`cross\`, \`{ "component", "key" }\`, to see the
+same thing.
 
 Every value can be formatted: \`options.format\` as \`number\`, \`currency\` with
 \`currency\`, or \`percent\`, and \`decimals\`.

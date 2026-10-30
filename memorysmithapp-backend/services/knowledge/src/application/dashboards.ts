@@ -24,6 +24,7 @@ import { Dashboard } from '../domain/dashboard/Dashboard.js';
 import {
   componentData,
   type ComponentData,
+  type CrossFilter,
   type TableWithRows,
 } from '../domain/dashboard/DashboardData.js';
 import {
@@ -238,6 +239,7 @@ export class ReadDashboardData {
     dashboard: string;
     filters: Readonly<Record<string, string | null>>;
     pages: Readonly<Record<string, number>>;
+    cross?: CrossFilter | null;
   }): Promise<Result<{ dashboard: Dashboard; components: ComponentData[] }, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
@@ -261,7 +263,13 @@ export class ReadDashboardData {
     );
     return ok({
       dashboard: dashboard.value,
-      components: componentData(dashboard.value.definition, tables, input.filters, input.pages),
+      components: componentData(
+        dashboard.value.definition,
+        tables,
+        input.filters,
+        input.pages,
+        input.cross ?? null,
+      ),
     });
   }
 }

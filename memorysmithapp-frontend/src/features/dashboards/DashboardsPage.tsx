@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { ComponentDataDto, NotebookDashboardDto } from '@memorysmithapp/contracts';
+import type {
+  ComponentDataDto,
+  DashboardCrossFilter,
+  NotebookDashboardDto,
+} from '@memorysmithapp/contracts';
 import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
@@ -28,8 +32,10 @@ import {
   Gantt,
   Kanban,
   Kpi,
+  Matrix,
   RowsTable,
   TextBlock,
+  Wbs,
 } from './components';
 
 interface Filter {
@@ -153,6 +159,7 @@ export function DashboardView({
   onDeleted,
   still = false,
   onDrawn,
+  view = null,
 }: {
   notebookId: string;
   dashboard: NotebookDashboardDto;
@@ -162,6 +169,11 @@ export function DashboardView({
   /** Drawn for an image (#368): nothing moves, nothing is offered, and it says when it is drawn. */
   still?: boolean;
   onDrawn?: ((root: HTMLElement | null) => void) | undefined;
+  /** What an image shows of the dashboard as the person saw it (#369). */
+  view?: {
+    filters: Record<string, string | null> | null;
+    cross: DashboardCrossFilter | null;
+  } | null;
 }) {
   const { t } = useTranslation();
   const root = useRef<HTMLElement>(null);
@@ -174,21 +186,32 @@ export function DashboardView({
   const filters = definition.filters ?? [];
   const components = definition.components ?? [];
   const [chosen, setChosen] = useState<Record<string, string | null>>(() =>
-    Object.fromEntries(filters.map((filter) => [filter.id, filter.default])),
+    Object.fromEntries(
+      filters.map((filter) => [
+        filter.id,
+        view?.filters && filter.id in view.filters
+          ? (view.filters[filter.id] ?? null)
+          : filter.default,
+      ]),
+    ),
   );
+  const [cross, setCross] = useState<DashboardCrossFilter | null>(view?.cross ?? null);
   const [pages, setPages] = useState<Record<string, number>>({});
   const [deleting, setDeleting] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const { i18n } = useTranslation();
-  const request = { filters: chosen, pages };
+  const request = { filters: chosen, pages, cross };
 
   /** The dashboard as a PNG, drawn by the server as this person reads it (RN-PRT-032). */
   async function download(): Promise<void> {
     setDrawing(true);
     setImageFailed(false);
     try {
-      const image = await dashboardImage(notebookId, dashboard.name, i18n.language);
+      const image = await dashboardImage(notebookId, dashboard.name, i18n.language, {
+        filters: chosen,
+        cross,
+      });
       const address = URL.createObjectURL(image);
       const anchor = document.createElement('a');
       anchor.href = address;
@@ -203,7 +226,7 @@ export function DashboardView({
   }
   const data = useQuery({
     queryKey: queryKeys.dashboardData(notebookId, dashboard.name, request),
-    queryFn: () => readDashboardData(notebookId, dashboard.name, chosen, pages),
+    queryFn: () => readDashboardData(notebookId, dashboard.name, chosen, pages, cross),
     placeholderData: keepPreviousData,
     // A dashboard is read again when the page is looked at again, and on the
     // interval the agent declared, never more often than a minute (#368).
@@ -215,6 +238,11 @@ export function DashboardView({
     ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(data.data.readAt))
     : null;
   const layout = definition.layout ?? 'one-column';
+  /** A click on a mark narrows the other components, and on the same mark clears it (#369). */
+  function mark(component: string, key: string): void {
+    setPages({});
+    setCross(cross?.component === component && cross.key === key ? null : { component, key });
+  }
   const answered = data.data !== undefined;
   useEffect(() => {
     if (answered && onDrawn) onDrawn(root.current);
@@ -283,6 +311,21 @@ export function DashboardView({
         </div>
       ) : null}
 
+      {cross ? (
+        <p className="dashboard-cross" role="status">
+          {t('dashboards.crossFilter', { key: cross.key })}
+          {still ? null : (
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              onClick={() => mark(cross.component, cross.key)}
+            >
+              {t('dashboards.clearFilter')}
+            </button>
+          )}
+        </p>
+      ) : null}
+
       {data.isError ? <p className="status">{t(messageKeyOf(data.error))}</p> : null}
       {imageFailed ? (
         <p className="status" role="alert">
@@ -314,6 +357,8 @@ export function DashboardView({
               page={pages[component.id] ?? 1}
               onPage={(page) => setPages({ ...pages, [component.id]: page })}
               still={still}
+              selected={cross?.component === component.id ? cross.key : null}
+              onMark={still ? undefined : (key) => mark(component.id, key)}
             />
           </section>
         ))}
@@ -339,8 +384,12 @@ function ComponentBody({
   page,
   onPage,
   still,
+  selected,
+  onMark,
 }: {
   still: boolean;
+  selected: string | null;
+  onMark: ((key: string) => void) | undefined;
   notebookId: string;
   component: ComponentDefinition;
   data: ComponentDataDto | undefined;
@@ -374,6 +423,9 @@ function ComponentBody({
     case 'bar':
     case 'line':
     case 'area':
+    case 'combo':
+    case 'waterfall':
+    case 'funnel':
       return (
         <Chart
           type={component.type}
@@ -382,8 +434,14 @@ function ComponentBody({
           options={component.options}
           locale={locale}
           still={still}
+          selected={selected}
+          onMark={onMark}
         />
       );
+    case 'wbs':
+      return <Wbs rows={(answer['rows'] as never) ?? []} options={component.options} />;
+    case 'matrix':
+      return <Matrix data={answer as never} options={component.options} locale={locale} />;
     case 'table':
       return (
         <RowsTable

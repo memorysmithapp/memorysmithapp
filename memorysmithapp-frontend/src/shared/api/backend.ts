@@ -10,6 +10,7 @@
 import type {
   NotebookTableUsesDto,
   PreviewDto,
+  DashboardCrossFilter as DashboardCross,
   DashboardDataDto,
   DashboardListDto,
   NotebookDashboardDto,
@@ -396,10 +397,11 @@ export async function readDashboardData(
   dashboard: string,
   filters: Record<string, string | null>,
   pages: Record<string, number>,
+  cross: DashboardCross | null = null,
 ): Promise<DashboardDataDto> {
   return request<DashboardDataDto>(
     `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}/data`,
-    { method: 'POST', body: { filters, pages } },
+    { method: 'POST', body: { filters, pages, cross } },
   );
 }
 
@@ -411,10 +413,16 @@ export async function startDashboardImage(
   notebookId: string,
   dashboard: string,
   locale: string,
+  view: { filters: Record<string, string | null>; cross: DashboardCross | null },
 ): Promise<{ previewId: string }> {
   return request<{ previewId: string }>(`/portability/notebooks/${notebookId}/previews`, {
     method: 'POST',
-    body: { dashboard, locale },
+    body: {
+      dashboard,
+      locale,
+      filters: view.filters,
+      ...(view.cross ? { cross: view.cross } : {}),
+    },
   });
 }
 

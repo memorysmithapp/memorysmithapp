@@ -20,6 +20,7 @@ import {
   type UploadStatusDto,
   type NoteOrder,
 } from '@memorysmithapp/contracts';
+import type { DashboardCross } from './gateway.js';
 import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
 import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
@@ -114,6 +115,14 @@ function canonicalIdentifiers(
     canonical[name] = parsed.data;
   }
   return canonical;
+}
+
+/** A mark clicked on a chart of a dashboard, when the call names one (#369). */
+function crossOf(args: Record<string, unknown>): DashboardCross | null {
+  const cross = args['cross'];
+  if (typeof cross !== 'object' || cross === null) return null;
+  const { component, key } = cross as Record<string, unknown>;
+  return typeof component === 'string' && typeof key === 'string' ? { component, key } : null;
 }
 
 function requireString(args: Record<string, unknown>, name: string, tool: string): string {
@@ -1375,15 +1384,21 @@ export class McpToolAdapter {
             typeof filters === 'object' && filters !== null && !Array.isArray(filters)
               ? (filters as Record<string, string | null>)
               : {},
+            crossOf(args),
           ),
         );
       }
 
       case 'preview_dashboard': {
         const notebook = requireString(args, 'notebook', 'preview_dashboard');
+        const cross = crossOf(args);
         const started = await knowledge.startPreview(caller, {
           notebookId: notebook,
           dashboard: requireString(args, 'dashboard', 'preview_dashboard'),
+          ...(typeof args['filters'] === 'object' && args['filters'] !== null
+            ? { filters: args['filters'] as Record<string, string | null> }
+            : {}),
+          ...(cross ? { cross } : {}),
         });
         return json({
           preview: started.previewId,

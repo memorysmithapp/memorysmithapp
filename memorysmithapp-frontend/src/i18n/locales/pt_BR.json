@@ -545,7 +545,10 @@
     "deleteConfirm": "Apagar de vez",
     "downloadImage": "Baixar PNG",
     "drawing": "Desenhando…",
-    "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco."
+    "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco.",
+    "total": "Total",
+    "crossFilter": "Filtrado por {{key}}",
+    "clearFilter": "Limpar"
   },
   "graph": {
     "heading": "Grafo do caderno",

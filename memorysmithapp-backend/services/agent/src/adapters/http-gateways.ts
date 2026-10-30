@@ -719,6 +719,8 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       folderId?: string;
       part?: string;
       dashboard?: string;
+      filters?: Record<string, string | null>;
+      cross?: { component: string; key: string };
     },
   ): Promise<{ previewId: string }> {
     const { notebookId, ...body } = input;
@@ -895,6 +897,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     notebookId: string,
     dashboard: string,
     filters: Record<string, string | null>,
+    cross: { component: string; key: string } | null = null,
   ): Promise<DashboardDataDto> {
     return callApi<DashboardDataDto>(
       this.origin,
@@ -902,7 +905,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `${dashboardPath(notebookId, dashboard)}/data`,
       {
         method: 'POST',
-        body: { filters },
+        body: { filters, cross },
       },
     );
   }

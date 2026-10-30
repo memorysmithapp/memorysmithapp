@@ -61,6 +61,9 @@ export interface PreviewJob {
   readonly part: string | null;
   /** A Dashboard drawn instead of a note, by its name or identifier (#368). */
   readonly dashboard?: string | null;
+  /** The view of that dashboard the image shows: its periods and a mark clicked (#369). */
+  readonly filters?: Readonly<Record<string, string | null>> | null;
+  readonly cross?: { readonly component: string; readonly key: string } | null;
   readonly accessToken: string;
   readonly locale: string;
 }
@@ -135,6 +138,8 @@ export class StartPreview {
     folderId?: string | undefined;
     part?: string | undefined;
     dashboard?: string | undefined;
+    filters?: Readonly<Record<string, string | null>> | undefined;
+    cross?: { readonly component: string; readonly key: string } | undefined;
     accessToken: string;
     locale: string;
   }): Promise<Result<{ previewId: string }, DomainError>> {
@@ -164,6 +169,8 @@ export class StartPreview {
         folderId: null,
         part: null,
         dashboard: input.dashboard,
+        filters: input.filters ?? null,
+        cross: input.cross ?? null,
         accessToken: input.accessToken,
         locale: input.locale,
       });

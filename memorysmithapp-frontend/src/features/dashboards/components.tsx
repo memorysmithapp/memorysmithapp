@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as echarts from 'echarts/core';
-import { BarChart, LineChart, PieChart } from 'echarts/charts';
+import { BarChart, FunnelChart, LineChart, PieChart } from 'echarts/charts';
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { queryKeys } from '../../shared/api/query-keys';
+import { wbsLines, wbsTree } from './wbs';
 
 echarts.use([
   BarChart,
+  FunnelChart,
   LineChart,
   PieChart,
   GridComponent,
@@ -135,9 +137,15 @@ export function Chart({
   options,
   locale,
   still = false,
+  selected = null,
+  onMark,
 }: {
   /** Drawn for an image, where nothing may be moving when it is taken. */
   still?: boolean;
+  /** The group of the mark clicked on this chart (#369), the others drawn faint. */
+  selected?: string | null;
+  /** A mark clicked, by its group; nothing is clickable without it. */
+  onMark?: ((key: string) => void) | undefined;
   type: string;
   groups: Groups;
   measures: string[];
@@ -146,12 +154,24 @@ export function Chart({
 }) {
   const { t } = useTranslation();
   const host = useRef<HTMLDivElement>(null);
-  const keys = groups.map((group) => group.key ?? t('dashboards.none'));
+  // A funnel reads from the largest stage down, whatever order the groups came in.
+  const drawn = useMemo(
+    () =>
+      type === 'funnel'
+        ? [...groups].sort((a, b) => Number(b.values[0] ?? 0) - Number(a.values[0] ?? 0))
+        : groups,
+    [type, groups],
+  );
+  const keys = drawn.map((group) => group.key ?? t('dashboards.none'));
+  const clicked = useRef(onMark);
+  clicked.current = onMark;
   const option = useMemo(() => {
     const colors = palette();
     const text = token('--text-soft');
     const border = token('--border');
     const format = (value: unknown) => formatValue(value, options, locale);
+    const faint = (index: number) =>
+      selected !== null && drawn[index]?.key !== selected ? { itemStyle: { opacity: 0.3 } } : {};
     const legend =
       options['legend'] !== false && (measures.length > 1 || type === 'pie' || type === 'donut');
     if (type === 'pie' || type === 'donut') {
@@ -166,14 +186,121 @@ export function Chart({
             radius: type === 'donut' ? ['48%', '72%'] : '72%',
             center: ['50%', legend ? '44%' : '50%'],
             label: { show: options['labels'] !== false, color: text, formatter: '{b}: {d}%' },
-            data: groups.map((group, index) => ({
+            data: drawn.map((group, index) => ({
               name: keys[index],
               value: Number(group.values[0] ?? 0),
+              ...faint(index),
             })),
           },
         ],
       };
     }
+    if (type === 'funnel') {
+      return {
+        animation: !still,
+        color: colors,
+        tooltip: { trigger: 'item', valueFormatter: format },
+        legend: options['legend'] === false ? undefined : { bottom: 0, textStyle: { color: text } },
+        series: [
+          {
+            type: 'funnel',
+            left: '8%',
+            right: '8%',
+            top: 8,
+            bottom: options['legend'] === false ? 8 : 36,
+            sort: 'none',
+            label: { show: options['labels'] !== false, color: text },
+            data: drawn.map((group, index) => ({
+              name: keys[index],
+              value: Number(group.values[0] ?? 0),
+              ...faint(index),
+            })),
+          },
+        ],
+      };
+    }
+    if (type === 'waterfall') {
+      // Each bar starts where the last ended, on an invisible bar under it.
+      let running = 0;
+      const steps = drawn.map((group) => {
+        const value = Number(group.values[0] ?? 0);
+        const from = running;
+        running += value;
+        return { value, base: Math.min(from, running) };
+      });
+      const closed = options['total'] === true;
+      const names = closed ? [...keys, t('dashboards.total')] : keys;
+      const barOf = (kept: (value: number) => boolean) => [
+        ...steps.map((step, index) =>
+          kept(step.value)
+            ? { value: Math.abs(step.value), ...faint(index) }
+            : { value: 0, itemStyle: { opacity: 0 } },
+        ),
+        ...(closed ? [{ value: 0, itemStyle: { opacity: 0 } }] : []),
+      ];
+      return {
+        animation: !still,
+        tooltip: {
+          trigger: 'item',
+          formatter: (mark: { dataIndex: number; name: string }) =>
+            `${mark.name}: ${format(steps[mark.dataIndex]?.value ?? running)}`,
+        },
+        grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+        xAxis: {
+          type: 'category',
+          data: names,
+          axisLabel: { color: text },
+          axisLine: { lineStyle: { color: border } },
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: { color: text, formatter: (value: number) => format(value) },
+          splitLine: { lineStyle: { color: border } },
+        },
+        series: [
+          {
+            type: 'bar',
+            stack: 'flow',
+            silent: true,
+            itemStyle: { color: 'transparent' },
+            data: [...steps.map((step) => step.base), ...(closed ? [0] : [])],
+          },
+          {
+            type: 'bar',
+            stack: 'flow',
+            itemStyle: { color: colors[0] },
+            label: {
+              show: options['labels'] === true,
+              color: text,
+              formatter: (mark: { value: number }) => (mark.value ? format(mark.value) : ''),
+            },
+            data: barOf((value) => value >= 0),
+          },
+          {
+            type: 'bar',
+            stack: 'flow',
+            itemStyle: { color: colors[1] },
+            data: barOf((value) => value < 0),
+          },
+          ...(closed
+            ? [
+                {
+                  type: 'bar',
+                  stack: 'flow',
+                  itemStyle: { color: colors[2] },
+                  data: [...steps.map(() => 0), Math.max(running, 0)],
+                },
+              ]
+            : []),
+        ],
+      };
+    }
+    const lines =
+      type === 'combo'
+        ? Array.isArray(options['lines'])
+          ? (options['lines'] as string[])
+          : measures.slice(-1)
+        : [];
     const horizontal = type === 'bar' && options['horizontal'] === true;
     const percent = type === 'bar' && options['percent'] === true;
     const stacked = options['stacked'] === true || percent;
@@ -207,30 +334,37 @@ export function Chart({
       yAxis: horizontal ? category : values,
       series: measures.map((measure, index) => ({
         name: measure,
-        type: type === 'bar' ? 'bar' : 'line',
+        type: type === 'bar' || (type === 'combo' && !lines.includes(measure)) ? 'bar' : 'line',
         smooth: options['smooth'] === true,
         ...(type === 'area' ? { areaStyle: { opacity: 0.25 } } : {}),
         ...(stacked ? { stack: 'all' } : {}),
         label: { show: options['labels'] === true, color: text },
         data: groups.map((group, at) => {
           const value = Number(group.values[index] ?? 0);
-          return percent ? (totals[at] ? (value / (totals[at] as number)) * 100 : 0) : value;
+          return {
+            value: percent ? (totals[at] ? (value / (totals[at] as number)) * 100 : 0) : value,
+            ...faint(at),
+          };
         }),
       })),
     };
-  }, [type, groups, measures, options, locale, keys, still]);
+  }, [type, groups, drawn, measures, options, locale, keys, still, selected, t]);
 
   useEffect(() => {
     if (!host.current) return undefined;
     const chart = echarts.init(host.current, undefined, { renderer: 'svg' });
     chart.setOption(option as echarts.EChartsCoreOption);
+    chart.on('click', (mark) => {
+      const key = drawn[mark.dataIndex]?.key;
+      if (key !== null && key !== undefined) clicked.current?.(key);
+    });
     const resize = new ResizeObserver(() => chart.resize());
     resize.observe(host.current);
     return () => {
       resize.disconnect();
       chart.dispose();
     };
-  }, [option]);
+  }, [option, drawn]);
 
   if (groups.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
   return <div ref={host} className="dash-chart" role="img" aria-label={measures.join(', ')} />;
@@ -482,6 +616,114 @@ export function Gantt({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/** A WBS tree (#369): each row under its parent, its progress rolled up from its children. */
+export function Wbs({ rows, options }: { rows: Rows; options: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const lines = wbsLines(wbsTree(rows, options));
+  if (lines.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
+  return (
+    <ul className="dash-wbs">
+      {lines.map((line) => (
+        <li
+          key={line.id}
+          className={`dash-wbs-row${line.children.length > 0 ? ' is-parent' : ''}`}
+          style={{ paddingLeft: `${line.depth * 1.25}rem` }}
+        >
+          <span className="dash-wbs-code">{line.code}</span>
+          <span className="dash-wbs-title" title={line.title}>
+            {line.title}
+          </span>
+          {line.progress !== null ? (
+            <span className="dash-wbs-progress">
+              <span className="dash-kpi-track">
+                <span
+                  className="dash-kpi-fill"
+                  style={{ width: `${Math.max(0, Math.min(100, line.progress))}%` }}
+                />
+              </span>
+              <span className="dash-wbs-percent">{Math.round(line.progress)}%</span>
+            </span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A matrix (#369): rows by columns, with what each row and column adds up to. */
+export function Matrix({
+  data,
+  options,
+  locale,
+}: {
+  data: {
+    columns?: Array<string | null>;
+    rows?: Array<{
+      key: string | null;
+      cells: Array<number | string | null>;
+      total: number | string | null;
+    }>;
+    totals?: Array<number | string | null>;
+    grand?: number | string | null;
+  };
+  options: Record<string, unknown>;
+  locale: string;
+}) {
+  const { t } = useTranslation();
+  const columns = data.columns ?? [];
+  const rows = data.rows ?? [];
+  const totals = options['totals'] !== false;
+  const value = (cell: unknown) => formatValue(cell, options, locale);
+  if (rows.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
+  return (
+    <div className="data-table-scroll">
+      <table className="data-table dash-matrix">
+        <thead>
+          <tr>
+            <th scope="col" />
+            {columns.map((column) => (
+              <th key={column ?? ''} scope="col" className="is-numeric">
+                {column ?? t('dashboards.none')}
+              </th>
+            ))}
+            {totals ? (
+              <th scope="col" className="is-numeric">
+                {t('dashboards.total')}
+              </th>
+            ) : null}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key ?? ''}>
+              <th scope="row">{row.key ?? t('dashboards.none')}</th>
+              {row.cells.map((cell, index) => (
+                <td key={columns[index] ?? ''} className="is-numeric">
+                  {value(cell)}
+                </td>
+              ))}
+              {totals ? <td className="is-numeric is-total">{value(row.total)}</td> : null}
+            </tr>
+          ))}
+        </tbody>
+        {totals ? (
+          <tfoot>
+            <tr>
+              <th scope="row">{t('dashboards.total')}</th>
+              {(data.totals ?? []).map((cell, index) => (
+                <td key={columns[index] ?? ''} className="is-numeric is-total">
+                  {value(cell)}
+                </td>
+              ))}
+              <td className="is-numeric is-total">{value(data.grand)}</td>
+            </tr>
+          </tfoot>
+        ) : null}
+      </table>
     </div>
   );
 }

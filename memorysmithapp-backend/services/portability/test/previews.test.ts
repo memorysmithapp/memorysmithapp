@@ -182,6 +182,8 @@ describe('the renderer', () => {
       folderId: FOLDER,
       part: 'Section',
       dashboard: null,
+      filters: null,
+      cross: null,
     });
     expect(JSON.parse(storage['memorysmith.tokens'] ?? '{}')).toMatchObject({
       accessToken: TOKEN,
