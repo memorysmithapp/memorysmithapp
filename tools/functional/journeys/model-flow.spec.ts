@@ -299,7 +299,12 @@ test('a regulated-domain model goes from its author to a named person and to the
     await owner.ok('DELETE', `${shares}/${otherUser}`);
 
     // ---- Published, found and used as a stranger would ----------------------
-    const publishingBytes = await bytesOf(owner, model);
+    // The note above is counted a moment after it is written: measure once it is.
+    const publishingBytes = await eventually(
+      'the note of the editor to be counted',
+      () => bytesOf(owner, model),
+      (bytes) => (bytes ?? 0) > (modelBytes ?? 0),
+    );
     const versionsBefore = (
       await owner.ok<{ versions: unknown[] }>('GET', `/portability/models/${model}`)
     ).versions.length;
