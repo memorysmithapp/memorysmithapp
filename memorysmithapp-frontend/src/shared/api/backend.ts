@@ -8,6 +8,7 @@
 // never goes through the listing to find it.
 
 import type {
+  NotebookTableUsesDto,
   PreviewDto,
   DashboardDataDto,
   DashboardListDto,
@@ -342,6 +343,14 @@ export async function getNotebookAttachments(
   return answer.attachments;
 }
 
+/** The tables the notes of a notebook name, each with those notes (#366, §5.9). */
+export async function getTableUses(notebookId: string): Promise<NotebookTableUsesDto['tables']> {
+  const answer = await request<NotebookTableUsesDto>(
+    `/discovery/notebooks/${notebookId}/table-uses`,
+  );
+  return answer.tables;
+}
+
 /** The Tables of a notebook, with their schemas and how many rows each holds (#366). */
 export async function listTables(notebookId: string): Promise<NotebookTableDto[]> {
   const answer = await request<TableListDto>(`/knowledge/notebooks/${notebookId}/tables`);
@@ -353,6 +362,8 @@ export async function queryTable(
   notebookId: string,
   table: string,
   query: {
+    all?: boolean;
+    aggregate?: { group?: string; measures: string[] };
     where?: string | null;
     sort?: Array<{ column: string; direction: 'asc' | 'desc' }>;
     page?: number;

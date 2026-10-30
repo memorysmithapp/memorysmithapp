@@ -78,13 +78,20 @@ export interface ConformanceCase {
   readonly notebook?: {
     readonly notes?: readonly string[];
     readonly attachments?: readonly string[];
+    /** The tables it keeps, each with its columns (§5.9). */
+    readonly tables?: ReadonlyArray<{
+      readonly name: string;
+      readonly columns: ReadonlyArray<{ readonly name: string; readonly kind: string }>;
+    }>;
   };
   /** What each target becomes, and how many edges it produces. */
   readonly resolution?: ReadonlyArray<{
     readonly target: string;
-    readonly kind: 'note' | 'attachment' | 'pending';
+    readonly kind: 'note' | 'attachment' | 'pending' | 'table';
     readonly edges: number;
   }>;
+  /** The tables the input names (§5.9), distinct, compared with case folded. */
+  readonly tables?: readonly string[];
 }
 
 /**

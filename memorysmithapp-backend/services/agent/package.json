@@ -11,7 +11,7 @@
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.1117.0",
     "@memorysmithapp/contracts": "workspace:*",
-    "@memorysmithapp/markdown-renderer": ">=0.9.0 <1.0.0",
+    "@memorysmithapp/markdown-renderer": ">=0.10.0 <1.0.0",
     "@memorysmithapp/observability": "workspace:*",
     "@smithy/signature-v4": "5.7.3",
     "hono": "^4.9.0",

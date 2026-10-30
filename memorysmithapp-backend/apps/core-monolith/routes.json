@@ -38,6 +38,7 @@
   "GET /discovery/notebooks/:v/notes/:n/backlinks",
   "GET /discovery/notebooks/:v/notes/:n/graph",
   "GET /discovery/notebooks/:v/notes/:n/links",
+  "GET /discovery/notebooks/:v/table-uses",
   "GET /health",
   "GET /knowledge/notebooks",
   "GET /knowledge/notebooks/:v",

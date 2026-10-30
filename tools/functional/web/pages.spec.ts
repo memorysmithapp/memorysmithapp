@@ -693,6 +693,25 @@ test.describe('the pages of an account', () => {
       ],
     });
 
+    // A note shows the table through a block, paged and in the reader's language.
+    const shows = `Mostra ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${shows}\n---\n\n\`\`\`table\ntable: ${name}\nsort: data desc\ntotal: valor\n\`\`\`\n`,
+    });
+    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+    await expect(
+      app
+        .locator('main, article')
+        .getByText(appLocale === 'pt_BR' ? '1.250,75' : '1,250.75')
+        .first(),
+    ).toBeVisible();
+    await expect(app.getByText(appLocale === 'pt_BR' ? '1.280,75' : '1,280.75')).toBeVisible();
+    await app.screenshot({
+      path: test.info().outputPath(`table-block-${appLocale}.png`),
+      fullPage: true,
+    });
+
     await app.goto(notebook.page('/attachments'));
     // The entry sits between the attachments and the graph in the navigation.
     const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');

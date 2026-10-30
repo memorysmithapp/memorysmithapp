@@ -48,6 +48,8 @@ export interface RowRequest {
   readonly sort: readonly RowOrder[];
   readonly page: number;
   readonly pageSize: number;
+  /** Every row the filter returns, for a printed note (§7.15). */
+  readonly all?: boolean;
 }
 
 export interface RowPage {
@@ -273,6 +275,9 @@ export function pageOf(
     }
     return a.seq < b.seq ? -1 : a.seq > b.seq ? 1 : 0;
   });
+  if (request.all) {
+    return { rows: matched, total: matched.length, page: 1, pageSize: Math.max(1, matched.length) };
+  }
   const size = Math.min(Math.max(1, Math.trunc(request.pageSize)), MAX_PAGE_SIZE);
   const page = Math.max(1, Math.trunc(request.page));
   return {

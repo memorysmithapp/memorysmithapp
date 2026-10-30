@@ -8,6 +8,7 @@
  *   GET  /notebooks/:v/links/:target      what one wikilink target resolves to
  *   GET  /notebooks/:v/names              what the notebook answers to: names and aliases
  *   GET  /notebooks/:v/attachments        the kept files, with the notes that show each
+ *   GET  /notebooks/:v/table-uses         the tables named by notes, with those notes
  *   GET  /notebooks/:v/health
  *   GET  /notebooks/:v/facets
  *   POST /notebooks/:v/search   { query }   lexical, over names and folders
@@ -26,6 +27,7 @@ import {
 } from '@memorysmithapp/kernel';
 import type {
   AttachmentUses,
+  TableUses,
   Backlinks,
   GetFacetStats,
   NoteLinks,
@@ -54,6 +56,7 @@ export interface DiscoveryUseCases {
   readonly resolveLinkTarget: (request: DiscoveryRequest) => ResolveLinkTarget;
   readonly names: (request: DiscoveryRequest) => NotebookNames;
   readonly attachments: (request: DiscoveryRequest) => AttachmentUses;
+  readonly tableUses: (request: DiscoveryRequest) => TableUses;
   readonly health: (request: DiscoveryRequest) => NotebookHealth;
   readonly graph: (request: DiscoveryRequest) => NotebookGraphQuery;
   readonly search: (request: DiscoveryRequest) => SearchNotes;
@@ -190,6 +193,16 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
     if (denied) return fail(c, denied);
 
     const found = await useCases.attachments(request).execute({ notebookId });
+    return present(c, found, (answer) => answer);
+  });
+
+  app.get('/notebooks/:v/table-uses', async (c) => {
+    const request = c.get('discovery');
+    const notebookId = idParam(c, 'v');
+    const denied = await guard(request, notebookId);
+    if (denied) return fail(c, denied);
+
+    const found = await useCases.tableUses(request).execute({ notebookId });
     return present(c, found, (answer) => answer);
   });
 

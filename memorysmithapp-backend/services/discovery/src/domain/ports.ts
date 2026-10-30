@@ -185,6 +185,18 @@ export interface LinkGraph {
    * whole notebook (#307, RN-DSC-066).
    */
   attachmentUses(notebookId: string): Promise<AttachmentUse[]>;
+  /**
+   * The tables one note names (§5.9), replaced whole: never an edge and never
+   * in the graph, only what lets a table say which notes show it. An empty
+   * list forgets the note.
+   */
+  replaceTableReferences(
+    notebookId: string,
+    note: NoteRef,
+    tables: readonly string[],
+  ): Promise<void>;
+  /** Every table named by a note, each with the notes that name it, in one read. */
+  tableUses(notebookId: string): Promise<Array<{ table: string; notes: NoteRef[] }>>;
   /** The notebook keeps a file under this name, or stopped keeping one. */
   keepAttachment(notebookId: string, name: string): Promise<void>;
   forgetAttachment(notebookId: string, name: string): Promise<void>;

@@ -24,7 +24,7 @@ import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './cat
 import { refreshSteps } from './refresh.js';
 import { PRODUCTION_DEFAULT } from './environment.js';
 import { whoAmI } from './whoami.js';
-import { noticesOf, type NoteNotice } from './notices.js';
+import { namesATable, noticesOf, type NoteNotice } from './notices.js';
 import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillNamed } from './skills.js';
 import {
   GatewayError,
@@ -747,6 +747,7 @@ export class McpToolAdapter {
         changed: each.staleContext ?? [],
       }));
     const wanted = recent.slice(0, CHECK_NOTICES_LIMIT);
+    const tables = await this.gateways.knowledge.listTables(caller, notebookId);
     const notices: Array<NoteNotice & { note: { noteId: string; name: string | null } }> = [];
     let read = 0;
     for (let at = 0; at < wanted.length; at += CHECK_NOTICES_PARALLEL) {
@@ -755,7 +756,7 @@ export class McpToolAdapter {
       const found = await Promise.all(
         batch.map(async (each) => {
           const note = await this.gateways.knowledge.readNote(caller, notebookId, each.noteId);
-          const said = await noticesOf(note.content ?? '', ['notice']);
+          const said = await noticesOf(note.content ?? '', ['notice'], tables);
           return said.map((notice) => ({
             note: { noteId: each.noteId, name: each.name },
             ...notice,
@@ -1514,7 +1515,16 @@ export class McpToolAdapter {
           ...(after === undefined ? {} : { afterNoteId: after }),
           ...(declared ? { context: declared } : {}),
         });
-        return noteAnswer(created, await noticesOf(content));
+        return noteAnswer(
+          created,
+          await noticesOf(
+            content,
+            undefined,
+            namesATable(content)
+              ? await knowledge.listTables(caller, requireString(args, 'notebook', 'create_note'))
+              : undefined,
+          ),
+        );
       }
 
       case 'update_note': {
@@ -1528,7 +1538,16 @@ export class McpToolAdapter {
           message: optionalString(args, 'message'),
           ...(declared ? { context: declared } : {}),
         });
-        return noteAnswer(updated, await noticesOf(content));
+        return noteAnswer(
+          updated,
+          await noticesOf(
+            content,
+            undefined,
+            namesATable(content)
+              ? await knowledge.listTables(caller, requireString(args, 'notebook', 'update_note'))
+              : undefined,
+          ),
+        );
       }
 
       case 'reorder_note':

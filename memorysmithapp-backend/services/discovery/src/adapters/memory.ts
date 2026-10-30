@@ -4,6 +4,7 @@
  * of the rules run against.
  */
 
+import { usesOf } from '../domain/LinkResolver.js';
 import {
   GRAPH_LIMITS,
   type PendingLink,
@@ -109,6 +110,29 @@ export class InMemoryLinkGraph implements LinkGraph {
   }
 
   /** The names of the files the notebook keeps (#166). */
+  private readonly tableReferences = new Map<
+    string,
+    { note: NoteRef; tables: readonly string[] }
+  >();
+
+  async replaceTableReferences(
+    notebookId: string,
+    note: NoteRef,
+    tables: readonly string[],
+  ): Promise<void> {
+    const key = `${notebookId}#${note.noteId}`;
+    if (tables.length === 0) this.tableReferences.delete(key);
+    else this.tableReferences.set(key, { note, tables });
+  }
+
+  async tableUses(notebookId: string): Promise<Array<{ table: string; notes: NoteRef[] }>> {
+    return usesOf(
+      [...this.tableReferences.entries()]
+        .filter(([key]) => key.startsWith(`${notebookId}#`))
+        .map(([, reference]) => reference),
+    );
+  }
+
   async attachmentsOf(notebookId: string): Promise<string[]> {
     return [...(this.attachments.get(notebookId) ?? new Set<string>())];
   }

@@ -60,6 +60,16 @@ export const notebookAttachmentsSchema = z.object({
   attachments: z.array(z.object({ name: z.string().min(1), notes: z.array(noteRefSchema) })),
 });
 
+/**
+ * The tables the notes of a notebook name (#366, §5.9), each with the notes
+ * that name it: the table says who shows it, and a reference is never an edge.
+ */
+export const notebookTableUsesSchema = z.object({
+  tables: z.array(z.object({ table: z.string(), notes: z.array(noteRefSchema) })),
+});
+
+export type NotebookTableUsesDto = z.infer<typeof notebookTableUsesSchema>;
+
 /** BFS from a note: depth capped at 3, 200 nodes, cycles deduplicated. */
 export const graphNodeSchema: z.ZodType<{
   note: z.infer<typeof noteRefSchema>;

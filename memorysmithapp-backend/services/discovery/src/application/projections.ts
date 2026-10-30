@@ -12,6 +12,7 @@
 import { bodyWithoutFrontmatter, noteName } from '@memorysmithapp/kernel';
 
 import { extractReferences } from '../domain/LinkExtractor.js';
+import { tableReferences } from '@memorysmithapp/kernel';
 import { extractFacets } from '../domain/FacetExtractor.js';
 import { extractFrontmatterAliases } from '../domain/Aliases.js';
 import { spellingsLost } from '../domain/LinkResolver.js';
@@ -121,6 +122,11 @@ function refOf(event: NoteEvent, name: string, aliases: readonly string[]): Note
   };
 }
 
+/** A note whose table references are forgotten, for which only its identifier matters. */
+function forgotten(noteId: string): NoteRef {
+  return { noteId, name: '', aliases: [], folderId: '' };
+}
+
 export class ProjectNote {
   constructor(private readonly deps: ProjectionDependencies) {}
 
@@ -208,6 +214,7 @@ export class ProjectNote {
     // on its own when the note is created (RN-DSC-004). Each goes with the
     // form it was written in, which decides what it may reach (#305).
     await this.deps.graph.replaceOutgoing(event.notebookId, note, extractReferences(markdown));
+    await this.deps.graph.replaceTableReferences(event.notebookId, note, tableReferences(markdown));
     await this.deps.graph.resolvePending(event.notebookId, note);
     await this.resolveAgain(event.notebookId, event.noteId, linking);
 
@@ -280,6 +287,7 @@ export class ProjectNote {
    * its deletion is projected (RN-DSC-013).
    */
   async onDeleted(event: NoteEvent): Promise<void> {
+    await this.deps.graph.replaceTableReferences(event.notebookId, forgotten(event.noteId), []);
     await this.deps.graph.removeNote(event.notebookId, event.noteId);
     await this.deps.facets.replaceFacets(event.notebookId, event.noteId, null);
     await this.deps.index.removeNote(event.notebookId, event.noteId);
@@ -335,6 +343,11 @@ export class ProjectNote {
    */
   async onMoved(event: NoteEvent & { fromNotebookId: string }): Promise<void> {
     if (event.fromNotebookId !== event.notebookId) {
+      await this.deps.graph.replaceTableReferences(
+        event.fromNotebookId,
+        forgotten(event.noteId),
+        [],
+      );
       await this.deps.graph.removeNote(event.fromNotebookId, event.noteId);
       await this.deps.facets.replaceFacets(event.fromNotebookId, event.noteId, null);
       await this.deps.index.removeNote(event.fromNotebookId, event.noteId);

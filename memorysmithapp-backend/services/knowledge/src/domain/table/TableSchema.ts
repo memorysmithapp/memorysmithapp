@@ -17,7 +17,7 @@
  * DynamoDB number holds.
  */
 
-import { DomainError, err, ok, type Result } from '@memorysmithapp/kernel';
+import { DomainError, err, normalize, ok, type Result } from '@memorysmithapp/kernel';
 
 export type ColumnType =
   'string' | 'number' | 'integer' | 'boolean' | 'date' | 'date-time' | 'list';
@@ -88,9 +88,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Two column names are one name when they differ only in case or form. */
+/** Two column names are one name when they differ only in case, form or marks (§7.15). */
 export function sameColumnName(a: string, b: string): boolean {
-  return a.normalize('NFC').toLowerCase() === b.normalize('NFC').toLowerCase();
+  return normalize(a.normalize('NFC')) === normalize(b.normalize('NFC'));
 }
 
 export function checkColumnName(raw: string): Result<string, DomainError> {

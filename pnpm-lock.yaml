@@ -101,8 +101,8 @@ importers:
   memorysmithapp-backend/packages/contracts:
     dependencies:
       '@memorysmithapp/markdown-spec':
-        specifier: '>=0.9.0 <1.0.0'
-        version: 0.9.0
+        specifier: '>=0.10.0 <1.0.0'
+        version: 0.10.0
       zod:
         specifier: ^4.0.0
         version: 4.4.3
@@ -157,8 +157,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/contracts
       '@memorysmithapp/markdown-renderer':
-        specifier: '>=0.9.0 <1.0.0'
-        version: 0.9.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
+        specifier: '>=0.10.0 <1.0.0'
+        version: 0.10.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
       '@memorysmithapp/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -311,8 +311,8 @@ importers:
         specifier: workspace:*
         version: link:../memorysmithapp-backend/packages/contracts
       '@memorysmithapp/markdown-renderer':
-        specifier: '>=0.9.0 <1.0.0'
-        version: 0.9.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
+        specifier: '>=0.10.0 <1.0.0'
+        version: 0.10.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.101.4(react@19.2.8)
@@ -1369,15 +1369,15 @@ packages:
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
 
-  '@memorysmithapp/markdown-renderer@0.9.0':
-    resolution: {integrity: sha512-antQVHPdtZXHpVOF/xgPEfMeB/v6Er4w6ah/pWfnrtXhiGfazRscd1B7Azx0g2iLnro8LtD2ffHsqedUCLS3Hw==}
+  '@memorysmithapp/markdown-renderer@0.10.0':
+    resolution: {integrity: sha512-2zB9fznWtCB06/plIxWmxL3lstOfcRh+sE2o8zbR8KB9g+J5BAsdImna6AGsEm8peOmL8BuWqT5CtXkx12yT1g==}
     peerDependencies:
       katex: ^0.18.5
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@memorysmithapp/markdown-spec@0.9.0':
-    resolution: {integrity: sha512-vv6aIXQnwBgsYmGBI4os93X6hEbxRMgzbSrCirtpROR2ytWdN6tTk4qxhpzeKKOFXXV22vSV1+i8llJFQzdChg==}
+  '@memorysmithapp/markdown-spec@0.10.0':
+    resolution: {integrity: sha512-9uS4dLJ6RfNUgFq2/d59QZB6dlHajADfgauh6lnCb8RzIH6TbArblZ6TzfVdQ/NI/CPFKGePOF7ixOMfGREPEQ==}
 
   '@mermaid-js/parser@1.2.1':
     resolution: {integrity: sha512-n12NohV3mrUyUL2o93IgG/ifeW9FTyeJn3zDxkhwa8MJ9Fxg3HQMlA3RiGmD/3UnJvheztkjjQAjA2T4LmUcpw==}
@@ -5192,7 +5192,7 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.4': {}
 
-  '@memorysmithapp/markdown-renderer@0.9.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)':
+  '@memorysmithapp/markdown-renderer@0.10.0(@types/react@19.2.18)(katex@0.18.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/commands': 6.11.1
@@ -5217,7 +5217,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@memorysmithapp/markdown-spec@0.9.0': {}
+  '@memorysmithapp/markdown-spec@0.10.0': {}
 
   '@mermaid-js/parser@1.2.1':
     dependencies:

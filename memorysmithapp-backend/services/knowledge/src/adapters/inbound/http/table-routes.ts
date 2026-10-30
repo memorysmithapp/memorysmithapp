@@ -256,6 +256,7 @@ export function registerTableRoutes<R extends TableRequest>(
       sort: body.value.sort,
       page: body.value.page,
       pageSize: body.value.pageSize,
+      all: body.value.all,
       aggregate: body.value.aggregate ?? null,
     });
     if (!answered.ok) return fail(c, answered.error);

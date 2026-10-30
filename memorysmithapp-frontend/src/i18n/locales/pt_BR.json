@@ -199,7 +199,24 @@
     "attachmentOpen": "Abrir",
     "attachmentDownload": "Baixar",
     "changedElsewhere": "Esta nota mudou desde que você a abriu, e o que está na tela é a versão atual.",
-    "changedElsewhereDismiss": "Entendi"
+    "changedElsewhereDismiss": "Entendi",
+    "tableRows_one": "{{count}} linha",
+    "tableRows_other": "{{count}} linhas",
+    "tablePage": "Página {{page}} de {{pages}}",
+    "tablePrevious": "Anterior",
+    "tableNext": "Próxima",
+    "tableTotal": "Total",
+    "tableEmpty": "Nenhuma linha atende a este filtro.",
+    "tableSortBy": "Ordenar por {{column}}",
+    "tableRead": "lido em {{when}}",
+    "tableProblem": {
+      "table-unnamed": "Este bloco não nomeia uma tabela: escreva table: e o nome dela.",
+      "table-key-unknown": "Este bloco tem uma linha que ele não lê: ele aceita table, columns, where, sort, page e total.",
+      "table-key-invalid": "Uma linha deste bloco tem um valor que não pode ser lido.",
+      "table-column-unknown": "Este bloco cita uma coluna que a tabela {{table}} não tem.",
+      "table-filter-invalid": "O filtro deste bloco não pode ser lido.",
+      "table-pending": "Este caderno não tem uma tabela chamada {{table}}."
+    }
   },
   "print": {
     "short": "Imprimir",
@@ -498,7 +515,12 @@
       "none": "Fora",
       "publicHint": "As linhas que vão ficam públicas quando o modelo é publicado na comunidade.",
       "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}."
-    }
+    },
+    "shownBy_one": "Aparece em {{count}} nota",
+    "shownBy_other": "Aparece em {{count}} notas",
+    "shownByNone": "Nenhuma nota mostra esta tabela.",
+    "deleteShownBy_one": "{{count}} nota a mostra, e vai dizer que a tabela não existe.",
+    "deleteShownBy_other": "{{count}} notas a mostram, e vão dizer que a tabela não existe."
   },
   "dashboards": {
     "heading": "Painéis",

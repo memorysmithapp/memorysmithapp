@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { NotebookTableDto } from '@memorysmithapp/contracts';
+import type { NotebookTableDto, NoteRefDto } from '@memorysmithapp/contracts';
 import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
+import { getTableUses } from '../../shared/api/backend';
 import { deleteTable, listTables, queryTable } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
-import { tablesAddress } from '../../shared/api/note-address';
+import { noteAddress, tablesAddress } from '../../shared/api/note-address';
 import { useLiveInterval } from '../../shared/api/live';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { Modal } from '../../shared/components/Modal';
@@ -48,6 +49,16 @@ export function TablesPage() {
     refetchInterval: live,
     queryFn: () => listTables(notebookId),
   });
+  const uses = useQuery({
+    queryKey: queryKeys.tableUses(notebookId),
+    refetchInterval: live,
+    queryFn: () => getTableUses(notebookId),
+  });
+  /** The notes naming a table, compared after NFC with case folded (§5.9). */
+  const notesOf = (name: string): readonly NoteRefDto[] =>
+    uses.data?.find(
+      (use) => use.table.normalize('NFC').toLowerCase() === name.normalize('NFC').toLowerCase(),
+    )?.notes ?? [];
   const sorted = useMemo(
     () =>
       [...(tables.data ?? [])].sort((left, right) => left.name.localeCompare(right.name, locale)),
@@ -94,6 +105,7 @@ export function TablesPage() {
             table={chosen}
             locale={locale}
             maintains={structure.permissions.maintain}
+            notes={notesOf(chosen.name)}
             onDeleted={() => choose(null)}
           />
         ) : (
@@ -146,12 +158,14 @@ function TableDetail({
   table,
   locale,
   maintains,
+  notes,
   onDeleted,
 }: {
   notebookId: string;
   table: NotebookTableDto;
   locale: string;
   maintains: boolean;
+  notes: readonly NoteRefDto[];
   onDeleted: () => void;
 }) {
   const { t } = useTranslation();
@@ -181,6 +195,17 @@ function TableDetail({
           </button>
         ) : null}
       </header>
+      <p className="table-detail-meta">
+        {notes.length === 0
+          ? t('tables.shownByNone')
+          : `${t('tables.shownBy', { count: notes.length })}: `}
+        {notes.map((note, index) => (
+          <span key={note.noteId}>
+            {index > 0 ? ', ' : null}
+            <Link to={noteAddress(notebookId, note.noteId)}>{note.name || t('note.unnamed')}</Link>
+          </span>
+        ))}
+      </p>
       <div className="tabs" role="tablist" aria-label={table.name}>
         {(['data', 'schema'] as const).map((each) => (
           <button
@@ -204,6 +229,7 @@ function TableDetail({
         <DeleteTableDialog
           notebookId={notebookId}
           table={table}
+          notes={notes.length}
           onClose={() => setDeleting(false)}
           onDeleted={onDeleted}
         />
@@ -389,11 +415,13 @@ function TableSchemaView({
 function DeleteTableDialog({
   notebookId,
   table,
+  notes,
   onClose,
   onDeleted,
 }: {
   notebookId: string;
   table: NotebookTableDto;
+  notes: number;
   onClose: () => void;
   onDeleted: () => void;
 }) {
@@ -427,6 +455,7 @@ function DeleteTableDialog({
       <div className="folder-delete">
         <p>{t('tables.deleteHolds', { count: table.rows })}</p>
         <p>{t('tables.deleteConsequences')}</p>
+        {notes > 0 ? <p>{t('tables.deleteShownBy', { count: notes })}</p> : null}
         {table.rows > 0 ? (
           <label className="folder-delete-understood">
             <input

@@ -199,7 +199,24 @@
     "attachmentOpen": "Open",
     "attachmentDownload": "Download",
     "changedElsewhere": "This note changed since you opened it, and what you see is the current version.",
-    "changedElsewhereDismiss": "Got it"
+    "changedElsewhereDismiss": "Got it",
+    "tableRows_one": "{{count}} row",
+    "tableRows_other": "{{count}} rows",
+    "tablePage": "Page {{page}} of {{pages}}",
+    "tablePrevious": "Previous",
+    "tableNext": "Next",
+    "tableTotal": "Total",
+    "tableEmpty": "No row matches this filter.",
+    "tableSortBy": "Sort by {{column}}",
+    "tableRead": "read {{when}}",
+    "tableProblem": {
+      "table-unnamed": "This block names no table: write table: and its name.",
+      "table-key-unknown": "This block has a line it does not read: it takes table, columns, where, sort, page and total.",
+      "table-key-invalid": "A line of this block has a value that cannot be read.",
+      "table-column-unknown": "This block names a column the table {{table}} does not have.",
+      "table-filter-invalid": "The filter of this block cannot be read.",
+      "table-pending": "This notebook keeps no table called {{table}}."
+    }
   },
   "print": {
     "short": "Print",
@@ -495,7 +512,12 @@
       "none": "Left out",
       "publicHint": "The rows that go are public once the model is published to the community.",
       "published": "These tables go with their rows, which anybody will read: {{tables}}."
-    }
+    },
+    "shownBy_one": "Shown in {{count}} note",
+    "shownBy_other": "Shown in {{count}} notes",
+    "shownByNone": "No note shows this table.",
+    "deleteShownBy_one": "{{count}} note shows it, and will say the table is missing.",
+    "deleteShownBy_other": "{{count}} notes show it, and will say the table is missing."
   },
   "dashboards": {
     "heading": "Dashboards",

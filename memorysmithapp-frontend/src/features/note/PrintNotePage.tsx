@@ -372,6 +372,7 @@ export function PrintNotePage() {
                   write={() => Promise.reject(new Error('A page drawn for paper writes nothing.'))}
                   invalidates={queryKeys.note(notebookId, noteId)}
                   actions={false}
+                  printing
                 />
               </article>
               {placement === 'end' && box ? (

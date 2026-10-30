@@ -25,10 +25,14 @@ import {
   RECOGNISED_NOTATION,
   type ConformanceCase,
 } from '@memorysmithapp/contracts';
-import { noteName, parameterNames } from '@memorysmithapp/kernel';
+import { noteName, parameterNames, tableReferences } from '@memorysmithapp/kernel';
 import { extractImages, extractLinks, extractReferences } from '../src/domain/LinkExtractor.js';
 import { extractFacets } from '../src/domain/FacetExtractor.js';
-import { resolveReference, notebookNames } from '../src/domain/LinkResolver.js';
+import {
+  resolveReference,
+  resolveTableReference,
+  notebookNames,
+} from '../src/domain/LinkResolver.js';
 import { extractFrontmatterAliases } from '../src/domain/Aliases.js';
 
 const withLinks = CONFORMANCE_CASES.filter((each) => each.links !== undefined);
@@ -36,6 +40,7 @@ const withFacets = CONFORMANCE_CASES.filter((each) => each.facets !== undefined)
 const withName = CONFORMANCE_CASES.filter((each) => each.name !== undefined);
 const withResolution = CONFORMANCE_CASES.filter((each) => each.resolution !== undefined);
 const withParameters = CONFORMANCE_CASES.filter((each) => each.parameters !== undefined);
+const withTables = CONFORMANCE_CASES.filter((each) => each.tables !== undefined);
 
 /**
  * The notebook a resolution case is resolved against, built the way the product
@@ -91,10 +96,21 @@ describe('the conformance suite of the specification', () => {
         const answer = resolveReference(reference.name, names, reference.form);
         return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
       });
+      // A table is reached by the block that names it and by nothing else, and
+      // is never an edge (§5.9).
+      const kept = (each.notebook?.tables ?? []).map((table) => table.name);
+      const tables = tableReferences(each.markdown).map((name) => ({
+        ...resolveTableReference(name, kept),
+        edges: 0,
+      }));
 
-      expect(resolved).toEqual([...(each.resolution ?? [])]);
+      expect([...resolved, ...tables]).toEqual([...(each.resolution ?? [])]);
     },
   );
+
+  it.each(withTables)('$id reads the declared tables', (each: ConformanceCase) => {
+    expect(tableReferences(each.markdown)).toEqual([...(each.tables ?? [])]);
+  });
 
   it('runs a suite that exists, so a silent empty import cannot pass', () => {
     expect(CONFORMANCE_CASES.length).toBeGreaterThan(20);

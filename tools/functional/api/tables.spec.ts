@@ -211,4 +211,35 @@ test.describe('the tables of a notebook', () => {
     expect(imported.status).toBe(201);
     expect(imported.body.imported.inserted).toBe(2);
   });
+
+  test('[route:GET /discovery/notebooks/:v/table-uses] says which notes name a table, and a note shows it through a block (§7.15)', async ({
+    owner,
+    notebook,
+  }) => {
+    const table = unique('uses').replace(/\s+/g, '-');
+    await owner.ok('POST', tablesPath(notebook), {
+      name: table,
+      schema: { type: 'object', properties: { valor: { type: 'number' } } },
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: `---\nname: ${unique('Shows')}\n---\n\n\`\`\`table\ntable: ${table}\n\`\`\`\n`,
+      },
+    );
+    await eventually(
+      'the note to name the table',
+      () =>
+        owner.ok<{ tables: Array<{ table: string; notes: Array<{ noteId: string }> }> }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/table-uses`,
+        ),
+      (found) =>
+        found.tables.some(
+          (each) => each.table === table && each.notes.some((note) => note.noteId === noteId),
+        ),
+    );
+  });
 });

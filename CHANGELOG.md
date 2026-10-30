@@ -13,6 +13,8 @@ issues each entry cites.
 
 ### Added
 
+- **A note shows a table.** A `table` block names a table, its columns, a filter, an order, the rows per page and a total, and the page draws its rows paged, in the reader's language and sortable by a column for the reader alone; a printed note carries every filtered row and says when they were read. A block that cannot be answered says what is wrong in its place, and an agent is told the same when it writes the note. The *Tables* page says which notes show each table, and deleting one says how many will miss it. (#366)
+
 - **A notebook keeps Dashboards built from its Tables.** A dashboard is a layout of components — indicators, charts, tables of rows, a Gantt, a Kanban and text — each drawing from a table of the notebook, with period filters over the whole of it. Its definition is checked against the tables before it is kept, naming what they cannot answer; it keeps no data, so what it shows is what the tables hold when it is read, and a table renamed keeps drawing while one deleted is said in place of what drew from it. (#368)
 
 - **Agents build Dashboards through the connector.** `create_dashboard`, `update_dashboard`, `delete_dashboard` and `list_dashboards` look after the dashboards of a notebook, and `read_dashboard` says what each component shows now. The skill `build-dashboards` teaches an agent to build one from what a person asks in plain words. (#368)

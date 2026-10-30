@@ -65,6 +65,7 @@ import type {
   AttachmentUse,
 } from '../domain/ports.js';
 import { GRAPH_LIMITS } from '../domain/ports.js';
+import { usesOf } from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf, type FacetSnapshot } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
 
@@ -1091,6 +1092,46 @@ export class DynamoLinkGraph implements LinkGraph {
     }
   }
 
+  /** One item per note that names a table (§5.9), outside everything the graph reads. */
+  async replaceTableReferences(
+    notebookId: string,
+    note: NoteRef,
+    tables: readonly string[],
+  ): Promise<void> {
+    const key = { PK: this.pk(notebookId), SK: `TREF#${note.noteId}` };
+    // Most notes name no table, and most writes change nothing here: one read
+    // keeps an ordinary update from paying a write (#327).
+    const held = await this.db.send(new GetCommand({ TableName: this.tableName, Key: key }));
+    const before = held.Item as { note?: NoteRef; tables?: string[] } | undefined;
+    if (!before && tables.length === 0) return;
+    if (
+      before?.note?.name === note.name &&
+      JSON.stringify(before.tables) === JSON.stringify(tables)
+    ) {
+      return;
+    }
+    if (tables.length === 0) {
+      await this.db.send(new DeleteCommand({ TableName: this.tableName, Key: key }));
+      return;
+    }
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: { ...key, entity: 'TABLE_REFERENCE', note, tables: [...tables] },
+      }),
+    );
+  }
+
+  async tableUses(notebookId: string): Promise<Array<{ table: string; notes: NoteRef[] }>> {
+    const items = await this.query(notebookId, 'TREF#');
+    return usesOf(
+      items.map((item) => ({
+        note: item['note'] as NoteRef,
+        tables: (item['tables'] as string[] | undefined) ?? [],
+      })),
+    );
+  }
+
   async removeNotebook(notebookId: string): Promise<void> {
     await sweep(this.db, this.tableName, this.pk(notebookId), [
       'NOTE#',
@@ -1101,6 +1142,7 @@ export class DynamoLinkGraph implements LinkGraph {
       'ALIAS#',
       'FROM#',
       'NAME#',
+      'TREF#',
       'GRAPH',
     ]);
     this.indexed.delete(notebookId);

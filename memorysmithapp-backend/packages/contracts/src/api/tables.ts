@@ -74,6 +74,8 @@ export const tableQueryRequestSchema = z.object({
   sort: z.array(rowOrderSchema).max(5).default([]),
   page: z.number().int().positive().default(1),
   pageSize: z.number().int().positive().max(100).nullable().default(null),
+  /** Every row the filter returns, in one answer, which printing a note asks for (§7.15). */
+  all: z.boolean().default(false),
   /**
    * The rows added up (#368): measures as `count()`, `sum(column)`,
    * `avg(column)`, `min(column)` and `max(column)`, over the whole filter or
@@ -177,6 +179,31 @@ export const tableImportSchema = z.union([
 
 export type ImportTableRequest = z.infer<typeof importTableRequestSchema>;
 export type TableImportDto = z.infer<typeof tableImportSchema>;
+/** The kind of a column as the specification names it (§5.9), read off a table's JSON Schema. */
+export type TableColumnKind = 'text' | 'number' | 'date' | 'boolean' | 'list';
+
+export function tableColumnsOf(
+  schema: Readonly<Record<string, unknown>>,
+): Array<{ name: string; kind: TableColumnKind }> {
+  const properties = (schema['properties'] ?? {}) as Record<
+    string,
+    { type?: string; format?: string }
+  >;
+  return Object.entries(properties).map(([name, property]) => ({
+    name,
+    kind:
+      property.type === 'array'
+        ? 'list'
+        : property.format
+          ? 'date'
+          : property.type === 'number' || property.type === 'integer'
+            ? 'number'
+            : property.type === 'boolean'
+              ? 'boolean'
+              : 'text',
+  }));
+}
+
 export type NotebookTableDto = z.infer<typeof notebookTableSchema>;
 export type TableListDto = z.infer<typeof tableListSchema>;
 export type CreateTableRequest = z.infer<typeof createTableRequestSchema>;

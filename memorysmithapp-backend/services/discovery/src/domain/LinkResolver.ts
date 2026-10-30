@@ -22,6 +22,9 @@
  * alias whenever a name appears, changes or goes.
  */
 
+import { tableNameKey } from '@memorysmithapp/kernel';
+import type { NoteRef } from './ports.js';
+
 /** What a notebook answers to: its names, its aliases and its attachments. */
 export interface NotebookNames {
   /** Note identifiers by the name they carry. Several notes may share one. */
@@ -171,4 +174,31 @@ export function resolveTargets(
   names: NotebookNames,
 ): readonly Resolution[] {
   return targets.map((target) => resolveTarget(target, names));
+}
+
+/** The references of each note, gathered by table, a table keeping its first spelling. */
+export function usesOf(
+  references: ReadonlyArray<{ note: NoteRef; tables: readonly string[] }>,
+): Array<{ table: string; notes: NoteRef[] }> {
+  const uses = new Map<string, { table: string; notes: NoteRef[] }>();
+  for (const { note, tables } of references) {
+    for (const table of tables) {
+      const use = uses.get(tableNameKey(table)) ?? { table, notes: [] };
+      use.notes.push(note);
+      uses.set(tableNameKey(table), use);
+    }
+  }
+  return [...uses.values()];
+}
+
+/** Whether a name a block wrote reaches a table the notebook keeps (§5.9). */
+export function resolveTableReference(
+  name: string,
+  tables: readonly string[],
+): { target: string; kind: 'table' | 'pending' } {
+  const key = tableNameKey(name);
+  return {
+    target: name,
+    kind: tables.some((table) => tableNameKey(table) === key) ? 'table' : 'pending',
+  };
 }

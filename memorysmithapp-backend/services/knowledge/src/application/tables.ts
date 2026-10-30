@@ -290,6 +290,7 @@ export class QueryTable {
     sort: readonly RowOrder[];
     page: number;
     pageSize: number | null;
+    all?: boolean;
     /** Add the rows up instead of, or beside, reading them (#368). */
     aggregate?:
       { group?: string | null | undefined; measures: readonly string[] } | null | undefined;
@@ -324,6 +325,7 @@ export class QueryTable {
         sort: input.sort,
         page: input.page,
         pageSize: input.pageSize ?? DEFAULT_PAGE_SIZE,
+        all: input.all ?? false,
       }),
     });
   }

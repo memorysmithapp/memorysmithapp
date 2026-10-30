@@ -56,6 +56,7 @@ export const FORMATTING_USES: Readonly<Record<string, string>> = {
   'list-bullet': 'Items with no order among them',
   'task-list': 'What is still to be done, which a person can tick on the page',
   table: 'A comparison, or the same few fields across several items',
+  'table-block': 'Rows the notebook keeps in a Table, shown in a note through a query, paged',
   callout: 'A rule, a warning or a decision a reader must not miss',
   'block-quote': 'A passage quoted from a source, word for word',
   mermaid: 'A flow, a sequence or how the parts of something relate, drawn instead of described',
@@ -1200,6 +1201,29 @@ definitive; say how many go and ask before you do it.
 \`query_table\` filters in the language of the search — \`status:paid\`,
 \`date:2026-10\`, \`amount:30..200\`, \`-status:cancelled\` — sorts and pages.
 Read the data through it, never by copying rows into a note.
+
+## Showing a table in a note
+
+A note shows a table with a \`table\` block, which holds the question and never
+the answer, so the note is always as current as its rows:
+
+\`\`\`\`markdown
+\`\`\`table
+table: gastos
+columns: data, descricao, valor, status
+where: status:pendente data:2026-10
+sort: data desc
+page: 20
+total: valor
+\`\`\`
+\`\`\`\`
+
+Only \`table\` is required. \`where\` is the language of \`query_table\`, \`sort\`
+is columns each with \`asc\` or \`desc\`, \`page\` goes up to 100 rows, and
+\`total\` sums a number column that is drawn, over every row the filter
+returns. The answer of a write says, as \`notices\`, what the block got wrong.
+A table renamed does not rewrite the notes that name it: find them with the
+*Tables* page and update them.
 `;
 
 const BUILD_DASHBOARDS = `# Building a dashboard

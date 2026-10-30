@@ -41,6 +41,7 @@ export const queryKeys = {
   /** The files a notebook keeps, which a note reaches by name. */
   notebookFiles: (notebookId: string) => ['notebook-files', notebookId] as const,
   notebookTables: (notebookId: string) => ['notebook-tables', notebookId] as const,
+  tableUses: (notebookId: string) => ['table-uses', notebookId] as const,
   notebookDashboards: (notebookId: string) => ['notebook-dashboards', notebookId] as const,
   dashboardData: (notebookId: string, dashboard: string, query: unknown) =>
     ['dashboard-data', notebookId, dashboard, query] as const,

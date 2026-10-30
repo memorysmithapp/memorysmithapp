@@ -30,6 +30,7 @@ export {
 } from './frontmatter.js';
 export { noteName, NAME_KEY } from './note-name.js';
 export { codeRanges } from './markdown-code.js';
+export { tableNameKey, tableReferences } from './table-references.js';
 export {
   COMPARISONS,
   comparedFacets,

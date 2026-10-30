@@ -261,6 +261,8 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-081 | Reading a dashboard computes every component from its tables at that moment, each table read once, under the periods chosen; a table deleted or a filter that no longer fits is said in place of its component, and the others are drawn. | |
 | RN-KNW-082 | A share reaches a notebook's dashboards by its profile: a Reader reads them, and a Notebook editor also creates, changes and deletes them; a dashboard is changed whole, and deleting one is definitive. | |
 | RN-KNW-083 | The interface offers, in a notebook's menu below its tables, its Dashboards: each drawn in its layout, one column on a phone, with its period filters, the time its data was read and a refresh, read again on the interval it declares and when the page is looked at again; whoever maintains the notebook deletes one there. | |
+| RN-KNW-084 | A note shows a table through a `table` block, which holds the query and never the rows: it draws the rows a page at a time in the reader's language, sortable by a column for the reader alone, with its total; a printed note carries every filtered row and when they were read; a block that cannot be answered says what is wrong in its place. | |
+| RN-KNW-085 | A table lists the notes that name it, by the `table` key of their blocks, compared after NFC with case folded: a reference is never an edge of the graph, a name no table carries is pending, and renaming a table rewrites no note. | |
 
 ### Discovery
 
