@@ -70,6 +70,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **A phone reaches every page of a notebook.** Tables, Dashboards and the Notebook model could only be reached from a computer. The sheet of a phone now holds the same menu as the sidebar, with the names of the pages instead of a bar of icons, and the search always showing. (#375)
+
 - **Dashboards read better.** A preview an agent asks for takes `locale`, to be drawn in the language of the person, the indicators of a header sit side by side, every step of a waterfall is named, a text has no grey box behind it, a legend says a name and not `sum(receita)`, which an agent can choose with `options.names`, and the PNG of a dashboard is always as wide as a computer, with a matrix of a year whole in it. (#374)
 
 - **A note written while others were being written is always counted.** When several writes of one subscription were counted at the same moment, one of them could be dropped for good, so a folder or a notebook said it held fewer notes than it did, and the space used could be off. Such a write is now counted again until it lands. (#362)

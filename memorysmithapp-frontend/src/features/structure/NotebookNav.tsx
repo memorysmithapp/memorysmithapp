@@ -35,7 +35,14 @@ import {
  * open is told by weight alone — 600 and a thicker icon among rows at 400 —
  * never by a rule and never in blue; the fill is only the cursor.
  */
-export function NotebookNav({ notebookId }: { notebookId: string }) {
+export function NotebookNav({
+  notebookId,
+  folded = false,
+}: {
+  notebookId: string;
+  /** The parts of the Context start closed, where height is short (#375). */
+  folded?: boolean;
+}) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const parts = [guidanceAddress, templatesAddress, foldersAddress].map((address) =>
@@ -47,7 +54,7 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
    * never hides what is open: arriving at one of the parts opens it again,
    * the way the tree reopens the path to the open note.
    */
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(!folded);
   // What the notebook is as a model, to copy (#353), shown only where it is one (#373).
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
