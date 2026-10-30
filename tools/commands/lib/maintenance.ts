@@ -40,6 +40,11 @@ export const MAINTENANCE_JOBS = {
     stateMachine: 'mv-reproject-links',
     rebuilds: 'the link graph of every notebook',
   },
+  // What a deleted file left behind before its deletion reached the purge (#372).
+  'purge-deleted-files': {
+    entry: 'memorysmithapp-backend/apps/core-monolith/src/purge-deleted-files.ts',
+    deletes: 'the bytes of the files deleted on their own',
+  },
   'migrate-slots': {
     entry: 'memorysmithapp-backend/apps/core-monolith/src/migrate-slots.ts',
     rebuilds: 'the Guidance and the Templates written before they had a life of their own',
@@ -74,6 +79,8 @@ export function jobVariables(input: {
     // The cleanup reads the owner of a subscription off Access and asks the
     // pool whether that account still exists.
     ACCESS_TABLE: `mv-access-${input.environment}`,
+    // Destroying content is the purge's alone, so a job hands it the work (INV-08).
+    PURGE_QUEUE: `mv-purge-${input.environment}`,
     CONTENT_BUCKET: input.contentBucket,
     USER_POOL_ID: input.userPoolId,
   };

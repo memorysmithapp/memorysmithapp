@@ -60,6 +60,7 @@ describe('a maintenance job', () => {
       DISCOVERY_TABLE: 'mv-discovery-production',
       AUDIT_TABLE: 'mv-audit-production',
       PORTABILITY_TABLE: 'mv-portability-production',
+      PURGE_QUEUE: 'mv-purge-production',
       ACCESS_TABLE: 'mv-access-production',
       CONTENT_BUCKET: 'the-bucket',
       USER_POOL_ID: 'the-pool',

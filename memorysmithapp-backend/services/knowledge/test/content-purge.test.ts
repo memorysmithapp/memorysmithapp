@@ -418,6 +418,40 @@ describe('the purge of the files of a deleted notebook (#202)', () => {
   });
 });
 
+describe('the purge of a file deleted on its own (#372)', () => {
+  const deletion = () =>
+    envelope(
+      'FileDeleted',
+      { notebookId: NOTEBOOK, fileId: fileId('picture.png') },
+      ref(slot('bytes of picture.png'), 3000),
+    );
+
+  it('destroys its bytes where a file lives, and takes its tombstone', async () => {
+    const { purge, rows, purged, kinds, events } = tableOf([fileItem('picture.png', 3000, true)]);
+
+    await purge.run(deletion());
+
+    expect(named(purged)).toEqual(['bytes of picture.png']);
+    expect([...kinds.values()]).toEqual(['file']);
+    expect(rows.size).toBe(0);
+    // Its bytes left the count at the deletion, so nothing is freed twice.
+    expect(events).toEqual([]);
+  });
+
+  it('leaves every other file alone, and a second pass changes nothing', async () => {
+    const { purge, rows, purged } = tableOf([
+      fileItem('picture.png', 3000, true),
+      fileItem('diagram.png', 2000),
+    ]);
+
+    await purge.run(deletion());
+    await purge.run(deletion());
+
+    expect([...rows.keys()]).toEqual([`FILE#${fileId('diagram.png')}`]);
+    expect(new Set(named(purged))).toEqual(new Set(['bytes of picture.png']));
+  });
+});
+
 describe('the purge of a Content Slot deleted on its own', () => {
   it('destroys the content the event names, and declares no bytes', async () => {
     const { purge, purged, events } = tableOf([]);

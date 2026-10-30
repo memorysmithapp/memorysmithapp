@@ -4,6 +4,7 @@
  *
  *   pnpm tools data cleanup-staging [--apply]
  *   pnpm tools data recount-storage --environment production [--apply]
+ *   pnpm tools data purge-deleted-files --environment production [--apply]
  *   pnpm tools data reproject-links --environment staging [--apply]
  *   pnpm tools data reproject-links --environment staging --follow <execution>
  *

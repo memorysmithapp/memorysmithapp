@@ -260,6 +260,7 @@ What operates and evaluates the product runs from the root with `pnpm tools <com
 | `onboard` | Creates or hands over an account and its subscription, with its quota and status; the first account of a pool gets the platform and no subscription |
 | `data cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
 | `data recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
+| `data purge-deleted-files [--apply]` | Hands the purge every file deleted on its own that it never heard of |
 | `data reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
 | `data migrate-slots [--apply]` | Rebuilds the Guidance and the Templates written before they had a life of their own |
 | `functional` | The Playwright suites against staging; never production |

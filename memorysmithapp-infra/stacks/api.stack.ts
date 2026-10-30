@@ -469,6 +469,8 @@ export class ApiStack extends Stack {
           'GuidanceDeleted',
           'FolderRemoved',
           'NotebookDeleted',
+          // The bytes of a file deleted on its own (#372).
+          'FileDeleted',
           // The rows of a table deleted on its own (#366).
           'TableDeleted',
         ],

@@ -37,6 +37,7 @@
     "./adapters/recount": "./src/adapters/inbound/storage-recount.ts",
     "./adapters/slot-migration": "./src/adapters/inbound/slot-migration.ts",
     "./adapters/purge": "./src/adapters/inbound/content-purge.ts",
+    "./adapters/deleted-files": "./src/adapters/inbound/deleted-files.ts",
     "./adapters/purger": "./src/adapters/outbound/s3/S3ContentPurger.ts",
     "./application/notebooks": "./src/application/notebooks.ts",
     "./application/folders": "./src/application/folders.ts",
