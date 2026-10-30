@@ -516,7 +516,10 @@
     "delete": "Delete dashboard",
     "deleteTitle": "Delete this dashboard?",
     "deleteConsequences": "The dashboard goes for good. Its tables and their rows stay as they are.",
-    "deleteConfirm": "Delete for good"
+    "deleteConfirm": "Delete for good",
+    "downloadImage": "Download PNG",
+    "drawing": "Drawing…",
+    "imageFailed": "The image could not be drawn. Try again in a moment."
   },
   "graph": {
     "heading": "Notebook graph",

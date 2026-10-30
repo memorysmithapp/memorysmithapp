@@ -259,6 +259,7 @@ describe('The tool catalog is the public contract', () => {
       'update_dashboard',
       'read_dashboard',
       'delete_dashboard',
+      'preview_dashboard',
       'update_note',
       'reorder_note',
       // A note changes folder keeping its history (#265).

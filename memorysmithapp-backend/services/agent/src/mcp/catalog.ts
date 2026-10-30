@@ -1169,7 +1169,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '}. Types: kpi (one measure), pie, donut, bar, line, area (a group and measures), table ' +
       '(rows), gantt (options title, start, end), kanban (options lane, card) and text (options ' +
       'markdown). The definition is checked against the tables and refused naming what they ' +
-      'cannot answer. A dashboard keeps no data: it shows what the tables hold when it is read.',
+      'cannot answer. A dashboard keeps no data: it shows what the tables hold when it is read. ' +
+      'Look at it with preview_dashboard before you call it done.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -1235,6 +1236,21 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'dashboard',
     ]),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'preview_dashboard',
+    title: 'See how a dashboard is drawn',
+    description:
+      'Starts drawing a dashboard whole, as the person sees it on a computer, and answers a ' +
+      '`preview` at once: get_preview answers the PNG once it is drawn, a few seconds later. ' +
+      'Look at it after you build or change a dashboard, and fix what reads badly before you ' +
+      'call it done: a chart squeezed into a narrow column, a Kanban with one lane, a title that ' +
+      'says nothing.',
+    inputSchema: object({ notebook: notebookArgument, dashboard: dashboardArgument }, [
+      'notebook',
+      'dashboard',
+    ]),
+    annotations: { readOnlyHint: true },
   },
   {
     name: 'update_note',

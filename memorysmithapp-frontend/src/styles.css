@@ -7434,3 +7434,9 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   font-size: 0.78rem;
 }
+.dashboard-print {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background: var(--bg);
+}

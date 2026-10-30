@@ -8,6 +8,7 @@
 // never goes through the listing to find it.
 
 import type {
+  PreviewDto,
   DashboardDataDto,
   DashboardListDto,
   NotebookDashboardDto,
@@ -389,6 +390,26 @@ export async function readDashboardData(
     `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}/data`,
     { method: 'POST', body: { filters, pages } },
   );
+}
+
+/**
+ * Starts drawing a dashboard as an image on the server (#368, RN-PRT-032), as
+ * the person who asks, and answers the preview to ask for until it is drawn.
+ */
+export async function startDashboardImage(
+  notebookId: string,
+  dashboard: string,
+  locale: string,
+): Promise<{ previewId: string }> {
+  return request<{ previewId: string }>(`/portability/notebooks/${notebookId}/previews`, {
+    method: 'POST',
+    body: { dashboard, locale },
+  });
+}
+
+/** A preview, with its image once it is drawn. */
+export async function getPreview(previewId: string): Promise<PreviewDto> {
+  return request<PreviewDto>(`/portability/previews/${previewId}`);
 }
 
 /** Deletes a dashboard for good; its tables are untouched (#368). */

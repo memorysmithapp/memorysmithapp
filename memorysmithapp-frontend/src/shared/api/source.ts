@@ -98,6 +98,29 @@ export function readDashboardData(
   return backend.readDashboardData(...args);
 }
 
+/**
+ * A dashboard as a PNG drawn by the server (#368): asked for, and asked again
+ * until it is drawn, for at most a minute.
+ */
+export async function dashboardImage(
+  notebookId: string,
+  dashboard: string,
+  locale: string,
+): Promise<Blob> {
+  const { previewId } = await backend.startDashboardImage(notebookId, dashboard, locale);
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const preview = await backend.getPreview(previewId);
+    if (preview.status === 'failed') throw new Error(preview.failure ?? 'FAILED');
+    if (preview.status === 'ready' && preview.image) {
+      const bytes = Uint8Array.from(atob(preview.image.base64), (char) => char.charCodeAt(0));
+      return new Blob([bytes], { type: 'image/png' });
+    }
+  }
+  throw new Error('TIMED_OUT');
+}
+
 export function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
   return backend.deleteDashboard(notebookId, dashboard);
 }

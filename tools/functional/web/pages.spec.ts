@@ -1620,6 +1620,61 @@ test.describe('the pages of an account', () => {
     expect(download.suggestedFilename()).toBe('On paper.pdf');
   });
 
+  test('[page:/notebooks/:notebookId/dashboards/print] draws a dashboard whole and still, in the light theme, for the renderer to capture (#368)', async ({
+    app,
+    owner,
+    notebook,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `leituras-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: { type: 'object', properties: { mes: { type: 'string' }, kwh: { type: 'number' } } },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        { mes: 'agosto', kwh: 210 },
+        { mes: 'setembro', kwh: 180 },
+      ],
+    });
+    const name = `Energia ${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/dashboards`, {
+      name,
+      definition: {
+        components: [
+          { id: 'total', type: 'kpi', title: 'Total', source: { table, measure: 'sum(kwh)' } },
+          {
+            id: 'barras',
+            type: 'bar',
+            title: 'Por mês',
+            source: { table, group: 'mes', measures: ['sum(kwh)'] },
+          },
+        ],
+      },
+    });
+    await app.addInitScript(
+      ([wanted]) => {
+        localStorage.setItem(
+          'memorysmith.preferences',
+          JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+        );
+        localStorage.setItem('memorysmith.preview', JSON.stringify({ dashboard: wanted }));
+      },
+      [name] as const,
+    );
+    await app.goto(notebook.page('/dashboards/print'));
+    const drawn = app.locator('.dashboard-print[data-ready="true"]');
+    await expect(drawn).toBeVisible({ timeout: 30_000 });
+    await expect(app.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(drawn.locator('.dash-chart svg')).toBeVisible();
+    // Nothing is offered on an image.
+    await expect(drawn.getByRole('button')).toHaveCount(0);
+    await testInfo.attach('dashboard.png', {
+      body: await drawn.screenshot(),
+      contentType: 'image/png',
+    });
+  });
+
   test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
     app,
     notebook,

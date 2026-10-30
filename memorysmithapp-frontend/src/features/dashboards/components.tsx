@@ -134,7 +134,10 @@ export function Chart({
   measures,
   options,
   locale,
+  still = false,
 }: {
+  /** Drawn for an image, where nothing may be moving when it is taken. */
+  still?: boolean;
   type: string;
   groups: Groups;
   measures: string[];
@@ -153,6 +156,7 @@ export function Chart({
       options['legend'] !== false && (measures.length > 1 || type === 'pie' || type === 'donut');
     if (type === 'pie' || type === 'donut') {
       return {
+        animation: !still,
         color: colors,
         tooltip: { trigger: 'item', valueFormatter: format },
         legend: legend ? { bottom: 0, textStyle: { color: text } } : undefined,
@@ -214,7 +218,7 @@ export function Chart({
         }),
       })),
     };
-  }, [type, groups, measures, options, locale, keys]);
+  }, [type, groups, measures, options, locale, keys, still]);
 
   useEffect(() => {
     if (!host.current) return undefined;

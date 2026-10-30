@@ -19,6 +19,11 @@ import { GraphPage } from '../features/graph/GraphPage';
 import { AttachmentsPage } from '../features/attachments/AttachmentsPage';
 import { TablesPage } from '../features/tables/TablesPage';
 // The charts weigh, so the page that draws them arrives when it is opened (#368).
+const PrintDashboardPage = lazy(() =>
+  import('../features/dashboards/PrintDashboardPage').then((module) => ({
+    default: module.PrintDashboardPage,
+  })),
+);
 const DashboardsPage = lazy(() =>
   import('../features/dashboards/DashboardsPage').then((module) => ({
     default: module.DashboardsPage,
@@ -75,6 +80,15 @@ export const router = createBrowserRouter([
           // of the server and never from the interface (#260): outside the
           // frame of the application, at the reading width.
           { path: '/notebooks/:notebookId/preview', element: <PreviewNotePage /> },
+          // A dashboard drawn whole for its image, opened by the same renderer (#368).
+          {
+            path: '/notebooks/:notebookId/dashboards/print',
+            element: (
+              <Suspense fallback={null}>
+                <PrintDashboardPage />
+              </Suspense>
+            ),
+          },
           {
             element: <AppShell />,
             children: [

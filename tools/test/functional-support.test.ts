@@ -51,6 +51,8 @@ describe('the pages of the interface', () => {
       '/notebooks/:notebookId/notes/:noteId/print',
       // Opened by the renderer of the server, never from the interface (#260).
       '/notebooks/:notebookId/preview',
+      // A dashboard drawn whole for its image, by the same renderer (#368).
+      '/notebooks/:notebookId/dashboards/print',
       '/',
       '/about',
       '/profile',

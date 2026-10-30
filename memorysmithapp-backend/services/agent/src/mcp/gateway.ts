@@ -420,6 +420,8 @@ export interface KnowledgeGateway {
       content?: string;
       folderId?: string;
       part?: string;
+      /** A Dashboard, by name or identifier, drawn instead of a note (#368). */
+      dashboard?: string;
     },
   ): Promise<{ previewId: string }>;
   getPreview(caller: AgentCaller, previewId: string): Promise<PreviewDto>;

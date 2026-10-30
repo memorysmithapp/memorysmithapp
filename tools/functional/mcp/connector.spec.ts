@@ -1168,7 +1168,7 @@ test.describe('the tables of a notebook (#366)', () => {
 });
 
 test.describe('the dashboards of a notebook (#368)', () => {
-  test('[tool:create_dashboard] [tool:list_dashboards] [tool:read_dashboard] [tool:update_dashboard] [tool:delete_dashboard] builds a dashboard over a table and reads what it shows', async ({
+  test('[tool:create_dashboard] [tool:list_dashboards] [tool:read_dashboard] [tool:update_dashboard] [tool:delete_dashboard] [tool:preview_dashboard] builds a dashboard over a table and reads what it shows', async ({
     agent,
     notebook,
   }) => {
@@ -1233,6 +1233,24 @@ test.describe('the dashboards of a notebook (#368)', () => {
         })
       ).isError,
     ).toBe(false);
+    const preview = parsed<{ preview: string }>(
+      await callTool(agent, 'preview_dashboard', {
+        notebook: notebook.notebookId,
+        dashboard: name,
+      }),
+    );
+    const image = await eventually(
+      'the dashboard to be drawn',
+      () =>
+        callTool(agent, 'get_preview', { notebook: notebook.notebookId, preview: preview.preview }),
+      (answer) => answer.isError || answer.images.length > 0,
+      { timeoutMs: 180_000, intervalMs: 3_000 },
+    );
+    expect(image.isError, image.text).toBe(false);
+    const png = Buffer.from(image.images[0]?.data ?? '', 'base64');
+    // As wide as a computer draws it, wider than the reading width of a note.
+    expect(png.readUInt32BE(16)).toBeGreaterThan(760);
+
     expect(
       (
         await callTool(agent, 'delete_dashboard', {

@@ -419,6 +419,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-062 | The skill `keep-tables` teaches an agent when data belongs in a table, which way its rows arrive — a file kept or asked for, or what the agent reads — to show the person the schema before creating it, and to declare a key and upsert so data read twice is written once. | |
 | RN-AGT-063 | The connector lists, creates, changes and deletes the dashboards of a notebook, and reads what each of its components shows now, under the periods asked; a definition is written whole, and only an agent writes one. | |
 | RN-AGT-064 | The skill `build-dashboards` teaches an agent to build a dashboard from what a person asks in plain words: to read the tables first, change a dashboard that already shows the data, and write the layout, filters and components the tables can answer. | |
+| RN-AGT-065 | `preview_dashboard` draws a dashboard as a PNG an agent looks at through `get_preview`, and the skill `build-dashboards` asks the agent to look at it and fix what reads badly before calling it done. | |
 
 ### Portability
 
@@ -475,6 +476,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-049 | An export, an import and a model version carry each table of the notebook with its rows, with its schema alone, or not at all, chosen by name at each transfer and stored on no table; with no choice, every table goes with its rows. | |
 | RN-PRT-050 | A notebook created from a version fills the parameters in the name and the descriptions of each table and its columns, and never in a row. | |
 | RN-PRT-051 | The interface asks of each table, where an export, an import or a model version is started, whether it goes with its rows, its schema alone or not at all, and says on publishing a model which tables carry rows anybody will read. | |
+| RN-PRT-052 | A dashboard is drawn whole as a PNG by the server, as the person who asks reads it, in the light theme and as wide as a computer shows it: the person downloads it from its page and an agent looks at it through the preview, kept a day and not counted against storage. | |
 
 ## 8. Quality requirements
 

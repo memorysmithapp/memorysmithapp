@@ -1274,8 +1274,12 @@ Every value can be formatted: \`options.format\` as \`number\`, \`currency\` wit
 
 ## Showing it
 
-Tell the person where it is — *Dashboards* in the menu of the notebook — and
-read it with \`read_dashboard\` to say what it shows. A component whose table
+**Look at it before you call it done**: \`preview_dashboard\` draws it whole as
+a computer shows it, and \`get_preview\` answers the PNG. Fix what reads badly
+— a chart squeezed into a narrow column, a Kanban with one lane, a title that
+says nothing — and look again. Then tell the person where it is —
+*Dashboards* in the menu of the notebook — and read it with
+\`read_dashboard\` to say what it shows. A component whose table
 is gone, or whose filter no longer fits a changed schema, says so: fix the
 definition rather than leaving it.
 `;

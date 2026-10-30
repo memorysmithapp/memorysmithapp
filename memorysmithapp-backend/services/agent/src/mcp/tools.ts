@@ -1378,6 +1378,21 @@ export class McpToolAdapter {
         );
       }
 
+      case 'preview_dashboard': {
+        const notebook = requireString(args, 'notebook', 'preview_dashboard');
+        const started = await knowledge.startPreview(caller, {
+          notebookId: notebook,
+          dashboard: requireString(args, 'dashboard', 'preview_dashboard'),
+        });
+        return json({
+          preview: started.previewId,
+          notebook,
+          next:
+            'Call get_preview with this preview and notebook in a few seconds: a dashboard takes ' +
+            'from 5 to 20 seconds to draw.',
+        });
+      }
+
       case 'delete_dashboard': {
         const dashboard = requireString(args, 'dashboard', 'delete_dashboard');
         await knowledge.deleteDashboard(

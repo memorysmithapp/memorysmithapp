@@ -300,6 +300,8 @@ export const previewRequestSchema = z.object({
   content: z.string().max(1_048_576).optional(),
   folderId: z.string().min(1).optional(),
   part: z.string().min(1).max(512).optional(),
+  /** A Dashboard, by its name or its identifier, drawn instead of a note (#368). */
+  dashboard: z.string().min(1).max(128).optional(),
   locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
 });
 

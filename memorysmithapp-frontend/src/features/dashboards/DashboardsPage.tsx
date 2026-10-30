@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -7,14 +7,19 @@ import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { deleteDashboard, listDashboards, readDashboardData } from '../../shared/api/source';
+import {
+  dashboardImage,
+  deleteDashboard,
+  listDashboards,
+  readDashboardData,
+} from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import { dashboardsAddress } from '../../shared/api/note-address';
 import { useLiveInterval } from '../../shared/api/live';
 import { Modal } from '../../shared/components/Modal';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
-import { DashboardIcon, TrashIcon } from '../../shared/components/icons';
+import { DashboardIcon, DownloadIcon, TrashIcon } from '../../shared/components/icons';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { intlLocale } from '../../i18n/intl-locale';
 import {
@@ -146,14 +151,20 @@ export function DashboardView({
   locale,
   maintains,
   onDeleted,
+  still = false,
+  onDrawn,
 }: {
   notebookId: string;
   dashboard: NotebookDashboardDto;
   locale: string;
   maintains: boolean;
-  onDeleted?: () => void;
+  onDeleted?: (() => void) | undefined;
+  /** Drawn for an image (#368): nothing moves, nothing is offered, and it says when it is drawn. */
+  still?: boolean;
+  onDrawn?: ((root: HTMLElement | null) => void) | undefined;
 }) {
   const { t } = useTranslation();
+  const root = useRef<HTMLElement>(null);
   const definition = dashboard.definition as {
     layout?: string;
     refreshSeconds?: number | null;
@@ -167,7 +178,29 @@ export function DashboardView({
   );
   const [pages, setPages] = useState<Record<string, number>>({});
   const [deleting, setDeleting] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const { i18n } = useTranslation();
   const request = { filters: chosen, pages };
+
+  /** The dashboard as a PNG, drawn by the server as this person reads it (RN-PRT-032). */
+  async function download(): Promise<void> {
+    setDrawing(true);
+    setImageFailed(false);
+    try {
+      const image = await dashboardImage(notebookId, dashboard.name, i18n.language);
+      const address = URL.createObjectURL(image);
+      const anchor = document.createElement('a');
+      anchor.href = address;
+      anchor.download = `${dashboard.name}.png`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(address), 10_000);
+    } catch {
+      setImageFailed(true);
+    } finally {
+      setDrawing(false);
+    }
+  }
   const data = useQuery({
     queryKey: queryKeys.dashboardData(notebookId, dashboard.name, request),
     queryFn: () => readDashboardData(notebookId, dashboard.name, chosen, pages),
@@ -175,16 +208,20 @@ export function DashboardView({
     // A dashboard is read again when the page is looked at again, and on the
     // interval the agent declared, never more often than a minute (#368).
     refetchOnWindowFocus: true,
-    refetchInterval: definition.refreshSeconds ? definition.refreshSeconds * 1000 : false,
+    refetchInterval: !still && definition.refreshSeconds ? definition.refreshSeconds * 1000 : false,
   });
   const byId = new Map((data.data?.components ?? []).map((component) => [component.id, component]));
   const readAt = data.data
     ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(data.data.readAt))
     : null;
   const layout = definition.layout ?? 'one-column';
+  const answered = data.data !== undefined;
+  useEffect(() => {
+    if (answered && onDrawn) onDrawn(root.current);
+  }, [answered, onDrawn]);
 
   return (
-    <section className="dashboard" data-layout={layout}>
+    <section className="dashboard" data-layout={layout} ref={root}>
       <header className="dashboard-head">
         <div>
           <h1 className="table-detail-name">{dashboard.name}</h1>
@@ -192,7 +229,7 @@ export function DashboardView({
             <p className="table-detail-desc">{dashboard.description}</p>
           ) : null}
         </div>
-        <div className="dashboard-actions">
+        <div className="dashboard-actions" hidden={still}>
           {readAt ? (
             <span className="dashboard-read">{t('dashboards.readAt', { time: readAt })}</span>
           ) : null}
@@ -203,6 +240,17 @@ export function DashboardView({
             disabled={data.isFetching}
           >
             {t('dashboards.refresh')}
+          </button>
+          <button
+            type="button"
+            className="button is-quiet is-small"
+            disabled={drawing}
+            onClick={() => void download()}
+          >
+            <ActionWord
+              icon={<DownloadIcon />}
+              word={drawing ? t('dashboards.drawing') : t('dashboards.downloadImage')}
+            />
           </button>
           {maintains && onDeleted ? (
             <button
@@ -233,6 +281,11 @@ export function DashboardView({
       ) : null}
 
       {data.isError ? <p className="status">{t(messageKeyOf(data.error))}</p> : null}
+      {imageFailed ? (
+        <p className="status" role="alert">
+          {t('dashboards.imageFailed')}
+        </p>
+      ) : null}
 
       <div className="dashboard-grid" data-layout={layout}>
         {components.map((component) => (
@@ -257,6 +310,7 @@ export function DashboardView({
               locale={locale}
               page={pages[component.id] ?? 1}
               onPage={(page) => setPages({ ...pages, [component.id]: page })}
+              still={still}
             />
           </section>
         ))}
@@ -281,7 +335,9 @@ function ComponentBody({
   locale,
   page,
   onPage,
+  still,
 }: {
+  still: boolean;
   notebookId: string;
   component: ComponentDefinition;
   data: ComponentDataDto | undefined;
@@ -322,6 +378,7 @@ function ComponentBody({
           measures={(answer['measures'] as string[]) ?? []}
           options={component.options}
           locale={locale}
+          still={still}
         />
       );
     case 'table':

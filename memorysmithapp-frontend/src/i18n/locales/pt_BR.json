@@ -519,7 +519,10 @@
     "delete": "Apagar painel",
     "deleteTitle": "Apagar este painel?",
     "deleteConsequences": "O painel sai para sempre. As tabelas e suas linhas continuam como estão.",
-    "deleteConfirm": "Apagar de vez"
+    "deleteConfirm": "Apagar de vez",
+    "downloadImage": "Baixar PNG",
+    "drawing": "Desenhando…",
+    "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco."
   },
   "graph": {
     "heading": "Grafo do caderno",

@@ -718,6 +718,7 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       content?: string;
       folderId?: string;
       part?: string;
+      dashboard?: string;
     },
   ): Promise<{ previewId: string }> {
     const { notebookId, ...body } = input;
