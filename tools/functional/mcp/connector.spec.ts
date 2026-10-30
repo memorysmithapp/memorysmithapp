@@ -1203,6 +1203,12 @@ test.describe('the dashboards of a notebook (#368)', () => {
         components: [
           { id: 'total', type: 'kpi', slot: 'left', source: { table, measure: 'sum(valor)' } },
           {
+            id: 'situacao',
+            type: 'bar',
+            slot: 'left',
+            source: { table, group: 'status', measures: ['count()'] },
+          },
+          {
             id: 'quadro',
             type: 'kanban',
             slot: 'right',
@@ -1224,6 +1230,16 @@ test.describe('the dashboards of a notebook (#368)', () => {
     );
     expect(shown.components[0]).toMatchObject({ status: 'ok', value: 120 });
 
+    // A mark clicked, as a person sees it (#369).
+    const crossed = parsed<{ components: Array<Record<string, unknown>> }>(
+      await callTool(agent, 'read_dashboard', {
+        notebook: notebook.notebookId,
+        dashboard: name,
+        cross: { component: 'situacao', key: 'paga' },
+      }),
+    );
+    expect(crossed.components[0]).toMatchObject({ status: 'ok', value: 40 });
+
     expect(
       (
         await callTool(agent, 'update_dashboard', {
@@ -1237,6 +1253,7 @@ test.describe('the dashboards of a notebook (#368)', () => {
       await callTool(agent, 'preview_dashboard', {
         notebook: notebook.notebookId,
         dashboard: name,
+        cross: { component: 'situacao', key: 'paga' },
       }),
     );
     const image = await eventually(
@@ -1250,6 +1267,7 @@ test.describe('the dashboards of a notebook (#368)', () => {
     const png = Buffer.from(image.images[0]?.data ?? '', 'base64');
     // As wide as a computer draws it, wider than the reading width of a note.
     expect(png.readUInt32BE(16)).toBeGreaterThan(760);
+    writeFileSync(test.info().outputPath('dashboard-crossed.png'), png);
 
     expect(
       (
