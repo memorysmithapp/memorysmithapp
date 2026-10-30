@@ -8,6 +8,9 @@
 // never goes through the listing to find it.
 
 import type {
+  NotebookTableDto,
+  TableListDto,
+  TablePageDto,
   AccountLocaleDto,
   ChangedPassword,
   AvatarSourceDto,
@@ -172,10 +175,12 @@ export async function declareModel(
 export async function createModelVersion(
   notebookId: string,
   changelog: string,
+  tables?: Array<{ name: string; rows: boolean }>,
 ): Promise<ModelVersionDto> {
   return request<ModelVersionDto>(`/portability/models/${notebookId}/versions`, {
     method: 'POST',
-    body: { changelog },
+    // Absent tables are every table with its rows (#366, RN-PRT-049).
+    body: { changelog, ...(tables ? { tables } : {}) },
   });
 }
 
@@ -331,6 +336,37 @@ export async function getNotebookAttachments(
     `/discovery/notebooks/${notebookId}/attachments`,
   );
   return answer.attachments;
+}
+
+/** The Tables of a notebook, with their schemas and how many rows each holds (#366). */
+export async function listTables(notebookId: string): Promise<NotebookTableDto[]> {
+  const answer = await request<TableListDto>(`/knowledge/notebooks/${notebookId}/tables`);
+  return answer.tables;
+}
+
+/** One page of the rows of a table, filtered and sorted as asked (#366). */
+export async function queryTable(
+  notebookId: string,
+  table: string,
+  query: {
+    where?: string | null;
+    sort?: Array<{ column: string; direction: 'asc' | 'desc' }>;
+    page?: number;
+    pageSize?: number;
+  },
+): Promise<TablePageDto> {
+  return request<TablePageDto>(
+    `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}/query`,
+    { method: 'POST', body: query },
+  );
+}
+
+/** Deletes a table and its rows, for good (#366, RN-KNW-071). */
+export async function deleteTable(notebookId: string, table: string): Promise<{ rows: number }> {
+  return request<{ rows: number }>(
+    `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`,
+    { method: 'DELETE' },
+  );
 }
 
 /** The files a notebook keeps beside its notes (#166). */
@@ -497,12 +533,13 @@ export async function applyImport(
 export async function startExport(
   notebookId: string,
   selection: TransferSelection | null = null,
+  tables?: Array<{ name: string; rows: boolean }>,
 ): Promise<TransferDto> {
   return request<TransferDto>(`/portability/notebooks/${notebookId}/export`, {
     method: 'POST',
     // Absent is the whole notebook, which is what almost everyone wants
-    // (RN-PRT-024).
-    body: { selection },
+    // (RN-PRT-024); and absent tables are every table with its rows (#366).
+    body: { selection, ...(tables ? { tables } : {}) },
   });
 }
 

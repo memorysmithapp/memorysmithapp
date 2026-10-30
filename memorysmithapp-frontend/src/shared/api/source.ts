@@ -69,6 +69,24 @@ export function fileKept(notebookId: string, name: string): NotebookFileDto | nu
   return files.get(notebookId)?.get(name.normalize('NFC')) ?? null;
 }
 
+/** The Tables of a notebook, a page of rows of one, and its deletion (#366). */
+export function listTables(notebookId: string): ReturnType<typeof backend.listTables> {
+  return backend.listTables(notebookId);
+}
+
+export function queryTable(
+  ...args: Parameters<typeof backend.queryTable>
+): ReturnType<typeof backend.queryTable> {
+  return backend.queryTable(...args);
+}
+
+export function deleteTable(
+  notebookId: string,
+  table: string,
+): ReturnType<typeof backend.deleteTable> {
+  return backend.deleteTable(notebookId, table);
+}
+
 export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
   return backend.linkToFile(notebookId, fileId);
 }
@@ -267,8 +285,9 @@ export function applyImport(
 export function startExport(
   notebookId: string,
   selection: TransferSelection | null = null,
+  tables?: Array<{ name: string; rows: boolean }>,
 ): Promise<TransferDto> {
-  return backend.startExport(notebookId, selection);
+  return backend.startExport(notebookId, selection, tables);
 }
 
 export function listTransfers(): Promise<TransferListDto> {

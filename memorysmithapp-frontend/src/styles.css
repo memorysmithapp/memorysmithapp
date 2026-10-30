@@ -6942,3 +6942,184 @@ body.has-sheet .app-main {
 .model-publication {
   margin-top: 1.5rem;
 }
+
+/* The Tables of a notebook (#366): a list like the attachments, and a table
+   of data that scrolls sideways on its own, never the page. */
+.table-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.table-row + .table-row {
+  border-top: 1px solid var(--border);
+}
+.table-row-open {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.table-row-open:hover {
+  background: var(--hover);
+}
+.table-row-icon {
+  color: var(--accent);
+  padding-top: 2px;
+}
+.table-row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.table-row-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.table-row-meta,
+.table-count,
+.table-detail-meta {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.table-row-desc,
+.table-detail-desc {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+.table-detail {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.table-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.table-detail-name {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+.table-detail-desc,
+.table-detail-meta {
+  margin: 0;
+}
+.data-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: top;
+}
+.data-table tbody tr:last-child th,
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.data-table thead th {
+  background: var(--bg);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+.data-table .is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table-sort {
+  display: inline-flex;
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.data-table-arrow {
+  color: var(--accent);
+  min-width: 0.7em;
+}
+.schema-table td:last-child {
+  white-space: normal;
+  min-width: 14rem;
+}
+.schema-key,
+.schema-allowed {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+.data-table-pages {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.data-table-page-buttons {
+  display: flex;
+  gap: 6px;
+}
+.table-choices {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0 0;
+  min-width: 0;
+}
+.table-choices legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.table-choices ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.table-choices-hint {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  margin: 0 0 8px;
+}
+.table-choice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.table-choice label {
+  overflow-wrap: anywhere;
+}
+.table-choice-rows {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  margin-left: 6px;
+}

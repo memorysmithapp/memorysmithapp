@@ -1,3 +1,4 @@
+import { TableChoices, tablesOf, type TableCarry } from '../portability/TableChoices';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useOutletContext } from 'react-router-dom';
@@ -13,6 +14,8 @@ import {
 import { queryKeys } from '../../shared/api/query-keys';
 import {
   createModelVersion,
+  getModelVersion,
+  listTables,
   declareModel,
   deleteModelVersion,
   getModel,
@@ -293,13 +296,27 @@ function Versions({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [carry, setCarry] = useState<Record<string, TableCarry>>({});
+  // What the version carries of each table, every one with its rows by default (#366).
+  const tables = useQuery({
+    queryKey: queryKeys.notebookTables(notebookId),
+    queryFn: () => listTables(notebookId),
+    enabled: owner,
+  });
   const again = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
 
   async function create(): Promise<void> {
     setBusy(true);
     setFailure(null);
     try {
-      await createModelVersion(notebookId, changelog);
+      await createModelVersion(
+        notebookId,
+        changelog,
+        tablesOf(
+          carry,
+          (tables.data ?? []).map((table) => table.name),
+        ),
+      );
       setChangelog('');
       again();
     } catch (error) {
@@ -348,6 +365,14 @@ function Versions({
             </label>
             <span className="field-hint">{t('model.versionHint')}</span>
           </div>
+          {tables.data ? (
+            <TableChoices
+              tables={tables.data.map((table) => ({ name: table.name, rows: table.rows }))}
+              carry={carry}
+              onCarry={setCarry}
+              hint={t('tables.carry.publicHint')}
+            />
+          ) : null}
           <button type="submit" className="button is-primary" disabled={busy}>
             {busy ? t('model.creatingVersion') : t('model.createVersion')}
           </button>
@@ -438,6 +463,23 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
   const [failure, setFailure] = useState<string | null>(null);
   const published = model.publication ?? null;
   const ready = model.versions.some((each) => each.status === 'ready');
+  /**
+   * What anybody will read of the tables, said where it is published (#366,
+   * RN-PRT-048): the newest ready version is what the catalog shows first, and
+   * the rows it carries become public with it.
+   */
+  const newest = model.versions
+    .filter((each) => each.status === 'ready')
+    .reduce<number | null>(
+      (top, each) => (top === null || each.number > top ? each.number : top),
+      null,
+    );
+  const version = useQuery({
+    queryKey: queryKeys.modelVersion(notebookId, newest ?? 0),
+    queryFn: () => getModelVersion(notebookId, newest ?? 0),
+    enabled: newest !== null && !published,
+  });
+  const publicRows = (version.data?.tables ?? []).filter((table) => table.rows !== null);
   const needsLicence = model.licence === null;
 
   async function act(what: () => Promise<unknown>): Promise<void> {
@@ -479,6 +521,15 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
         <>
           <p className="hint">{t('model.publishHint')}</p>
           <p className="callout-warning">{t('model.publishLicence')}</p>
+          {publicRows.length > 0 ? (
+            <p className="callout-warning">
+              {t('tables.carry.published', {
+                tables: publicRows
+                  .map((table) => `${table.name} (${t('tables.rows', { count: table.rows ?? 0 })})`)
+                  .join(', '),
+              })}
+            </p>
+          ) : null}
           <label className="field">
             <span className="field-label">{t('community.language')}</span>
             <select value={language} onChange={(event) => setLanguage(event.target.value)}>

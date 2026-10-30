@@ -40,6 +40,9 @@ export const queryKeys = {
 
   /** The files a notebook keeps, which a note reaches by name. */
   notebookFiles: (notebookId: string) => ['notebook-files', notebookId] as const,
+  notebookTables: (notebookId: string) => ['notebook-tables', notebookId] as const,
+  tableRows: (notebookId: string, table: string, query: unknown) =>
+    ['table-rows', notebookId, table, query] as const,
 
   /** Which notes show each file, read from Discovery (#307). */
   notebookAttachments: (notebookId: string) => ['notebook-attachments', notebookId] as const,

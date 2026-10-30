@@ -82,6 +82,12 @@ export const modelListSchema = z.object({
 /** Creating a version freezes the model notebook as it is, with what changed since the last. */
 export const createModelVersionRequestSchema = z.object({
   changelog: z.string().max(2000).default(''),
+  /**
+   * What the version carries of each table, by name, with its rows or with
+   * its schema alone; a table not named is left out (#366, RN-PRT-049).
+   * Absent is every table with its rows.
+   */
+  tables: z.array(z.object({ name: z.string().min(1).max(64), rows: z.boolean() })).optional(),
 });
 
 /**

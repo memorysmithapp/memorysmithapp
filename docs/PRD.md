@@ -253,6 +253,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-074 | A share reaches a notebook's tables by its profile: a Reader reads them, a Content editor also writes their rows, a Notebook editor also creates, alters and deletes them. | |
 | RN-KNW-075 | Files are limited to a closed list of image, PDF, audio, video, Office and CSV types, checked against the bytes, and served from `files.memorysmith.app`, never the product's origin. | |
 | RN-KNW-076 | A table imports its rows from a CSV or an Excel file the notebook keeps, the first line its header and each header one of its columns; a CSV in pt-BR is read with its semicolons, decimal commas and day-first dates; one line that does not fit refuses the whole file, naming it, before any row is written. | |
+| RN-KNW-077 | The interface offers, in a notebook's menu below the attachments, its Tables: each with its description, columns and rows, open on its rows page by page, sortable by a column for the reader alone, and on its schema; whoever maintains the notebook deletes a table there, after saying how many rows go. | |
 
 ### Discovery
 
@@ -464,6 +465,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-048 | The interface publishes and withdraws a model on its page, saying what anybody will see and the licence; the community pages — the search, a model and a version — are read with no session and may be indexed, each titled and described by its model, and creating from a version and reporting ask to sign in. | |
 | RN-PRT-049 | An export, an import and a model version carry each table of the notebook with its rows, with its schema alone, or not at all, chosen by name at each transfer and stored on no table; with no choice, every table goes with its rows. | |
 | RN-PRT-050 | A notebook created from a version fills the parameters in the name and the descriptions of each table and its columns, and never in a row. | |
+| RN-PRT-051 | The interface asks of each table, where an export, an import or a model version is started, whether it goes with its rows, its schema alone or not at all, and says on publishing a model which tables carry rows anybody will read. | |
 
 ## 8. Quality requirements
 

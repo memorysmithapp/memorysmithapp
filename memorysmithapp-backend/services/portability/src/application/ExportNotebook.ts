@@ -30,6 +30,8 @@ import {
   type DocumentHistory,
   type ExportInput,
   type NotebookDocument,
+  type TableChoice,
+  tablesChosen,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { ImportSelection } from './ImportNotebook.js';
 import { modelVersionPrefixOf } from '../domain/NotebookModel.js';
@@ -124,6 +126,8 @@ export class ExportNotebook {
      * export (RN-SUB-021).
      */
     selection?: ImportSelection | null | undefined;
+    /** What the archive carries of each table, by name (#366, RN-PRT-049). */
+    tables?: readonly TableChoice[] | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
     /**
      * A version of a notebook model (#353): the whole notebook WITHOUT its
@@ -135,7 +139,12 @@ export class ExportNotebook {
     const source = await this.source.load(input.notebookId, input.report);
     if (!source) return err(DomainError.notFound('Notebook not found'));
 
-    const wanted = carried(source, input.selection ?? null);
+    const selected = carried(source, input.selection ?? null);
+    // The tables are chosen apart from the rest, and a choice made either way
+    // narrows them (#366, RN-PRT-049).
+    const wanted = input.tables
+      ? { ...selected, tables: tablesChosen(selected.tables ?? [], input.tables) }
+      : selected;
     /**
      * The WHOLE notebook carries its history: a selection of nothing is the
      * whole notebook, and the whole notebook is the context, the notes and the

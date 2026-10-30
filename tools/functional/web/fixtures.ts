@@ -41,6 +41,10 @@ export interface Words {
   readonly graph: string;
   /** The files of a notebook, above the graph (#307). */
   readonly attachments: string;
+  readonly tables: string;
+  readonly tableData: string;
+  readonly tableSchema: string;
+  readonly deleteTable: string;
   readonly notesInFolder: string;
   readonly notFound: string;
   readonly version: string;
@@ -165,6 +169,10 @@ export const WORDS: Record<AppLocale, Words> = {
     templates: 'Templates',
     graph: 'Notebook graph',
     attachments: 'Attachments',
+    tables: 'Tables',
+    tableData: 'Data',
+    tableSchema: 'Schema',
+    deleteTable: 'Delete table',
     notesInFolder: 'Notes in this folder',
     notFound: 'Not found.',
     version: 'MemorySmith.app',
@@ -257,6 +265,10 @@ export const WORDS: Record<AppLocale, Words> = {
     templates: 'Modelos de pasta',
     graph: 'Grafo do caderno',
     attachments: 'Anexos',
+    tables: 'Tabelas',
+    tableData: 'Dados',
+    tableSchema: 'Schema',
+    deleteTable: 'Apagar tabela',
     notesInFolder: 'Notas nesta pasta',
     notFound: 'Não encontrado.',
     version: 'MemorySmith.app',

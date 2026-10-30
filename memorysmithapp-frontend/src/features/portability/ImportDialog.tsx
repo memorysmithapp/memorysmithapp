@@ -1,7 +1,8 @@
+import { TableChoices, tablesOf, type TableCarry } from './TableChoices';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { NotebookDocument, TransferDto } from '@memorysmithapp/contracts';
+import type { NotebookDocument, TransferDto, TransferSelection } from '@memorysmithapp/contracts';
 import {
   applyImport,
   downloadTransfer,
@@ -27,6 +28,7 @@ import {
   treeOf,
   twinNames,
   wholeScope,
+  type Chosen,
   type DocumentTree,
   type Picked,
   type Scope,
@@ -76,6 +78,7 @@ export function ImportDialog({
   const [filter, setFilter] = useState('');
   const [tab, setTab] = useState<ChooserTab>('context');
   const [starting, setStarting] = useState(false);
+  const [carry, setCarry] = useState<Record<string, TableCarry>>({});
   const [source, setSource] = useState<Source>('file');
   /** The kept export the document was read from, which the import copies server-side. */
   const [keptId, setKeptId] = useState<string | null>(null);
@@ -194,7 +197,14 @@ export function ImportDialog({
       const transfer: TransferDto = await applyImport(
         uploadKey,
         name.trim(),
-        preset === 'choose' && chosen ? selectionOf(chosen) : null,
+        importSelection(
+          preset,
+          chosen,
+          tablesOf(
+            carry,
+            (document.tables ?? []).map((table) => table.name),
+          ),
+        ),
         // What the person calls this file: the upload is addressed by an
         // identifier, which says nothing to anybody reading Transfers later.
         file.name,
@@ -471,6 +481,15 @@ export function ImportDialog({
             />
           </div>
 
+          <TableChoices
+            tables={(document.tables ?? []).map((table) => ({
+              name: table.name,
+              rows: table.rows ? table.rows.length : null,
+            }))}
+            carry={carry}
+            onCarry={setCarry}
+          />
+
           {chosen && (
             <TransferChooser
               tree={tree}
@@ -496,4 +515,18 @@ export function ImportDialog({
       )}
     </TransferDialog>
   );
+}
+
+/**
+ * What an import writes: nothing said is the whole archive, a choice of tables
+ * narrows its tables and leaves the rest whole (#366, RN-PRT-049).
+ */
+function importSelection(
+  preset: Preset,
+  chosen: Chosen | null,
+  tables: Array<{ name: string; rows: boolean }> | undefined,
+): TransferSelection | null {
+  const narrowed = preset === 'choose' && chosen ? selectionOf(chosen) : null;
+  if (!tables) return narrowed;
+  return chosen ? { ...(narrowed ?? selectionOf(chosen)), tables } : null;
 }

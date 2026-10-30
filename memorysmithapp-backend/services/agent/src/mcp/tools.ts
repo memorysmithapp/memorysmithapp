@@ -1506,10 +1506,17 @@ export class McpToolAdapter {
 
       case 'create_model_version': {
         const notebook = requireString(args, 'notebook', 'create_model_version');
+        const tables = Array.isArray(args['tables'])
+          ? (args['tables'] as Array<Record<string, unknown>>).map((each) => ({
+              name: String(each['name'] ?? ''),
+              rows: each['rows'] === true,
+            }))
+          : undefined;
         const version = await knowledge.createModelVersion(
           caller,
           notebook,
           optionalString(args, 'changelog') ?? '',
+          tables,
         );
         return json({
           ...version,

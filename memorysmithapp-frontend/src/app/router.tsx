@@ -16,6 +16,7 @@ import { PasswordPage } from '../features/profile/PasswordPage';
 import { TransfersPage } from '../features/portability/TransfersPage';
 import { GraphPage } from '../features/graph/GraphPage';
 import { AttachmentsPage } from '../features/attachments/AttachmentsPage';
+import { TablesPage } from '../features/tables/TablesPage';
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
@@ -99,6 +100,7 @@ export const router = createBrowserRouter([
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },
+                  { path: 'tables', element: <TablesPage /> },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'model', element: <ModelPage /> },
                   { path: 'model/versions/:version', element: <ModelVersionPage /> },

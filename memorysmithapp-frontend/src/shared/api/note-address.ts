@@ -87,6 +87,12 @@ export function attachmentsAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/attachments`;
 }
 
+/** The Tables of a notebook, one of them open when it is named (#366). */
+export function tablesAddress(notebookId: string, table?: string): string {
+  const base = `${notebookAddress(notebookId)}/tables`;
+  return table ? `${base}?table=${encodeURIComponent(table)}` : base;
+}
+
 export function graphAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/graph`;
 }

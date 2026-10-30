@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getNotebookFiles, getNotebookStructure } from '../../shared/api/source';
+import { getNotebookFiles, getNotebookStructure, listTables } from '../../shared/api/source';
+import { TableChoices, tablesOf, type TableCarry } from './TableChoices';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
@@ -55,8 +56,11 @@ export function ExportChoice({
   notebooks: ReadonlyArray<{ id: string; name: string }>;
   notebookId: string;
   onChooseNotebook: (notebookId: string) => void;
-  /** What the archive carries. `null` is the whole notebook (RN-PRT-024). */
-  onConfirm: (chosen: Chosen | null) => void;
+  /**
+   * What the archive carries. `null` is the whole notebook (RN-PRT-024), and
+   * no tables is every table with its rows (#366).
+   */
+  onConfirm: (chosen: Chosen | null, tables?: Array<{ name: string; rows: boolean }>) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -65,6 +69,7 @@ export function ExportChoice({
   const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
   const [tab, setTab] = useState<ChooserTab>('context');
+  const [carry, setCarry] = useState<Record<string, TableCarry>>({});
 
   /**
    * The structure of the notebook, which is what an export chooses from: it has
@@ -96,6 +101,14 @@ export function ExportChoice({
     queryFn: () => getNotebookFiles(notebookId),
     enabled: open && notebookId !== '',
   });
+
+  /** And its tables, each of which the archive carries with its rows, its schema or not at all (#366). */
+  const tables = useQuery({
+    queryKey: queryKeys.notebookTables(notebookId),
+    queryFn: () => listTables(notebookId),
+    enabled: open && notebookId !== '',
+  });
+  const tableNames = (tables.data ?? []).map((table) => table.name);
 
   const tree =
     structure.data && files.data ? treeOfNotebook({ ...structure.data, files: files.data }) : null;
@@ -139,7 +152,9 @@ export function ExportChoice({
             type="button"
             className="button is-primary"
             disabled={notebooks.length === 0}
-            onClick={() => onConfirm(preset === 'choose' ? chosen : null)}
+            onClick={() =>
+              onConfirm(preset === 'choose' ? chosen : null, tablesOf(carry, tableNames))
+            }
           >
             {t('portability.startExport')}
           </button>
@@ -194,6 +209,14 @@ export function ExportChoice({
         ) : (
           <p className="status">{t('common.loading')}</p>
         ))}
+
+      {notebooks.length > 0 && tables.data ? (
+        <TableChoices
+          tables={tables.data.map((table) => ({ name: table.name, rows: table.rows }))}
+          carry={carry}
+          onCarry={setCarry}
+        />
+      ) : null}
     </TransferDialog>
   );
 }

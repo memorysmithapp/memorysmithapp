@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   attachmentsAddress,
+  tablesAddress,
   foldersAddress,
   graphAddress,
   guidanceAddress,
@@ -18,6 +19,7 @@ import {
   GraphIcon,
   GuidanceIcon,
   PaperclipIcon,
+  TableIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
 
@@ -77,6 +79,10 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
       ) : null}
       <NavItem to={attachmentsAddress(notebookId)} icon={<PaperclipIcon />}>
         {t('attachments.navLabel')}
+      </NavItem>
+      {/* The tables an agent keeps in the notebook (#366). */}
+      <NavItem to={tablesAddress(notebookId)} icon={<TableIcon />}>
+        {t('tables.navLabel')}
       </NavItem>
       <NavItem to={graphAddress(notebookId)} icon={<GraphIcon />}>
         {t('graph.navLabel')}

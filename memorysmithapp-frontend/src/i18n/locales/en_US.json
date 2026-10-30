@@ -438,6 +438,65 @@
     "download": "Download",
     "enlarge": "Enlarge"
   },
+  "tables": {
+    "heading": "Tables",
+    "navLabel": "Tables",
+    "intro": "The structured data this notebook keeps: rows an agent writes, read here page by page.",
+    "none": "This notebook keeps no tables yet. A table an agent creates appears here.",
+    "count_one": "{{count}} table",
+    "count_other": "{{count}} tables",
+    "columns_one": "{{count}} column",
+    "columns_other": "{{count}} columns",
+    "rows_one": "{{count}} row",
+    "rows_other": "{{count}} rows",
+    "keyIs": "key {{columns}}",
+    "tab": {
+      "data": "Data",
+      "schema": "Schema"
+    },
+    "empty": "This table holds no rows yet.",
+    "pages": "Pages of the table",
+    "showing": "{{first}}–{{last}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "true": "Yes",
+    "false": "No",
+    "type": {
+      "string": "Text",
+      "number": "Number",
+      "integer": "Whole number",
+      "boolean": "Yes or no",
+      "date": "Date",
+      "date-time": "Date and time",
+      "list": "List of texts"
+    },
+    "schema": {
+      "column": "Column",
+      "type": "Type",
+      "required": "Required",
+      "default": "Default",
+      "description": "Description",
+      "key": "key",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "delete": "Delete table",
+    "deleteTitle": "Delete this table?",
+    "deleteHolds_one": "It holds {{count}} row.",
+    "deleteHolds_other": "It holds {{count}} rows.",
+    "deleteConsequences": "The table and its rows go at once and for good, and every note that shows it will say it is missing. Nothing brings it back.",
+    "deleteUnderstood": "I understand the rows are deleted for good",
+    "deleteConfirm": "Delete for good",
+    "deleting": "Deleting…",
+    "carry": {
+      "heading": "Tables",
+      "rows": "With its rows",
+      "schema": "Its schema alone",
+      "none": "Left out",
+      "publicHint": "The rows that go are public once the model is published to the community.",
+      "published": "These tables go with their rows, which anybody will read: {{tables}}."
+    }
+  },
   "graph": {
     "heading": "Notebook graph",
     "navLabel": "Notebook graph",

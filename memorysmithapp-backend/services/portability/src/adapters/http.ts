@@ -407,6 +407,7 @@ export function createPortabilityRoutes(
     const created = await useCases.createModelVersion(request).execute({
       notebookId: c.req.param('v') ?? '',
       changelog: body.data.changelog,
+      ...(body.data.tables ? { tables: body.data.tables } : {}),
       by: request.authorship.value,
     });
     return created.ok ? c.json(versionToDto(created.value), 202) : fail(c, created.error);
@@ -524,10 +525,14 @@ export function createPortabilityRoutes(
     // What the archive carries, absent for the whole notebook (RN-PRT-024).
     const body = (await c.req.json().catch(() => ({}))) as {
       selection?: ImportSelection | null;
+      tables?: Array<{ name: string; rows: boolean }>;
     };
-    const started = await useCases
-      .startExport(request)
-      .execute({ notebookId, selection: body.selection ?? null });
+    const started = await useCases.startExport(request).execute({
+      notebookId,
+      selection: body.selection ?? null,
+      // What it carries of each table, apart from the rest (#366, RN-PRT-049).
+      ...(Array.isArray(body.tables) ? { tables: body.tables } : {}),
+    });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
   });
 

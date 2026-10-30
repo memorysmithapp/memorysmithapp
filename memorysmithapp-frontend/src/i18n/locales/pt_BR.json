@@ -441,6 +441,65 @@
     "download": "Baixar",
     "enlarge": "Ampliar"
   },
+  "tables": {
+    "heading": "Tabelas",
+    "navLabel": "Tabelas",
+    "intro": "Os dados estruturados que este caderno guarda: linhas que um agente escreve, lidas aqui página por página.",
+    "none": "Este caderno ainda não tem tabelas. Uma tabela criada por um agente aparece aqui.",
+    "count_one": "{{count}} tabela",
+    "count_other": "{{count}} tabelas",
+    "columns_one": "{{count}} coluna",
+    "columns_other": "{{count}} colunas",
+    "rows_one": "{{count}} linha",
+    "rows_other": "{{count}} linhas",
+    "keyIs": "chave {{columns}}",
+    "tab": {
+      "data": "Dados",
+      "schema": "Schema"
+    },
+    "empty": "Esta tabela ainda não tem linhas.",
+    "pages": "Páginas da tabela",
+    "showing": "{{first}}–{{last}} de {{total}}",
+    "previous": "Anterior",
+    "next": "Próxima",
+    "true": "Sim",
+    "false": "Não",
+    "type": {
+      "string": "Texto",
+      "number": "Número",
+      "integer": "Número inteiro",
+      "boolean": "Sim ou não",
+      "date": "Data",
+      "date-time": "Data e hora",
+      "list": "Lista de textos"
+    },
+    "schema": {
+      "column": "Coluna",
+      "type": "Tipo",
+      "required": "Obrigatória",
+      "default": "Padrão",
+      "description": "Descrição",
+      "key": "chave",
+      "yes": "Sim",
+      "no": "Não"
+    },
+    "delete": "Apagar tabela",
+    "deleteTitle": "Apagar esta tabela?",
+    "deleteHolds_one": "Ela tem {{count}} linha.",
+    "deleteHolds_other": "Ela tem {{count}} linhas.",
+    "deleteConsequences": "A tabela e suas linhas saem de uma vez e para sempre, e toda nota que a mostra vai dizer que ela não existe. Nada a traz de volta.",
+    "deleteUnderstood": "Entendo que as linhas são apagadas de vez",
+    "deleteConfirm": "Apagar de vez",
+    "deleting": "Apagando…",
+    "carry": {
+      "heading": "Tabelas",
+      "rows": "Com as linhas",
+      "schema": "Só o schema",
+      "none": "Fora",
+      "publicHint": "As linhas que vão ficam públicas quando o modelo é publicado na comunidade.",
+      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}."
+    }
+  },
   "graph": {
     "heading": "Grafo do caderno",
     "navLabel": "Grafo do caderno",

@@ -182,6 +182,16 @@ export function PaperclipIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** A Table of a notebook, in its menu (#366). */
+export function TableIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18M3 15h18M9 10v10" />
+    </svg>
+  );
+}
+
 /** A file, on the card of the one an import read (#205). */
 export function FileIcon(props: SVGProps<SVGSVGElement>) {
   return (

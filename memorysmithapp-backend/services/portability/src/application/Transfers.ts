@@ -7,6 +7,7 @@
  * seconds of the API. What the interface polls is the record.
  */
 
+import type { TableChoice } from '../domain/NotebookDocumentBuilder.js';
 import {
   DomainError,
   err,
@@ -59,6 +60,11 @@ export interface TransferWork {
    * chooses now as an import already did (RN-PRT-017, RN-PRT-024).
    */
   readonly selection?: ImportSelection | null | undefined;
+  /**
+   * What an export carries of each table, by name, whatever the selection is
+   * (#366, RN-PRT-049). Absent is every table with its rows.
+   */
+  readonly tables?: readonly TableChoice[] | undefined;
   readonly uploadKey?: string | undefined;
   readonly name?: string | undefined;
   /**
@@ -118,6 +124,8 @@ export class StartExport {
      * storage of the plan (RN-SUB-021).
      */
     selection?: ImportSelection | null;
+    /** What it carries of each table (#366, RN-PRT-049); absent is every table with its rows. */
+    tables?: readonly TableChoice[] | undefined;
   }): Promise<Result<Transfer, DomainError>> {
     const brief = await this.notebooks.brief(input.notebookId);
     if (!brief) return err(DomainError.notFound('Notebook not found'));
@@ -154,6 +162,7 @@ export class StartExport {
       kind: 'export',
       notebookId: input.notebookId,
       selection: input.selection ?? null,
+      ...(input.tables ? { tables: input.tables } : {}),
       ...(brief.sourceSubscriptionId ? { sourceSubscriptionId: brief.sourceSubscriptionId } : {}),
     });
     return ok(transfer);
@@ -474,6 +483,7 @@ export class RunExport {
         notebookId: work.notebookId ?? '',
         now: Instant.now(),
         selection: work.selection ?? null,
+        ...(work.tables ? { tables: work.tables } : {}),
         report,
         ...(work.modelVersion ? { modelVersion: true } : {}),
       });

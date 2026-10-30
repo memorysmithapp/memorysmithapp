@@ -546,6 +546,64 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
   });
 
+  test('[page:/notebooks/:notebookId/tables] lists the tables of a notebook, opens one on its rows and its schema, and deletes it (#366)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+    appLocale,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `gastos-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name,
+      description: 'Os gastos da casa',
+      schema: {
+        type: 'object',
+        properties: {
+          data: { type: 'string', format: 'date', description: 'Quando foi pago' },
+          valor: { type: 'number' },
+        },
+        required: ['data'],
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(name)}/rows`, {
+      rows: [
+        { data: '2026-10-29', valor: 1250.75 },
+        { data: '2026-10-01', valor: 30 },
+      ],
+    });
+
+    await app.goto(notebook.page('/attachments'));
+    // The entry sits right below the attachments in the navigation.
+    const nav = app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row');
+    const labels = (await nav.allInnerTexts()).map((label) => label.trim());
+    expect(labels.indexOf(words.tables)).toBe(labels.indexOf(words.attachments) + 1);
+    await nav.filter({ hasText: words.tables }).click();
+    await expect(app).toHaveURL(notebook.page('/tables'));
+
+    await app.locator('.table-row', { hasText: name }).click();
+    const grid = app.locator('table.data-table');
+    // A value in the reader's language, and a sort by clicking the column.
+    await expect(grid).toContainText(appLocale === 'pt_BR' ? '1.250,75' : '1,250.75');
+    await grid.getByRole('button', { name: 'valor' }).click();
+    await expect(grid.locator('tbody tr').first()).not.toContainText(
+      appLocale === 'pt_BR' ? '1.250,75' : '1,250.75',
+    );
+    await app.getByRole('tab', { name: words.tableSchema }).click();
+    await expect(app.locator('table.schema-table')).toContainText('Quando foi pago');
+    await app.screenshot({
+      path: test.info().outputPath(`tables-${appLocale}.png`),
+      fullPage: true,
+    });
+
+    await app.getByRole('button', { name: words.deleteTable }).click();
+    const dialog = app.getByRole('dialog');
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: words.deleteForGood }).click();
+    await expect(app.locator('.table-row', { hasText: name })).toHaveCount(0);
+  });
+
   test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
     app,
     owner,

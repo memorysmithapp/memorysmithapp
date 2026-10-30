@@ -66,6 +66,12 @@ export const exportRequestSchema = z.object({
    * of the plan (RN-SUB-021).
    */
   selection: transferSelectionSchema.nullish(),
+  /**
+   * What the archive carries of each table, by name, whatever the selection
+   * is; a table not named is left out (#366, RN-PRT-049). Absent is every
+   * table with its rows.
+   */
+  tables: z.array(z.object({ name: z.string().min(1).max(64), rows: z.boolean() })).optional(),
 });
 
 /**

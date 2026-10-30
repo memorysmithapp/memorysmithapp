@@ -118,9 +118,12 @@ export function TransferDialogs({
   // an answer and the common case is one click.
   const chosen = notebookId || (choices[0]?.id ?? '');
 
-  async function begin(carrying: Chosen | null): Promise<void> {
+  async function begin(
+    carrying: Chosen | null,
+    tables?: Array<{ name: string; rows: boolean }>,
+  ): Promise<void> {
     if (!chosen) return;
-    await startExport(chosen, carrying === null ? null : selectionOf(carrying));
+    await startExport(chosen, carrying === null ? null : selectionOf(carrying), tables);
     refresh();
     // The job is running; where it is watched is Transfers (#160).
     onClose();
@@ -133,7 +136,7 @@ export function TransferDialogs({
         notebooks={choices}
         notebookId={chosen}
         onChooseNotebook={setNotebookId}
-        onConfirm={(carrying) => void begin(carrying)}
+        onConfirm={(carrying, tables) => void begin(carrying, tables)}
         onClose={onClose}
       />
       <ImportDialog open={starting === 'import'} onClose={onClose} exportId={exportId} />
