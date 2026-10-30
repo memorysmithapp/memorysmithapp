@@ -17,6 +17,7 @@ const MODEL_WORDS: Record<
     readonly objective: string;
     readonly newNotebook: string;
     readonly newModel: string;
+    readonly modelItem: string;
     readonly name: string;
     readonly notAModel: string;
     readonly addParameter: string;
@@ -37,6 +38,7 @@ const MODEL_WORDS: Record<
     objective: 'Objective',
     newNotebook: 'New notebook',
     newModel: 'New notebook model',
+    modelItem: 'Model',
     name: 'Name',
     notAModel: 'This notebook is not a model.',
     addParameter: 'Add a parameter',
@@ -56,6 +58,7 @@ const MODEL_WORDS: Record<
     objective: 'Objetivo',
     newNotebook: 'Novo caderno',
     newModel: 'Novo Modelo de caderno',
+    modelItem: 'Modelo de caderno',
     name: 'Nome',
     notAModel: 'Este caderno não é um Modelo de caderno.',
     addParameter: 'Adicionar um parâmetro',
@@ -100,7 +103,7 @@ test.describe('notebook models', () => {
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 60_000 });
     // First of the menu, with no reload, and it is where the model is kept.
     const item = app.locator('.notebook-nav a').first();
-    await expect(item).toHaveText(words.newModel.replace(/^\S+\s/, ''), { ignoreCase: true });
+    await expect(item).toHaveText(words.modelItem);
     await item.click();
     await expect(app.getByLabel(words.objective, { exact: true })).toBeVisible();
 
