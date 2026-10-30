@@ -74,6 +74,18 @@ export const tableQueryRequestSchema = z.object({
   sort: z.array(rowOrderSchema).max(5).default([]),
   page: z.number().int().positive().default(1),
   pageSize: z.number().int().positive().max(100).nullable().default(null),
+  /**
+   * The rows added up (#368): measures as `count()`, `sum(column)`,
+   * `avg(column)`, `min(column)` and `max(column)`, over the whole filter or
+   * by `group`, a column or a period of a date column, `date:month`.
+   */
+  aggregate: z
+    .object({
+      group: z.string().min(1).nullable().optional(),
+      measures: z.array(z.string().min(1)).min(1).max(6),
+    })
+    .nullable()
+    .optional(),
 });
 
 /** A row as an answer carries it: values by column name. */
@@ -88,6 +100,16 @@ export const tablePageSchema = z.object({
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   pageSize: z.number().int().positive(),
+  /** The groups an aggregate asked for, each value in the order of the measures. */
+  groups: z
+    .array(
+      z.object({
+        key: z.string().nullable(),
+        values: z.array(z.union([z.number(), z.string(), z.null()])),
+      }),
+    )
+    .nullable()
+    .optional(),
 });
 
 /** How a call names a row it changes or deletes: its identifier, or its key. */

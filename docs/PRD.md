@@ -254,6 +254,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-075 | Files are limited to a closed list of image, PDF, audio, video, Office and CSV types, checked against the bytes, and served from `files.memorysmith.app`, never the product's origin. | |
 | RN-KNW-076 | A table imports its rows from a CSV or an Excel file the notebook keeps, the first line its header and each header one of its columns; a CSV in pt-BR is read with its semicolons, decimal commas and day-first dates; one line that does not fit refuses the whole file, naming it, before any row is written. | |
 | RN-KNW-077 | The interface offers, in a notebook's menu below the attachments, its Tables: each with its description, columns and rows, open on its rows page by page, sortable by a column for the reader alone, and on its schema; whoever maintains the notebook deletes a table there, after saying how many rows go. | |
+| RN-KNW-078 | The rows a filter keeps are added up on the server by count, sum, average, minimum and maximum, over the whole filter or by a column or a period of a date column — day, week, month, quarter or year — a sum exact in decimals, in at most 500 groups. | |
 
 ### Discovery
 

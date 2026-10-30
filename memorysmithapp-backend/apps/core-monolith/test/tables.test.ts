@@ -606,3 +606,51 @@ describe('the tables of a notebook in a transfer (RN-PRT-049)', () => {
     expect((await query(notebookId, 'expenses')).total).toBe(1);
   });
 });
+
+describe('the rows of a table, added up (#368)', () => {
+  it('sums exactly, counts and averages, over the filter and by group or period', async () => {
+    const notebookId = await seedNotebook();
+    await createExpenses(notebookId);
+    await call(rows(notebookId, 'expenses'), {
+      method: 'POST',
+      body: {
+        rows: [
+          { date: '2026-09-30', description: 'Rent', amount: 2000, status: 'paid' },
+          { date: '2026-10-01', description: 'Market', amount: 0.1 },
+          { date: '2026-10-15', description: 'Pharmacy', amount: 0.2, status: 'paid' },
+          { date: '2026-10-31', description: 'Gym', amount: 99, status: 'cancelled' },
+        ],
+      },
+    });
+
+    const whole = await query(notebookId, 'expenses', {
+      where: '-status:cancelled',
+      aggregate: { measures: ['sum(amount)', 'count()', 'max(date)'] },
+    });
+    // 2000 + 0.1 + 0.2 is 2000.3, and never 2000.3000000000002.
+    expect(whole.groups).toEqual([{ key: null, values: [2000.3, 3, '2026-10-15'] }]);
+
+    const monthly = await query(notebookId, 'expenses', {
+      aggregate: { group: 'date:month', measures: ['sum(amount)', 'avg(amount)'] },
+    });
+    expect(monthly.groups).toEqual([
+      { key: '2026-09', values: [2000, 2000] },
+      { key: '2026-10', values: [99.3, 33.1] },
+    ]);
+
+    const byStatus = await query(notebookId, 'expenses', {
+      aggregate: { group: 'status', measures: ['count()'] },
+    });
+    expect(byStatus.groups?.map((group) => [group.key, group.values[0]])).toEqual([
+      ['cancelled', 1],
+      ['paid', 2],
+      ['pending', 1],
+    ]);
+
+    const refused = await call(`/knowledge/notebooks/${notebookId}/tables/expenses/query`, {
+      method: 'POST',
+      body: { aggregate: { measures: ['sum(description)'] } },
+    });
+    expect(refused.status).toBe(400);
+  });
+});

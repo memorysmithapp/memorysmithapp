@@ -256,9 +256,10 @@ export function registerTableRoutes<R extends TableRequest>(
       sort: body.value.sort,
       page: body.value.page,
       pageSize: body.value.pageSize,
+      aggregate: body.value.aggregate ?? null,
     });
     if (!answered.ok) return fail(c, answered.error);
-    const { table, page } = answered.value;
+    const { table, page, groups } = answered.value;
     const view = await useCases
       .getTable(request)
       .execute({ ctx: request.ctx, notebookId: notebookId.value, table: table.id.value });
@@ -268,6 +269,7 @@ export function registerTableRoutes<R extends TableRequest>(
       total: page.total,
       page: page.page,
       pageSize: page.pageSize,
+      ...(groups ? { groups } : {}),
     });
   });
 

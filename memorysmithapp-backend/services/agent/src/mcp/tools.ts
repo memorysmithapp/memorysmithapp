@@ -1289,6 +1289,9 @@ export class McpToolAdapter {
               ...(Array.isArray(args['sort']) ? { sort: args['sort'] as never } : {}),
               ...(typeof page === 'number' ? { page } : {}),
               ...(typeof pageSize === 'number' ? { pageSize } : {}),
+              ...(typeof args['aggregate'] === 'object' && args['aggregate'] !== null
+                ? { aggregate: args['aggregate'] as never }
+                : {}),
             },
           ),
         );

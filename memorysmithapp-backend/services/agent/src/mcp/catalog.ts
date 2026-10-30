@@ -992,7 +992,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '`date:>=2026-10-01`, `-status:cancelled`, `a OR b`, and a bare word looks in every column ' +
       'that holds text, with case and accents ignored. A column the table does not have is ' +
       'refused, naming it. `sort` orders by up to five columns; pages hold up to 100 rows. ' +
-      'This is how an agent reads the data a note shows: read_note returns the query as written.',
+      'This is how an agent reads the data a note shows: read_note returns the query as written. ' +
+      '`aggregate` adds the rows the filter keeps up: { "group": "date:month", "measures": ' +
+      '["sum(amount)", "count()"] } answers `groups`, each with its key and the value of each ' +
+      'measure; a sum is exact. Group by a column or by a period of a date (day, week, month, ' +
+      'quarter, year).',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -1012,6 +1016,17 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         },
         page: { type: 'integer', minimum: 1, description: 'The page, from 1.' },
         pageSize: { type: 'integer', minimum: 1, maximum: 100, description: 'Rows per page; 25.' },
+        aggregate: {
+          type: 'object',
+          properties: {
+            group: { type: 'string', description: 'A column, or a period of a date: date:month.' },
+            measures: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6 },
+          },
+          required: ['measures'],
+          description:
+            'Adds the filtered rows up instead of listing them: measures count(), sum(col), ' +
+            'avg(col), min(col), max(col), by group when given.',
+        },
       },
       ['notebook', 'table'],
     ),

@@ -36,6 +36,7 @@ import {
   type RowPage,
 } from '../domain/table/RowQuery.js';
 import { Table, type TableChange } from '../domain/table/Table.js';
+import { aggregate, type AggregateGroup, readAggregate } from '../domain/table/RowAggregate.js';
 import {
   cellOf,
   type CellValue,
@@ -289,7 +290,12 @@ export class QueryTable {
     sort: readonly RowOrder[];
     page: number;
     pageSize: number | null;
-  }): Promise<Result<{ table: Table; page: RowPage }, DomainError>> {
+    /** Add the rows up instead of, or beside, reading them (#368). */
+    aggregate?:
+      { group?: string | null | undefined; measures: readonly string[] } | null | undefined;
+  }): Promise<
+    Result<{ table: Table; page: RowPage; groups: AggregateGroup[] | null }, DomainError>
+  > {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'read');
     if (!notebook.ok) return notebook;
     const table = await resolveTable(this.deps, input.notebookId, input.table);
@@ -300,9 +306,19 @@ export class QueryTable {
     const order = checkOrder(table.value.columns, input.sort);
     if (!order.ok) return order;
 
+    const asked = input.aggregate ? readAggregate(table.value.columns, input.aggregate) : null;
+    if (asked && !asked.ok) return asked;
+
     const rows = await this.deps.tables.rows(table.value);
+    let groups: AggregateGroup[] | null = null;
+    if (asked) {
+      const counted = aggregate(filter.value ? rows.filter(filter.value) : rows, asked.value);
+      if (!counted.ok) return counted;
+      groups = counted.value;
+    }
     return ok({
       table: table.value,
+      groups,
       page: pageOf(table.value.columns, rows, filter.value, {
         where: input.where,
         sort: input.sort,
