@@ -108,6 +108,10 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'RowsInserted',
   'RowsUpdated',
   'RowsDeleted',
+  // A Dashboard of a notebook (#368): its definition, kept whole each time.
+  'DashboardCreated',
+  'DashboardChanged',
+  'DashboardDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -146,7 +150,9 @@ export type EventSubject =
   // What a notebook keeps beside its notes: bytes with a name (#166).
   | 'FILE'
   // A schema and its rows, kept beside the notes (#366).
-  | 'TABLE';
+  | 'TABLE'
+  // A layout of components drawn from the tables (#368).
+  | 'DASHBOARD';
 
 export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** ULID: orders the outbox and the audit sort key by generation time. */

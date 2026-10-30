@@ -49,7 +49,7 @@ Code comments cite them by code. A principle that stopped holding keeps its code
 
 ## 5. Ubiquitous language
 
-The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_ and _Table_ is _tabela_, the ordinary words, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
+The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, _Table_ is _tabela_ and _Dashboard_ is _painel_, the ordinary words, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
 
 | Term                    | Meaning                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -65,6 +65,7 @@ The terms as the code names them. In the `pt_BR` locale, and only there, four ar
 | **Template**            | The suggested shape of a folder's notes; zero or one per folder, never enforced                                   |
 | **Notebook Context**    | The Guidance and the annotated tree, composed for an agent on every call, never stored                            |
 | **Kept file**           | Bytes a notebook keeps, with a name, description, type, tags and path; a note shows it by its name                |
+| **Dashboard**           | A layout of components a notebook keeps, drawn from its tables each time it is read; in pt_BR, *Painel*          |
 | **Table**               | A schema and the rows a notebook keeps, written by an agent and read through a filter, an order and a page        |
 | **Notebook model**      | A notebook declared as a model, from which independent notebooks are created; distinct from a Template            |
 | **Community catalog**   | Where the models their owners published are found, read by anybody and created from by whoever signs in           |
@@ -255,6 +256,10 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-KNW-076 | A table imports its rows from a CSV or an Excel file the notebook keeps, the first line its header and each header one of its columns; a CSV in pt-BR is read with its semicolons, decimal commas and day-first dates; one line that does not fit refuses the whole file, naming it, before any row is written. | |
 | RN-KNW-077 | The interface offers, in a notebook's menu below the attachments, its Tables: each with its description, columns and rows, open on its rows page by page, sortable by a column for the reader alone, and on its schema; whoever maintains the notebook deletes a table there, after saying how many rows go. | |
 | RN-KNW-078 | The rows a filter keeps are added up on the server by count, sum, average, minimum and maximum, over the whole filter or by a column or a period of a date column — day, week, month, quarter or year — a sum exact in decimals, in at most 500 groups. | |
+| RN-KNW-079 | A notebook keeps up to 50 Dashboards, each with a name unique among them regardless of case, a description and a definition: a layout, period filters and up to 24 components drawing from up to 10 of its tables; a dashboard keeps no data and goes with its notebook. | |
+| RN-KNW-080 | A dashboard's definition is checked whole before it is kept: every component names a table of the notebook and only the columns, measures and groupings that table answers, and what is refused is named; a component keeps its table by identifier, so renaming the table breaks nothing. | |
+| RN-KNW-081 | Reading a dashboard computes every component from its tables at that moment, each table read once, under the periods chosen; a table deleted or a filter that no longer fits is said in place of its component, and the others are drawn. | |
+| RN-KNW-082 | A share reaches a notebook's dashboards by its profile: a Reader reads them, and a Notebook editor also creates, changes and deletes them; a dashboard is changed whole, and deleting one is definitive. | |
 
 ### Discovery
 
@@ -487,5 +492,10 @@ Declared so they become tests.
 | Size of a row                   | 4 KB                                                        |
 | Columns in a table              | 50                                                          |
 | Rows written in one call        | 50                                                          |
+| Dashboards in a notebook        | 50                                                          |
+| Components in a dashboard       | 24                                                          |
+| Tables a dashboard draws from   | 10                                                          |
+| Size of a dashboard definition  | 64 KB                                                       |
+| Shortest automatic refresh      | 60 s                                                        |
 
 **An action button** that carries an icon shows the icon and its word on a wide screen, and from 860 px down the icon alone, the word kept as its accessible name. The buttons around a note (Show and Copy Markdown, Edit and Read) show the icon alone at every width. The confirmations and cancels of a dialog or of an in-place question carry no icon and keep their word alone at every width, because an icon alone on a phone makes an irreversible answer easier to tap without reading. A button that spans the width of the screen on a phone keeps its word beside its icon there too, because the word is hidden to save room and that button is not short of it.

@@ -24,12 +24,14 @@ import type {
   ConcurrencyError,
   Result,
   TableId,
+  DashboardId,
 } from '@memorysmithapp/kernel';
 import type { Notebook } from '../notebook/Notebook.js';
 import type { Note } from '../note/Note.js';
 import type { NotebookFile } from '../file/NotebookFile.js';
 import type { Table } from '../table/Table.js';
 import type { Row } from '../table/Row.js';
+import type { Dashboard } from '../dashboard/Dashboard.js';
 import type { ContentSlot } from '../content-slot/ContentSlot.js';
 import type { Guidance } from '../content-slot/Guidance.js';
 import type { Template } from '../content-slot/Template.js';
@@ -295,6 +297,18 @@ export interface TableRepository {
    * the locked table, so a change made meanwhile refuses the move.
    */
   replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>>;
+}
+
+/**
+ * The Dashboards of a notebook (#368), each one item beside the guard of its
+ * name. `save` writes a dashboard as created or changed, and removes it, its
+ * name with it, once it is deleted: a dashboard holds no data to purge.
+ */
+export interface DashboardRepository {
+  findById(notebook: NotebookId, dashboard: DashboardId): Promise<Dashboard | null>;
+  findByName(notebook: NotebookId, name: string): Promise<Dashboard | null>;
+  list(notebook: NotebookId): Promise<Dashboard[]>;
+  save(dashboard: Dashboard): Promise<Result<void, DomainError>>;
 }
 
 /** A cell of a sheet as a file holds it: text, a number, true or false, a date as ISO, or nothing. */

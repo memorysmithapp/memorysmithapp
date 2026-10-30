@@ -526,6 +526,9 @@ export class ContentPurge {
   private async purgeTree(context: Context): Promise<void> {
     const keys: string[] = [];
     for (const prefix of [
+      // The dashboards hold no data of their own, so they go with the tree (#368).
+      'DASH#',
+      'DNAME#',
       'FNAME#',
       'FOLDER#',
       'FSTAT',

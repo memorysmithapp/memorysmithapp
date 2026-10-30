@@ -54,6 +54,7 @@ import { S3ContentStore } from '@memorysmithapp/svc-knowledge/adapters/content';
 import { DynamoFileRepository } from '@memorysmithapp/svc-knowledge/adapters/files';
 import { DynamoTableRepository } from '@memorysmithapp/svc-knowledge/adapters/tables';
 import { SpreadsheetReader } from '@memorysmithapp/svc-knowledge/adapters/sheets';
+import { DynamoDashboardRepository } from '@memorysmithapp/svc-knowledge/adapters/dashboards';
 import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
 import type { FileTypes } from '@memorysmithapp/svc-knowledge/domain';
 import { DynamoStorageMeter } from '@memorysmithapp/svc-knowledge/adapters/storage';
@@ -222,6 +223,8 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     tables: new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
     // What reads the rows of a CSV or an Excel file the notebook keeps.
     sheets: SPREADSHEETS,
+    // The dashboards drawn from the tables (#368).
+    dashboards: new DynamoDashboardRepository(context, infra.db, infra.knowledgeTable),
     storage: { current: () => readStorageBudget(infra, context) },
     // The one layer allowed to know which version of the specification the
     // product implements. The Notebook Context declares these names to the agent

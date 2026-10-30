@@ -36,6 +36,8 @@ export const eventSubjectSchema = z.enum([
   'FILE',
   // A schema and its rows, kept beside the notes (#366).
   'TABLE',
+  // A layout of components drawn from the tables (#368).
+  'DASHBOARD',
 ]);
 
 export const domainEventTypeSchema = z.enum([
@@ -103,6 +105,10 @@ export const domainEventTypeSchema = z.enum([
   'RowsInserted',
   'RowsUpdated',
   'RowsDeleted',
+  // A Dashboard of a notebook (#368).
+  'DashboardCreated',
+  'DashboardChanged',
+  'DashboardDeleted',
   'NoteCreated',
   'NoteUpdated',
   'NoteReordered',
@@ -483,6 +489,13 @@ export const rowsChangedPayload = z.object({
   rows: z.array(z.object({ rowId: z.string().min(1), columns: z.array(z.string()) })),
 });
 
+/** A Dashboard of a notebook (#368): named, and never its definition, which is data. */
+export const dashboardPayload = z.object({
+  notebookId: ulidSchema,
+  dashboardId: ulidSchema,
+  name: z.string().min(1),
+});
+
 export const noteCreatedPayload = z.object({
   notebookId: ulidSchema,
   noteId: ulidSchema,
@@ -609,6 +622,9 @@ export const eventPayloadSchemas = {
   RowsInserted: rowsChangedPayload,
   RowsUpdated: rowsChangedPayload,
   RowsDeleted: rowsChangedPayload,
+  DashboardCreated: dashboardPayload,
+  DashboardChanged: dashboardPayload,
+  DashboardDeleted: dashboardPayload,
   NoteCreated: noteCreatedPayload,
   NoteUpdated: noteUpdatedPayload,
   NoteReordered: noteReorderedPayload,

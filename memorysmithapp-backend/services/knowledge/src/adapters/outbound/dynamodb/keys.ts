@@ -96,6 +96,18 @@ export class KnowledgeKeys {
     return `ROW#${String(generation).padStart(6, '0')}#`;
   }
 
+  /**
+   * A Dashboard of the notebook (#368) and the guard of its name, after `META`
+   * like a table, so the tree never reads them.
+   */
+  dashboard(dashboardId: { value: string } | string): string {
+    return `DASH#${typeof dashboardId === 'string' ? dashboardId : dashboardId.value}`;
+  }
+
+  dashboardNameGuard(name: string): string {
+    return `DNAME#${sha256Hex(name.normalize('NFC').toLowerCase())}`;
+  }
+
   /** What the relay counted of a table, in the partition of its rows (ADR-010). */
   tableStat(): string {
     return 'TSTAT';

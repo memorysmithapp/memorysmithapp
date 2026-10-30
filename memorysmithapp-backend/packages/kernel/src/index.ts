@@ -14,6 +14,7 @@ export {
   NoteId,
   FileId,
   TableId,
+  DashboardId,
   ContentId,
   UserId,
 } from './ids.js';

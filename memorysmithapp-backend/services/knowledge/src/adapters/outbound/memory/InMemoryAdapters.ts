@@ -26,8 +26,10 @@ import {
   type SubscriptionContext,
   type NotebookId,
   type TableId,
+  type DashboardId,
 } from '@memorysmithapp/kernel';
 import { Table } from '../../../domain/table/Table.js';
+import { Dashboard } from '../../../domain/dashboard/Dashboard.js';
 import { rowBytes, type Row } from '../../../domain/table/Row.js';
 import { createHash } from 'node:crypto';
 import type { Note } from '../../../domain/note/Note.js';
@@ -38,6 +40,7 @@ import type { Template } from '../../../domain/content-slot/Template.js';
 import type { NoteOrder } from '../../../domain/services/NotePlacement.js';
 import type {
   RowWrite,
+  DashboardRepository,
   TableRepository,
   TableUsage,
   FileDisposition,
@@ -833,6 +836,68 @@ export class InMemoryTableRepository implements TableRepository {
     for (const key of [...this.rowsByTable.keys()]) {
       if (key.startsWith(prefix) && key !== this.rowsKey(next)) this.rowsByTable.delete(key);
     }
+    return { ok: true, value: undefined };
+  }
+}
+
+/** The Dashboards of a notebook, in memory (#368), kept as saved and handed back as copies. */
+export class InMemoryDashboardRepository implements DashboardRepository {
+  private readonly dashboards = new Map<string, Dashboard>();
+
+  constructor(
+    private readonly sub: SubscriptionContext,
+    private readonly events: EventPublisher,
+  ) {}
+
+  private key(notebook: NotebookId, id: string): string {
+    return `${notebookKey(this.sub, notebook)}#DASH#${id}`;
+  }
+
+  private copy(dashboard: Dashboard, version = dashboard.version): Dashboard {
+    return Dashboard.rehydrate({
+      id: dashboard.id,
+      subscriptionId: dashboard.subscriptionId,
+      notebookId: dashboard.notebookId,
+      name: dashboard.name,
+      description: dashboard.description,
+      definition: dashboard.definition,
+      createdBy: dashboard.createdBy,
+      updatedBy: dashboard.updatedBy,
+      version,
+    });
+  }
+
+  async findById(notebook: NotebookId, dashboard: DashboardId): Promise<Dashboard | null> {
+    const found = this.dashboards.get(this.key(notebook, dashboard.value));
+    return found ? this.copy(found) : null;
+  }
+
+  async findByName(notebook: NotebookId, name: string): Promise<Dashboard | null> {
+    const wanted = name.normalize('NFC').trim().toLowerCase();
+    return (await this.list(notebook)).find((each) => each.name.toLowerCase() === wanted) ?? null;
+  }
+
+  async list(notebook: NotebookId): Promise<Dashboard[]> {
+    const prefix = `${notebookKey(this.sub, notebook)}#DASH#`;
+    return [...this.dashboards.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, each]) => this.copy(each))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async save(dashboard: Dashboard): Promise<Result<void, DomainError>> {
+    const key = this.key(dashboard.notebookId, dashboard.id.value);
+    const held = this.dashboards.get(key);
+    if ((held?.version ?? 0) !== dashboard.version) {
+      return {
+        ok: false,
+        error: DomainError.conflict('The dashboard changed while this write was in flight'),
+      };
+    }
+    const events = dashboard.pullEvents();
+    if (dashboard.isDeleted) this.dashboards.delete(key);
+    else this.dashboards.set(key, this.copy(dashboard, dashboard.nextVersion()));
+    await this.events.publish(events);
     return { ok: true, value: undefined };
   }
 }

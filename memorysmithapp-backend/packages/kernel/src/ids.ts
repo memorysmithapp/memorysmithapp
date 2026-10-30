@@ -115,6 +115,17 @@ export class TableId extends UlidIdentifier {
   }
 }
 
+/** A Dashboard of a notebook: a layout and components drawn from its Tables (#368). */
+export class DashboardId extends UlidIdentifier {
+  private readonly __dashboardId!: void;
+  static create(raw: string): Result<DashboardId, DomainError> {
+    return parseUlid(raw, 'DashboardId', (value) => new DashboardId(value));
+  }
+  static generate(): DashboardId {
+    return new DashboardId(ulid());
+  }
+}
+
 /**
  * Addresses a Content Slot. Stored explicitly and never derived from a NoteId:
  * one day the same slot may be pointed at by another Content Role (INV-04).

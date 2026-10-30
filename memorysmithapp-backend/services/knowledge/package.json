@@ -44,6 +44,8 @@
     "./application/files": "./src/application/files.ts",
     "./application/tables": "./src/application/tables.ts",
     "./application/table-imports": "./src/application/table-imports.ts",
+    "./application/dashboards": "./src/application/dashboards.ts",
+    "./adapters/dashboards": "./src/adapters/outbound/dynamodb/DynamoDashboardRepository.ts",
     "./adapters/sheets": "./src/adapters/outbound/sheets/SpreadsheetReader.ts",
     "./adapters/tables": "./src/adapters/outbound/dynamodb/DynamoTableRepository.ts",
     "./application/usage": "./src/application/usage.ts",

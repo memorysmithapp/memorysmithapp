@@ -88,6 +88,7 @@ import {
   InMemoryFileRepository,
   InMemoryFileStore,
   InMemoryTableRepository,
+  InMemoryDashboardRepository,
   InMemoryStorageBudget,
   InMemoryStorageUsage,
   InMemoryDatabase,
@@ -147,6 +148,14 @@ import {
   UpdateRows,
 } from '@memorysmithapp/svc-knowledge/application/tables';
 import { ImportTableRows } from '@memorysmithapp/svc-knowledge/application/table-imports';
+import {
+  ListDashboards,
+  CreateDashboard,
+  GetDashboard,
+  UpdateDashboard,
+  DeleteDashboard,
+  ReadDashboardData,
+} from '@memorysmithapp/svc-knowledge/application/dashboards';
 import { SpreadsheetReader } from '@memorysmithapp/svc-knowledge/adapters/sheets';
 import { InMemoryAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
 import type {
@@ -380,6 +389,15 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     return made;
   };
 
+  const dashboardRepositories = new Map<string, InMemoryDashboardRepository>();
+  const dashboardRepositoryOf = (context: SubscriptionContext): InMemoryDashboardRepository => {
+    const held = dashboardRepositories.get(context.subscriptionId.value);
+    if (held) return held;
+    const made = new InMemoryDashboardRepository(context, events);
+    dashboardRepositories.set(context.subscriptionId.value, made);
+    return made;
+  };
+
   const knowledgeRepos = (context: SubscriptionContext) => ({
     notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
     notes: new InMemoryNoteRepository(context, knowledgeDb, events),
@@ -395,6 +413,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     // The Tables of a notebook and their rows (#366), kept between calls too.
     tables: tableRepositoryOf(context),
     sheets: new SpreadsheetReader(),
+    dashboards: dashboardRepositoryOf(context),
     storage,
     // The same list production injects, from the same specification (RN-AGT-025).
     reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
@@ -568,6 +587,12 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     updateRows: (request) => new UpdateRows(knowledgeRepos(request.subscription)),
     deleteRows: (request) => new DeleteRows(knowledgeRepos(request.subscription)),
     importTableRows: (request) => new ImportTableRows(knowledgeRepos(request.subscription)),
+    listDashboards: (request) => new ListDashboards(knowledgeRepos(request.subscription)),
+    createDashboard: (request) => new CreateDashboard(knowledgeRepos(request.subscription)),
+    getDashboard: (request) => new GetDashboard(knowledgeRepos(request.subscription)),
+    updateDashboard: (request) => new UpdateDashboard(knowledgeRepos(request.subscription)),
+    deleteDashboard: (request) => new DeleteDashboard(knowledgeRepos(request.subscription)),
+    readDashboardData: (request) => new ReadDashboardData(knowledgeRepos(request.subscription)),
   };
 
   // Audit and Discovery, wired in memory. In production they are fed by the

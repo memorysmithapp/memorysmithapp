@@ -111,6 +111,14 @@ import {
   UpdateRows,
 } from '@memorysmithapp/svc-knowledge/application/tables';
 import { ImportTableRows } from '@memorysmithapp/svc-knowledge/application/table-imports';
+import {
+  ListDashboards,
+  CreateDashboard,
+  GetDashboard,
+  UpdateDashboard,
+  DeleteDashboard,
+  ReadDashboardData,
+} from '@memorysmithapp/svc-knowledge/application/dashboards';
 import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   GetNoteHistory,
@@ -492,6 +500,13 @@ const knowledgeUseCases: KnowledgeUseCases = {
   updateRows: (request) => new UpdateRows(buildKnowledge(infra, request.subscription)),
   deleteRows: (request) => new DeleteRows(buildKnowledge(infra, request.subscription)),
   importTableRows: (request) => new ImportTableRows(buildKnowledge(infra, request.subscription)),
+  listDashboards: (request) => new ListDashboards(buildKnowledge(infra, request.subscription)),
+  createDashboard: (request) => new CreateDashboard(buildKnowledge(infra, request.subscription)),
+  getDashboard: (request) => new GetDashboard(buildKnowledge(infra, request.subscription)),
+  updateDashboard: (request) => new UpdateDashboard(buildKnowledge(infra, request.subscription)),
+  deleteDashboard: (request) => new DeleteDashboard(buildKnowledge(infra, request.subscription)),
+  readDashboardData: (request) =>
+    new ReadDashboardData(buildKnowledge(infra, request.subscription)),
 };
 
 const auditUseCases: AuditUseCases = {

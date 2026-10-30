@@ -59,6 +59,7 @@ import type {
 import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
 import { NOTE_MESSAGE_MAX_LENGTH, noteContextSchema, ulidSchema } from '@memorysmithapp/contracts';
 import { registerTableRoutes, type TableUseCases } from './table-routes.js';
+import { registerDashboardRoutes, type DashboardUseCases } from './dashboard-routes.js';
 import {
   fileToDto,
   folderToDto,
@@ -84,7 +85,8 @@ export interface KnowledgeRequest {
   readonly subscriptionRole: Role;
 }
 
-export interface KnowledgeUseCases extends TableUseCases<KnowledgeRequest> {
+export interface KnowledgeUseCases
+  extends TableUseCases<KnowledgeRequest>, DashboardUseCases<KnowledgeRequest> {
   readonly createNotebook: (request: KnowledgeRequest) => CreateNotebook;
   readonly listNotebooks: (request: KnowledgeRequest) => ListNotebooks;
   readonly getNotebook: (request: KnowledgeRequest) => GetNotebook;
@@ -879,6 +881,8 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
 
   // The Tables of a notebook (#366), beside its files.
   registerTableRoutes(app, useCases, fail);
+  // And its Dashboards, drawn from the tables (#368).
+  registerDashboardRoutes(app, useCases, fail);
 
   return app;
 }
