@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getNotebookFiles, getNotebookStructure, listTables } from '../../shared/api/source';
+import {
+  getNotebookFiles,
+  getNotebookStructure,
+  listDashboards,
+  listTables,
+} from '../../shared/api/source';
 import { TableChoices, tablesOf, type TableCarry } from './TableChoices';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
@@ -109,6 +114,11 @@ export function ExportChoice({
     enabled: open && notebookId !== '',
   });
   const tableNames = (tables.data ?? []).map((table) => table.name);
+  const dashboards = useQuery({
+    queryKey: queryKeys.notebookDashboards(notebookId),
+    queryFn: () => listDashboards(notebookId),
+    enabled: open && notebookId !== '',
+  });
 
   const tree =
     structure.data && files.data ? treeOfNotebook({ ...structure.data, files: files.data }) : null;
@@ -215,6 +225,7 @@ export function ExportChoice({
           tables={tables.data.map((table) => ({ name: table.name, rows: table.rows }))}
           carry={carry}
           onCarry={setCarry}
+          dashboards={dashboards.data ?? []}
         />
       ) : null}
     </TransferDialog>

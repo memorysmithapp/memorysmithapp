@@ -170,6 +170,16 @@ export const documentTableSchema = z.object({
   rows: z.array(z.record(z.string(), z.unknown())).max(10_000).optional(),
 });
 
+/**
+ * One Dashboard of the notebook (#368): its definition, each component naming
+ * its table by name. It goes only with every table it draws from.
+ */
+export const documentDashboardSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(500),
+  definition: z.record(z.string(), z.unknown()),
+});
+
 export const notebookDocumentSchema = z.object({
   /** The shape of this document. Read before anything else. */
   documentVersion: z.enum(READABLE_DOCUMENT_VERSIONS),
@@ -197,11 +207,14 @@ export const notebookDocumentSchema = z.object({
   files: z.array(documentFileSchema).optional(),
   /** The tables of the notebook, absent from every document written before `1.3`. */
   tables: z.array(documentTableSchema).optional(),
+  /** The dashboards whose tables it carries. */
+  dashboards: z.array(documentDashboardSchema).optional(),
 });
 
 export type NotebookDocument = z.infer<typeof notebookDocumentSchema>;
 export type DocumentFile = z.infer<typeof documentFileSchema>;
 export type DocumentTable = z.infer<typeof documentTableSchema>;
+export type DocumentDashboard = z.infer<typeof documentDashboardSchema>;
 export type DocumentHistory = z.infer<typeof documentHistorySchema>;
 export type DocumentHistoryEntry = z.infer<typeof documentHistoryEntrySchema>;
 export type DocumentFolder = z.infer<typeof documentFolderSchema>;

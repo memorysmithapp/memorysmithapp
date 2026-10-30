@@ -18,8 +18,9 @@ import type {
   NoteRepository,
   NotebookRepository,
   TableRepository,
+  DashboardRepository,
 } from '@memorysmithapp/svc-knowledge/domain';
-import { presentCell, tableSchema } from '@memorysmithapp/svc-knowledge/domain';
+import { presentCell, presentDefinition, tableSchema } from '@memorysmithapp/svc-knowledge/domain';
 import type { ExportSource } from '@memorysmithapp/svc-portability/application';
 import type { ExportInput } from '@memorysmithapp/svc-portability/domain';
 
@@ -61,6 +62,8 @@ interface KnowledgeSide {
   readonly fileStore: FileStore;
   /** The tables of the notebook and their rows, which travel with it (#366). */
   readonly tables: TableRepository;
+  /** Its dashboards, each naming its tables by name, which travel beside them (#368). */
+  readonly dashboards: DashboardRepository;
 }
 
 export class KnowledgeExportSource implements ExportSource {
@@ -90,6 +93,12 @@ export class KnowledgeExportSource implements ExportSource {
     const lastNumbers = await this.knowledge.numbers.lastIssued(parsed.value);
     const kept = await this.knowledge.files.list(parsed.value);
     const tables = await this.knowledge.tables.list(parsed.value);
+    const dashboards = await this.knowledge.dashboards.list(parsed.value);
+    const shapes = tables.map((table) => ({
+      tableId: table.id.value,
+      name: table.name,
+      columns: table.columns,
+    }));
     const rowsOf = await mapWithConcurrency(tables, READ_CONCURRENCY, (table) =>
       this.knowledge.tables.rows(table),
     );
@@ -166,6 +175,11 @@ export class KnowledgeExportSource implements ExportSource {
               .map((column) => [column.name, presentCell(column, row.values[column.id] as never)]),
           ),
         ),
+      })),
+      dashboards: dashboards.map((dashboard) => ({
+        name: dashboard.name,
+        description: dashboard.description,
+        definition: presentDefinition(dashboard.definition, shapes),
       })),
     };
   }

@@ -654,3 +654,69 @@ describe('the rows of a table, added up (#368)', () => {
     expect(refused.status).toBe(400);
   });
 });
+
+describe('the dashboards of a notebook in a transfer (RN-PRT-053)', () => {
+  const dashboardOver = (table: string) => ({
+    components: [{ type: 'kpi', source: { table, measure: 'count()' } }],
+  });
+  const transfer = async (notebookId: string, tables?: Array<{ name: string; rows: boolean }>) => {
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: tables ? { tables } : {},
+    });
+    const { transferId } = (await started.json()) as { transferId: string };
+    const copied = await call('/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+    });
+    const { uploadKey } = (await copied.json()) as { uploadKey: string };
+    const applied = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: { uploadKey, name: `De volta ${transferId.slice(-6)}` },
+    });
+    const job = ((await applied.json()) as { transferId: string }).transferId;
+    return (await (await call(`/portability/transfers/${job}`)).json()) as {
+      status: string;
+      notebookId: string;
+    };
+  };
+  const names = async (notebookId: string) =>
+    (
+      (await (await call(`/knowledge/notebooks/${notebookId}/dashboards`)).json()) as {
+        dashboards: Array<{ name: string }>;
+      }
+    ).dashboards.map((each) => each.name);
+
+  it('goes with its tables, and stays behind with a table left out', async () => {
+    const notebookId = await seedNotebook();
+    await createExpenses(notebookId);
+    await call(`/knowledge/notebooks/${notebookId}/dashboards`, {
+      method: 'POST',
+      body: { name: 'Gastos', definition: dashboardOver('expenses') },
+    });
+
+    const whole = await transfer(notebookId);
+    expect(whole.status).toBe('ready');
+    expect(await names(whole.notebookId)).toEqual(['Gastos']);
+
+    const schemaAlone = await transfer(notebookId, [{ name: 'expenses', rows: false }]);
+    expect(await names(schemaAlone.notebookId)).toEqual(['Gastos']);
+
+    const without = await transfer(notebookId, []);
+    expect(without.status).toBe('ready');
+    expect(await names(without.notebookId)).toEqual([]);
+  });
+
+  it('stays behind when its table is already gone, and the transfer still ends', async () => {
+    const notebookId = await seedNotebook();
+    await createExpenses(notebookId);
+    await call(`/knowledge/notebooks/${notebookId}/dashboards`, {
+      method: 'POST',
+      body: { name: 'Gastos', definition: dashboardOver('expenses') },
+    });
+    await call(`/knowledge/notebooks/${notebookId}/tables/expenses`, { method: 'DELETE' });
+    const job = await transfer(notebookId);
+    expect(job.status).toBe('ready');
+    expect(await names(job.notebookId)).toEqual([]);
+  });
+});

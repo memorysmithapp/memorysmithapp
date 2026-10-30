@@ -514,7 +514,8 @@
       "schema": "Só o schema",
       "none": "Fora",
       "publicHint": "As linhas que vão ficam públicas quando o modelo é publicado na comunidade.",
-      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}."
+      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}.",
+      "dashboardLeftOut": "O painel {{dashboard}} fica de fora, porque usa a tabela {{table}}."
     },
     "shownBy_one": "Aparece em {{count}} nota",
     "shownBy_other": "Aparece em {{count}} notas",

@@ -273,6 +273,10 @@ export function documentToDto(document: NotebookDocument): Record<string, unknow
       columns: Object.keys((table.schema['properties'] as Record<string, unknown>) ?? {}),
       rows: table.rows ? table.rows.length : null,
     })),
+    dashboards: (document.dashboards ?? []).map((dashboard) => ({
+      name: dashboard.name,
+      description: dashboard.description,
+    })),
   };
 }
 

@@ -48,6 +48,7 @@ import {
 import {
   type DocumentHistory,
   type NotebookDocument,
+  dashboardsCarried,
   tablesChosen,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
@@ -180,6 +181,14 @@ export interface NotebookWriter {
     notebookId: string;
     table: string;
     rows: ReadonlyArray<Record<string, unknown>>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
+  /** Creates one dashboard of the archive, once its tables are written (#368). */
+  createDashboard(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    definition: Record<string, unknown>;
     by: Authorship;
   }): Promise<Result<void, DomainError>>;
   /** Brings the counter of a folder up to the last number it had issued (RN-PRT-016). */
@@ -708,6 +717,19 @@ export class ImportNotebook {
         });
         if (!wrote.ok) return undo(wrote);
       }
+    }
+
+    // The dashboards last: each one is checked against the tables it draws
+    // from, and goes only when all of them came (#368, RN-PRT-053).
+    for (const dashboard of dashboardsCarried(document.dashboards ?? [], tables)) {
+      const created = await this.writer.createDashboard({
+        notebookId,
+        name: dashboard.name,
+        description: dashboard.description,
+        definition: dashboard.definition,
+        by,
+      });
+      if (!created.ok) return undo(created);
     }
 
     if (chosen.history && document.history && this.trail) {

@@ -1060,6 +1060,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
           keepFile: new KeepFile(knowledgeRepos(request.subscription)),
           createTable: new CreateTable(knowledgeRepos(request.subscription)),
           insertRows: new InsertRows(knowledgeRepos(request.subscription)),
+          createDashboard: new CreateDashboard(knowledgeRepos(request.subscription)),
           deleteNotebook: new DeleteNotebook(knowledgeRepos(request.subscription)),
         },
         request.ctx,

@@ -20,7 +20,11 @@ import {
   type ParameterReference,
   type Result,
 } from '@memorysmithapp/kernel';
-import type { DocumentTable, NotebookDocument } from './NotebookDocumentBuilder.js';
+import type {
+  DocumentDashboard,
+  DocumentTable,
+  NotebookDocument,
+} from './NotebookDocumentBuilder.js';
 import {
   isValueOf,
   type ParameterDeclaration,
@@ -209,6 +213,32 @@ export function fillDocument(document: NotebookDocument, values: FilledValues): 
     ...(document.tables
       ? { tables: document.tables.map((table) => fillTable(table, values)) }
       : {}),
+    // A dashboard's names follow the tables they point at (#368).
+    ...(document.dashboards
+      ? { dashboards: document.dashboards.map((dashboard) => fillDashboard(dashboard, values)) }
+      : {}),
+  };
+}
+
+function fillDashboard(dashboard: DocumentDashboard, values: FilledValues): DocumentDashboard {
+  const components = (dashboard.definition['components'] ?? []) as Array<Record<string, unknown>>;
+  return {
+    name: fillText(dashboard.name, values),
+    description: fillText(dashboard.description, values),
+    definition: {
+      ...dashboard.definition,
+      components: components.map((component) => {
+        const source = component['source'] as Record<string, unknown> | undefined;
+        const title = component['title'];
+        return {
+          ...component,
+          ...(typeof title === 'string' ? { title: fillText(title, values) } : {}),
+          ...(source && typeof source['table'] === 'string'
+            ? { source: { ...source, table: fillText(source['table'], values) } }
+            : {}),
+        };
+      }),
+    },
   };
 }
 
@@ -270,6 +300,10 @@ export function referenceReport(
   for (const note of document.notes) add(parameterReferences(note.body).map((each) => each.name));
   for (const table of document.tables ?? []) {
     for (const text of tableTexts(table)) add(textReferences(text).map((each) => each.name));
+  }
+  for (const dashboard of document.dashboards ?? []) {
+    add(textReferences(dashboard.name).map((each) => each.name));
+    add(textReferences(dashboard.description).map((each) => each.name));
   }
 
   const declared = new Set(declarations.map((each) => each.name));

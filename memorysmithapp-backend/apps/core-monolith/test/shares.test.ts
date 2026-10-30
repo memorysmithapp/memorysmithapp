@@ -686,3 +686,86 @@ describe('the profiles of a share (#347)', () => {
     expect((await begin('mais uma')).status).toBe(403);
   });
 });
+
+describe('the tables and dashboards of a shared notebook (#366, #368)', () => {
+  const tables = () => `/knowledge/notebooks/${notebookId}/tables`;
+  const SCHEMA = { type: 'object', properties: { valor: { type: 'number' } } };
+
+  async function seed(): Promise<void> {
+    await call(OWNER.token, tables(), { method: 'POST', body: { name: 'gastos', schema: SCHEMA } });
+    await call(OWNER.token, `${tables()}/gastos/rows`, {
+      method: 'POST',
+      body: { rows: [{ valor: 10 }] },
+    });
+    await call(OWNER.token, `/knowledge/notebooks/${notebookId}/dashboards`, {
+      method: 'POST',
+      body: {
+        name: 'Total',
+        definition: {
+          components: [{ type: 'kpi', source: { table: 'gastos', measure: 'sum(valor)' } }],
+        },
+      },
+    });
+  }
+
+  it('reach a reader to read, and to write nothing', async () => {
+    await seed();
+    await share(GRANTEE.email, 'reader');
+    await accept();
+    const read = await call(GRANTEE.token, `${tables()}/gastos/query`, {
+      method: 'POST',
+      body: {},
+    });
+    expect(read.status).toBe(200);
+    expect((await json<{ total: number }>(read)).total).toBe(1);
+    const drawn = await call(
+      GRANTEE.token,
+      `/knowledge/notebooks/${notebookId}/dashboards/Total/data`,
+      {
+        method: 'POST',
+        body: {},
+      },
+    );
+    expect(drawn.status).toBe(200);
+    expect(
+      (
+        await call(GRANTEE.token, `${tables()}/gastos/rows`, {
+          method: 'POST',
+          body: { rows: [{ valor: 1 }] },
+        })
+      ).status,
+    ).toBe(403);
+    expect((await call(GRANTEE.token, `${tables()}/gastos`, { method: 'DELETE' })).status).toBe(
+      403,
+    );
+  });
+
+  it('let a content editor write rows, and leave the structure to a notebook editor', async () => {
+    await seed();
+    await share(GRANTEE.email, 'content-editor');
+    await accept();
+    expect(
+      (
+        await call(GRANTEE.token, `${tables()}/gastos/rows`, {
+          method: 'POST',
+          body: { rows: [{ valor: 1 }] },
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await call(GRANTEE.token, tables(), {
+          method: 'POST',
+          body: { name: 'outra', schema: SCHEMA },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await call(GRANTEE.token, `/knowledge/notebooks/${notebookId}/dashboards/Total`, {
+          method: 'DELETE',
+        })
+      ).status,
+    ).toBe(403);
+  });
+});

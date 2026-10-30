@@ -488,6 +488,7 @@ export function ImportDialog({
             }))}
             carry={carry}
             onCarry={setCarry}
+            dashboards={document.dashboards ?? []}
           />
 
           {chosen && (

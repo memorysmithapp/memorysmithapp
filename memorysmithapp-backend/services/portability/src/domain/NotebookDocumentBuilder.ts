@@ -88,6 +88,49 @@ export interface DocumentTable {
   readonly rows?: ReadonlyArray<Record<string, unknown>>;
 }
 
+/**
+ * One Dashboard of the notebook (#368): its definition, each component naming
+ * its table by name, which is what an import finds it by. No identifier
+ * travels, and no data: a dashboard holds none.
+ */
+export interface DocumentDashboard {
+  readonly name: string;
+  readonly description: string;
+  readonly definition: Record<string, unknown>;
+}
+
+/** The tables a dashboard draws from, by name. */
+export function tablesOfDashboard(dashboard: DocumentDashboard): string[] {
+  const components = (dashboard.definition['components'] ?? []) as Array<{
+    source?: { table?: string | null };
+  }>;
+  return [
+    ...new Set(components.flatMap((each) => (each.source?.table ? [each.source.table] : []))),
+  ];
+}
+
+/**
+ * The dashboards that can go (RN-PRT-053): those whose every table goes, with
+ * its rows or with its schema alone. One that lost a table cannot be read
+ * where it lands, so it stays behind.
+ */
+export function dashboardsCarried(
+  dashboards: readonly DocumentDashboard[],
+  tables: ReadonlyArray<{ readonly name: string }>,
+): DocumentDashboard[] {
+  const kept = new Set(tables.map((table) => table.name.normalize('NFC').toLowerCase()));
+  return dashboards.filter((dashboard) => {
+    // A component whose table is gone already names none, and cannot be read anywhere.
+    const components = (dashboard.definition['components'] ?? []) as Array<{
+      source?: { table?: string | null };
+    }>;
+    if (components.some((each) => each.source && !each.source.table)) return false;
+    return tablesOfDashboard(dashboard).every((name) =>
+      kept.has(name.normalize('NFC').toLowerCase()),
+    );
+  });
+}
+
 /** What a transfer carries of one table, by name (RN-PRT-049). */
 export interface TableChoice {
   readonly name: string;
@@ -126,6 +169,8 @@ export interface NotebookDocument {
   readonly files?: readonly DocumentFile[];
   /** Absent from every document written before `1.3` (#366). */
   readonly tables?: readonly DocumentTable[];
+  /** Absent from every document written before `1.3` (#368). */
+  readonly dashboards?: readonly DocumentDashboard[];
 }
 
 /** What the Knowledge context hands over, with nothing computed. */
@@ -168,6 +213,8 @@ export interface ExportInput {
   readonly files?: readonly DocumentFile[] | undefined;
   /** The tables of the notebook, each with its rows (#366). */
   readonly tables?: readonly DocumentTable[] | undefined;
+  /** The dashboards of the notebook (#368). */
+  readonly dashboards?: readonly DocumentDashboard[] | undefined;
 }
 
 /**
@@ -381,6 +428,11 @@ export function buildNotebookDocument(input: ExportInput, now: string): Notebook
     ...(input.files && input.files.length > 0 ? { files: input.files } : {}),
     // And the tables, whenever it has any (#366).
     ...(input.tables && input.tables.length > 0 ? { tables: input.tables } : {}),
+    // And the dashboards whose tables travel with them (#368).
+    ...(() => {
+      const dashboards = dashboardsCarried(input.dashboards ?? [], input.tables ?? []);
+      return dashboards.length > 0 ? { dashboards } : {};
+    })(),
   };
 }
 

@@ -135,6 +135,8 @@ export const modelVersionViewSchema = z.object({
       }),
     )
     .default([]),
+  /** The dashboards the version froze (#368). */
+  dashboards: z.array(z.object({ name: z.string(), description: z.string() })).default([]),
   /**
    * What the version writes against what it declares (#354): a reference no
    * parameter answers, which a notebook created from it would keep, and a

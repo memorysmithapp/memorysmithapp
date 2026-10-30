@@ -556,6 +556,7 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
       keepFile: new KeepFile(knowledge),
       createTable: new CreateTable(knowledge),
       insertRows: new InsertRows(knowledge),
+      createDashboard: new CreateDashboard(knowledge),
       deleteNotebook: new DeleteNotebook(knowledge),
     },
     request.ctx,

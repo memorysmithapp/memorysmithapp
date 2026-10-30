@@ -28,6 +28,7 @@ import type {
 import type { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
 import type { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
 import type { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
+import type { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import type { ContentStore, RequestContext } from '@memorysmithapp/svc-knowledge/domain';
 
 export interface KnowledgeWriteUseCases {
@@ -42,6 +43,7 @@ export interface KnowledgeWriteUseCases {
   /** The tables an archive carries, and their rows, through the doors an agent uses (#366). */
   readonly createTable: CreateTable;
   readonly insertRows: InsertRows;
+  readonly createDashboard: CreateDashboard;
   readonly deleteNotebook: DeleteNotebook;
 }
 
@@ -188,6 +190,26 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       description: input.description,
       schema: input.schema,
       key: input.key,
+      by: input.by,
+    });
+    return created.ok ? ok() : created;
+  }
+
+  async createDashboard(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    definition: Record<string, unknown>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const created = await this.useCases.createDashboard.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      name: input.name,
+      description: input.description,
+      definition: input.definition,
       by: input.by,
     });
     return created.ok ? ok() : created;

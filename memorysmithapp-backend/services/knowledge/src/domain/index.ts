@@ -32,6 +32,7 @@ export { NotebookFile } from './file/NotebookFile.js';
 export { Table, type TableChange } from './table/Table.js';
 export type { Row } from './table/Row.js';
 export { presentCell, tableSchema, type Column } from './table/TableSchema.js';
+export { presentDefinition } from './dashboard/DashboardDefinition.js';
 export type { FileTypes } from './ports/index.js';
 export {
   composeNotebookContext,
@@ -62,6 +63,7 @@ export type {
   FileRepository,
   FileStore,
   TableRepository,
+  DashboardRepository,
   FolderNumbers,
   NoteRepository,
   NotebookRepository,

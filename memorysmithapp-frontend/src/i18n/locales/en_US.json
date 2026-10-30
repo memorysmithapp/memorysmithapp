@@ -511,7 +511,8 @@
       "schema": "Its schema alone",
       "none": "Left out",
       "publicHint": "The rows that go are public once the model is published to the community.",
-      "published": "These tables go with their rows, which anybody will read: {{tables}}."
+      "published": "These tables go with their rows, which anybody will read: {{tables}}.",
+      "dashboardLeftOut": "The dashboard {{dashboard}} stays out, because it draws from {{table}}."
     },
     "shownBy_one": "Shown in {{count}} note",
     "shownBy_other": "Shown in {{count}} notes",

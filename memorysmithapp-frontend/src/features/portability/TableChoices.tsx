@@ -15,6 +15,28 @@ export function tablesOf(
     .map((name) => ({ name, rows: (carry[name] ?? 'rows') === 'rows' }));
 }
 
+/** A dashboard as a transfer reads it: what it is called and what it draws from (#368). */
+export interface CarriedDashboard {
+  readonly name: string;
+  readonly definition: Readonly<Record<string, unknown>>;
+}
+
+/** The dashboards a choice leaves behind, because a table they draw from stays out (RN-PRT-053). */
+export function dashboardsLeftOut(
+  dashboards: readonly CarriedDashboard[],
+  carry: Readonly<Record<string, TableCarry>>,
+): Array<{ name: string; table: string }> {
+  return dashboards.flatMap((dashboard) => {
+    const components = (dashboard.definition['components'] ?? []) as Array<{
+      source?: { table?: string | null };
+    }>;
+    const out = components.find(
+      (each) => each.source?.table && carry[each.source.table] === 'none',
+    );
+    return out?.source?.table ? [{ name: dashboard.name, table: out.source.table }] : [];
+  });
+}
+
 /**
  * The tables of a transfer, each with its rows, with its schema alone, or left
  * out (#366, RN-PRT-049): an export, an import and a version of a model ask it
@@ -26,7 +48,10 @@ export function TableChoices({
   carry,
   onCarry,
   hint,
+  dashboards = [],
 }: {
+  /** The dashboards of the transfer, which a table left out takes with it. */
+  dashboards?: readonly CarriedDashboard[];
   tables: ReadonlyArray<{ name: string; rows: number | null }>;
   carry: Readonly<Record<string, TableCarry>>;
   onCarry: (next: Record<string, TableCarry>) => void;
@@ -69,6 +94,11 @@ export function TableChoices({
           );
         })}
       </ul>
+      {dashboardsLeftOut(dashboards, carry).map((left) => (
+        <p key={left.name} className="table-choices-hint" role="status">
+          {t('tables.carry.dashboardLeftOut', { dashboard: left.name, table: left.table })}
+        </p>
+      ))}
     </fieldset>
   );
 }

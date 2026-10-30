@@ -15,6 +15,7 @@ import { queryKeys } from '../../shared/api/query-keys';
 import {
   createModelVersion,
   getModelVersion,
+  listDashboards,
   listTables,
   declareModel,
   deleteModelVersion,
@@ -303,6 +304,11 @@ function Versions({
     queryFn: () => listTables(notebookId),
     enabled: owner,
   });
+  const dashboards = useQuery({
+    queryKey: queryKeys.notebookDashboards(notebookId),
+    queryFn: () => listDashboards(notebookId),
+    enabled: owner,
+  });
   const again = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
 
   async function create(): Promise<void> {
@@ -371,6 +377,7 @@ function Versions({
               carry={carry}
               onCarry={setCarry}
               hint={t('tables.carry.publicHint')}
+              dashboards={dashboards.data ?? []}
             />
           ) : null}
           <button type="submit" className="button is-primary" disabled={busy}>
