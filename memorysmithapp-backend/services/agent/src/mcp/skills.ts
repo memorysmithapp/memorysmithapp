@@ -1202,6 +1202,84 @@ definitive; say how many go and ask before you do it.
 Read the data through it, never by copying rows into a note.
 `;
 
+const BUILD_DASHBOARDS = `# Building a dashboard
+
+A Dashboard shows the Tables of a notebook the way a spreadsheet, Power BI or
+Project would: indicators, charts, a table of rows, a Gantt, a Kanban, side by
+side and under one filter. **Only you build it**: the person asks in plain
+words — "a panel of my expenses by category and by month" — and never sees
+the definition. It keeps no data: every component asks its table when the
+dashboard is read, so a row you change shows at the next read.
+
+${SHARED_NOTEBOOKS} Building and changing a dashboard is maintaining the
+notebook.
+
+## Before anything
+
+\`list_tables\` gives each table with its columns and types: a dashboard can
+only draw what they hold. \`list_dashboards\` says whether one already shows
+the data, which you then change with \`update_dashboard\` instead of copying.
+
+## The definition
+
+\`\`\`json
+{
+  "layout": "header-two-columns",
+  "refreshSeconds": 300,
+  "filters": [{ "id": "periodo", "type": "period", "column": "data", "label": "Mês", "default": "2026-10" }],
+  "components": [
+    { "id": "total", "type": "kpi", "slot": "header", "title": "Gasto no mês",
+      "source": { "table": "gastos", "measure": "sum(valor)" },
+      "options": { "format": "currency", "currency": "BRL" } },
+    { "id": "categorias", "type": "donut", "slot": "left", "title": "Por categoria",
+      "source": { "table": "gastos", "group": "categoria", "measures": ["sum(valor)"] } },
+    { "id": "semanas", "type": "bar", "slot": "right", "title": "Por semana",
+      "source": { "table": "gastos", "group": "data:week", "measures": ["sum(valor)"] } },
+    { "id": "contas", "type": "kanban", "slot": "footer", "title": "Contas a pagar",
+      "source": { "table": "contas" }, "options": { "lane": "status", "card": "descricao" } }
+  ]
+}
+\`\`\`
+
+- **layout**: \`one-column\` (slot \`main\`), \`two-columns\` (\`left\`, \`right\`),
+  \`three-columns\` (\`left\`, \`middle\`, \`right\`), \`header-two-columns\`
+  (\`header\`, \`left\`, \`right\`, \`footer\`), \`sidebar\` (\`side\`, \`main\`), or
+  \`grid\`, where each component says \`"grid": { "x", "y", "w", "h" }\` on 12
+  columns. On a phone every layout becomes one column.
+- **filters**: a period over a date column, applied to every component whose
+  table has that column; \`default\` is the period it opens on, as \`2026\`,
+  \`2026-10\` or \`2026-10-29\`.
+- **source**: the table by name, a \`where\` in the language of the search,
+  and what the type adds up: \`count()\`, \`sum(col)\`, \`avg(col)\`, \`min(col)\`,
+  \`max(col)\`, grouped by a column or by a period, \`data:month\`.
+
+## The components
+
+- **kpi**: one \`measure\`; \`options.compareWhere\` is the filter of the value it
+  is compared with, as last month; \`options.goal\` a number it is measured
+  against.
+- **pie**, **donut**: one measure by group. **bar**: measures by group,
+  \`options.stacked\`, \`percent\`, \`horizontal\`. **line**, **area**: a measure
+  over a period, \`options.smooth\`.
+- **table**: rows; \`options.columns\`, \`sort\`, \`pageSize\`, and \`rules\` to
+  format a number column as a \`bar\`, a colour \`scale\` or \`icons\`.
+- **gantt**: \`options.title\`, \`start\`, \`end\`, and \`progress\` (0 to 100) and
+  \`group\` when the table has them.
+- **kanban**: \`options.lane\`, the column whose values are the lanes — an
+  \`enum\` gives them their order — and \`card\`, \`detail\` and \`color\`.
+- **text**: \`options.markdown\`, to title, explain or close the panel.
+
+Every value can be formatted: \`options.format\` as \`number\`, \`currency\` with
+\`currency\`, or \`percent\`, and \`decimals\`.
+
+## Showing it
+
+Tell the person where it is — *Dashboards* in the menu of the notebook — and
+read it with \`read_dashboard\` to say what it shows. A component whose table
+is gone, or whose filter no longer fits a changed schema, says so: fix the
+definition rather than leaving it.
+`;
+
 /**
  * The skill a text names outside the registry, as a constant of it: a
  * description that cites a skill by a literal would still cite it the day it is
@@ -1211,6 +1289,7 @@ export const DESIGN_NOTEBOOK_SKILL = 'design-notebook';
 export const KEEP_FILES_SKILL = 'keep-files';
 export const DERIVE_MODEL_SKILL = 'derive-model';
 export const KEEP_TABLES_SKILL = 'keep-tables';
+export const BUILD_DASHBOARDS_SKILL = 'build-dashboards';
 
 /**
  * One skill per task, and only tasks the reading path does not teach. The path
@@ -1245,6 +1324,11 @@ export const SKILLS: readonly Skill[] = [
     name: KEEP_TABLES_SKILL,
     task: 'Keep structured data in a Table — from a CSV, an Excel file or what is on the screen — and read it back',
     body: KEEP_TABLES,
+  },
+  {
+    name: BUILD_DASHBOARDS_SKILL,
+    task: 'Build a dashboard over the tables of a notebook — indicators, charts, a Gantt, a Kanban — from what the person asks',
+    body: BUILD_DASHBOARDS,
   },
   {
     name: 'convert-inline-tags',

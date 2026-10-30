@@ -15,7 +15,12 @@
  */
 
 import { createHash } from 'node:crypto';
-import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL, KEEP_TABLES_SKILL } from './skills.js';
+import {
+  BUILD_DASHBOARDS_SKILL,
+  DESIGN_NOTEBOOK_SKILL,
+  KEEP_FILES_SKILL,
+  KEEP_TABLES_SKILL,
+} from './skills.js';
 
 export interface ToolDefinition {
   readonly name: string;
@@ -33,6 +38,11 @@ export interface ToolDefinition {
 const notebookArgument = {
   type: 'string',
   description: 'Identifier of the notebook, as returned by list_notebooks.',
+};
+
+const dashboardArgument = {
+  type: 'string',
+  description: 'The name of the dashboard, or its identifier, as list_dashboards prints them.',
 };
 
 /** A table is named as a note names it: by its name, or by its identifier (#366). */
@@ -1134,6 +1144,96 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       },
       ['notebook', 'table', 'targets'],
     ),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+  },
+  {
+    name: 'list_dashboards',
+    title: 'List the dashboards of a notebook',
+    description:
+      'Every Dashboard the notebook keeps, with what it is for and its definition: the layout, ' +
+      'the filters and each component with the table it draws from. Read it before building one, ' +
+      'so a dashboard that already shows the data is changed instead of copied.',
+    inputSchema: object({ notebook: notebookArgument }, ['notebook']),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_dashboard',
+    title: 'Create a dashboard',
+    description:
+      `Builds a Dashboard over the tables of the notebook. Read the skill \`${BUILD_DASHBOARDS_SKILL}\` ` +
+      'first: it has the whole definition. In short: { "layout": one-column | two-columns | ' +
+      'three-columns | header-two-columns | sidebar | grid, "refreshSeconds"?: 60 or more, ' +
+      '"filters"?: [{ "id", "type": "period", "column": a date column, "default"?: "2026-10" }], ' +
+      '"components": [{ "id", "type", "title"?, "slot" (or "grid": { x, y, w, h } on 12 ' +
+      'columns), "source": { "table", "where"?, "group"?, "measure" | "measures" }, "options"? }] ' +
+      '}. Types: kpi (one measure), pie, donut, bar, line, area (a group and measures), table ' +
+      '(rows), gantt (options title, start, end), kanban (options lane, card) and text (options ' +
+      'markdown). The definition is checked against the tables and refused naming what they ' +
+      'cannot answer. A dashboard keeps no data: it shows what the tables hold when it is read.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        name: { type: 'string', description: 'The name of the dashboard, unique in the notebook.' },
+        description: { type: 'string', description: 'What the dashboard is for.' },
+        definition: { type: 'object', description: 'The layout, filters and components.' },
+      },
+      ['notebook', 'name', 'definition'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'update_dashboard',
+    title: 'Change a dashboard',
+    description:
+      'Changes the name, the description or the definition of a dashboard. A definition given ' +
+      'replaces the one kept, whole: read it with list_dashboards, change it, and send it all. ' +
+      'It is checked against the tables as a new one is.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        dashboard: dashboardArgument,
+        name: { type: 'string', description: 'A new name.' },
+        description: { type: 'string', description: 'A new description.' },
+        definition: {
+          type: 'object',
+          description: 'The whole definition, replacing the one kept.',
+        },
+      },
+      ['notebook', 'dashboard'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'read_dashboard',
+    title: 'Read what a dashboard shows',
+    description:
+      'What every component of a dashboard shows now: the value of an indicator, the groups of ' +
+      'a chart, the rows of a table, a Gantt or a Kanban, computed from the tables at this ' +
+      'moment. `filters` chooses a period for each filter of the dashboard, null for all. A ' +
+      'component whose table is gone, or whose filter no longer fits, says so with its status.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        dashboard: dashboardArgument,
+        filters: {
+          type: 'object',
+          description: 'A period by filter id, as { "periodo": "2026-10" }.',
+        },
+      },
+      ['notebook', 'dashboard'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'delete_dashboard',
+    title: 'Delete a dashboard',
+    description:
+      'Deletes a dashboard. It is DEFINITIVE, and its name is free again at once. Its tables and ' +
+      'their rows are untouched: a dashboard only shows them.',
+    inputSchema: object({ notebook: notebookArgument, dashboard: dashboardArgument }, [
+      'notebook',
+      'dashboard',
+    ]),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   {

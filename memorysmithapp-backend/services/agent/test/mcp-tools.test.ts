@@ -253,6 +253,12 @@ describe('The tool catalog is the public contract', () => {
       'import_table',
       'update_rows',
       'delete_rows',
+      // The Dashboards drawn from the tables (#368).
+      'list_dashboards',
+      'create_dashboard',
+      'update_dashboard',
+      'read_dashboard',
+      'delete_dashboard',
       'update_note',
       'reorder_note',
       // A note changes folder keeping its history (#265).
@@ -336,6 +342,9 @@ describe('The tool catalog is the public contract', () => {
       'import_table',
       'update_rows',
       'delete_rows',
+      'create_dashboard',
+      'update_dashboard',
+      'delete_dashboard',
       'update_note',
       'reorder_note',
       'move_note',

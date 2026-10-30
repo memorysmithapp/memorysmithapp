@@ -10,7 +10,9 @@
  */
 
 import type {
+  DashboardDataDto,
   ImportTableRequest,
+  NotebookDashboardDto,
   NotebookTableDto,
   RowsWrittenDto,
   TableImportDto,
@@ -468,6 +470,26 @@ export interface KnowledgeGateway {
     table: string,
     targets: unknown[],
   ): Promise<RowsWrittenDto>;
+  /** The Dashboards of a notebook (#368), named by their name or their identifier. */
+  listDashboards(caller: AgentCaller, notebookId: string): Promise<NotebookDashboardDto[]>;
+  createDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { name: string; description: string; definition: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto>;
+  updateDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    input: { name?: string; description?: string; definition?: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto>;
+  readDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    filters: Record<string, string | null>,
+  ): Promise<DashboardDataDto>;
+  deleteDashboard(caller: AgentCaller, notebookId: string, dashboard: string): Promise<void>;
   /** Rows from a CSV or an Excel file the notebook keeps, or the schema it suggests. */
   importTable(
     caller: AgentCaller,

@@ -416,6 +416,8 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-060 | The connector lists, creates, alters and deletes the tables of a notebook, and inserts, upserts, updates, deletes and queries their rows; `get_notebook_context` names every table with its columns, key and rows. | |
 | RN-AGT-061 | `import_table` reads a CSV or an Excel file the notebook keeps: with no table, or as a dry run, it writes nothing and answers the schema the sheet suggests and its first rows; into a table, it checks every line before writing any. | |
 | RN-AGT-062 | The skill `keep-tables` teaches an agent when data belongs in a table, which way its rows arrive — a file kept or asked for, or what the agent reads — to show the person the schema before creating it, and to declare a key and upsert so data read twice is written once. | |
+| RN-AGT-063 | The connector lists, creates, changes and deletes the dashboards of a notebook, and reads what each of its components shows now, under the periods asked; a definition is written whole, and only an agent writes one. | |
+| RN-AGT-064 | The skill `build-dashboards` teaches an agent to build a dashboard from what a person asks in plain words: to read the tables first, change a dashboard that already shows the data, and write the layout, filters and components the tables can answer. | |
 
 ### Portability
 

@@ -43,7 +43,10 @@ import type {
   NotebookNamesDto,
   PreviewDto,
   SearchResultDto,
+  DashboardDataDto,
+  DashboardListDto,
   ImportTableRequest,
+  NotebookDashboardDto,
   NotebookTableDto,
   RowsWrittenDto,
   TableAlteredDto,
@@ -180,6 +183,11 @@ async function callApi<T>(
     );
   }
   return payload as T;
+}
+
+/** A dashboard is named in the path by its name or its identifier, encoded (#368). */
+function dashboardPath(notebookId: string, dashboard: string): string {
+  return `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}`;
 }
 
 /** A table is named in the path by its name or its identifier, encoded (#366). */
@@ -837,6 +845,69 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
         body: { targets },
       },
     );
+  }
+
+  async listDashboards(caller: AgentCaller, notebookId: string): Promise<NotebookDashboardDto[]> {
+    const listed = await callApi<DashboardListDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/dashboards`,
+    );
+    return listed.dashboards;
+  }
+
+  async createDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    input: { name: string; description: string; definition: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto> {
+    return callApi<NotebookDashboardDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/dashboards`,
+      {
+        method: 'POST',
+        body: input,
+      },
+    );
+  }
+
+  async updateDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    input: { name?: string; description?: string; definition?: Record<string, unknown> },
+  ): Promise<NotebookDashboardDto> {
+    return callApi<NotebookDashboardDto>(
+      this.origin,
+      caller,
+      dashboardPath(notebookId, dashboard),
+      {
+        method: 'PATCH',
+        body: input,
+      },
+    );
+  }
+
+  async readDashboard(
+    caller: AgentCaller,
+    notebookId: string,
+    dashboard: string,
+    filters: Record<string, string | null>,
+  ): Promise<DashboardDataDto> {
+    return callApi<DashboardDataDto>(
+      this.origin,
+      caller,
+      `${dashboardPath(notebookId, dashboard)}/data`,
+      {
+        method: 'POST',
+        body: { filters },
+      },
+    );
+  }
+
+  async deleteDashboard(caller: AgentCaller, notebookId: string, dashboard: string): Promise<void> {
+    await callApi(this.origin, caller, dashboardPath(notebookId, dashboard), { method: 'DELETE' });
   }
 
   async importTable(

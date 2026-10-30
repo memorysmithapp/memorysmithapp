@@ -1311,6 +1311,86 @@ export class McpToolAdapter {
         );
       }
 
+      // The Dashboards of a notebook (#368).
+      case 'list_dashboards':
+        return json({
+          dashboards: await knowledge.listDashboards(
+            caller,
+            requireString(args, 'notebook', 'list_dashboards'),
+          ),
+        });
+
+      case 'create_dashboard': {
+        const definition = args['definition'];
+        if (typeof definition !== 'object' || definition === null || Array.isArray(definition)) {
+          throw new GatewayError(
+            'VALIDATION',
+            'create_dashboard requires "definition", an object.',
+          );
+        }
+        return json(
+          await knowledge.createDashboard(
+            caller,
+            requireString(args, 'notebook', 'create_dashboard'),
+            {
+              name: requireString(args, 'name', 'create_dashboard'),
+              description: optionalString(args, 'description') ?? '',
+              definition: definition as Record<string, unknown>,
+            },
+          ),
+        );
+      }
+
+      case 'update_dashboard': {
+        const definition = args['definition'];
+        const name = optionalString(args, 'name');
+        const description =
+          typeof args['description'] === 'string' ? args['description'] : undefined;
+        return json(
+          await knowledge.updateDashboard(
+            caller,
+            requireString(args, 'notebook', 'update_dashboard'),
+            requireString(args, 'dashboard', 'update_dashboard'),
+            {
+              ...(name ? { name } : {}),
+              ...(description !== undefined ? { description } : {}),
+              ...(typeof definition === 'object' &&
+              definition !== null &&
+              !Array.isArray(definition)
+                ? { definition: definition as Record<string, unknown> }
+                : {}),
+            },
+          ),
+        );
+      }
+
+      case 'read_dashboard': {
+        const filters = args['filters'];
+        return json(
+          await knowledge.readDashboard(
+            caller,
+            requireString(args, 'notebook', 'read_dashboard'),
+            requireString(args, 'dashboard', 'read_dashboard'),
+            typeof filters === 'object' && filters !== null && !Array.isArray(filters)
+              ? (filters as Record<string, string | null>)
+              : {},
+          ),
+        );
+      }
+
+      case 'delete_dashboard': {
+        const dashboard = requireString(args, 'dashboard', 'delete_dashboard');
+        await knowledge.deleteDashboard(
+          caller,
+          requireString(args, 'notebook', 'delete_dashboard'),
+          dashboard,
+        );
+        return text(
+          `The dashboard ${dashboard} is gone, for good, and its name is free again. Its tables ` +
+            'and their rows are untouched.',
+        );
+      }
+
       case 'import_table': {
         const table = optionalString(args, 'table');
         const sheet = optionalString(args, 'sheet');

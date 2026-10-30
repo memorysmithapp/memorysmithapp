@@ -1166,3 +1166,80 @@ test.describe('the tables of a notebook (#366)', () => {
     expect(imported.imported.inserted).toBe(2);
   });
 });
+
+test.describe('the dashboards of a notebook (#368)', () => {
+  test('[tool:create_dashboard] [tool:list_dashboards] [tool:read_dashboard] [tool:update_dashboard] [tool:delete_dashboard] builds a dashboard over a table and reads what it shows', async ({
+    agent,
+    notebook,
+  }) => {
+    const table = `contas-${randomBytes(4).toString('hex')}`;
+    await callTool(agent, 'create_table', {
+      notebook: notebook.notebookId,
+      name: table,
+      schema: {
+        type: 'object',
+        properties: {
+          descricao: { type: 'string' },
+          valor: { type: 'number' },
+          status: { type: 'string', enum: ['aberta', 'paga'] },
+        },
+      },
+    });
+    await callTool(agent, 'insert_rows', {
+      notebook: notebook.notebookId,
+      table,
+      rows: [
+        { descricao: 'Luz', valor: 80, status: 'aberta' },
+        { descricao: 'Água', valor: 40, status: 'paga' },
+      ],
+    });
+
+    const name = `Contas ${randomBytes(3).toString('hex')}`;
+    const created = await callTool(agent, 'create_dashboard', {
+      notebook: notebook.notebookId,
+      name,
+      definition: {
+        layout: 'two-columns',
+        components: [
+          { id: 'total', type: 'kpi', slot: 'left', source: { table, measure: 'sum(valor)' } },
+          {
+            id: 'quadro',
+            type: 'kanban',
+            slot: 'right',
+            source: { table },
+            options: { lane: 'status', card: 'descricao' },
+          },
+        ],
+      },
+    });
+    expect(created.isError).toBe(false);
+
+    const listed = parsed<{ dashboards: Array<{ name: string }> }>(
+      await callTool(agent, 'list_dashboards', { notebook: notebook.notebookId }),
+    );
+    expect(listed.dashboards.map((each) => each.name)).toContain(name);
+
+    const shown = parsed<{ components: Array<Record<string, unknown>> }>(
+      await callTool(agent, 'read_dashboard', { notebook: notebook.notebookId, dashboard: name }),
+    );
+    expect(shown.components[0]).toMatchObject({ status: 'ok', value: 120 });
+
+    expect(
+      (
+        await callTool(agent, 'update_dashboard', {
+          notebook: notebook.notebookId,
+          dashboard: name,
+          description: 'As contas da casa',
+        })
+      ).isError,
+    ).toBe(false);
+    expect(
+      (
+        await callTool(agent, 'delete_dashboard', {
+          notebook: notebook.notebookId,
+          dashboard: name,
+        })
+      ).isError,
+    ).toBe(false);
+  });
+});
