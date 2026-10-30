@@ -99,7 +99,9 @@ test.describe('notebook models', () => {
     await app.getByRole('button', { name: words.declare }).click();
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 60_000 });
     // First of the menu, with no reload, and it is where the model is kept.
-    await app.locator('.notebook-nav a').first().click();
+    const item = app.locator('.notebook-nav a').first();
+    await expect(item).toHaveText(words.newModel.replace(/^\S+\s/, ''), { ignoreCase: true });
+    await item.click();
     await expect(app.getByLabel(words.objective, { exact: true })).toBeVisible();
 
     await app.getByLabel(words.changelog).fill('The first version');
