@@ -7184,18 +7184,43 @@ body.has-sheet .app-main {
   gap: 14px;
   min-width: 0;
 }
+/* The actions stand at the right of the name whatever the description says,
+   and the description takes the whole width under both (#387). */
 .dashboard-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name actions'
+    'desc desc';
+  align-items: start;
+  column-gap: 12px;
+}
+.dashboard-name {
+  grid-area: name;
+}
+.dashboard-desc {
+  grid-area: desc;
 }
 .dashboard-actions {
+  grid-area: actions;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+@media (max-width: 40rem) {
+  .dashboard-head {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'name'
+      'actions'
+      'desc';
+  }
+  .dashboard-actions {
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+  }
 }
 .dashboard-read {
   color: var(--text-soft);

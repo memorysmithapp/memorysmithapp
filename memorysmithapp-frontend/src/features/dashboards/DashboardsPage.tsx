@@ -261,13 +261,13 @@ export function DashboardView({
 
   return (
     <section className="dashboard" data-layout={layout} ref={root}>
+      {/* The name, the actions and the description each hold an area of
+          their own, so a long description never moves the actions (#387). */}
       <header className="dashboard-head">
-        <div>
-          <h1 className="table-detail-name">{dashboard.name}</h1>
-          {dashboard.description ? (
-            <p className="table-detail-desc">{dashboard.description}</p>
-          ) : null}
-        </div>
+        <h1 className="table-detail-name dashboard-name">{dashboard.name}</h1>
+        {dashboard.description ? (
+          <p className="table-detail-desc dashboard-desc">{dashboard.description}</p>
+        ) : null}
         {still ? null : (
           <div className="dashboard-actions">
             {readAt ? (
