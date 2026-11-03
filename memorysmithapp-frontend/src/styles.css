@@ -6935,10 +6935,10 @@ body.has-sheet .app-main {
    the mark, which stays whole (#385). */
 @media (max-width: 380px) {
   .community-nav {
-    gap: 4px;
+    gap: 2px;
   }
   .community-nav .button:has(> .action-word:not(.is-kept)) {
-    min-width: 40px;
+    min-width: 36px;
   }
 }
 .community-main {
