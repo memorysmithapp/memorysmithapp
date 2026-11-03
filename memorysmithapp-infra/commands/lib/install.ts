@@ -193,7 +193,7 @@ export function humanSteps(environment: EnvironmentConfig, roleArn: string | nul
   }
   if (environment.repositoryHost === 'gitlab') {
     steps.push(
-      `On GitLab, create the environment ${environment.name} in ${environment.repository}, protect the branch main, and give the environment the variables ${variables.join(', ')} and ${role}.`,
+      `On GitLab, create the environment ${environment.name} in ${environment.repository}, protect the branch main, and give the environment the variables ${variables.join(', ')} and ${role}. The pipeline is the fork's own: a job of that environment exchanges the token GitLab signs for the role and runs pnpm -C memorysmithapp-infra deliver --environment ${environment.name}.`,
     );
   }
   steps.push(

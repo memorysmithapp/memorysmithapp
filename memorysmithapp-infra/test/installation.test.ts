@@ -299,6 +299,8 @@ describe('what install-account decides', () => {
     ).join(' ');
     expect(steps).toContain('On GitLab');
     expect(steps).toContain('protect the branch main');
+    // The repository ships no GitLab pipeline: the fork brings its own (#388).
+    expect(steps).toContain("The pipeline is the fork's own");
     expect(steps).toContain('AWS_STAGING_ROLE_ARN=arn:aws:iam::222222222222:role/x');
     expect(humanSteps(installed(), null).join(' ')).toContain('deliver --environment staging');
     expect(humanSteps(installed(), null).join(' ')).toContain(

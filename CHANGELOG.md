@@ -13,6 +13,10 @@ issues each entry cites.
 
 ## [0.15.1] - 2026-11-03
 
+### Removed
+
+- **The repository ships no pipeline for a fork on GitLab.** `.gitlab-ci.yml` came with the installation in another account and never ran. A fork on GitLab writes its own pipeline, which runs `deliver` with the role `install-account` deploys; that role, trusted to the project by OIDC, and the variables `REPOSITORY_HOST=gitlab` and `GITLAB_ISSUER` stay. (#388)
+
 ### Fixed
 
 - **The first delivery into a new AWS account no longer fails creating the tables.** In a region that had never used DynamoDB, the tables raced to create the key that encrypts them and one of them failed, and the rollback left tables behind that failed the next delivery on their names. `install-account` now creates that key before anything deploys, and its `--check` says whether it exists; when a failed first delivery left tables behind, it names each one, empty or holding items, and deletes none, and `deliver` points an installation to it when a deployment fails. (#378)
