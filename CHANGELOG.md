@@ -11,11 +11,11 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-03
+
 ### Added
 
 - **An installation in another account is taken down by one command.** `destroy-installation` refuses the project's own installation and any account but the installation's, says with `--preview` what it deletes, in order, and what each stack retains, and then deletes the stacks in the order CloudFormation accepts, Edge and the delivery role included, and the tables, the content bucket and the user pool they keep on purpose. It says what stays: the hosted zone, the key AWS manages for DynamoDB and, unless `--bootstrap` is given, the CDK bootstrap, which it never removes while another stack of the region deploys with it. (#391)
-
-## [0.15.1] - 2026-11-03
 
 ### Removed
 
@@ -946,8 +946,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.1...HEAD
-[0.15.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.15.1
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3
 [0.14.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...v0.14.1
