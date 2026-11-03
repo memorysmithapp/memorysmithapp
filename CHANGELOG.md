@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-03
+
 ### Fixed
 
 - **The first delivery into a new AWS account no longer fails creating the tables.** In a region that had never used DynamoDB, the tables raced to create the key that encrypts them and one of them failed, and the rollback left tables behind that failed the next delivery on their names. `install-account` now creates that key before anything deploys, and its `--check` says whether it exists; when a failed first delivery left tables behind, it names each one, empty or holding items, and deletes none, and `deliver` points an installation to it when a deployment fails. (#378)
@@ -918,7 +920,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3
 [0.14.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...v0.14.1
