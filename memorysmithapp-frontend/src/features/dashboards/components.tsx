@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as echarts from 'echarts/core';
 import {
@@ -21,6 +21,7 @@ import {
 import { SVGRenderer } from 'echarts/renderers';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { queryKeys } from '../../shared/api/query-keys';
+import { ganttScale } from './gantt-scale';
 import { wbsLines, wbsTree } from './wbs';
 
 echarts.use([
@@ -909,6 +910,21 @@ export function Gantt({
   locale: string;
 }) {
   const { t } = useTranslation();
+  // The width the scale is drawn at decides how many months keep a label (#383).
+  // Measured whenever the scale appears, which is only once there are rows.
+  const [scaleWidth, setScaleWidth] = useState(0);
+  const observer = useRef<ResizeObserver | null>(null);
+  const scaleRef = useCallback((element: HTMLDivElement | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (!element) return;
+    setScaleWidth(element.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return;
+    observer.current = new ResizeObserver(([entry]) => {
+      if (entry) setScaleWidth(entry.contentRect.width);
+    });
+    observer.current.observe(element);
+  }, []);
   const at = (value: unknown) =>
     typeof value === 'string'
       ? Date.parse(value.length === 10 ? `${value}T00:00:00Z` : value)
@@ -928,29 +944,13 @@ export function Gantt({
   const from = Math.min(...items.map((item) => item.start));
   const to = Math.max(...items.map((item) => Math.max(item.end, item.start))) + 86_400_000;
   const span = to - from;
-  const months: Array<{ label: string; left: number }> = [];
-  const cursor = new Date(from);
-  cursor.setUTCDate(1);
-  while (cursor.getTime() < to) {
-    const left = ((cursor.getTime() - from) / span) * 100;
-    if (left >= 0) {
-      months.push({
-        label: new Intl.DateTimeFormat(locale, {
-          month: 'short',
-          year: '2-digit',
-          timeZone: 'UTC',
-        }).format(cursor),
-        left,
-      });
-    }
-    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
-  }
+  const months = ganttScale({ from, to, locale, widthPx: scaleWidth });
   const day = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'UTC' });
   return (
     <div className="dash-gantt">
-      <div className="dash-gantt-scale" aria-hidden="true">
+      <div className="dash-gantt-scale" aria-hidden="true" ref={scaleRef}>
         {months.map((month) => (
-          <span key={month.left} style={{ left: `${month.left}%` }}>
+          <span key={month.at} style={{ left: `${month.left}%` }}>
             {month.label}
           </span>
         ))}

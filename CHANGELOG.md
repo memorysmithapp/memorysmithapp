@@ -25,6 +25,8 @@ issues each entry cites.
 
 - **A dashboard measure written as something other than a text is refused naming it.** The refusal said `"[object Object]" is not a measure`; it now names the value as it was written and says that a measure is a text, such as `"sum(amount)"`. (#382)
 
+- **The months of a Gantt no longer run into one another in a narrow column.** The scale labels as many months as its width holds, and says the year once, where it changes, on the page and in the PNG of a dashboard. (#383)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added
