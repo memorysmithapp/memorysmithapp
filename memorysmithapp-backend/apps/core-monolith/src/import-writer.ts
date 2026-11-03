@@ -26,7 +26,10 @@ import type {
   RestoreFolderNumber,
 } from '@memorysmithapp/svc-knowledge/application/folders';
 import type { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
-import type { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import {
+  MAX_ASSEMBLED_BYTES,
+  type KeepFile,
+} from '@memorysmithapp/svc-knowledge/application/files';
 import type { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
 import type { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import type { ContentStore, RequestContext } from '@memorysmithapp/svc-knowledge/domain';
@@ -145,7 +148,9 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
    * It goes through `KeepFile`, which is the same door an upload uses: the
    * declared type is checked against the bytes, the quota is asked, and a name
    * the notebook already holds is refused. An import is not a way around the
-   * check that decides what a file IS.
+   * check that decides what a file IS. Its ceiling is the one of a file sent in
+   * parts, not the 4 MB of a request: the bytes come from the archive, and
+   * an archive carries every file an upload kept (#381).
    */
   async keepFile(input: {
     notebookId: string;
@@ -169,6 +174,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       path: input.path,
       bytes: input.bytes,
       by: input.by,
+      maxBytes: MAX_ASSEMBLED_BYTES,
     });
     return kept.ok ? ok() : kept;
   }

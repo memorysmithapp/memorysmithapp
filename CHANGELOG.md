@@ -21,6 +21,8 @@ issues each entry cites.
 
 - **`activate-cost-tags` explains itself in a member account of an organization.** It ended in a stack trace; it now says that the cost allocation tags belong to the management account, which pays the bill, and hold for every account of the organization, and to run it there. The last steps `install-account` prints say the same. (#380)
 
+- **A notebook with a file above 4 MB is created from its model, and imported back.** A file sent in parts may be up to 100 MB, but creating a notebook from a model version, or importing an export, brought each file back through the 4 MB of `keep_file` and failed with `LIMIT_EXCEEDED`, naming no file. An import now keeps each file up to the 100 MB of a file sent in parts, with every other check of an upload; `keep_file` keeps its 4 MB. (#381)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added

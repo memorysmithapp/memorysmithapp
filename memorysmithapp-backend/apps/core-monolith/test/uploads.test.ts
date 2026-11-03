@@ -330,6 +330,58 @@ describe('an upload whose parts travel by URL', () => {
   });
 });
 
+describe('a file above 4 MB, sent in parts (#381)', () => {
+  it('comes back whole in a notebook created from a model version that holds it', async () => {
+    const notebookId = await notebook('Modelo com foto grande');
+    const whole = picture(10 * 1024 * 1024);
+    const status = uploadStatusSchema.parse(
+      await (
+        await begin({
+          notebookId,
+          name: 'foto grande',
+          mimeType: 'image/png',
+          purpose: 'A foto inteira do modelo',
+          size: whole.length,
+          sha256: sha(whole),
+          transport: 'url',
+        })
+      ).json(),
+    );
+    const multipartId = /uploadId=([^&]+)/.exec(status.targets[0]?.url ?? '')?.[1] ?? '';
+    const size = 8 * 1024 * 1024;
+    harness.parts.receivePart(multipartId, 1, whole.subarray(0, size));
+    harness.parts.receivePart(multipartId, 2, whole.subarray(size));
+    const finished = await call(`/portability/uploads/${status.transfer.transferId}/finish`, {
+      method: 'POST',
+    });
+    expect(finished.status).toBe(200);
+
+    await call(`/portability/models/${notebookId}`, {
+      method: 'PUT',
+      body: { objective: 'Um caderno com uma foto grande', parameters: [], basedOn: null },
+    });
+    await call(`/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
+    const started = await call(`/portability/models/${notebookId}/versions/1/notebooks`, {
+      method: 'POST',
+      body: { name: 'Cópia com foto grande', values: {} },
+    });
+    expect(started.status).toBe(202);
+
+    const notebooks = (await (await call('/knowledge/notebooks')).json()) as Array<{
+      notebookId: string;
+      name: string;
+    }>;
+    const copy = notebooks.find((each) => each.name === 'Cópia com foto grande');
+    expect(copy).toBeDefined();
+    const files = fileListSchema.parse(
+      await (await call(`/knowledge/notebooks/${copy!.notebookId}/files`)).json(),
+    );
+    expect(files.files.map((file) => [file.name, file.bytes])).toEqual([
+      ['foto grande', whole.length],
+    ]);
+  });
+});
+
 describe('an upload whose notebook became unavailable', () => {
   it('outlives its notebook, and is pointed at another one to finish there', async () => {
     const first = await notebook('Caderno que vai embora');
