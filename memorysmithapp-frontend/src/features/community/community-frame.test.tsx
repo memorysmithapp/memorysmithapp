@@ -65,7 +65,7 @@ describe('the header of the community pages (#385)', () => {
     expect(html).toMatch(
       /<button type="button" class="button is-quiet is-small"><svg[^]*?<span class="action-word">Voltar<\/span><\/button>/,
     );
-    expect(html).toMatch(/<svg[^]*?<span class="action-word is-kept">Entrar<\/span><\/a>/);
+    expect(html).toMatch(/<svg[^]*?<span class="action-word">Entrar<\/span><\/a>/);
   });
 
   it('leaves Sign in out for a person signed in, in English too', async () => {

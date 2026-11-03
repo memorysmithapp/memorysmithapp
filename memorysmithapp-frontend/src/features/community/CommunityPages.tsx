@@ -108,7 +108,7 @@ function CommunityFrame({ children }: { children: ReactNode }) {
           </button>
           {inside ? null : (
             <Link to="/login" className="button is-primary is-small">
-              <ActionWord icon={<SignInIcon />} word={t('community.signIn')} wide />
+              <ActionWord icon={<SignInIcon />} word={t('community.signIn')} />
             </Link>
           )}
         </nav>

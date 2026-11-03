@@ -6931,6 +6931,16 @@ body.has-sheet .app-main {
   gap: 0.5rem;
   font-size: 0.875rem;
 }
+/* On the narrowest phones the three buttons sit closer, so they fit beside
+   the mark, which stays whole (#385). */
+@media (max-width: 380px) {
+  .community-nav {
+    gap: 4px;
+  }
+  .community-nav .button:has(> .action-word:not(.is-kept)) {
+    min-width: 40px;
+  }
+}
 .community-main {
   max-width: 52rem;
   margin: 0 auto;
