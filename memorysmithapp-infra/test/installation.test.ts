@@ -12,10 +12,15 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   bootstrapVerdict,
+  DATA_TABLES,
   delegationProblem,
+  DYNAMODB_KEY_ALIAS,
   hostsFromOutputs,
   humanSteps,
+  leftBehindProblem,
+  managedKeyExists,
   servicesMissingIn,
+  tablesLeftBehind,
 } from '../commands/lib/install.js';
 import { stackIdOf } from '../commands/lib/teardown.js';
 import {
@@ -26,11 +31,12 @@ import {
   type EnvironmentConfig,
 } from '../config/environments.js';
 import { PENDING_HOSTS } from '../installation/index.js';
+import { DataStack } from '../stacks/data.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { InstallationDeliveryStack } from '../stacks/github-delivery.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
-import { appFor } from './stacks.js';
+import { appFor, stacksOf } from './stacks.js';
 
 const VARIABLES = {
   INSTALLATION: 'acme',
@@ -295,5 +301,62 @@ describe('what install-account decides', () => {
     expect(steps).toContain('protect the branch main');
     expect(steps).toContain('AWS_STAGING_ROLE_ARN=arn:aws:iam::222222222222:role/x');
     expect(humanSteps(installed(), null).join(' ')).toContain('deliver --environment staging');
+  });
+});
+
+describe('what a first delivery into a new account needs (#378)', () => {
+  it('reads the key of DynamoDB as absent while AWS lists its alias with no key behind it', () => {
+    expect(managedKeyExists([{ AliasName: DYNAMODB_KEY_ALIAS }])).toBe(false);
+    expect(managedKeyExists([{ AliasName: 'alias/aws/s3', TargetKeyId: 'k' }])).toBe(false);
+    expect(managedKeyExists([])).toBe(false);
+    expect(managedKeyExists([{ AliasName: DYNAMODB_KEY_ALIAS, TargetKeyId: 'k' }])).toBe(true);
+  });
+
+  it('knows every table the Data stack creates', () => {
+    const data = stacksOf(appFor('staging')).all.find((stack) => stack instanceof DataStack);
+    const names = Object.values(
+      Template.fromStack(data!).findResources('AWS::DynamoDB::Table'),
+    ).map((table) => (table as { Properties: { TableName: string } }).Properties.TableName);
+    expect([...names].sort()).toEqual(
+      DATA_TABLES.map((base) => physicalName({ name: 'staging' }, base)).sort(),
+    );
+  });
+
+  it('finds the tables a failed creation left, and none a stack holds', () => {
+    const expected = ['mv-access-acme-production', 'mv-audit-acme-production'];
+    const existing = ['mv-access-acme-production'];
+    expect(tablesLeftBehind({ stackStatus: null, expected, existing })).toEqual(existing);
+    expect(tablesLeftBehind({ stackStatus: 'ROLLBACK_COMPLETE', expected, existing })).toEqual(
+      existing,
+    );
+    expect(tablesLeftBehind({ stackStatus: 'CREATE_COMPLETE', expected, existing })).toEqual([]);
+    expect(
+      tablesLeftBehind({ stackStatus: 'UPDATE_ROLLBACK_COMPLETE', expected, existing }),
+    ).toEqual([]);
+    expect(tablesLeftBehind({ stackStatus: null, expected, existing: [] })).toEqual([]);
+  });
+
+  it('names what was left, and tells a table to read from one to delete', () => {
+    const problem = leftBehindProblem({
+      stack: 'MemorysmithAcmeProductionData',
+      stackStatus: 'ROLLBACK_COMPLETE',
+      tables: [
+        { name: 'mv-access-acme-production', empty: true },
+        { name: 'mv-audit-acme-production', empty: false },
+      ],
+      buckets: ['memorysmithacmeproductiondat-contentbucket-x'],
+    });
+    expect(problem).toMatch(/empty, to delete .*: mv-access-acme-production\./);
+    expect(problem).toMatch(/holding items, to read .*: mv-audit-acme-production\./);
+    expect(problem).toContain('memorysmithacmeproductiondat-contentbucket-x');
+    expect(problem).toContain('delete the stack MemorysmithAcmeProductionData');
+    expect(
+      leftBehindProblem({
+        stack: 'S',
+        stackStatus: null,
+        tables: [{ name: 't', empty: true }],
+        buckets: [],
+      }),
+    ).not.toContain('delete the stack');
   });
 });

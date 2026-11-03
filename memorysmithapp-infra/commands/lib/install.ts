@@ -61,6 +61,91 @@ export function bootstrapVerdict(input: {
   return { kind: 'compatible' };
 }
 
+/**
+ * The key AWS manages for DynamoDB, which encrypts every table. An account that
+ * has never used DynamoDB in a region has none there until its first use, and
+ * the Data stack creates its tables at once: a table that asks for the key a
+ * moment before another one brought it into existence fails, and the stack
+ * rolls back (#378). So the account is given the key before anything deploys.
+ */
+export const DYNAMODB_KEY_ALIAS = 'alias/aws/dynamodb';
+
+/**
+ * Whether the key exists, from the aliases of the region. AWS lists the alias
+ * of a managed key it has not created yet, with no key behind it, so a listing
+ * reads without creating anything, which a `--check` must not do.
+ */
+export function managedKeyExists(
+  aliases: ReadonlyArray<{ readonly AliasName?: string; readonly TargetKeyId?: string }>,
+): boolean {
+  return aliases.some((alias) => alias.AliasName === DYNAMODB_KEY_ALIAS && !!alias.TargetKeyId);
+}
+
+/**
+ * The tables of the Data stack, by the base of their physical names. A test
+ * holds this list to the stack, so a table added there is added here.
+ */
+export const DATA_TABLES = [
+  'mv-access',
+  'mv-knowledge',
+  'mv-discovery',
+  'mv-portability',
+  'mv-audit',
+] as const;
+
+/**
+ * The tables a failed first creation of the Data stack left behind. They are
+ * retained, so a rollback keeps them outside any stack, and their names are
+ * fixed, so the next delivery fails on a name that already exists. A table is
+ * left behind only while the stack that should hold it is absent or rolled
+ * back from its creation; a stack that exists holds its own tables.
+ */
+export function tablesLeftBehind(input: {
+  readonly stackStatus: string | null;
+  readonly expected: readonly string[];
+  readonly existing: readonly string[];
+}): string[] {
+  const stackHoldsThem =
+    input.stackStatus !== null && !/^(ROLLBACK_COMPLETE|ROLLBACK_FAILED)$/.test(input.stackStatus);
+  if (stackHoldsThem) return [];
+  return input.expected.filter((name) => input.existing.includes(name));
+}
+
+/**
+ * What a person does with what a failed creation left, named one by one. The
+ * command deletes none of it: a table is data, and only a person decides that
+ * it holds nothing worth keeping.
+ */
+export function leftBehindProblem(input: {
+  readonly stack: string;
+  readonly stackStatus: string | null;
+  readonly tables: ReadonlyArray<{ readonly name: string; readonly empty: boolean }>;
+  readonly buckets: readonly string[];
+}): string {
+  const names = (tables: typeof input.tables): string =>
+    tables.map((table) => table.name).join(', ');
+  const empty = input.tables.filter((table) => table.empty);
+  const holding = input.tables.filter((table) => !table.empty);
+  const lines = [
+    `A first creation of ${input.stack} failed and left tables outside any stack, and the next delivery would fail on their names:`,
+    ...(empty.length > 0
+      ? [`  empty, to delete with aws dynamodb delete-table --table-name <name>: ${names(empty)}.`]
+      : []),
+    ...(holding.length > 0
+      ? [`  holding items, to read before deciding what to do with them: ${names(holding)}.`]
+      : []),
+    ...(input.buckets.length > 0
+      ? [`  it also left the buckets ${input.buckets.join(', ')}, which block nothing.`]
+      : []),
+    ...(input.stackStatus === null
+      ? []
+      : [
+          `  then delete the stack ${input.stack}, which is ${input.stackStatus} and holds nothing.`,
+        ]),
+  ];
+  return lines.join('\n');
+}
+
 const normalised = (servers: readonly string[]): string[] =>
   servers.map((server) => server.toLowerCase().replace(/\.$/, '')).sort();
 
