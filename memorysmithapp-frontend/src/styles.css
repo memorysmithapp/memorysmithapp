@@ -6857,12 +6857,18 @@ body.has-sheet .app-main {
   white-space: nowrap;
   font-size: 0.875rem;
 }
+/* The public row has no status chip, so one column fewer, and the button
+   keeps its width while the changelog is cut (#384). */
+.model-version.is-public {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
 .model-version-confirm {
   display: inline-flex;
   gap: 0.5rem;
 }
 @media (max-width: 40rem) {
-  .model-version {
+  .model-version,
+  .model-version.is-public {
     grid-template-columns: auto auto minmax(0, 1fr);
   }
   .model-version-changelog {
@@ -6936,8 +6942,9 @@ body.has-sheet .app-main {
 }
 .community-nav {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   font-size: 0.875rem;
 }
 .community-main {

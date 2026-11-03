@@ -27,6 +27,8 @@ issues each entry cites.
 
 - **The months of a Gantt no longer run into one another in a narrow column.** The scale labels as many months as its width holds, and says the year once, where it changes, on the page and in the PNG of a dashboard. (#383)
 
+- **The button of every version shows whole on the page of a community model.** A long changelog pushed it out of its card; the changelog is cut with an ellipsis instead. (#384)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added
