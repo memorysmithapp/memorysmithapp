@@ -37,6 +37,8 @@ issues each entry cites.
 
 - **The actions of a dashboard stand in one place, whatever its description.** A long description pushed *Refresh*, *Download PNG* and *Delete dashboard* under it, and a short one left them at the right of the name; they are now always at the right of the name, with the description under both, and under the name on a phone. (#387)
 
+- **The site serves an icon at `/favicon.ico`, and lists first the icons that keep their transparency.** The classic path answered the page of the application; it now answers the symbol at 16, 32 and 48 px with a transparent background, and the page lists the PNGs before the SVG. Claude shows a connector with the icon a favicon service keeps of its domain, which for `memorysmith.app` was a copy on a white background; it follows once that service reads the site again. (#389)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added

@@ -293,6 +293,7 @@ Three paths deliver it, the organization's choice: a fork on GitHub, through the
 | E-mail of the pool | SES, from `no-reply@<domain>` | Cognito's own sender and its daily limit |
 | E-mail of the product | SES, from `no-reply@<domain>` | `SENDER_ADDRESS`, an address verified in SES; without one a withdrawal notice is not sent, which the log says |
 | First delivery | One pass | Two ([ADR-025](#adr-025-an-installation-is-named-by-variables-and-answers-on-the-hosts-aws-gave-after-a-second-pass)) |
+| Icon of the connector in Claude | The favicon of its domain | The favicon of `amazonaws.com`, AWS's: Claude shows the icon of the domain the connector answers on, not the `icons` its handshake declares |
 
 Texts of the product that name `*.memorysmith.app` as the host to allow in a client stay as they are in an installation. No installation has been delivered from these variables yet: what this section says is verified by synthesis and by the tests of `memorysmithapp-infra`, not by a deployment to another account.
 
