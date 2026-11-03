@@ -19,6 +19,8 @@ issues each entry cites.
 
 - **The description of `install-account` says what it does.** It said that every step asks first; the command asks nothing, and runs each step once `--check` is left out, so `--check` is the way to see what it would change. (#378)
 
+- **`activate-cost-tags` explains itself in a member account of an organization.** It ended in a stack trace; it now says that the cost allocation tags belong to the management account, which pays the bill, and hold for every account of the organization, and to run it there. The last steps `install-account` prints say the same. (#380)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added

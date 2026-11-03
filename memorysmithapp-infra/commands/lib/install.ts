@@ -212,7 +212,7 @@ export function humanSteps(environment: EnvironmentConfig, roleArn: string | nul
     );
   }
   steps.push(
-    'Once, for the account: pnpm -C memorysmithapp-infra activate-cost-tags.',
+    'Once, for the account: pnpm -C memorysmithapp-infra activate-cost-tags. When the account belongs to an organization, run it with credentials of the management account, whose tags hold for every account in it.',
     `Create the first accounts: pnpm tools onboard --environment ${environment.name} --email … --name … --quota 500MB --status active. The first one becomes the platform administrator, with no subscription; run it again for the account you use the product with.`,
   );
   return steps;

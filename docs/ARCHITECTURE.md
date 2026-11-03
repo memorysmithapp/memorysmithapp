@@ -238,7 +238,7 @@ Once per account, with the owner supervising each step:
 3. `cdk deploy MemorysmithGithubDelivery -c environment=production -c alarmEmail=<address>`: the OIDC provider and the two delivery roles.
 4. On GitHub: the environments `production` and `staging`, the two role variables, and `ALARM_EMAIL` in `production`.
 5. The first delivery of production, then confirm the subscription of the SNS topic `memorysmith-alarms-production` from the e-mail AWS sends.
-6. `pnpm -C memorysmithapp-infra activate-cost-tags`, once.
+6. `pnpm -C memorysmithapp-infra activate-cost-tags`, once, in the account that pays the bill: in an organization that is its management account, whose cost allocation tags hold for every account in it, and a member account is refused with that explanation.
 7. `pnpm tools onboard --environment <name> --email … --name … --quota 500MB --status active`: the first account of a pool becomes its platform administrator, with no subscription; run it again for the account the product is used with, giving the administrator's credentials when it asks.
 
 ### 5.4 Commands

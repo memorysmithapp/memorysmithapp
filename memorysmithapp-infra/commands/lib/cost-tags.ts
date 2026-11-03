@@ -46,3 +46,22 @@ export function planCostTags(listed: readonly ListedTag[]): CostTagPlan {
   }
   return plan;
 }
+
+/**
+ * What a refusal of billing means, or null when it means something else. In an
+ * organization the cost allocation tags belong to the account that pays the
+ * bill, its management account, and hold for every account in it; a member
+ * account may neither list nor activate them (#380).
+ */
+export function costTagsRefusal(error: {
+  readonly name?: string;
+  readonly message?: string;
+}): string | null {
+  if (error.name !== 'AccessDeniedException' || !/linked account/i.test(error.message ?? '')) {
+    return null;
+  }
+  return [
+    'This account belongs to an organization, and its cost allocation tags belong to the management account, which pays the bill: there they hold for every account of the organization, this one included.',
+    'Run this again with credentials of the management account. Nothing was changed.',
+  ].join('\n');
+}

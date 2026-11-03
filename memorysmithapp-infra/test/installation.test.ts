@@ -301,6 +301,9 @@ describe('what install-account decides', () => {
     expect(steps).toContain('protect the branch main');
     expect(steps).toContain('AWS_STAGING_ROLE_ARN=arn:aws:iam::222222222222:role/x');
     expect(humanSteps(installed(), null).join(' ')).toContain('deliver --environment staging');
+    expect(humanSteps(installed(), null).join(' ')).toContain(
+      'with credentials of the management account',
+    );
   });
 });
 
