@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **An installation in another account is taken down by one command.** `destroy-installation` refuses the project's own installation and any account but the installation's, says with `--preview` what it deletes, in order, and what each stack retains, and then deletes the stacks in the order CloudFormation accepts, Edge and the delivery role included, and the tables, the content bucket and the user pool they keep on purpose. It says what stays: the hosted zone, the key AWS manages for DynamoDB and, unless `--bootstrap` is given, the CDK bootstrap, which it never removes while another stack of the region deploys with it. (#391)
+
 ## [0.15.1] - 2026-11-03
 
 ### Removed

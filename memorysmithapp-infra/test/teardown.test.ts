@@ -6,8 +6,11 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  bootstrapRefusalOf,
   chunks,
   DELIVERY_ORDER,
+  installationRefusalOf,
+  installationTeardownOrder,
   orphanLogGroups,
   refusalOf,
   retainedOf,
@@ -115,5 +118,80 @@ describe('what the stacks leave behind', () => {
     const versions = Array.from({ length: 2345 }, (_, index) => index);
     expect(chunks(versions).map((batch) => batch.length)).toEqual([1000, 1000, 345]);
     expect(chunks([])).toEqual([]);
+  });
+});
+
+describe('tearing an installation of somebody else down (#391)', () => {
+  it('refuses the project’s own installation before it looks at a credential', () => {
+    for (const callerAccount of [null, PRODUCTION]) {
+      expect(
+        installationRefusalOf({ installation: null, callerAccount, account: PRODUCTION }),
+      ).toContain('the project’s own has no destroy path. Nothing was deleted.');
+    }
+  });
+
+  it('refuses the credentials of any account but the installation’s', () => {
+    expect(
+      installationRefusalOf({ installation: 'acme', callerAccount: PRODUCTION, account: STAGING }),
+    ).toBe(
+      'These credentials belong to account 111111111111, and acme lives in 222222222222. Nothing was deleted.',
+    );
+    expect(
+      installationRefusalOf({ installation: 'acme', callerAccount: STAGING, account: STAGING }),
+    ).toBeNull();
+  });
+
+  it('takes the stacks down in the reverse of a delivery, a stack before what it imports', () => {
+    const order = installationTeardownOrder({
+      environment: 'production',
+      installation: 'acme',
+      region: 'sa-east-1',
+      edge: true,
+    });
+    const names = order.map((each) => each.stack);
+    // FrontendRelease imports from Api: deleting Api first is what CloudFormation cancels.
+    expect(names.indexOf('MemorysmithAcmeProductionFrontendRelease')).toBeLessThan(
+      names.indexOf('MemorysmithAcmeProductionApi'),
+    );
+    expect(names.slice(0, DELIVERY_ORDER.length)).toEqual(
+      [...DELIVERY_ORDER]
+        .reverse()
+        .map((name) => stackId({ name: 'production', installation: 'acme' }, name)),
+    );
+    expect(order.at(-2)).toEqual({ stack: 'MemorysmithAcmeProductionEdge', region: 'us-east-1' });
+    expect(order.at(-1)).toEqual({
+      stack: 'MemorysmithAcmeProductionDelivery',
+      region: 'sa-east-1',
+    });
+    expect(
+      installationTeardownOrder({
+        environment: 'production',
+        installation: 'acme',
+        region: 'us-east-1',
+        edge: false,
+      }).some((each) => each.stack.endsWith('Edge')),
+    ).toBe(false);
+  });
+
+  it('keeps the bootstrap of a region while another stack still deploys with it', () => {
+    expect(bootstrapRefusalOf('us-east-1', [])).toBeNull();
+    expect(bootstrapRefusalOf('us-east-1', ['MemorysmithProductionNetwork'])).toBe(
+      'the CDK bootstrap of us-east-1 stays: MemorysmithProductionNetwork still deploys with it',
+    );
+  });
+
+  it('finds the log groups of its functions that are gone, and none of another installation', () => {
+    expect(
+      orphanLogGroups({
+        environment: 'production',
+        installation: 'acme',
+        groups: [
+          '/aws/lambda/MemorysmithAcmeProduction-CustomS3AutoDeleteObject-abc',
+          '/aws/lambda/MemorysmithAcmeProductionAge-AgentFunction-alive',
+          '/aws/lambda/MemorysmithProductionApi-CoreApi-xyz',
+        ],
+        functions: ['MemorysmithAcmeProductionAge-AgentFunction-alive'],
+      }),
+    ).toEqual(['/aws/lambda/MemorysmithAcmeProduction-CustomS3AutoDeleteObject-abc']);
   });
 });

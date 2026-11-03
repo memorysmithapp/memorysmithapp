@@ -127,10 +127,12 @@ export function describeRetained(retained: Retained): string {
  */
 export function orphanLogGroups(input: {
   readonly environment: string;
+  /** The installation, for one of somebody else; absent for the project's own. */
+  readonly installation?: string | null;
   readonly groups: readonly string[];
   readonly functions: readonly string[];
 }): string[] {
-  const prefix = `/aws/lambda/${stackIdOf(input.environment, '')}`;
+  const prefix = `/aws/lambda/${stackIdOf(input.environment, '', input.installation)}`;
   const alive = new Set(input.functions);
   return input.groups.filter(
     (group) => group.startsWith(prefix) && !alive.has(group.slice('/aws/lambda/'.length)),
@@ -144,4 +146,66 @@ export function chunks<T>(items: readonly T[], size = 1000): T[][] {
     batches.push(items.slice(start, start + size));
   }
   return batches;
+}
+
+// ---- An installation of somebody else (#391) ---------------------------------
+
+/** A stack to delete, and the region it lives in. */
+export interface StackInRegion {
+  readonly stack: string;
+  readonly region: string;
+}
+
+/**
+ * Why an installation may not be torn down, or null. The project's own has no
+ * `INSTALLATION`, and that is what refuses it, before any credential is looked
+ * at: no variable turns memorysmith.app into something this command deletes.
+ */
+export function installationRefusalOf(input: {
+  readonly installation: string | null;
+  readonly callerAccount: string | null;
+  readonly account: string | undefined;
+}): string | null {
+  if (!input.installation) {
+    return 'INSTALLATION is not set: only an installation of somebody else is torn down here, and the project’s own has no destroy path. Nothing was deleted.';
+  }
+  if (!input.account) return 'AWS_ACCOUNT_ID is not set. Nothing was deleted.';
+  if (input.callerAccount !== null && input.callerAccount !== input.account) {
+    return (
+      `These credentials belong to account ${input.callerAccount}, and ${input.installation} lives in ` +
+      `${input.account}. Nothing was deleted.`
+    );
+  }
+  return null;
+}
+
+/**
+ * The stacks of an installation, in the order they go: the reverse of a
+ * delivery, so a stack goes before what it imports from; then Edge, in
+ * us-east-1, whose certificates Frontend and Network read; then the delivery
+ * role of a fork, which no other stack names.
+ */
+export function installationTeardownOrder(input: {
+  readonly environment: string;
+  readonly installation: string;
+  readonly region: string;
+  readonly edge: boolean;
+}): StackInRegion[] {
+  const id = (name: string): string => stackIdOf(input.environment, name, input.installation);
+  return [
+    ...[...DELIVERY_ORDER].reverse().map((name) => ({ stack: id(name), region: input.region })),
+    ...(input.edge ? [{ stack: id('Edge'), region: 'us-east-1' }] : []),
+    { stack: id('Delivery'), region: input.region },
+  ];
+}
+
+/**
+ * Whether the bootstrap of a region may go, or why it stays. It is the
+ * account's, not the installation's: another installation, or the project's own,
+ * may deploy with it, so it goes only when no other stack is left in the region.
+ */
+export function bootstrapRefusalOf(region: string, others: readonly string[]): string | null {
+  return others.length === 0
+    ? null
+    : `the CDK bootstrap of ${region} stays: ${others.join(', ')} still deploy${others.length === 1 ? 's' : ''} with it`;
 }
