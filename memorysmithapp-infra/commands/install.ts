@@ -13,9 +13,11 @@
  * region has none, and on a fork creates the OIDC provider of the account, if
  * there is none, and the delivery role of the environment.
  *
- * Every step asks first, so running it again reuses what the last run made and
- * goes on from where a failure stopped it. A bootstrap it cannot use is
- * reported and never replaced. It ends by saying what is left for a person.
+ * Without `--check` it runs each step without asking, so `--check` is how a
+ * person sees what it would change. Each step looks for what exists first, so
+ * running it again reuses what the last run made and goes on from where a
+ * failure stopped it. A bootstrap it cannot use is reported and never
+ * replaced. It ends by saying what is left for a person.
  */
 
 import {
