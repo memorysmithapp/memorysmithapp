@@ -420,11 +420,20 @@ function readComponent(
 
   const group =
     source['group'] === undefined || source['group'] === null ? null : String(source['group']);
-  const measures = Array.isArray(source['measures'])
-    ? source['measures'].map(String)
+  const written: unknown[] = Array.isArray(source['measures'])
+    ? source['measures']
     : source['measure'] !== undefined
-      ? [String(source['measure'])]
+      ? [source['measure']]
       : [];
+  // A measure is a text; anything else is named as it was written, never as
+  // what String() makes of it (#382).
+  const notText = written.find((measure) => typeof measure !== 'string');
+  if (notText !== undefined) {
+    return invalid(
+      `${named} writes ${JSON.stringify(notText)} as a measure: a measure is a text, such as "count()" or "sum(amount)"`,
+    );
+  }
+  const measures = written as string[];
 
   if (kind === 'kpi' || kind === 'gauge') {
     if (measures.length !== 1 || group)

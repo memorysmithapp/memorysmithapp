@@ -23,6 +23,8 @@ issues each entry cites.
 
 - **A notebook with a file above 4 MB is created from its model, and imported back.** A file sent in parts may be up to 100 MB, but creating a notebook from a model version, or importing an export, brought each file back through the 4 MB of `keep_file` and failed with `LIMIT_EXCEEDED`, naming no file. An import now keeps each file up to the 100 MB of a file sent in parts, with every other check of an upload; `keep_file` keeps its 4 MB. (#381)
 
+- **A dashboard measure written as something other than a text is refused naming it.** The refusal said `"[object Object]" is not a measure`; it now names the value as it was written and says that a measure is a text, such as `"sum(amount)"`. (#382)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added
