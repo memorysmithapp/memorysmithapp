@@ -20,7 +20,9 @@ import {
   searchCatalog,
 } from '../../shared/api/source';
 import { readTokens } from '../../shared/auth/oauth';
+import { ActionWord } from '../../shared/components/ActionWord';
 import { BrandMark } from '../../shared/components/BrandMark';
+import { ArrowLeftIcon, BookIcon, SignInIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { CreateFromModelForm } from '../models/CreateFromModel';
 import { ParameterList } from '../models/ModelPage';
@@ -97,14 +99,14 @@ function CommunityFrame({ children }: { children: ReactNode }) {
         <span className="header-spacer" />
         <nav className="community-nav" aria-label={t('community.title')}>
           <Link to={communityAddress()} className="button is-quiet is-small">
-            {t('community.title')}
+            <ActionWord icon={<BookIcon />} word={t('community.title')} />
           </Link>
           <button type="button" className="button is-quiet is-small" onClick={back}>
-            {t('community.back')}
+            <ActionWord icon={<ArrowLeftIcon />} word={t('community.back')} />
           </button>
           {inside ? null : (
             <Link to="/login" className="button is-primary is-small">
-              {t('community.signIn')}
+              <ActionWord icon={<SignInIcon />} word={t('community.signIn')} wide />
             </Link>
           )}
         </nav>

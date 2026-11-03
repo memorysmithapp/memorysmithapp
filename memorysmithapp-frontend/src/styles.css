@@ -6947,6 +6947,18 @@ body.has-sheet .app-main {
   gap: 0.5rem;
   font-size: 0.875rem;
 }
+@media (max-width: 40rem) {
+  /* Three buttons and the mark do not fit a phone in one row: the buttons go
+     to a row of their own under the mark, and wrap there (#385). */
+  .community-head {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+  .community-nav {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+}
 .community-main {
   max-width: 52rem;
   margin: 0 auto;

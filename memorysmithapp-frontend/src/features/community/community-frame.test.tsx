@@ -58,18 +58,23 @@ describe('the header of the community pages (#385)', () => {
     expect(html).toContain(
       'class="tagline">Conhecimento estruturado, que construímos e mantemos com os assistentes de IA que já usamos no dia a dia.',
     );
-    expect(html).toMatch(/class="button is-quiet is-small"[^>]*>Modelos da comunidade</);
-    expect(html).toMatch(/<button type="button" class="button is-quiet is-small">Voltar<\/button>/);
-    expect(html).toContain('>Entrar</a>');
+    // Each button carries its icon beside its word, which stays its name on a phone.
+    expect(html).toMatch(
+      /class="button is-quiet is-small"[^>]*><svg[^]*?<span class="action-word">Modelos da comunidade<\/span>/,
+    );
+    expect(html).toMatch(
+      /<button type="button" class="button is-quiet is-small"><svg[^]*?<span class="action-word">Voltar<\/span><\/button>/,
+    );
+    expect(html).toMatch(/<svg[^]*?<span class="action-word is-kept">Entrar<\/span><\/a>/);
   });
 
   it('leaves Sign in out for a person signed in, in English too', async () => {
     await i18n.changeLanguage('en_US');
     localStorage.setItem('memorysmith.tokens', JSON.stringify({ accessToken: 'x' }));
     const html = page();
-    expect(html).toContain('>Back</button>');
+    expect(html).toContain('<span class="action-word">Back</span></button>');
     expect(html).toContain('class="tagline">Structured knowledge');
-    expect(html).not.toContain('>Sign in</a>');
+    expect(html).not.toContain('Sign in</span></a>');
     localStorage.clear();
   });
 
@@ -82,6 +87,12 @@ describe('the header of the community pages (#385)', () => {
 
 describe('a version row of a community model (#384)', () => {
   const css = readFileSync(new URL('../../styles.css', import.meta.url), 'utf8');
+
+  it('lets the buttons of the header take a row of their own on a phone', () => {
+    expect(css).toMatch(
+      /@media \(max-width: 40rem\) \{[^}]*\.community-head \{\s*flex-wrap: wrap;[^}]*\}\s*\.community-nav \{\s*flex: 1 1 100%;\s*flex-wrap: wrap;/,
+    );
+  });
 
   it('has a column for each of its four items, so its button keeps its width', () => {
     expect(css).toMatch(
