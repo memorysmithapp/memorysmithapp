@@ -78,6 +78,14 @@ describe('the header of the community pages (#385)', () => {
     localStorage.clear();
   });
 
+  it('is the header of the application, so the mark stands where it stands on every page', async () => {
+    await i18n.changeLanguage('pt_BR');
+    const html = page();
+    expect(html).toMatch(
+      /<div class="community-frame"><header class="app-header"><a class="brand"/,
+    );
+  });
+
   it('goes back when there is a page to go back to, and home or to the list otherwise', () => {
     expect(backTarget(2, true)).toBe(-1);
     expect(backTarget(0, true)).toBe('/');
@@ -87,12 +95,6 @@ describe('the header of the community pages (#385)', () => {
 
 describe('a version row of a community model (#384)', () => {
   const css = readFileSync(new URL('../../styles.css', import.meta.url), 'utf8');
-
-  it('lets the buttons of the header take a row of their own on a phone', () => {
-    expect(css).toMatch(
-      /@media \(max-width: 40rem\) \{[^}]*\.community-head \{\s*flex-wrap: wrap;[^}]*\}\s*\.community-nav \{\s*flex: 1 1 100%;\s*flex-wrap: wrap;/,
-    );
-  });
 
   it('has a column for each of its four items, so its button keeps its width', () => {
     expect(css).toMatch(

@@ -90,8 +90,10 @@ function CommunityFrame({ children }: { children: ReactNode }) {
   }
   return (
     <div className="community-frame">
-      <header className="community-head">
-        <Link to="/" className="community-brand" aria-label={t('community.home')}>
+      {/* The header of the application, by its own classes, so the mark stands
+          exactly where it stands on every other page (#385). */}
+      <header className="app-header">
+        <Link to="/" className="brand" aria-label={t('community.home')}>
           <BrandMark />
         </Link>
         <span className="header-divider" aria-hidden="true" />
