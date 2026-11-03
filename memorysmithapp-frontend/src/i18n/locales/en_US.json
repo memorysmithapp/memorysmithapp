@@ -1220,6 +1220,7 @@
     "title": "Community models",
     "menu": "Community models",
     "home": "Home",
+    "back": "Back",
     "signIn": "Sign in",
     "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. Anybody may read them; creating a notebook from one asks you to sign in.",
     "search": "Find",

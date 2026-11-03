@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { PublicModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -59,19 +59,50 @@ function useDescription(text: string | null | undefined): void {
   }, [text]);
 }
 
+/**
+ * Where Back goes (#385): the previous page when the router pushed one, and,
+ * from a page opened directly, home for a person signed in and the list for a
+ * visitor.
+ */
+export function backTarget(historyIndex: number, isSignedIn: boolean): -1 | string {
+  if (historyIndex > 0) return -1;
+  return isSignedIn ? '/' : communityAddress();
+}
+
+/**
+ * The header of the community pages (#385): the mark and the tagline, as the
+ * header of the application shows them, and buttons that say where they lead.
+ * Back returns to the page the person came from; arrived from outside, it
+ * goes to their home when signed in, and to the list when not.
+ */
 function CommunityFrame({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const inside = signedIn();
+  function back(): void {
+    // The router numbers the entries it pushed; 0 is the page opened first.
+    const index = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    const target = backTarget(index, inside);
+    if (target === -1) void navigate(-1);
+    else void navigate(target);
+  }
   return (
     <div className="community-frame">
       <header className="community-head">
         <Link to="/" className="community-brand" aria-label={t('community.home')}>
           <BrandMark />
         </Link>
+        <span className="header-divider" aria-hidden="true" />
+        <span className="tagline">{t('app.tagline')}</span>
+        <span className="header-spacer" />
         <nav className="community-nav" aria-label={t('community.title')}>
-          <Link to={communityAddress()}>{t('community.title')}</Link>
-          {signedIn() ? (
-            <Link to="/">{t('community.home')}</Link>
-          ) : (
+          <Link to={communityAddress()} className="button is-quiet is-small">
+            {t('community.title')}
+          </Link>
+          <button type="button" className="button is-quiet is-small" onClick={back}>
+            {t('community.back')}
+          </button>
+          {inside ? null : (
             <Link to="/login" className="button is-primary is-small">
               {t('community.signIn')}
             </Link>
@@ -203,7 +234,7 @@ export function CommunityModelPage() {
             <h2>{t('model.versions')}</h2>
             <ul className="row-card model-version-list">
               {model.data.versions.map((version) => (
-                <li key={version.number} className="model-version">
+                <li key={version.number} className="model-version is-public">
                   <span className="model-version-number">v{version.number}</span>
                   <span className="model-version-when">{day(version.createdAt)}</span>
                   <span className="model-version-changelog">{version.changelog}</span>

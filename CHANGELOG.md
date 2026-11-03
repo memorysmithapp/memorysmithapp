@@ -29,6 +29,8 @@ issues each entry cites.
 
 - **The button of every version shows whole on the page of a community model.** A long changelog pushed it out of its card; the changelog is cut with an ellipsis instead. (#384)
 
+- **The community pages show the tagline, and say where their buttons lead.** Their header shows the tagline beside the mark, as every other header does, and two buttons, *Community models* and *Back*, where there were two bare links; Back returns to the page the person came from, or, arriving from outside, goes home when signed in and to the list when not. (#385)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added
