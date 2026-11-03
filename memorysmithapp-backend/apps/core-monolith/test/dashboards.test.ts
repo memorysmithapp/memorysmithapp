@@ -187,6 +187,35 @@ describe('a dashboard of a notebook', () => {
     ).toContain('"nome"');
   });
 
+  it('refuses a measure that is not a text naming it as it was written', async () => {
+    const refused = async (component: Record<string, unknown>) => {
+      const answer = await call(dashboards(), {
+        method: 'POST',
+        body: { name: 'Errado', definition: { components: [component] } },
+      });
+      expect(answer.status).toBe(400);
+      return ((await answer.json()) as { message: string }).message;
+    };
+    const object = await refused({
+      id: 'medicoes',
+      type: 'kpi',
+      source: { table: 'gastos', measure: { op: 'count' } },
+    });
+    expect(object).toContain('Component "medicoes"');
+    expect(object).toContain('{"op":"count"}');
+    expect(object).toContain('"sum(amount)"');
+    expect(object).not.toContain('[object Object]');
+    const number = await refused({
+      id: 'contagens',
+      type: 'pie',
+      source: { table: 'gastos', group: 'categoria', measures: [42] },
+    });
+    expect(number).toContain('Component "contagens"');
+    expect(number).toContain('42');
+    expect(number).toContain('"sum(amount)"');
+    expect(number).not.toContain('[object Object]');
+  });
+
   it('keeps drawing a table renamed, and says in place of its components when it is gone', async () => {
     await call(dashboards(), { method: 'POST', body: { name: 'Mês', definition: DEFINITION } });
     await call(`/knowledge/notebooks/${notebookId}/tables/gastos`, {
