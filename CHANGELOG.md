@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A dashboard refuses a measure that is not a text naming it as it was written.** `measure` or `measures` written as an object or a number is refused naming the component and the value, and saying that a measure is a text such as `"sum(amount)"`, instead of the meaningless `[object Object]`. (#382)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added
