@@ -171,7 +171,7 @@ const run = (
   label: string,
   file: string,
   args: readonly string[],
-  options: { readonly shell?: boolean } = {},
+  options: { readonly shell?: boolean; readonly hint?: string } = {},
 ): void => {
   say(`\n${label}`);
   const outcome = spawnSync(file, [...args], {
@@ -179,14 +179,29 @@ const run = (
     cwd: join(REPOSITORY_ROOT, 'memorysmithapp-infra'),
     shell: options.shell ?? false,
   });
-  if (outcome.status !== 0) refuse(`\n${label} failed. Nothing after it ran.`);
+  if (outcome.status !== 0) refuse(`\n${label} failed. Nothing after it ran.${options.hint ?? ''}`);
 };
 
-const node = (label: string, args: readonly string[]): void => run(label, process.execPath, args);
+const node = (label: string, args: readonly string[], hint?: string): void =>
+  run(label, process.execPath, args, hint ? { hint } : {});
 const command = (label: string, name: string, args: readonly string[]): void =>
   node(label, [tsx, join(REPOSITORY_ROOT, 'memorysmithapp-infra', 'commands', name), ...args]);
+/**
+ * A first creation that fails rolls back and keeps what is retained, outside
+ * any stack, where the next delivery fails on its names (#378). An
+ * installation is told where to find what it left; the project's own stacks
+ * were created long ago.
+ */
+const leftBehindHint = installation
+  ? `\nIf a stack was being created for the first time, run pnpm -C memorysmithapp-infra install-account --environment ${environment} --check, which names what the failure left behind, before delivering again.`
+  : '';
+
 const deploy = (label: string, stacks: readonly string[]): void =>
-  node(label, [cdk, 'deploy', '--app', 'cdk.out', '--require-approval', 'never', ...stacks]);
+  node(
+    label,
+    [cdk, 'deploy', '--app', 'cdk.out', '--require-approval', 'never', ...stacks],
+    leftBehindHint,
+  );
 
 const ids = (names: readonly string[]): string[] =>
   names.map((name) => stackIdOf(environment, name, installation));

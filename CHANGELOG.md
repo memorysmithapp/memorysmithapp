@@ -11,6 +11,38 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-03
+
+### Added
+
+- **An installation in another account is taken down by one command.** `destroy-installation` refuses the project's own installation and any account but the installation's, says with `--preview` what it deletes, in order, and what each stack retains, and then deletes the stacks in the order CloudFormation accepts, Edge and the delivery role included, and the tables, the content bucket and the user pool they keep on purpose. In a domain of its own it also deletes from the hosted zone the records that validated the installation's certificates, which CloudFormation leaves there, and nothing else of the zone, so the zone can be deleted too. It says what stays: the hosted zone, the key AWS manages for DynamoDB and, unless `--bootstrap` is given, the CDK bootstrap, which it never removes while another stack of the region deploys with it. (#391, #393)
+
+### Removed
+
+- **The repository ships no pipeline for a fork on GitLab.** `.gitlab-ci.yml` came with the installation in another account and never ran. A fork on GitLab writes its own pipeline, which runs `deliver` with the role `install-account` deploys; that role, trusted to the project by OIDC, and the variables `REPOSITORY_HOST=gitlab` and `GITLAB_ISSUER` stay. (#388)
+
+### Fixed
+
+- **The first delivery into a new AWS account no longer fails creating the tables.** In a region that had never used DynamoDB, the tables raced to create the key that encrypts them and one of them failed, and the rollback left tables behind that failed the next delivery on their names. `install-account` now creates that key before anything deploys, and its `--check` says whether it exists; when a failed first delivery left tables behind, it names each one, empty or holding items, and deletes none, and `deliver` points an installation to it when a deployment fails. (#378)
+
+- **The description of `install-account` says what it does.** It said that every step asks first; the command asks nothing, and runs each step once `--check` is left out, so `--check` is the way to see what it would change. (#378)
+
+- **`activate-cost-tags` explains itself in a member account of an organization.** It ended in a stack trace; it now says that the cost allocation tags belong to the management account, which pays the bill, and hold for every account of the organization, and to run it there. The last steps `install-account` prints say the same. (#380)
+
+- **A notebook with a file above 4 MB is created from its model, and imported back.** A file sent in parts may be up to 100 MB, but creating a notebook from a model version, or importing an export, brought each file back through the 4 MB of `keep_file` and failed with `LIMIT_EXCEEDED`, naming no file. An import now keeps each file up to the 100 MB of a file sent in parts, with every other check of an upload; `keep_file` keeps its 4 MB. (#381)
+
+- **A dashboard measure written as something other than a text is refused naming it.** The refusal said `"[object Object]" is not a measure`; it now names the value as it was written and says that a measure is a text, such as `"sum(amount)"`. (#382)
+
+- **The months of a Gantt no longer run into one another in a narrow column.** The scale labels as many months as its width holds, and says the year once, where it changes, on the page and in the PNG of a dashboard. (#383)
+
+- **The button of every version shows whole on the page of a community model.** A long changelog pushed it out of its card; the changelog is cut with an ellipsis instead. (#384)
+
+- **The community pages show the tagline, and say where their buttons lead.** Their header shows the tagline beside the mark, as every other header does, and two buttons, *Community models* and *Back*, where there were two bare links; Back returns to the page the person came from, or, arriving from outside, goes home when signed in and to the list when not. (#385)
+
+- **The actions of a dashboard stand in one place, whatever its description.** A long description pushed *Refresh*, *Download PNG* and *Delete dashboard* under it, and a short one left them at the right of the name; they are now always at the right of the name, with the description under both, and under the name on a phone. (#387)
+
+- **The site serves an icon at `/favicon.ico`, and lists first the icons that keep their transparency.** The classic path answered the page of the application; it now answers the symbol at 16, 32 and 48 px with a transparent background, and the page lists the PNGs before the SVG. Claude shows a connector with the icon a favicon service keeps of its domain, which for `memorysmith.app` was a copy on a white background; it follows once that service reads the site again. (#389)
+
 ## [0.15.0] - 2026-10-30
 
 ### Added
@@ -914,7 +946,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3
 [0.14.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.0...v0.14.1

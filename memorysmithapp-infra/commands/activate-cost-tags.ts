@@ -5,7 +5,8 @@
  *
  * A step of bringing an account up, run once from a workstation and again
  * whenever it says a tag is not listed yet: it is idempotent, activating only
- * what is inactive. It is not part of a delivery, so the roles GitHub delivers
+ * what is inactive. In an organization it runs in the management account, whose
+ * tags hold for every account in it, and a member account is told so (#380). It is not part of a delivery, so the roles GitHub delivers
  * with never gain a permission over billing.
  */
 
@@ -14,16 +15,21 @@ import {
   ListCostAllocationTagsCommand,
   UpdateCostAllocationTagsStatusCommand,
 } from '@aws-sdk/client-cost-explorer';
-import { COST_TAGS, planCostTags } from './lib/cost-tags.js';
+import { COST_TAGS, costTagsRefusal, planCostTags } from './lib/cost-tags.js';
 
 const say = (line: string): void => void process.stdout.write(`${line}\n`);
 
 // Cost Explorer answers in us-east-1 whatever the region of the product.
 const ce = new CostExplorerClient({ region: 'us-east-1' });
 
-const listed = await ce.send(
-  new ListCostAllocationTagsCommand({ TagKeys: [...COST_TAGS], Type: 'UserDefined' }),
-);
+const listed = await ce
+  .send(new ListCostAllocationTagsCommand({ TagKeys: [...COST_TAGS], Type: 'UserDefined' }))
+  .catch((error: Error) => {
+    const refusal = costTagsRefusal(error);
+    if (!refusal) throw error;
+    console.error(refusal);
+    process.exit(1);
+  });
 const plan = planCostTags(listed.CostAllocationTags ?? []);
 
 if (plan.activate.length > 0) {

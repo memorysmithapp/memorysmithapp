@@ -6,27 +6,34 @@
  * It reads what `.env.example` documents, from `.env.<environment>` or from the
  * variables already set, and changes nothing until everything it can check
  * holds: the account of the credentials, the services of the region, the hosted
- * zone and its delegation, and the CDK bootstrap. `--check` stops there. Then
- * it bootstraps what has no bootstrap, us-east-1 too when the certificates of
- * CloudFront have to live there, and on a fork creates the OIDC provider of the
- * account, if there is none, and the delivery role of the environment.
+ * zone and its delegation, the CDK bootstrap, the key DynamoDB encrypts with,
+ * and no table a failed first delivery left behind (#378). `--check` stops
+ * there. Then it bootstraps what has no bootstrap, us-east-1 too when the
+ * certificates of CloudFront have to live there, creates the key when the
+ * region has none, and on a fork creates the OIDC provider of the account, if
+ * there is none, and the delivery role of the environment.
  *
- * Every step asks first, so running it again reuses what the last run made and
- * goes on from where a failure stopped it. A bootstrap it cannot use is
- * reported and never replaced. It ends by saying what is left for a person.
+ * Without `--check` it runs each step without asking, so `--check` is how a
+ * person sees what it would change. Each step looks for what exists first, so
+ * running it again reuses what the last run made and goes on from where a
+ * failure stopped it. A bootstrap it cannot use is reported and never
+ * replaced. It ends by saying what is left for a person.
  */
 
 import {
   CloudFormationClient,
+  DescribeStackEventsCommand,
   DescribeStacksCommand,
   type Stack,
 } from '@aws-sdk/client-cloudformation';
+import { DescribeTableCommand, DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
 import {
   AddClientIDToOpenIDConnectProviderCommand,
   CreateOpenIDConnectProviderCommand,
   IAMClient,
   ListOpenIDConnectProvidersCommand,
 } from '@aws-sdk/client-iam';
+import { DescribeKeyCommand, KMSClient, paginateListAliases } from '@aws-sdk/client-kms';
 import { GetHostedZoneCommand, Route53Client } from '@aws-sdk/client-route-53';
 import { GetParameterCommand, GetParametersByPathCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
@@ -39,6 +46,7 @@ import { parseArgs } from 'node:util';
 import {
   installationEnvironmentOf,
   loadInstallationFile,
+  physicalName,
   stackId,
   trustOf,
   type EnvironmentConfig,
@@ -46,10 +54,15 @@ import {
 } from '../installation/index.js';
 import {
   bootstrapVerdict,
+  DATA_TABLES,
   delegationProblem,
+  DYNAMODB_KEY_ALIAS,
   humanSteps,
+  leftBehindProblem,
+  managedKeyExists,
   REQUIRED_SERVICES,
   servicesMissingIn,
+  tablesLeftBehind,
 } from './lib/install.js';
 import { REPOSITORY_ROOT } from './lib/repository.js';
 
@@ -182,6 +195,66 @@ for (const where of regions) {
   say(`  the CDK bootstrap of ${where} is ${verdict.kind}.`);
 }
 
+// The tables live in the region of the installation, and only there.
+const kms = new KMSClient({ region });
+const aliases = [];
+for await (const page of paginateListAliases({ client: kms }, {})) {
+  aliases.push(...(page.Aliases ?? []));
+}
+const keyExists = managedKeyExists(aliases);
+say(
+  keyExists
+    ? `  the key ${DYNAMODB_KEY_ALIAS} of ${region} exists.`
+    : `  the key ${DYNAMODB_KEY_ALIAS} of ${region} is absent, and is created before anything deploys.`,
+);
+
+const dataStack = stackId(environment, 'Data');
+const dataStatus = await new CloudFormationClient({ region })
+  .send(new DescribeStacksCommand({ StackName: dataStack }))
+  .then((found) => found.Stacks?.[0]?.StackStatus ?? null)
+  .catch(() => null);
+const dynamodb = new DynamoDBClient({ region });
+const expected = DATA_TABLES.map((base) => physicalName(environment, base));
+const existing: string[] = [];
+for (const name of expected) {
+  const found = await dynamodb
+    .send(new DescribeTableCommand({ TableName: name }))
+    .then(() => true)
+    .catch((error: Error) => {
+      // Only an absent table is an answer; a refused read must not pass for one.
+      if (error.name === 'ResourceNotFoundException') return false;
+      throw error;
+    });
+  if (found) existing.push(name);
+}
+const leftBehind = tablesLeftBehind({ stackStatus: dataStatus, expected, existing });
+if (leftBehind.length > 0) {
+  const tables = [];
+  for (const name of leftBehind) {
+    // One item is enough to say a table is not empty, and the count AWS keeps lags.
+    const scanned = await dynamodb.send(
+      new ScanCommand({ TableName: name, Limit: 1, Select: 'COUNT' }),
+    );
+    tables.push({ name, empty: (scanned.Count ?? 0) === 0 && !scanned.LastEvaluatedKey });
+  }
+  const buckets: string[] = [];
+  if (dataStatus !== null) {
+    const events = await new CloudFormationClient({ region }).send(
+      new DescribeStackEventsCommand({ StackName: dataStack }),
+    );
+    for (const event of events.StackEvents ?? []) {
+      if (
+        event.ResourceType === 'AWS::S3::Bucket' &&
+        event.ResourceStatus === 'DELETE_SKIPPED' &&
+        event.PhysicalResourceId
+      ) {
+        buckets.push(event.PhysicalResourceId);
+      }
+    }
+  }
+  refuse(leftBehindProblem({ stack: dataStack, stackStatus: dataStatus, tables, buckets }));
+}
+
 if (values.check) {
   say('\nEverything checked holds, and nothing was changed.');
   process.exit(0);
@@ -201,6 +274,15 @@ const run = (label: string, file: string, args: readonly string[]): void => {
 
 for (const where of absent) {
   run(`Bootstrapping ${where}`, process.execPath, [cdk, 'bootstrap', `aws://${account}/${where}`]);
+}
+
+if (!keyExists) {
+  // Describing the alias of a managed key AWS has not created yet creates it.
+  const described = await kms
+    .send(new DescribeKeyCommand({ KeyId: DYNAMODB_KEY_ALIAS }))
+    .catch((error: Error) => refuse(`Creating ${DYNAMODB_KEY_ALIAS} failed: ${error.message}`));
+  if (!described.KeyMetadata?.KeyId) refuse(`AWS created no key behind ${DYNAMODB_KEY_ALIAS}.`);
+  say(`\nCreated the key ${DYNAMODB_KEY_ALIAS} of ${region}, which every table is encrypted with.`);
 }
 
 let roleArn: string | null = null;

@@ -185,6 +185,19 @@ describe('a dashboard of a notebook', () => {
         options: { lane: 'status', card: 'nome' },
       }),
     ).toContain('"nome"');
+    // A measure that is not a text is named as it was written (#382).
+    const object = await refused({
+      type: 'kpi',
+      source: { table: 'gastos', measure: { op: 'count' } },
+    });
+    expect(object).toContain('{"op":"count"}');
+    expect(object).not.toContain('[object Object]');
+    expect(
+      await refused({
+        type: 'bar',
+        source: { table: 'gastos', group: 'categoria', measures: [3] },
+      }),
+    ).toContain('writes 3 as a measure: a measure is a text');
   });
 
   it('keeps drawing a table renamed, and says in place of its components when it is gone', async () => {

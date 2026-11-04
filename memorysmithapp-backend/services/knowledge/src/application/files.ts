@@ -99,10 +99,18 @@ export class KeepFile {
     path: string;
     bytes: Uint8Array;
     by: Authorship;
+    /**
+     * The ceiling of this door, the 4 MB of a request when absent. An import
+     * passes the ceiling of a file sent in parts: its bytes come from an
+     * archive already in the bucket, never through a request, and an archive
+     * carries whatever an upload kept (#381, RN-PRT-025).
+     */
+    maxBytes?: number;
   }): Promise<Result<NotebookFile, DomainError>> {
     const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'write-content');
     if (!notebook.ok) return notebook;
 
+    const maxBytes = input.maxBytes ?? MAX_INLINE_BYTES;
     const type = this.deps.fileTypes.canonical(input.mimeType);
     if (!type) {
       return err(
@@ -114,10 +122,10 @@ export class KeepFile {
     if (input.bytes.byteLength === 0) {
       return err(DomainError.validation('A file with no bytes is not a file'));
     }
-    if (input.bytes.byteLength > MAX_INLINE_BYTES) {
+    if (input.bytes.byteLength > maxBytes) {
       return err(
         DomainError.limitExceeded(
-          `A file kept through this door goes up to ${MAX_INLINE_BYTES / (1024 * 1024)} MB`,
+          `A file kept through this door goes up to ${maxBytes / (1024 * 1024)} MB`,
         ),
       );
     }

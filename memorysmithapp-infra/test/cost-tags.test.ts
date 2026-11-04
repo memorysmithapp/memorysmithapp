@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { COST_TAGS, planCostTags } from '../commands/lib/cost-tags.js';
+import { COST_TAGS, costTagsRefusal, planCostTags } from '../commands/lib/cost-tags.js';
 import { readText } from '../commands/lib/repository.js';
 
 describe('the cost allocation tags', () => {
@@ -43,5 +43,24 @@ describe('the cost allocation tags', () => {
   it('are put on every stack of an environment by the app', () => {
     const app = readText('memorysmithapp-infra/bin/app.ts');
     for (const key of COST_TAGS) expect(app).toContain(`Tags.of(stack).add('${key}'`);
+  });
+});
+
+describe('a member account of an organization (#380)', () => {
+  it('is told that the tags belong to the management account', () => {
+    const refusal = costTagsRefusal({
+      name: 'AccessDeniedException',
+      message:
+        "Failed to list Cost Allocation Tags: Linked account doesn't have access to cost allocation tags.",
+    });
+    expect(refusal).toContain('management account');
+    expect(refusal).toContain('Nothing was changed.');
+  });
+
+  it('leaves any other refusal to fail as it is', () => {
+    expect(
+      costTagsRefusal({ name: 'AccessDeniedException', message: 'User is not authorized' }),
+    ).toBe(null);
+    expect(costTagsRefusal({ name: 'ThrottlingException', message: 'Linked account' })).toBe(null);
   });
 });

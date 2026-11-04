@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/infra",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "type": "module",
   "description": "All CDK for MemorySmith: stacks, constructs, IAM policies and the pipeline, and the commands that deliver it.",
@@ -19,7 +19,8 @@
     "wait-for-email-identity": "tsx commands/wait-for-email-identity.ts",
     "publish-release": "tsx commands/publish-release.ts",
     "activate-cost-tags": "tsx commands/activate-cost-tags.ts",
-    "destroy-staging": "tsx commands/destroy-staging.ts"
+    "destroy-staging": "tsx commands/destroy-staging.ts",
+    "destroy-installation": "tsx commands/destroy-installation.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.1131.0",
@@ -27,7 +28,9 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",
     "@aws-sdk/client-cost-explorer": "^3.1150.0",
     "@aws-sdk/client-dynamodb": "^3.1117.0",
+    "@aws-sdk/client-ecr": "^3.1159.0",
     "@aws-sdk/client-iam": "^3.1159.0",
+    "@aws-sdk/client-kms": "^3.1159.0",
     "@aws-sdk/client-lambda": "^3.1131.0",
     "@aws-sdk/client-route-53": "^3.1159.0",
     "@aws-sdk/client-s3": "^3.1117.0",
