@@ -93,7 +93,7 @@ Each command with the directory it runs in, what it does, and the date somebody 
 | `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm depcruise` | The root | The rest of what CI runs ([SDLC §8](docs/SDLC.md#8-tests-and-review)) | 2026-10-18 |
 | `pnpm release-checks`, `pnpm release-notes [X.Y.Z]` | `memorysmithapp-infra` | Whether the version can be released; the notes of a version | 2026-10-18 |
 | `pnpm install-account --environment <name> [--check]` | `memorysmithapp-infra` | Checks an installation of somebody else without changing anything, and with no `--check` prepares its account | 2026-11-03 |
-| `pnpm destroy-installation --environment <name> --preview` | `memorysmithapp-infra` | Lists what taking an installation of somebody else down deletes, and changes nothing; the run without `--preview` has not been executed | 2026-11-03 |
+| `pnpm destroy-installation --environment <name> [--preview] [--bootstrap]` | `memorysmithapp-infra` | Takes an installation of somebody else down, and with `--preview` lists what it deletes and changes nothing | 2026-11-03 |
 | `pnpm tools --help`, `pnpm tools <command> --help` | The root | The tools that operate and evaluate the product, and what each takes | 2026-10-25 |
 
 ## 7. Before calling something done

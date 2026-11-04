@@ -209,3 +209,40 @@ export function bootstrapRefusalOf(region: string, others: readonly string[]): s
     ? null
     : `the CDK bootstrap of ${region} stays: ${others.join(', ')} still deploy${others.length === 1 ? 's' : ''} with it`;
 }
+
+/**
+ * The hosts an installation with a domain of its own answers on, by the label
+ * before the domain; the empty label is the domain itself.
+ */
+export const INSTALLATION_HOSTS = ['', 'www', 'api', 'mcp', 'auth', 'uploads', 'files'] as const;
+
+/** A record of a hosted zone, as Route 53 lists it. */
+export interface ZoneRecord {
+  readonly name: string;
+  readonly type: string;
+  readonly values: readonly string[];
+}
+
+/**
+ * The records that validated the certificates of an installation (#393).
+ * CloudFormation writes one per host for a certificate validated by DNS and
+ * leaves it when the certificate goes, and a zone that still holds one cannot be
+ * deleted. Only a CNAME `_<label>.<host>` of a host of the installation that
+ * points under `acm-validations.aws` is chosen: the zone is the person's, and
+ * every other record in it, a certificate of their own under another name
+ * included, is theirs too.
+ */
+export function validationRecordsOf(domain: string, records: readonly ZoneRecord[]): ZoneRecord[] {
+  const bare = (name: string): string => name.toLowerCase().replace(/\.$/, '');
+  const root = bare(domain);
+  const hosts = new Set(INSTALLATION_HOSTS.map((label) => (label ? `${label}.${root}` : root)));
+  return records.filter((record) => {
+    if (record.type !== 'CNAME' || record.values.length !== 1) return false;
+    const [label, ...rest] = bare(record.name).split('.');
+    return (
+      /^_[0-9a-z]+$/.test(label ?? '') &&
+      hosts.has(rest.join('.')) &&
+      /\.acm-validations\.aws$/.test(bare(record.values[0] ?? ''))
+    );
+  });
+}

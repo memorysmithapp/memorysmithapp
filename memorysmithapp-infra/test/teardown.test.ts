@@ -16,6 +16,7 @@ import {
   retainedOf,
   stackIdOf,
   teardownOrder,
+  validationRecordsOf,
 } from '../commands/lib/teardown.js';
 import { stackId } from '../config/environments.js';
 import { readFileSync } from 'node:fs';
@@ -193,5 +194,41 @@ describe('tearing an installation of somebody else down (#391)', () => {
         functions: ['MemorysmithAcmeProductionAge-AgentFunction-alive'],
       }),
     ).toEqual(['/aws/lambda/MemorysmithAcmeProduction-CustomS3AutoDeleteObject-abc']);
+  });
+
+  it('chooses the records that validated the certificates of its hosts, and nothing else of the zone', () => {
+    const validation = (name: string) => ({
+      name: `${name}.`,
+      type: 'CNAME',
+      values: ['_8ffd44860a1d003f029829b778a01862.wzccmgtwzk.acm-validations.aws.'],
+    });
+    const ours = [
+      validation('_757b03edc179214186ca4cc08a859da4.memorysmith.rapcinski.me'),
+      validation('_06b8d29eaac0d90d3aa7477da19f803e.www.memorysmith.rapcinski.me'),
+      validation('_20734d10de1f00dea27c9eb87607acda.api.memorysmith.rapcinski.me'),
+      validation('_b39beb48c1dca4ab2ce6b9fad9e2f9ab.mcp.memorysmith.rapcinski.me'),
+      validation('_e05341c4bf9a30ed5cfbefdbd4c4cd38.auth.memorysmith.rapcinski.me'),
+      validation('_79abb6b8efb78e0a2de6abdcba2860a3.uploads.memorysmith.rapcinski.me'),
+      validation('_93ae956da9b7230880e078d637eef0df.files.memorysmith.rapcinski.me'),
+    ];
+    const theirs = [
+      { name: 'memorysmith.rapcinski.me.', type: 'NS', values: ['ns-629.awsdns-14.net.'] },
+      { name: 'memorysmith.rapcinski.me.', type: 'SOA', values: ['ns-629.awsdns-14.net. …'] },
+      validation('_0a1b2c3d4e5f60718293a4b5c6d7e8f9.blog.memorysmith.rapcinski.me'),
+      validation('_0a1b2c3d4e5f60718293a4b5c6d7e8f9.rapcinski.me'),
+      {
+        name: '_aa11.api.memorysmith.rapcinski.me.',
+        type: 'CNAME',
+        values: ['elsewhere.example.com.'],
+      },
+      {
+        name: '_aa11.api.memorysmith.rapcinski.me.',
+        type: 'TXT',
+        values: ['"_x.wzccmgtwzk.acm-validations.aws."'],
+      },
+      { name: 'api.memorysmith.rapcinski.me.', type: 'CNAME', values: ['x.acm-validations.aws.'] },
+    ];
+    expect(validationRecordsOf('memorysmith.rapcinski.me', [...theirs, ...ours])).toEqual(ours);
+    expect(validationRecordsOf('Memorysmith.Rapcinski.me.', ours)).toEqual(ours);
   });
 });

@@ -15,14 +15,22 @@
  * Edge in us-east-1 and the delivery role of a fork, and then what no removal
  * policy deletes, by `lib/teardown-run.ts`, as staging is torn down.
  *
- * What stays is said: the hosted zone, which is the person's and whose name
- * servers a delegation names; the key AWS manages for DynamoDB, which cannot be
+ * In a domain of its own, the records that validated its certificates go too
+ * (#393): CloudFormation leaves them in the zone. What stays is said: the
+ * hosted zone, which is the person's and whose name servers a delegation names; the key AWS manages for DynamoDB, which cannot be
  * deleted; and the CDK bootstrap, which `--bootstrap` removes too, region by
  * region, only where no other stack is left to deploy with it.
  */
 
 import { DescribeStacksCommand, paginateListStacks } from '@aws-sdk/client-cloudformation';
 import { DeleteRepositoryCommand, ECRClient } from '@aws-sdk/client-ecr';
+import {
+  ChangeResourceRecordSetsCommand,
+  ListResourceRecordSetsCommand,
+  Route53Client,
+  type ResourceRecordSet,
+  type RRType,
+} from '@aws-sdk/client-route-53';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { parseArgs } from 'node:util';
 import { installationEnvironmentOf, loadInstallationFile } from '../installation/index.js';
@@ -31,6 +39,7 @@ import {
   describeRetained,
   installationRefusalOf,
   installationTeardownOrder,
+  validationRecordsOf,
 } from './lib/teardown.js';
 import {
   clients,
@@ -49,6 +58,7 @@ const { values } = parseArgs({
   },
 });
 
+const nameOf = (error: unknown): unknown => (error as { name?: unknown }).name;
 const say = (line: string): void => void process.stdout.write(`${line}\n`);
 
 function refuse(message: string): never {
@@ -100,6 +110,41 @@ const order = installationTeardownOrder({
 });
 const regions = [...new Set(order.map((each) => each.region))];
 
+// ---- The records that validated its certificates (#393) ---------------------
+
+const route53 = new Route53Client({ region: 'us-east-1' });
+const zoneId = named.hostedZoneId;
+const validation: ResourceRecordSet[] = [];
+if (zoneId && named.hostedZoneName) {
+  const sets: ResourceRecordSet[] = [];
+  // Route 53 pages a zone by the name and type of the next record, not by a token.
+  let next: { StartRecordName?: string; StartRecordType?: RRType; StartRecordIdentifier?: string } =
+    {};
+  for (;;) {
+    const page = await route53.send(
+      new ListResourceRecordSetsCommand({ HostedZoneId: zoneId, ...next }),
+    );
+    sets.push(...(page.ResourceRecordSets ?? []));
+    if (!page.IsTruncated) break;
+    next = {
+      ...(page.NextRecordName ? { StartRecordName: page.NextRecordName } : {}),
+      ...(page.NextRecordType ? { StartRecordType: page.NextRecordType } : {}),
+      ...(page.NextRecordIdentifier ? { StartRecordIdentifier: page.NextRecordIdentifier } : {}),
+    };
+  }
+  const chosen = new Set(
+    validationRecordsOf(
+      named.hostedZoneName,
+      sets.map((set) => ({
+        name: set.Name ?? '',
+        type: set.Type ?? '',
+        values: (set.ResourceRecords ?? []).map((each) => each.Value ?? ''),
+      })),
+    ).map((record) => record.name),
+  );
+  validation.push(...sets.filter((set) => set.Type === 'CNAME' && chosen.has(set.Name ?? '')));
+}
+
 say(`Tearing down ${installation} ${environment}, account ${account}, ${regions.join(' and ')}.`);
 
 // ---- What goes ---------------------------------------------------------------
@@ -110,6 +155,7 @@ const { present, retained } = await survey(order, say);
 say('\nPurged after the stacks are gone');
 for (const each of retained) say(`  ${describeRetained(each.retained)} (${each.region})`);
 if (retained.length === 0) say('  nothing any stack retains');
+for (const set of validation) say(`  record ${set.Name} CNAME, which validated a certificate`);
 say('  the log groups of functions that no longer exist');
 
 say('\nKept');
@@ -138,6 +184,25 @@ if (stopped) {
 
 say('\nPurging');
 let failures = await purge({ retained, environment, installation, regions, say });
+for (const set of validation) {
+  try {
+    await route53.send(
+      new ChangeResourceRecordSetsCommand({
+        HostedZoneId: zoneId ?? '',
+        ChangeBatch: { Changes: [{ Action: 'DELETE', ResourceRecordSet: set }] },
+      }),
+    );
+    say(`  record ${set.Name} CNAME: deleted`);
+  } catch (error) {
+    // Deleted meanwhile, by a stack or by hand: the record is gone either way.
+    if (nameOf(error) === 'InvalidChangeBatch' && /not found/i.test(messageOf(error))) {
+      say(`  record ${set.Name} CNAME: already gone`);
+      continue;
+    }
+    failures += 1;
+    say(`  record ${set.Name} CNAME: could not be deleted, ${messageOf(error)}`);
+  }
+}
 
 // ---- The bootstrap, on request ----------------------------------------------
 
