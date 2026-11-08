@@ -2148,9 +2148,13 @@ a:hover {
 }
 /* The page behind a modal does not scroll under it. The choice a link of a
    note opens is the renderer's dialog, which touches nothing outside the note
-   (#291), so the page reads it off the open dialog. */
+   (#291), so the page reads it off the open dialog. The page scrolls inside
+   `.app-main`, not the document, so that is what is locked too: locking the
+   body alone left its scrollbar beside the modal's own (#398). */
 body.has-modal,
-body:has(.markdown dialog[open]) {
+body:has(.markdown dialog[open]),
+body.has-modal .app-main,
+body:has(.markdown dialog[open]) .app-main {
   overflow: hidden;
 }
 .link-choice-card {
@@ -6895,8 +6899,12 @@ body.has-sheet .app-main {
   background: var(--code-bg);
   font-size: 0.875rem;
 }
-.new-notebook .ask-dialog-box {
-  width: min(36rem, calc(100vw - 2rem));
+/* Wider than a question, on a screen with room for it: on a phone the modal
+   is the whole screen, as every other one (#398). */
+@media (min-width: 40.0625rem) {
+  .new-notebook .ask-dialog-box {
+    width: min(36rem, calc(100vw - 2rem));
+  }
 }
 .new-notebook-form,
 .new-notebook-model,

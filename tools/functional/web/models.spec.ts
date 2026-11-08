@@ -77,6 +77,33 @@ const MODEL_WORDS: Record<
 };
 
 test.describe('notebook models', () => {
+  test('opens the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398)', async ({
+    app,
+    notebook,
+    appLocale,
+  }) => {
+    const words = MODEL_WORDS[appLocale];
+    // From a page of the run, then Home until it shows: the first visit of an
+    // account opens the welcome surface in its place, once.
+    await app.goto(notebook.page('/model'));
+    const newNotebook = app.getByRole('button', { name: words.newNotebook });
+    await expect(async () => {
+      await app.goto(new URL('/', app.url()).href);
+      await expect(newNotebook).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
+    await newNotebook.click();
+    await app.getByRole('menuitem', { name: words.newModel }).click();
+    const box = app.locator('.new-notebook .ask-dialog-box');
+    await expect(box).toBeVisible();
+
+    // The page scrolls inside .app-main, and a modal locks it: one scrollbar.
+    await expect(app.locator('.app-main')).toHaveCSS('overflow-y', 'hidden');
+
+    // On a phone the modal is the whole screen, edge to edge.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(async () => (await box.boundingBox())?.width ?? 0).toBe(390);
+  });
+
   test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] creates a model from Home, freezes a version and creates a notebook from it', async ({
     app,
     notebook,
