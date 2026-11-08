@@ -178,8 +178,18 @@ test.describe('the pages of an account', () => {
     appLocale,
   }) => {
     const said = {
-      en_US: { part: 'Part of it', choose: 'Choose items', tab: 'Tables and dashboards' },
-      pt_BR: { part: 'Parte dele', choose: 'Escolher itens', tab: 'Tabelas e painéis' },
+      en_US: {
+        part: 'Part of it',
+        choose: 'Choose items',
+        tab: 'Tables and dashboards',
+        schemaOnly: 'Schema only',
+      },
+      pt_BR: {
+        part: 'Parte dele',
+        choose: 'Escolher itens',
+        tab: 'Tabelas e painéis',
+        schemaOnly: 'Só o schema',
+      },
     }[appLocale];
     const name = `Tables ${randomBytes(4).toString('hex')}`;
     const { notebookId } = await owner.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
@@ -222,6 +232,13 @@ test.describe('the pages of an account', () => {
         'aria-selected',
         'true',
       );
+
+      // What goes of a table is the same segmented control as beside it (#404).
+      const schemaOnly = dialog
+        .locator('.tables-panel .is-table')
+        .getByRole('radio', { name: said.schemaOnly });
+      await schemaOnly.click();
+      await expect(schemaOnly).toHaveAttribute('aria-checked', 'true');
 
       // A dashboard whose table stays out is marked, and holds the export.
       const start = dialog.getByRole('button', { name: words.startExport, exact: true });

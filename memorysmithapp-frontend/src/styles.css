@@ -5048,7 +5048,7 @@ body.has-sheet .app-main {
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
 }
-.chooser-row.is-table select {
+.chooser-row.is-table .chooser-reach {
   margin-left: auto;
 }
 .chooser-note.is-wrong,

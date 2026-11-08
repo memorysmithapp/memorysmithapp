@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Segmented } from '../../shared/components/Segmented';
 import {
   carryOf,
   dashboardChosen,
@@ -71,7 +72,6 @@ export function TablesPanel({
           <ul className="chooser-list" role="list">
             {tables.map((table) => {
               const carry = carryOf(choice, table);
-              const id = `table-carry-${table.name}`;
               return (
                 <li key={table.name} className="chooser-row is-table">
                   <label className="chooser-label">
@@ -92,17 +92,23 @@ export function TablesPanel({
                     <span className="chooser-note">{t('tables.rows', { count: table.rows })}</span>
                   ) : null}
                   {carry !== 'none' ? (
-                    <select
-                      id={id}
-                      aria-label={t('portability.tables.carryOf', { table: table.name })}
-                      value={carry}
-                      onChange={(event) => setCarry(table.name, event.target.value as TableCarry)}
-                    >
-                      <option value="schema">{t('portability.tables.schema')}</option>
-                      {table.rows !== null ? (
-                        <option value="rows">{t('portability.tables.schemaAndRows')}</option>
-                      ) : null}
-                    </select>
+                    // The same control as Everything or Choose items beside it (#404);
+                    // a table the archive carries without rows offers its schema alone.
+                    <span className="chooser-reach">
+                      <Segmented
+                        label={t('portability.tables.carryOf', { table: table.name })}
+                        value={carry}
+                        onChange={(next) => setCarry(table.name, next)}
+                        options={[
+                          { value: 'schema' as const, label: t('portability.tables.schema') },
+                          {
+                            value: 'rows' as const,
+                            label: t('portability.tables.schemaAndRows'),
+                            disabled: table.rows === null,
+                          },
+                        ]}
+                      />
+                    </span>
                   ) : null}
                 </li>
               );
