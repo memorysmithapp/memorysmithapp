@@ -170,6 +170,72 @@ test.describe('the pages of an account', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('chooses the tables and dashboards of an export as the other species, and holds a dashboard without its table (#399)', async ({
+    app,
+    owner,
+    state,
+    words,
+    appLocale,
+  }) => {
+    const said = {
+      en_US: { part: 'Part of it', choose: 'Choose items', tab: 'Tables and dashboards' },
+      pt_BR: { part: 'Parte dele', choose: 'Escolher itens', tab: 'Tabelas e painéis' },
+    }[appLocale];
+    const name = `Tables ${randomBytes(4).toString('hex')}`;
+    const { notebookId } = await owner.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+      name,
+      description: 'A notebook a web case exports in part.',
+    });
+    try {
+      await owner.ok('POST', `/knowledge/notebooks/${notebookId}/tables`, {
+        name: 'costs',
+        description: 'Costs.',
+        schema: {
+          type: 'object',
+          properties: { amount: { type: 'number' } },
+          required: ['amount'],
+        },
+      });
+      await owner.ok('POST', `/knowledge/notebooks/${notebookId}/dashboards`, {
+        name: 'Total',
+        definition: {
+          components: [{ type: 'kpi', source: { table: 'costs', measure: 'sum(amount)' } }],
+        },
+      });
+      await app.goto(`${state.surfaces.site}/`);
+      const card = app.locator('article.notebook-card', { hasText: name });
+      await card.getByRole('button', { name: words.moreActions }).click();
+      await app.getByRole('menuitem', { name: words.exportNotebook }).click();
+      const dialog = app.locator('.transfer-dialog');
+
+      // The whole notebook states what goes, and offers no box to touch.
+      await expect(dialog.locator('.chooser-scope input[type="checkbox"]')).toHaveCount(0);
+      await expect(dialog.locator('.chooser-scope-row.is-tables')).toBeVisible();
+
+      // Part of it: the tables and dashboards are chosen in a tab of their own.
+      await dialog.getByRole('radio', { name: said.part }).check();
+      await dialog
+        .locator('.chooser-scope-row.is-tables')
+        .getByRole('radio', { name: said.choose })
+        .click();
+      await expect(dialog.getByRole('tab', { name: new RegExp(`^${said.tab}`) })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+
+      // A dashboard whose table stays out is marked, and holds the export.
+      const start = dialog.getByRole('button', { name: words.startExport, exact: true });
+      await dialog.locator('.tables-panel .is-table').getByRole('checkbox').uncheck();
+      await expect(dialog.locator('.tables-panel .is-dashboard.is-twin')).toBeVisible();
+      await expect(start).toBeDisabled();
+      await dialog.locator('.tables-panel .is-dashboard').getByRole('checkbox').uncheck();
+      await expect(start).toBeEnabled();
+      await app.keyboard.press('Escape');
+    } finally {
+      await owner.call('DELETE', `/knowledge/notebooks/${notebookId}`);
+    }
+  });
+
   test('exports a notebook from its card, and its owner deletes it there after saying so (#199)', async ({
     app,
     owner,

@@ -50,6 +50,7 @@ import {
   type DocumentModel,
   type NotebookDocument,
   dashboardsCarried,
+  dashboardsNamed,
   tablesChosen,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
@@ -291,6 +292,8 @@ export interface ImportSelection {
    * every table the archive holds, with the rows it carries.
    */
   readonly tables?: ReadonlyArray<{ readonly name: string; readonly rows: boolean }> | undefined;
+  /** The dashboards, by name (#399). Absent is every dashboard whose tables come. */
+  readonly dashboards?: readonly string[] | undefined;
 }
 
 /** How an import says where it got to, and whether it should still be running. */
@@ -739,7 +742,10 @@ export class ImportNotebook {
 
     // The dashboards last: each one is checked against the tables it draws
     // from, and goes only when all of them came (#368, RN-PRT-053).
-    for (const dashboard of dashboardsCarried(document.dashboards ?? [], tables)) {
+    const offered = selection?.dashboards
+      ? dashboardsNamed(document.dashboards ?? [], selection.dashboards)
+      : (document.dashboards ?? []);
+    for (const dashboard of dashboardsCarried(offered, tables)) {
       const created = await this.writer.createDashboard({
         notebookId,
         name: dashboard.name,

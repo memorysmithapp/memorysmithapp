@@ -23,6 +23,8 @@ issues each entry cites.
 
 - **The page of a notebook model shows one part at a time.** What the model says of itself, its parameters, its versions and its publication are four tabs instead of one long form. The objective, the description, the audience and the credit are fields of several lines that show their whole text, with how many characters each holds of its limit. The parameters are a list of one line each, with its type and whether it is required or what it defaults to, and each is added, edited and removed in a modal that saves the model when it is confirmed. The dialog of a new model on Home asks only its name and what it says of itself, and opens the parameters tab once it is created. (#400)
 
+- **Exporting and importing choose tables and dashboards as they choose everything else.** The whole notebook carries every table with its rows and every dashboard, and shows what goes without a box to tick, where it showed boxes nobody could tick. Choosing part of it offers a tab of tables and dashboards, as the other species have: they go or not, all of them or item by item, each table with its schema alone or with its schema and rows, and each dashboard on its own, which before could not be chosen at all. A dashboard chosen whose table stays out is marked, naming the table, and the transfer waits until it is resolved. The import chooses the same way. (#399)
+
 ### Fixed
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)

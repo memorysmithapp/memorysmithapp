@@ -279,6 +279,8 @@ export function carried(
      * is every table with its rows; a table not named is left out.
      */
     tables?: readonly TableChoice[] | undefined;
+    /** The dashboards, by name (#399). Absent is every dashboard whose tables go. */
+    dashboards?: readonly string[] | undefined;
   } | null,
 ): ExportInput {
   if (!selection) return input;
@@ -321,7 +323,19 @@ export function carried(
     ...(selection.tables === undefined
       ? {}
       : { tables: tablesChosen(input.tables ?? [], selection.tables) }),
+    ...(selection.dashboards === undefined
+      ? {}
+      : { dashboards: dashboardsNamed(input.dashboards ?? [], selection.dashboards) }),
   };
+}
+
+/** The dashboards a choice names (#399), by name; the tables they draw from still decide whether they go. */
+export function dashboardsNamed<T extends { readonly name: string }>(
+  dashboards: readonly T[],
+  names: readonly string[],
+): T[] {
+  const named = new Set(names.map((name) => name.normalize('NFC').toLowerCase()));
+  return dashboards.filter((dashboard) => named.has(dashboard.name.normalize('NFC').toLowerCase()));
 }
 
 /**

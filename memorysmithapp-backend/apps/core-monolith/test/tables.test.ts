@@ -707,6 +707,75 @@ describe('the dashboards of a notebook in a transfer (RN-PRT-053)', () => {
     expect(await names(without.notebookId)).toEqual([]);
   });
 
+  it('goes only when it is chosen, by name, on the way out and on the way in (#399)', async () => {
+    const notebookId = await seedNotebook();
+    await createExpenses(notebookId);
+    for (const name of ['Gastos', 'Resumo']) {
+      await call(`/knowledge/notebooks/${notebookId}/dashboards`, {
+        method: 'POST',
+        body: { name, definition: dashboardOver('expenses') },
+      });
+    }
+    // Out: a part of the notebook, its table and one of its dashboards.
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: {
+        selection: {
+          guidance: true,
+          folders: [],
+          templates: [],
+          notes: [],
+          tables: [{ name: 'expenses', rows: true }],
+          dashboards: ['Resumo'],
+        },
+      },
+    });
+    const { transferId } = (await started.json()) as { transferId: string };
+    const copied = await call('/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+    });
+    const { uploadKey } = (await copied.json()) as { uploadKey: string };
+    const back = async (dashboards?: string[]) => {
+      const { uploadKey: key } = (await (
+        await call('/portability/imports/from-export', { method: 'POST', body: { transferId } })
+      ).json()) as { uploadKey: string };
+      const applied = await call('/portability/imports/apply', {
+        method: 'POST',
+        body: {
+          uploadKey: key,
+          name: `Escolhido ${Math.random().toString(36).slice(2, 8)}`,
+          ...(dashboards
+            ? {
+                selection: {
+                  guidance: true,
+                  folders: [],
+                  templates: [],
+                  notes: [],
+                  dashboards,
+                },
+              }
+            : {}),
+        },
+      });
+      const job = ((await applied.json()) as { transferId: string }).transferId;
+      return (await (await call(`/portability/transfers/${job}`)).json()) as {
+        status: string;
+        notebookId: string;
+      };
+    };
+    expect(uploadKey).toBeTruthy();
+
+    const whole = await back();
+    expect(whole.status).toBe('ready');
+    expect(await names(whole.notebookId)).toEqual(['Resumo']);
+
+    // In: the archive offers Resumo, and choosing none of its dashboards brings none.
+    const none = await back([]);
+    expect(none.status).toBe('ready');
+    expect(await names(none.notebookId)).toEqual([]);
+  });
+
   it('stays behind when its table is already gone, and the transfer still ends', async () => {
     const notebookId = await seedNotebook();
     await createExpenses(notebookId);

@@ -5015,6 +5015,46 @@ body.has-sheet .app-main {
   justify-self: end;
   text-align: right;
 }
+/* Under the whole notebook a row states what goes, with a mark (#399). */
+.chooser-mark {
+  display: inline-flex;
+  justify-content: center;
+  width: 1rem;
+  color: var(--text-soft);
+}
+.chooser-mark.is-on {
+  color: var(--accent);
+  font-weight: 700;
+}
+/* The tab of the tables and dashboards (#399). */
+.tables-panel-group + .tables-panel-group {
+  margin-top: 1rem;
+}
+.tables-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.tables-panel-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.chooser-row.is-table,
+.chooser-row.is-dashboard {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+.chooser-row.is-table select {
+  margin-left: auto;
+}
+.chooser-note.is-wrong,
+.transfer-summary.is-wrong {
+  color: var(--danger);
+}
 .chooser-scope-row:last-child {
   border-bottom: 0;
 }

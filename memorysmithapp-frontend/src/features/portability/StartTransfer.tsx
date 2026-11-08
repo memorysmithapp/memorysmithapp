@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listNotebooks, startExport } from '../../shared/api/source';
-import { ExportChoice } from './ExportChoice';
+import { ExportChoice, type TablesCarriage } from './ExportChoice';
 import { ImportDialog } from './ImportDialog';
 import { useRefreshTransfers } from './transfers';
 import { selectionOf, type Chosen } from './import-selection';
@@ -118,12 +118,18 @@ export function TransferDialogs({
   // an answer and the common case is one click.
   const chosen = notebookId || (choices[0]?.id ?? '');
 
-  async function begin(
-    carrying: Chosen | null,
-    tables?: Array<{ name: string; rows: boolean }>,
-  ): Promise<void> {
+  async function begin(carrying: Chosen | null, carriage: TablesCarriage): Promise<void> {
     if (!chosen) return;
-    await startExport(chosen, carrying === null ? null : selectionOf(carrying), tables);
+    await startExport(
+      chosen,
+      carrying === null
+        ? null
+        : {
+            ...selectionOf(carrying),
+            ...(carriage.dashboards ? { dashboards: carriage.dashboards } : {}),
+          },
+      carriage.tables,
+    );
     refresh();
     // The job is running; where it is watched is Transfers (#160).
     onClose();
@@ -136,7 +142,7 @@ export function TransferDialogs({
         notebooks={choices}
         notebookId={chosen}
         onChooseNotebook={setNotebookId}
-        onConfirm={(carrying, tables) => void begin(carrying, tables)}
+        onConfirm={(carrying, carriage) => void begin(carrying, carriage)}
         onClose={onClose}
       />
       <ImportDialog open={starting === 'import'} onClose={onClose} exportId={exportId} />

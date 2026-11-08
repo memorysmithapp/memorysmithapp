@@ -378,7 +378,8 @@
       "templates": "Templates",
       "notes": "Notes",
       "conflicts": "Conflicts",
-      "files": "Files"
+      "files": "Files",
+      "tables": "Tables and dashboards"
     },
     "noTemplate": "no Template",
     "wholeNotebook": "The whole notebook",
@@ -440,6 +441,23 @@
       "pick": "Choose an export",
       "none": "No export is kept yet. An export kept in Transfers can be imported from here.",
       "reading": "Reading the archive…"
+    },
+    "countTables_one": "{{count}} table",
+    "countTables_other": "{{count}} tables",
+    "countDashboards_one": "{{count}} dashboard",
+    "countDashboards_other": "{{count}} dashboards",
+    "tables": {
+      "tables": "Tables",
+      "dashboards": "Dashboards",
+      "all": "All",
+      "none": "None",
+      "schema": "Schema only",
+      "schemaAndRows": "Schema and rows",
+      "carryOf": "What goes of the table {{table}}",
+      "needsTable": "Draws from the table {{table}}, which stays out: include the table or untick the dashboard.",
+      "carried": "{{tables}} of {{heldTables}} tables · {{dashboards}} of {{heldDashboards}} dashboards",
+      "blocked_one": "{{count}} dashboard draws from a table that stays out",
+      "blocked_other": "{{count}} dashboards draw from a table that stays out"
     }
   },
   "attachments": {

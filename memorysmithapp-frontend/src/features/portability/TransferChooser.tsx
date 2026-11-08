@@ -22,6 +22,15 @@ import {
   type Species,
   type TwinNames,
 } from './import-selection';
+import { TablesPanel } from './TablesPanel';
+import {
+  carriedTables,
+  EVERY_TABLE,
+  inconsistentDashboards,
+  type OfferedDashboard,
+  type OfferedTable,
+  type TablesChoice,
+} from './tables-choice';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { PencilIcon, SearchIcon } from '../../shared/components/icons';
 
@@ -60,7 +69,7 @@ import { PencilIcon, SearchIcon } from '../../shared/components/icons';
  * sentence appearing under the name field, pushing the screen down under their
  * hand, because there was nowhere else for it to be said (#161).
  */
-export type ChooserTab = 'context' | Species | 'conflicts';
+export type ChooserTab = 'context' | Species | 'tables' | 'conflicts';
 
 /** The whole notebook, or part of it (RN-PRT-017, RN-PRT-024). */
 export type Preset = 'everything' | 'choose';
@@ -73,6 +82,9 @@ const TABS: ReadonlyArray<ChooserTab> = [
   // The files, which are flat: a file belongs to the notebook and not to a
   // folder, so the tab is a list and nothing above it takes one out (#176).
   'files',
+  // The tables and the dashboards, one tab for the two, since a dashboard
+  // draws from the tables and is chosen beside them (#399).
+  'tables',
   // Last, and lit: it is not a fifth thing to choose but the reason the
   // choosing cannot end, and it opens only when there is one (#161).
   'conflicts',
@@ -96,6 +108,7 @@ export function TransferChooser({
   nameTaken = null,
   onFixName,
   onFindNote,
+  tablesOffer = null,
 }: {
   tree: DocumentTree;
   scope: Scope;
@@ -141,9 +154,21 @@ export function TransferChooser({
    * that is the scope, which lives with whoever opened the chooser.
    */
   onFindNote?: (name: string) => void;
+  /**
+   * The tables and dashboards on offer and how they are chosen (#399), held by
+   * whoever opened the chooser, which sends them to the API.
+   */
+  tablesOffer?: TablesOffer | null;
 }) {
   const { t } = useTranslation();
   const setTab = onTab;
+  const offered = tablesOffer ? tablesOffer.tables.length + tablesOffer.dashboards.length : 0;
+  /** Dashboards chosen whose table stays out, which mark their tab and stop the transfer. */
+  const broken =
+    tablesOffer && preset === 'choose'
+      ? inconsistentDashboards(tablesOffer.choice, tablesOffer.tables, tablesOffer.dashboards)
+          .length
+      : 0;
 
   const counts = scopeCountsOf(tree, chosen);
   const what = t(`portability.whatToCarry.${direction}`);
@@ -155,6 +180,15 @@ export function TransferChooser({
   const opens = (each: ChooserTab): boolean => {
     if (each === 'context') return true;
     if (each === 'conflicts') return refusals > 0;
+    if (each === 'tables') {
+      return (
+        preset === 'choose' &&
+        tablesOffer !== null &&
+        tablesOffer.choice.on &&
+        tablesOffer.choice.reach === 'choose' &&
+        offered > 0
+      );
+    }
     return (
       preset === 'choose' &&
       scope[each] &&
@@ -182,6 +216,7 @@ export function TransferChooser({
           label: t(`portability.tab.${each}`),
           disabled: !opens(each),
           ...(each === 'conflicts' && refusals > 0 ? { count: refusals } : {}),
+          ...(each === 'tables' && broken > 0 ? { count: broken } : {}),
         }))}
       />
 
@@ -207,6 +242,8 @@ export function TransferChooser({
             preset={preset}
             onPreset={onPreset}
             direction={direction}
+            tablesOffer={tablesOffer}
+            onChooseTables={() => setTab('tables')}
             onChoose={(species) => {
               // The tab opens on everything, which is what somebody who asked
               // to choose is taking things out of — and only when nothing was
@@ -217,6 +254,15 @@ export function TransferChooser({
               setTab(species);
             }}
           />
+        ) : active === 'tables' ? (
+          tablesOffer ? (
+            <TablesPanel
+              tables={tablesOffer.tables}
+              dashboards={tablesOffer.dashboards}
+              choice={tablesOffer.choice}
+              onChoice={tablesOffer.onChoice}
+            />
+          ) : null
         ) : active === 'files' ? (
           <FilesPanel tree={tree} picked={picked} onPicked={onPicked} />
         ) : (
@@ -259,10 +305,15 @@ function ScopePanel({
   onPreset,
   direction,
   onChoose,
+  tablesOffer,
+  onChooseTables,
 }: {
   tree: DocumentTree;
   scope: Scope;
   onScope: (next: Scope) => void;
+  tablesOffer: TablesOffer | null;
+  /** Called when the tables are flipped to `Choose items`, which opens their tab. */
+  onChooseTables: () => void;
   counts: Record<Species, { carried: number; held: number }>;
   preset: Preset;
   onPreset: (next: Preset) => void;
@@ -354,8 +405,61 @@ function ScopePanel({
             />
           );
         })}
+        {tablesOffer ? (
+          <TablesScopeRow offer={tablesOffer} frozen={frozen} onChooseTables={onChooseTables} />
+        ) : null}
       </ul>
     </div>
+  );
+}
+
+/** What can be chosen of the tables and dashboards, and how it is being chosen (#399). */
+export interface TablesOffer {
+  readonly tables: readonly OfferedTable[];
+  readonly dashboards: readonly OfferedDashboard[];
+  readonly choice: TablesChoice;
+  readonly onChoice: (next: TablesChoice) => void;
+}
+
+/** The row of the tables and dashboards in the scope, as the row of any species. */
+function TablesScopeRow({
+  offer,
+  frozen,
+  onChooseTables,
+}: {
+  offer: TablesOffer;
+  frozen: boolean;
+  onChooseTables: () => void;
+}) {
+  const { t } = useTranslation();
+  const held = offer.tables.length + offer.dashboards.length;
+  const missing = held === 0;
+  const choice = frozen ? EVERY_TABLE : offer.choice;
+  const carried = carriedTables(choice, offer.tables, offer.dashboards);
+  return (
+    <ScopeRow
+      kind="tables"
+      label={t('portability.tab.tables')}
+      note={
+        missing
+          ? t('portability.thereIsNone')
+          : t('portability.tables.carried', {
+              tables: carried.tables,
+              heldTables: offer.tables.length,
+              dashboards: carried.dashboards,
+              heldDashboards: offer.dashboards.length,
+            })
+      }
+      missing={missing}
+      frozen={frozen}
+      checked={!missing && choice.on}
+      onToggle={(on) => offer.onChoice({ ...offer.choice, on })}
+      reach={!frozen && !missing && offer.choice.on ? offer.choice.reach : null}
+      onReach={(reach) => {
+        offer.onChoice({ ...offer.choice, reach });
+        if (reach === 'choose') onChooseTables();
+      }}
+    />
   );
 }
 
@@ -371,7 +475,7 @@ function ScopeRow({
   reach,
   onReach,
 }: {
-  kind: 'guidance' | 'history' | Species;
+  kind: 'guidance' | 'history' | Species | 'tables';
   label: string;
   note?: string | undefined;
   checked: boolean;
@@ -397,16 +501,27 @@ function ScopeRow({
           nothing, and a disabled one draws its tick so faintly that five of
           them read as five empty squares under a choice saying everything
           goes. */}
-      <label className="chooser-label">
-        <input
-          type="checkbox"
-          className="box"
-          checked={checked}
-          disabled={missing || frozen}
-          onChange={(event) => onToggle(event.target.checked)}
-        />
-        <span className="chooser-name">{label}</span>
-      </label>
+      {frozen ? (
+        // The whole notebook: the row states what goes, with a mark and no
+        // control to touch (#399).
+        <span className="chooser-label">
+          <span className={`chooser-mark${checked ? ' is-on' : ''}`} aria-hidden="true">
+            {checked ? '✓' : '—'}
+          </span>
+          <span className="chooser-name">{label}</span>
+        </span>
+      ) : (
+        <label className="chooser-label">
+          <input
+            type="checkbox"
+            className="box"
+            checked={checked}
+            disabled={missing}
+            onChange={(event) => onToggle(event.target.checked)}
+          />
+          <span className="chooser-name">{label}</span>
+        </label>
+      )}
       {reach && onReach && (
         /* Everything, or item by item, as the small segmented control of the
            Controles (#205): two short options, one of them chosen. */

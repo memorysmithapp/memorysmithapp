@@ -379,7 +379,8 @@
       "templates": "Modelos de pasta",
       "notes": "Notas",
       "conflicts": "Inconsistências",
-      "files": "Arquivos"
+      "files": "Arquivos",
+      "tables": "Tabelas e painéis"
     },
     "noTemplate": "sem Modelo de pasta",
     "wholeNotebook": "O caderno todo",
@@ -443,6 +444,23 @@
       "pick": "Escolha uma exportação",
       "none": "Nenhuma exportação guardada ainda. Uma exportação guardada em Transferências pode ser importada daqui.",
       "reading": "Lendo o arquivo…"
+    },
+    "countTables_one": "{{count}} tabela",
+    "countTables_other": "{{count}} tabelas",
+    "countDashboards_one": "{{count}} painel",
+    "countDashboards_other": "{{count}} painéis",
+    "tables": {
+      "tables": "Tabelas",
+      "dashboards": "Painéis",
+      "all": "Todas",
+      "none": "Nenhuma",
+      "schema": "Só o schema",
+      "schemaAndRows": "Schema e dados",
+      "carryOf": "O que vai da tabela {{table}}",
+      "needsTable": "Usa a tabela {{table}}, que fica de fora: inclua a tabela ou desmarque o painel.",
+      "carried": "{{tables}} de {{heldTables}} tabelas · {{dashboards}} de {{heldDashboards}} painéis",
+      "blocked_one": "{{count}} painel usa uma tabela que fica de fora",
+      "blocked_other": "{{count}} painéis usam uma tabela que fica de fora"
     }
   },
   "attachments": {
