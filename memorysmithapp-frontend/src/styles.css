@@ -7266,44 +7266,6 @@ body.has-sheet .app-main {
   display: flex;
   gap: 6px;
 }
-.table-choices {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin: 12px 0 0;
-  min-width: 0;
-}
-.table-choices legend {
-  font-weight: 600;
-  padding: 0 4px;
-}
-.table-choices ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.table-choices-hint {
-  color: var(--text-soft);
-  font-size: 0.82rem;
-  margin: 0 0 8px;
-}
-.table-choice {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.table-choice label {
-  overflow-wrap: anywhere;
-}
-.table-choice-rows {
-  color: var(--text-soft);
-  font-size: 0.8rem;
-  margin-left: 6px;
-}
 
 /* The Dashboards of a notebook (#368): a layout of cards that becomes one
    column on a phone, and charts that take the width they are given. */

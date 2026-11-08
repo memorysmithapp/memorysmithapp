@@ -51,7 +51,7 @@ export const NOTEBOOK_DOCUMENT_VERSION = '1.4';
  * carry, `1.2` the files the notebook keeps, `1.3` its tables and `1.4` the
  * model it is declared as, and none added anything else: an older document is
  * a newer one with that part missing, so it is read exactly as it always was
- * (RN-PRT-022, RN-PRT-025, RN-PRT-049, RN-PRT-054).
+ * (RN-PRT-022, RN-PRT-025, RN-PRT-057, RN-PRT-054).
  */
 export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3', '1.4'] as const;
 
@@ -160,7 +160,7 @@ export const documentFileSchema = z.object({
 /**
  * One Table of the notebook (#366): its schema in JSON Schema, its key by
  * column name and its rows by column name. `rows` is absent when the transfer
- * carried the schema alone (RN-PRT-049). No identifier travels: an import mints
+ * carried the schema alone (RN-PRT-057). No identifier travels: an import mints
  * its own, and a note names a table by its name.
  */
 export const documentTableSchema = z.object({

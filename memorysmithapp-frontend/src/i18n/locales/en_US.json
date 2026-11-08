@@ -525,13 +525,7 @@
     "deleteConfirm": "Delete for good",
     "deleting": "Deleting…",
     "carry": {
-      "heading": "Tables",
-      "rows": "With its rows",
-      "schema": "Its schema alone",
-      "none": "Left out",
-      "publicHint": "The rows that go are public once the model is published to the community.",
-      "published": "These tables go with their rows, which anybody will read: {{tables}}.",
-      "dashboardLeftOut": "The dashboard {{dashboard}} stays out, because it draws from {{table}}."
+      "published": "These tables go with their rows, which anybody will read: {{tables}}."
     },
     "shownBy_one": "Shown in {{count}} note",
     "shownBy_other": "Shown in {{count}} notes",

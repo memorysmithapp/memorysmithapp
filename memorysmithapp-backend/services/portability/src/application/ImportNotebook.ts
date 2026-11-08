@@ -288,7 +288,7 @@ export interface ImportSelection {
    */
   readonly files?: readonly string[] | undefined;
   /**
-   * The tables, by name, each with or without its rows (RN-PRT-049). Absent is
+   * The tables, by name, each with or without its rows (RN-PRT-057). Absent is
    * every table the archive holds, with the rows it carries.
    */
   readonly tables?: ReadonlyArray<{ readonly name: string; readonly rows: boolean }> | undefined;
@@ -709,7 +709,7 @@ export class ImportNotebook {
     }
 
     // The tables, after the files: a note that shows one is already written
-    // by the time it arrives (#366, RN-PRT-049).
+    // by the time it arrives (#366, RN-PRT-057).
     const tables = selection?.tables
       ? tablesChosen(document.tables ?? [], selection.tables)
       : (document.tables ?? []);

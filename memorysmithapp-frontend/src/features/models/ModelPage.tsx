@@ -1,4 +1,3 @@
-import { TableChoices, tablesOf, type TableCarry } from '../portability/TableChoices';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
@@ -15,8 +14,6 @@ import { queryKeys } from '../../shared/api/query-keys';
 import {
   createModelVersion,
   getModelVersion,
-  listDashboards,
-  listTables,
   deleteModelVersion,
   getModel,
   publishModel,
@@ -223,32 +220,14 @@ function Versions({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
-  const [carry, setCarry] = useState<Record<string, TableCarry>>({});
-  // What the version carries of each table, every one with its rows by default (#366).
-  const tables = useQuery({
-    queryKey: queryKeys.notebookTables(notebookId),
-    queryFn: () => listTables(notebookId),
-    enabled: owner,
-  });
-  const dashboards = useQuery({
-    queryKey: queryKeys.notebookDashboards(notebookId),
-    queryFn: () => listDashboards(notebookId),
-    enabled: owner,
-  });
   const again = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
 
   async function create(): Promise<void> {
     setBusy(true);
     setFailure(null);
     try {
-      await createModelVersion(
-        notebookId,
-        changelog,
-        tablesOf(
-          carry,
-          (tables.data ?? []).map((table) => table.name),
-        ),
-      );
+      // Every table of the model goes with its rows, and every dashboard (#405, RN-PRT-056).
+      await createModelVersion(notebookId, changelog);
       setChangelog('');
       again();
     } catch (error) {
@@ -297,15 +276,6 @@ function Versions({
             </label>
             <span className="field-hint">{t('model.versionHint')}</span>
           </div>
-          {tables.data ? (
-            <TableChoices
-              tables={tables.data.map((table) => ({ name: table.name, rows: table.rows }))}
-              carry={carry}
-              onCarry={setCarry}
-              hint={t('tables.carry.publicHint')}
-              dashboards={dashboards.data ?? []}
-            />
-          ) : null}
           <button type="submit" className="button is-primary" disabled={busy}>
             <ActionWord
               icon={<PlusIcon />}

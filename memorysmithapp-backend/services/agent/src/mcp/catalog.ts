@@ -1623,25 +1623,14 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'counts once in the storage, and is what notebooks are created from. Only the owner of ' +
       'the subscription may, after reviewing the notebook with them. It is built in the ' +
       'background: get_model says when its status is ready, and read_model_version then shows ' +
-      'exactly what it holds, and what it writes as `{{name}}` without declaring. The tables of ' +
-      'the notebook go with their rows unless `tables` says otherwise: each named table with ' +
-      '`rows: true` or with its schema alone, `rows: false`, and a table not named stays out, ' +
-      'with every dashboard that draws from it. ' +
-      'Rows that go are public once the model is published: ask the person.',
+      'exactly what it holds, and what it writes as `{{name}}` without declaring. Every table ' +
+      'of the notebook goes with its rows, and every dashboard: a table in a model is part of ' +
+      'it. The rows are public once the model is published, so a table whose rows are ' +
+      "someone's own does not belong in a model: say so to the person before versioning.",
     inputSchema: object(
       {
         notebook: notebookArgument,
         changelog: { type: 'string', description: 'What changed since the last version.' },
-        tables: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: { name: { type: 'string' }, rows: { type: 'boolean' } },
-            required: ['name', 'rows'],
-          },
-          description:
-            'What the version carries of each table; every table with its rows when absent.',
-        },
       },
       ['notebook'],
     ),

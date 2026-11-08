@@ -506,7 +506,7 @@ describe('rows from a file the notebook keeps', () => {
   });
 });
 
-describe('the tables of a notebook in a transfer (RN-PRT-049)', () => {
+describe('the tables of a notebook in a transfer (RN-PRT-057)', () => {
   const exportOf = async (notebookId: string, selection: Record<string, unknown> | null) => {
     const started = await call(`/portability/notebooks/${notebookId}/export`, {
       method: 'POST',

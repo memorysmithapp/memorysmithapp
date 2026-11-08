@@ -432,6 +432,30 @@ describe('a model travels with its export (#397, RN-PRT-054)', () => {
 });
 
 describe('the tables of a model (#366, RN-PRT-050)', () => {
+  it('go into every version whole, with their rows, whatever the request names (#405, RN-PRT-056)', async () => {
+    await call(OWNER, `/knowledge/notebooks/${notebookId}/tables`, {
+      method: 'POST',
+      body: {
+        name: 'gastos',
+        schema: { type: 'object', properties: { valor: { type: 'number' } } },
+      },
+    });
+    await call(OWNER, `/knowledge/notebooks/${notebookId}/tables/gastos/rows`, {
+      method: 'POST',
+      body: { rows: [{ valor: 10 }, { valor: 20 }] },
+    });
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    // A request that still names no table, as the version's choice once did, carries them all.
+    await call(OWNER, `/portability/models/${notebookId}/versions`, {
+      method: 'POST',
+      body: { changelog: 'Whole', tables: [] },
+    });
+    const version = await json<{ tables: Array<{ name: string; rows: number | null }> }>(
+      await call(OWNER, `/portability/models/${notebookId}/versions/1`),
+    );
+    expect(version.tables).toEqual([expect.objectContaining({ name: 'gastos', rows: 2 })]);
+  });
+
   it('go into a version with their rows, the parameters filled in their names and descriptions only', async () => {
     await call(OWNER, `/knowledge/notebooks/${notebookId}/tables`, {
       method: 'POST',

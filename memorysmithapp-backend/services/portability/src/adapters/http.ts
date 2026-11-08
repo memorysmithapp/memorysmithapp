@@ -411,7 +411,6 @@ export function createPortabilityRoutes(
     const created = await useCases.createModelVersion(request).execute({
       notebookId: c.req.param('v') ?? '',
       changelog: body.data.changelog,
-      ...(body.data.tables ? { tables: body.data.tables } : {}),
       by: request.authorship.value,
     });
     return created.ok ? c.json(versionToDto(created.value), 202) : fail(c, created.error);
@@ -534,7 +533,7 @@ export function createPortabilityRoutes(
     const started = await useCases.startExport(request).execute({
       notebookId,
       selection: body.selection ?? null,
-      // What it carries of each table, apart from the rest (#366, RN-PRT-049).
+      // What it carries of each table, apart from the rest (#366, RN-PRT-057).
       ...(Array.isArray(body.tables) ? { tables: body.tables } : {}),
     });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);

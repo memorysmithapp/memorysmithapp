@@ -158,7 +158,7 @@ export function dashboardsCarried(
   });
 }
 
-/** What a transfer carries of one table, by name (RN-PRT-049). */
+/** What a transfer carries of one table, by name (RN-PRT-057). */
 export interface TableChoice {
   readonly name: string;
   readonly rows: boolean;
@@ -275,7 +275,7 @@ export function carried(
      */
     files?: readonly string[] | undefined;
     /**
-     * The tables, by name, each with or without its rows (RN-PRT-049). Absent
+     * The tables, by name, each with or without its rows (RN-PRT-057). Absent
      * is every table with its rows; a table not named is left out.
      */
     tables?: readonly TableChoice[] | undefined;
@@ -339,7 +339,7 @@ export function dashboardsNamed<T extends { readonly name: string }>(
 }
 
 /**
- * The tables a transfer carries (RN-PRT-049): those it names, each with its
+ * The tables a transfer carries (RN-PRT-057): those it names, each with its
  * rows or with its schema alone. The choice is made at each transfer and
  * stored on nothing; what is stored is the archive.
  */

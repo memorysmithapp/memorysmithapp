@@ -2,7 +2,7 @@
  * The tables and dashboards a transfer carries (#399), chosen as every other
  * species of the chooser is: they travel or not, and when they do, all of them
  * or item by item. A table goes with its schema and rows or with its schema
- * alone (RN-PRT-049), a dashboard goes or stays (RN-PRT-053), and a dashboard
+ * alone (RN-PRT-057), a dashboard goes or stays (RN-PRT-053), and a dashboard
  * chosen whose table stays out is an inconsistency the choice says, and which
  * stops the transfer until it is resolved.
  */

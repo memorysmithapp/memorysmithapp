@@ -32,7 +32,6 @@ import type {
   DocumentModelVersion,
   NotebookDocument,
   NotebookSnapshot,
-  TableChoice,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { ArchiveStore } from './ExportNotebook.js';
 import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
@@ -232,8 +231,6 @@ export class CreateModelVersion {
   async execute(input: {
     notebookId: string;
     changelog: string;
-    /** What the version carries of each table (#366, RN-PRT-049); absent is every table with its rows. */
-    tables?: readonly TableChoice[] | undefined;
     by: Authorship;
   }): Promise<Result<ModelVersion, DomainError>> {
     if (!this.caller.isOwner) return err(ownerOnly());
@@ -286,7 +283,6 @@ export class CreateModelVersion {
       kind: 'export',
       notebookId: input.notebookId,
       selection: null,
-      ...(input.tables ? { tables: input.tables } : {}),
       modelVersion: true,
     });
     return ok(versionOf(transfer) as ModelVersion);

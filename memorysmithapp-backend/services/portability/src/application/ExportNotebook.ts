@@ -134,7 +134,7 @@ export class ExportNotebook {
      * export (RN-SUB-021).
      */
     selection?: ImportSelection | null | undefined;
-    /** What the archive carries of each table, by name (#366, RN-PRT-049). */
+    /** What the archive carries of each table, by name (#366, RN-PRT-057). */
     tables?: readonly TableChoice[] | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
     /**
@@ -149,7 +149,7 @@ export class ExportNotebook {
 
     const selected = carried(source, input.selection ?? null);
     // The tables are chosen apart from the rest, and a choice made either way
-    // narrows them (#366, RN-PRT-049).
+    // narrows them (#366, RN-PRT-057).
     const wanted = input.tables
       ? { ...selected, tables: tablesChosen(selected.tables ?? [], input.tables) }
       : selected;

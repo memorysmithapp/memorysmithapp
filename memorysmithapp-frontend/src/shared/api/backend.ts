@@ -181,12 +181,11 @@ export async function declareModel(
 export async function createModelVersion(
   notebookId: string,
   changelog: string,
-  tables?: Array<{ name: string; rows: boolean }>,
 ): Promise<ModelVersionDto> {
   return request<ModelVersionDto>(`/portability/models/${notebookId}/versions`, {
     method: 'POST',
-    // Absent tables are every table with its rows (#366, RN-PRT-049).
-    body: { changelog, ...(tables ? { tables } : {}) },
+    // Every table goes with its rows, and every dashboard (#405, RN-PRT-056).
+    body: { changelog },
   });
 }
 

@@ -541,13 +541,12 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     caller: AgentCaller,
     notebookId: string,
     changelog: string,
-    tables?: ReadonlyArray<{ name: string; rows: boolean }>,
   ): Promise<ModelVersionDto> {
     return callApi<ModelVersionDto>(
       this.origin,
       caller,
       `/portability/models/${notebookId}/versions`,
-      { method: 'POST', body: { changelog, ...(tables ? { tables } : {}) } },
+      { method: 'POST', body: { changelog } },
     );
   }
 

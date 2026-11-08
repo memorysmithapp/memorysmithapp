@@ -621,7 +621,6 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     notebookId: string,
     changelog: string,
-    tables?: ReadonlyArray<{ name: string; rows: boolean }>,
   ): Promise<ModelVersionDto>;
   modelVersion(
     caller: AgentCaller,
