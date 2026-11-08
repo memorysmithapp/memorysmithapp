@@ -966,7 +966,7 @@ describe('Portability answers over the API', () => {
       folders: unknown[];
       notebook: { guidance: string | null };
     };
-    expect(document.documentVersion).toBe('1.3');
+    expect(document.documentVersion).toBe('1.4');
     expect(document.history).toBeUndefined();
     expect(document.notes).toEqual([]);
     expect(document.folders).toEqual([]);

@@ -489,6 +489,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-051 | The interface asks of each table, where an export, an import or a model version is started, whether it goes with its rows, its schema alone or not at all, and says on publishing a model which tables carry rows anybody will read. | |
 | RN-PRT-052 | A dashboard is drawn whole as a PNG by the server, as the person who asks reads it, in the light theme and as wide as a computer shows it: the person downloads it from its page and an agent looks at it through the preview, kept a day and not counted against storage. | |
 | RN-PRT-053 | An export, an import and a model version carry each dashboard whose every table goes, with its rows or its schema alone; a table left out leaves out the dashboards drawing from it, which the choice says before it is confirmed, and an import writes a dashboard against the tables it wrote. | |
+| RN-PRT-054 | An export of a notebook declared as a model carries its model: what it declares and every version kept and ready, each with its number, changelog, date and snapshot. Imported by the owner of the subscription, it is declared again there, unpublished and with no licence accepted, its versions kept, counted and numbered as they were; imported by anybody else, or created from a version, the notebook comes alone. | |
 
 ## 8. Quality requirements
 

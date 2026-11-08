@@ -47,6 +47,7 @@ import {
 } from '@memorysmithapp/kernel';
 import {
   type DocumentHistory,
+  type DocumentModel,
   type NotebookDocument,
   dashboardsCarried,
   tablesChosen,
@@ -66,7 +67,16 @@ export interface ModelFill {
   readonly values: Readonly<Record<string, ParameterValue>>;
 }
 
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3'];
+/** Declares again the model a document carried, in the subscription of the import (#397). */
+export interface ModelRestorer {
+  restore(input: {
+    notebookId: string;
+    notebookName: string;
+    model: DocumentModel;
+  }): Promise<Result<{ declared: boolean; versions: number }, DomainError>>;
+}
+
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4'];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -391,6 +401,11 @@ export class ImportNotebook {
     private readonly trail: TrailWriter | null = null,
     /** The transfer this import is, recorded on every entry it reproduces. */
     private readonly transferId: string = '',
+    /**
+     * Where the model a document carries is declared again (#397). Absent where
+     * no model can be written; the notebook is then imported alone.
+     */
+    private readonly models: ModelRestorer | null = null,
   ) {}
 
   /**
@@ -434,6 +449,9 @@ export class ImportNotebook {
       if (!document.ok) return document;
       let written = document.value;
       if (input.fill) {
+        // A notebook created from a version depends on no model (RN-PRT-040),
+        // and a snapshot carries none; this holds it even for one that did.
+        written = withoutModel(written);
         // The values were checked when the creation was asked for, and are
         // checked again here, against the declarations the version froze.
         const values = resolveValues(input.fill.declarations, input.fill.values);
@@ -737,6 +755,16 @@ export class ImportNotebook {
       if (!replayed.ok) return undo(replayed);
     }
 
+    // The model last, once the notebook it describes is whole (#397).
+    if (document.model && this.models) {
+      const restored = await this.models.restore({
+        notebookId,
+        notebookName: name ?? document.notebook.name,
+        model: document.model,
+      });
+      if (!restored.ok) return undo(restored);
+    }
+
     // What was actually WRITTEN under the selection, and not what the document
     // carries (RN-PRT-015).
     return ok({
@@ -923,4 +951,10 @@ function orderedFolders(document: NotebookDocument): NotebookDocument['folders']
 
 function byPosition(a: { position: string }, b: { position: string }): number {
   return a.position < b.position ? -1 : a.position > b.position ? 1 : 0;
+}
+
+/** The document without the model it may carry. */
+function withoutModel(document: NotebookDocument): NotebookDocument {
+  const { model: _model, ...rest } = document;
+  return rest;
 }

@@ -68,9 +68,11 @@ import {
   buildModels,
   buildShares,
   parseNotebookDocument,
+  readVersionDocument,
   serializeNotebookDocument,
   type Infrastructure,
 } from './composition-root.js';
+import { CarriedModel, RestoreModel } from '@memorysmithapp/svc-portability/application/models';
 import { DynamoCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
 import { refreshPublication } from '@memorysmithapp/svc-portability/application/catalog';
 import { NO_EDGE_CACHE } from './catalog.js';
@@ -205,6 +207,31 @@ async function sourceOf(
   return contextThrough(share);
 }
 
+/** Whether the person a transfer runs as owns its subscription, who alone declares a model (RN-PRT-033). */
+async function ownsSubscription(context: SubscriptionContext): Promise<boolean> {
+  const { scoped } = buildAccess(infra, context);
+  if (!scoped) return false;
+  const resolved = await new ResolveRequestContext(scoped.subscriptions).execute(context);
+  return resolved.ok && resolved.value.isOwner;
+}
+
+/**
+ * The model a notebook of this subscription is declared as, as its export
+ * carries it (#397): its versions are read from the archives they were kept as.
+ */
+function carriedModelOf(source: SubscriptionContext): CarriedModel {
+  const uploads = new S3UploadStore(infra.s3, infra.contentBucket);
+  return new CarriedModel({
+    models: buildModels(infra, source),
+    transfers: new DynamoTransferStore(
+      infra.db,
+      infra.portabilityTable,
+      source.subscriptionId.value,
+    ),
+    versions: { read: (key) => readVersionDocument((at) => uploads.read(at), readZip, key) },
+  });
+}
+
 /**
  * Who asked for the transfer and under which request, for its log line: the
  * kind of the job is the operation, and nothing of what it carries — no name,
@@ -255,6 +282,23 @@ async function run(work: TransferWork): Promise<void> {
       work.subscriptionId,
       new ImportedTrailWriter(trail, work.subscriptionId),
       work.transferId,
+      // The model the document carries, declared again here (#397).
+      new RestoreModel(
+        {
+          models: buildModels(infra, context),
+          transfers,
+          archives: new S3ArchiveStore(infra.s3, infra.contentBucket),
+          pack: (snapshot) => {
+            const written = serializeNotebookDocument(snapshot);
+            return createZip([{ path: written.entry, content: written.content }], new Date());
+          },
+        },
+        {
+          subscriptionId: work.subscriptionId,
+          userId: work.userId,
+          isOwner: await ownsSubscription(context),
+        },
+      ),
     );
     await new RunImport(transfers, importer, authorshipOf(work), unexpected).execute(work);
     return;
@@ -275,6 +319,7 @@ async function run(work: TransferWork): Promise<void> {
         : new DynamoAuditTrail(infra.db, infra.auditTable, source.subscriptionId),
       new S3RevisionReader(source.subscriptionId, infra.s3, infra.contentBucket),
     ),
+    carriedModelOf(source),
   );
   await new RunExport(transfers, exporter, unexpected).execute(work);
   // A version made ready joins the catalog entry of a published model (#360).

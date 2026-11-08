@@ -22,11 +22,19 @@ import {
 import {
   checkedChangelog,
   checkedDeclaration,
+  modelVersionPrefixOf,
   type ModelDeclaration,
   type ModelStore,
   type NotebookModel,
 } from '../domain/NotebookModel.js';
-import type { NotebookDocument, TableChoice } from '../domain/NotebookDocumentBuilder.js';
+import type {
+  DocumentModel,
+  DocumentModelVersion,
+  NotebookDocument,
+  NotebookSnapshot,
+  TableChoice,
+} from '../domain/NotebookDocumentBuilder.js';
+import type { ArchiveStore } from './ExportNotebook.js';
 import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
 import type { StartImport, StorageBudget, TransferQueue } from './Transfers.js';
 import { freshUploadKey } from './ImportNotebook.js';
@@ -444,5 +452,144 @@ export class CreateFromVersion {
         version: input.number,
       },
     });
+  }
+}
+
+/**
+ * The model an export of its notebook carries (#397, RN-PRT-054): what it says
+ * of itself and every version its owner keeps that is ready, the oldest first,
+ * each with the snapshot it froze. A version is never carried inside another:
+ * its own export is the notebook alone.
+ */
+export class CarriedModel {
+  constructor(
+    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers' | 'versions'>,
+  ) {}
+
+  async of(notebookId: string): Promise<DocumentModel | null> {
+    const model = await this.deps.models.get(notebookId);
+    if (!model) return null;
+    const versions: DocumentModelVersion[] = [];
+    const kept = (await versionsOf(this.deps.transfers, model)).reverse();
+    for (const version of kept) {
+      const meta = version.transfer.model;
+      if (version.status !== 'ready' || !version.transfer.key || !meta) continue;
+      const document = await this.deps.versions.read(
+        version.transfer.key,
+        version.transfer.versionId,
+      );
+      if (!document) continue;
+      const { model: _none, history: _never, ...snapshot } = document;
+      versions.push({
+        number: meta.number,
+        changelog: meta.changelog,
+        createdAt: version.createdAt,
+        objective: meta.objective,
+        description: meta.description,
+        audience: meta.audience,
+        parameters: meta.parameters,
+        basedOn: meta.basedOn,
+        document: snapshot,
+      });
+    }
+    return {
+      objective: model.objective,
+      description: model.description,
+      audience: model.audience,
+      parameters: model.parameters,
+      basedOn: model.basedOn,
+      versions,
+    };
+  }
+}
+
+/** What restoring a model wrote, for the report of the import. */
+export interface RestoredModel {
+  /** False when the person importing does not own the subscription, who alone declares one. */
+  readonly declared: boolean;
+  readonly versions: number;
+}
+
+/**
+ * Declares again, in the subscription an import writes in, the model the
+ * document carried (#397, RN-PRT-054), its owner the person importing, and
+ * keeps each of its versions again as a kept export of theirs, counted in that
+ * subscription's storage as it was in the first (RN-PRT-036). Only the owner
+ * of the subscription declares a model (RN-PRT-033): anybody else imports the
+ * notebook alone. A publication in the community catalog is never carried, so
+ * the model arrives unpublished and with no licence accepted.
+ *
+ * The model is written before its versions, so an import undone halfway takes
+ * them down with its notebook, as deleting any model notebook does.
+ */
+export class RestoreModel {
+  constructor(
+    private readonly deps: {
+      readonly models: ModelStore;
+      readonly transfers: TransferStore;
+      readonly archives: ArchiveStore;
+      /** The archive of one snapshot, written as an export writes one. */
+      readonly pack: (snapshot: NotebookSnapshot) => Buffer;
+    },
+    private readonly caller: ModelCaller,
+  ) {}
+
+  async restore(input: {
+    notebookId: string;
+    notebookName: string;
+    model: DocumentModel;
+  }): Promise<Result<RestoredModel, DomainError>> {
+    if (!this.caller.isOwner) return ok({ declared: false, versions: 0 });
+    const declared = checkedDeclaration(input.model);
+    if (!declared.ok) return declared;
+
+    const now = Instant.now().toISOString();
+    const numbers = input.model.versions.map((version) => version.number);
+    await this.deps.models.put({
+      notebookId: input.notebookId,
+      ...declared.value,
+      ownerUserId: this.caller.userId,
+      declaredAt: now,
+      updatedAt: now,
+      nextVersion: Math.max(0, ...numbers) + 1,
+      licenceAcceptedAt: null,
+      publicId: null,
+    });
+
+    for (const version of input.model.versions) {
+      const archive = this.deps.pack(version.document);
+      const key = `${modelVersionPrefixOf(this.caller.subscriptionId)}${ulid()}.notebook`;
+      const { versionId } = await this.deps.archives.put(key, archive);
+      const notes = version.document.notes.length;
+      await this.deps.transfers.put({
+        ...startedTransfer({
+          transferId: ulid(),
+          kind: 'export',
+          userId: this.caller.userId,
+          notebookId: input.notebookId,
+          notebookName: input.notebookName,
+          // When the version was made, which is what its model lists it by.
+          requestedAt: version.createdAt,
+          total: notes,
+        }),
+        status: 'ready',
+        finishedAt: now,
+        done: notes,
+        bytes: archive.length,
+        key,
+        versionId,
+        model: {
+          number: version.number,
+          changelog: version.changelog,
+          objective: version.objective,
+          description: version.description,
+          audience: version.audience,
+          parameters: version.parameters,
+          basedOn: version.basedOn,
+        },
+      });
+      await this.deps.transfers.addKeptBytes(archive.length, input.notebookId);
+    }
+    return ok({ declared: true, versions: input.model.versions.length });
   }
 }

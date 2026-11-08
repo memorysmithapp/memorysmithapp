@@ -331,6 +331,106 @@ describe('a notebook model (#353)', () => {
   });
 });
 
+describe('a model travels with its export (#397, RN-PRT-054)', () => {
+  /** Exports the notebook whole and imports the archive in place, under a name of its own. */
+  async function exportAndImport(token: string, name: string) {
+    const started = await call(token, `/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+    });
+    const { transferId } = await json<{ transferId: string }>(started);
+    const copied = await call(token, '/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+    });
+    const { uploadKey } = await json<{ uploadKey: string }>(copied);
+    const applied = await call(token, '/portability/imports/apply', {
+      method: 'POST',
+      body: { uploadKey, name },
+    });
+    const job = await json<{ transferId: string }>(applied);
+    return json<{ status: string; notebookId: string }>(
+      await call(token, `/portability/transfers/${job.transferId}`),
+    );
+  }
+
+  it('arrives as a model, with what it declares and every version, each still usable', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    await call(OWNER, `/portability/models/${notebookId}/versions`, {
+      method: 'POST',
+      body: { changelog: 'The first version' },
+    });
+    await call(OWNER, `/portability/models/${notebookId}/versions`, {
+      method: 'POST',
+      body: { changelog: 'Suppliers' },
+    });
+
+    const imported = await exportAndImport(OWNER, 'Condomínio modelo, trazido');
+    expect(imported.status).toBe('ready');
+
+    const model = await json<{
+      objective: string;
+      parameters: Array<{ name: string }>;
+      versions: Array<{ number: number; status: string; changelog: string }>;
+    }>(await call(OWNER, `/portability/models/${imported.notebookId}`));
+    expect(model.objective).toBe(declaration.objective);
+    expect(model.parameters.map((each) => each.name)).toEqual(['condomínio', 'síndico']);
+    expect(model.versions.map((each) => [each.number, each.status, each.changelog])).toEqual([
+      [2, 'ready', 'Suppliers'],
+      [1, 'ready', 'The first version'],
+    ]);
+
+    // A version brought back creates notebooks as the first one did.
+    const created = await call(
+      OWNER,
+      `/portability/models/${imported.notebookId}/versions/1/notebooks`,
+      { method: 'POST', body: { name: 'Residencial Aurora', values: { condomínio: 'Aurora' } } },
+    );
+    expect(created.status).toBe(202);
+
+    // And the next version takes the number after the last one carried.
+    const third = await call(OWNER, `/portability/models/${imported.notebookId}/versions`, {
+      method: 'POST',
+      body: { changelog: 'After the trip' },
+    });
+    expect((await json<{ number: number }>(third)).number).toBe(3);
+  });
+
+  it('leaves a notebook that is not a model exactly as it was', async () => {
+    const imported = await exportAndImport(OWNER, 'Condomínio comum, trazido');
+    expect(imported.status).toBe('ready');
+    expect((await call(OWNER, `/portability/models/${imported.notebookId}`)).status).toBe(404);
+  });
+
+  it('is declared only by the owner: a member imports the notebook alone (RN-PRT-033)', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    await call(OWNER, `/portability/models/${notebookId}/versions`, {
+      method: 'POST',
+      body: { changelog: 'The first version' },
+    });
+    harness.verifier.issue(MEMBER, {
+      sub: 'user-member',
+      email: 'member@example.com',
+      subscription_id: subscriptionId,
+      subscription_status: 'active',
+    });
+    const stored = harness.accessDb.subscriptions.get(`S#${subscriptionId}`);
+    const member = UserId.create('user-member');
+    const email = Email.create('member@example.com');
+    if (!stored || !member.ok || !email.ok) throw new Error('Unreachable');
+    stored.subscription.addMember(
+      member.value,
+      email.value,
+      Role.EDITOR,
+      null,
+      Authorship.byHuman(member.value),
+    );
+
+    const imported = await exportAndImport(MEMBER, 'Condomínio do membro');
+    expect(imported.status).toBe('ready');
+    expect((await call(OWNER, `/portability/models/${imported.notebookId}`)).status).toBe(404);
+  });
+});
+
 describe('the tables of a model (#366, RN-PRT-050)', () => {
   it('go into a version with their rows, the parameters filled in their names and descriptions only', async () => {
     await call(OWNER, `/knowledge/notebooks/${notebookId}/tables`, {

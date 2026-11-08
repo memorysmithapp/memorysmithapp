@@ -23,6 +23,8 @@ issues each entry cites.
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
 
+- **An exported notebook model is imported as a model.** Exporting a notebook declared as a model carried the notebook alone, so importing it, in another installation or back in the same one, gave a plain notebook and lost its parameters and its versions. The export now carries the model, what it declares and every version with its changelog and snapshot, in version `1.4` of the format; imported by the owner of the subscription, it arrives as a model with its versions, ready to create notebooks from and numbered to continue where it was, unpublished. Imported by another member, the notebook comes alone, since only the owner declares a model. (#397)
+
 - **A file whose keep failed after its bytes were stored no longer leaves them in storage for good.** Nothing named those bytes, so no page, tool, quota or job ever reached them; `pnpm tools data purge-unnamed-files` now lists, by identifier and size, the bytes no file names that are older than a keep in flight, 24 hours unless `--older-than` says otherwise, and with `--apply` hands them to the purge, the only path that destroys content. (#377)
 
 ## [0.16.0] - 2026-11-03
