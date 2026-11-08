@@ -90,6 +90,10 @@ export const GROUPS: readonly Group[] = [
         usage: [
           'pnpm tools agent-eval --environment staging [--models sonnet,haiku] [--runs 3]',
           '  [--cases AE-00,AE-01] [--user-model sonnet] [--open-room]',
+          '  A model named codex or codex:<model> is played by Codex; the simulated user stays Claude Code.',
+          '  The room runs under AGENT_EVAL_CLAUDE_CONFIG_DIR (CLAUDE_CONFIG_DIR=<dir> claude auth login)',
+          '  and, for Codex, AGENT_EVAL_CODEX_HOME (CODEX_HOME=<dir> codex login), each signed in with an',
+          "  account kept for the evaluation; unset, the operator's own sign-in is used.",
         ],
         runner: { kind: 'tsx', entry: join(TOOLS, 'agent-eval/run.ts') },
       },

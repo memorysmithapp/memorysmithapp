@@ -15,6 +15,16 @@
  * The simulated user is another process of the same kind with no MCP server at
  * all, reading only the sheet of its persona.
  *
+ * The executor may also be Codex (#406), chosen by the round as `codex` or
+ * `codex:<model>`, in the same empty directory and closed the same way: no
+ * user configuration, no rules, no project document, a read-only sandbox, and
+ * every feature that reaches beyond the connector turned off — the shell, the
+ * apps of the ChatGPT account (which would reach production), plugins, skills,
+ * the web, images, memories and other agents. What remains of its own is a
+ * JavaScript runtime with no file system, through which it calls the
+ * connector. The simulated user stays Claude Code, so what changes between
+ * columns of the scorecard is the executor alone.
+ *
  * What none of those flags removes is the account Claude Code is signed in
  * with: a session of a claude.ai account is handed the e-mail address of that
  * account as context, whatever it loads (#313). Both processes therefore run
@@ -71,6 +81,11 @@ export interface Room {
   readonly userPrompt: string | null;
   /** The configuration directory of Claude Code both processes run under, or null for the operator's own. */
   readonly claudeConfigDir?: string | null;
+  /** The connector of the run and its token, which Codex takes by configuration rather than by file. */
+  readonly mcpUrl?: string;
+  readonly token?: string;
+  /** The `CODEX_HOME` a Codex executor runs under, or null for the operator's own. */
+  readonly codexHome?: string | null;
   dispose(): void;
 }
 
@@ -85,6 +100,33 @@ export function roomEnvironment(
   env: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   return claudeConfigDir ? { ...env, CLAUDE_CONFIG_DIR: claudeConfigDir } : env;
+}
+
+/** The `CODEX_HOME` a Codex executor runs under, from the environment of the round. */
+export function roomCodexHome(env: NodeJS.ProcessEnv = process.env): string | null {
+  return env['AGENT_EVAL_CODEX_HOME']?.trim() || null;
+}
+
+/** Which program plays the executor: `codex` or `codex:<model>` is Codex, any other name a model of Claude Code. */
+export function executorOf(name: string): { kind: 'claude' | 'codex'; model: string | null } {
+  const [head, ...rest] = name.split(':');
+  if (head === 'codex') return { kind: 'codex', model: rest.join(':') || null };
+  return { kind: 'claude', model: name };
+}
+
+/** Says, before a round, that the `CODEX_HOME` of the room is signed in. */
+export function codexSignedIn(codexHome: string | null): void {
+  const probe = spawnSync('codex', ['login', 'status'], {
+    encoding: 'utf8',
+    env: codexHome ? { ...process.env, CODEX_HOME: codexHome } : process.env,
+  });
+  if (probe.error || probe.status !== 0) {
+    throw new Error(
+      codexHome
+        ? `${codexHome} is signed in to no Codex account: sign it in with CODEX_HOME=${codexHome} codex login.`
+        : 'Codex is signed in to no account: sign it in with codex login.',
+    );
+  }
 }
 
 /**
@@ -125,6 +167,7 @@ export function openRoom(input: {
   readonly token: string;
   readonly persona: string | null;
   readonly claudeConfigDir?: string | null;
+  readonly codexHome?: string | null;
 }): Room {
   const base = mkdtempSync(join(input.root, 'room-'));
   const workdir = join(base, 'workdir');
@@ -150,6 +193,9 @@ export function openRoom(input: {
     userConfig,
     userPrompt: input.persona ? `${SIMULATED_USER_PREAMBLE}${input.persona}` : null,
     claudeConfigDir: input.claudeConfigDir ?? null,
+    mcpUrl: input.mcpUrl,
+    token: input.token,
+    codexHome: input.codexHome ?? null,
     dispose: () => rmSync(base, { recursive: true, force: true }),
   };
 }
@@ -226,12 +272,103 @@ export function claudeArguments(request: TurnRequest): { args: string[]; cwd: st
 /** One turn of one process, answering the lines of its stream. */
 export function runClaude(request: TurnRequest, timeoutMs = 20 * 60_000): Promise<string[]> {
   const { args, cwd } = claudeArguments(request);
+  return runProcess('claude', args, cwd, roomEnvironment(request.room.claudeConfigDir), timeoutMs);
+}
+
+/** The variable the token of the connector reaches Codex through, never its command line. */
+export const CODEX_TOKEN_VARIABLE = 'MEMORYSMITH_EVAL_TOKEN';
+
+/**
+ * What Codex has beyond the connector, all turned off in the room. `apps`
+ * matters most: the apps of a ChatGPT account include the MemorySmith
+ * connector of production, if the account added it.
+ */
+export const CODEX_FEATURES_OFF = [
+  'apps',
+  'plugins',
+  'remote_plugin',
+  'shell_tool',
+  'unified_exec',
+  'browser_use',
+  'browser_use_external',
+  'computer_use',
+  'in_app_browser',
+  'image_generation',
+  'view_image',
+  'skill_search',
+  'skill_mcp_dependency_install',
+  'tool_suggest',
+  'memories',
+  'multi_agent',
+  'goals',
+  'hooks',
+  'sleep_tool',
+];
+
+/** The features an opened room gives back to Codex, so AE-00 can fail. */
+const CODEX_OPENED_KEEPS_OFF = ['apps', 'plugins', 'remote_plugin', 'memories'];
+
+export function codexArguments(request: TurnRequest): {
+  args: string[];
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+} {
+  const { room } = request;
+  if (!room.mcpUrl || !room.token) throw new Error('The room carries no connector for Codex.');
+  const model = executorOf(request.model).model;
+  const off = request.openedAt ? CODEX_OPENED_KEEPS_OFF : CODEX_FEATURES_OFF;
+  const args = [
+    'exec',
+    ...(request.resume ? ['resume', request.resume] : []),
+    '--json',
+    '--skip-git-repo-check',
+    '--ignore-user-config',
+    '--ignore-rules',
+    ...(model ? ['-m', model] : []),
+    '-c',
+    'sandbox_mode="read-only"',
+    '-c',
+    'web_search="disabled"',
+    '-c',
+    `project_doc_max_bytes=${request.openedAt ? 32768 : 0}`,
+    ...off.flatMap((feature) => ['--disable', feature]),
+    '-c',
+    `mcp_servers.memorysmith.url=${JSON.stringify(room.mcpUrl)}`,
+    '-c',
+    `mcp_servers.memorysmith.bearer_token_env_var="${CODEX_TOKEN_VARIABLE}"`,
+    '-c',
+    'mcp_servers.memorysmith.default_tools_approval_mode="approve"',
+    // A reply of the person may begin with a dash.
+    '--',
+    request.prompt,
+  ];
+  return {
+    args,
+    cwd: request.openedAt ?? room.workdir,
+    env: {
+      ...process.env,
+      ...(room.codexHome ? { CODEX_HOME: room.codexHome } : {}),
+      [CODEX_TOKEN_VARIABLE]: room.token,
+    },
+  };
+}
+
+/** One turn of a Codex executor, answering the lines of its events. */
+export function runCodex(request: TurnRequest, timeoutMs = 20 * 60_000): Promise<string[]> {
+  const { args, cwd, env } = codexArguments(request);
+  return runProcess('codex', args, cwd, env, timeoutMs);
+}
+
+function runProcess(
+  command: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  timeoutMs: number,
+): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, {
-      cwd,
-      env: roomEnvironment(request.room.claudeConfigDir),
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    // Codex reads a prompt from its standard input when that is open.
+    const child = spawn(command, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     child.stdout.setEncoding('utf8').on('data', (chunk: string) => (out += chunk));
@@ -244,7 +381,7 @@ export function runClaude(request: TurnRequest, timeoutMs = 20 * 60_000): Promis
     child.on('close', (code) => {
       clearTimeout(timer);
       if (code !== 0 && !out.trim()) {
-        reject(new Error(`claude exited with ${code}: ${err.slice(-800)}`));
+        reject(new Error(`${command} exited with ${code}: ${err.slice(-800)}`));
         return;
       }
       resolve(out.split(/\r?\n/).filter((line) => line.trim().length > 0));

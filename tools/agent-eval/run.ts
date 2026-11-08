@@ -3,7 +3,7 @@
  *
  *   pnpm -C tools exec playwright install chromium
  *   pnpm tools agent-eval --environment staging
- *     [--models sonnet,haiku] [--runs 3] [--cases AE-00,AE-01] [--user-model sonnet]
+ *     [--models sonnet,haiku,codex:<model>] [--runs 3] [--cases AE-00,AE-01] [--user-model sonnet]
  *     [--open-room] [--keep-accounts]
  *
  * With credentials of the account, and never against production. Before
@@ -23,6 +23,11 @@
  * `AGENT_EVAL_CLAUDE_CONFIG_DIR`, signed in once with an account kept for the
  * evaluation (`CLAUDE_CONFIG_DIR=<dir> claude auth login`), because a session
  * is handed the e-mail address of the account it runs under (#313).
+ *
+ * A model named `codex` or `codex:<model>` is played by Codex instead (#406),
+ * under the `CODEX_HOME` named by `AGENT_EVAL_CODEX_HOME` when it is set
+ * (`CODEX_HOME=<dir> codex login`), and the operator's own otherwise; the
+ * simulated user stays Claude Code.
  */
 
 import { chromium } from '@playwright/test';
@@ -43,6 +48,7 @@ import { runChecks } from './lib/checks.js';
 import { skillsAnnounced, uncoveredSkills } from './lib/coverage.js';
 import {
   closeEnvironment,
+  CODEX_CLIENT,
   connectorToken,
   exportNotebook,
   freshAccount,
@@ -54,9 +60,20 @@ import {
   type EvaluationEnvironment,
 } from './lib/environment.js';
 import { leaksIn } from './lib/leaks.js';
-import { accountInRoom, openRoom, roomConfigDir, roomsRoot, runClaude } from './lib/room.js';
+import {
+  accountInRoom,
+  codexSignedIn,
+  executorOf,
+  openRoom,
+  roomCodexHome,
+  roomConfigDir,
+  roomsRoot,
+  runClaude,
+  runCodex,
+  type TurnRequest,
+} from './lib/room.js';
 import { scorecard, type RunResult } from './lib/scorecard.js';
-import { emptyTranscript, readTurn } from './lib/transcript.js';
+import { emptyTranscript, readCodexTurn, readTurn } from './lib/transcript.js';
 import { waitsForPerson } from './lib/turns.js';
 
 const RUNS = join(dirname(fileURLToPath(import.meta.url)), 'runs');
@@ -98,6 +115,8 @@ if (roomAccount && !claudeConfigDir) {
     'The room runs under your own Claude Code account, whose e-mail address every session is handed. Set AGENT_EVAL_CLAUDE_CONFIG_DIR to a configuration directory signed in with an account kept for the evaluation; until then, a run whose executor writes that address is discarded.',
   );
 }
+const codexHome = roomCodexHome();
+if (models.some((model) => executorOf(model).kind === 'codex')) codexSignedIn(codexHome);
 const browser = await chromium.launch();
 const environment = await openEnvironment(values.environment).catch(async (error: unknown) => {
   await browser.close();
@@ -133,10 +152,19 @@ async function play(
   model: string,
   folder: string,
 ): Promise<Omit<RunResult, 'caseId' | 'variant' | 'model' | 'run'>> {
-  const token = await connectorToken(env, account, browser);
+  const codex = executorOf(model).kind === 'codex';
+  const token = await connectorToken(env, account, browser, ...(codex ? [CODEX_CLIENT] : []));
   const before = await snapshot(env, account);
   const persona = personaOf(evaluationCase, variant);
-  const room = openRoom({ root, mcpUrl: `${env.mcp}/mcp`, token, persona, claudeConfigDir });
+  const room = openRoom({
+    root,
+    mcpUrl: `${env.mcp}/mcp`,
+    token,
+    persona,
+    claudeConfigDir,
+    codexHome,
+  });
+  let costUsd: number | null = codex ? null : 0;
 
   const transcript = emptyTranscript();
   const stream: string[] = [];
@@ -149,16 +177,20 @@ async function play(
   try {
     for (;;) {
       dialogue.push(`## ${turn === 0 ? 'Request' : 'Person'}`, '', prompt, '');
-      const lines = await runClaude({
+      const request: TurnRequest = {
         room,
         role: 'executor',
         model,
         prompt,
         resume: executor,
         ...(values['open-room'] ? { openedAt: REPOSITORY_ROOT } : {}),
-      });
+      };
+      const lines = await (codex ? runCodex(request) : runClaude(request));
       stream.push(...lines.map((line) => JSON.stringify({ turn, role: 'executor', event: line })));
-      const answer = readTurn(lines, turn, transcript);
+      const answer = codex
+        ? readCodexTurn(lines, turn, transcript)
+        : readTurn(lines, turn, transcript);
+      if (costUsd !== null && answer.costUsd !== null) costUsd += answer.costUsd;
       executor = answer.sessionId ?? executor;
       finalText = answer.text;
       dialogue.push('## Executor', '', answer.text, '');
@@ -220,7 +252,14 @@ async function play(
     );
   }
 
-  return { outcomes, leaks, costUsd: transcript.costUsd, turns: turn + 1, error: null };
+  return {
+    outcomes,
+    leaks,
+    costUsd,
+    tokens: transcript.tokens,
+    turns: turn + 1,
+    error: null,
+  };
 }
 
 try {
@@ -251,7 +290,14 @@ try {
       const left = new Map<string, Account>();
       for (const evaluationCase of cases) {
         for (const variant of evaluationCase.variants) {
-          const folder = join(RUNS, round, evaluationCase.id, variant.id, model, `run-${run}`);
+          const folder = join(
+            RUNS,
+            round,
+            evaluationCase.id,
+            variant.id,
+            model.replace(/[^\w.+-]/g, '-'),
+            `run-${run}`,
+          );
           mkdirSync(folder, { recursive: true });
           say(`${evaluationCase.id} ${variant.id} ${model} run ${run}`);
           const identity = { caseId: evaluationCase.id, variant: variant.id, model, run };
@@ -269,7 +315,7 @@ try {
               ...identity,
               outcomes: [],
               leaks: [],
-              costUsd: 0,
+              costUsd: executorOf(model).kind === 'codex' ? null : 0,
               turns: 0,
               error: message,
             });
