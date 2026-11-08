@@ -733,6 +733,68 @@ test.describe('the pages of an account', () => {
     });
   });
 
+  test('draws a table block of a note as a Markdown table of the same note, paged and sorted as before (#403)', async ({
+    app,
+    owner,
+    notebook,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `custos-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name,
+      description: 'Custos de uma obra',
+      schema: {
+        type: 'object',
+        properties: { item: { type: 'string' }, valor: { type: 'number' } },
+        required: ['item'],
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(name)}/rows`, {
+      rows: [
+        { item: 'Um item de nome longo o bastante para quebrar a linha da célula', valor: 10 },
+        { item: 'Outro', valor: 20 },
+      ],
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: [
+        '---',
+        `name: Duas tabelas ${randomBytes(3).toString('hex')}`,
+        '---',
+        '',
+        '| item | valor |',
+        '| --- | ---: |',
+        '| Um | 1 |',
+        '',
+        '```table',
+        `table: ${name}`,
+        'columns: item, valor',
+        'total: valor',
+        '```',
+        '',
+      ].join('\n'),
+    });
+    try {
+      await app.goto(notebook.page(`/notes/${noteId}`));
+      const markdown = app.locator('.markdown > table').first();
+      const block = app.locator('.markdown .data-table table');
+      await expect(block.locator('tbody tr')).toHaveCount(2);
+
+      // The cells of the block wrap and are ruled as the Markdown table's are,
+      // and its header scrolls with the note instead of sticking (#403).
+      for (const cell of [markdown.locator('td').first(), block.locator('td').first()]) {
+        await expect(cell).toHaveCSS('white-space', 'normal');
+        await expect(cell).toHaveCSS('border-left-style', 'solid');
+      }
+      await expect(block.locator('thead th').first()).toHaveCSS('position', 'static');
+      // And it keeps what makes it a table of the notebook: its total.
+      await expect(block.locator('tfoot')).toContainText('30');
+    } finally {
+      await owner.call('DELETE', `${path}/notes/${noteId}`);
+      await owner.call('DELETE', `${path}/tables/${encodeURIComponent(name)}`);
+    }
+  });
+
   test('[page:/notebooks/:notebookId/tables] lists the tables of a notebook, opens one on its rows and its schema, and deletes it (#366)', async ({
     app,
     owner,
@@ -791,7 +853,7 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveURL(notebook.page('/tables'));
 
     await app.locator('.table-row', { hasText: name }).click();
-    const grid = app.locator('table.data-table');
+    const grid = app.locator('table.tables-grid');
     // A value in the reader's language, and a sort by clicking the column.
     await expect(grid).toContainText(appLocale === 'pt_BR' ? '1.250,75' : '1,250.75');
     await grid.getByRole('button', { name: 'valor' }).click();

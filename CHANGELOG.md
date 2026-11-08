@@ -29,6 +29,8 @@ issues each entry cites.
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
 
+- **A table of the notebook shown in a note looks like any other table of the note.** It was drawn as the grid of the Tables screen, in a box with a filled header that stuck and cells that never wrapped; it is now drawn as a Markdown table of the same note, with its count, pages, sorting and total. (#403)
+
 - **The About page names every screen of the interface.** What you find here now says what the files, the tables, the dashboards, the notebook model, sharing and the community models are, besides the notebooks, folders, Guidance, graph, search and transfers it named, and says that an exported notebook carries its tables, dashboards and model. The section on files through the assistant also says that the assistant gives a kept file back, as its content and as a link that downloads it. (#401)
 
 - **A dialog is the only thing that scrolls while it is open.** The dialog of a new notebook model showed two scrollbars, its own and the one of the page behind it, which kept scrolling under it; the page behind a dialog is now locked. On a phone the dialog of a new notebook and of a new model now fills the screen, where it stopped short of the right edge. (#398)

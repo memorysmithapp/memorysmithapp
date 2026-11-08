@@ -289,8 +289,8 @@ function TableRows({
 
   return (
     <>
-      <div className="data-table-scroll">
-        <table className="data-table">
+      <div className="tables-grid-scroll">
+        <table className="tables-grid">
           <thead>
             <tr>
               {columns.map((column) => {
@@ -306,11 +306,11 @@ function TableRows({
                   >
                     <button
                       type="button"
-                      className="data-table-sort"
+                      className="tables-grid-sort"
                       onClick={() => flip(column.name)}
                     >
                       {column.name}
-                      <span className="data-table-arrow" aria-hidden="true">
+                      <span className="tables-grid-arrow" aria-hidden="true">
                         {sorted === 'asc' ? '↑' : sorted === 'desc' ? '↓' : ''}
                       </span>
                     </button>
@@ -332,9 +332,9 @@ function TableRows({
           </tbody>
         </table>
       </div>
-      <nav className="data-table-pages" aria-label={t('tables.pages')}>
+      <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
         <span>{t('tables.showing', { first, last, total: rows.data.total })}</span>
-        <span className="data-table-page-buttons">
+        <span className="tables-grid-page-buttons">
           <button
             type="button"
             className="button is-quiet is-small"
@@ -368,8 +368,8 @@ function TableSchemaView({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="data-table-scroll">
-      <table className="data-table schema-table">
+    <div className="tables-grid-scroll">
+      <table className="tables-grid schema-table">
         <thead>
           <tr>
             <th scope="col">{t('tables.schema.column')}</th>

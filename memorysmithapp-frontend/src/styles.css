@@ -7193,41 +7193,43 @@ body.has-sheet .app-main {
 .table-detail-meta {
   margin: 0;
 }
-.data-table-scroll {
+/* The grid of the Tables screen and of a dashboard, named apart from the
+   `table` block of a note, which the renderer draws as a Markdown table (#403). */
+.tables-grid-scroll {
   overflow-x: auto;
   max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
 }
-.data-table {
+.tables-grid {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.86rem;
 }
-.data-table th,
-.data-table td {
+.tables-grid th,
+.tables-grid td {
   padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   vertical-align: top;
 }
-.data-table tbody tr:last-child th,
-.data-table tbody tr:last-child td {
+.tables-grid tbody tr:last-child th,
+.tables-grid tbody tr:last-child td {
   border-bottom: 0;
 }
-.data-table thead th {
+.tables-grid thead th {
   background: var(--bg);
   font-weight: 600;
   position: sticky;
   top: 0;
 }
-.data-table .is-numeric {
+.tables-grid .is-numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.data-table-sort {
+.tables-grid-sort {
   display: inline-flex;
   gap: 4px;
   border: 0;
@@ -7237,7 +7239,7 @@ body.has-sheet .app-main {
   font: inherit;
   cursor: pointer;
 }
-.data-table-arrow {
+.tables-grid-arrow {
   color: var(--accent);
   min-width: 0.7em;
 }
@@ -7252,7 +7254,7 @@ body.has-sheet .app-main {
   font-size: 0.76rem;
   font-weight: 400;
 }
-.data-table-pages {
+.tables-grid-pages {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -7260,7 +7262,7 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   font-size: 0.82rem;
 }
-.data-table-page-buttons {
+.tables-grid-page-buttons {
   display: flex;
   gap: 6px;
 }
@@ -7730,7 +7732,7 @@ body.has-sheet .app-main {
 .dashboard-print .dash-matrix :is(th, td) {
   padding-inline: 5px;
 }
-.dashboard-print .data-table-scroll {
+.dashboard-print .tables-grid-scroll {
   overflow: visible;
 }
 .dashboard-print {
