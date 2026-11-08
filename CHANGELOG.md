@@ -21,6 +21,8 @@ issues each entry cites.
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
 
+- **A file whose keep failed after its bytes were stored no longer leaves them in storage for good.** Nothing named those bytes, so no page, tool, quota or job ever reached them; `pnpm tools data purge-unnamed-files` now lists, by identifier and size, the bytes no file names that are older than a keep in flight, 24 hours unless `--older-than` says otherwise, and with `--apply` hands them to the purge, the only path that destroys content. (#377)
+
 ## [0.16.0] - 2026-11-03
 
 ### Added

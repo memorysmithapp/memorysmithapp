@@ -262,6 +262,7 @@ What operates and evaluates the product runs from the root with `pnpm tools <com
 | `data cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
 | `data recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
 | `data purge-deleted-files [--apply]` | Hands the purge every file deleted on its own that it never heard of |
+| `data purge-unnamed-files [--older-than 24] [--apply]` | Hands the purge the bytes under `f/` that no file names and that are older than a keep in flight, by identifier and size, never reading them |
 | `data reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
 | `data migrate-slots [--apply]` | Rebuilds the Guidance and the Templates written before they had a life of their own |
 | `functional` | The Playwright suites against staging; never production |

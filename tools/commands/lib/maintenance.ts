@@ -45,6 +45,11 @@ export const MAINTENANCE_JOBS = {
     entry: 'memorysmithapp-backend/apps/core-monolith/src/purge-deleted-files.ts',
     deletes: 'the bytes of the files deleted on their own',
   },
+  // What a keep that failed after its bytes were written left behind (#377).
+  'purge-unnamed-files': {
+    entry: 'memorysmithapp-backend/apps/core-monolith/src/purge-unnamed-files.ts',
+    deletes: 'the bytes under f/ that no file names, older than --older-than hours (24)',
+  },
   'migrate-slots': {
     entry: 'memorysmithapp-backend/apps/core-monolith/src/migrate-slots.ts',
     rebuilds: 'the Guidance and the Templates written before they had a life of their own',

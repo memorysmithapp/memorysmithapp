@@ -26,6 +26,7 @@
 
 import {
   type Authorship,
+  ContentId,
   type ContentRef,
   createEvent,
   type DomainEvent,
@@ -96,6 +97,19 @@ export class ContentPurge {
   async run(envelope: DeletionEnvelope): Promise<PurgeOutcome> {
     const subscriptionId = SubscriptionId.fromClaim(envelope.subscriptionId);
     if (!subscriptionId.ok) return { purged: 0, done: true };
+
+    /**
+     * Bytes of a file that no item names (#377): a keep that failed after its
+     * bytes were written. There is no item to delete, no notebook it belongs
+     * to and nothing in the trail to close, so only its revisions go; the
+     * job that found them chose only what is older than a keep in flight.
+     */
+    if (envelope.type === 'FileUnnamed') {
+      const contentId = ContentId.create(String(envelope.payload['contentId'] ?? ''));
+      if (!contentId.ok) return { purged: 0, done: true };
+      await this.deps.purgerFor(subscriptionId.value).purge(contentId.value, 'file');
+      return { purged: 1, done: true };
+    }
 
     const context: Context = {
       subscriptionId: subscriptionId.value,

@@ -5,6 +5,7 @@
  *   pnpm tools data cleanup-staging [--apply]
  *   pnpm tools data recount-storage --environment production [--apply]
  *   pnpm tools data purge-deleted-files --environment production [--apply]
+ *   pnpm tools data purge-unnamed-files --environment production [--older-than 24] [--apply]
  *   pnpm tools data reproject-links --environment staging [--apply]
  *   pnpm tools data reproject-links --environment staging --follow <execution>
  *
@@ -54,6 +55,8 @@ const { values, positionals } = parseArgs({
     environment: { type: 'string', default: 'staging' },
     apply: { type: 'boolean', default: false },
     follow: { type: 'string' },
+    // The safety age of purge-unnamed-files, in hours (#377).
+    'older-than': { type: 'string' },
   },
 });
 
@@ -116,7 +119,12 @@ const userPoolId = await outputOf('Identity', 'UserPoolId');
 const tsx = createRequire(import.meta.url).resolve('tsx/cli');
 const run = spawnSync(
   process.execPath,
-  [tsx, join(REPOSITORY_ROOT, job.entry), ...(values.apply ? ['--apply'] : [])],
+  [
+    tsx,
+    join(REPOSITORY_ROOT, job.entry),
+    ...(values.apply ? ['--apply'] : []),
+    ...(values['older-than'] ? ['--older-than', values['older-than']] : []),
+  ],
   {
     stdio: 'inherit',
     env: {

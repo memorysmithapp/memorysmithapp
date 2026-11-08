@@ -58,6 +58,7 @@ export const GROUPS: readonly Group[] = [
         summary: 'Run a maintenance job of the core; it writes only with --apply',
         usage: [
           'pnpm tools data <job> [--environment staging] [--apply]',
+          'pnpm tools data purge-unnamed-files [--environment staging] [--older-than 24] [--apply]',
           'pnpm tools data reproject-links --environment staging --follow <execution>',
         ],
         runner: { kind: 'tsx', entry: join(TOOLS, 'commands/maintenance.ts') },
