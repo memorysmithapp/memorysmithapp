@@ -31,6 +31,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **The agent evaluation hears an agent that waits on an offer.** A round handed a message to the simulated person only when it held a question mark or its turn wrote nothing, so an agent that showed a model and closed on *Se estiver bom, eu crio a versão 1* was left waiting, and its run was scored as one that never created the version. Every message now goes to the simulated person while the case allows another turn, and the person, who reads it as a person would, ends the conversation when nothing is asked of them (#408).
+
 - **An agent shows the columns of a table before it creates it, however the rows arrive.** Handed a month of expenses in plain words and asked to *build it for me*, an agent created the table and the dashboard at once, on columns the person never saw: the skill `keep-tables` asked to show the schema first only for a CSV or an Excel file. It now asks for it whichever way the rows come, with a few rows as they would be written, and reads *build it for me* as a request for the result rather than an approval of the columns (#407).
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)

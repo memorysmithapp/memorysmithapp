@@ -74,7 +74,7 @@ import {
 } from './lib/room.js';
 import { scorecard, type RunResult } from './lib/scorecard.js';
 import { emptyTranscript, readCodexTurn, readTurn } from './lib/transcript.js';
-import { waitsForPerson } from './lib/turns.js';
+import { endsConversation } from './lib/turns.js';
 
 const RUNS = join(dirname(fileURLToPath(import.meta.url)), 'runs');
 
@@ -194,12 +194,7 @@ async function play(
       executor = answer.sessionId ?? executor;
       finalText = answer.text;
       dialogue.push('## Executor', '', answer.text, '');
-      if (
-        !room.userPrompt ||
-        !waitsForPerson(answer.text, transcript, turn) ||
-        turn + 1 >= evaluationCase.turns
-      )
-        break;
+      if (!room.userPrompt || turn + 1 >= evaluationCase.turns) break;
 
       const replies = await runClaude({
         room,
@@ -211,6 +206,11 @@ async function play(
       stream.push(...replies.map((line) => JSON.stringify({ turn, role: 'user', event: line })));
       const reply = readTurn(replies, turn, emptyTranscript());
       user = reply.sessionId ?? user;
+      // The person read nothing waiting for them (#408).
+      if (endsConversation(reply.text)) {
+        dialogue.push('## Person', '', reply.text, '');
+        break;
+      }
       prompt = reply.text;
       turn += 1;
     }

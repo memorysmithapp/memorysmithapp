@@ -27,7 +27,7 @@ import {
 } from '../agent-eval/lib/room.js';
 import { scorecard } from '../agent-eval/lib/scorecard.js';
 import { emptyTranscript, readCodexTurn, readTurn } from '../agent-eval/lib/transcript.js';
-import { waitsForPerson } from '../agent-eval/lib/turns.js';
+import { END_OF_CONVERSATION, endsConversation } from '../agent-eval/lib/turns.js';
 
 const event = (value: unknown): string => JSON.stringify(value);
 
@@ -182,31 +182,19 @@ describe('a leak into the clean room', () => {
   });
 });
 
-describe('a message that waits for the person (#312)', () => {
-  it('waits when it asks, with a question mark or without one', () => {
-    const transcript = emptyTranscript();
-    expect(waitsForPerson('Shall I go ahead?', transcript, 0)).toBe(true);
-    expect(
-      waitsForPerson(
-        'Se essa estrutura estiver boa, me confirme e diga se a criação é de teste.',
-        transcript,
-        0,
-      ),
-    ).toBe(true);
+describe('the end of a conversation, which the simulated user reads (#408)', () => {
+  it('is the marker in the reply of the simulated user, and nothing else', () => {
+    expect(endsConversation(END_OF_CONVERSATION)).toBe(true);
+    expect(endsConversation(` ${END_OF_CONVERSATION}\n`)).toBe(true);
+    expect(endsConversation('Pode criar a versão, está ótimo.')).toBe(false);
+    expect(endsConversation('Obrigado, era isso.')).toBe(false);
   });
 
-  it('is done when its turn wrote and it asks nothing', () => {
-    const transcript = emptyTranscript();
-    transcript.toolUses.push({ tool: 'whoami', input: {}, turn: 1 });
-    transcript.toolUses.push({ tool: 'create_note', input: {}, turn: 1 });
-    expect(waitsForPerson('The notebook is ready.', transcript, 1)).toBe(false);
-  });
-
-  it('reads only the writes of its own turn', () => {
-    const transcript = emptyTranscript();
-    transcript.toolUses.push({ tool: 'create_notebook', input: {}, turn: 0 });
-    transcript.toolUses.push({ tool: 'list_notes', input: {}, turn: 1 });
-    expect(waitsForPerson('Paste the examples here.', transcript, 1)).toBe(true);
+  it('is taught to the simulated user, with an offer to go on still answered', () => {
+    expect(SIMULATED_USER_PREAMBLE).toContain(`reply with exactly ${END_OF_CONVERSATION}`);
+    expect(SIMULATED_USER_PREAMBLE).toMatch(
+      /offers to go on once you agree, in whatever words, answer it/,
+    );
   });
 });
 

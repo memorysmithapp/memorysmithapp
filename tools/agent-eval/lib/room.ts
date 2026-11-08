@@ -38,6 +38,7 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { END_OF_CONVERSATION } from './turns.js';
 
 export function insideGitRepository(directory: string): boolean {
   const probe = spawnSync('git', ['-C', directory, 'rev-parse', '--is-inside-work-tree'], {
@@ -70,6 +71,9 @@ export const SIMULATED_USER_PREAMBLE = [
   // disposable, and a careful executor asks first (#312).
   'You are trying the service out: if the assistant warns that it is a test environment, or that what it writes may be discarded, say that is fine and ask it to go ahead.',
   'Never say that you are playing a role.',
+  // Whether the assistant waits for an answer is for the person to read, not
+  // the round (#408).
+  `When the last message of the assistant asks nothing of you and waits for no answer, because it says the work is done and offers at most something optional, reply with exactly ${END_OF_CONVERSATION} and nothing else. When it asks, proposes or offers to go on once you agree, in whatever words, answer it.`,
   '',
   '',
 ].join('\n');
