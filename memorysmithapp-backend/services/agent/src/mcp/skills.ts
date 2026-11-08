@@ -313,6 +313,14 @@ holds.
   template belongs to one folder.
 - **Open the template with the frontmatter block**, the lines between the two
   \`---\` at the top, carrying \`name:\` and the properties the guidance declares.
+- **Every key a note of the folder may carry is in that block, the optional ones
+  too.** A key that applies only sometimes, like a follow-up date or the site of
+  an observation, is written there with a placeholder that says when it applies
+  and that the line is removed when it does not:
+  \`follow_up: <YYYY-MM-DD, once the date is confirmed; remove the line otherwise>\`.
+  Never declare a key in a placeholder of the body: the next agent copies the
+  frontmatter of the template, and a key that is not in it is a key the folder
+  does not have.
 - **Show the body with headings from \`#\`**, in the order a note of this folder is
   read.
 - **Show the formatting the material calls for** — the table of a comparison, the
