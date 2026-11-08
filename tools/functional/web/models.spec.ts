@@ -77,7 +77,7 @@ const MODEL_WORDS: Record<
 };
 
 test.describe('notebook models', () => {
-  test('opens the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398)', async ({
+  test('opens the menu under New notebook, and the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398, #402)', async ({
     app,
     notebook,
     appLocale,
@@ -92,6 +92,11 @@ test.describe('notebook models', () => {
       await expect(newNotebook).toBeVisible({ timeout: 5_000 });
     }).toPass({ timeout: 60_000 });
     await newNotebook.click();
+    // The menu opens right under the button, aligned with it (#402).
+    const button = await newNotebook.boundingBox();
+    const menu = await app.getByRole('menu', { name: words.newNotebook }).boundingBox();
+    expect(menu && button && menu.y >= button.y + button.height).toBe(true);
+    expect(menu && button && Math.abs(menu.x - button.x) <= 1).toBe(true);
     await app.getByRole('menuitem', { name: words.newModel }).click();
     const box = app.locator('.new-notebook .ask-dialog-box');
     await expect(box).toBeVisible();

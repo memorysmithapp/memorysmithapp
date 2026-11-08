@@ -27,6 +27,8 @@ issues each entry cites.
 
 - **A dialog is the only thing that scrolls while it is open.** The dialog of a new notebook model showed two scrollbars, its own and the one of the page behind it, which kept scrolling under it; the page behind a dialog is now locked. On a phone the dialog of a new notebook and of a new model now fills the screen, where it stopped short of the right edge. (#398)
 
+- **The menu of New notebook opens under the button.** On Home it opened above and to the left of it, away from the button that opened it; it now opens right under it, as every other menu does. (#402)
+
 - **An exported notebook model is imported as a model.** Exporting a notebook declared as a model carried the notebook alone, so importing it, in another installation or back in the same one, gave a plain notebook and lost its parameters and its versions. The export now carries the model, what it declares and every version with its changelog and snapshot, in version `1.4` of the format; imported by the owner of the subscription, it arrives as a model with its versions, ready to create notebooks from and numbered to continue where it was, unpublished. Imported by another member, the notebook comes alone, since only the owner declares a model. (#397)
 
 - **A file whose keep failed after its bytes were stored no longer leaves them in storage for good.** Nothing named those bytes, so no page, tool, quota or job ever reached them; `pnpm tools data purge-unnamed-files` now lists, by identifier and size, the bytes no file names that are older than a keep in flight, 24 hours unless `--older-than` says otherwise, and with `--apply` hands them to the purge, the only path that destroys content. (#377)

@@ -6918,6 +6918,15 @@ body.has-sheet .app-main {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+/* The menu of New notebook opens right under it, as every menu opens under its
+   trigger (#402). */
+.new-notebook-anchor {
+  position: relative;
+}
+.menu.new-notebook-menu {
+  top: calc(100% + 4px);
+  left: 0;
+}
 .share-licence {
   margin-bottom: 0.75rem;
 }
