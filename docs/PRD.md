@@ -430,6 +430,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-063 | The connector lists, creates, changes and deletes the dashboards of a notebook, and reads what each of its components shows now, under the periods asked; a definition is written whole, and only an agent writes one. | |
 | RN-AGT-064 | The skill `build-dashboards` teaches an agent to build a dashboard from what a person asks in plain words: to read the tables first, change a dashboard that already shows the data, and write the layout, filters and components the tables can answer. | |
 | RN-AGT-065 | `preview_dashboard` draws a dashboard as a PNG an agent looks at through `get_preview`, and the skill `build-dashboards` asks the agent to look at it and fix what reads badly before calling it done. | |
+| RN-AGT-066 | `read_file` gives back a file the notebook keeps to whoever may read it: always a link that downloads it under its name and lives an hour, and up to 4 MB its content too, an image as an image, a text as text and any other type as an embedded resource; a larger file answers with the link alone, saying so. | |
 
 ### Portability
 

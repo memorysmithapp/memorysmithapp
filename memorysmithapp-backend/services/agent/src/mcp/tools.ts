@@ -37,6 +37,8 @@ import {
   type KnowledgeGateway,
   type NoteContent,
   type NoteContextRevisions,
+  type FileLinkRef,
+  type NotebookFileRef,
   type NotebookListing,
   type RelatedNode,
   type ShareAccessName,
@@ -54,6 +56,12 @@ export type ToolContent =
       readonly data: string;
       readonly mimeType: string;
       /** Never set: an image has no text, and reading one beside the text answers nothing. */
+      readonly text?: undefined;
+    }
+  | {
+      /** A file of any other type, embedded whole (#394), as MCP declares a resource. */
+      readonly type: 'resource';
+      readonly resource: { readonly uri: string; readonly mimeType: string; readonly blob: string };
       readonly text?: undefined;
     };
 
@@ -464,6 +472,79 @@ function previewAnswer(preview: PreviewDto): ToolResult {
     content: [
       { type: 'image', data: image.base64, mimeType: image.mimeType },
       { type: 'text', text: line },
+    ],
+    isError: false,
+  };
+}
+
+/** What `read_file` gives inline; above it, the link alone (#394), as `keep_file` takes (RN-KNW-053). */
+export const READ_FILE_INLINE_BYTES = 4 * 1024 * 1024;
+
+/** Types a model reads as text, decoded from UTF-8. */
+const TEXT_TYPES = new Set([
+  'application/json',
+  'application/xml',
+  'application/x-yaml',
+  'application/yaml',
+  'image/svg+xml',
+]);
+/** Types MCP hands a model as an image. */
+const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+
+/**
+ * A file given back (#394): its content when it fits, as what it is, and
+ * always where to download it, which is what a person is handed.
+ */
+export function fileAnswer(
+  file: NotebookFileRef,
+  link: FileLinkRef,
+  bytes: Uint8Array | null,
+): ToolResult {
+  const described = {
+    file: file.fileId,
+    name: file.name,
+    type: file.mimeType,
+    bytes: file.bytes,
+    downloadUrl: link.downloadUrl,
+    expiresAt: link.expiresAt,
+  };
+  if (!bytes) {
+    return json({
+      ...described,
+      inline: false,
+      note:
+        `Above ${READ_FILE_INLINE_BYTES} bytes, the content is not given here: hand the person ` +
+        'the downloadUrl, which saves the file under its own name until expiresAt.',
+    });
+  }
+  const type = file.mimeType.split(';')[0]?.trim().toLowerCase() ?? '';
+  const content: ToolContent = IMAGE_TYPES.has(type)
+    ? { type: 'image', data: Buffer.from(bytes).toString('base64'), mimeType: type }
+    : type.startsWith('text/') || TEXT_TYPES.has(type)
+      ? { type: 'text', text: new TextDecoder().decode(bytes) }
+      : {
+          type: 'resource',
+          resource: {
+            uri: link.downloadUrl,
+            mimeType: type,
+            blob: Buffer.from(bytes).toString('base64'),
+          },
+        };
+  return {
+    content: [
+      content,
+      {
+        type: 'text',
+        text: JSON.stringify(
+          {
+            ...described,
+            inline: true,
+            note: 'The content is above; the downloadUrl is what to hand the person, until expiresAt.',
+          },
+          null,
+          2,
+        ),
+      },
     ],
     isError: false,
   };
@@ -1231,6 +1312,26 @@ export class McpToolAdapter {
         return json({
           files: await knowledge.listFiles(caller, requireString(args, 'notebook', 'list_files')),
         });
+
+      case 'read_file': {
+        const notebook = requireString(args, 'notebook', 'read_file');
+        const wanted = requireString(args, 'file', 'read_file');
+        const file = (await knowledge.listFiles(caller, notebook)).find(
+          (each) => each.fileId === wanted,
+        );
+        if (!file) {
+          throw new GatewayError(
+            'NOT_FOUND',
+            `The notebook keeps no file ${wanted}: name it as list_files prints it.`,
+          );
+        }
+        const link = await knowledge.linkToFile(caller, notebook, file.fileId);
+        const bytes =
+          file.bytes <= READ_FILE_INLINE_BYTES
+            ? await knowledge.downloadLinked(link.downloadUrl, READ_FILE_INLINE_BYTES)
+            : null;
+        return fileAnswer(file, link, bytes);
+      }
 
       case 'delete_file': {
         const file = requireString(args, 'file', 'delete_file');

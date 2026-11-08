@@ -17,6 +17,8 @@ issues each entry cites.
 
 - **An installation sends its e-mail through the organization's own relay.** With `MAIL=smtp` and `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` and the password in `SMTP_PASSWORD`, the invitation, the verification code, the code of a forgotten password and the withdrawal notice of the catalog leave through the organization's SMTP relay, over TLS, from `SENDER_ADDRESS`, written as they are through SES and in the language of the account, and the installation uses no SES. A relay that answers only inside the organization's network is reached from subnets and security groups it names in `MAIL_SUBNET_IDS` and `MAIL_SECURITY_GROUP_IDS`. With SES, `install-account` now says when SES of the region is still in its sandbox, which sends only to verified addresses until AWS grants production access. (#396)
 
+- **An agent gives back a file the notebook keeps.** Asked for a photo, a PDF or a recording the notebook keeps, an agent had no way to reach it, not even an address to download it from. `read_file` now answers, to whoever may read the notebook, a link that downloads the file under its own name for an hour, and, up to 4 MB, its content too, so the agent can look at an image, read a text or a CSV and receive any other type as an embedded resource; a larger file answers with the link alone. (#394)
+
 ### Fixed
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)

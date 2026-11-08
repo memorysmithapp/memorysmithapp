@@ -898,6 +898,25 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'read_file',
+    title: 'Read a file of the notebook',
+    description:
+      'Gives back a file the notebook keeps (#394): always a link that downloads it under its ' +
+      'own name, which lives an hour, to hand to the person; and, up to 4 MB, its content too — ' +
+      'an image as an image, a text or a CSV as text, any other type, a PDF or a recording, as ' +
+      'an embedded resource. A larger file answers with the link alone, saying so. Name the file ' +
+      'as list_files prints it. Reading changes nothing, and a reader of a shared notebook may ' +
+      'read its files.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        file: { type: 'string', description: 'File identifier, as list_files prints it.' },
+      },
+      ['notebook', 'file'],
+    ),
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'delete_file',
     title: 'Delete a file',
     description:

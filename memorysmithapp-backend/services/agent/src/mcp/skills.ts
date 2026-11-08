@@ -1126,6 +1126,15 @@ everything else is a card with a download. \`list_files\` says what the notebook
 keeps already, so a note points at the file that is there instead of a second
 copy of it.
 
+## Giving it back
+
+When the person asks for a file the notebook keeps, call \`read_file\` with the
+file as \`list_files\` names it. Up to 4 MB it answers the content, an image as
+an image, a text as text and anything else as an embedded resource, so you
+can read it; and always a \`downloadUrl\` that saves the file under its own
+name for an hour. Hand the person that link: it is the file, whatever its
+size, and it is how they get one above 4 MB.
+
 ## Before you say it is done
 
 Run \`check_notebook\`. Besides the links, it lists \`openUploads\` — uploads not
