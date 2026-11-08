@@ -102,3 +102,18 @@ describe('a version row of a community model (#384)', () => {
     );
   });
 });
+
+describe('the frame of the community pages (#410)', () => {
+  const css = readFileSync(new URL('../../styles.css', import.meta.url), 'utf8');
+  const frame = /\.community-frame \{([^}]*)\}/.exec(css)?.[1] ?? '';
+
+  it('fills its row of the root and scrolls inside it, so the document never scrolls', () => {
+    expect(frame).toMatch(/height: 100%;/);
+    expect(frame).toMatch(/min-height: 0;/);
+    expect(frame).toMatch(/overflow-y: auto;/);
+  });
+
+  it('never sizes itself by the viewport, which the root already is', () => {
+    expect(frame).not.toMatch(/\d+d?vh/);
+  });
+});

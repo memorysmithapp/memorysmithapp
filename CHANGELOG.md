@@ -37,6 +37,8 @@ issues each entry cites.
 
 - **A template declares every key its notes may carry, the optional ones too.** An agent designing a notebook wrote a key that applies only sometimes, a follow-up date or the site of an observation, as an instruction in the body of the template, and then put the key in the note: the next agent copying the template never saw it, and the folder carried a property no template declared. The skill `design-notebook` now asks for every such key in the frontmatter of the template, with a placeholder saying when it applies and that the line goes when it does not (#409).
 
+- **The community pages end where their content ends.** The search, a model and a version scrolled past their last line: their frame was as tall as the window inside a root that already was, which pushed the banner of the environment out of view and, on a phone, overshot the page even with no banner. The frame now fills the window and scrolls inside it, as every other page does (#410).
+
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
 
 - **A table of the notebook shown in a note looks like any other table of the note.** It was drawn as the grid of the Tables screen, in a box with a filled header that stuck and cells that never wrapped; it is now drawn as a Markdown table of the same note, with its count, pages, sorting and total. (#403)

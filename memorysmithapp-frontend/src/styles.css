@@ -7055,8 +7055,14 @@ body.has-sheet .app-main {
 /* ── The community catalog (#360) ────────────────────────────────────────────
    Pages a visitor with no account reaches, so they carry a head of their own
    instead of the frame of the application. */
+/* The first row of the root, scrolled inside it as the shell is (#410): a
+   frame a viewport tall pushed the banner of the environment out of the window,
+   and on a phone, where 100vh outgrows the visible window, overshot the end of
+   the page even with no banner. */
 .community-frame {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--bg);
 }
 .community-nav {
