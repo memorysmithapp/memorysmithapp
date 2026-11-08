@@ -186,6 +186,47 @@ test.describe('notebook models', () => {
     if (model) await owner.ok('DELETE', `/knowledge/notebooks/${model.notebookId}`);
   });
 
+  test('[page:/notebooks/:notebookId/model/versions/:version] draws a yes-or-no parameter as a box beside its name when a notebook is created from a version (#411)', async ({
+    app,
+    notebook,
+    owner,
+    appLocale,
+  }) => {
+    const words = MODEL_WORDS[appLocale];
+    const model = `/portability/models/${notebook.notebookId}`;
+    await owner.ok('PUT', model, {
+      objective: 'Keep the findings of one review',
+      parameters: [
+        { name: 'withMinutes', type: 'boolean', required: false, default: true },
+        { name: 'client', type: 'text', required: true },
+      ],
+    });
+    await owner.call('POST', `${model}/versions`, { changelog: 'The first version' });
+    await eventually(
+      'the first version of the model is ready',
+      () => owner.ok<{ versions: Array<{ status: string }> }>('GET', model),
+      (read) => read.versions[0]?.status === 'ready',
+      { timeoutMs: 120_000 },
+    );
+
+    await app.goto(notebook.page('/model/versions/1'));
+    await app.getByRole('button', { name: words.create }).click();
+    const form = app.locator('form.create-from-model');
+    const box = form.locator('#value-withMinutes');
+    await expect(box).toBeChecked();
+    // A box of its own size, never the width of the text field below it.
+    const drawn = await box.boundingBox();
+    const text = await form.locator('#value-client').boundingBox();
+    expect(drawn && drawn.width <= 24 && drawn.height <= 24).toBe(true);
+    expect(text && text.width > 200).toBe(true);
+    // Its name is its label, beside it: clicking the name ticks it.
+    await form
+      .locator('label.parameter-required', { hasText: 'withMinutes' })
+      .locator('span')
+      .click();
+    await expect(box).not.toBeChecked();
+  });
+
   test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, and never its notebook', async ({
     page,
     notebook,
