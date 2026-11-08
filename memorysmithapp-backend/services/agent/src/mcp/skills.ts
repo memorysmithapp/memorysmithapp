@@ -1164,6 +1164,12 @@ with their columns. Rows go into the table that is already there for them;
 
 ## Where the rows come from
 
+Whichever way they come, **the person sees the columns before the table
+exists**: their names, their types, what goes in each and the key, and you
+create the table only after they answer. A person who asked you to build it
+asked for the result, not for columns they never saw, and a table created on a
+schema they would have changed is one you alter or delete afterwards.
+
 1. **A file the person has: a CSV or an Excel workbook.** Keep it whole, the
    way the skill \`${'keep-files'}\` says — \`begin_file_upload\` and its parts, or
    \`keep_file\` with \`content\` for a small CSV — or, when the file is with
@@ -1176,7 +1182,9 @@ with their columns. Rows go into the table that is already there for them;
    whole, naming the line: fix it in the file, or widen the column, and import
    again.
 2. **No file: a page on the screen, a PDF you read, what the person tells
-   you.** You are the one who turns it into rows. Write them with
+   you.** You are the one who turns it into rows. Propose the columns from
+   what you read, with two or three of the rows as they would be written, and
+   wait for the answer. Then create the table and write the rows with
    \`insert_rows\`, up to 50 a call, each an object by column name.
 
 ## The schema
@@ -1186,7 +1194,8 @@ the next agent reads to know what goes there. Prefer the narrowest type that
 holds the data — a date as \`{ "type": "string", "format": "date" }\`, an amount
 as a number, a status as a string with \`enum\` — because a filter compares by
 type: \`amount:>100\` compares numbers only in a number column. Show the person
-the schema before \`create_table\`.
+the schema before \`create_table\`, in words and not as JSON, and wait for their
+answer.
 
 ## The key, and reading the same data twice
 

@@ -31,6 +31,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **An agent shows the columns of a table before it creates it, however the rows arrive.** Handed a month of expenses in plain words and asked to *build it for me*, an agent created the table and the dashboard at once, on columns the person never saw: the skill `keep-tables` asked to show the schema first only for a CSV or an Excel file. It now asks for it whichever way the rows come, with a few rows as they would be written, and reads *build it for me* as a request for the result rather than an approval of the columns (#407).
+
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
 
 - **A table of the notebook shown in a note looks like any other table of the note.** It was drawn as the grid of the Tables screen, in a box with a filled header that stuck and cells that never wrapped; it is now drawn as a Markdown table of the same note, with its count, pages, sorting and total. (#403)
