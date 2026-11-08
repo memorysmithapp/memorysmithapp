@@ -34,6 +34,14 @@ import {
   ModelTabs,
   type ModelTab,
 } from './ModelParts';
+import { ActionWord } from '../../shared/components/ActionWord';
+import {
+  ChevronRightIcon,
+  CloseIcon,
+  PlusIcon,
+  TrashIcon,
+  UploadIcon,
+} from '../../shared/components/icons';
 
 /**
  * The model of a notebook (#353): what a notebook declared as a model says of
@@ -299,7 +307,11 @@ function Versions({
             />
           ) : null}
           <button type="submit" className="button is-primary" disabled={busy}>
-            {busy ? t('model.creatingVersion') : t('model.createVersion')}
+            <ActionWord
+              icon={<PlusIcon />}
+              word={busy ? t('model.creatingVersion') : t('model.createVersion')}
+              wide
+            />
           </button>
         </form>
       ) : null}
@@ -322,7 +334,7 @@ function Versions({
               <span className="model-version-changelog">{version.changelog}</span>
               {version.status === 'ready' ? (
                 <Link to={versionAddress(version.number)} className="button is-quiet is-small">
-                  {t('model.openVersion')}
+                  <ActionWord icon={<ChevronRightIcon />} word={t('model.openVersion')} />
                 </Link>
               ) : null}
               {owner && version.status !== 'running' ? (
@@ -333,14 +345,17 @@ function Versions({
                       className="button is-quiet is-small"
                       onClick={() => setDeleting(null)}
                     >
-                      {t('common.cancel')}
+                      <ActionWord icon={<CloseIcon />} word={t('common.cancel')} />
                     </button>
                     <button
                       type="button"
                       className="button is-danger is-filled is-small"
                       onClick={() => void remove(version)}
                     >
-                      {t('model.deleteVersionForGood', { number: version.number })}
+                      <ActionWord
+                        icon={<TrashIcon />}
+                        word={t('model.deleteVersionForGood', { number: version.number })}
+                      />
                     </button>
                   </span>
                 ) : (
@@ -349,7 +364,7 @@ function Versions({
                     className="button is-quiet is-small"
                     onClick={() => setDeleting(version.number)}
                   >
-                    {t('model.deleteVersion')}
+                    <ActionWord icon={<TrashIcon />} word={t('model.deleteVersion')} />
                   </button>
                 )
               ) : null}
@@ -439,7 +454,7 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
             disabled={busy}
             onClick={() => void act(() => withdrawModel(notebookId))}
           >
-            {t('model.withdraw')}
+            <ActionWord icon={<CloseIcon />} word={t('model.withdraw')} wide />
           </button>
         </>
       ) : (
@@ -481,7 +496,7 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
               void act(() => publishModel(notebookId, { language, acceptLicence: accepted }))
             }
           >
-            {t('model.publish')}
+            <ActionWord icon={<UploadIcon />} word={t('model.publish')} wide />
           </button>
           {!ready ? <p className="hint">{t('model.publishNeedsVersion')}</p> : null}
         </>

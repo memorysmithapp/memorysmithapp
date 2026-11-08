@@ -13,6 +13,14 @@ import {
   type ParameterDraft,
 } from './model-form';
 import { ParameterFields } from './ParametersEditor';
+import { ActionWord } from '../../shared/components/ActionWord';
+import {
+  CheckIcon,
+  CloseIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from '../../shared/components/icons';
 
 /** The parts of a model, one tab each (#400). */
 export const MODEL_TABS = ['about', 'parameters', 'versions', 'community'] as const;
@@ -220,7 +228,7 @@ export function ModelAbout({
           className="button is-primary"
           disabled={busy || about.objective.trim().length === 0}
         >
-          {busy ? t('model.saving') : t('model.save')}
+          <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} wide />
         </button>
         {said ? (
           <span className="hint" role="status">
@@ -328,7 +336,7 @@ export function ModelParameters({
             setEditing({ index: null, draft: emptyParameter() });
           }}
         >
-          {t('model.addParameter')}
+          <ActionWord icon={<PlusIcon />} word={t('model.addParameter')} wide />
         </button>
       </div>
       {model.parameters.length === 0 ? (
@@ -355,7 +363,7 @@ export function ModelParameters({
                     setEditing({ index, draft: draftOf(parameter) });
                   }}
                 >
-                  {t('model.editParameter')}
+                  <ActionWord icon={<PencilIcon />} word={t('model.editParameter')} />
                 </button>
                 <button
                   type="button"
@@ -366,7 +374,7 @@ export function ModelParameters({
                     setRemoving(index);
                   }}
                 >
-                  {t('model.removeParameter')}
+                  <ActionWord icon={<TrashIcon />} word={t('model.removeParameter')} />
                 </button>
               </span>
             </li>
@@ -390,7 +398,7 @@ export function ModelParameters({
           actions={
             <>
               <button type="button" className="button is-quiet" onClick={() => setEditing(null)}>
-                {t('common.cancel')}
+                <ActionWord icon={<CloseIcon />} word={t('common.cancel')} wide />
               </button>
               <button
                 type="button"
@@ -406,7 +414,11 @@ export function ModelParameters({
                   });
                 }}
               >
-                {busy ? t('model.saving') : t('model.save')}
+                <ActionWord
+                  icon={<CheckIcon />}
+                  word={busy ? t('model.saving') : t('model.save')}
+                  wide
+                />
               </button>
             </>
           }
@@ -432,7 +444,7 @@ export function ModelParameters({
           actions={
             <>
               <button type="button" className="button is-quiet" onClick={() => setRemoving(null)}>
-                {t('common.cancel')}
+                <ActionWord icon={<CloseIcon />} word={t('common.cancel')} wide />
               </button>
               <button
                 type="button"
@@ -444,7 +456,11 @@ export function ModelParameters({
                   });
                 }}
               >
-                {busy ? t('model.saving') : t('model.removeParameter')}
+                <ActionWord
+                  icon={<TrashIcon />}
+                  word={busy ? t('model.saving') : t('model.removeParameter')}
+                  wide
+                />
               </button>
             </>
           }

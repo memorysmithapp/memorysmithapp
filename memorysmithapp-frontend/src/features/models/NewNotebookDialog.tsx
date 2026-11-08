@@ -12,6 +12,8 @@ import {
   getModelVersion,
   listModels,
 } from '../../shared/api/source';
+import { ActionWord } from '../../shared/components/ActionWord';
+import { CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
 import { CreateFromModelForm } from './CreateFromModel';
@@ -122,14 +124,18 @@ export function NewModelDialog({ open, onClose }: { open: boolean; onClose: () =
         ) : null}
         <div className="ask-dialog-foot">
           <button type="button" className="button is-quiet" onClick={onClose}>
-            {t('common.cancel')}
+            <ActionWord icon={<CloseIcon />} word={t('common.cancel')} wide />
           </button>
           <button
             type="submit"
             className="button is-primary"
             disabled={busy || !name.trim() || !about.objective.trim()}
           >
-            {busy ? t('model.saving') : t('model.declare')}
+            <ActionWord
+              icon={<CheckIcon />}
+              word={busy ? t('model.saving') : t('model.declare')}
+              wide
+            />
           </button>
         </div>
       </form>
