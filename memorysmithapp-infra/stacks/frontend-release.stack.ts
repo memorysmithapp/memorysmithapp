@@ -42,6 +42,12 @@ export interface InterfaceConfig {
   readonly catalogOrigin: string;
   readonly cognitoDomain: string;
   readonly cognitoClientId: string;
+  /**
+   * The provider the sign-in goes straight to, when the installation signs in
+   * only through the organization's (#395). Absent everywhere else, so the
+   * project's own `/config.json` is what it was.
+   */
+  readonly identityProvider?: string;
   readonly environment: string;
   readonly version: string;
 }

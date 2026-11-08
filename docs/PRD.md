@@ -130,6 +130,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-SUB-023 | Files kept by a notebook count against the quota; an upload with no room is refused before storing bytes, and deleting a file releases them.                                                       |                                                       |
 | RN-SUB-024 | The space of a subscription is answered from counters, never by reading content: total and quota, a split by kind, counts of notebooks, folders and revisions, and a line per readable notebook.   |                                                       |
 | RN-SUB-025 | An open upload in parts reserves its declared size against the quota as _in transit_ from its start, until it becomes a file or is discarded.                                                      |                                                       |
+| RN-SUB-026 | In an installation that declares `IDP_FIRST_SIGN_IN=automatic`, the first sign-in of a person through the organization's identity provider gives them a subscription, active, of the declared quota, recorded as requested and approved by that person: the one exception to RN-SUB-006 and RN-SUB-008, holding only there. | |
 
 ### Access, roles and sharing
 
@@ -173,6 +174,9 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-ACC-036 | In the interface, sharing offers the three profiles, each said in a line, and the owner changes the profile of a person in the list of the notebook's shares; an increase waiting for acceptance is said there, and on the grantee's card and notifications, which accept or decline it. | |
 | RN-ACC-037 | A notebook declared as a model is also shared as a Model reader, who reads its model and versions and creates notebooks from them, and reaches nothing of the notebook, which answers `404`; the interface opens such a share on a page of the model, outside any notebook, and offers the profile only for a model. | |
 | RN-ACC-038 | Sharing a notebook declared as a model, with any profile, distributes it under CC0 1.0: its owner accepts the licence once, on the first distribution, and a share or an increase is refused with `CONFLICT` until then; the interface and the connector say that whoever receives a model may reuse and republish it freely, the community included. | |
+| RN-ACC-039 | A person who signs in through the organization's identity provider is one account per e-mail, whichever way they sign in: the first sign-in links that identity, once, to the account holding the address the installation's claim carries, created with no password when there is none, and a second identity of the provider claiming an address already linked is refused. | |
+| RN-ACC-040 | What a person of the organization's identity provider finds on a first sign-in with no account is the installation's choice: an account that asks for a subscription (`request`), a refusal saying to ask whoever operates the installation unless one was prepared beforehand (`prepared`), or an account with its subscription (`automatic`, RN-SUB-026). | |
+| RN-ACC-041 | An account held through the organization's identity provider is offered no change of password, and where the installation signs in only through the provider, the sign-in goes straight to it. | |
 
 ### Knowledge
 

@@ -19,6 +19,11 @@ export interface AuthConfig {
    * page in another one is the seam showing (RN of no rule, just courtesy).
    */
   readonly lang: string;
+  /**
+   * The organization's provider to go straight to, as `identity_provider`,
+   * when it is the only way in (#395); null opens the pool's own page.
+   */
+  readonly identityProvider: string | null;
 }
 
 export interface Tokens {
@@ -35,6 +40,12 @@ export interface TokenClaims {
   readonly subscriptionId?: string;
   readonly subscriptionStatus?: string;
   readonly groups: string[];
+  /**
+   * Whether the account is held through the organization's identity provider
+   * (#395): the ID token names the identities linked to it. Such an account
+   * has no password of MemorySmith to change.
+   */
+  readonly federated: boolean;
 }
 
 const VERIFIER_KEY = 'memorysmith.pkce';
@@ -65,7 +76,19 @@ export async function beginSignIn(config: AuthConfig): Promise<void> {
   url.searchParams.set('code_challenge', await challengeFor(verifier));
   url.searchParams.set('code_challenge_method', 'S256');
   url.searchParams.set('lang', config.lang);
+  if (config.identityProvider) url.searchParams.set('identity_provider', config.identityProvider);
   window.location.assign(url.toString());
+}
+
+/**
+ * What the identity provider said, in the words a person reads. A refusal of
+ * the first federated sign-in comes back wrapped by Cognito as
+ * `PreSignUp failed with error <message>.` (#395): the wrapping is the
+ * provider's, the message is ours, and only the message is shown.
+ */
+export function readableFailure(raw: string): string {
+  const wrapped = /^PreSignUp failed with error (.*?)\.?\s*$/s.exec(raw.trim());
+  return wrapped?.[1] ? `${wrapped[1]}.` : raw;
 }
 
 /** Exchanges the code for tokens. Called once, on the callback route. */
@@ -197,6 +220,7 @@ export function claimsOf(token: string): TokenClaims | null {
       groups: Array.isArray(decoded['cognito:groups'])
         ? (decoded['cognito:groups'] as unknown[]).map(String)
         : [],
+      federated: Array.isArray(decoded['identities']) && decoded['identities'].length > 0,
     };
   } catch {
     return null;

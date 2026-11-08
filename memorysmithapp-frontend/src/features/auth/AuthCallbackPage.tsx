@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { completeSignIn } from '../../shared/auth/oauth';
+import { completeSignIn, readableFailure } from '../../shared/auth/oauth';
 import { clearHandover } from './LoginPage';
 import { authConfig, useLiveSession } from '../../shared/auth/session';
 
@@ -25,7 +25,7 @@ export function AuthCallbackPage() {
     const code = params.get('code');
     const error = params.get('error_description') ?? params.get('error');
     if (error) {
-      setFailure(error);
+      setFailure(readableFailure(error));
       return;
     }
     if (!code) {

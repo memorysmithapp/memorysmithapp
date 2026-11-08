@@ -43,7 +43,7 @@ export const GROUPS: readonly Group[] = [
           'Create an account and its subscription, or the first platform administrator of an empty pool',
         usage: [
           'pnpm tools onboard --environment staging [--email ana@example.com] [--name Ana]',
-          '  [--quota 1GB] [--status active] [--set-password] [--locale en_US]',
+          '  [--quota 1GB] [--status active] [--set-password | --federated] [--locale en_US]',
         ],
         runner: { kind: 'tsx', entry: join(TOOLS, 'commands/onboard.ts') },
       },

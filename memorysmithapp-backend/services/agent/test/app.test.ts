@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApp } from '../src/app.js';
+import { createApp, upstreamAuthorize } from '../src/app.js';
 import type { AgentConfig } from '../src/config.js';
 import type { ConnectorBinder } from '../src/connector-binding.js';
 import { McpToolAdapter } from '../src/mcp/tools.js';
@@ -106,6 +106,23 @@ describe('authorize (item 3 of 13.3)', () => {
     expect(response.status).toBe(400);
     const body = (await response.json()) as Record<string, unknown>;
     expect(body['error']).toBe('invalid_client');
+  });
+});
+
+describe('the sign-in the first leg sends the browser to (#395)', () => {
+  it("opens the pool's own page, naming no provider, where none is declared", () => {
+    const url = new URL(upstreamAuthorize(config, 'sealed', 'challenge'));
+    expect(url.origin + url.pathname).toBe(`${config.cognitoDomain}/oauth2/authorize`);
+    expect(url.searchParams.get('client_id')).toBe('proxy-client-id');
+    expect(url.searchParams.get('state')).toBe('sealed');
+    expect(url.searchParams.has('identity_provider')).toBe(false);
+  });
+
+  it("goes straight to the organization's provider when it is the only way in", () => {
+    const url = new URL(
+      upstreamAuthorize({ ...config, identityProvider: 'Acme' }, 'sealed', 'challenge'),
+    );
+    expect(url.searchParams.get('identity_provider')).toBe('Acme');
   });
 });
 

@@ -33,7 +33,11 @@ import {
 } from '@aws-sdk/client-route-53';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { parseArgs } from 'node:util';
-import { installationEnvironmentOf, loadInstallationFile } from '../installation/index.js';
+import {
+  deliverySecretNames,
+  installationEnvironmentOf,
+  loadInstallationFile,
+} from '../installation/index.js';
 import {
   bootstrapRefusalOf,
   describeRetained,
@@ -41,6 +45,11 @@ import {
   installationTeardownOrder,
   validationRecordsOf,
 } from './lib/teardown.js';
+import {
+  DeleteSecretCommand,
+  DescribeSecretCommand,
+  SecretsManagerClient,
+} from '@aws-sdk/client-secrets-manager';
 import {
   clients,
   deleteStacks,
@@ -145,6 +154,21 @@ if (zoneId && named.hostedZoneName) {
   validation.push(...sets.filter((set) => set.Type === 'CNAME' && chosen.has(set.Name ?? '')));
 }
 
+// ---- The secrets deliver wrote (#395) ---------------------------------------
+
+const secretsManager = new SecretsManagerClient({ region });
+const secrets: string[] = [];
+for (const name of deliverySecretNames({ name: environment, installation })) {
+  const found = await secretsManager
+    .send(new DescribeSecretCommand({ SecretId: name }))
+    .then(() => true)
+    .catch((error: unknown) => {
+      if (nameOf(error) === 'ResourceNotFoundException') return false;
+      throw error;
+    });
+  if (found) secrets.push(name);
+}
+
 say(`Tearing down ${installation} ${environment}, account ${account}, ${regions.join(' and ')}.`);
 
 // ---- What goes ---------------------------------------------------------------
@@ -156,6 +180,7 @@ say('\nPurged after the stacks are gone');
 for (const each of retained) say(`  ${describeRetained(each.retained)} (${each.region})`);
 if (retained.length === 0) say('  nothing any stack retains');
 for (const set of validation) say(`  record ${set.Name} CNAME, which validated a certificate`);
+for (const name of secrets) say(`  secret ${name}, which deliver wrote from a variable`);
 say('  the log groups of functions that no longer exist');
 
 say('\nKept');
@@ -201,6 +226,18 @@ for (const set of validation) {
     }
     failures += 1;
     say(`  record ${set.Name} CNAME: could not be deleted, ${messageOf(error)}`);
+  }
+}
+
+for (const name of secrets) {
+  try {
+    await secretsManager.send(
+      new DeleteSecretCommand({ SecretId: name, ForceDeleteWithoutRecovery: true }),
+    );
+    say(`  secret ${name}: deleted`);
+  } catch (error) {
+    failures += 1;
+    say(`  secret ${name}: could not be deleted, ${messageOf(error)}`);
   }
 }
 

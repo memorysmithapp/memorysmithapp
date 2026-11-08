@@ -6,7 +6,7 @@
  */
 
 import { App, Stack } from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -99,6 +99,65 @@ describe('the variables of an installation', () => {
       { recordName: 'stg', nameServers: ['ns-1.awsdns-01.org', 'ns-2.awsdns-02.com'] },
     ]);
     expect(() => installed({ ...VARIABLES, DNS_DELEGATIONS: 'stg' })).toThrow('DNS_DELEGATIONS');
+  });
+
+  it('reads no identity provider unless the installation declares one (#395)', () => {
+    expect(installed().identityProvider).toBeUndefined();
+  });
+
+  it("reads the organization's provider, with its defaults (#395)", () => {
+    expect(
+      installed({
+        ...VARIABLES,
+        IDP_NAME: 'Acme',
+        IDP_ISSUER: 'https://sso.acme.example/realms/acme/',
+        IDP_CLIENT_ID: 'memorysmith',
+      }).identityProvider,
+    ).toEqual({
+      name: 'Acme',
+      issuer: 'https://sso.acme.example/realms/acme',
+      clientId: 'memorysmith',
+      emailClaim: 'email',
+      trustEmail: false,
+      signIn: 'idp+password',
+      firstSignIn: 'request',
+      quota: null,
+      secretVersion: null,
+    });
+  });
+
+  it('refuses half a provider, and a choice of a provider nobody declared (#395)', () => {
+    const provider = {
+      ...VARIABLES,
+      IDP_NAME: 'Acme',
+      IDP_ISSUER: 'https://sso.acme.example/realms/acme',
+      IDP_CLIENT_ID: 'memorysmith',
+    };
+    expect(() => installed({ ...VARIABLES, IDP_NAME: 'Acme' })).toThrow(
+      'IDP_ISSUER, IDP_CLIENT_ID',
+    );
+    expect(() => installed({ ...VARIABLES, SIGN_IN: 'idp' })).toThrow('no identity provider');
+    expect(() => installed({ ...provider, IDP_NAME: 'Acme Corp' })).toThrow('no space');
+    expect(() => installed({ ...provider, IDP_ISSUER: 'http://sso' })).toThrow('IDP_ISSUER');
+    expect(() => installed({ ...provider, SIGN_IN: 'password' })).toThrow('SIGN_IN');
+    expect(() => installed({ ...provider, IDP_FIRST_SIGN_IN: 'open' })).toThrow(
+      'IDP_FIRST_SIGN_IN',
+    );
+    expect(() => installed({ ...provider, IDP_QUOTA: '1GB' })).toThrow('automatic');
+    expect(() =>
+      installed({ ...provider, IDP_FIRST_SIGN_IN: 'automatic', IDP_QUOTA: '5GB' }),
+    ).toThrow('500MB, 1GB or 2GB');
+    expect(
+      installed(
+        { ...provider, SIGN_IN: 'idp', IDP_FIRST_SIGN_IN: 'automatic', IDP_QUOTA: '2GB' },
+        { idpSecretVersion: 'v-1' },
+      ).identityProvider,
+    ).toMatchObject({
+      signIn: 'idp',
+      firstSignIn: 'automatic',
+      quota: '2GB',
+      secretVersion: 'v-1',
+    });
   });
 
   it('keeps every variable it reads documented in .env.example', () => {
@@ -209,6 +268,122 @@ describe('a domain of its own, outside us-east-1', () => {
     const template = JSON.stringify(Template.fromStack(identity).toJSON());
     expect(template).toContain('https://notes.acme.example');
     expect(template).not.toContain('memorysmith.app');
+  });
+});
+
+describe("the organization's identity provider (#395)", () => {
+  const PROVIDER = {
+    ...VARIABLES,
+    IDP_NAME: 'Acme',
+    IDP_ISSUER: 'https://sso.acme.example/realms/acme',
+    IDP_CLIENT_ID: 'memorysmith',
+  };
+  const identityOf = (variables: Record<string, string>, context: Record<string, unknown> = {}) => {
+    const environment = installed(variables, context);
+    const app = appFor('staging');
+    const env = { account: environment.account, region: 'us-east-1' };
+    const network = new NetworkStack(app, 'Network', {
+      env,
+      environment: { ...environment, region: 'us-east-1' },
+    });
+    const identity = new IdentityStack(app, 'Identity', {
+      env,
+      environment,
+      accessTable: Table.fromTableName(network, 'Access', 'mv-access-acme-staging'),
+      mcpOrigin: `https://${network.mcpDomainName}`,
+      siteDomainName: network.siteDomainName,
+      authDomainName: network.authDomainName,
+      authCertificate: network.authCertificate,
+      hostedZone: network.hostedZone,
+      senderAddress: network.senderAddress,
+    });
+    return { identity, template: Template.fromStack(identity) };
+  };
+
+  it('federates nothing, and adds no trigger, where none is declared', () => {
+    const { identity, template } = identityOf(VARIABLES);
+    template.resourceCountIs('AWS::Cognito::UserPoolIdentityProvider', 0);
+    expect(JSON.stringify(template.toJSON())).not.toContain('PreSignUp');
+    expect(identity.directProvider).toBeNull();
+  });
+
+  it('declares the provider over OIDC, with its secret only referenced, at the version deliver wrote', () => {
+    const { template } = identityOf(PROVIDER, { idpSecretVersion: 'v-42' });
+    const [provider] = Object.values(
+      template.findResources('AWS::Cognito::UserPoolIdentityProvider'),
+    ) as Array<{ Properties: Record<string, unknown> }>;
+    expect(provider?.Properties).toMatchObject({
+      ProviderName: 'Acme',
+      ProviderType: 'OIDC',
+      AttributeMapping: { email: 'email', given_name: 'name', email_verified: 'email_verified' },
+    });
+    const details = provider?.Properties['ProviderDetails'] as Record<string, string>;
+    expect(details['oidc_issuer']).toBe('https://sso.acme.example/realms/acme');
+    expect(details['client_secret']).toBe(
+      '{{resolve:secretsmanager:memorysmith-idp-client-secret-acme-staging:SecretString:::v-42}}',
+    );
+  });
+
+  it('maps the address from the claim the installation names, and never the name onto name', () => {
+    const { template } = identityOf({
+      ...PROVIDER,
+      IDP_EMAIL_CLAIM: 'preferred_username',
+    });
+    const [provider] = Object.values(
+      template.findResources('AWS::Cognito::UserPoolIdentityProvider'),
+    ) as Array<{ Properties: { AttributeMapping: Record<string, string> } }>;
+    expect(provider?.Properties.AttributeMapping).toEqual({
+      email: 'preferred_username',
+      given_name: 'name',
+    });
+  });
+
+  it('admits the provider beside the password with idp+password, and alone with idp', () => {
+    const both = identityOf(PROVIDER);
+    for (const client of Object.values(
+      both.template.findResources('AWS::Cognito::UserPoolClient'),
+    ) as Array<{ Properties: { SupportedIdentityProviders: unknown[] } }>) {
+      expect(client.Properties.SupportedIdentityProviders).toEqual(['Acme', 'COGNITO']);
+    }
+    expect(both.identity.directProvider).toBeNull();
+
+    const only = identityOf({ ...PROVIDER, SIGN_IN: 'idp' });
+    for (const client of Object.values(
+      only.template.findResources('AWS::Cognito::UserPoolClient'),
+    ) as Array<{ Properties: { SupportedIdentityProviders: unknown[] } }>) {
+      expect(client.Properties.SupportedIdentityProviders).toEqual(['Acme']);
+    }
+    expect(only.identity.directProvider).toBe('Acme');
+  });
+
+  it('links each first sign-in through a trigger told what the installation chose', () => {
+    const { template } = identityOf({
+      ...PROVIDER,
+      IDP_FIRST_SIGN_IN: 'automatic',
+      IDP_QUOTA: '2GB',
+    });
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: Match.objectLike({ PreSignUp: Match.anyValue() }),
+    });
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: {
+        Variables: Match.objectLike({
+          FIRST_SIGN_IN: 'automatic',
+          EMAIL_CLAIM: 'email',
+          REQUIRE_VERIFIED: 'true',
+          QUOTA: '2GB',
+        }),
+      },
+    });
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: Match.arrayWith(['cognito-idp:AdminLinkProviderForUser']),
+          }),
+        ]),
+      },
+    });
   });
 });
 

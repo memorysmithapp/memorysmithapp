@@ -3,7 +3,8 @@
  * account of an empty pool, the operation of the platform and nothing else.
  *
  *   pnpm tools onboard --environment staging [--email ana@example.com]
- *     [--name Ana] [--quota 1GB] [--status active] [--set-password] [--locale en_US]
+ *     [--name Ana] [--quota 1GB] [--status active] [--set-password | --federated]
+ *     [--locale en_US]
  *
  * A deploy seeds nothing: the user pool comes up empty, and no subscription is
  * written behind the rule that a person asks for one and a platform admin
@@ -28,6 +29,12 @@
  * password: Cognito e-mails an invitation, and whoever runs this never learns
  * the password of somebody else's account. `--set-password` types a permanent
  * one here instead, and sends no e-mail.
+ *
+ * `--federated` PREPARES AN ACCOUNT FOR THE ORGANIZATION'S PROVIDER (#395):
+ * no invitation and no password anybody learns. The person signs in through
+ * the provider, and the first sign-in links that identity to this account,
+ * subscription included (RN-ACC-039); under `IDP_FIRST_SIGN_IN=prepared` it
+ * is the only way somebody gets in (RN-ACC-040).
  */
 
 import {
@@ -60,6 +67,7 @@ const { values } = parseArgs({
     quota: { type: 'string' },
     status: { type: 'string' },
     'set-password': { type: 'boolean', default: false },
+    federated: { type: 'boolean', default: false },
     locale: { type: 'string' },
   },
 });
@@ -129,6 +137,9 @@ const declared =
 
 const email = (values.email ?? (await ask('e-mail of the account'))).toLowerCase();
 if (!email) fail('No account to onboard: pass --email.');
+if (values.federated && values['set-password']) {
+  fail('--federated prepares an account nobody holds a password of: drop --set-password.');
+}
 if (values.quota && !QUOTAS.includes(values.quota)) fail(`Unknown quota "${values.quota}".`);
 if (values.status && !STATUSES.includes(values.status)) fail(`Unknown status "${values.status}".`);
 const locale = values.locale ?? 'pt_BR';
@@ -204,7 +215,8 @@ const existing: AdminGetUserCommandOutput | null = await cognito
  */
 const unclaimed = ['FORCE_CHANGE_PASSWORD', 'RESET_REQUIRED'];
 const claimed = existing !== null && !unclaimed.includes(existing.UserStatus ?? '');
-const handOver = !values['set-password'] && !claimed;
+// A federated account is handed over by the provider, on its first sign-in.
+const handOver = !values['set-password'] && !values.federated && !claimed;
 let password: string;
 
 if (claimed) {
@@ -346,6 +358,11 @@ if (handOver) {
   );
 }
 
+if (values.federated) {
+  say(
+    `No invitation was sent: ${email} signs in through the organization's identity provider, and its first sign-in links that identity to this account.`,
+  );
+}
 say(`\n${email}${isAdmin ? ' (platform admin)' : ''} can sign in at ${siteOrigin}.`);
 if (status !== null && !OPERATIONAL.includes(status)) {
   say(`Its subscription is ${status}, which grants no operational access to anyone.`);

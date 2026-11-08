@@ -9,7 +9,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readTokens, refresh, type AuthConfig } from './oauth';
+import {
+  beginSignIn,
+  claimsOf,
+  readableFailure,
+  readTokens,
+  refresh,
+  type AuthConfig,
+} from './oauth';
 
 const config: AuthConfig = {
   domain: 'https://auth.example.test',
@@ -17,6 +24,7 @@ const config: AuthConfig = {
   redirectUri: 'https://app.example.test/auth/callback',
   scopes: 'openid email profile',
   lang: 'en',
+  identityProvider: null,
 };
 
 function memoryStorage(): Storage {
@@ -115,5 +123,52 @@ describe('a silent refresh keeps the credential it was made with', () => {
 
     expect(await refresh(config)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+/** A token with these claims, unsigned: the browser reads, never verifies. */
+function tokenWith(claims: Record<string, unknown>): string {
+  const encode = (value: unknown) =>
+    btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${encode({ alg: 'none' })}.${encode(claims)}.`;
+}
+
+describe("an account held through the organization's provider (#395)", () => {
+  it('is federated when the ID token names a linked identity, and only then', () => {
+    expect(
+      claimsOf(tokenWith({ sub: 'u', identities: [{ providerName: 'Acme', userId: 'x' }] }))
+        ?.federated,
+    ).toBe(true);
+    expect(claimsOf(tokenWith({ sub: 'u', identities: [] }))?.federated).toBe(false);
+    expect(claimsOf(tokenWith({ sub: 'u' }))?.federated).toBe(false);
+  });
+
+  it('goes straight to the provider when the installation names one, and to the pool otherwise', async () => {
+    vi.stubGlobal('sessionStorage', memoryStorage());
+    const assign = vi.fn();
+    vi.stubGlobal('window', { location: { assign } });
+
+    await beginSignIn({ ...config, identityProvider: 'Acme' });
+    await beginSignIn(config);
+
+    const [direct, own] = assign.mock.calls.map(([url]) => new URL(String(url)));
+    expect(direct?.searchParams.get('identity_provider')).toBe('Acme');
+    expect(own?.searchParams.has('identity_provider')).toBe(false);
+  });
+});
+
+describe('a refusal of the first federated sign-in (#395)', () => {
+  it('reads the message, without the wrapping of Cognito', () => {
+    expect(
+      readableFailure(
+        'PreSignUp failed with error ana@acme.example has no account in this installation: ask whoever operates it to prepare one. ',
+      ),
+    ).toBe(
+      'ana@acme.example has no account in this installation: ask whoever operates it to prepare one.',
+    );
+  });
+
+  it('keeps any other failure as it came', () => {
+    expect(readableFailure('access_denied')).toBe('access_denied');
   });
 });

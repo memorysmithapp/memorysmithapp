@@ -278,18 +278,22 @@ export function UserMenu() {
           >
             {t('profile.menu')}
           </MenuItem>
-          <MenuItem
-            onSelect={() => {
-              // The change of password goes back where it was asked from.
-              setOpen(false);
-              navigate('/profile/password', {
-                state: { from: `${location.pathname}${location.search}` },
-              });
-            }}
-            trailing={<ChevronRightIcon width={12} height={12} />}
-          >
-            {t('password.menu')}
-          </MenuItem>
+          {/* An account held through the organization's provider has no
+              password here to change (#395). */}
+          {live?.federated ? null : (
+            <MenuItem
+              onSelect={() => {
+                // The change of password goes back where it was asked from.
+                setOpen(false);
+                navigate('/profile/password', {
+                  state: { from: `${location.pathname}${location.search}` },
+                });
+              }}
+              trailing={<ChevronRightIcon width={12} height={12} />}
+            >
+              {t('password.menu')}
+            </MenuItem>
+          )}
           {/* Where the connector of this environment is published, which is
               what an agent is pointed at: an item like the others, and not a
               footnote beside the version (#210). */}

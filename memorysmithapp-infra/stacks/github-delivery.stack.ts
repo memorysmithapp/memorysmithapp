@@ -112,6 +112,22 @@ export class InstallationDeliveryStack extends Stack {
         resources: [arn('states', `stateMachine:${reprojection}`)],
       }),
     );
+    // The secrets `deliver` carries from the variables of the pipeline into
+    // Secrets Manager (#395, #396), and no other: only names of this
+    // installation and environment, which Secrets Manager suffixes.
+    this.role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:CreateSecret',
+          'secretsmanager:PutSecretValue',
+          'secretsmanager:TagResource',
+        ],
+        resources: [
+          arn('secretsmanager', `secret:${physicalName(environment, 'memorysmith-*')}-*`),
+        ],
+      }),
+    );
     new CfnOutput(this, 'RoleArn', { value: this.role.roleArn });
   }
 }

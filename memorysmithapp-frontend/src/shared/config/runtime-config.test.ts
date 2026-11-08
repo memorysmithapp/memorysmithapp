@@ -31,7 +31,15 @@ describe('the runtime configuration', () => {
       connectorOrigin: 'https://mcp.stg.memorysmith.app',
       uploadsOrigin: 'https://uploads.stg.memorysmith.app',
       catalogOrigin: 'https://d111111abcdef8.cloudfront.net',
+      identityProvider: null,
     });
+  });
+
+  it("names the organization's provider only where the installation signs in through it alone (#395)", () => {
+    expect(parseRuntimeConfig({ ...STAGING, identityProvider: 'Acme' }).identityProvider).toBe(
+      'Acme',
+    );
+    expect(parseRuntimeConfig({ ...STAGING, identityProvider: '  ' }).identityProvider).toBeNull();
   });
 
   it('reads a configuration published before the uploads host existed (#241)', () => {

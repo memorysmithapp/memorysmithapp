@@ -8,8 +8,9 @@
  * user-subscription link, replaces the stub in delivery 5.
  */
 
-import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, SecretValue, Stack, type StackProps } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import type { Construct } from 'constructs';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
@@ -20,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
+import { identityProviderSecretName } from '../installation/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -118,6 +120,11 @@ export class IdentityStack extends Stack {
   readonly webClient: cognito.UserPoolClient;
   /** The issuer every service validates tokens against. */
   readonly issuer: string;
+  /**
+   * The provider the sign-in goes straight to, sent as `identity_provider` on
+   * `/authorize`, when the installation signs in only through it (#395).
+   */
+  readonly directProvider: string | null;
 
   constructor(scope: Construct, id: string, props: IdentityStackProps) {
     super(scope, id, props);
@@ -213,6 +220,12 @@ export class IdentityStack extends Stack {
     );
     this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_MESSAGE, customMessage);
 
+    const federation = this.federate(props);
+    this.directProvider =
+      props.environment.identityProvider?.signIn === 'idp'
+        ? props.environment.identityProvider.name
+        : null;
+
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 
     /**
@@ -261,6 +274,7 @@ export class IdentityStack extends Stack {
       userPoolClientName: 'cimd-proxy',
       generateSecret: false,
       authFlows: { userSrp: true },
+      ...(federation ? { supportedIdentityProviders: federation.admitted } : {}),
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
@@ -287,6 +301,7 @@ export class IdentityStack extends Stack {
         // pool, so it grants nothing to whoever holds only a password.
         adminUserPassword: true,
       },
+      ...(federation ? { supportedIdentityProviders: federation.admitted } : {}),
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
@@ -300,6 +315,12 @@ export class IdentityStack extends Stack {
       accessTokenValidity: Duration.hours(1),
       refreshTokenValidity: Duration.days(30),
     });
+
+    if (federation) {
+      // A client that admits a provider is created after it, or Cognito refuses it.
+      this.proxyClient.node.addDependency(federation.provider);
+      this.webClient.node.addDependency(federation.provider);
+    }
 
     /**
      * The platform group. A PLATFORM_ADMIN operates the platform and is NOT a
@@ -481,5 +502,103 @@ export class IdentityStack extends Stack {
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new CfnOutput(this, 'WebClientId', { value: this.webClient.userPoolClientId });
     new CfnOutput(this, 'CognitoDomain', { value: this.hostedUiOrigin });
+  }
+
+  /**
+   * The organization's identity provider, over OIDC, and the trigger that
+   * links each of its identities to the account of the same e-mail on its
+   * first sign-in (#395, ADR-026). Nothing here exists unless the
+   * installation declares a provider, so the project's own pool is untouched.
+   */
+  private federate(props: IdentityStackProps): {
+    provider: cognito.UserPoolIdentityProviderOidc;
+    admitted: cognito.UserPoolClientIdentityProvider[];
+  } | null {
+    const declared = props.environment.identityProvider;
+    if (!declared) return null;
+    const requireVerified = declared.emailClaim === 'email' && !declared.trustEmail;
+
+    const provider = new cognito.UserPoolIdentityProviderOidc(this, 'OrganizationProvider', {
+      userPool: this.userPool,
+      name: declared.name,
+      issuerUrl: declared.issuer,
+      clientId: declared.clientId,
+      // A reference the deployment resolves, never the value: `deliver` wrote
+      // it into Secrets Manager, and pinning its version makes a new secret a
+      // change of the template.
+      clientSecret: SecretValue.secretsManager(identityProviderSecretName(props.environment), {
+        ...(declared.secretVersion ? { versionId: declared.secretVersion } : {}),
+      }).unsafeUnwrap(),
+      scopes: ['openid', 'email', 'profile'],
+      attributeRequestMethod: cognito.OidcAttributeRequestMethod.GET,
+      attributeMapping: {
+        email: cognito.ProviderAttribute.other(declared.emailClaim),
+        // The provider's name lands in given_name, which nothing else writes:
+        // the mapping runs on every sign-in and must never overwrite the name
+        // the person typed (RN-ACC-021). The trigger copies it once.
+        givenName: cognito.ProviderAttribute.other('name'),
+        ...(requireVerified
+          ? { emailVerified: cognito.ProviderAttribute.other('email_verified') }
+          : {}),
+      },
+    });
+
+    const preSignUp = new ServiceLambda(this, 'PreSignUp', {
+      latencyAlarm: true,
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmithapp-backend',
+        'services',
+        'access',
+        'src',
+        'adapters',
+        'inbound',
+        'pre-sign-up.ts',
+      ),
+      description: "Links an identity of the organization's provider to the account of its e-mail.",
+      // The pool waits five seconds for a trigger, whatever it is given.
+      timeout: Duration.seconds(5),
+      memorySize: 512,
+      environment: {
+        ACCESS_TABLE: props.accessTable.tableName,
+        FIRST_SIGN_IN: declared.firstSignIn,
+        EMAIL_CLAIM: declared.emailClaim,
+        REQUIRE_VERIFIED: String(requireVerified),
+        QUOTA: declared.quota ?? '1GB',
+      },
+    }).function;
+    this.userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUp);
+    // `automatic` writes the subscription and its link; the others only read.
+    if (declared.firstSignIn === 'automatic') props.accessTable.grantReadWriteData(preSignUp);
+
+    // A policy of its own, not of the function's role: the pool names the
+    // function as its trigger, so a statement on the role naming the pool
+    // would be a cycle.
+    const policy = new iam.Policy(this, 'PreSignUpPool', {
+      statements: [
+        new iam.PolicyStatement({
+          actions: [
+            'cognito-idp:AdminGetUser',
+            'cognito-idp:AdminCreateUser',
+            'cognito-idp:AdminLinkProviderForUser',
+            'cognito-idp:AdminUpdateUserAttributes',
+          ],
+          resources: [this.userPool.userPoolArn],
+        }),
+      ],
+    });
+    if (preSignUp.role) policy.attachToRole(preSignUp.role);
+
+    return {
+      provider,
+      admitted: [
+        cognito.UserPoolClientIdentityProvider.custom(declared.name),
+        ...(declared.signIn === 'idp+password'
+          ? [cognito.UserPoolClientIdentityProvider.COGNITO]
+          : []),
+      ],
+    };
   }
 }

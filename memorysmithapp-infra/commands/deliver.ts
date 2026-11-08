@@ -36,16 +36,19 @@
  */
 
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import {
+  identityProviderSecretName,
   installationEnvironmentOf,
   loadInstallationFile,
   type DefaultHosts,
 } from '../installation/index.js';
+import { ensureSecret } from './lib/delivery-secrets.js';
 import { hostsFromOutputs } from './lib/install.js';
 import { servedVersion, type ServingEnvironment } from './lib/release.js';
 import { commitsAheadOfMain, git, readText, REPOSITORY_ROOT } from './lib/repository.js';
@@ -128,6 +131,32 @@ if (caller.Account !== account) {
   refuse(
     `These credentials belong to account ${caller.Account}, and ${environment} lives in ${account}. Nothing was deployed.`,
   );
+}
+
+// ---- The secrets of the installation ----------------------------------------
+
+/**
+ * What the variables of the pipeline hold that no template may (#395): each
+ * written into Secrets Manager, and the synthesis told which version to pin.
+ */
+const secretContext: string[] = [];
+if (installation && process.env['IDP_NAME']?.trim()) {
+  const version = await ensureSecret(
+    new SecretsManagerClient({ region }),
+    identityProviderSecretName({ name: environment, installation }),
+    process.env['IDP_CLIENT_SECRET'],
+    {
+      'app:project': 'memorysmith',
+      'app:installation': installation,
+      'app:environment': environment,
+    },
+  );
+  if (!version) {
+    refuse(
+      'The identity provider is declared, and IDP_CLIENT_SECRET is not set and was never written by an earlier delivery. Nothing was deployed.',
+    );
+  }
+  secretContext.push('-c', `idpSecretVersion=${version}`);
 }
 
 // ---- What it serves ---------------------------------------------------------
@@ -248,6 +277,7 @@ const synthesise = (hosts: DefaultHosts | null): void =>
     ...(alarmEmail === '' ? [] : ['-c', `alarmEmail=${alarmEmail}`]),
     ...(hosts ? ['-c', `defaultHosts=${JSON.stringify(hosts)}`] : []),
     ...choices.flatMap((choice) => ['-c', `${choice}=true`]),
+    ...secretContext,
   ]);
 
 let hosts = zone ? null : await readHosts();
