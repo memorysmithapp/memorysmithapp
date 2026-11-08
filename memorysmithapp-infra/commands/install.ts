@@ -35,6 +35,7 @@ import {
 } from '@aws-sdk/client-iam';
 import { DescribeKeyCommand, KMSClient, paginateListAliases } from '@aws-sdk/client-kms';
 import { GetHostedZoneCommand, Route53Client } from '@aws-sdk/client-route-53';
+import { GetAccountCommand, SESv2Client } from '@aws-sdk/client-sesv2';
 import { GetParameterCommand, GetParametersByPathCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { spawnSync } from 'node:child_process';
@@ -62,6 +63,7 @@ import {
   managedKeyExists,
   REQUIRED_SERVICES,
   servicesMissingIn,
+  sesSandboxLine,
   tablesLeftBehind,
 } from './lib/install.js';
 import { REPOSITORY_ROOT } from './lib/repository.js';
@@ -253,6 +255,13 @@ if (leftBehind.length > 0) {
     }
   }
   refuse(leftBehindProblem({ stack: dataStack, stackStatus: dataStatus, tables, buckets }));
+}
+
+// An installation that sends through SES sends little until AWS lets it out of
+// the sandbox, which takes a request and a day (#396).
+if (!environment.relay) {
+  const ses = await new SESv2Client({ region }).send(new GetAccountCommand({})).catch(() => null);
+  say(sesSandboxLine(ses?.ProductionAccessEnabled ?? null, region));
 }
 
 if (values.check) {

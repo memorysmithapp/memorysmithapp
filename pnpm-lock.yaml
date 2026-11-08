@@ -55,6 +55,9 @@ importers:
       '@aws-sdk/client-eventbridge':
         specifier: ^3.1117.0
         version: 3.1117.0
+      '@aws-sdk/client-lambda':
+        specifier: ^3.1131.0
+        version: 3.1131.0
       '@aws-sdk/client-s3':
         specifier: ^3.1117.0
         version: 3.1117.0
@@ -123,10 +126,16 @@ importers:
 
   memorysmithapp-backend/services/access:
     dependencies:
+      '@aws-crypto/client-node':
+        specifier: ^5.0.2
+        version: 5.0.2
       '@aws-sdk/client-cognito-identity-provider':
         specifier: ^3.1131.0
         version: 3.1131.0
       '@aws-sdk/client-dynamodb':
+        specifier: ^3.1117.0
+        version: 3.1117.0
+      '@aws-sdk/client-secrets-manager':
         specifier: ^3.1117.0
         version: 3.1117.0
       '@aws-sdk/lib-dynamodb':
@@ -147,6 +156,13 @@ importers:
       jose:
         specifier: ^6.0.13
         version: 6.2.10
+      nodemailer:
+        specifier: ^10.3.1
+        version: 10.3.1
+    devDependencies:
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
 
   memorysmithapp-backend/services/agent:
     dependencies:
@@ -499,6 +515,54 @@ packages:
     bundledDependencies:
       - jsonschema
       - semver
+
+  '@aws-crypto/branch-keystore-node@5.0.2':
+    resolution: {integrity: sha512-Bpfa2DUHbcjj4XrZkgxldCUCeK+lZyQ/oSi3bapFJq4vHA+yA55ax2LbMZg2IP7ht6uH4kRG+iqWo5HPT5d+AQ==}
+
+  '@aws-crypto/cache-material@5.0.2':
+    resolution: {integrity: sha512-IYddhLIE6QownHsr3g8sjAmQxt7t5R2tIeHRu3OBynswqqSEM1i3dIjnbZADYvKIv7mb9ye7hHZw6NbqS02ucw==}
+
+  '@aws-crypto/caching-materials-manager-node@5.0.2':
+    resolution: {integrity: sha512-FuCaTjuTUu/g0o0AAn8nIniB1HknLSg1Gt/28nCmTJKzTRBkoktt5Y4fSOQjN/2uGJH10QqGyT5E46P2ja17sA==}
+
+  '@aws-crypto/client-node@5.0.2':
+    resolution: {integrity: sha512-MH4IAmIIJ/BMnSBCAPO6APRdapy7gEShRRLrvFV/a3VA7e92pjgej6UG8GDEWHgEpvGng2Jg67ysThlkyFcATw==}
+
+  '@aws-crypto/decrypt-node@5.0.2':
+    resolution: {integrity: sha512-CCXjVeXIsMynlXxyNRmjYelazWYrtxSNVQuZuSyFxqIWIbbmSoY5ecmF3e6s7Qq2gUeiJsKexwb0y+0WvmZ4Qw==}
+
+  '@aws-crypto/encrypt-node@5.0.2':
+    resolution: {integrity: sha512-PQq1rJ2spoQSd1xX/r/1yEfycjp05JSewytyEizKyaxhOT6zaG01h9kBWJhf68CKPUw68uMBKoWrB4fDw+oq3Q==}
+
+  '@aws-crypto/hkdf-node@5.0.2':
+    resolution: {integrity: sha512-VJC1zsQ9e/u/ru0Gtk0MTXmokzWzNgc0d9txqwLK/ZQT0LzHDDsrdvNqLmXnu9u+Wx3/E+hB17ZDnmaTpsklYQ==}
+
+  '@aws-crypto/kdf-ctr-mode-node@5.0.2':
+    resolution: {integrity: sha512-b2gxEa4zF+kvVyS35TdvxYBfwKaTE18wfZFNvBqYzNymAS3PtYMEah50DxGhvb35U/3j5pXBugTb6cfZ1qHwpQ==}
+
+  '@aws-crypto/kms-keyring-node@5.0.2':
+    resolution: {integrity: sha512-AL1Gtz69EILFlwNSEStRr87MwalkLnV3znRDVeCFNV0A5SwRT3FVPj6m1r8+/ExGsVbp+IFG/oemlITmScBmtQ==}
+
+  '@aws-crypto/kms-keyring@5.0.2':
+    resolution: {integrity: sha512-05iY+lmtkDUNP+2awmTdaSRU6MkmqurqurArHhrMG27bN6VNf+PtspAUlN1K+LPhhhY6TQY/zNLxGpIzLFdcMw==}
+
+  '@aws-crypto/material-management-node@5.0.2':
+    resolution: {integrity: sha512-36DOENaITlydQ6xduVGpX3G9U67n/tpLUT9QGDH75kAhhK7s1RJcBrLJ4Bhz3piRL4D5FkY18h4AXfqQlw3BoA==}
+
+  '@aws-crypto/material-management@5.0.2':
+    resolution: {integrity: sha512-LyrgDGPfd4w/ZRgsqGYAH+i0hbYNllk8VWd5ZkRd/ofFmlmm5UfTiirxOzVYTN8QmRhgwWvVhtCkN9Ipyn4hPw==}
+
+  '@aws-crypto/raw-aes-keyring-node@5.0.2':
+    resolution: {integrity: sha512-BuYJQq1Q1RJAkaxXj/VAT2nQCC1t4v3tChE44jHNm0S2afID/A2ChvMtJb/bvWNMgvoIB+sViV5ieG6Rk/RqJQ==}
+
+  '@aws-crypto/raw-keyring@5.0.2':
+    resolution: {integrity: sha512-ITtsg+HmvVe1wISGtVElKMCtvnR+lNYT+2bkuxKLvRmo4mBXqc76A5fl+XcJK4hp5ZYqJp9aQeolVGja587e6A==}
+
+  '@aws-crypto/raw-rsa-keyring-node@5.0.2':
+    resolution: {integrity: sha512-wM8HB9lkUb5o3c299hL51x55j8yVMvZRZaj0YLTwg4qVl+4pYCjY/rbo9iRDQA1VDm/Une9By77c2FcoQjWEug==}
+
+  '@aws-crypto/serialize@5.0.2':
+    resolution: {integrity: sha512-TKFABiTVow9VYk0m1nUKQYzj/DYG6x7HquBuva+VByFO5rJDxdsPrHNehTXgcQop3Huz5juP/vwrJK4F9/vMpg==}
 
   '@aws-lambda-powertools/commons@2.35.0':
     resolution: {integrity: sha512-DPD5fnl7V1xSPJuKGQ8KETp+nPmcIw8mYWEdNfnuTr/zNDyTkiX2l3QNUPlrtpOPtJ7r+UGSbXCgKPPlXN27Bw==}
@@ -1853,6 +1917,9 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
+  '@types/duplexify@3.6.5':
+    resolution: {integrity: sha512-fB56ACzlW91UdZ5F3VXplVMDngO8QaX5Y2mjvADtN01TT2TMy4WjF0Lg+tFDvt4uMBeTe4SgaD+qCrA7dL5/tA==}
+
   '@types/esrecurse@4.3.1':
     resolution: {integrity: sha512-xJBAbDifo5hpffDBuHl0Y8ywswbiAp/Wi7Y/GtAgSlZyIABppyurxVueOPE8LUQOxdlgi6Zqce7uoEpqNTeiUw==}
 
@@ -1874,6 +1941,9 @@ packages:
   '@types/katex@0.16.8':
     resolution: {integrity: sha512-trgaNyfU+Xh2Tc+ABIb44a5AYUpicB3uwirOioeOkNPPbmgRNtcWyDeeFRzjPZENO9Vq8gvVqfhaaXWLlevVwg==}
 
+  '@types/lru-cache@5.1.1':
+    resolution: {integrity: sha512-ssE3Vlrys7sdIzs5LOxCzTVMsU7i9oa/IaW92wF32JFb3CVczqOkru2xspuKczHEbG3nvmPY7IFqVmGGHdNbYw==}
+
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
 
@@ -1882,6 +1952,9 @@ packages:
 
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
+
+  '@types/nodemailer@8.0.2':
+    resolution: {integrity: sha512-c7M5ox8p0nEOfbJ2E9Qcmt8/QCu/VzsiAhzBiZbvky2PhKZDHpKB3sQHBM5MEZNkCfBOaS6S9//AGPRTNB7IaA==}
 
   '@types/prismjs@1.26.6':
     resolution: {integrity: sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw==}
@@ -2058,6 +2131,9 @@ packages:
     resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
     engines: {node: '>=12'}
 
+  asn1.js@5.4.1:
+    resolution: {integrity: sha512-+I//4cYPccV8LdmBLiX8CYvf9Sp3vQsrqu2QNXRcrbiWvcx/UdlFiqUJJzxRQxgsZmvhXhn4cSKeSmoFjVdupA==}
+
   assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
     engines: {node: '>=12'}
@@ -2156,6 +2232,12 @@ packages:
 
   bluebird@3.7.2:
     resolution: {integrity: sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==}
+
+  bn.js@4.12.5:
+    resolution: {integrity: sha512-3aRg6/JxfffFD+OlOjOFR3Vo79l39ooBTFucxx+MT3dhCtzn3EmiUPQo+6/OZuI2jbXi3YKgmiTFBgChQMwIRQ==}
+
+  bn.js@5.2.5:
+    resolution: {integrity: sha512-Vq886eXykuP5E6HcKSSStP3bJgrE6In5WKxVUvJ8XGpWWYs2xZHWqUwzCtGgEtBcxyd57KBFDPFoUfNzdaHCNg==}
 
   body-parser@2.3.0:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
@@ -2532,6 +2614,9 @@ packages:
 
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
+
+  duplexify@4.1.3:
+    resolution: {integrity: sha512-M3BmBhwJRZsSx38lZyhE53Csddgzl5R7xGJNk7CVddZD6CcmwMCH8J+7AprIrQKH7TonKxaCjcv27Qmf+sQ+oA==}
 
   echarts@6.1.0:
     resolution: {integrity: sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==}
@@ -3060,6 +3145,10 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
+  lru-cache@6.0.0:
+    resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
+    engines: {node: '>=10'}
+
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -3232,6 +3321,9 @@ packages:
     resolution: {integrity: sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A==}
     engines: {node: '>=18'}
 
+  minimalistic-assert@1.0.1:
+    resolution: {integrity: sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==}
+
   minimatch@10.2.6:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
     engines: {node: 18 || 20 || >=22}
@@ -3273,6 +3365,10 @@ packages:
   node-releases@2.0.53:
     resolution: {integrity: sha512-D9UOmYG3UH1V+ENW56t5QXBwJw1YEY18ruVeus89Rw+SyIgjPkCO84bRzO3uNIYosJbNwiabWVn48o3uJLjxFQ==}
     engines: {node: '>=18'}
+
+  nodemailer@10.3.1:
+    resolution: {integrity: sha512-uF0AFsJC07Y1vdW7p580DKAnh7rAO+4UPSSB3mDCPNDufoiaOebV6JmrzpxB14OjEEEiBsNdYoM2Y+fN8M7BBA==}
+    engines: {node: '>=20.0.0'}
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -3479,6 +3575,10 @@ packages:
   readable-stream@2.3.8:
     resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
 
+  readable-stream@3.6.2:
+    resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
+    engines: {node: '>= 6'}
+
   rechoir@0.8.0:
     resolution: {integrity: sha512-/vxpCXddiX8NGfGO/mTafwjq4aFa/71pvamip0++IQk3zG8cbCj0fifNPrjjF1XMXUne91jL9OoxmdykoEtifQ==}
     engines: {node: '>= 10.13.0'}
@@ -3633,6 +3733,9 @@ packages:
 
   std-env@3.10.0:
     resolution: {integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==}
+
+  stream-shift@1.0.3:
+    resolution: {integrity: sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ==}
 
   streamx@2.28.1:
     resolution: {integrity: sha512-zEzXb0s5Cds7tqMH6rhZ05lcJydCWiQPEwiNngVqzsxCc962vLY4Uw+mW7od8kDH258k2Uz/JrOkdIAAhSh9VA==}
@@ -3847,6 +3950,10 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
+    hasBin: true
+
   uuid@14.0.2:
     resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
     hasBin: true
@@ -3995,6 +4102,9 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
+  yallist@4.0.0:
+    resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
+
   yargs-parser@22.0.0:
     resolution: {integrity: sha512-rwu/ClNdSMpkSrUb+d6BRsSkLUq1fmfsY6TOpYzTwvwkg1/NRG85KBy3kq++A8LKQwX6lsu+aWad+2khvuXrqw==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
@@ -4054,6 +4164,126 @@ snapshots:
   '@aws-cdk/asset-node-proxy-agent-v6@2.1.2': {}
 
   '@aws-cdk/cloud-assembly-schema@54.20.0': {}
+
+  '@aws-crypto/branch-keystore-node@5.0.2':
+    dependencies:
+      '@aws-crypto/kms-keyring': 5.0.2
+      '@aws-sdk/client-dynamodb': 3.1117.0
+      '@aws-sdk/client-kms': 3.1159.0
+      '@aws-sdk/util-dynamodb': 3.996.9(@aws-sdk/client-dynamodb@3.1117.0)
+      tslib: 2.8.1
+      uuid: 11.1.1
+
+  '@aws-crypto/cache-material@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      '@types/lru-cache': 5.1.1
+      lru-cache: 6.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/caching-materials-manager-node@5.0.2':
+    dependencies:
+      '@aws-crypto/cache-material': 5.0.2
+      '@aws-crypto/material-management-node': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/client-node@5.0.2':
+    dependencies:
+      '@aws-crypto/branch-keystore-node': 5.0.2
+      '@aws-crypto/caching-materials-manager-node': 5.0.2
+      '@aws-crypto/decrypt-node': 5.0.2
+      '@aws-crypto/encrypt-node': 5.0.2
+      '@aws-crypto/kms-keyring': 5.0.2
+      '@aws-crypto/kms-keyring-node': 5.0.2
+      '@aws-crypto/material-management-node': 5.0.2
+      '@aws-crypto/raw-aes-keyring-node': 5.0.2
+      '@aws-crypto/raw-rsa-keyring-node': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/decrypt-node@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      '@types/duplexify': 3.6.5
+      duplexify: 4.1.3
+      readable-stream: 3.6.2
+      tslib: 2.8.1
+
+  '@aws-crypto/encrypt-node@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      '@types/duplexify': 3.6.5
+      duplexify: 4.1.3
+      readable-stream: 3.6.2
+      tslib: 2.8.1
+
+  '@aws-crypto/hkdf-node@5.0.2':
+    dependencies:
+      tslib: 2.8.1
+
+  '@aws-crypto/kdf-ctr-mode-node@5.0.2':
+    dependencies:
+      tslib: 2.8.1
+
+  '@aws-crypto/kms-keyring-node@5.0.2':
+    dependencies:
+      '@aws-crypto/branch-keystore-node': 5.0.2
+      '@aws-crypto/cache-material': 5.0.2
+      '@aws-crypto/kdf-ctr-mode-node': 5.0.2
+      '@aws-crypto/kms-keyring': 5.0.2
+      '@aws-crypto/material-management-node': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      '@aws-sdk/client-dynamodb': 3.1117.0
+      '@aws-sdk/client-kms': 3.1159.0
+      tslib: 2.8.1
+
+  '@aws-crypto/kms-keyring@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/material-management-node@5.0.2':
+    dependencies:
+      '@aws-crypto/hkdf-node': 5.0.2
+      '@aws-crypto/material-management': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/material-management@5.0.2':
+    dependencies:
+      asn1.js: 5.4.1
+      bn.js: 5.2.5
+      tslib: 2.8.1
+      uuid: 11.1.1
+
+  '@aws-crypto/raw-aes-keyring-node@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.2
+      '@aws-crypto/raw-keyring': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/raw-keyring@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.2
+      '@aws-crypto/serialize': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/raw-rsa-keyring-node@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.2
+      '@aws-crypto/raw-keyring': 5.0.2
+      tslib: 2.8.1
+
+  '@aws-crypto/serialize@5.0.2':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.2
+      asn1.js: 5.4.1
+      bn.js: 5.2.5
+      tslib: 2.8.1
+      uuid: 11.1.1
 
   '@aws-lambda-powertools/commons@2.35.0':
     dependencies:
@@ -5887,6 +6117,10 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
+  '@types/duplexify@3.6.5':
+    dependencies:
+      '@types/node': 24.13.3
+
   '@types/esrecurse@4.3.1': {}
 
   '@types/estree-jsx@1.0.5':
@@ -5905,6 +6139,8 @@ snapshots:
 
   '@types/katex@0.16.8': {}
 
+  '@types/lru-cache@5.1.1': {}
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -5914,6 +6150,10 @@ snapshots:
   '@types/node@24.13.3':
     dependencies:
       undici-types: 7.18.2
+
+  '@types/nodemailer@8.0.2':
+    dependencies:
+      '@types/node': 24.13.3
 
   '@types/prismjs@1.26.6': {}
 
@@ -6133,6 +6373,13 @@ snapshots:
 
   ansi-styles@6.2.3: {}
 
+  asn1.js@5.4.1:
+    dependencies:
+      bn.js: 4.12.5
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
+      safer-buffer: 2.1.2
+
   assertion-error@2.0.1: {}
 
   async-hook-jl@1.7.6:
@@ -6197,6 +6444,10 @@ snapshots:
   baseline-browser-mapping@2.11.17: {}
 
   bluebird@3.7.2: {}
+
+  bn.js@4.12.5: {}
+
+  bn.js@5.2.5: {}
 
   body-parser@2.3.0(supports-color@7.2.0):
     dependencies:
@@ -6602,6 +6853,13 @@ snapshots:
   duplexer2@0.1.4:
     dependencies:
       readable-stream: 2.3.8
+
+  duplexify@4.1.3:
+    dependencies:
+      end-of-stream: 1.4.5
+      inherits: 2.0.4
+      readable-stream: 3.6.2
+      stream-shift: 1.0.3
 
   echarts@6.1.0:
     dependencies:
@@ -7217,6 +7475,10 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
+  lru-cache@6.0.0:
+    dependencies:
+      yallist: 4.0.0
+
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -7630,6 +7892,8 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
+  minimalistic-assert@1.0.1: {}
+
   minimatch@10.2.6:
     dependencies:
       brace-expansion: 5.0.9
@@ -7659,6 +7923,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.53: {}
+
+  nodemailer@10.3.1: {}
 
   object-assign@4.1.1: {}
 
@@ -7873,6 +8139,12 @@ snapshots:
       isarray: 1.0.0
       process-nextick-args: 2.0.1
       safe-buffer: 5.1.2
+      string_decoder: 1.1.1
+      util-deprecate: 1.0.2
+
+  readable-stream@3.6.2:
+    dependencies:
+      inherits: 2.0.4
       string_decoder: 1.1.1
       util-deprecate: 1.0.2
 
@@ -8104,6 +8376,8 @@ snapshots:
   statuses@2.0.2: {}
 
   std-env@3.10.0: {}
+
+  stream-shift@1.0.3: {}
 
   streamx@2.28.1:
     dependencies:
@@ -8352,6 +8626,8 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
+  uuid@11.1.1: {}
+
   uuid@14.0.2: {}
 
   vary@1.1.2: {}
@@ -8481,6 +8757,8 @@ snapshots:
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
+
+  yallist@4.0.0: {}
 
   yargs-parser@22.0.0: {}
 

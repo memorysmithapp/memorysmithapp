@@ -45,6 +45,7 @@ import { parseArgs } from 'node:util';
 import {
   identityProviderSecretName,
   installationEnvironmentOf,
+  relaySecretName,
   loadInstallationFile,
   type DefaultHosts,
 } from '../installation/index.js';
@@ -90,7 +91,12 @@ if ((values.alarms || environment === 'production') && alarmEmail === '') {
 const choices = (['alarms', 'dashboards', 'tracing'] as const).filter((choice) => values[choice]);
 
 /** What this delivery goes to: the variables of an installation, or what cdk.json declares. */
-const destination = (): { account: string; region: string; zone: string | null } => {
+const destination = (): {
+  account: string;
+  region: string;
+  zone: string | null;
+  relayed: boolean;
+} => {
   if (process.env['INSTALLATION']?.trim()) {
     const context: Record<string, unknown> = { alarms: values.alarms, alarmEmail };
     const named = installationEnvironmentOf(
@@ -98,7 +104,12 @@ const destination = (): { account: string; region: string; zone: string | null }
       { tryGetContext: (key) => context[key] },
       process.env,
     );
-    return { account: named.account, region: named.region, zone: named.hostedZoneName };
+    return {
+      account: named.account,
+      region: named.region,
+      zone: named.hostedZoneName,
+      relayed: named.relay !== undefined,
+    };
   }
   const declared = (
     JSON.parse(readText('memorysmithapp-infra/cdk.json')) as {
@@ -114,11 +125,12 @@ const destination = (): { account: string; region: string; zone: string | null }
     account: declared?.account ?? refuse(`cdk.json names no account for ${environment}.`),
     region: declared?.region ?? 'us-east-1',
     zone: declared?.hostedZoneName ?? refuse(`cdk.json names no zone for ${environment}.`),
+    relayed: false,
   };
 };
 
 const installation = process.env['INSTALLATION']?.trim() || null;
-const { account, region, zone } = (() => {
+const { account, region, zone, relayed } = (() => {
   try {
     return destination();
   } catch (error) {
@@ -157,6 +169,25 @@ if (installation && process.env['IDP_NAME']?.trim()) {
     );
   }
   secretContext.push('-c', `idpSecretVersion=${version}`);
+}
+// The function reads the password of the relay when it sends, so no version
+// is pinned: a new one reaches the next message (#396).
+if (installation && relayed && process.env['SMTP_USER']?.trim()) {
+  const version = await ensureSecret(
+    new SecretsManagerClient({ region }),
+    relaySecretName({ name: environment, installation }),
+    process.env['SMTP_PASSWORD'],
+    {
+      'app:project': 'memorysmith',
+      'app:installation': installation,
+      'app:environment': environment,
+    },
+  );
+  if (!version) {
+    refuse(
+      'The relay names SMTP_USER, and SMTP_PASSWORD is not set and was never written by an earlier delivery. Nothing was deployed.',
+    );
+  }
 }
 
 // ---- What it serves ---------------------------------------------------------
@@ -286,7 +317,10 @@ synthesise(hosts);
 deploy('Deploying the network and the hosting', ids(['Network', 'Frontend']));
 if (zone) {
   command('Waiting on DNS', 'wait-for-dns.ts', ['--name', zone]);
-  command('Waiting on the sending identity', 'wait-for-email-identity.ts', ['--identity', zone]);
+  // With its own relay, the installation has no sending identity to wait on (#396).
+  if (!relayed) {
+    command('Waiting on the sending identity', 'wait-for-email-identity.ts', ['--identity', zone]);
+  }
 }
 deploy('Deploying the product', ids(DELIVERY_ORDER));
 

@@ -20,6 +20,7 @@ import {
   leftBehindProblem,
   managedKeyExists,
   servicesMissingIn,
+  sesSandboxLine,
   tablesLeftBehind,
 } from '../commands/lib/install.js';
 import { stackIdOf } from '../commands/lib/teardown.js';
@@ -387,6 +388,114 @@ describe("the organization's identity provider (#395)", () => {
   });
 });
 
+describe("the organization's relay (#396)", () => {
+  const RELAY = {
+    ...VARIABLES,
+    MAIL: 'smtp',
+    SMTP_HOST: 'smtp.acme.example',
+    SMTP_USER: 'memorysmith',
+    SENDER_ADDRESS: 'no-reply@acme.example',
+  };
+  const stacksWith = (variables: Record<string, string>) => {
+    const environment = { ...installed(variables), region: 'us-east-1' };
+    const app = appFor('staging');
+    const env = { account: environment.account, region: 'us-east-1' };
+    const network = new NetworkStack(app, 'Network', { env, environment });
+    const identity = new IdentityStack(app, 'Identity', {
+      env,
+      environment,
+      accessTable: Table.fromTableName(network, 'Access', 'mv-access-acme-staging'),
+      mcpOrigin: `https://${network.mcpDomainName}`,
+      siteDomainName: network.siteDomainName,
+      authDomainName: network.authDomainName,
+      authCertificate: network.authCertificate,
+      hostedZone: network.hostedZone,
+      senderAddress: network.senderAddress,
+    });
+    return { network, identity, template: Template.fromStack(identity) };
+  };
+
+  it('reads SES unless the installation chooses its relay', () => {
+    expect(installed().relay).toBeUndefined();
+    expect(installed(RELAY).relay).toEqual({
+      host: 'smtp.acme.example',
+      port: 587,
+      user: 'memorysmith',
+      sender: 'no-reply@acme.example',
+      subnetIds: [],
+      securityGroupIds: [],
+    });
+  });
+
+  it('refuses a relay half declared, and a relay variable with SES chosen', () => {
+    expect(() => installed({ ...VARIABLES, SMTP_HOST: 'smtp.acme.example' })).toThrow('MAIL=smtp');
+    expect(() => installed({ ...RELAY, MAIL: 'sendgrid' })).toThrow('ses or smtp');
+    expect(() => installed({ ...RELAY, SMTP_HOST: '' })).toThrow('SMTP_HOST');
+    expect(() => installed({ ...RELAY, SMTP_PORT: '25' })).toThrow('587');
+    expect(() => installed({ ...RELAY, SENDER_ADDRESS: '' })).toThrow('SENDER_ADDRESS');
+    expect(() => installed({ ...RELAY, MAIL_SUBNET_IDS: 'subnet-0a1b2c3d4e5f60718' })).toThrow(
+      'go together',
+    );
+    expect(() =>
+      installed({
+        ...RELAY,
+        MAIL_SUBNET_IDS: 'subnet-0a1b2c3d4e5f60718',
+        MAIL_SECURITY_GROUP_IDS: 'nope',
+      }),
+    ).toThrow('security group ids');
+  });
+
+  it('sends every message of the pool through one function, with no SES identity', () => {
+    const { network, template } = stacksWith(RELAY);
+    expect(network.sendingIdentity).toBeUndefined();
+    Template.fromStack(network).resourceCountIs('AWS::SES::EmailIdentity', 0);
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: Match.objectLike({
+        CustomEmailSender: Match.objectLike({ LambdaArn: Match.anyValue() }),
+        KMSKeyID: Match.anyValue(),
+      }),
+    });
+    const pool = Object.values(template.findResources('AWS::Cognito::UserPool'))[0] as {
+      Properties: { EmailConfiguration?: { EmailSendingAccount?: string } };
+    };
+    expect(pool.Properties.EmailConfiguration?.EmailSendingAccount).not.toBe('DEVELOPER');
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: {
+        Variables: Match.objectLike({
+          SMTP_HOST: 'smtp.acme.example',
+          SMTP_PORT: '587',
+          SMTP_USER: 'memorysmith',
+          SMTP_SECRET_ID: 'memorysmith-smtp-password-acme-staging',
+          SENDER_ADDRESS: 'no-reply@acme.example',
+        }),
+      },
+    });
+    expect(JSON.stringify(template.toJSON())).not.toContain('ses:SendEmail');
+  });
+
+  it('runs that function in the subnets and groups the organization names, and no other', () => {
+    const { template } = stacksWith({
+      ...RELAY,
+      MAIL_SUBNET_IDS: 'subnet-0a1b2c3d4e5f60718, subnet-0a1b2c3d4e5f60719',
+      MAIL_SECURITY_GROUP_IDS: 'sg-0a1b2c3d4e5f60718',
+    });
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      VpcConfig: {
+        SubnetIds: ['subnet-0a1b2c3d4e5f60718', 'subnet-0a1b2c3d4e5f60719'],
+        SecurityGroupIds: ['sg-0a1b2c3d4e5f60718'],
+      },
+    });
+    template.resourceCountIs('AWS::EC2::VPC', 0);
+    template.resourceCountIs('AWS::EC2::SecurityGroup', 0);
+  });
+
+  it('keeps the SES identity and no mail function where SES is chosen', () => {
+    const { network, identity } = stacksWith(VARIABLES);
+    expect(network.sendingIdentity).toBeDefined();
+    expect(identity.mailFunction).toBeNull();
+  });
+});
+
 describe('the default endpoints of AWS', () => {
   const variables = {
     INSTALLATION: 'acme',
@@ -465,6 +574,33 @@ describe('what install-account decides', () => {
         FilesHost: 'e',
       }),
     ).toEqual({ site: 'a', api: 'b', mcp: 'c', uploads: 'd', files: 'e' });
+  });
+
+  it('says whether SES of the region is out of its sandbox (#396)', () => {
+    expect(sesSandboxLine(true, 'eu-west-1')).toContain('out of its sandbox');
+    expect(sesSandboxLine(false, 'eu-west-1')).toContain('Request production access');
+    expect(sesSandboxLine(null, 'eu-west-1')).toContain('did not say');
+  });
+
+  it('names the secrets of the provider and the relay apart from the variables', () => {
+    const steps = humanSteps(
+      installed({
+        ...VARIABLES,
+        REPOSITORY_HOST: 'github',
+        REPOSITORY: 'acme/memorysmith',
+        IDP_NAME: 'Acme',
+        IDP_ISSUER: 'https://sso.acme.example/realms/acme',
+        IDP_CLIENT_ID: 'memorysmith',
+        MAIL: 'smtp',
+        SMTP_HOST: 'smtp.acme.example',
+        SMTP_USER: 'memorysmith',
+        SENDER_ADDRESS: 'no-reply@acme.example',
+      }),
+      null,
+    ).join('\n');
+    expect(steps).toContain('IDP_ISSUER');
+    expect(steps).toContain('SMTP_HOST');
+    expect(steps).toContain('the secrets IDP_CLIENT_SECRET, SMTP_PASSWORD');
   });
 
   it('tells a person the steps of their path', () => {

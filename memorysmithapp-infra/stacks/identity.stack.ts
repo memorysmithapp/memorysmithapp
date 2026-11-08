@@ -8,9 +8,19 @@
  * user-subscription link, replaces the stub in delivery 5.
  */
 
-import { CfnOutput, Duration, SecretValue, Stack, type StackProps } from 'aws-cdk-lib';
+import {
+  CfnOutput,
+  Duration,
+  RemovalPolicy,
+  SecretValue,
+  Stack,
+  type StackProps,
+} from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kms from 'aws-cdk-lib/aws-kms';
+import type { CfnFunction, IFunction } from 'aws-cdk-lib/aws-lambda';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import type { Construct } from 'constructs';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
@@ -21,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
-import { identityProviderSecretName } from '../installation/index.js';
+import { identityProviderSecretName, relaySecretName } from '../installation/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -47,7 +57,7 @@ export interface IdentityStackProps extends StackProps {
  *
  * Every invitation, confirmation code and forgot-password code is written by
  * the trigger, in HTML, with the signature of the brand and in the language of
- * the account (RN-ACC-017, RN-ACC-018; `pool-messages.ts` in the Access
+ * the account (RN-ACC-042, RN-ACC-018; `pool-messages.ts` in the Access
  * service). They used to be the provider's factory text, and then these
  * templates, in plain text and in en-US whatever the account spoke. What stays
  * here is what the pool would send for a message the trigger left unanswered,
@@ -125,6 +135,8 @@ export class IdentityStack extends Stack {
    * `/authorize`, when the installation signs in only through it (#395).
    */
   readonly directProvider: string | null;
+  /** The function every message leaves through when the installation has its own relay (#396). */
+  readonly mailFunction: IFunction | null;
 
   constructor(scope: Construct, id: string, props: IdentityStackProps) {
     super(scope, id, props);
@@ -159,7 +171,7 @@ export class IdentityStack extends Stack {
 
     /**
      * Where the messages of the pool are written, in the language of the account
-     * (RN-ACC-017, RN-ACC-018). It reads only the event: the language is an
+     * (RN-ACC-042, RN-ACC-018). It reads only the event: the language is an
      * attribute of the account, and the site is where a message sends the person.
      */
     const customMessage = new ServiceLambda(this, 'CustomMessage', {
@@ -180,6 +192,8 @@ export class IdentityStack extends Stack {
       environment: { SITE_ORIGIN: `https://${props.siteDomainName}` },
     }).function;
 
+    const relay = this.relay(props);
+
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: physicalName(props.environment, 'memorysmith-users'),
       featurePlan: cognito.FeaturePlan.ESSENTIALS,
@@ -198,17 +212,21 @@ export class IdentityStack extends Stack {
       },
       mfa: cognito.Mfa.OPTIONAL,
       /**
-       * Through SES, from the domain of the environment (RN-ACC-017). The
+       * Through SES, from the domain of the environment (RN-ACC-042). The
        * identity is verified before this stack is deployed (network.stack).
        */
-      email: props.hostedZone
-        ? cognito.UserPoolEmail.withSES({
-            fromEmail: props.senderAddress,
-            fromName: 'MemorySmith',
-            sesVerifiedDomain: props.siteDomainName,
-          })
-        : // No domain to verify (#342): Cognito's own sender, and its daily limit.
-          cognito.UserPoolEmail.withCognito(),
+      // With its own relay, no message leaves through the pool's sender: the
+      // custom email sender below sends them all (#396).
+      ...(relay ? { customSenderKmsKey: relay.key } : {}),
+      email:
+        props.hostedZone && !relay
+          ? cognito.UserPoolEmail.withSES({
+              fromEmail: props.senderAddress,
+              fromName: 'MemorySmith',
+              sesVerifiedDomain: props.siteDomainName,
+            })
+          : // No domain to verify (#342): Cognito's own sender, and its daily limit.
+            cognito.UserPoolEmail.withCognito(),
       userInvitation: invitation(props.environment, props.siteDomainName),
       userVerification: verification(props.environment, props.siteDomainName),
     });
@@ -219,6 +237,10 @@ export class IdentityStack extends Stack {
       cognito.LambdaVersion.V2_0,
     );
     this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_MESSAGE, customMessage);
+    if (relay) {
+      this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_EMAIL_SENDER, relay.sender);
+    }
+    this.mailFunction = relay?.sender ?? null;
 
     const federation = this.federate(props);
     this.directProvider =
@@ -502,6 +524,88 @@ export class IdentityStack extends Stack {
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new CfnOutput(this, 'WebClientId', { value: this.webClient.userPoolClientId });
     new CfnOutput(this, 'CognitoDomain', { value: this.hostedUiOrigin });
+  }
+
+  /**
+   * The function that speaks to the organization's relay, and the key the pool
+   * encrypts each code with for it (#396). Nothing here exists unless the
+   * installation sends through a relay of its own.
+   */
+  private relay(props: IdentityStackProps): { sender: IFunction; key: kms.Key } | null {
+    const declared = props.environment.relay;
+    if (!declared) return null;
+
+    const key = new kms.Key(this, 'MailCodeKey', {
+      description: 'Encrypts the codes the user pool hands its custom email sender.',
+      enableKeyRotation: true,
+      // It guards codes that live minutes, and nothing is ever kept under it.
+      removalPolicy: RemovalPolicy.DESTROY,
+      pendingWindow: Duration.days(7),
+    });
+    // The pool encrypts under it; naming the pool here would be a cycle, so
+    // the account and the service say who.
+    key.addToResourcePolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.ServicePrincipal('cognito-idp.amazonaws.com')],
+        actions: ['kms:Encrypt'],
+        resources: ['*'],
+        conditions: {
+          StringEquals: { 'aws:SourceAccount': this.account },
+          ArnLike: {
+            'aws:SourceArn': `arn:${this.partition}:cognito-idp:${this.region}:${this.account}:userpool/*`,
+          },
+        },
+      }),
+    );
+
+    const secret = Secret.fromSecretNameV2(
+      this,
+      'RelayPassword',
+      relaySecretName(props.environment),
+    );
+    const service = new ServiceLambda(this, 'MailSender', {
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmithapp-backend',
+        'services',
+        'access',
+        'src',
+        'adapters',
+        'inbound',
+        'mail-sender.ts',
+      ),
+      description: "Sends every message of the installation through the organization's relay.",
+      timeout: Duration.seconds(15),
+      memorySize: 512,
+      environment: {
+        SMTP_HOST: declared.host,
+        SMTP_PORT: String(declared.port),
+        ...(declared.user
+          ? { SMTP_USER: declared.user, SMTP_SECRET_ID: relaySecretName(props.environment) }
+          : {}),
+        SENDER_ADDRESS: declared.sender,
+        SITE_ORIGIN: `https://${props.siteDomainName}`,
+        KEY_ARN: key.keyArn,
+      },
+    });
+    const sender = service.function;
+    key.grantDecrypt(sender);
+    if (declared.user) secret.grantRead(sender);
+
+    // Inside the organization's VPC, which reaches its relay: the subnets and
+    // the groups are theirs, so they are named, never looked up or created.
+    if (declared.subnetIds.length > 0) {
+      (sender.node.defaultChild as CfnFunction).vpcConfig = {
+        subnetIds: [...declared.subnetIds],
+        securityGroupIds: [...declared.securityGroupIds],
+      };
+      sender.role?.addManagedPolicy(
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole'),
+      );
+    }
+    return { sender, key };
   }
 
   /**

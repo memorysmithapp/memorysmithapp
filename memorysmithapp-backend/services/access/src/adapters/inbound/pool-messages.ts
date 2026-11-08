@@ -1,5 +1,5 @@
 /**
- * The messages the user pool sends, written by the product (INV-02, RN-ACC-017,
+ * The messages the user pool sends, written by the product (INV-02, RN-ACC-042,
  * RN-ACC-018).
  *
  * Cognito hands the trigger a placeholder for the credential and never the
@@ -34,6 +34,13 @@ const KINDS: Readonly<Record<string, Kind>> = {
   CustomMessage_ResendCode: 'confirmation',
   CustomMessage_UpdateUserAttribute: 'confirmation',
   CustomMessage_VerifyUserAttribute: 'confirmation',
+  // The same messages, when they leave through the organization's relay (#396).
+  CustomEmailSender_AdminCreateUser: 'invitation',
+  CustomEmailSender_ForgotPassword: 'password-reset',
+  CustomEmailSender_SignUp: 'confirmation',
+  CustomEmailSender_ResendCode: 'confirmation',
+  CustomEmailSender_UpdateUserAttribute: 'confirmation',
+  CustomEmailSender_VerifyUserAttribute: 'confirmation',
 };
 
 export interface PoolMessageRequest {

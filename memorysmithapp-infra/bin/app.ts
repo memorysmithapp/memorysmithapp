@@ -110,6 +110,7 @@ const api = new ApiStack(app, id('Api'), {
   webClientId: identity.webClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,
   senderAddress: network.senderAddress,
+  mailFunction: identity.mailFunction,
 });
 
 const projections = new ProjectionsStack(app, id('Projections'), { env, environment, data });

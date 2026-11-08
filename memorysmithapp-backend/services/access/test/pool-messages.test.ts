@@ -1,5 +1,5 @@
 /**
- * The messages the user pool sends (RN-ACC-017, RN-ACC-018). What these cases
+ * The messages the user pool sends (RN-ACC-042, RN-ACC-018). What these cases
  * protect is what a person reads before they ever see the product: the
  * credential standing alone, how long it lasts, where to use it, and the
  * language of their account.

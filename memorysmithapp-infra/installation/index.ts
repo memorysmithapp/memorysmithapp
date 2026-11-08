@@ -43,6 +43,23 @@ export type SignIn = 'idp' | 'idp+password';
 export type FirstSignIn = 'request' | 'prepared' | 'automatic';
 
 /**
+ * The organization's own SMTP relay, which every message of the installation
+ * leaves through when `MAIL=smtp` (#396). Its password is never here:
+ * `deliver` writes it into Secrets Manager and the function reads it.
+ */
+export interface RelayConfig {
+  readonly host: string;
+  readonly port: number;
+  /** Null for a relay that takes mail from inside its network without a login. */
+  readonly user: string | null;
+  /** The address the relay accepts as the sender. */
+  readonly sender: string;
+  /** Subnets of a VPC that reaches the relay, and KMS; empty over the Internet. */
+  readonly subnetIds: readonly string[];
+  readonly securityGroupIds: readonly string[];
+}
+
+/**
  * The identity provider of the organization, federated into the pool over
  * OIDC (#395, ADR-026). Its client secret is never here: `deliver` writes it
  * into Secrets Manager and the template only references it.
@@ -112,6 +129,8 @@ export interface EnvironmentConfig {
   readonly oidcIssuer?: string;
   /** The organization's identity provider, when the installation declares one (#395). */
   readonly identityProvider?: IdentityProviderConfig;
+  /** The organization's relay, when the installation sends through it instead of SES (#396). */
+  readonly relay?: RelayConfig;
 }
 
 export type InstallationVariables = Readonly<Record<string, string | undefined>>;
@@ -174,12 +193,87 @@ export function identityProviderSecretName(environment: Named): string {
   return physicalName(environment, 'memorysmith-idp-client-secret');
 }
 
+/** The secret that holds the password of the organization's relay. */
+export function relaySecretName(environment: Named): string {
+  return physicalName(environment, 'memorysmith-smtp-password');
+}
+
 /**
  * Every secret `deliver` may have written for this environment, which
  * `destroy-installation` deletes with it: no stack owns them.
  */
 export function deliverySecretNames(environment: Named): string[] {
-  return [identityProviderSecretName(environment)];
+  return [identityProviderSecretName(environment), relaySecretName(environment)];
+}
+
+const listOf = (raw: string): string[] =>
+  raw
+    .split(',')
+    .map((each) => each.trim())
+    .filter(Boolean);
+
+/**
+ * Which service sends the e-mail of the installation (#396): SES, the
+ * default, or the organization's relay, read from the SMTP_ variables. A
+ * relay variable with no relay chosen is refused, since it would be ignored.
+ */
+export function relayOf(value: (key: string) => string): RelayConfig | null {
+  const service = value('MAIL') || 'ses';
+  if (!['ses', 'smtp'].includes(service)) {
+    throw new Error(`MAIL is "${service}": it is ses or smtp.`);
+  }
+  const relayed = [
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'SMTP_USER',
+    'MAIL_SUBNET_IDS',
+    'MAIL_SECURITY_GROUP_IDS',
+  ];
+  if (service === 'ses') {
+    const stray = relayed.filter((key) => value(key) !== '');
+    if (stray.length > 0) {
+      throw new Error(
+        `${stray.join(', ')} ${stray.length === 1 ? 'is' : 'are'} set, and MAIL is not smtp: set MAIL=smtp to send through the relay.`,
+      );
+    }
+    return null;
+  }
+
+  const host = value('SMTP_HOST');
+  if (!/^[A-Za-z0-9.-]+$/.test(host)) {
+    throw new Error(
+      host === ''
+        ? 'MAIL=smtp names no SMTP_HOST: see .env.example.'
+        : `SMTP_HOST is "${host}", which is not a host name.`,
+    );
+  }
+  const port = Number(value('SMTP_PORT') || '587');
+  if (!Number.isInteger(port) || port < 1 || port > 65535 || port === 25) {
+    throw new Error(
+      `SMTP_PORT is "${value('SMTP_PORT')}": 587 for STARTTLS or 465 for TLS; port 25 is not used, since AWS throttles it.`,
+    );
+  }
+  const sender = value('SENDER_ADDRESS');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sender)) {
+    throw new Error('MAIL=smtp needs SENDER_ADDRESS: the address the relay accepts as the sender.');
+  }
+  const subnetIds = listOf(value('MAIL_SUBNET_IDS'));
+  const securityGroupIds = listOf(value('MAIL_SECURITY_GROUP_IDS'));
+  if ((subnetIds.length === 0) !== (securityGroupIds.length === 0)) {
+    throw new Error(
+      'MAIL_SUBNET_IDS and MAIL_SECURITY_GROUP_IDS go together: name both to reach the relay from inside a VPC, and neither to reach it over the Internet.',
+    );
+  }
+  if (
+    ![...subnetIds, ...securityGroupIds].every((id) =>
+      /^(subnet|sg)-([0-9a-f]{8}|[0-9a-f]{17})$/.test(id),
+    )
+  ) {
+    throw new Error(
+      'MAIL_SUBNET_IDS holds subnet ids and MAIL_SECURITY_GROUP_IDS security group ids.',
+    );
+  }
+  return { host, port, user: value('SMTP_USER') || null, sender, subnetIds, securityGroupIds };
 }
 
 /**
@@ -319,6 +413,7 @@ export function installationEnvironmentOf(
   const oidcProviderArn = String(node.tryGetContext('oidcProviderArn') ?? '');
   const oidcIssuer = value('GITLAB_ISSUER') || 'gitlab.com';
   const identityProvider = identityProviderOf(node, value);
+  const relay = relayOf(value);
 
   return {
     name,
@@ -340,6 +435,7 @@ export function installationEnvironmentOf(
     ...(oidcProviderArn ? { oidcProviderArn } : {}),
     oidcIssuer,
     ...(identityProvider ? { identityProvider } : {}),
+    ...(relay ? { relay } : {}),
   };
 }
 
