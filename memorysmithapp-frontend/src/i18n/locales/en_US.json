@@ -1220,7 +1220,21 @@
     "publishNeedsName": "Write your name in your profile first: the catalog shows it, never your e-mail.",
     "publishedAs": "Published by {{author}}, in {{language}}.",
     "publicPage": "Open its public page",
-    "withdraw": "Withdraw from the community"
+    "withdraw": "Withdraw from the community",
+    "tabs": {
+      "about": "About the model",
+      "parameters": "Parameters",
+      "versions": "Versions",
+      "community": "Community"
+    },
+    "editParameter": "Edit",
+    "editParameterOf": "Edit the parameter {{name}}",
+    "removeParameterOf": "Remove the parameter {{name}}",
+    "addParameterTitle": "New parameter",
+    "editParameterTitle": "Edit parameter",
+    "removeParameterTitle": "Remove the parameter {{name}}?",
+    "removeParameterBody": "Notebooks created from the next versions will no longer fill in {{reference}}. Where {{reference}} is already written in the notes, it stays as written.",
+    "defaultsToNothing": "empty by default"
   },
   "newNotebook": {
     "open": "New notebook",
@@ -1239,7 +1253,8 @@
     "noModels": "No notebook of this subscription is declared as a model yet.",
     "noVersion": "This model has no ready version yet.",
     "fromVersion": "From version {{number}}: {{changelog}}",
-    "community": "Or find a model in the community"
+    "community": "Or find a model in the community",
+    "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created."
   },
   "community": {
     "title": "Community models",

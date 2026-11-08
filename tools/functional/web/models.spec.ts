@@ -25,6 +25,9 @@ const MODEL_WORDS: Record<
     readonly required: string;
     readonly declare: string;
     readonly saved: string;
+    readonly save: string;
+    readonly tabAbout: string;
+    readonly tabVersions: string;
     readonly changelog: string;
     readonly createVersion: string;
     readonly ready: string;
@@ -46,6 +49,9 @@ const MODEL_WORDS: Record<
     required: 'Required',
     declare: 'Declare as a model',
     saved: 'Saved.',
+    save: 'Save',
+    tabAbout: 'About the model',
+    tabVersions: 'Versions',
     changelog: 'What changed since the last version',
     createVersion: 'Create a version',
     ready: 'Ready',
@@ -66,6 +72,9 @@ const MODEL_WORDS: Record<
     required: 'Obrigatório',
     declare: 'Declarar como Modelo de caderno',
     saved: 'Salvo.',
+    save: 'Salvar',
+    tabAbout: 'Sobre o modelo',
+    tabVersions: 'Versões',
     changelog: 'O que mudou desde a última versão',
     createVersion: 'Criar uma versão',
     ready: 'Pronta',
@@ -127,20 +136,29 @@ test.describe('notebook models', () => {
     const modelName = `${notebook.name} model`;
     await app.getByLabel(words.name, { exact: true }).first().fill(modelName);
     await app.getByLabel(words.objective, { exact: true }).fill('Keep the findings of one review');
-    await app.getByRole('button', { name: words.addParameter }).click();
-    const row = app.locator('.parameter-row').first();
-    await row.getByLabel(words.parameterName, { exact: true }).fill('client');
-    await row.getByLabel(words.required, { exact: true }).check();
+    // The dialog asks the essentials, and the parameters wait for their tab (#400).
+    await expect(app.getByRole('button', { name: words.addParameter })).toHaveCount(0);
     await app.getByRole('button', { name: words.declare }).click();
-    await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 60_000 });
+    await app.waitForURL(/\/notebooks\/[0-9a-z]{26}\/model\?tab=parameters$/, { timeout: 60_000 });
     // A part of the Context, with no reload, and it is where the model is kept.
-    const item = app.locator('#notebook-nav-parts a').first();
-    await expect(item).toHaveText(words.modelItem);
-    await item.click();
+    await expect(app.locator('#notebook-nav-parts a').first()).toHaveText(words.modelItem);
+
+    // A parameter is added in a modal, and written when it is confirmed.
+    await app.getByRole('button', { name: words.addParameter }).click();
+    const modal = app.locator('.parameter-modal');
+    await modal.getByLabel(words.parameterName, { exact: true }).fill('client');
+    await modal.getByLabel(words.required, { exact: true }).check();
+    await modal.getByRole('button', { name: words.save, exact: true }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(app.locator('.parameter-line', { hasText: '{{client}}' })).toBeVisible();
+
+    // What the model says of itself is a tab of its own, its texts shown whole.
+    await app.getByRole('tab', { name: words.tabAbout }).click();
     await expect(app.locator('.model-form textarea').first()).toHaveValue(
       'Keep the findings of one review',
     );
 
+    await app.getByRole('tab', { name: words.tabVersions }).click();
     await app.getByLabel(words.changelog).fill('The first version');
     await app.getByRole('button', { name: words.createVersion }).click();
     const version = app.locator('.model-version', { hasText: 'v1' });
@@ -202,6 +220,8 @@ test.describe('notebook models', () => {
       await expect(page.getByText(words.sharedBy, { exact: false })).toContainText(
         state.accounts.owner.email,
       );
+      // The versions are a tab of their own (#400).
+      await page.getByRole('tab', { name: words.tabVersions }).click();
       await page
         .locator('.model-version', { hasText: 'v1' })
         .getByRole('link', { name: words.open })

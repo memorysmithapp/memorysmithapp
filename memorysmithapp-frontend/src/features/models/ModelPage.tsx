@@ -1,7 +1,7 @@
 import { TableChoices, tablesOf, type TableCarry } from '../portability/TableChoices';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ModelVersionDto, NotebookModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -17,7 +17,6 @@ import {
   getModelVersion,
   listDashboards,
   listTables,
-  declareModel,
   deleteModelVersion,
   getModel,
   publishModel,
@@ -27,8 +26,14 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBar, contextCrumbs, type Crumb } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
-import { declarationsOf, draftOf, type ParameterDraft } from './model-form';
-import { ParametersEditor } from './ParametersEditor';
+import {
+  isModelTab,
+  ModelAbout,
+  ModelAboutSummary,
+  ModelParameters,
+  ModelTabs,
+  type ModelTab,
+} from './ModelParts';
 
 /**
  * The model of a notebook (#353): what a notebook declared as a model says of
@@ -44,14 +49,15 @@ export function ModelPage() {
   const owner = structure.permissions.administer;
   const client = useQueryClient();
   useDocumentTitle(t('model.title'), structure.notebook.name);
+  const [tab, selectTab] = useModelTab();
 
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
     queryFn: () => getModel(notebookId),
-    // A version being built is followed until it ends.
     refetchInterval: (query) =>
       query.state.data?.versions.some((each) => each.status === 'running') ? 2000 : false,
   });
+  const saved = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
 
   return (
     <>
@@ -62,40 +68,67 @@ export function ModelPage() {
           <p className="hint">{t('common.loading')}</p>
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
-        ) : owner && model.data ? (
-          <ModelForm
-            notebookId={notebookId}
-            model={model.data}
-            onSaved={() => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) })}
-          />
         ) : model.data ? (
-          <ModelSummary model={model.data} />
+          <>
+            {/* One part of the model at a time (#400). */}
+            <ModelTabs model={model.data} owner={owner} active={tab} onSelect={selectTab} />
+            <div
+              id="model-panel"
+              role="tabpanel"
+              aria-labelledby={`model-tab-${tab}`}
+              className="model-panel"
+            >
+              {tab === 'about' ? (
+                owner ? (
+                  <ModelAbout notebookId={notebookId} model={model.data} onSaved={saved} />
+                ) : (
+                  <ModelAboutSummary model={model.data} />
+                )
+              ) : null}
+              {tab === 'parameters' ? (
+                owner ? (
+                  <ModelParameters notebookId={notebookId} model={model.data} onSaved={saved} />
+                ) : (
+                  <ParameterList parameters={model.data.parameters} />
+                )
+              ) : null}
+              {tab === 'versions' ? (
+                <Versions
+                  notebookId={notebookId}
+                  model={model.data}
+                  owner={owner}
+                  versionAddress={(number) => modelVersionAddress(notebookId, number)}
+                />
+              ) : null}
+              {tab === 'community' && owner ? (
+                <Publication notebookId={notebookId} model={model.data} />
+              ) : null}
+            </div>
+          </>
         ) : (
           <p className="hint">{t('model.notAModel')}</p>
         )}
-        {model.data ? (
-          <Versions
-            notebookId={notebookId}
-            model={model.data}
-            owner={owner}
-            versionAddress={(number) => modelVersionAddress(notebookId, number)}
-          />
-        ) : null}
-        {model.data && owner ? <Publication notebookId={notebookId} model={model.data} /> : null}
       </article>
     </>
   );
 }
 
 /**
- * A model shared with the person as a model reader (#355): what it says of
- * itself and its versions, which they read and create notebooks from, without
- * ever reaching the notebook it is.
+ * The tab of the model that is open, kept in the address (`?tab=`), so a
+ * reload, a link and the dialog of a new model open the one meant (#400).
  */
+function useModelTab(): [ModelTab, (tab: ModelTab) => void] {
+  const [params, setParams] = useSearchParams();
+  const asked = params.get('tab');
+  const tab: ModelTab = isModelTab(asked) ? asked : 'about';
+  return [tab, (next) => setParams(next === 'about' ? {} : { tab: next }, { replace: true })];
+}
+
 export function SharedModelPage() {
   const { t } = useTranslation();
   const notebookId = useNotebookId();
   useDocumentTitle(t('model.title'));
+  const [tab, selectTab] = useModelTab();
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
     queryFn: () => getModel(notebookId),
@@ -116,164 +149,28 @@ export function SharedModelPage() {
             {model.data.sharedBy ? (
               <p className="page-intro">{t('model.sharedBy', { owner: model.data.sharedBy })}</p>
             ) : null}
-            <ModelSummary model={model.data} />
-            <Versions
-              notebookId={notebookId}
-              model={model.data}
-              owner={false}
-              versionAddress={(number) => sharedModelVersionAddress(notebookId, number)}
-            />
+            <ModelTabs model={model.data} owner={false} active={tab} onSelect={selectTab} />
+            <div
+              id="model-panel"
+              role="tabpanel"
+              aria-labelledby={`model-tab-${tab}`}
+              className="model-panel"
+            >
+              {tab === 'about' ? <ModelAboutSummary model={model.data} /> : null}
+              {tab === 'parameters' ? <ParameterList parameters={model.data.parameters} /> : null}
+              {tab === 'versions' ? (
+                <Versions
+                  notebookId={notebookId}
+                  model={model.data}
+                  owner={false}
+                  versionAddress={(number) => sharedModelVersionAddress(notebookId, number)}
+                />
+              ) : null}
+            </div>
           </>
         )}
       </article>
     </>
-  );
-}
-
-/** What the owner declares, and declares again to change it. */
-/**
- * What a model declares. It changes the model of a notebook, and it is what a
- * new model says of itself on Home (#373), where `declare` also makes the
- * notebook and `lead` asks its name.
- */
-export function ModelForm({
-  notebookId = null,
-  model,
-  onSaved,
-  declare = null,
-  lead = null,
-  allowed = true,
-  onCancel = null,
-}: {
-  notebookId?: string | null;
-  model: NotebookModelDto | null;
-  onSaved: () => void;
-  declare?: ((input: Parameters<typeof declareModel>[1]) => Promise<void>) | null;
-  lead?: ReactNode;
-  allowed?: boolean;
-  onCancel?: (() => void) | null;
-}) {
-  const { t } = useTranslation();
-  const [objective, setObjective] = useState(model?.objective ?? '');
-  const [description, setDescription] = useState(model?.description ?? '');
-  const [audience, setAudience] = useState(model?.audience ?? '');
-  const [basedOn, setBasedOn] = useState(model?.basedOn ?? '');
-  const [parameters, setParameters] = useState<ParameterDraft[]>(
-    model?.parameters.map(draftOf) ?? [],
-  );
-  const [busy, setBusy] = useState(false);
-  const [said, setSaid] = useState<string | null>(null);
-  useEffect(() => setSaid(null), [objective, description, audience, basedOn, parameters]);
-
-  const declared = declarationsOf(parameters);
-  const ready = objective.trim().length > 0 && declared !== null && allowed;
-
-  async function save(): Promise<void> {
-    if (!declared) return;
-    setBusy(true);
-    setSaid(null);
-    try {
-      const input = {
-        objective,
-        description,
-        audience,
-        parameters: declared,
-        basedOn: basedOn.trim() ? basedOn : null,
-      };
-      if (declare) await declare(input);
-      else await declareModel(notebookId ?? '', input);
-      setSaid(t('model.saved'));
-      onSaved();
-    } catch (error) {
-      setSaid(t(messageKeyOf(error)));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form
-      className="model-form"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void save();
-      }}
-    >
-      {lead}
-      {model ? null : (
-        <p className="hint">
-          {t('model.declareHint', { reference: `{{${t('model.referenceExample')}}}` })}
-        </p>
-      )}
-      <div className="field">
-        <label>
-          <span className="field-label">{t('model.objective')}</span>
-          <textarea
-            rows={2}
-            value={objective}
-            required
-            onChange={(event) => setObjective(event.target.value)}
-          />
-        </label>
-        <span className="field-hint">{t('model.objectiveHint')}</span>
-      </div>
-      <label className="field">
-        <span className="field-label">{t('model.description')}</span>
-        <input value={description} onChange={(event) => setDescription(event.target.value)} />
-      </label>
-      <label className="field">
-        <span className="field-label">{t('model.audience')}</span>
-        <input value={audience} onChange={(event) => setAudience(event.target.value)} />
-      </label>
-      <div className="field">
-        <label>
-          <span className="field-label">{t('model.basedOn')}</span>
-          <input value={basedOn} onChange={(event) => setBasedOn(event.target.value)} />
-        </label>
-        <span className="field-hint">{t('model.basedOnHint')}</span>
-      </div>
-      <h2>{t('model.parameters')}</h2>
-      <p className="hint">{t('model.parametersHint')}</p>
-      <ParametersEditor parameters={parameters} onChange={setParameters} />
-      <div className="model-form-actions">
-        {onCancel ? (
-          <button type="button" className="button is-quiet" onClick={onCancel}>
-            {t('common.cancel')}
-          </button>
-        ) : null}
-        <button type="submit" className="button is-primary" disabled={busy || !ready}>
-          {busy ? t('model.saving') : model ? t('model.save') : t('model.declare')}
-        </button>
-        {said ? (
-          <span className="hint" role="status">
-            {said}
-          </span>
-        ) : null}
-      </div>
-    </form>
-  );
-}
-
-/** The model, as whoever is not its owner reads it. */
-function ModelSummary({ model }: { model: NotebookModelDto }) {
-  const { t } = useTranslation();
-  return (
-    <section className="model-summary">
-      <p>
-        <strong>{t('model.objective')}:</strong> {model.objective}
-      </p>
-      {model.audience ? (
-        <p>
-          <strong>{t('model.audience')}:</strong> {model.audience}
-        </p>
-      ) : null}
-      {model.basedOn ? (
-        <p>
-          <strong>{t('model.basedOn')}:</strong> {model.basedOn}
-        </p>
-      ) : null}
-      <ParameterList parameters={model.parameters} />
-    </section>
   );
 }
 

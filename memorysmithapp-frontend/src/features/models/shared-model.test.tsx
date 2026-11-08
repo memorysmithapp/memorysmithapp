@@ -56,21 +56,35 @@ beforeAll(async () => {
 }, 30_000);
 
 describe('a model shared as a model reader', () => {
-  it('renders outside any notebook, with whose it is and its versions', () => {
+  const render = (address: string) => {
     const client = new QueryClient();
     client.setQueryData(queryKeys.model(NOTEBOOK), MODEL);
-    const html = renderToStaticMarkup(
+    return renderToStaticMarkup(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={[`/models/${NOTEBOOK.toLowerCase()}`]}>
+        <MemoryRouter initialEntries={[address]}>
           <Routes>
             <Route path="/models/:notebookId" element={<SharedModelPage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
+  };
 
+  it('renders outside any notebook, with whose it is and what it says of itself', () => {
+    const html = render(`/models/${NOTEBOOK.toLowerCase()}`);
     expect(html).toContain('owner@example.com');
     expect(html).toContain('Run the assemblies of one condominium');
+  });
+
+  it('shows one part at a time, the community closed to a reader (#400)', () => {
+    const html = render(`/models/${NOTEBOOK.toLowerCase()}`);
+    expect(html).toContain('role="tablist"');
+    expect(html).toMatch(/id="model-tab-community"[^>]*disabled=""/);
+    expect(html).not.toContain('/versions/1"');
+  });
+
+  it('opens the tab its address names, the versions with a link to each', () => {
+    const html = render(`/models/${NOTEBOOK.toLowerCase()}?tab=versions`);
     expect(html).toContain(`href="/models/${NOTEBOOK.toLowerCase()}/versions/1"`);
   });
 });

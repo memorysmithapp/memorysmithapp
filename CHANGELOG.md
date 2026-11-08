@@ -19,6 +19,10 @@ issues each entry cites.
 
 - **An agent gives back a file the notebook keeps.** Asked for a photo, a PDF or a recording the notebook keeps, an agent had no way to reach it, not even an address to download it from. `read_file` now answers, to whoever may read the notebook, a link that downloads the file under its own name for an hour, and, up to 4 MB, its content too, so the agent can look at an image, read a text or a CSV and receive any other type as an embedded resource; a larger file answers with the link alone. (#394)
 
+### Changed
+
+- **The page of a notebook model shows one part at a time.** What the model says of itself, its parameters, its versions and its publication are four tabs instead of one long form. The objective, the description, the audience and the credit are fields of several lines that show their whole text, with how many characters each holds of its limit. The parameters are a list of one line each, with its type and whether it is required or what it defaults to, and each is added, edited and removed in a modal that saves the model when it is confirmed. The dialog of a new model on Home asks only its name and what it says of itself, and opens the parameters tab once it is created. (#400)
+
 ### Fixed
 
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)

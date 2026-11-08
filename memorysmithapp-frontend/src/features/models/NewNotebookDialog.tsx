@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { communityAddress, notebookAddress } from '../../shared/api/note-address';
+import { communityAddress, modelAddress, notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
   createNotebook,
@@ -15,7 +15,7 @@ import {
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
 import { CreateFromModelForm } from './CreateFromModel';
-import { ModelForm } from './ModelPage';
+import { aboutOf, AboutFields, declarationOf, type AboutDraft } from './ModelParts';
 
 /**
  * A new notebook from Home (#359): blank, with a name and a line saying what it
@@ -43,63 +43,96 @@ export function NewNotebookDialog({ open, onClose }: { open: boolean; onClose: (
 }
 
 /**
- * A new notebook model from Home (#373): a notebook, and what it declares in the
- * same step. Its parameters may wait, because one only means something once a
- * text uses it. Turning a notebook that exists into a model is not here: that
- * is reading and rewriting it, which an agent does with the skill `derive-model`.
+ * A new notebook model from Home (#373): a notebook, and what it says of itself
+ * in the same step. Only the essentials are asked here (#400): its name and the
+ * texts of *About the model*. Its parameters are declared afterwards, in the tab
+ * of the page of the model this opens once it is created, since one only means
+ * something once a text uses it, and a modal of a parameter would open inside
+ * this one. Turning a notebook that exists into a model is not here: that is
+ * reading and rewriting it, which an agent does with the skill `derive-model`.
  */
 export function NewModelDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [about, setAbout] = useState<AboutDraft>(() => aboutOf(null));
   const [plain, setPlain] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   // Kept across a failed declaration, so trying again does not make a second notebook.
   const created = useRef<string | null>(null);
   if (!open) return null;
 
-  async function declare(input: Parameters<typeof declareModel>[1]): Promise<void> {
-    created.current ??= (
-      await createNotebook({ name: name.trim(), description: input.description ?? '' })
-    ).id;
-    await client.invalidateQueries({ queryKey: queryKeys.notebooks() });
+  async function declare(): Promise<void> {
+    setBusy(true);
+    setFailure(null);
     try {
-      await declareModel(created.current, input);
+      created.current ??= (
+        await createNotebook({ name: name.trim(), description: about.description })
+      ).id;
+      await client.invalidateQueries({ queryKey: queryKeys.notebooks() });
+      try {
+        await declareModel(created.current, declarationOf(about, []));
+      } catch (error) {
+        setPlain(true);
+        throw error;
+      }
+      void client.invalidateQueries({ queryKey: queryKeys.models() });
+      onClose();
+      navigate(`${modelAddress(created.current)}?tab=parameters`);
     } catch (error) {
-      setPlain(true);
-      throw error;
+      setFailure(t(messageKeyOf(error)));
+    } finally {
+      setBusy(false);
     }
-    void client.invalidateQueries({ queryKey: queryKeys.models() });
-    navigate(notebookAddress(created.current));
   }
 
   return (
     <Modal open title={t('newNotebook.modelTitle')} onClose={onClose} className="new-notebook">
-      <ModelForm
-        model={null}
-        onSaved={onClose}
-        declare={declare}
-        allowed={name.trim().length > 0}
-        onCancel={onClose}
-        lead={
-          <>
-            <label className="field">
-              <span className="field-label">{t('newNotebook.name')}</span>
-              <input
-                value={name}
-                required
-                disabled={plain}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-            {plain ? (
-              <p className="share-failure" role="alert">
-                {t('newNotebook.notDeclared')}
-              </p>
-            ) : null}
-          </>
-        }
-      />
+      <form
+        className="model-form new-notebook-model"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void declare();
+        }}
+      >
+        <label className="field">
+          <span className="field-label">{t('newNotebook.name')}</span>
+          <input
+            value={name}
+            required
+            disabled={plain}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <p className="hint">
+          {t('model.declareHint', { reference: `{{${t('model.referenceExample')}}}` })}
+        </p>
+        <AboutFields value={about} onChange={setAbout} />
+        <p className="hint">{t('newNotebook.parametersAfter')}</p>
+        {plain ? (
+          <p className="share-failure" role="alert">
+            {t('newNotebook.notDeclared')}
+          </p>
+        ) : failure ? (
+          <p className="share-failure" role="alert">
+            {failure}
+          </p>
+        ) : null}
+        <div className="ask-dialog-foot">
+          <button type="button" className="button is-quiet" onClick={onClose}>
+            {t('common.cancel')}
+          </button>
+          <button
+            type="submit"
+            className="button is-primary"
+            disabled={busy || !name.trim() || !about.objective.trim()}
+          >
+            {busy ? t('model.saving') : t('model.declare')}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }

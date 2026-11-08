@@ -1223,7 +1223,21 @@
     "publishNeedsName": "Escreva seu nome no perfil antes: o catálogo mostra o nome, nunca o e-mail.",
     "publishedAs": "Publicado por {{author}}, em {{language}}.",
     "publicPage": "Abrir a página pública",
-    "withdraw": "Retirar da comunidade"
+    "withdraw": "Retirar da comunidade",
+    "tabs": {
+      "about": "Sobre o modelo",
+      "parameters": "Parâmetros",
+      "versions": "Versões",
+      "community": "Comunidade"
+    },
+    "editParameter": "Editar",
+    "editParameterOf": "Editar o parâmetro {{name}}",
+    "removeParameterOf": "Remover o parâmetro {{name}}",
+    "addParameterTitle": "Novo parâmetro",
+    "editParameterTitle": "Editar parâmetro",
+    "removeParameterTitle": "Remover o parâmetro {{name}}?",
+    "removeParameterBody": "Os cadernos criados a partir das próximas versões não vão mais preencher {{reference}}. Onde {{reference}} já está escrito nas notas, ele fica como está.",
+    "defaultsToNothing": "padrão vazio"
   },
   "newNotebook": {
     "open": "Novo caderno",
@@ -1242,7 +1256,8 @@
     "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
     "noVersion": "Este modelo ainda não tem versão pronta.",
     "fromVersion": "Da versão {{number}}: {{changelog}}",
-    "community": "Ou encontre um modelo na comunidade"
+    "community": "Ou encontre um modelo na comunidade",
+    "parametersAfter": "Os parâmetros você declara depois, na aba Parâmetros, que abre assim que o modelo é criado."
   },
   "community": {
     "title": "Modelos da comunidade",

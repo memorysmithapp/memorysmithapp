@@ -6782,43 +6782,121 @@ body.has-sheet .app-main {
   gap: 0.75rem;
   margin-top: 1rem;
 }
-.parameters-editor {
+/* The model, one part at a time (#400). */
+.model-tabs {
+  margin-top: 1rem;
+}
+.model-panel {
+  margin-top: 1rem;
+}
+.model-panel > .model-form,
+.model-panel > .model-versions,
+.model-panel > .model-publication {
+  margin-top: 0;
+}
+/* A text of several lines grows with what it holds instead of scrolling. */
+.growing-text {
+  resize: vertical;
+  overflow: hidden;
+  min-height: 3rem;
+}
+.field-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.field-count {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.model-summary {
   display: grid;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-.parameter-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 0.75rem;
   margin: 0;
-  padding: 0.75rem;
+}
+.model-summary dt {
+  font-weight: 600;
+}
+.model-summary dd {
+  margin: 0.15rem 0 0;
+  white-space: pre-wrap;
+}
+.model-parameters-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.model-parameters-head .hint {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+.parameter-lines {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
 }
-.parameter-row .field {
-  margin-bottom: 0.75rem;
+.parameter-line {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
 }
-.parameter-description,
-.parameter-default,
-.parameter-problem,
-.parameter-written {
+.parameter-line + .parameter-line {
+  border-top: 1px solid var(--border);
+}
+.parameter-line-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.parameter-line-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+.parameter-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.75rem;
+}
+.parameter-fields .parameter-description,
+.parameter-fields .parameter-default,
+.parameter-fields .parameter-problem,
+.parameter-fields .parameter-written {
   grid-column: 1 / -1;
+}
+@media (max-width: 40rem) {
+  .parameter-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .parameter-line-type,
+  .parameter-line-requirement {
+    grid-column: 1;
+    font-size: 0.875rem;
+  }
+  .parameter-line-actions {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    flex-direction: column;
+  }
+  .parameter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .parameter-required {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-}
-.parameter-remove {
-  justify-self: end;
-}
-@media (max-width: 40rem) {
-  .parameter-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .parameter-list {
   margin: 0;
