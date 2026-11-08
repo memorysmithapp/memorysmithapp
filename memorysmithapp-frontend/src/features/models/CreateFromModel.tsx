@@ -98,20 +98,29 @@ export function CreateFromModelForm({
       {parameters.map((parameter) => {
         const id = `value-${parameter.name}`;
         const flagged = missing.includes(parameter.name);
+        const title = `${parameter.name}${
+          parameter.required ? ` (${t('model.parameterRequired').toLowerCase()})` : ''
+        }`;
         return (
           <div key={parameter.name} className="field">
-            <label htmlFor={id} className="field-label">
-              {parameter.name}
-              {parameter.required ? ` (${t('model.parameterRequired').toLowerCase()})` : ''}
-            </label>
             {parameter.type === 'boolean' ? (
-              <input
-                id={id}
-                type="checkbox"
-                checked={(typed[parameter.name] ?? String(parameter.default ?? false)) === 'true'}
-                onChange={(event) => type(parameter.name, String(event.target.checked))}
-              />
-            ) : parameter.type === 'list' ? (
+              // A box beside its name, which is the label clicked, as every box
+              // of the interface is (#411).
+              <label className="parameter-required">
+                <input
+                  id={id}
+                  type="checkbox"
+                  checked={(typed[parameter.name] ?? String(parameter.default ?? false)) === 'true'}
+                  onChange={(event) => type(parameter.name, String(event.target.checked))}
+                />
+                <span>{title}</span>
+              </label>
+            ) : (
+              <label htmlFor={id} className="field-label">
+                {title}
+              </label>
+            )}
+            {parameter.type === 'boolean' ? null : parameter.type === 'list' ? (
               <textarea
                 id={id}
                 rows={3}

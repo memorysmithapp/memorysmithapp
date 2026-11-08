@@ -39,6 +39,8 @@ issues each entry cites.
 
 - **The community pages end where their content ends.** The search, a model and a version scrolled past their last line: their frame was as tall as the window inside a root that already was, which pushed the banner of the environment out of view and, on a phone, overshot the page even with no banner. The frame now fills the window and scrolls inside it, as every other page does (#410).
 
+- **A yes-or-no parameter is a box to tick when a notebook is created from a model.** Its box was stretched across the dialog, as wide and tall as a text field, by the rule that shapes every field that takes text. It is now a box of its own size beside the name of the parameter, which ticks it when clicked, and no box or radio inside a field takes the shape of a text field again (#411).
+
 - **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
 
 - **A table of the notebook shown in a note looks like any other table of the note.** It was drawn as the grid of the Tables screen, in a box with a filled header that stuck and cells that never wrapped; it is now drawn as a Markdown table of the same note, with its count, pages, sorting and total. (#403)

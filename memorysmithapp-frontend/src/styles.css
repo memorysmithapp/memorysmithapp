@@ -5590,7 +5590,11 @@ body.has-sheet .app-main {
 }
 /* The field of the Controles (#201): 38 px, the 8 px radius of the buttons,
    and focus as the blue edge. */
-.field input {
+/* A box and a radio keep their own size inside a field (#411): this is the
+   shape of a field that takes text. `:where` keeps the weight of
+   `.field input`, so the rules after it, the 16 px of a phone among them,
+   still win. */
+.field input:where(:not([type='checkbox'], [type='radio'])) {
   width: 100%;
   min-height: 38px;
   padding: 0 12px;
