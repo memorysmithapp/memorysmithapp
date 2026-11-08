@@ -245,6 +245,8 @@ test.describe('the pages of an account', () => {
       `uploads.${new URL(state.surfaces.site).host}`,
     );
     await expect(app.locator('#about-files-panel li')).toHaveCount(3);
+    // Every screen the interface serves, each named once (#401).
+    await expect(app.locator('.about-list > div')).toHaveCount(12);
     // And the foot says which version this is, beside the way in.
     if (state.version) {
       await expect(app.locator('.about-version')).toContainText(state.version);

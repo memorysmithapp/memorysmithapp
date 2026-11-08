@@ -700,6 +700,22 @@
         "term": "Guidance and Templates",
         "definition": "Readable on their own screens, so you can see the rules an agent is following before you read what it wrote."
       },
+      "files": {
+        "term": "Files",
+        "definition": "Each notebook keeps photos, PDFs, recordings and spreadsheets, which a note shows by name. The files screen of a notebook lists them all, with their size and where each one appears."
+      },
+      "tables": {
+        "term": "Tables",
+        "definition": "Structured data of the notebook, such as costs or a schedule, which a note shows through a query. Each table is read, filtered and edited row by row on the tables screen."
+      },
+      "dashboards": {
+        "term": "Dashboards",
+        "definition": "Indicators, charts, schedules and boards drawn over the tables of the notebook, always with what they hold at that moment."
+      },
+      "model": {
+        "term": "Notebook model",
+        "definition": "A notebook declared as a model creates others from it, with its parameters filled in. Its versions are frozen, and each can be published to the community."
+      },
       "graph": {
         "term": "Graph",
         "definition": "Every note as a point and every link as a line, which is where an isolated note, or a cluster nobody connected, becomes visible."
@@ -708,9 +724,17 @@
         "term": "Search",
         "definition": "Across the notes of a notebook, by what they say and by the properties they declare."
       },
+      "sharing": {
+        "term": "Sharing",
+        "definition": "A notebook can be shared with a person of another subscription, to read or to write. What reaches you appears in the notifications, where you accept or decline it."
+      },
+      "community": {
+        "term": "Community models",
+        "definition": "The notebook models other people published, to read and to create a notebook from. It is in the menu of your picture."
+      },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from the icon beside your picture. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance and the Templates, and the history and the files when you choose them — and that file is what an import reads."
+        "definition": "Exporting a notebook, or importing one, from the icon beside your picture. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {
@@ -744,8 +768,9 @@
     },
     "start": "Get started",
     "files": {
-      "heading": "Sending files through your assistant",
+      "heading": "Files through your assistant",
       "body": "An assistant keeps a photo, a PDF or a recording whole, at the size it arrived, by sending the parts of the file straight to the address below. For that, the app it runs in has to allow it — and the settings that decide it do not say when they are in the way.",
+      "back": "And it gives back a file the notebook keeps: ask for the photo, the PDF or the recording, and it reads the content of a file of up to 4 MB and hands you a link that downloads the file under its own name, valid for an hour, whatever its size.",
       "editor": "When the app does not allow it, the assistant asks you for the file: it appears in <b>Transfers</b>, on the <b>Waiting for you</b> tab, under the name the note expects. Choose, drag or paste the file there, and it is kept whole and shows in the note. To attach something yourself, open the note, click <b>Edit</b> at its top right and then the paperclip of the toolbar, which attaches a file from the computer, one the notebook already keeps or an image at a web address; or paste or drag the file onto the note.",
       "claude": {
         "one": "After an update of MemorySmith, open <b>Customize</b>, then <b>Connectors</b>, and reconnect <b>MemorySmith.app</b>: that is how new tools reach Claude.",
