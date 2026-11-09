@@ -4246,9 +4246,8 @@ body.has-sheet .app-main {
 }
 
 /*
- * Transfers, on the bell of the header (#418, RN-PRT-019, RN-PRT-020): the
- * ring and the dot in the top corner of the button, and the most recent under
- * the notices of the panel.
+ * Transfers, on the bell of the header (#418): a ring in the top corner of the
+ * button while one runs, and a notice in the panel until it is read.
  */
 /* A ring while something runs, filled as far as the first one got, with an
    outline of the surface so it separates from the button (#205). */
@@ -4264,17 +4263,6 @@ body.has-sheet .app-main {
     conic-gradient(var(--accent) var(--progress, 0%), var(--track) 0);
   box-shadow: 0 0 0 2px var(--surface);
   pointer-events: none;
-}
-/* A dot while something has finished that the person has not seen. */
-.transfers-dot {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--signal);
-  box-shadow: 0 0 0 2px var(--surface);
 }
 
 .transfers-panel-head {
@@ -4295,14 +4283,6 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   font-size: 0.84rem;
 }
-.transfers-recent {
-  list-style: none;
-  margin: 0;
-  padding: 0 14px;
-}
-.transfers-recent li + li {
-  border-top: 1px solid var(--track);
-}
 .transfers-line {
   display: flex;
   align-items: center;
@@ -4321,26 +4301,9 @@ body.has-sheet .app-main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.transfers-panel-foot {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--border);
-}
-.transfers-see-all {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.8125rem;
-  color: var(--accent);
-  text-decoration: none;
-}
-/* Under the notices, set apart by a rule. */
-.transfers-recent-section {
-  margin-top: 6px;
-  border-top: 1px solid var(--border);
-}
-.sheet .transfers-recent-section .transfers-line .button {
-  min-height: 44px;
+/* A transfer under way, as a notice of the bell (#418). */
+.transfer-notice .transfers-line {
+  padding: 0;
 }
 
 /* ---- The pieces of a transfer (#205) ------------------------------------ */

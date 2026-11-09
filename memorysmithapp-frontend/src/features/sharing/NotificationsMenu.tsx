@@ -13,25 +13,28 @@ import { Menu } from '../../shared/components/Menu';
 import { BellIcon, CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { sharesChanged, useNotifications } from './shares';
 import { ActionWord } from '../../shared/components/ActionWord';
-import { TransfersRecent, useTransfersStatus } from '../portability/TransfersStatus';
+import { TransferNotice, useTransfersStatus } from '../portability/TransfersStatus';
 
 /**
  * The notifications of the person, beside the user menu (#256, RN-ACC-029):
- * every change of a share, told to the side that did not make it, and the
- * status of the transfers under them (#418). A share waiting for an answer is
- * answered here as on its card; every other notice is read and dismissed. The
- * count on the button is every notice and every file an agent asked for,
- * because each is something still to see or to do; a ring says a transfer
- * runs, and a dot that one finished unseen.
+ * every change of a share, told to the side that did not make it, and that a
+ * transfer is under way (#418). A share waiting for an answer is answered here
+ * as on its card; every other notice of a share is read and dismissed, and the
+ * notice of a transfer leaves once the panel was opened on it. The count on
+ * the button is every notice; a ring says a transfer runs, as far as it got.
  */
 export function NotificationsMenu() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
-  const close = useCallback(() => setOpen(false), []);
   const notifications = useNotifications().data ?? [];
   const transfers = useTransfersStatus();
-  const count = notifications.length + transfers.waiting;
+  const count = notifications.length + transfers.notices.length;
+  // The notices of transfers stay while the panel shows them, and leave with it.
+  const close = useCallback(() => {
+    setOpen(false);
+    transfers.read();
+  }, [transfers]);
 
   return (
     <div className="notifications-menu">
@@ -39,13 +42,7 @@ export function NotificationsMenu() {
         ref={trigger}
         type="button"
         className="icon-button notifications-trigger"
-        onClick={() =>
-          setOpen((current) => {
-            // Opening the panel is what clears the dot: the person has seen them.
-            if (!current) transfers.seeAll();
-            return !current;
-          })
-        }
+        onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={
@@ -66,7 +63,6 @@ export function NotificationsMenu() {
             style={{ ['--progress' as string]: `${Math.round(transfers.ring * 100)}%` }}
           />
         )}
-        {transfers.unseen && count === 0 && <span className="transfers-dot" />}
       </button>
       <Menu
         open={open}
@@ -79,10 +75,15 @@ export function NotificationsMenu() {
         <div className="transfers-panel-head">
           <h2>{t('notifications.heading')}</h2>
         </div>
-        {notifications.length === 0 ? (
+        {notifications.length === 0 && transfers.notices.length === 0 ? (
           <p className="transfers-panel-empty">{t('notifications.empty')}</p>
         ) : (
           <ul className="notifications-list">
+            {transfers.notices.map((transfer) => (
+              <li key={transfer.transferId}>
+                <TransferNotice transfer={transfer} onClose={close} />
+              </li>
+            ))}
             {notifications.map((notice) => (
               <li key={`${notice.kind}-${notice.notebookId}-${notice.granteeUserId ?? ''}`}>
                 <Notice notice={notice} />
@@ -90,7 +91,6 @@ export function NotificationsMenu() {
             ))}
           </ul>
         )}
-        <TransfersRecent transfers={transfers.transfers} onClose={close} />
       </Menu>
     </div>
   );

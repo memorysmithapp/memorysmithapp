@@ -812,7 +812,7 @@
       },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from Transfers in the menu; the bell at the top shows one under way and counts the files an agent asked you for. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
+        "definition": "Exporting a notebook, or importing one, from Transfers in the menu; the bell at the top says when one is under way. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {

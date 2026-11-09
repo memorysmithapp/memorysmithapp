@@ -815,7 +815,7 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu; o sino no topo mostra uma em andamento e conta os arquivos que um agente pediu a você. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu; o sino no topo avisa quando uma está em andamento. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
