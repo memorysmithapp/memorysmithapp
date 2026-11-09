@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HelpIcon } from '../../shared/components/icons';
+import { InfoPopover } from '../../shared/components/InfoPopover';
 
 const SEEN_PREFIX = 'memorysmith.shelfHelpSeen.';
 
@@ -45,31 +46,8 @@ export function ShelfHeading({
   help: string;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(() => !seen(page));
-  const box = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const id = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    markSeen(page);
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
-      setOpen(false);
-      trigger.current?.focus();
-    }
-    function onPointerDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (box.current?.contains(target) || trigger.current?.contains(target)) return;
-      setOpen(false);
-    }
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('mousedown', onPointerDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('mousedown', onPointerDown);
-    };
-  }, [open, page]);
+  // Read once: whether this browser showed the page before.
+  const [first] = useState(() => !seen(page));
 
   return (
     <div className="shelf-heading">
@@ -78,25 +56,16 @@ export function ShelfHeading({
         {count !== undefined ? <span className="shelf-count"> ({count})</span> : null}
       </h1>
       {action}
-      <div className="shelf-help-anchor">
-        <button
-          ref={trigger}
-          type="button"
-          className="icon-button is-bare shelf-help"
-          aria-label={t('shelf.help')}
-          title={t('shelf.help')}
-          aria-expanded={open}
-          aria-controls={id}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <HelpIcon />
-        </button>
-        {open ? (
-          <div ref={box} id={id} className="shelf-help-box" role="note">
-            <p>{help}</p>
-          </div>
-        ) : null}
-      </div>
+      <InfoPopover
+        icon={<HelpIcon />}
+        label={t('shelf.help')}
+        className="shelf-help"
+        boxClassName="shelf-help-box"
+        initiallyOpen={first}
+        onOpen={() => markSeen(page)}
+      >
+        {help}
+      </InfoPopover>
     </div>
   );
 }

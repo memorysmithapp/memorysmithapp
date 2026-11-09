@@ -141,7 +141,10 @@ a:hover {
 }
 
 .app-header {
-  display: flex;
+  /* Three columns, the outer two of equal width, so the search sits in the
+     middle of the window whatever the brand and the controls measure (#418). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px) minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   height: var(--header-h);
@@ -292,10 +295,16 @@ a:hover {
    it, over the page. */
 .global-search {
   position: relative;
-  flex: 1;
   min-width: 0;
-  max-width: 520px;
-  margin-inline: auto;
+}
+.header-controls {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.app-header > .brand {
+  justify-self: start;
 }
 .global-search .search-box {
   margin: 0;
@@ -305,7 +314,11 @@ a:hover {
   padding-right: 64px;
 }
 .global-search .search-box input:focus {
+  /* The field says it has the focus by its fill and the caret in it, with no
+     ring of the accent (#418). */
   background: var(--surface);
+  border-color: var(--border);
+  box-shadow: none;
 }
 .search-box-key {
   position: absolute;
@@ -682,10 +695,6 @@ a:hover {
   align-items: center;
   justify-content: center;
   color: var(--text-soft);
-}
-/* Its words are a tooltip, so the pointer says there is one to read (#418). */
-.ownership-mark[title] {
-  cursor: help;
 }
 .ownership-mark[data-ownership='sharedWithMe'],
 .ownership-mark[data-ownership='sharedByMe'],
@@ -3942,6 +3951,12 @@ body.has-sheet .app-main {
   .app-header {
     padding: 0 1rem;
     gap: 0.75rem;
+    /* No room for equal sides: the search takes what the brand and the
+       controls leave. */
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .header-controls {
+    gap: 8px;
   }
   .brand {
     gap: 8px;
@@ -7893,38 +7908,53 @@ body.has-sheet .app-main {
   font-weight: 400;
   color: var(--text-soft);
 }
-/* The `?` beside the action, and what the page is for under it, over the
-   cards, until a click elsewhere or Esc puts it away. */
-.shelf-help-anchor {
+/* An icon that opens a few words about what it stands for (#418): the `?`
+   of a page and the mark of whose a card is. The box opens under it, over
+   what follows, until a click elsewhere or Esc puts it away. */
+.info-anchor {
   position: relative;
+  display: inline-flex;
 }
-.shelf-help {
+.info-trigger {
   color: var(--text-soft);
 }
-.shelf-help[aria-expanded='true'] {
+.info-trigger[aria-expanded='true'] {
   color: var(--text);
 }
-.shelf-help-box {
+.info-box {
   position: absolute;
   z-index: 30;
   top: calc(100% + 8px);
   left: 0;
-  width: min(380px, calc(100vw - 2rem));
+  width: min(340px, calc(100vw - 2rem));
   padding: 12px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--menu-shadow);
+  font-family: var(--sans);
   font-size: 0.875rem;
+  font-weight: 400;
   line-height: 1.55;
   color: var(--text);
+  text-align: start;
+  white-space: normal;
 }
-.shelf-help-box p {
-  margin: 0;
+.shelf-help-box {
+  width: min(380px, calc(100vw - 2rem));
 }
-/* On a phone the box takes the width of the heading, under it. */
+/* On a card the mark sits in the top-right corner, so its box opens towards
+   the card, and the corner rises over the cards after it while it is open. */
+.ownership-box {
+  left: auto;
+  right: 0;
+}
+.notebook-card-corner:has(.info-anchor.is-open) {
+  z-index: 40;
+}
+/* On a phone the box of the page takes the width of the heading, under it. */
 @media (max-width: 40rem) {
-  .shelf-help-anchor {
+  .shelf-heading .info-anchor {
     position: static;
   }
   .shelf-help-box {

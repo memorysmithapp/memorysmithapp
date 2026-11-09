@@ -114,7 +114,7 @@ export function CommunityPage() {
                         <OwnershipMark
                           ownership={own ? 'own' : 'community'}
                           owner={model.author}
-                          label={own ? t('models.mark.published') : undefined}
+                          kind="community"
                         />
                       }
                     >

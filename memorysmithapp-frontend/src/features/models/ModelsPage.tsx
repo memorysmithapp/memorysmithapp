@@ -124,7 +124,7 @@ export function ModelsPage() {
                   strip={strip}
                   onExport={setExporting}
                   sharedByMe={shared.has(model.notebookId)}
-                  marks={{ own: t('models.mark.own'), sharedByMe: t('models.mark.sharedByMe') }}
+                  kind="model"
                   renderCard={card}
                 />
               );
@@ -142,7 +142,7 @@ export function ModelsPage() {
                         <OwnershipMark
                           ownership="sharedWithMe"
                           owner={model.sharedBy ?? undefined}
-                          label={t('models.mark.sharedWithMe', { owner: model.sharedBy })}
+                          kind="model"
                         />
                       }
                     >

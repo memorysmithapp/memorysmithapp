@@ -85,11 +85,51 @@
     "models": "Modelos",
     "community": "Comunidade",
     "transfers": "Transferências",
-    "about": "Sobre o MemorySmith.app",
+    "about": "Sobre",
     "search": "Pesquisar"
   },
   "shelf": {
     "help": "Para que serve esta página"
+  },
+  "ownership": {
+    "notebook": {
+      "own": {
+        "label": "Seu caderno",
+        "explain": "Este caderno é da sua assinatura. O ⋯ exporta, compartilha com uma pessoa ou apaga."
+      },
+      "sharedByMe": {
+        "label": "Seu caderno, compartilhado por você",
+        "explain": "Este caderno é seu, e você o compartilhou com outras pessoas, que o encontram nos Cadernos delas. O ⋯ compartilha de novo, exporta ou apaga."
+      },
+      "sharedWithMe": {
+        "label": "Compartilhado com você por {{owner}}",
+        "explain": "{{owner}} compartilhou este caderno com você. Ele continua sendo de quem compartilhou; o que você pode fazer nele é o perfil do compartilhamento, escrito no card."
+      }
+    },
+    "model": {
+      "own": {
+        "label": "Seu modelo",
+        "explain": "Este modelo é um caderno da sua assinatura, declarado como modelo. O ⋯ exporta, compartilha com uma pessoa ou apaga."
+      },
+      "sharedByMe": {
+        "label": "Seu modelo, compartilhado por você",
+        "explain": "Este modelo é seu, e você o compartilhou com outras pessoas. O ⋯ compartilha de novo, exporta ou apaga."
+      },
+      "sharedWithMe": {
+        "label": "Um modelo compartilhado com você por {{owner}}",
+        "explain": "{{owner}} compartilhou este modelo com você. Você lê as versões e cria cadernos a partir delas; o caderno do modelo continua com quem compartilhou."
+      }
+    },
+    "community": {
+      "own": {
+        "label": "Seu modelo, publicado por você",
+        "explain": "Você publicou este modelo na comunidade: toda pessoa que entra no MemorySmith.app o lê e cria cadernos a partir dele."
+      },
+      "community": {
+        "label": "Publicado na comunidade por {{owner}}",
+        "explain": "{{owner}} publicou este modelo na comunidade, livre para usar (CC0). O ⋯ cria um caderno seu a partir da versão mais recente."
+      }
+    }
   },
   "models": {
     "title": "Modelos",
@@ -101,12 +141,6 @@
     "parameters_other": "{{count}} parâmetros",
     "updated": "atualizado em {{date}}",
     "open": "Abrir o modelo",
-    "mark": {
-      "own": "Seu modelo",
-      "sharedByMe": "Seu modelo, compartilhado por você",
-      "sharedWithMe": "Um modelo compartilhado com você por {{owner}}",
-      "published": "Seu modelo, publicado por você"
-    },
     "help": "Um modelo é um caderno que serve de molde: cada versão fica congelada e cria cadernos novos, com os parâmetros preenchidos. Aqui estão os seus e os compartilhados com você como modelo. O ⋯ de um seu exporta, compartilha ou apaga."
   },
   "language": {
@@ -1004,12 +1038,6 @@
     "choose": "Escolher arquivo"
   },
   "sharing": {
-    "ownership": {
-      "own": "Seu caderno",
-      "sharedByMe": "Seu caderno, compartilhado por você",
-      "sharedWithMe": "Compartilhado com você por {{owner}}",
-      "community": "Publicado na comunidade por {{owner}}"
-    },
     "accept": "Aceitar",
     "reject": "Recusar",
     "dialog": {

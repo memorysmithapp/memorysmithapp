@@ -85,11 +85,51 @@
     "models": "Models",
     "community": "Community",
     "transfers": "Transfers",
-    "about": "About MemorySmith.app",
+    "about": "About",
     "search": "Search"
   },
   "shelf": {
     "help": "What this page is for"
+  },
+  "ownership": {
+    "notebook": {
+      "own": {
+        "label": "Your notebook",
+        "explain": "This notebook is of your subscription. Its ⋯ exports it, shares it with a person or deletes it."
+      },
+      "sharedByMe": {
+        "label": "Your notebook, shared by you",
+        "explain": "This notebook is yours, and you shared it with other people, who find it on their Notebooks. Its ⋯ shares it again, exports it or deletes it."
+      },
+      "sharedWithMe": {
+        "label": "Shared with you by {{owner}}",
+        "explain": "{{owner}} shared this notebook with you. It stays theirs; what you may do in it is the profile of the share, written on the card."
+      }
+    },
+    "model": {
+      "own": {
+        "label": "Your model",
+        "explain": "This model is a notebook of your subscription, declared as a model. Its ⋯ exports it, shares it with a person or deletes it."
+      },
+      "sharedByMe": {
+        "label": "Your model, shared by you",
+        "explain": "This model is yours, and you shared it with other people. Its ⋯ shares it again, exports it or deletes it."
+      },
+      "sharedWithMe": {
+        "label": "A model shared with you by {{owner}}",
+        "explain": "{{owner}} shared this model with you. You read its versions and create notebooks from them; its notebook stays with them."
+      }
+    },
+    "community": {
+      "own": {
+        "label": "Your model, published by you",
+        "explain": "You published this model in the community: every person signed in to MemorySmith.app reads it and creates notebooks from it."
+      },
+      "community": {
+        "label": "Published in the community by {{owner}}",
+        "explain": "{{owner}} published this model in the community, free to use (CC0). Its ⋯ creates a notebook of your own from its latest version."
+      }
+    }
   },
   "models": {
     "title": "Models",
@@ -101,12 +141,6 @@
     "parameters_other": "{{count}} parameters",
     "updated": "updated {{date}}",
     "open": "Open the model",
-    "mark": {
-      "own": "Your model",
-      "sharedByMe": "Your model, shared by you",
-      "sharedWithMe": "A model shared with you by {{owner}}",
-      "published": "Your model, published by you"
-    },
     "help": "A model is a notebook that serves as a mould: each version is frozen and creates new notebooks, with its parameters filled in. Here are yours and the ones shared with you as a model. The ⋯ of one of yours exports, shares or deletes it."
   },
   "language": {
@@ -1001,12 +1035,6 @@
     "choose": "Choose a file"
   },
   "sharing": {
-    "ownership": {
-      "own": "Your notebook",
-      "sharedByMe": "Your notebook, shared by you",
-      "sharedWithMe": "Shared with you by {{owner}}",
-      "community": "Published in the community by {{owner}}"
-    },
     "accept": "Accept",
     "reject": "Decline",
     "dialog": {

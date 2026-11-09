@@ -31,7 +31,7 @@ export function NotebookActions({
   strip,
   onExport,
   sharedByMe = false,
-  marks,
+  kind = 'notebook',
   renderCard,
 }: {
   notebook: NotebookSummary;
@@ -39,8 +39,8 @@ export function NotebookActions({
   onExport: (notebookId: string) => void;
   /** Whether its owner shared it with somebody, which its mark says (#256). */
   sharedByMe?: boolean;
-  /** What its mark says, where the card is a model's rather than a notebook's (#418). */
-  marks?: { own: string; sharedByMe: string };
+  /** What the card is, which its mark explains: a notebook, or a model (#418). */
+  kind?: 'notebook' | 'model';
   /** The card it is drawn on, where it is not the notebook's: a model's (#418). */
   renderCard?: (parts: CardParts) => ReactNode;
 }) {
@@ -99,10 +99,7 @@ export function NotebookActions({
       corner={
         asking ? null : (
           <div className="notebook-card-corner">
-            <OwnershipMark
-              ownership={sharedByMe ? 'sharedByMe' : 'own'}
-              label={marks ? (sharedByMe ? marks.sharedByMe : marks.own) : undefined}
-            />
+            <OwnershipMark ownership={sharedByMe ? 'sharedByMe' : 'own'} kind={kind} />
             <button
               ref={trigger}
               type="button"

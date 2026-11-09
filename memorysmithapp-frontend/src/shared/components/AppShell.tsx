@@ -26,15 +26,17 @@ export function AppShell() {
         {/* Search, in the middle of the first row: notebooks, models and
             community models by name, and Ctrl K from anywhere (#418). */}
         <GlobalSearch />
-        {/* What happened to the write, where it can be seen from any scroll
-            position and without covering a line of the note. */}
-        <WriteStatus />
-        <ThemeToggle />
-        {/* What changed in a share, told to the side that did not change it
-            (#256), and the status of the transfers, whose page is in the menu
-            (#418). */}
-        <NotificationsMenu />
-        <UserMenu />
+        <div className="header-controls">
+          {/* What happened to the write, where it can be seen from any scroll
+              position and without covering a line of the note. */}
+          <WriteStatus />
+          <ThemeToggle />
+          {/* What changed in a share, told to the side that did not change it
+              (#256), and the status of the transfers, whose page is in the menu
+              (#418). */}
+          <NotificationsMenu />
+          <UserMenu />
+        </div>
       </header>
       <div className="app-menu-row">
         <TopMenu />
