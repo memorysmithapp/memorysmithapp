@@ -80,15 +80,13 @@
   },
   "nav": {
     "label": "Menu do produto",
-    "menu": "Menu",
+    "home": "Início",
     "notebooks": "Cadernos",
     "models": "Modelos",
     "community": "Comunidade",
     "transfers": "Transferências",
     "about": "Sobre o MemorySmith.app",
-    "filter": "Encontrar um caderno…",
-    "allNotebooks": "Todos os cadernos",
-    "noMatch": "Nenhum caderno com esse nome."
+    "search": "Pesquisar"
   },
   "models": {
     "title": "Modelos de caderno",
@@ -285,12 +283,6 @@
     "close": "Fechar"
   },
   "dashboard": {
-    "selectNotebook": "Abrir um caderno",
-    "prevNotebooks": "Cadernos anteriores",
-    "nextNotebooks": "Próximos cadernos",
-    "expandNotebooks": "Mostrar todos os cadernos",
-    "collapseNotebooks": "Voltar a uma linha",
-    "goToNotebook": "Ir para o caderno {{number}}",
     "noNotebooks": "Nenhum caderno ainda. Crie um aqui; um agente cria um pelo conector, e uma exportação volta a entrar por Transferências.",
     "space": "Espaço da assinatura",
     "planChip": "{{plan}} · {{quota}}",
@@ -561,7 +553,7 @@
     "deleteConfirm": "Apagar de vez",
     "deleting": "Apagando…",
     "carry": {
-      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}."
+      "published": "Estas tabelas vão com as linhas, que toda pessoa que entra no MemorySmith.app vai ler: {{tables}}."
     },
     "shownBy_one": "Aparece em {{count}} nota",
     "shownBy_other": "Aparece em {{count}} notas",
@@ -737,7 +729,7 @@
       "body": "Esta interface é uma ferramenta de leitura antes de ser de edição. Estas são as telas que ela oferece:",
       "notebooks": {
         "term": "Cadernos",
-        "definition": "A primeira tela lista todos, com quantas notas cada um tem e quando mudou pela última vez. Abrir um leva você de volta ao ponto onde parou de ler."
+        "definition": "Os Cadernos, no menu do topo, listam todos em cards, com quantas notas cada um tem e quando mudou pela última vez. Abrir um leva de volta aonde a leitura parou."
       },
       "folders": {
         "term": "Pastas e notas",
@@ -769,7 +761,7 @@
       },
       "search": {
         "term": "Busca",
-        "definition": "Nas notas de um caderno, pelo que elas dizem e pelas propriedades que declaram: a lupa no topo de um caderno, ou Ctrl K."
+        "definition": "Pesquisar, no menu do topo ou com Ctrl K, encontra cadernos, modelos e modelos da comunidade pelo nome; dentro de um caderno, o campo no topo da barra lateral busca nas notas pelo que elas dizem e pelas propriedades que declaram."
       },
       "sharing": {
         "term": "Compartilhamento",
@@ -1260,7 +1252,7 @@
     "referenceExample": "nome",
     "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo e as versões dele e cria cadernos a partir delas; o caderno que ele é fica com o dono.",
     "community": "Comunidade",
-    "publishHint": "Publicar mostra o modelo e todas as versões que você mantém a qualquer pessoa, com ou sem conta, pelo nome da sua conta e nunca pelo seu e-mail; quem entra cria cadernos a partir dele. Você o retira quando quiser.",
+    "publishHint": "Publicar mostra o modelo e todas as versões que você mantém a toda pessoa que entra no MemorySmith.app, pelo nome da sua conta e nunca pelo seu e-mail; quem o lê cria cadernos a partir dele. Você o retira quando quiser.",
     "publishLicence": "Toda distribuição de um modelo é sob CC0 1.0: qualquer pessoa pode reutilizá-lo e republicá-lo livremente, inclusive na comunidade.",
     "publish": "Publicar na comunidade",
     "publishNeedsVersion": "Crie uma versão antes: a comunidade lê versões, nunca o caderno.",
@@ -1305,10 +1297,7 @@
   },
   "community": {
     "title": "Modelos da comunidade",
-    "home": "Início",
-    "back": "Voltar",
-    "signIn": "Entrar",
-    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. Qualquer pessoa os lê; criar um caderno a partir de um pede que você entre.",
+    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele.",
     "search": "Buscar",
     "searchHint": "Palavras do nome, do objetivo, do autor…",
     "find": "Buscar",
@@ -1320,15 +1309,24 @@
       "es": "Espanhol"
     },
     "nothing": "Nenhum modelo publicado responde a esta busca.",
-    "byline_one": "Por {{author}} · {{language}} · atualizado em {{date}} · {{count}} versão",
-    "byline_other": "Por {{author}} · {{language}} · atualizado em {{date}} · {{count}} versões",
     "author": "Autor",
     "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
     "report": "Denunciar este modelo",
     "reportWhy": "O que há de errado com ele",
     "sendReport": "Enviar a denúncia",
     "reported": "Obrigado: a denúncia chegou ao operador da plataforma.",
-    "signInToReport": "Entre para denunciar este modelo",
-    "signInToCreate": "Entre para criar um caderno a partir desta versão"
+    "by": "Por {{author}}",
+    "cardMeta_one": "{{language}} · atualizado em {{date}} · {{count}} versão",
+    "cardMeta_other": "{{language}} · atualizado em {{date}} · {{count}} versões"
+  },
+  "globalSearch": {
+    "placeholder": "Encontre cadernos, modelos e modelos da comunidade…",
+    "groups": {
+      "notebooks": "Cadernos",
+      "models": "Modelos",
+      "community": "Comunidade"
+    },
+    "nothing": "Nada com esse nome.",
+    "typeMore": "Digite para encontrar um caderno, um modelo ou um modelo da comunidade."
   }
 }

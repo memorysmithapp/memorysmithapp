@@ -470,11 +470,32 @@ export function SidebarOpenIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** The menu of the product, folded into one button on a narrow window (#418). */
-export function MenuLinesIcon(props: SVGProps<SVGSVGElement>) {
+/** Home, in the menu of the product (#418). */
+export function HomeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
-      <path d="M4 6h16M4 12h16M4 18h16" />
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9v11h14V9" />
+      <path d="M10 20v-6h4v6" />
+    </svg>
+  );
+}
+
+/** The community of published models (#418). */
+export function GlobeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+/** Files on their way in and out, the arrows of the transfers (#418). */
+export function TransfersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 4v16M3.5 7.5 7 4l3.5 3.5M17 20V4M13.5 16.5 17 20l3.5-3.5" />
     </svg>
   );
 }

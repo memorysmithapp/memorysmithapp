@@ -86,7 +86,7 @@ export function TransferDialogs({
   /**
    * The name of that notebook when it is not among the person's own: one
    * shared with them, which is exported from its card and from nowhere else
-   * (#256, RN-ACC-030).
+   * (#256, RN-ACC-043).
    */
   notebookName?: string | undefined;
   /** The kept export an import opens on, when started from its row (#207). */

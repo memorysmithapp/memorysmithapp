@@ -1,12 +1,11 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { PublicModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import {
-  communityAddress,
   communityModelAddress,
   communityVersionAddress,
   identifierOf,
@@ -19,104 +18,18 @@ import {
   reportModel,
   searchCatalog,
 } from '../../shared/api/source';
-import { readTokens } from '../../shared/auth/oauth';
-import { ActionWord } from '../../shared/components/ActionWord';
-import { BrandMark } from '../../shared/components/BrandMark';
-import { ArrowLeftIcon, BookIcon, SignInIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { CreateFromModelForm } from '../models/CreateFromModel';
+import { ShelfCard } from '../dashboard/NotebookCard';
 import { ParameterList } from '../models/ModelPage';
 import { VersionContents } from '../models/ModelVersionPage';
 
 /**
- * The community catalog (#360): the models their owners published, which
- * anybody reads, signed in or not, and creates notebooks from once signed in.
- * These pages sit outside the frame of the application, because a visitor
- * with no account reaches them, and they may be indexed by search engines
- * (#358): each one says what it is in its title and its description.
+ * The community catalog (#360): the models their owners published, read and
+ * created from by a person signed in, inside the frame of the application and
+ * its menu (#418, RN-PRT-059). The list is the shelf of cards the notebooks
+ * and the models use.
  */
-
-/** Whether this browser holds a session, which creating and reporting need. */
-function signedIn(): boolean {
-  return readTokens() !== null;
-}
-
-/** The description a search engine reads of the page, for as long as it is open. */
-function useDescription(text: string | null | undefined): void {
-  useEffect(() => {
-    if (!text) return;
-    let tag = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const created = !tag;
-    if (!tag) {
-      tag = document.createElement('meta');
-      tag.name = 'description';
-      document.head.append(tag);
-    }
-    const before = tag.content;
-    tag.content = text;
-    return () => {
-      if (created) tag?.remove();
-      else if (tag) tag.content = before;
-    };
-  }, [text]);
-}
-
-/**
- * Where Back goes (#385): the previous page when the router pushed one, and,
- * from a page opened directly, home for a person signed in and the list for a
- * visitor.
- */
-export function backTarget(historyIndex: number, isSignedIn: boolean): -1 | string {
-  if (historyIndex > 0) return -1;
-  return isSignedIn ? '/' : communityAddress();
-}
-
-/**
- * The header of the community pages (#385): the mark and the tagline, as the
- * header of the application shows them, and buttons that say where they lead.
- * Back returns to the page the person came from; arrived from outside, it
- * goes to their home when signed in, and to the list when not.
- */
-function CommunityFrame({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const inside = signedIn();
-  function back(): void {
-    // The router numbers the entries it pushed; 0 is the page opened first.
-    const index = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-    const target = backTarget(index, inside);
-    if (target === -1) void navigate(-1);
-    else void navigate(target);
-  }
-  return (
-    <div className="community-frame">
-      {/* The header of the application, by its own classes, so the mark stands
-          exactly where it stands on every other page (#385). */}
-      <header className="app-header">
-        <Link to="/" className="brand" aria-label={t('community.home')}>
-          <BrandMark />
-        </Link>
-        <span className="header-divider" aria-hidden="true" />
-        <span className="tagline">{t('app.tagline')}</span>
-        <span className="header-spacer" />
-        <nav className="community-nav" aria-label={t('community.title')}>
-          <Link to={communityAddress()} className="button is-quiet is-small">
-            <ActionWord icon={<BookIcon />} word={t('community.title')} />
-          </Link>
-          <button type="button" className="button is-quiet is-small" onClick={back}>
-            <ActionWord icon={<ArrowLeftIcon />} word={t('community.back')} />
-          </button>
-          {inside ? null : (
-            <Link to="/login" className="button is-primary is-small">
-              <ActionWord icon={<SignInIcon />} word={t('community.signIn')} />
-            </Link>
-          )}
-        </nav>
-      </header>
-      <main className="community-main">{children}</main>
-    </div>
-  );
-}
 
 function useDay(): (instant: string) => string {
   const { i18n } = useTranslation();
@@ -136,7 +49,6 @@ export function CommunityPage() {
   const [text, setText] = useState('');
   const [language, setLanguage] = useState<string>('');
   useDocumentTitle(t('community.title'));
-  useDescription(t('community.intro'));
   const found = useQuery({
     queryKey: queryKeys.catalog(text, language || null),
     queryFn: () => searchCatalog({ text, language: language || null }),
@@ -148,8 +60,8 @@ export function CommunityPage() {
   }
 
   return (
-    <CommunityFrame>
-      <article className="content-pane community-page">
+    <>
+      <section className="page shelf-page community-page">
         <h1>{t('community.title')}</h1>
         <p className="page-intro">{t('community.intro')}</p>
         <form className="community-search" role="search" onSubmit={submit}>
@@ -183,27 +95,29 @@ export function CommunityPage() {
         ) : found.data.length === 0 ? (
           <p className="hint">{t('community.nothing')}</p>
         ) : (
-          <ul className="community-results">
-            {found.data.map((model) => (
-              <li key={model.publicId} className="community-card">
-                <h2>
-                  <Link to={communityModelAddress(model.publicId)}>{model.name}</Link>
-                </h2>
-                <p>{model.objective}</p>
-                <p className="hint">
-                  {t('community.byline', {
-                    author: model.author,
-                    language: model.language,
-                    date: day(model.updatedAt),
-                    count: model.versions.length,
-                  })}
-                </p>
-              </li>
+          <div className="shelf-grid">
+            {found.data.map((model, index) => (
+              <ShelfCard
+                key={model.publicId}
+                seed={model.publicId}
+                strip={index % 2 === 0 ? 'blue' : 'orange'}
+                name={model.name}
+                description={model.objective}
+                byline={t('community.by', { author: model.author })}
+                meta={t('community.cardMeta', {
+                  language: model.language,
+                  date: day(model.updatedAt),
+                  count: model.versions.length,
+                })}
+                to={communityModelAddress(model.publicId)}
+                openLabel={t('models.open')}
+                openShort={t('notebooks.openShort')}
+              />
             ))}
-          </ul>
+          </div>
         )}
-      </article>
-    </CommunityFrame>
+      </section>
+    </>
   );
 }
 
@@ -222,10 +136,9 @@ export function CommunityModelPage() {
     retry: false,
   });
   useDocumentTitle(model.data?.name, t('community.title'));
-  useDescription(model.data?.objective);
 
   return (
-    <CommunityFrame>
+    <>
       <article className="content-pane community-page">
         {model.isPending ? (
           <p className="hint">{t('common.loading')}</p>
@@ -255,7 +168,7 @@ export function CommunityModelPage() {
           </>
         )}
       </article>
-    </CommunityFrame>
+    </>
   );
 }
 
@@ -293,13 +206,6 @@ function Report({ publicId }: { publicId: string }) {
   const [said, setSaid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!signedIn()) {
-    return (
-      <p className="hint community-report">
-        <Link to="/login">{t('community.signInToReport')}</Link>
-      </p>
-    );
-  }
   if (!open) {
     return (
       <p className="community-report">
@@ -357,10 +263,9 @@ export function CommunityVersionPage() {
     version.data ? `${version.data.model.name} v${number}` : null,
     t('community.title'),
   );
-  useDescription(version.data?.objective);
 
   return (
-    <CommunityFrame>
+    <>
       <article className="content-pane model-version-page community-page">
         {version.isPending ? (
           <p className="hint">{t('common.loading')}</p>
@@ -377,13 +282,7 @@ export function CommunityVersionPage() {
             ) : null}
             <h2>{t('model.parameters')}</h2>
             <ParameterList parameters={version.data.parameters} />
-            {!signedIn() ? (
-              <p>
-                <Link to="/login" className="button is-primary">
-                  {t('community.signInToCreate')}
-                </Link>
-              </p>
-            ) : creating ? (
+            {creating ? (
               <section className="model-create" aria-label={t('model.create')}>
                 <h2>{t('model.create')}</h2>
                 <CreateFromModelForm
@@ -403,6 +302,6 @@ export function CommunityVersionPage() {
           </>
         )}
       </article>
-    </CommunityFrame>
+    </>
   );
 }

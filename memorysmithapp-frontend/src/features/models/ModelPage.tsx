@@ -374,9 +374,9 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
   const published = model.publication ?? null;
   const ready = model.versions.some((each) => each.status === 'ready');
   /**
-   * What anybody will read of the tables, said where it is published (#366,
-   * RN-PRT-048): the newest ready version is what the catalog shows first, and
-   * the rows it carries become public with it.
+   * What every person signed in will read of the tables, said where it is
+   * published (#366, RN-PRT-059): the newest ready version is what the catalog
+   * shows first, and the rows it carries are read with it.
    */
   const newest = model.versions
     .filter((each) => each.status === 'ready')

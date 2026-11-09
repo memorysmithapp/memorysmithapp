@@ -13,6 +13,7 @@ import { PlusIcon } from '../../shared/components/icons';
 import { intlLocale } from '../../i18n/intl-locale';
 import { byName } from '../dashboard/catalogue';
 import { NewModelDialog } from './NewNotebookDialog';
+import { ShelfCard, formatDay } from '../dashboard/NotebookCard';
 
 /**
  * The notebook models a person reads, in one place (#418, RN-PRT-058): theirs,
@@ -31,17 +32,15 @@ export function ModelsPage() {
     () => (query.data ? byName(query.data, locale) : undefined),
     [query.data, locale],
   );
-  const day = (instant: string) =>
-    new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(new Date(instant));
 
   return (
-    <section className="page models-page">
-      <div className="models-heading">
+    <section className="page shelf-page">
+      <div className="shelf-heading">
         <div>
           <h1>{t('models.title')}</h1>
           <p className="page-intro">{t('models.intro')}</p>
         </div>
-        <div className="models-actions">
+        <div className="shelf-actions">
           <Link to="/community" className="button is-quiet">
             {t('models.community')}
           </Link>
@@ -54,38 +53,38 @@ export function ModelsPage() {
       {state === 'error' ? <p className="status">{t(messageKeyOf(query.error))}</p> : null}
       {models?.length === 0 ? <p className="hint">{t('models.empty')}</p> : null}
       {models && models.length > 0 ? (
-        <ul className="models-list">
-          {models.map((model) => {
-            const to =
-              model.sharedBy === null
-                ? modelAddress(model.notebookId)
-                : sharedModelAddress(model.notebookId);
+        <div className="shelf-grid">
+          {models.map((model, index) => {
+            const parameters = t('models.parameters', { count: model.parameters.length });
+            const day = formatDay(model.updatedAt, locale);
             return (
-              <li key={model.notebookId}>
-                <Link to={to} className="model-card">
-                  <span className="model-card-name">{model.name}</span>
-                  {model.objective ? (
-                    <span className="model-card-objective">{model.objective}</span>
-                  ) : null}
-                  <span className="model-card-meta">
-                    <span
-                      className={model.sharedBy === null ? 'model-chip' : 'model-chip is-shared'}
-                    >
-                      {model.sharedBy === null
-                        ? t('models.mine')
-                        : t('models.sharedBy', { owner: model.sharedBy })}
-                    </span>
-                    {model.publication ? (
-                      <span className="model-chip is-published">{t('models.published')}</span>
-                    ) : null}
-                    <span>{t('models.parameters', { count: model.parameters.length })}</span>
-                    <span>{t('models.updated', { date: day(model.updatedAt) })}</span>
-                  </span>
-                </Link>
-              </li>
+              <ShelfCard
+                key={model.notebookId}
+                seed={model.notebookId}
+                strip={index % 2 === 0 ? 'blue' : 'orange'}
+                name={model.name}
+                description={model.objective}
+                byline={[
+                  model.sharedBy === null
+                    ? t('models.mine')
+                    : t('models.sharedBy', { owner: model.sharedBy }),
+                  model.publication ? t('models.published') : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                meta={`${parameters} · ${t('models.updated', { date: day })}`}
+                shortMeta={`${parameters} · ${day}`}
+                to={
+                  model.sharedBy === null
+                    ? modelAddress(model.notebookId)
+                    : sharedModelAddress(model.notebookId)
+                }
+                openLabel={t('models.open')}
+                openShort={t('notebooks.openShort')}
+              />
             );
           })}
-        </ul>
+        </div>
       ) : null}
 
       <NewModelDialog open={creating} onClose={() => setCreating(false)} />

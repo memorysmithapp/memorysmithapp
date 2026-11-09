@@ -133,7 +133,7 @@ a:hover {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   /* One column the width of the window, never wider: a row of Home that
      scrolls sideways is as wide as all its cards, and an automatic column
      grew to it and pushed the header past the window (#414). */
@@ -220,35 +220,48 @@ a:hover {
   flex: 1;
 }
 
-/* The menu of the product, beside the brand (#418): five entries of one line,
-   the open one in Tinta at 600, as the rows of a notebook mark what is open
-   (#228); the fill is only the cursor. */
+/* The menu of the product (#418): the second row of the header, only for it.
+   Each entry is its icon and its word; the open one is in Tinta at 600 with a
+   rule of Tinta under it, and the fill is only the cursor. It never folds
+   away: where the window is narrow the row scrolls sideways. */
+.app-menu-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
 .top-menu {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 2px;
-  margin-left: 18px;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.top-menu-anchor {
-  position: relative;
+.top-menu::-webkit-scrollbar {
+  display: none;
 }
 .top-menu-item {
-  height: 34px;
+  flex: none;
+  height: 42px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 11px;
+  gap: 7px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-bottom: 2px solid transparent;
   background: none;
   color: var(--text-soft);
   font: 500 13.5px var(--sans);
   white-space: nowrap;
   cursor: pointer;
 }
-.top-menu-item:hover,
-.top-menu-item[aria-expanded='true'] {
+.top-menu-item svg {
+  flex: none;
+}
+.top-menu-item:hover {
   background: var(--hover);
   color: var(--text);
   text-decoration: none;
@@ -256,72 +269,39 @@ a:hover {
 .top-menu-item.active {
   color: var(--chosen);
   font-weight: 600;
+  border-bottom-color: var(--chosen);
+}
+.top-menu-item.active svg {
+  stroke-width: 2.4;
 }
 .top-menu-item:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring);
+  box-shadow: inset var(--focus-ring);
 }
-.top-menu-caret {
-  transform: rotate(90deg);
-  transition: transform 0.15s;
+/* Search stands apart at the end of the row, with the key that opens it. */
+.top-menu-search {
+  margin-left: 8px;
 }
-.top-menu-item[aria-expanded='true'] .top-menu-caret {
-  transform: rotate(-90deg);
-}
-
-/* Notebooks: a list to switch to, under its entry, with a field that narrows
-   it by name and Home at its foot. */
-.menu.notebook-switcher {
-  top: calc(100% + 6px);
-  left: 0;
-  width: 300px;
-}
-.notebook-switcher-filter {
-  margin: 3px 3px 6px;
-  height: 34px;
-  padding: 0 10px;
+.top-menu-key {
+  padding: 1px 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  font: 13px var(--sans);
-}
-.notebook-switcher-filter:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: var(--focus-ring);
-}
-.notebook-switcher-list {
-  display: flex;
-  flex-direction: column;
-  max-height: min(22rem, 55vh);
-  overflow-y: auto;
-}
-.notebook-switcher-list .menu-item-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.notebook-switcher-empty {
-  margin: 6px 10px 8px;
-  font-size: 13px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
   color: var(--text-soft);
 }
-.top-menu-compact + .menu {
-  top: calc(100% + 6px);
-  left: 0;
+@media (max-width: 860px) {
+  .app-menu-row {
+    padding: 0 8px;
+  }
+  .top-menu-key {
+    display: none;
+  }
 }
 
-/* Where a notebook puts its magnifier, among the icons (#418). */
-.header-search {
-  display: flex;
-  align-items: center;
-}
-.header-search:empty {
-  display: none;
-}
-/* The search of a notebook, opened over the page under the header: the field,
-   and its results in the flow under it rather than floating once more. */
+/* Search, opened over the page under the header: the field, and what it
+   found in groups under it. */
 .search-popover {
   position: fixed;
   z-index: 60;
@@ -345,6 +325,64 @@ a:hover {
   padding: 0;
   border: 0;
   box-shadow: none;
+}
+.global-search {
+  top: calc(var(--header-h) + 50px);
+}
+.global-search-results {
+  margin-top: 8px;
+  max-height: min(28rem, 62vh);
+  overflow-y: auto;
+}
+.global-search-group + .global-search-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.global-search-title {
+  margin: 6px 8px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font: 500 10.5px var(--display);
+  color: var(--text-soft);
+}
+.global-search-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.global-search-group a {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: var(--text);
+}
+.global-search-group a:hover,
+.global-search-group a:focus-visible {
+  background: var(--hover);
+  text-decoration: none;
+  outline: none;
+}
+.global-search-group a svg {
+  color: var(--text-soft);
+}
+.global-search-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.global-search-detail {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The content of a notebook's sidebar: the rule, its caption and the tree. */
@@ -1198,6 +1236,9 @@ a:hover {
 /* A long tree scrolls the column; nothing in it is squeezed to fit. */
 .notebook-sidebar > * {
   flex-shrink: 0;
+}
+.notebook-sidebar .search-box {
+  margin-bottom: 0;
 }
 .sidebar-head {
   display: flex;
@@ -7276,40 +7317,8 @@ body.has-sheet .app-main {
 }
 
 /* ── The community catalog (#360) ────────────────────────────────────────────
-   Pages a visitor with no account reaches, so they carry a head of their own
-   instead of the frame of the application. */
-/* The first row of the root, scrolled inside it as the shell is (#410): a
-   frame a viewport tall pushed the banner of the environment out of the window,
-   and on a phone, where 100vh outgrows the visible window, overshot the end of
-   the page even with no banner. */
-.community-frame {
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--bg);
-}
-.community-nav {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-/* On the narrowest phones the three buttons sit closer, so they fit beside
-   the mark, which stays whole (#385). */
-@media (max-width: 380px) {
-  .community-nav {
-    gap: 2px;
-  }
-  .community-nav .button:has(> .action-word:not(.is-kept)) {
-    min-width: 36px;
-  }
-}
-.community-main {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
-}
+   Pages of the application since #418, under its menu: the search, then the
+   shelf of cards the notebooks and the models use. */
 .community-search {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 12rem auto;
@@ -7324,27 +7333,6 @@ body.has-sheet .app-main {
   .community-search {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-.community-results {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.community-card {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-}
-.community-card h2 {
-  margin: 0 0 0.35rem;
-  font-family: var(--display);
-  font-size: 1rem;
-}
-.community-card p {
-  margin: 0.25rem 0 0;
 }
 .community-report,
 .model-publication {
@@ -7936,97 +7924,37 @@ body.has-sheet .app-main {
   background: var(--bg);
 }
 
-/* ---- The models a person reads (#418) ------------------------------------
+/* ---- The shelves (#418) ----------------------------------------------------
  *
- * A list of one card per model, each a link to its page, with what it is for
- * and whose it is. The blue is the action that starts a new one.
+ * Notebooks, models and community models: a heading with the action that
+ * adds one, and the same card in a grid that fills the width.
  */
-.models-page {
-  max-width: 64rem;
+.shelf-page {
+  max-width: none;
 }
-.models-heading {
+.shelf-heading {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-.models-heading h1 {
-  margin: 0 0 6px;
-}
-.models-heading .page-intro {
-  max-width: 40rem;
-}
-.models-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   margin-bottom: 18px;
 }
-.models-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-  gap: 14px;
+.shelf-heading h1 {
+  margin: 0 0 6px;
 }
-.model-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text);
+.shelf-heading .page-intro {
+  max-width: 44rem;
+  margin-bottom: 0;
 }
-.model-card:hover {
-  text-decoration: none;
-  border-color: var(--box-edge);
-}
-.model-card:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-.model-card-name {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 1.05rem;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-.model-card-objective {
-  font-size: 0.86rem;
-  line-height: 1.5;
-  color: var(--text-soft);
-}
-.model-card-meta {
-  margin-top: auto;
+.shelf-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  font-size: 0.76rem;
-  color: var(--text-soft);
+  gap: 8px;
 }
-.model-chip {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--track);
-  color: var(--text);
-  font-weight: 500;
-}
-.model-chip.is-shared {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.model-chip.is-published {
-  border: 1px solid var(--node-green);
-  background: none;
-  color: var(--node-green);
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  grid-auto-rows: max-content;
+  gap: 18px;
 }

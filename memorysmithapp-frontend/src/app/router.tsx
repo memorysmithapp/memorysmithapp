@@ -35,6 +35,7 @@ import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
 import { ModelsPage } from '../features/models/ModelsPage';
+import { NotebooksPage } from '../features/dashboard/NotebooksPage';
 import {
   CommunityModelPage,
   CommunityPage,
@@ -64,10 +65,6 @@ export const router = createBrowserRouter([
     children: [
       { path: '/login', element: <LoginPage /> },
       { path: '/auth/callback', element: <AuthCallbackPage /> },
-      // The community catalog, which anybody reads, signed in or not (#360).
-      { path: '/community', element: <CommunityPage /> },
-      { path: '/community/:publicId', element: <CommunityModelPage /> },
-      { path: '/community/:publicId/versions/:version', element: <CommunityVersionPage /> },
       {
         element: <RequireSession />,
         children: [
@@ -101,9 +98,16 @@ export const router = createBrowserRouter([
                   </WelcomeGate>
                 ),
               },
-              // What the product is, opened once by itself and from the user
-              // menu from then on (#167).
+              // Every notebook, as cards (#418).
+              { path: '/notebooks', element: <NotebooksPage /> },
+              // What the product is, opened once by itself and from the menu
+              // of the header from then on (#167, #418).
               { path: '/about', element: <AboutPage /> },
+              // The community catalog, read by a person signed in, inside the
+              // frame and its menu (#360, #418, RN-PRT-059).
+              { path: '/community', element: <CommunityPage /> },
+              { path: '/community/:publicId', element: <CommunityModelPage /> },
+              { path: '/community/:publicId/versions/:version', element: <CommunityVersionPage /> },
               // What a person is called, the face beside it, and the password
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },

@@ -86,11 +86,6 @@ interface SearchBoxProps {
   floating?: boolean;
 }
 
-/** The key that opens the search of a notebook: ⌘K with a Command key, Ctrl K elsewhere. */
-export const SHORTCUT = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '')
-  ? '⌘K'
-  : 'Ctrl K';
-
 /** Where a floating list is drawn: against the window, since the sidebar clips. */
 interface Anchor {
   top: number;

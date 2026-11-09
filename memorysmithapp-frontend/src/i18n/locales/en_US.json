@@ -80,15 +80,13 @@
   },
   "nav": {
     "label": "Menu of the product",
-    "menu": "Menu",
+    "home": "Home",
     "notebooks": "Notebooks",
     "models": "Models",
     "community": "Community",
     "transfers": "Transfers",
     "about": "About MemorySmith.app",
-    "filter": "Find a notebook…",
-    "allNotebooks": "All notebooks",
-    "noMatch": "No notebook has that name."
+    "search": "Search"
   },
   "models": {
     "title": "Notebook models",
@@ -285,12 +283,6 @@
     "close": "Close"
   },
   "dashboard": {
-    "selectNotebook": "Open a notebook",
-    "prevNotebooks": "Previous notebooks",
-    "nextNotebooks": "Next notebooks",
-    "expandNotebooks": "Show all notebooks",
-    "collapseNotebooks": "Back to one row",
-    "goToNotebook": "Go to notebook {{number}}",
     "noNotebooks": "No notebook yet. Create one here, an agent creates one through the connector, and an export comes back in through Transfers.",
     "space": "Subscription space",
     "planChip": "{{plan}} · {{quota}}",
@@ -558,7 +550,7 @@
     "deleteConfirm": "Delete for good",
     "deleting": "Deleting…",
     "carry": {
-      "published": "These tables go with their rows, which anybody will read: {{tables}}."
+      "published": "These tables go with their rows, which every person signed in will read: {{tables}}."
     },
     "shownBy_one": "Shown in {{count}} note",
     "shownBy_other": "Shown in {{count}} notes",
@@ -734,7 +726,7 @@
       "body": "This interface is a reading tool before it is an editing one. These are the surfaces it gives you:",
       "notebooks": {
         "term": "Notebooks",
-        "definition": "The first screen lists them, with how many notes each one holds and when it last changed. Opening one takes you back to where you stopped reading."
+        "definition": "Notebooks, in the menu at the top, lists them as cards, with how many notes each one holds and when it last changed. Opening one takes you back to where you stopped reading."
       },
       "folders": {
         "term": "Folders and notes",
@@ -766,7 +758,7 @@
       },
       "search": {
         "term": "Search",
-        "definition": "Across the notes of a notebook, by what they say and by the properties they declare: the magnifier at the top of a notebook, or Ctrl K."
+        "definition": "Search, in the menu at the top or with Ctrl K, finds notebooks, models and community models by name; inside a notebook, the field at the top of its sidebar searches its notes by what they say and by the properties they declare."
       },
       "sharing": {
         "term": "Sharing",
@@ -1257,7 +1249,7 @@
     "referenceExample": "name",
     "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner.",
     "community": "Community",
-    "publishHint": "Publishing shows the model and every version you keep to anybody, signed in or not, by the name of your account and never your e-mail; whoever signs in creates notebooks from it. You withdraw it at any time.",
+    "publishHint": "Publishing shows the model and every version you keep to every person signed in to MemorySmith.app, by the name of your account and never your e-mail; whoever reads it creates notebooks from it. You withdraw it at any time.",
     "publishLicence": "Every distribution of a model is under CC0 1.0: anybody may reuse and republish it freely, the community included.",
     "publish": "Publish to the community",
     "publishNeedsVersion": "Create a version first: the community reads versions, never the notebook.",
@@ -1302,10 +1294,7 @@
   },
   "community": {
     "title": "Community models",
-    "home": "Home",
-    "back": "Back",
-    "signIn": "Sign in",
-    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. Anybody may read them; creating a notebook from one asks you to sign in.",
+    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from.",
     "search": "Find",
     "searchHint": "Words of the name, the objective, the author…",
     "find": "Find",
@@ -1317,15 +1306,24 @@
       "es": "Spanish"
     },
     "nothing": "No published model answers this search.",
-    "byline_one": "By {{author}} · {{language}} · updated {{date}} · {{count}} version",
-    "byline_other": "By {{author}} · {{language}} · updated {{date}} · {{count}} versions",
     "author": "Author",
     "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
     "report": "Report this model",
     "reportWhy": "What is wrong with it",
     "sendReport": "Send the report",
     "reported": "Thank you: the report reached the operator of the platform.",
-    "signInToReport": "Sign in to report this model",
-    "signInToCreate": "Sign in to create a notebook from this version"
+    "by": "By {{author}}",
+    "cardMeta_one": "{{language}} · updated {{date}} · {{count}} version",
+    "cardMeta_other": "{{language}} · updated {{date}} · {{count}} versions"
+  },
+  "globalSearch": {
+    "placeholder": "Find notebooks, models and community models…",
+    "groups": {
+      "notebooks": "Notebooks",
+      "models": "Models",
+      "community": "Community"
+    },
+    "nothing": "Nothing has that name.",
+    "typeMore": "Type to find a notebook, a model or a community model."
   }
 }

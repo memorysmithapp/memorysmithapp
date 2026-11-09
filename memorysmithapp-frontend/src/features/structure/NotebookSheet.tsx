@@ -186,7 +186,7 @@ export function NotebookSheet({
                 />
               ) : null}
               <div className="sidebar-head">
-                <Link to="/" className="back-link">
+                <Link to="/notebooks" className="back-link">
                   <ArrowLeftIcon width={14} height={14} />
                   {t('structure.backToNotebooks')}
                 </Link>

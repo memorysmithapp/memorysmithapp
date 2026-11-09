@@ -10,7 +10,7 @@ import { ArrowLeftIcon } from '../../shared/components/icons';
 import { NARROW_NOTEBOOK, useMatchMedia } from '../../shared/lib/media';
 import { NotebookSheet } from './NotebookSheet';
 import { NotebookNav } from './NotebookNav';
-import { NotebookSearch } from '../search/NotebookSearch';
+import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
 import { FolderTreeSkeleton, NoteSkeleton } from '../../shared/components/skeletons';
 import { SkeletonBar } from '../../shared/components/Skeleton';
@@ -21,7 +21,6 @@ import { leaveNotebook } from './arrival';
 import { queryKeys } from '../../shared/api/query-keys';
 import { flushEverySession, useEditSessions } from '../../shared/store/edit-sessions';
 import { usePreferences } from '../../shared/store/preferences';
-import { HeaderSearch } from '../../shared/components/HeaderSearchSlot';
 import { SidebarFold } from '../../shared/components/SidebarFold';
 
 export interface NotebookOutletContext {
@@ -106,20 +105,12 @@ export function NotebookLayout() {
           <NotebookSheet notebookId={notebookId} structure={data} />
         ) : (
           <>
-            {/* The search of the notebook, a magnifier in the header (#418):
-                the notebook still draws it, because its tree is what turns a
-                hit into a link. */}
-            {data ? (
-              <HeaderSearch>
-                <NotebookSearch notebookId={notebookId} structure={data} />
-              </HeaderSearch>
-            ) : null}
             <aside
               className={`notebook-sidebar${collapsed ? ' is-collapsed' : ''}`}
               id="notebook-sidebar"
             >
               <div className="sidebar-head">
-                <Link to="/" className="back-link" title={t('structure.backToNotebooks')}>
+                <Link to="/notebooks" className="back-link" title={t('structure.backToNotebooks')}>
                   <ArrowLeftIcon width={14} height={14} />
                   <span className="back-link-label">{t('structure.backToNotebooks')}</span>
                 </Link>
@@ -129,6 +120,13 @@ export function NotebookLayout() {
                   {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
                 </h2>
               </div>
+              {/* The search inside the notes, at the top of the sidebar (#418):
+                  Search in the menu finds notebooks and models by name. */}
+              {data ? (
+                <SearchBox notebookId={notebookId} structure={data} />
+              ) : (
+                <SkeletonBar height="2.2rem" />
+              )}
               <NotebookNav notebookId={notebookId} />
               <div className="sidebar-content">
                 <hr className="sidebar-rule" />

@@ -7,7 +7,7 @@ import type { NotebookSummary } from '../../shared/types/api';
 import { CardGraphDrawing } from './card-graphs';
 
 /** A day as the design writes it: 22/09/2026, 09/22/2026. */
-function formatDay(iso: string, locale: string): string {
+export function formatDay(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',
@@ -16,14 +16,76 @@ function formatDay(iso: string, locale: string): string {
 }
 
 /**
- * One notebook on the Home screen (#198): a strip of the brand on top, the
- * drawing, the name, the description, and a footer with how many notes it
- * holds, when it last changed, and the way in.
+ * The card of a shelf (#418): a strip of the brand on top, the drawing, the
+ * name, what it is, and a footer with what it holds and the way in. Notebooks,
+ * models and community models are the same card, so the three pages read as
+ * one product.
  *
- * The whole card opens the notebook, through the one link of its footer
+ * The whole card opens what it shows, through the one link of its footer
  * stretched over it, so a control in a corner of the card (the `⋯` of #199)
  * is a control of its own and not a button inside a link.
  */
+export function ShelfCard({
+  seed,
+  name,
+  description,
+  byline,
+  meta,
+  shortMeta,
+  to,
+  openLabel,
+  openShort,
+  strip,
+  corner,
+  children,
+}: {
+  /** What draws the decoration: the same seed, the same drawing. */
+  seed: string;
+  name: string;
+  description?: string | null;
+  /** A line under the description: whose it is. */
+  byline?: string | null;
+  /** The footer on a wide card, and on a narrow one. */
+  meta: ReactNode;
+  shortMeta?: ReactNode;
+  to: string;
+  openLabel: string;
+  openShort: string;
+  /** The strip on top: the brand, or the red of a card that is asking. */
+  strip: 'blue' | 'orange' | 'danger';
+  /** What sits in the top-right corner: the actions of the card. */
+  corner?: ReactNode;
+  /** What replaces the body, when the card is asking something. */
+  children?: ReactNode;
+}) {
+  return (
+    <article className="notebook-card" data-strip={strip}>
+      {children ?? (
+        <>
+          <CardGraphDrawing notebookId={seed} />
+          <div className="notebook-card-text">
+            <h2>{name}</h2>
+            {description ? <p>{description}</p> : null}
+            {byline ? <p className="notebook-card-byline">{byline}</p> : null}
+          </div>
+          <footer>
+            <span className="notebook-card-meta">
+              <span className={shortMeta ? 'is-long' : undefined}>{meta}</span>
+              {shortMeta ? <span className="is-short">{shortMeta}</span> : null}
+            </span>
+            <Link to={to} className="notebook-open">
+              <span className="is-long">{openLabel}</span>
+              <span className="is-short">{openShort}</span> →
+            </Link>
+          </footer>
+        </>
+      )}
+      {corner}
+    </article>
+  );
+}
+
+/** One notebook among the notebooks (#198), on the shelf card. */
 export function NotebookCard({
   notebook,
   strip,
@@ -50,30 +112,20 @@ export function NotebookCard({
   const notes = t('notebooks.noteCount', { count: notebook.noteCount });
 
   return (
-    <article className="notebook-card" data-strip={strip}>
-      {children ?? (
-        <>
-          <CardGraphDrawing notebookId={notebook.id} />
-          <div className="notebook-card-text">
-            <h2>{notebook.name}</h2>
-            {notebook.description ? <p>{notebook.description}</p> : null}
-            {byline ? <p className="notebook-card-byline">{byline}</p> : null}
-          </div>
-          <footer>
-            <span className="notebook-card-meta">
-              {notes}
-              {' · '}
-              <span className="is-long">{t('notebooks.updatedAt', { date: day })}</span>
-              <span className="is-short">{day}</span>
-            </span>
-            <Link to={to ?? notebookAddress(notebook.id)} className="notebook-open">
-              <span className="is-long">{t('notebooks.open')}</span>
-              <span className="is-short">{t('notebooks.openShort')}</span> →
-            </Link>
-          </footer>
-        </>
-      )}
-      {corner}
-    </article>
+    <ShelfCard
+      seed={notebook.id}
+      name={notebook.name}
+      description={notebook.description}
+      byline={byline}
+      meta={`${notes} · ${t('notebooks.updatedAt', { date: day })}`}
+      shortMeta={`${notes} · ${day}`}
+      to={to ?? notebookAddress(notebook.id)}
+      openLabel={t('notebooks.open')}
+      openShort={t('notebooks.openShort')}
+      strip={strip}
+      corner={corner}
+    >
+      {children}
+    </ShelfCard>
   );
 }

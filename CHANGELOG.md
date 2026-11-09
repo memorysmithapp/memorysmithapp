@@ -13,11 +13,19 @@ issues each entry cites.
 
 ### Added
 
-- **Notebook models have a page of their own.** Models, in the menu at the top, lists every notebook model you read, yours and the ones shared with you as a model, each with what it is for, whose it is, whether it is in the community and how many parameters it asks, and opens its page. A new model starts there; New notebook on Home now creates a notebook only, blank or from a model. (#418)
+- **Notebook models have a page of their own.** Models, in the menu, lists every notebook model you read, yours and the ones shared with you as a model, as cards saying what each is for, whose it is, whether it is in the community and how many parameters it asks. A new model starts there; New notebook now creates a notebook only, blank or from a model. (#418)
+
+- **Search finds notebooks, models and community models from anywhere.** Search, at the end of the menu or with `Ctrl K` (`⌘K` on a Mac), finds them by name as you type, in groups, and Enter opens the first. The search inside the notes of a notebook stays at the top of the notebook's sidebar. (#418)
 
 ### Changed
 
-- **A menu at the top of every page, and a sidebar only inside a notebook.** The header now carries the menu of the product beside the brand: Notebooks, Models, Community, Transfers and About MemorySmith.app, which left the menu of your picture. Notebooks opens a list of your notebooks, narrowed as you type a name, so you go from one notebook to another without passing through Home. Outside a notebook there is no sidebar and the page keeps the whole width; inside one, the notebook's sidebar folds to its icons with the button at its foot, so a note can take the whole width, and the browser remembers the choice. The search of a notebook is a magnifier among the icons at the top, and `Ctrl K` (`⌘K` on a Mac) opens it from anywhere in the notebook. Light and dark switch from a button in the header, and the user menu still offers following the system. The slogan left the header and stays on the sign-in screen. (#414, #418)
+- **A menu on every page, in a row of its own.** The header now has two rows: the brand and your controls, then the menu of the product with an icon beside each entry: Home, Notebooks, Models, Community, Transfers, About MemorySmith.app and Search. It never folds away; on a narrow window the row scrolls sideways. About and Community left the menu of your picture; the ⇅ icon stays to show a transfer under way. Light and dark switch from a button in the header, and the user menu still offers following the system. The slogan left the header and stays on the sign-in screen. (#414, #418)
+
+- **Home shows the space of the subscription, and Notebooks lists the notebooks.** Home is now what fills the subscription and how much is left. Notebooks is a page of its own with every notebook as a card in a grid that fills the width, the ones shared with you among them, where a share is accepted or declined; the row that scrolled sideways and its expand button are gone. Models and the community use the same card. (#418)
+
+- **A sidebar only inside a notebook, and it folds to its icons.** Outside a notebook the page keeps the whole width. Inside one, the button at the foot of its sidebar folds it to its icons, so a note can take the whole width, and the browser remembers the choice. All notebooks, at its top, goes to Notebooks. (#414, #418)
+
+- **The community is read signed in.** Its pages, the search, a model and a version, are now pages of the application under its menu, and a person who is not signed in is asked to sign in first; they are no longer indexed by search engines. Publishing a model says it is shown to every person signed in. (#418)
 
 ## [0.17.0] - 2026-11-08
 
