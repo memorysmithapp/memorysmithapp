@@ -100,8 +100,16 @@ test.describe('notebook models', () => {
       await app.goto(new URL('/models', app.url()).href);
       await expect(newModel).toBeVisible({ timeout: 5_000 });
     }).toPass({ timeout: 60_000 });
-    // Each model it reads is a card, or the page says there is none yet.
-    await expect(app.locator('.models-list .model-card, .models-page .hint').first()).toBeVisible();
+    // Each model it reads is a card, or the page says there is none yet; a card
+    // says whose it is in its corner, with the words in a tooltip, beside its ⋯.
+    await expect(
+      app.locator('.shelf-grid article.notebook-card, .shelf-page .hint').first(),
+    ).toBeVisible();
+    const card = app.locator('.shelf-grid article.notebook-card').first();
+    if ((await card.count()) > 0) {
+      await expect(card.locator('.ownership-mark[title]')).toBeVisible();
+      await expect(card.locator('button.notebook-card-more')).toBeVisible();
+    }
     await testInfo.attach('models.png', { body: await app.screenshot(), contentType: 'image/png' });
 
     // The notebooks offer a notebook only; a model starts here (#418).
@@ -326,7 +334,12 @@ test.describe('notebook models', () => {
       await app.getByRole('button', { name: words.find, exact: true }).click();
       // The model is a card, the card the notebooks and the models use (#418).
       const card = app.locator('article.notebook-card', { hasText: notebook.name });
-      await card.locator('a.notebook-open').click({ timeout: 90_000 });
+      // Its corner says it is the owner's own, published (#418).
+      await expect(card.locator('.ownership-mark[data-ownership="own"]')).toBeVisible({
+        timeout: 90_000,
+      });
+      await expect(card.locator('button.notebook-card-more')).toBeVisible();
+      await card.locator('a.notebook-open').click();
 
       await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
       await expect(app.getByText(words.licence, { exact: false })).toBeVisible();
