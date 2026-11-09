@@ -86,27 +86,31 @@ const MODEL_WORDS: Record<
 };
 
 test.describe('notebook models', () => {
-  test('opens the menu under New notebook, and the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398, #402)', async ({
+  test('[page:/models] lists the models a person reads, and opens the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398, #418)', async ({
     app,
     notebook,
     appLocale,
-  }) => {
+  }, testInfo) => {
     const words = MODEL_WORDS[appLocale];
-    // From a page of the run, then Home until it shows: the first visit of an
-    // account opens the welcome surface in its place, once.
+    // From a page of the run, then the models until they show: the first
+    // visit of an account opens the welcome surface in its place, once.
     await app.goto(notebook.page('/model'));
-    const newNotebook = app.getByRole('button', { name: words.newNotebook });
+    const newModel = app.getByRole('button', { name: words.newModel });
     await expect(async () => {
-      await app.goto(new URL('/', app.url()).href);
-      await expect(newNotebook).toBeVisible({ timeout: 5_000 });
+      await app.goto(new URL('/models', app.url()).href);
+      await expect(newModel).toBeVisible({ timeout: 5_000 });
     }).toPass({ timeout: 60_000 });
-    await newNotebook.click();
-    // The menu opens right under the button, aligned with it (#402).
-    const button = await newNotebook.boundingBox();
-    const menu = await app.getByRole('menu', { name: words.newNotebook }).boundingBox();
-    expect(menu && button && menu.y >= button.y + button.height).toBe(true);
-    expect(menu && button && Math.abs(menu.x - button.x) <= 1).toBe(true);
-    await app.getByRole('menuitem', { name: words.newModel }).click();
+    // Each model it reads is a card, or the page says there is none yet.
+    await expect(app.locator('.models-list .model-card, .models-page .hint').first()).toBeVisible();
+    await testInfo.attach('models.png', { body: await app.screenshot(), contentType: 'image/png' });
+
+    // Home offers a notebook only; a model starts here (#418).
+    await app.goto(new URL('/', app.url()).href);
+    await expect(app.getByRole('button', { name: words.newNotebook })).toBeVisible();
+    await expect(app.getByRole('button', { name: words.newModel })).toHaveCount(0);
+    await app.goto(new URL('/models', app.url()).href);
+
+    await newModel.click();
     const box = app.locator('.new-notebook .ask-dialog-box');
     await expect(box).toBeVisible();
 
@@ -118,7 +122,7 @@ test.describe('notebook models', () => {
     await expect.poll(async () => (await box.boundingBox())?.width ?? 0).toBe(390);
   });
 
-  test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] creates a model from Home, freezes a version and creates a notebook from it', async ({
+  test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] creates a model from the models, freezes a version and creates a notebook from it', async ({
     app,
     notebook,
     owner,
@@ -130,9 +134,8 @@ test.describe('notebook models', () => {
     await expect(app.getByText(words.notAModel, { exact: true })).toBeVisible();
     await expect(app.getByLabel(words.objective, { exact: true })).toHaveCount(0);
 
-    await app.goto(new URL('/', app.url()).href);
-    await app.getByRole('button', { name: words.newNotebook }).click();
-    await app.getByRole('menuitem', { name: words.newModel }).click();
+    await app.goto(new URL('/models', app.url()).href);
+    await app.getByRole('button', { name: words.newModel }).click();
     const modelName = `${notebook.name} model`;
     await app.getByLabel(words.name, { exact: true }).first().fill(modelName);
     await app.getByLabel(words.objective, { exact: true }).fill('Keep the findings of one review');

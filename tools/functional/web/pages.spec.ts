@@ -107,70 +107,77 @@ test.describe('the pages of an account', () => {
     }
   });
 
-  test('[page:/] draws one sidebar on every page, folds it to its icons, and puts the search of a notebook in the header (#414)', async ({
+  test('[page:/] keeps the whole width outside a notebook, moves between notebooks from the menu of the header, and opens the search of a notebook from its magnifier (#414, #418)', async ({
     app,
     notebook,
     state,
   }, testInfo) => {
     await app.setViewportSize({ width: 1440, height: 900 });
 
-    // Outside a notebook the shell has its own sidebar, which lists the
-    // notebooks so moving between them no longer goes through Home.
-    for (const path of ['/', '/transfers', '/profile']) {
+    // Outside a notebook there is no sidebar: the menu of the product is in
+    // the header, and the page keeps the width.
+    for (const path of ['/', '/transfers', '/profile', '/models', '/about']) {
       await app.goto(`${state.surfaces.site}${path}`);
-      await expect(app.locator('aside#app-sidebar')).toBeVisible();
+      await expect(app.locator('nav.top-menu')).toBeVisible();
+      await expect(app.locator('aside')).toHaveCount(0);
     }
     await app.goto(`${state.surfaces.site}/`);
-    const shell = app.locator('aside#app-sidebar');
-    await expect(shell.locator('a.nav-row', { hasText: notebook.name })).toBeVisible();
-    // The slogan left the header for the sign-in screen, and the middle is the
-    // search's, which only a notebook has.
+    // The slogan left the header, and a page without a notebook has no search.
     await expect(app.locator('.app-header .tagline')).toHaveCount(0);
-    await expect(app.locator('.app-header .search-box')).toHaveCount(0);
+    await expect(app.locator('.notebook-search-trigger')).toHaveCount(0);
     // The row of notebooks scrolls inside Home and never widens the shell: the
     // header keeps its actions inside the window.
     await expect(app.locator('button.user-menu-trigger')).toBeInViewport({ ratio: 1 });
-    const shellBox = await app.locator('.app-shell').boundingBox();
-    expect(shellBox?.width ?? 0).toBeLessThanOrEqual(1440);
+    expect((await app.locator('.app-shell').boundingBox())?.width ?? 0).toBeLessThanOrEqual(1440);
     await testInfo.attach('shell-home.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
 
-    // Folded, the column keeps its icons and nothing that needs words.
-    await shell.locator('button.sidebar-fold').click();
-    await expect(shell).toHaveClass(/is-collapsed/);
-    expect((await shell.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
-    await expect(shell.locator('.sidebar-notebooks')).toBeHidden();
-    await testInfo.attach('shell-home-folded.png', {
+    // Notebooks opens a list to switch to, narrowed by name.
+    const switcher = app.locator('nav.top-menu .top-menu-anchor > button');
+    await switcher.click();
+    const list = app.locator('.notebook-switcher');
+    await expect(list).toBeVisible();
+    await list.locator('input.notebook-switcher-filter').fill(notebook.name);
+    await expect(list.getByRole('menuitem', { name: notebook.name })).toBeVisible();
+    await testInfo.attach('shell-switcher.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
+    await list.getByRole('menuitem', { name: notebook.name }).click();
+    await expect(app).toHaveURL(new RegExp(`/notebooks/${notebook.notebookId.toLowerCase()}`));
 
-    // Inside a notebook, the notebook's sidebar takes the column, folded by the
-    // same choice, and its search sits in the middle of the header.
-    await app.goto(notebook.page());
+    // Inside a notebook, its sidebar sits under the header and folds to its
+    // icons by a choice the browser remembers.
     const sidebar = app.locator('aside#notebook-sidebar');
+    await expect(sidebar).toBeVisible();
+    await sidebar.locator('button.sidebar-fold').click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
-    await expect(app.locator('aside#app-sidebar')).toHaveCount(0);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
-    const search = app.locator('.app-header .search-box input[type="search"]');
-    await expect(search).toBeVisible();
-    // Ctrl K reaches it from anywhere.
-    await expect(search).not.toBeFocused();
+    await app.reload();
+    await expect(app.locator('aside#notebook-sidebar')).toHaveClass(/is-collapsed/);
+
+    // The search is a magnifier among the icons, and Ctrl K opens it from
+    // anywhere, with the field taking the focus.
+    const trigger = app.locator('.notebook-search-trigger');
+    await expect(trigger).toBeVisible();
+    const field = app.locator('#notebook-search .search-box input[type="search"]');
+    await expect(field).toBeHidden();
     await app.keyboard.press('ControlOrMeta+k');
-    await expect(search).toBeFocused();
-    await testInfo.attach('shell-notebook-folded.png', {
+    await expect(field).toBeFocused();
+    await field.fill('Checklist');
+    await expect(app.locator('#notebook-search .search-results')).toBeVisible();
+    await testInfo.attach('shell-notebook-search.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
+    await app.keyboard.press('Escape');
+    await expect(field).toBeHidden();
 
     // Opened again, and the browser remembers it.
-    await sidebar.locator('button.sidebar-fold').click();
-    await expect(sidebar).not.toHaveClass(/is-collapsed/);
-    await app.reload();
+    await app.locator('aside#notebook-sidebar button.sidebar-fold').click();
     await expect(app.locator('aside#notebook-sidebar')).not.toHaveClass(/is-collapsed/);
-    await expect(search).toBeVisible();
     await testInfo.attach('shell-notebook.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
@@ -368,10 +375,12 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(`${state.surfaces.site}/`);
 
-    // From the user menu, which is where it lives once it has opened by
-    // itself: the fixture account has been here before (#167).
-    await app.locator('button.user-menu-trigger').click();
-    await app.getByRole('menuitem', { name: words.aboutMenu, exact: true }).click();
+    // From the menu of the header, which is where it lives once it has opened
+    // by itself: the fixture account has been here before (#167, #418).
+    await app
+      .locator('nav.top-menu')
+      .getByRole('link', { name: words.aboutMenu, exact: true })
+      .click();
     await app.waitForURL(`${state.surfaces.site}/about`);
 
     await expect(app.getByRole('heading', { name: words.aboutHeading })).toBeVisible();
@@ -534,29 +543,32 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveURL(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
   });
 
-  test('closes the results of the search with Esc wherever the focus went (#192)', async ({
+  test('closes the search with Esc wherever the focus went, and keeps the query when a click puts it away (#192, #418)', async ({
     app,
     notebook,
   }) => {
     await app.goto(notebook.page());
 
-    const box = app.locator('.search-box input[type="search"]');
+    await app.locator('.notebook-search-trigger').click();
+    const box = app.locator('#notebook-search .search-box input[type="search"]');
     await box.fill('Checklist');
-    const results = app.locator('.search-results');
+    const results = app.locator('#notebook-search .search-results');
     await expect(results).toBeVisible();
 
-    // The focus leaves the box, which is where the only handler used to be.
+    // A click outside puts the search away and keeps the query (#232); the
+    // magnifier brings it back as it was.
     await app.locator('aside#notebook-sidebar .sidebar-notebook').click();
-    // A click outside puts the list away and keeps the query (#232); the
-    // field brings it back.
-    await expect(results).toBeHidden();
+    await expect(box).toBeHidden();
+    await app.locator('.notebook-search-trigger').click();
     await expect(box).toHaveValue('Checklist');
     await box.focus();
     await expect(results).toBeVisible();
-    await app.locator('aside#notebook-sidebar .back-link').focus();
-    await app.keyboard.press('Escape');
 
-    await expect(results).toBeHidden();
+    // Esc closes it from wherever the focus is, and throws the query out.
+    await app.locator('#notebook-search').locator('.search-hint').click();
+    await app.keyboard.press('Escape');
+    await expect(box).toBeHidden();
+    await app.keyboard.press('ControlOrMeta+k');
     await expect(box).toHaveValue('');
   });
 
