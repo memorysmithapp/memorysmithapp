@@ -107,6 +107,70 @@ test.describe('the pages of an account', () => {
     }
   });
 
+  test('[page:/] draws one sidebar on every page, folds it to its icons, and puts the search of a notebook in the header (#414)', async ({
+    app,
+    notebook,
+    state,
+  }, testInfo) => {
+    await app.setViewportSize({ width: 1440, height: 900 });
+
+    // Outside a notebook the shell has its own sidebar, which lists the
+    // notebooks so moving between them no longer goes through Home.
+    for (const path of ['/', '/transfers', '/profile']) {
+      await app.goto(`${state.surfaces.site}${path}`);
+      await expect(app.locator('aside#app-sidebar')).toBeVisible();
+    }
+    await app.goto(`${state.surfaces.site}/`);
+    const shell = app.locator('aside#app-sidebar');
+    await expect(shell.locator('a.nav-row', { hasText: notebook.name })).toBeVisible();
+    // The slogan left the header for the sign-in screen, and the middle is the
+    // search's, which only a notebook has.
+    await expect(app.locator('.app-header .tagline')).toHaveCount(0);
+    await expect(app.locator('.app-header .search-box')).toHaveCount(0);
+    await testInfo.attach('shell-home.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // Folded, the column keeps its icons and nothing that needs words.
+    await shell.locator('button.sidebar-fold').click();
+    await expect(shell).toHaveClass(/is-collapsed/);
+    expect((await shell.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
+    await expect(shell.locator('.sidebar-notebooks')).toBeHidden();
+    await testInfo.attach('shell-home-folded.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // Inside a notebook, the notebook's sidebar takes the column, folded by the
+    // same choice, and its search sits in the middle of the header.
+    await app.goto(notebook.page());
+    const sidebar = app.locator('aside#notebook-sidebar');
+    await expect(sidebar).toHaveClass(/is-collapsed/);
+    await expect(app.locator('aside#app-sidebar')).toHaveCount(0);
+    expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
+    const search = app.locator('.app-header .search-box input[type="search"]');
+    await expect(search).toBeVisible();
+    // Ctrl K reaches it from anywhere.
+    await expect(search).not.toBeFocused();
+    await app.keyboard.press('ControlOrMeta+k');
+    await expect(search).toBeFocused();
+    await testInfo.attach('shell-notebook-folded.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // Opened again, and the browser remembers it.
+    await sidebar.locator('button.sidebar-fold').click();
+    await expect(sidebar).not.toHaveClass(/is-collapsed/);
+    await app.reload();
+    await expect(app.locator('aside#notebook-sidebar')).not.toHaveClass(/is-collapsed/);
+    await testInfo.attach('shell-notebook.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+  });
+
   test('ends the row of notebooks on the margins of Home, on a computer and on a phone (#212, #213)', async ({
     app,
     notebook,
