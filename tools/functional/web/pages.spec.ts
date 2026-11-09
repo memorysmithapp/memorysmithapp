@@ -170,6 +170,7 @@ test.describe('the pages of an account', () => {
     await expect(sidebar).not.toHaveClass(/is-collapsed/);
     await app.reload();
     await expect(app.locator('aside#notebook-sidebar')).not.toHaveClass(/is-collapsed/);
+    await expect(search).toBeVisible();
     await testInfo.attach('shell-notebook.png', {
       body: await app.screenshot(),
       contentType: 'image/png',

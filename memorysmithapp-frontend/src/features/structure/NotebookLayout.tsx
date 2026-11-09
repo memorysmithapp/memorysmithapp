@@ -113,7 +113,10 @@ export function NotebookLayout() {
               {data ? (
                 <SearchBox notebookId={notebookId} structure={data} shortcut />
               ) : (
-                <SkeletonBar height="2.2rem" />
+                // As wide as the field it stands for, never the whole header.
+                <div className="search-box">
+                  <SkeletonBar height="2.2rem" />
+                </div>
               )}
             </HeaderSearch>
             <aside
