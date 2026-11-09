@@ -182,10 +182,10 @@ test.describe('the pages of an account', () => {
     await expect(field).toHaveValue('');
     await expect(app.locator('.global-search-results')).toHaveCount(0);
 
-    // Inside a notebook, its sidebar sits under the menu, its search at the top,
+    // Inside a notebook, its sidebar sits under the menu,
     // and it folds to its icons by a choice the browser remembers.
     const sidebar = app.locator('aside#notebook-sidebar');
-    await expect(sidebar.locator('.search-box input[type="search"]')).toBeVisible();
+    await expect(sidebar).toBeVisible();
     await sidebar.locator('button.sidebar-fold').click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
@@ -202,11 +202,13 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
 
-    // On a phone the menu stays, a row that scrolls sideways.
+    // On a phone the header is one row, and the menu is a list behind its ☰.
     await app.setViewportSize({ width: 390, height: 844 });
     await app.goto(`${state.surfaces.site}/about`);
-    await expect(app.locator('.app-menu-row nav.top-menu')).toBeVisible();
-    await expect(app.locator('nav.top-menu .top-menu-item.active')).toHaveText(words.aboutMenu);
+    await expect(app.locator('.app-menu-row')).toHaveCount(0);
+    await app.locator('button.mobile-menu-trigger').click();
+    await expect(app.locator('#mobile-menu nav.top-menu')).toBeVisible();
+    await expect(app.locator('#mobile-menu .top-menu-item.active')).toHaveText(words.aboutMenu);
     await testInfo.attach('shell-phone.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
@@ -572,25 +574,30 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveURL(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
   });
 
-  test('closes the results of the search with Esc wherever the focus went (#192)', async ({
+  test('searches the notes of the notebook open from the search of the header, and closes it with Esc wherever the focus went (#192, #418)', async ({
     app,
     notebook,
   }) => {
     await app.goto(notebook.page());
 
-    const box = app.locator('.search-box input[type="search"]');
+    // Inside a notebook the search of the header searches its notes too, first.
+    const box = app.locator('.app-header .global-search input[type="search"]');
     await box.fill('Checklist');
-    const results = app.locator('.search-results');
+    const results = app.locator('.global-search-results');
     await expect(results).toBeVisible();
+    await expect(
+      results.locator('.global-search-group').first().locator('a', { hasText: 'Checklist' }),
+    ).toBeVisible();
+    await expect(results.locator('.search-hint')).toBeVisible();
 
-    // The focus leaves the box, which is where the only handler used to be.
-    await app.locator('aside#notebook-sidebar .sidebar-notebook').click();
     // A click outside puts the list away and keeps the query (#232); the
     // field brings it back.
+    await app.locator('aside#notebook-sidebar .sidebar-notebook').click();
     await expect(results).toBeHidden();
     await expect(box).toHaveValue('Checklist');
     await box.focus();
     await expect(results).toBeVisible();
+    // The focus leaves the box, which is where the only handler used to be.
     await app.locator('aside#notebook-sidebar .back-link').focus();
     await app.keyboard.press('Escape');
 
@@ -2472,15 +2479,15 @@ A note to rename.
    * left enlarged panned in every direction with its bar; a block wider than
    * the column would have done the same without any zoom.
    */
-  test('[page:/notebooks/:notebookId/notes/:noteId] at phone width sets every field at 16 px and never scrolls the note sideways', async ({
+  test('[page:/notebooks/:notebookId/notes/:noteId] at phone width sets every field at 16 px, never scrolls the note sideways, and reaches the notebook from the ☰ (#419)', async ({
     app,
     notebook,
-  }) => {
+  }, testInfo) => {
     await app.setViewportSize({ width: 390, height: 780 });
     await app.goto(notebook.page(`/notes/${notebook.tableNoteId.toLowerCase()}`));
     await expect(app.locator('table a.wikilink', { hasText: 'Facet' })).toBeVisible();
 
-    // Measured with the overflow counted, hidden or not, and before the sheet
+    // Measured with the overflow counted, hidden or not, and before the menu
     // opens: whatever is wider than the column shows up here instead of being
     // guessed.
     const main = await app
@@ -2488,22 +2495,33 @@ A note to rename.
       .evaluate((row) => ({ scroll: row.scrollWidth, client: row.clientWidth }));
     expect(main.scroll).toBeLessThanOrEqual(main.client);
 
-    // The search the person opened from the sheet, where the zoom was seen.
-    await app.locator('.sheet-peek').click();
-    await app.locator('.notebook-sheet button.sheet-tab').first().click();
-    const search = app.locator('.notebook-sheet .search-box input');
+    // One row of header, no sidebar, no sheet at the foot: the ☰ opens the
+    // menu from the top, with the search first, where the zoom was seen.
+    await expect(app.locator('.app-menu-row')).toHaveCount(0);
+    await expect(app.locator('aside#notebook-sidebar')).toHaveCount(0);
+    await app.locator('button.mobile-menu-trigger').click();
+    const menu = app.locator('#mobile-menu');
+    await expect(menu).toBeVisible();
+    const search = menu.locator('.global-search input[type="search"]');
     await expect(search).toBeVisible();
     await expect(search).toHaveCSS('font-size', '16px');
 
-    // The last icon groups the other pages of the notebook, named (#375).
-    await app.locator('.notebook-sheet button.sheet-tab').last().click();
-    for (const path of ['/tables', '/dashboards', '/graph']) {
-      await expect(app.locator(`.sheet-pages a[href$="${path}"]`)).toBeVisible();
+    // Then the menu of the product, and the notebook in groups, its tree last.
+    await expect(menu.locator('nav.top-menu .top-menu-item')).toHaveCount(6);
+    await expect(menu.locator('.mobile-menu-group .sidebar-notebook')).toBeVisible();
+    for (const path of ['/attachments', '/tables', '/dashboards', '/graph']) {
+      await expect(menu.locator(`.mobile-menu-group a[href$="${path}"]`)).toBeVisible();
     }
-    await expect(app.locator('.sheet-tabs a[href$="/attachments"]')).toBeVisible();
-    await app.locator('.sheet-pages a[href$="/dashboards"]').click();
+    await expect(menu.locator('.mobile-menu-group ul.tree-root')).toBeVisible();
+    await testInfo.attach('phone-menu.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
+
+    // A page chosen closes it.
+    await menu.locator('.mobile-menu-group a[href$="/dashboards"]').click();
     await expect(app).toHaveURL(notebook.page('/dashboards'));
-    await expect(app.locator('.notebook-sheet')).toHaveCount(0);
+    await expect(menu).toBeHidden();
   });
 
   test('[page:/notebooks/:notebookId/*] answers an address no page names inside a notebook with not found', async ({
