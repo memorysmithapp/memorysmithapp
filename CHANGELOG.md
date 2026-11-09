@@ -13,7 +13,7 @@ issues each entry cites.
 
 ### Added
 
-- **Notebook models have a page of their own.** Models, in the menu, lists every notebook model you read, yours and the ones shared with you as a model, as cards saying what each is for, whether it is in the community and how many parameters it asks, with an icon in the corner saying whose it is, its words in a tooltip, and a ⋯ that creates a notebook from it, and opens the notebook of a model of your own. A new model starts there; New notebook now creates a notebook only, blank or from a model. (#418)
+- **Notebook models have a page of their own.** Models, in the menu, lists every notebook model you read, yours and the ones shared with you as a model, as cards saying what each is for, whether it is in the community and how many parameters it asks, with an icon in the corner saying whose it is, its words in a tooltip, and, on a model of your own, the ⋯ a notebook card has, which exports, shares or deletes it. A new model starts there; New notebook now creates a notebook only, blank or from a model. (#418)
 
 - **Search finds notebooks, models and community models from anywhere.** Search, at the end of the menu or with `Ctrl K` (`⌘K` on a Mac), finds them by name as you type, in groups, and Enter opens the first. The search inside the notes of a notebook stays at the top of the notebook's sidebar. (#418)
 

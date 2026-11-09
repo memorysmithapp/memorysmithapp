@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { listModels } from '../../shared/api/source';
+import { listModels, listNotebooks } from '../../shared/api/source';
 import { queryKeys } from '../../shared/api/query-keys';
-import { modelAddress, notebookAddress, sharedModelAddress } from '../../shared/api/note-address';
+import { modelAddress, sharedModelAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -12,8 +11,9 @@ import { ActionWord } from '../../shared/components/ActionWord';
 import { PlusIcon } from '../../shared/components/icons';
 import { intlLocale } from '../../i18n/intl-locale';
 import { byName } from '../dashboard/catalogue';
-import { NewModelDialog, NewNotebookDialog } from './NewNotebookDialog';
-import { MenuItem } from '../../shared/components/Menu';
+import { NewModelDialog } from './NewNotebookDialog';
+import { NotebookActions, type CardParts } from '../dashboard/NotebookActions';
+import { TransferDialogs } from '../portability/StartTransfer';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { useOwnShares } from '../sharing/shares';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
@@ -29,10 +29,16 @@ export function ModelsPage() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   useDocumentTitle(t('models.title'));
-  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
-  // The model a card asked a new notebook from (#418).
-  const [from, setFrom] = useState<string | null>(null);
+  // The export a card started, with its notebook already chosen (#199).
+  const [exporting, setExporting] = useState<string | null>(null);
+  // The notebooks of mine, which a model of mine is one of, with the role the
+  // API answered for each (RN-ACC-011).
+  const notebooks = useQuery({ queryKey: queryKeys.notebooks(), queryFn: listNotebooks });
+  const notebooksById = useMemo(
+    () => new Map((notebooks.data ?? []).map((notebook) => [notebook.id, notebook])),
+    [notebooks.data],
+  );
   const query = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
   const state = queryState(query);
   const models = useMemo(
@@ -73,13 +79,16 @@ export function ModelsPage() {
           {models.map((model, index) => {
             const parameters = t('models.parameters', { count: model.parameters.length });
             const own = model.sharedBy === null;
-            const to = own ? modelAddress(model.notebookId) : sharedModelAddress(model.notebookId);
+            const strip = index % 2 === 0 ? 'blue' : 'orange';
             const day = formatDay(model.updatedAt, locale);
-            return (
+            const card = (parts: {
+              strip: CardParts['strip'];
+              corner: ReactNode;
+              children?: ReactNode;
+            }) => (
               <ShelfCard
-                key={model.notebookId}
                 seed={model.notebookId}
-                strip={index % 2 === 0 ? 'blue' : 'orange'}
+                strip={parts.strip}
                 name={model.name}
                 description={model.objective}
                 byline={
@@ -91,59 +100,63 @@ export function ModelsPage() {
                 }
                 meta={`${parameters} · ${t('models.updated', { date: day })}`}
                 shortMeta={`${parameters} · ${day}`}
-                to={to}
+                to={own ? modelAddress(model.notebookId) : sharedModelAddress(model.notebookId)}
                 openLabel={t('models.open')}
                 openShort={t('notebooks.openShort')}
-                corner={
-                  <ShelfCorner
-                    title={model.name}
-                    mark={
-                      <OwnershipMark
-                        ownership={
-                          own
-                            ? shared.has(model.notebookId)
-                              ? 'sharedByMe'
-                              : 'own'
-                            : 'sharedWithMe'
-                        }
-                        owner={model.sharedBy ?? undefined}
-                        label={
-                          own
-                            ? shared.has(model.notebookId)
-                              ? t('models.mark.sharedByMe')
-                              : t('models.mark.own')
-                            : t('models.mark.sharedWithMe', { owner: model.sharedBy })
-                        }
-                      />
-                    }
-                  >
-                    {(close) => (
-                      <>
-                        <MenuItem
-                          onSelect={() => {
-                            close();
-                            setFrom(model.notebookId);
-                          }}
-                        >
-                          {t('models.menu.newNotebook')}
-                        </MenuItem>
-                        {own ? (
-                          <MenuItem onSelect={() => navigate(notebookAddress(model.notebookId))}>
-                            {t('models.menu.notebook')}
-                          </MenuItem>
-                        ) : null}
-                      </>
-                    )}
-                  </ShelfCorner>
-                }
-              />
+                corner={parts.corner}
+              >
+                {parts.children}
+              </ShelfCard>
+            );
+            // A model of mine is a notebook of mine: its ⋯ exports, shares
+            // and deletes it, as the card of the notebook does (#199, #418).
+            const notebook = own ? notebooksById.get(model.notebookId) : undefined;
+            if (notebook) {
+              return (
+                <NotebookActions
+                  key={model.notebookId}
+                  notebook={notebook}
+                  strip={strip}
+                  onExport={setExporting}
+                  sharedByMe={shared.has(model.notebookId)}
+                  marks={{ own: t('models.mark.own'), sharedByMe: t('models.mark.sharedByMe') }}
+                  renderCard={card}
+                />
+              );
+            }
+            // One shared with me as a model reaches no notebook (#355): whose
+            // it is, and nothing to do to it but open it.
+            return (
+              <Fragment key={model.notebookId}>
+                {card({
+                  strip,
+                  corner: (
+                    <ShelfCorner
+                      title={model.name}
+                      mark={
+                        <OwnershipMark
+                          ownership="sharedWithMe"
+                          owner={model.sharedBy ?? undefined}
+                          label={t('models.mark.sharedWithMe', { owner: model.sharedBy })}
+                        />
+                      }
+                    >
+                      {null}
+                    </ShelfCorner>
+                  ),
+                })}
+              </Fragment>
             );
           })}
         </div>
       ) : null}
 
       <NewModelDialog open={creating} onClose={() => setCreating(false)} />
-      {from ? <NewNotebookDialog open model={from} onClose={() => setFrom(null)} /> : null}
+      <TransferDialogs
+        starting={exporting === null ? null : 'export'}
+        notebookId={exporting ?? undefined}
+        onClose={() => setExporting(null)}
+      />
     </section>
   );
 }

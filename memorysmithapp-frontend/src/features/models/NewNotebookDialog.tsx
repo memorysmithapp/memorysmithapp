@@ -24,18 +24,9 @@ import { aboutOf, AboutFields, declarationOf, type AboutDraft } from './ModelPar
  * is for, or created from a model the person may use, its parameters asked for
  * before the notebook is written.
  */
-export function NewNotebookDialog({
-  open,
-  onClose,
-  model,
-}: {
-  open: boolean;
-  onClose: () => void;
-  /** The model it starts from, chosen already: the card of a model asked for it (#418). */
-  model?: string;
-}) {
+export function NewNotebookDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const [kind, setKind] = useState<'blank' | 'model'>(model ? 'model' : 'blank');
+  const [kind, setKind] = useState<'blank' | 'model'>('blank');
   if (!open) return null;
   return (
     <Modal open title={t('newNotebook.title')} onClose={onClose} className="new-notebook">
@@ -48,11 +39,7 @@ export function NewNotebookDialog({
           { value: 'model', label: t('newNotebook.fromModel') },
         ]}
       />
-      {kind === 'blank' ? (
-        <BlankNotebook onClose={onClose} />
-      ) : (
-        <FromModel onClose={onClose} initial={model} />
-      )}
+      {kind === 'blank' ? <BlankNotebook onClose={onClose} /> : <FromModel onClose={onClose} />}
     </Modal>
   );
 }
@@ -206,10 +193,10 @@ function BlankNotebook({ onClose }: { onClose: () => void }) {
   );
 }
 
-function FromModel({ onClose, initial }: { onClose: () => void; initial?: string }) {
+function FromModel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
-  const [chosen, setChosen] = useState<string | null>(initial ?? null);
+  const [chosen, setChosen] = useState<string | null>(null);
   const model = useQuery({
     queryKey: queryKeys.model(chosen ?? ''),
     queryFn: () => getModel(chosen ?? ''),

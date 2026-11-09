@@ -90,7 +90,7 @@
   },
   "models": {
     "title": "Notebook models",
-    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. The icon in a corner says whose each one is; ⋯ creates a notebook from it.",
+    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. The icon in a corner says whose each one is; the ⋯ of one of yours exports, shares or deletes it.",
     "new": "New notebook model",
     "empty": "No notebook you read is a model yet. Create one here, or ask an agent to declare a notebook as one.",
     "sharedBy": "Shared by {{owner}}",
@@ -104,10 +104,6 @@
       "sharedByMe": "Your model, shared by you",
       "sharedWithMe": "A model shared with you by {{owner}}",
       "published": "Your model, published by you"
-    },
-    "menu": {
-      "newNotebook": "New notebook from this model",
-      "notebook": "Open its notebook"
     }
   },
   "language": {

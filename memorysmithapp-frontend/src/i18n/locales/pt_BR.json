@@ -90,7 +90,7 @@
   },
   "models": {
     "title": "Modelos de caderno",
-    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. O ícone no canto diz de quem é cada um; o ⋯ cria um caderno a partir dele.",
+    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. O ícone no canto diz de quem é cada um; o ⋯ de um seu exporta, compartilha ou apaga.",
     "new": "Novo Modelo de caderno",
     "empty": "Nenhum caderno que você lê é modelo ainda. Crie um aqui, ou peça a um agente que declare um caderno como modelo.",
     "sharedBy": "Compartilhado por {{owner}}",
@@ -104,10 +104,6 @@
       "sharedByMe": "Seu modelo, compartilhado por você",
       "sharedWithMe": "Um modelo compartilhado com você por {{owner}}",
       "published": "Seu modelo, publicado por você"
-    },
-    "menu": {
-      "newNotebook": "Novo caderno a partir deste modelo",
-      "notebook": "Abrir o caderno dele"
     }
   },
   "language": {
