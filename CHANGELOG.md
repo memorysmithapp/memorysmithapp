@@ -11,9 +11,13 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **Notebook models have a page of their own.** Models, in the menu at the top, lists every notebook model you read, yours and the ones shared with you as a model, each with what it is for, whose it is, whether it is in the community and how many parameters it asks, and opens its page. A new model starts there; New notebook on Home now creates a notebook only, blank or from a model. (#418)
+
 ### Changed
 
-- **One sidebar on every page, and the search of a notebook in the header.** Outside a notebook there was no navigation at all: Home, the profile and the transfers had no sidebar, and going from one notebook to another always went through Home. Now every page has a sidebar on the left, with the notebooks of the subscription by name, the transfers and the community; inside a notebook its own sidebar takes that column, as before. Either folds to its icons with the button at its foot, so a note can take the whole width, and the browser remembers the choice. The search of a notebook moved from its sidebar to the middle of the header, and `Ctrl K` (`⌘K` on a Mac) reaches it from anywhere. Light and dark switch from a button in the header; the user menu still offers following the system. The slogan left the header and stays on the sign-in screen. (#414)
+- **A menu at the top of every page, and a sidebar only inside a notebook.** The header now carries the menu of the product beside the brand: Notebooks, Models, Community, Transfers and About MemorySmith.app, which left the menu of your picture. Notebooks opens a list of your notebooks, narrowed as you type a name, so you go from one notebook to another without passing through Home. Outside a notebook there is no sidebar and the page keeps the whole width; inside one, the notebook's sidebar folds to its icons with the button at its foot, so a note can take the whole width, and the browser remembers the choice. The search of a notebook is a magnifier among the icons at the top, and `Ctrl K` (`⌘K` on a Mac) opens it from anywhere in the notebook. Light and dark switch from a button in the header, and the user menu still offers following the system. The slogan left the header and stays on the sign-in screen. (#414, #418)
 
 ## [0.17.0] - 2026-11-08
 

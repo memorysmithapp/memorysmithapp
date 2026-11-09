@@ -34,6 +34,7 @@ import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
+import { ModelsPage } from '../features/models/ModelsPage';
 import {
   CommunityModelPage,
   CommunityPage,
@@ -107,6 +108,8 @@ export const router = createBrowserRouter([
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },
               { path: '/transfers', element: <TransfersPage /> },
+              // The models a person reads, and where a new one starts (#418).
+              { path: '/models', element: <ModelsPage /> },
               // A model shared as a model reader opens no notebook (#355).
               { path: '/models/:notebookId', element: <SharedModelPage /> },
               {

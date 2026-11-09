@@ -220,107 +220,142 @@ a:hover {
   flex: 1;
 }
 
-/* The middle of the header, where a notebook puts its search (#414). Outside a
-   notebook it is empty and only keeps the actions at the right. */
-.header-search {
-  flex: 1;
-  min-width: 0;
+/* The menu of the product, beside the brand (#418): five entries of one line,
+   the open one in Tinta at 600, as the rows of a notebook mark what is open
+   (#228); the fill is only the cursor. */
+.top-menu {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  margin-left: 18px;
+  min-width: 0;
 }
-.header-search .search-box {
-  width: 100%;
-  max-width: 520px;
-  margin: 0;
+.top-menu-anchor {
+  position: relative;
 }
-.header-search .search-box input {
-  background: var(--bg);
-  padding-right: 64px;
-}
-.header-search .search-box input:focus {
-  background: var(--surface);
-}
-/* The key that reaches the field from anywhere, inside its right end. */
-.search-box-key {
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.4;
+.top-menu-item {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
   color: var(--text-soft);
-  background: var(--surface);
-  pointer-events: none;
+  font: 500 13.5px var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.top-menu-item:hover,
+.top-menu-item[aria-expanded='true'] {
+  background: var(--hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.top-menu-item.active {
+  color: var(--chosen);
+  font-weight: 600;
+}
+.top-menu-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.top-menu-caret {
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+.top-menu-item[aria-expanded='true'] .top-menu-caret {
+  transform: rotate(-90deg);
 }
 
-/* Under the header: the sidebar of the shell, or a notebook's, and the page. */
-.app-body {
-  display: flex;
-  min-height: 0;
-  min-width: 0;
+/* Notebooks: a list to switch to, under its entry, with a field that narrows
+   it by name and Home at its foot. */
+.menu.notebook-switcher {
+  top: calc(100% + 6px);
+  left: 0;
+  width: 300px;
 }
-.app-body > .app-main {
-  flex: 1;
-  min-width: 0;
+.notebook-switcher-filter {
+  margin: 3px 3px 6px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px var(--sans);
 }
-
-/* The sidebar of the pages outside a notebook (#414): the same column as a
-   notebook's, as wide and drawn the same, so entering or leaving a notebook
-   never moves the left edge of the page. */
-.app-sidebar {
-  width: clamp(272px, 22vw, 400px);
-  flex: none;
+.notebook-switcher-filter:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+.notebook-switcher-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
-  padding: 20px 20px 0;
+  max-height: min(22rem, 55vh);
   overflow-y: auto;
-  max-height: 100%;
 }
-.app-sidebar > * {
-  flex-shrink: 0;
+.notebook-switcher-list .menu-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.sidebar-notebooks,
+.notebook-switcher-empty {
+  margin: 6px 10px 8px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+.top-menu-compact + .menu {
+  top: calc(100% + 6px);
+  left: 0;
+}
+
+/* Where a notebook puts its magnifier, among the icons (#418). */
+.header-search {
+  display: flex;
+  align-items: center;
+}
+.header-search:empty {
+  display: none;
+}
+/* The search of a notebook, opened over the page under the header: the field,
+   and its results in the flow under it rather than floating once more. */
+.search-popover {
+  position: fixed;
+  z-index: 60;
+  top: calc(var(--header-h) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--menu-shadow);
+}
+.search-popover .search-box {
+  margin: 0;
+}
+.search-popover .search-results {
+  position: static;
+  margin-top: 8px;
+  max-height: min(26rem, 60vh);
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+/* The content of a notebook's sidebar: the rule, its caption and the tree. */
 .sidebar-content {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-/* The glyph of the transfers, the one their button in the header shows. */
-.nav-glyph {
-  width: 16px;
-  text-align: center;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--text-soft);
-}
-.nav-row.active .nav-glyph {
-  color: var(--chosen);
-  font-weight: 700;
-}
-/* A notebook in the list: a small square, filled when it is the one open. */
-.nav-square {
-  flex: none;
-  width: 10px;
-  height: 10px;
-  margin: 0 3px;
-  border-radius: 3px;
-  border: 1.5px solid var(--text-soft);
-}
-.nav-row.active .nav-square {
-  border-color: var(--chosen);
-  background: var(--chosen);
-}
 
-/* The last row of a sidebar: fold it to its icons, or open it again. It stays
-   at the foot of the column however long the tree is. */
-/* The foot of the column holds it, across the whole width and over what
+/* The last row of a notebook's sidebar folds it to its icons, or opens it
+   again (#414). The foot of the column holds it, across the whole width and over what
    scrolls under it. It is also the room #196 kept at the foot: the address a
    desktop browser draws in the bottom-left corner covers the foot, never the
    last row of the tree. */
@@ -360,9 +395,8 @@ a:hover {
 }
 
 /* Folded (#414): the column keeps its icons and gives the page the rest. What
-   needs words to be read — the name of the notebook, the captions, the tree,
-   the list of notebooks — waits until it opens again. */
-.app-sidebar.is-collapsed,
+   needs words to be read — the name of the notebook, the captions, the tree —
+   waits until it opens again. */
 .notebook-sidebar.is-collapsed {
   width: 64px;
   padding-inline: 14px;
@@ -382,7 +416,6 @@ a:hover {
     .sidebar-caption,
     .sidebar-notebook,
     .sidebar-content,
-    .sidebar-notebooks,
     .nav-fold
   ) {
   display: none;
@@ -7901,4 +7934,99 @@ body.has-sheet .app-main {
   margin: 0 auto;
   padding: 24px;
   background: var(--bg);
+}
+
+/* ---- The models a person reads (#418) ------------------------------------
+ *
+ * A list of one card per model, each a link to its page, with what it is for
+ * and whose it is. The blue is the action that starts a new one.
+ */
+.models-page {
+  max-width: 64rem;
+}
+.models-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.models-heading h1 {
+  margin: 0 0 6px;
+}
+.models-heading .page-intro {
+  max-width: 40rem;
+}
+.models-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.models-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 14px;
+}
+.model-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+}
+.model-card:hover {
+  text-decoration: none;
+  border-color: var(--box-edge);
+}
+.model-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.model-card-name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.model-card-objective {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.model-card-meta {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-soft);
+}
+.model-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--text);
+  font-weight: 500;
+}
+.model-chip.is-shared {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.model-chip.is-published {
+  border: 1px solid var(--node-green);
+  background: none;
+  color: var(--node-green);
 }

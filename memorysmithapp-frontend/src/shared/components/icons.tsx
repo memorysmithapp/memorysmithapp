@@ -450,16 +450,6 @@ export function PlusIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** The community of published models (#414). */
-export function GlobeIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-    </svg>
-  );
-}
-
 /** Folds the sidebar to its icons (#414). */
 export function SidebarFoldIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -476,6 +466,15 @@ export function SidebarOpenIcon(props: SVGProps<SVGSVGElement>) {
     <svg {...base(props)}>
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M9 4v16M14 10l2 2-2 2" />
+    </svg>
+  );
+}
+
+/** The menu of the product, folded into one button on a narrow window (#418). */
+export function MenuLinesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   );
 }

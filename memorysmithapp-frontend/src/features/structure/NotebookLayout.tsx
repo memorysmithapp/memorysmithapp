@@ -10,7 +10,7 @@ import { ArrowLeftIcon } from '../../shared/components/icons';
 import { NARROW_NOTEBOOK, useMatchMedia } from '../../shared/lib/media';
 import { NotebookSheet } from './NotebookSheet';
 import { NotebookNav } from './NotebookNav';
-import { SearchBox } from '../search/SearchBox';
+import { NotebookSearch } from '../search/NotebookSearch';
 import { FolderTree } from './FolderTree';
 import { FolderTreeSkeleton, NoteSkeleton } from '../../shared/components/skeletons';
 import { SkeletonBar } from '../../shared/components/Skeleton';
@@ -106,19 +106,14 @@ export function NotebookLayout() {
           <NotebookSheet notebookId={notebookId} structure={data} />
         ) : (
           <>
-            {/* The search of the notebook, in the middle of the header (#414):
+            {/* The search of the notebook, a magnifier in the header (#418):
                 the notebook still draws it, because its tree is what turns a
                 hit into a link. */}
-            <HeaderSearch>
-              {data ? (
-                <SearchBox notebookId={notebookId} structure={data} shortcut />
-              ) : (
-                // As wide as the field it stands for, never the whole header.
-                <div className="search-box">
-                  <SkeletonBar height="2.2rem" />
-                </div>
-              )}
-            </HeaderSearch>
+            {data ? (
+              <HeaderSearch>
+                <NotebookSearch notebookId={notebookId} structure={data} />
+              </HeaderSearch>
+            ) : null}
             <aside
               className={`notebook-sidebar${collapsed ? ' is-collapsed' : ''}`}
               id="notebook-sidebar"

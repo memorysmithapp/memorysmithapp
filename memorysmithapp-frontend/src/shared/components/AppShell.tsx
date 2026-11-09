@@ -1,39 +1,27 @@
-import { useEffect, useState } from 'react';
-import { Link, Outlet, useMatch } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Outlet } from 'react-router-dom';
 import { BrandMark } from './BrandMark';
 import { TransfersMenu } from '../../features/portability/TransfersMenu';
 import { NotificationsMenu } from '../../features/sharing/NotificationsMenu';
 import { UserMenu } from './UserMenu';
 import { WriteStatus } from './WriteStatus';
 import { ThemeToggle } from './ThemeToggle';
-import { AppSidebar } from './AppSidebar';
+import { TopMenu } from './TopMenu';
 import { HeaderSearchSlotProvider } from './HeaderSearchSlot';
-import { NARROW_NOTEBOOK, useMatchMedia } from '../lib/media';
 
+/**
+ * The header and the page under it (#418). The header carries the menu of the
+ * product beside the brand, so a page outside a notebook has no sidebar and
+ * keeps the whole width; a notebook puts its own sidebar under the header,
+ * and its search among the icons on the right.
+ */
 export function AppShell() {
   /**
-   * The middle of the header, where a notebook puts its search (#414). Held
-   * as state so the page below draws into it once it exists: on the first
-   * render the header has not reached the document yet.
+   * Where a notebook puts its search, among the icons. Held as state so the
+   * page below draws into it once it exists: on the first render the header
+   * has not reached the document yet.
    */
   const [searchSlot, setSearchSlot] = useState<HTMLDivElement | null>(null);
-  // Inside a notebook its own sidebar takes the column; a phone has none.
-  const inNotebook = useMatch('/notebooks/:notebookId/*') !== null;
-  const narrow = useMatchMedia(NARROW_NOTEBOOK);
-
-  // Ctrl K (⌘K on a Mac) goes to the search wherever the focus is.
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey)) return;
-      const field = searchSlot?.querySelector('input');
-      if (!field) return;
-      event.preventDefault();
-      field.focus();
-      field.select();
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [searchSlot]);
 
   return (
     <HeaderSearchSlotProvider value={searchSlot}>
@@ -44,13 +32,16 @@ export function AppShell() {
           </Link>
           {/* The slogan left the header for the sign-in screen, where it
               explains the product to who is not inside it yet (#414). */}
+          <TopMenu />
+          <span className="header-spacer" />
           <div className="header-search" ref={setSearchSlot} />
           {/* What happened to the write, where it can be seen from any scroll
               position and without covering a line of the note. */}
           <WriteStatus />
           <ThemeToggle />
-          {/* Files on their way in and out, in the place a browser puts its
-              downloads: beside the identity, never as a bell (RN-PRT-019). */}
+          {/* An export or an import under way, beside the identity, where a
+              browser shows its downloads; the page of transfers is in the
+              menu (#418). */}
           <TransfersMenu />
           {/* What changed in a share, told to the side that did not change it
               (#256): its own button, because it is news about people and not
@@ -58,12 +49,9 @@ export function AppShell() {
           <NotificationsMenu />
           <UserMenu />
         </header>
-        <div className="app-body">
-          {inNotebook || narrow ? null : <AppSidebar />}
-          <main className="app-main">
-            <Outlet />
-          </main>
-        </div>
+        <main className="app-main">
+          <Outlet />
+        </main>
       </div>
     </HeaderSearchSlotProvider>
   );

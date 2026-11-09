@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,6 @@ import { listNotebooks } from '../../shared/api/source';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { CardCarousel } from '../../shared/components/CardCarousel';
 import { PlusIcon } from '../../shared/components/icons';
-import { Menu, MenuItem } from '../../shared/components/Menu';
 import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
@@ -16,7 +15,7 @@ import { useMatchMedia } from '../../shared/lib/media';
 import { homeExpanded, rememberHomeExpanded } from '../../shared/store/home-layout';
 import { TransferDialogs } from '../portability/StartTransfer';
 import { NotebookActions } from './NotebookActions';
-import { NewModelDialog, NewNotebookDialog } from '../models/NewNotebookDialog';
+import { NewNotebookDialog } from '../models/NewNotebookDialog';
 import { SubscriptionSpace } from './SubscriptionSpace';
 import { byName } from './catalogue';
 import { useIncomingShares, useOwnShares } from '../sharing/shares';
@@ -54,9 +53,6 @@ export function DashboardPage() {
   // The export a card started, with its notebook already chosen (#199).
   const [exporting, setExporting] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [creatingModel, setCreatingModel] = useState(false);
-  const [offering, setOffering] = useState(false);
-  const newTrigger = useRef<HTMLButtonElement>(null);
   const [remembered, setRemembered] = useState(homeExpanded);
   const phone = useMatchMedia(PHONE);
   const expanded = remembered && !phone;
@@ -106,44 +102,15 @@ export function DashboardPage() {
         heading={
           <div className="home-heading-row">
             <h1 className="home-heading">{t('dashboard.selectNotebook')}</h1>
-            {/* A notebook, blank or from a model (#359), or a new model (#373),
-                in a menu anchored right under the button (#402). */}
-            <div className="new-notebook-anchor">
-              <button
-                ref={newTrigger}
-                type="button"
-                className="button is-quiet is-small"
-                aria-haspopup="menu"
-                aria-expanded={offering}
-                onClick={() => setOffering((value) => !value)}
-              >
-                <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
-              </button>
-              <Menu
-                open={offering}
-                onClose={() => setOffering(false)}
-                trigger={newTrigger}
-                label={t('newNotebook.open')}
-                className="new-notebook-menu"
-              >
-                <MenuItem
-                  onSelect={() => {
-                    setOffering(false);
-                    setCreating(true);
-                  }}
-                >
-                  {t('newNotebook.open')}
-                </MenuItem>
-                <MenuItem
-                  onSelect={() => {
-                    setOffering(false);
-                    setCreatingModel(true);
-                  }}
-                >
-                  {t('newNotebook.openModel')}
-                </MenuItem>
-              </Menu>
-            </div>
+            {/* A notebook, blank or from a model (#359); a new model starts on
+                the page of the models (#418). */}
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              onClick={() => setCreating(true)}
+            >
+              <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
+            </button>
           </div>
         }
         prevLabel={t('dashboard.prevNotebooks')}
@@ -184,7 +151,6 @@ export function DashboardPage() {
 
       {expanded ? null : <SubscriptionSpace />}
       <NewNotebookDialog open={creating} onClose={() => setCreating(false)} />
-      <NewModelDialog open={creatingModel} onClose={() => setCreatingModel(false)} />
       <TransferDialogs
         starting={exporting === null ? null : 'export'}
         notebookId={exporting ?? undefined}

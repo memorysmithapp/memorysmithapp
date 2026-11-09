@@ -57,6 +57,8 @@ describe('the pages of the interface', () => {
       '/about',
       '/profile',
       '/transfers',
+      // The models a person reads, and where a new one starts (#418).
+      '/models',
       // A model shared as a model reader opens no notebook (#355).
       '/models/:notebookId',
       '/models/:notebookId/versions/:version',

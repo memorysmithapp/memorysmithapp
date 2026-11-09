@@ -75,13 +75,34 @@
     "toLight": "Switch to the light theme"
   },
   "sidebar": {
-    "navigation": "Navigation",
-    "library": "Library",
-    "myNotebooks": "My notebooks",
-    "community": "Community",
-    "notebooks": "Notebooks",
     "collapse": "Collapse the sidebar",
     "expand": "Expand the sidebar"
+  },
+  "nav": {
+    "label": "Menu of the product",
+    "menu": "Menu",
+    "notebooks": "Notebooks",
+    "models": "Models",
+    "community": "Community",
+    "transfers": "Transfers",
+    "about": "About MemorySmith.app",
+    "filter": "Find a notebook…",
+    "allNotebooks": "All notebooks",
+    "noMatch": "No notebook has that name."
+  },
+  "models": {
+    "title": "Notebook models",
+    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. Each creates notebooks from its ready versions.",
+    "new": "New notebook model",
+    "empty": "No notebook you read is a model yet. Create one here, or ask an agent to declare a notebook as one.",
+    "community": "Find a model in the community",
+    "sharedBy": "Shared by {{owner}}",
+    "mine": "Yours",
+    "published": "In the community",
+    "parameters_one": "{{count}} parameter",
+    "parameters_other": "{{count}} parameters",
+    "updated": "updated {{date}}",
+    "open": "Open the model"
   },
   "language": {
     "heading": "Language",
@@ -95,7 +116,8 @@
     "invalid": "Invalid query. Check the quotes, parentheses and operators.",
     "failed": "The search failed. Try again.",
     "syntaxHint": "Searches the whole text. Accepts <c>\"exact phrase\"</c>, <c>-exclude</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> and frontmatter attributes, such as <c>maturity:evergreen</c>.",
-    "open": "Search"
+    "open": "Search",
+    "openNotebook": "Search the notebook"
   },
   "notebooks": {
     "heading": "Notebooks",
@@ -699,7 +721,6 @@
     "waitingCount_other": "{{count}} files waiting for you"
   },
   "about": {
-    "menu": "About MemorySmith.app",
     "title": "About MemorySmith.app",
     "heading": "Welcome to MemorySmith.app",
     "lead": "Structured knowledge we build and keep side by side with our AI assistants, always readable by us and by them.",
@@ -737,7 +758,7 @@
       },
       "model": {
         "term": "Notebook model",
-        "definition": "A notebook declared as a model creates others from it, with its parameters filled in. Its versions are frozen, and each can be published to the community."
+        "definition": "A notebook declared as a model creates others from it, with its parameters filled in. Its versions are frozen, and each can be published to the community. Models, in the menu at the top, lists them and creates a new one."
       },
       "graph": {
         "term": "Graph",
@@ -745,7 +766,7 @@
       },
       "search": {
         "term": "Search",
-        "definition": "Across the notes of a notebook, by what they say and by the properties they declare."
+        "definition": "Across the notes of a notebook, by what they say and by the properties they declare: the magnifier at the top of a notebook, or Ctrl K."
       },
       "sharing": {
         "term": "Sharing",
@@ -753,11 +774,11 @@
       },
       "community": {
         "term": "Community models",
-        "definition": "The notebook models other people published, to read and to create a notebook from. It is in the menu of your picture."
+        "definition": "The notebook models other people published, to read and to create a notebook from. It is Community, in the menu at the top of every page."
       },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from the icon beside your picture. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
+        "definition": "Exporting a notebook, or importing one, from Transfers in the menu at the top; the icon beside your picture shows one under way. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {
@@ -1281,7 +1302,6 @@
   },
   "community": {
     "title": "Community models",
-    "menu": "Community models",
     "home": "Home",
     "back": "Back",
     "signIn": "Sign in",

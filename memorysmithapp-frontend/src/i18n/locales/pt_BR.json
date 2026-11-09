@@ -75,13 +75,34 @@
     "toLight": "Usar o tema claro"
   },
   "sidebar": {
-    "navigation": "Navegação",
-    "library": "Biblioteca",
-    "myNotebooks": "Meus cadernos",
-    "community": "Comunidade",
-    "notebooks": "Cadernos",
     "collapse": "Recolher a barra lateral",
     "expand": "Abrir a barra lateral"
+  },
+  "nav": {
+    "label": "Menu do produto",
+    "menu": "Menu",
+    "notebooks": "Cadernos",
+    "models": "Modelos",
+    "community": "Comunidade",
+    "transfers": "Transferências",
+    "about": "Sobre o MemorySmith.app",
+    "filter": "Encontrar um caderno…",
+    "allNotebooks": "Todos os cadernos",
+    "noMatch": "Nenhum caderno com esse nome."
+  },
+  "models": {
+    "title": "Modelos de caderno",
+    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. Cada um cria cadernos a partir das suas versões prontas.",
+    "new": "Novo Modelo de caderno",
+    "empty": "Nenhum caderno que você lê é modelo ainda. Crie um aqui, ou peça a um agente que declare um caderno como modelo.",
+    "community": "Encontrar um modelo na comunidade",
+    "sharedBy": "Compartilhado por {{owner}}",
+    "mine": "Seu",
+    "published": "Na comunidade",
+    "parameters_one": "{{count}} parâmetro",
+    "parameters_other": "{{count}} parâmetros",
+    "updated": "atualizado em {{date}}",
+    "open": "Abrir o modelo"
   },
   "language": {
     "heading": "Idioma",
@@ -95,7 +116,8 @@
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
     "syntaxHint": "Busca no texto inteiro. Aceita <c>\"frase exata\"</c>, <c>-excluir</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> e atributos do frontmatter, como <c>maturity:evergreen</c>.",
-    "open": "Buscar"
+    "open": "Buscar",
+    "openNotebook": "Buscar no caderno"
   },
   "notebooks": {
     "heading": "Cadernos",
@@ -702,7 +724,6 @@
     "waitingCount_other": "{{count}} arquivos aguardando você"
   },
   "about": {
-    "menu": "Sobre o MemorySmith.app",
     "title": "Sobre o MemorySmith.app",
     "heading": "Bem-vindo ao MemorySmith.app",
     "lead": "Conhecimento estruturado, que construímos e mantemos lado a lado com nossos assistentes de IA, sempre legível por nós e por eles.",
@@ -740,7 +761,7 @@
       },
       "model": {
         "term": "Modelo de caderno",
-        "definition": "Um caderno declarado como modelo cria outros a partir dele, com os parâmetros preenchidos. Suas versões ficam congeladas, e cada uma pode ser publicada na comunidade."
+        "definition": "Um caderno declarado como modelo cria outros a partir dele, com os parâmetros preenchidos. Suas versões ficam congeladas, e cada uma pode ser publicada na comunidade. Os Modelos, no menu do topo, listam todos e criam um novo."
       },
       "graph": {
         "term": "Grafo",
@@ -748,7 +769,7 @@
       },
       "search": {
         "term": "Busca",
-        "definition": "Nas notas de um caderno, pelo que elas dizem e pelas propriedades que declaram."
+        "definition": "Nas notas de um caderno, pelo que elas dizem e pelas propriedades que declaram: a lupa no topo de um caderno, ou Ctrl K."
       },
       "sharing": {
         "term": "Compartilhamento",
@@ -756,11 +777,11 @@
       },
       "community": {
         "term": "Modelos da comunidade",
-        "definition": "Os modelos de caderno que outras pessoas publicaram, para ler e criar um caderno a partir de um deles. Fica no menu da sua foto."
+        "definition": "Os modelos de caderno que outras pessoas publicaram, para ler e criar um caderno a partir de um deles. É a Comunidade, no menu do topo de toda página."
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu do topo; o ícone ao lado da sua foto mostra uma em andamento. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
@@ -1284,7 +1305,6 @@
   },
   "community": {
     "title": "Modelos da comunidade",
-    "menu": "Modelos da comunidade",
     "home": "Início",
     "back": "Voltar",
     "signIn": "Entrar",
