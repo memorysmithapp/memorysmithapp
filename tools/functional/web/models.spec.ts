@@ -107,7 +107,12 @@ test.describe('notebook models', () => {
     ).toBeVisible();
     const card = app.locator('.shelf-grid article.notebook-card').first();
     if ((await card.count()) > 0) {
-      await expect(card.locator('.ownership-mark[title]')).toBeVisible();
+      // A click on the mark says what it means for this card, as the `?` of
+      // the page does (#418).
+      await card.locator('button.ownership-mark').click();
+      await expect(card.locator('.ownership-box')).toBeVisible();
+      await app.keyboard.press('Escape');
+      await expect(card.locator('.ownership-box')).toHaveCount(0);
     }
     // A model of mine carries the ⋯ of a notebook card: export, share, delete.
     const mine = app.locator('.shelf-grid article.notebook-card', {
