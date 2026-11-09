@@ -7868,8 +7868,24 @@ body.has-sheet .app-main {
   margin: 0;
 }
 .shelf-count {
-  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9em;
+  height: 1.6em;
+  margin-left: 10px;
+  padding: 0 0.55em;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--track);
   color: var(--text-soft);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 0.35em;
 }
 /* An icon that opens a few words about what it stands for (#418): the `?`
    of a page and the mark of whose a card is. The box opens under it, over

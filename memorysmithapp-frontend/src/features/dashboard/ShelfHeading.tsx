@@ -53,7 +53,8 @@ export function ShelfHeading({
     <div className="shelf-heading">
       <h1>
         {title}
-        {count !== undefined ? <span className="shelf-count"> ({count})</span> : null}
+        {/* How many it holds, in a small seal beside the name (#418). */}
+        {count !== undefined ? <span className="shelf-count">{count}</span> : null}
       </h1>
       {action}
       <InfoPopover
