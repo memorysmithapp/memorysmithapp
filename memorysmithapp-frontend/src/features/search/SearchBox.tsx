@@ -84,7 +84,12 @@ interface SearchBoxProps {
    * the field (#232). In the phone sheet they sit under the field instead.
    */
   floating?: boolean;
+  /** Show the key that reaches the field from anywhere, in the header (#414). */
+  shortcut?: boolean;
 }
+
+/** ⌘K where the Command key exists, Ctrl K everywhere else. */
+const SHORTCUT = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘K' : 'Ctrl K';
 
 /** Where a floating list is drawn: against the window, since the sidebar clips. */
 interface Anchor {
@@ -98,6 +103,7 @@ export function SearchBox({
   structure,
   autoFocus = false,
   floating = true,
+  shortcut = false,
 }: SearchBoxProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -215,6 +221,11 @@ export function SearchBox({
           setQuery(e.target.value);
         }}
       />
+      {shortcut && query === '' ? (
+        <kbd className="search-box-key" aria-hidden="true">
+          {SHORTCUT}
+        </kbd>
+      ) : null}
       {open && (
         <div
           ref={panel}

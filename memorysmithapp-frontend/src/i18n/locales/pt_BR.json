@@ -70,7 +70,18 @@
     "heading": "Tema",
     "light": "Claro",
     "dark": "Escuro",
-    "system": "Sistema"
+    "system": "Sistema",
+    "toDark": "Usar o tema escuro",
+    "toLight": "Usar o tema claro"
+  },
+  "sidebar": {
+    "navigation": "Navegação",
+    "library": "Biblioteca",
+    "myNotebooks": "Meus cadernos",
+    "community": "Comunidade",
+    "notebooks": "Cadernos",
+    "collapse": "Recolher a barra lateral",
+    "expand": "Abrir a barra lateral"
   },
   "language": {
     "heading": "Idioma",

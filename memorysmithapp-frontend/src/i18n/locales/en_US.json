@@ -70,7 +70,18 @@
     "heading": "Theme",
     "light": "Light",
     "dark": "Dark",
-    "system": "System"
+    "system": "System",
+    "toDark": "Switch to the dark theme",
+    "toLight": "Switch to the light theme"
+  },
+  "sidebar": {
+    "navigation": "Navigation",
+    "library": "Library",
+    "myNotebooks": "My notebooks",
+    "community": "Community",
+    "notebooks": "Notebooks",
+    "collapse": "Collapse the sidebar",
+    "expand": "Expand the sidebar"
   },
   "language": {
     "heading": "Language",

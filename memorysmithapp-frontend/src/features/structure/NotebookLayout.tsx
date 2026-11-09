@@ -20,6 +20,9 @@ import { useNotebookId } from './route-ids';
 import { leaveNotebook } from './arrival';
 import { queryKeys } from '../../shared/api/query-keys';
 import { flushEverySession, useEditSessions } from '../../shared/store/edit-sessions';
+import { usePreferences } from '../../shared/store/preferences';
+import { HeaderSearch } from '../../shared/components/HeaderSearchSlot';
+import { SidebarFold } from '../../shared/components/SidebarFold';
 
 export interface NotebookOutletContext {
   structure: NotebookStructure;
@@ -37,6 +40,8 @@ export function NotebookLayout() {
    * tree and the search box are never in the page twice.
    */
   const narrow = useMatchMedia(NARROW_NOTEBOOK);
+  // Folded to its icons, by the same choice as the shell's sidebar (#414).
+  const collapsed = usePreferences((s) => s.sidebarCollapsed);
 
   // Leaving a notebook — for Home, for another notebook — makes coming back an
   // arrival again, which resumes where the reading stopped (ResumeReading).
@@ -100,32 +105,45 @@ export function NotebookLayout() {
         {narrow ? (
           <NotebookSheet notebookId={notebookId} structure={data} />
         ) : (
-          <aside className="notebook-sidebar" id="notebook-sidebar">
-            <div className="sidebar-head">
-              <Link to="/" className="back-link">
-                <ArrowLeftIcon width={14} height={14} />
-                {t('structure.backToNotebooks')}
-              </Link>
-              {/* The way to the Context is its own entry below and the first
-                  crumb of the bar, so the name is only the name (#228). */}
-              <h2 className="sidebar-notebook">
-                {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
-              </h2>
-            </div>
-            {data ? (
-              <SearchBox notebookId={notebookId} structure={data} />
-            ) : (
-              <SkeletonBar height="2.2rem" />
-            )}
-            <NotebookNav notebookId={notebookId} />
-            <hr className="sidebar-rule" />
-            <p className="sidebar-caption">{t('structure.content')}</p>
-            {data ? (
-              <FolderTree notebookId={notebookId} folders={data.folders} />
-            ) : (
-              <FolderTreeSkeleton />
-            )}
-          </aside>
+          <>
+            {/* The search of the notebook, in the middle of the header (#414):
+                the notebook still draws it, because its tree is what turns a
+                hit into a link. */}
+            <HeaderSearch>
+              {data ? (
+                <SearchBox notebookId={notebookId} structure={data} shortcut />
+              ) : (
+                <SkeletonBar height="2.2rem" />
+              )}
+            </HeaderSearch>
+            <aside
+              className={`notebook-sidebar${collapsed ? ' is-collapsed' : ''}`}
+              id="notebook-sidebar"
+            >
+              <div className="sidebar-head">
+                <Link to="/" className="back-link" title={t('structure.backToNotebooks')}>
+                  <ArrowLeftIcon width={14} height={14} />
+                  <span className="back-link-label">{t('structure.backToNotebooks')}</span>
+                </Link>
+                {/* The way to the Context is its own entry below and the first
+                    crumb of the bar, so the name is only the name (#228). */}
+                <h2 className="sidebar-notebook">
+                  {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
+                </h2>
+              </div>
+              <NotebookNav notebookId={notebookId} />
+              <div className="sidebar-content">
+                <hr className="sidebar-rule" />
+                <p className="sidebar-caption">{t('structure.content')}</p>
+                {data ? (
+                  <FolderTree notebookId={notebookId} folders={data.folders} />
+                ) : (
+                  <FolderTreeSkeleton />
+                )}
+              </div>
+              <SidebarFold />
+            </aside>
+          </>
         )}
         <section className="notebook-content">
           {data ? (

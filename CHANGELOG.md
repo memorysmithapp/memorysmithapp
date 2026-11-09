@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **One sidebar on every page, and the search of a notebook in the header.** Outside a notebook there was no navigation at all: Home, the profile and the transfers had no sidebar, and going from one notebook to another always went through Home. Now every page has a sidebar on the left, with the notebooks of the subscription by name, the transfers and the community; inside a notebook its own sidebar takes that column, as before. Either folds to its icons with the button at its foot, so a note can take the whole width, and the browser remembers the choice. The search of a notebook moved from its sidebar to the middle of the header, and `Ctrl K` (`⌘K` on a Mac) reaches it from anywhere. Light and dark switch from a button in the header; the user menu still offers following the system. The slogan left the header and stays on the sign-in screen. (#414)
+
 ## [0.17.0] - 2026-11-08
 
 ### Added
