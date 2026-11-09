@@ -127,6 +127,11 @@ test.describe('the pages of an account', () => {
     // search's, which only a notebook has.
     await expect(app.locator('.app-header .tagline')).toHaveCount(0);
     await expect(app.locator('.app-header .search-box')).toHaveCount(0);
+    // The row of notebooks scrolls inside Home and never widens the shell: the
+    // header keeps its actions inside the window.
+    await expect(app.locator('button.user-menu-trigger')).toBeInViewport({ ratio: 1 });
+    const shellBox = await app.locator('.app-shell').boundingBox();
+    expect(shellBox?.width ?? 0).toBeLessThanOrEqual(1440);
     await testInfo.attach('shell-home.png', {
       body: await app.screenshot(),
       contentType: 'image/png',

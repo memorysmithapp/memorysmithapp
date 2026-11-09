@@ -14,16 +14,18 @@ export function SidebarFold() {
   const label = t(collapsed ? 'sidebar.expand' : 'sidebar.collapse');
 
   return (
-    <button
-      type="button"
-      className="sidebar-fold"
-      aria-pressed={collapsed}
-      aria-label={label}
-      title={label}
-      onClick={() => setCollapsed(!collapsed)}
-    >
-      {collapsed ? <SidebarOpenIcon /> : <SidebarFoldIcon />}
-      <span className="nav-row-label">{label}</span>
-    </button>
+    <div className="sidebar-foot">
+      <button
+        type="button"
+        className="sidebar-fold"
+        aria-pressed={collapsed}
+        aria-label={label}
+        title={label}
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        {collapsed ? <SidebarOpenIcon /> : <SidebarFoldIcon />}
+        <span className="nav-row-label">{label}</span>
+      </button>
+    </div>
   );
 }
