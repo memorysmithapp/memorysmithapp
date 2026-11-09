@@ -338,6 +338,62 @@ test.describe('the tools', () => {
     expect((await callTool(agent, 'delete_template', folder)).isError).toBe(true);
   });
 
+  test('[tool:read_file] gives a kept file back: its content up to 4 MB, and a link that downloads it under its name (#394)', async ({
+    agent,
+    notebook,
+  }) => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const picture = parsed<{ fileId: string }>(
+      await callTool(agent, 'keep_file', {
+        notebook: notebook.notebookId,
+        name: `plan ${randomBytes(4).toString('hex')}`,
+        mimeType: 'image/png',
+        contentBase64: png,
+      }),
+    );
+    const sheet = `costs-${randomBytes(4).toString('hex')}.csv`;
+    const csv = parsed<{ fileId: string }>(
+      await callTool(agent, 'keep_file', {
+        notebook: notebook.notebookId,
+        name: sheet,
+        mimeType: 'text/csv',
+        content: 'Data;Valor\n01/10/2026;30\n',
+      }),
+    );
+
+    // An image comes back as an image, beside where to download it.
+    const image = await callTool(agent, 'read_file', {
+      notebook: notebook.notebookId,
+      file: picture.fileId,
+    });
+    expect(image.isError).toBe(false);
+    expect(image.images).toEqual([{ data: png, mimeType: 'image/png' }]);
+    const described = JSON.parse(image.text) as { downloadUrl: string; inline: boolean };
+    expect(described.inline).toBe(true);
+
+    // The link is what the person is handed: it saves the very bytes kept.
+    const downloaded = await fetch(described.downloadUrl);
+    expect(downloaded.status).toBe(200);
+    expect(downloaded.headers.get('content-disposition') ?? '').toContain('attachment');
+    expect(Buffer.from(await downloaded.arrayBuffer()).toString('base64')).toBe(png);
+
+    // A text comes back as text.
+    const text = await callTool(agent, 'read_file', {
+      notebook: notebook.notebookId,
+      file: csv.fileId,
+    });
+    expect(text.text).toContain('Data;Valor');
+
+    // A file the notebook does not keep is not found.
+    const missing = await callTool(agent, 'read_file', {
+      notebook: notebook.notebookId,
+      file: '01JBQ2X0000000000000000000',
+    });
+    expect(missing.isError).toBe(true);
+    expect(missing.text).toMatch(/^NOT_FOUND:/);
+  });
+
   test('[tool:keep_file] [tool:list_files] [tool:delete_file] keeps a file a note shows by name, lists it, and deletes it', async ({
     agent,
     notebook,

@@ -37,6 +37,50 @@ export interface DefaultHosts {
 
 export type RepositoryHost = 'github' | 'gitlab' | 'none';
 
+/** How a person signs in where the organization declares its provider (#395). */
+export type SignIn = 'idp' | 'idp+password';
+/** What a person of the provider finds on their first sign-in (#395). */
+export type FirstSignIn = 'request' | 'prepared' | 'automatic';
+
+/**
+ * The organization's own SMTP relay, which every message of the installation
+ * leaves through when `MAIL=smtp` (#396). Its password is never here:
+ * `deliver` writes it into Secrets Manager and the function reads it.
+ */
+export interface RelayConfig {
+  readonly host: string;
+  readonly port: number;
+  /** Null for a relay that takes mail from inside its network without a login. */
+  readonly user: string | null;
+  /** The address the relay accepts as the sender. */
+  readonly sender: string;
+  /** Subnets of a VPC that reaches the relay, and KMS; empty over the Internet. */
+  readonly subnetIds: readonly string[];
+  readonly securityGroupIds: readonly string[];
+}
+
+/**
+ * The identity provider of the organization, federated into the pool over
+ * OIDC (#395, ADR-026). Its client secret is never here: `deliver` writes it
+ * into Secrets Manager and the template only references it.
+ */
+export interface IdentityProviderConfig {
+  /** The name the sign-in page shows and Cognito keys the provider by. */
+  readonly name: string;
+  readonly issuer: string;
+  readonly clientId: string;
+  /** The claim the address of the person travels in: `email`, or `preferred_username`. */
+  readonly emailClaim: string;
+  /** Whether an address the provider does not assert as verified is taken anyway. */
+  readonly trustEmail: boolean;
+  readonly signIn: SignIn;
+  readonly firstSignIn: FirstSignIn;
+  /** The quota of a subscription the first sign-in gives, under `automatic`. */
+  readonly quota: string | null;
+  /** The version of the secret `deliver` wrote, so that a new secret changes the template. */
+  readonly secretVersion: string | null;
+}
+
 export interface EnvironmentConfig {
   readonly name: EnvironmentName;
   /** Whose installation this is, or null for the project's own, `memorysmith.app`. */
@@ -83,6 +127,10 @@ export interface EnvironmentConfig {
   readonly oidcProviderArn?: string;
   /** The issuer of the tokens of a GitLab pipeline, gitlab.com or a host of its own. */
   readonly oidcIssuer?: string;
+  /** The organization's identity provider, when the installation declares one (#395). */
+  readonly identityProvider?: IdentityProviderConfig;
+  /** The organization's relay, when the installation sends through it instead of SES (#396). */
+  readonly relay?: RelayConfig;
 }
 
 export type InstallationVariables = Readonly<Record<string, string | undefined>>;
@@ -140,6 +188,181 @@ function hostsOf(node: ContextReader): DefaultHosts {
   return (typeof raw === 'string' ? JSON.parse(raw) : raw) as DefaultHosts;
 }
 
+/** The secret that holds the client secret of the organization's provider. */
+export function identityProviderSecretName(environment: Named): string {
+  return physicalName(environment, 'memorysmith-idp-client-secret');
+}
+
+/** The secret that holds the password of the organization's relay. */
+export function relaySecretName(environment: Named): string {
+  return physicalName(environment, 'memorysmith-smtp-password');
+}
+
+/**
+ * Every secret `deliver` may have written for this environment, which
+ * `destroy-installation` deletes with it: no stack owns them.
+ */
+export function deliverySecretNames(environment: Named): string[] {
+  return [identityProviderSecretName(environment), relaySecretName(environment)];
+}
+
+const listOf = (raw: string): string[] =>
+  raw
+    .split(',')
+    .map((each) => each.trim())
+    .filter(Boolean);
+
+/**
+ * Which service sends the e-mail of the installation (#396): SES, the
+ * default, or the organization's relay, read from the SMTP_ variables. A
+ * relay variable with no relay chosen is refused, since it would be ignored.
+ */
+export function relayOf(value: (key: string) => string): RelayConfig | null {
+  const service = value('MAIL') || 'ses';
+  if (!['ses', 'smtp'].includes(service)) {
+    throw new Error(`MAIL is "${service}": it is ses or smtp.`);
+  }
+  const relayed = [
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'SMTP_USER',
+    'MAIL_SUBNET_IDS',
+    'MAIL_SECURITY_GROUP_IDS',
+  ];
+  if (service === 'ses') {
+    const stray = relayed.filter((key) => value(key) !== '');
+    if (stray.length > 0) {
+      throw new Error(
+        `${stray.join(', ')} ${stray.length === 1 ? 'is' : 'are'} set, and MAIL is not smtp: set MAIL=smtp to send through the relay.`,
+      );
+    }
+    return null;
+  }
+
+  const host = value('SMTP_HOST');
+  if (!/^[A-Za-z0-9.-]+$/.test(host)) {
+    throw new Error(
+      host === ''
+        ? 'MAIL=smtp names no SMTP_HOST: see .env.example.'
+        : `SMTP_HOST is "${host}", which is not a host name.`,
+    );
+  }
+  const port = Number(value('SMTP_PORT') || '587');
+  if (!Number.isInteger(port) || port < 1 || port > 65535 || port === 25) {
+    throw new Error(
+      `SMTP_PORT is "${value('SMTP_PORT')}": 587 for STARTTLS or 465 for TLS; port 25 is not used, since AWS throttles it.`,
+    );
+  }
+  const sender = value('SENDER_ADDRESS');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sender)) {
+    throw new Error('MAIL=smtp needs SENDER_ADDRESS: the address the relay accepts as the sender.');
+  }
+  const subnetIds = listOf(value('MAIL_SUBNET_IDS'));
+  const securityGroupIds = listOf(value('MAIL_SECURITY_GROUP_IDS'));
+  if ((subnetIds.length === 0) !== (securityGroupIds.length === 0)) {
+    throw new Error(
+      'MAIL_SUBNET_IDS and MAIL_SECURITY_GROUP_IDS go together: name both to reach the relay from inside a VPC, and neither to reach it over the Internet.',
+    );
+  }
+  if (
+    ![...subnetIds, ...securityGroupIds].every((id) =>
+      /^(subnet|sg)-([0-9a-f]{8}|[0-9a-f]{17})$/.test(id),
+    )
+  ) {
+    throw new Error(
+      'MAIL_SUBNET_IDS holds subnet ids and MAIL_SECURITY_GROUP_IDS security group ids.',
+    );
+  }
+  return { host, port, user: value('SMTP_USER') || null, sender, subnetIds, securityGroupIds };
+}
+
+/**
+ * The organization's provider, read from the IDP_ variables, or null when the
+ * installation declares none. Half a declaration is refused, naming what is
+ * missing, because a pool that half-trusts a provider is a sign-in that fails
+ * only once somebody tries it.
+ */
+export function identityProviderOf(
+  node: ContextReader,
+  value: (key: string) => string,
+): IdentityProviderConfig | null {
+  const named = ['IDP_NAME', 'IDP_ISSUER', 'IDP_CLIENT_ID'];
+  const declared = named.filter((key) => value(key) !== '');
+  const choices = [
+    'SIGN_IN',
+    'IDP_FIRST_SIGN_IN',
+    'IDP_EMAIL_CLAIM',
+    'IDP_TRUST_EMAIL',
+    'IDP_QUOTA',
+  ];
+  if (declared.length === 0) {
+    const stray = choices.filter((key) => value(key) !== '');
+    if (stray.length > 0) {
+      throw new Error(
+        `${stray.join(', ')} ${stray.length === 1 ? 'is' : 'are'} set, and no identity provider is declared: set IDP_NAME, IDP_ISSUER and IDP_CLIENT_ID.`,
+      );
+    }
+    return null;
+  }
+  const missing = named.filter((key) => value(key) === '');
+  if (missing.length > 0) {
+    throw new Error(`The identity provider names no ${missing.join(', ')}: see .env.example.`);
+  }
+
+  const name = value('IDP_NAME');
+  // Cognito keys a provider by this name, which holds no space and no underscore.
+  if (!/^[^\s_]{3,32}$/u.test(name)) {
+    throw new Error(
+      `IDP_NAME is "${name}": 3 to 32 characters, with no space and no underscore, since Cognito keys the provider by it.`,
+    );
+  }
+  const issuer = value('IDP_ISSUER').replace(/\/+$/, '');
+  if (!/^https:\/\/[^\s/]+(\/\S*)?$/.test(issuer)) {
+    throw new Error(
+      `IDP_ISSUER is "${issuer}": the https address of the realm, e.g. https://sso.example.com/realms/acme.`,
+    );
+  }
+  const signIn = (value('SIGN_IN') || 'idp+password') as SignIn;
+  if (!['idp', 'idp+password'].includes(signIn)) {
+    throw new Error(`SIGN_IN is "${signIn}": it is idp or idp+password.`);
+  }
+  const firstSignIn = (value('IDP_FIRST_SIGN_IN') || 'request') as FirstSignIn;
+  if (!['request', 'prepared', 'automatic'].includes(firstSignIn)) {
+    throw new Error(`IDP_FIRST_SIGN_IN is "${firstSignIn}": it is request, prepared or automatic.`);
+  }
+  const emailClaim = value('IDP_EMAIL_CLAIM') || 'email';
+  if (!/^[A-Za-z_][\w.:-]{0,63}$/.test(emailClaim)) {
+    throw new Error(`IDP_EMAIL_CLAIM is "${emailClaim}", which is not the name of a claim.`);
+  }
+  const trust = value('IDP_TRUST_EMAIL') || 'false';
+  if (!['true', 'false'].includes(trust)) {
+    throw new Error(`IDP_TRUST_EMAIL is "${trust}": it is true or false.`);
+  }
+  const quota = value('IDP_QUOTA');
+  if (quota !== '' && firstSignIn !== 'automatic') {
+    throw new Error(
+      'IDP_QUOTA is the quota of the subscription a first sign-in gives, and only IDP_FIRST_SIGN_IN=automatic gives one.',
+    );
+  }
+  // The quotas a subscription may hold, as the Access service names them.
+  if (quota !== '' && !['500MB', '1GB', '2GB'].includes(quota)) {
+    throw new Error(`IDP_QUOTA is "${quota}": it is 500MB, 1GB or 2GB.`);
+  }
+  const version = String(node.tryGetContext('idpSecretVersion') ?? '').trim();
+
+  return {
+    name,
+    issuer,
+    clientId: value('IDP_CLIENT_ID'),
+    emailClaim,
+    trustEmail: trust === 'true',
+    signIn,
+    firstSignIn,
+    quota: quota || null,
+    secretVersion: version || null,
+  };
+}
+
 /** The environment of an installation, validated name by name. */
 export function installationEnvironmentOf(
   name: EnvironmentName,
@@ -189,6 +412,8 @@ export function installationEnvironmentOf(
   const sender = value('SENDER_ADDRESS');
   const oidcProviderArn = String(node.tryGetContext('oidcProviderArn') ?? '');
   const oidcIssuer = value('GITLAB_ISSUER') || 'gitlab.com';
+  const identityProvider = identityProviderOf(node, value);
+  const relay = relayOf(value);
 
   return {
     name,
@@ -209,6 +434,8 @@ export function installationEnvironmentOf(
     ...(sender ? { senderAddress: sender } : {}),
     ...(oidcProviderArn ? { oidcProviderArn } : {}),
     oidcIssuer,
+    ...(identityProvider ? { identityProvider } : {}),
+    ...(relay ? { relay } : {}),
   };
 }
 

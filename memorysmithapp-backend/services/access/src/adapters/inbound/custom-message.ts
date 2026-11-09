@@ -3,7 +3,7 @@
  *
  * Cognito calls it before it sends a message, with the attributes of the account
  * and a placeholder for the credential. It writes the subject and the body in
- * the language of the account (RN-ACC-017, RN-ACC-018) and reads nothing but the
+ * the language of the account (RN-ACC-042, RN-ACC-018) and reads nothing but the
  * event: the language is an attribute of the account, so no table is involved.
  */
 

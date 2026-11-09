@@ -173,6 +173,20 @@ export function hostsFromOutputs(outputs: Readonly<Record<string, string>>): Def
     : null;
 }
 
+/**
+ * What install-account says of SES in the region, for an installation that
+ * sends through it (#396). An account new to SES sends only to verified
+ * addresses, a couple of hundred a day, until AWS grants production access on
+ * request; null is an account whose state could not be read.
+ */
+export function sesSandboxLine(productionAccess: boolean | null, region: string): string {
+  if (productionAccess === true) return `  SES of ${region} is out of its sandbox.`;
+  if (productionAccess === false) {
+    return `  SES of ${region} is still in its sandbox: it sends only to addresses verified in it, about 200 a day. Request production access in the SES console of ${region} (Account dashboard, Request production access) before people sign in; AWS answers in about a day. MAIL=smtp sends through your own relay instead.`;
+  }
+  return `  SES of ${region} did not say whether it is out of its sandbox; look in its console.`;
+}
+
 /** What is left for a person, in the order to do it. */
 export function humanSteps(environment: EnvironmentConfig, roleArn: string | null): string[] {
   const steps: string[] = [];
@@ -184,16 +198,26 @@ export function humanSteps(environment: EnvironmentConfig, roleArn: string | nul
     'REPOSITORY',
     'REPOSITORY_HOST',
     'ALARM_EMAIL',
+    ...(environment.identityProvider
+      ? ['IDP_NAME', 'IDP_ISSUER', 'IDP_CLIENT_ID', 'SIGN_IN', 'IDP_FIRST_SIGN_IN']
+      : []),
+    ...(environment.relay ? ['MAIL', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SENDER_ADDRESS'] : []),
   ];
+  /** What the pipeline holds as secrets, never as variables (#395, #396). */
+  const secrets = [
+    ...(environment.identityProvider ? ['IDP_CLIENT_SECRET'] : []),
+    ...(environment.relay?.user ? ['SMTP_PASSWORD'] : []),
+  ];
+  const secretsToo = secrets.length > 0 ? `, and the secrets ${secrets.join(', ')}` : '';
   const role = `AWS_${environment.name.toUpperCase()}_ROLE_ARN=${roleArn ?? '<the role>'}`;
   if (environment.repositoryHost === 'github') {
     steps.push(
-      `On GitHub, create the environment ${environment.name} in ${environment.repository} and give it the variables ${variables.join(', ')} and ${role}.`,
+      `On GitHub, create the environment ${environment.name} in ${environment.repository} and give it the variables ${variables.join(', ')} and ${role}${secretsToo}.`,
     );
   }
   if (environment.repositoryHost === 'gitlab') {
     steps.push(
-      `On GitLab, create the environment ${environment.name} in ${environment.repository}, protect the branch main, and give the environment the variables ${variables.join(', ')} and ${role}. The pipeline is the fork's own: a job of that environment exchanges the token GitLab signs for the role and runs pnpm -C memorysmithapp-infra deliver --environment ${environment.name}.`,
+      `On GitLab, create the environment ${environment.name} in ${environment.repository}, protect the branch main, and give the environment the variables ${variables.join(', ')} and ${role}${secretsToo}. The pipeline is the fork's own: a job of that environment exchanges the token GitLab signs for the role and runs pnpm -C memorysmithapp-infra deliver --environment ${environment.name}.`,
     );
   }
   steps.push(
@@ -206,7 +230,7 @@ export function humanSteps(environment: EnvironmentConfig, roleArn: string | nul
       `Confirm the subscription of the alarm topic from the message AWS sends to ${environment.alarmEmail}.`,
     );
   }
-  if (!environment.hostedZoneName) {
+  if (!environment.hostedZoneName && !environment.relay) {
     steps.push(
       'Without a domain the pool sends through Cognito, which limits it to a few messages a day; the product sends from SENDER_ADDRESS, an address you verified in SES, and sends nothing without one.',
     );

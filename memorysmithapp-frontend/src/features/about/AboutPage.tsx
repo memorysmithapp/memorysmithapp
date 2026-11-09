@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { connectorEndpoint, loadedRuntimeConfig } from '../../shared/config/runtime-config';
 import { recordWelcomeSeen } from '../../shared/api/backend';
 import { useLiveSession } from '../../shared/auth/session';
+import { INTERFACE } from './about-screens';
 
 /**
  * The dashboard, unless this person has never been welcomed (#167).
@@ -52,6 +53,7 @@ type Client = (typeof CLIENTS)[number];
  * configuration, so each environment publishes its own, and it is the endpoint
  * and not the host: a client pointed at the host finds no server (#180).
  */
+
 export function AboutPage() {
   const { t } = useTranslation();
   const config = loadedRuntimeConfig();
@@ -99,14 +101,12 @@ export function AboutPage() {
         {/* Term and definition in one card, a row each: the term is what the
             eye scans for, so it carries the weight and the definition none. */}
         <dl className="about-list">
-          {(['notebooks', 'folders', 'guidance', 'graph', 'search', 'transfers'] as const).map(
-            (key) => (
-              <div key={key}>
-                <dt>{t(`about.interface.${key}.term`)}</dt>
-                <dd>{t(`about.interface.${key}.definition`)}</dd>
-              </div>
-            ),
-          )}
+          {INTERFACE.map((key) => (
+            <div key={key}>
+              <dt>{t(`about.interface.${key}.term`)}</dt>
+              <dd>{t(`about.interface.${key}.definition`)}</dd>
+            </div>
+          ))}
         </dl>
       </section>
 
@@ -158,6 +158,7 @@ export function AboutPage() {
       <section className="about-section">
         <h2>{t('about.files.heading')}</h2>
         <p>{t('about.files.body')}</p>
+        <p>{t('about.files.back')}</p>
         {uploadsHost ? (
           // Drawn as the connector's address is, and named apart from it: the
           // page states two addresses, and each is found by what it is.

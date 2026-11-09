@@ -33,6 +33,9 @@ import type { NotebookSnapshot } from './checks.js';
  */
 export const EVALUATION_CLIENT = { key: 'clients/claude-code.json', name: 'Claude Code' } as const;
 
+/** The client a Codex executor connects as, for the same reason (#406). */
+export const CODEX_CLIENT = { key: 'clients/codex.json', name: 'Codex' } as const;
+
 export interface Account {
   readonly email: string;
   readonly password: string;
@@ -148,6 +151,7 @@ export async function connectorToken(
   environment: EvaluationEnvironment,
   account: Account,
   browser: Browser,
+  client: { readonly key: string; readonly name: string } = EVALUATION_CLIENT,
 ): Promise<string> {
   const context = await browser.newContext();
   try {
@@ -158,7 +162,7 @@ export async function connectorToken(
       site: environment.site,
       mcp: environment.mcp,
       account,
-      client: EVALUATION_CLIENT,
+      client,
     });
     return token.accessToken;
   } finally {

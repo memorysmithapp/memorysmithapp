@@ -7,7 +7,13 @@ import {
   listDashboards,
   listTables,
 } from '../../shared/api/source';
-import { TableChoices, tablesOf, type TableCarry } from './TableChoices';
+import {
+  carriedTables,
+  EVERY_TABLE,
+  inconsistentDashboards,
+  transferTablesOf,
+  type TablesChoice,
+} from './tables-choice';
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import {
@@ -37,7 +43,14 @@ import { queryKeys } from '../../shared/api/query-keys';
  */
 /** What an archive carries, in words, leaving out what is zero. */
 export function carriedParts(
-  counts: { folders: number; templates: number; notes: number; files: number },
+  counts: {
+    folders: number;
+    templates: number;
+    notes: number;
+    files: number;
+    tables?: number;
+    dashboards?: number;
+  },
   t: (key: string, values?: Record<string, unknown>) => string,
 ): string[] {
   return [
@@ -45,7 +58,15 @@ export function carriedParts(
     counts.templates > 0 ? t('portability.countTemplates', { count: counts.templates }) : null,
     counts.notes > 0 ? t('portability.noteCount', { count: counts.notes }) : null,
     counts.files > 0 ? t('portability.countFiles', { count: counts.files }) : null,
+    counts.tables ? t('portability.countTables', { count: counts.tables }) : null,
+    counts.dashboards ? t('portability.countDashboards', { count: counts.dashboards }) : null,
   ].filter((part): part is string => part !== null);
+}
+
+/** What the archive carries of the tables and dashboards, as the API is told it (#399). */
+export interface TablesCarriage {
+  readonly tables?: Array<{ name: string; rows: boolean }>;
+  readonly dashboards?: string[];
 }
 
 export function ExportChoice({
@@ -63,9 +84,10 @@ export function ExportChoice({
   onChooseNotebook: (notebookId: string) => void;
   /**
    * What the archive carries. `null` is the whole notebook (RN-PRT-024), and
-   * no tables is every table with its rows (#366).
+   * nothing said of the tables is every table with its rows and every
+   * dashboard (#366, #399).
    */
-  onConfirm: (chosen: Chosen | null, tables?: Array<{ name: string; rows: boolean }>) => void;
+  onConfirm: (chosen: Chosen | null, carriage: TablesCarriage) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -74,7 +96,7 @@ export function ExportChoice({
   const [picked, setPicked] = useState<Picked>(pickedNothing);
   const [filter, setFilter] = useState('');
   const [tab, setTab] = useState<ChooserTab>('context');
-  const [carry, setCarry] = useState<Record<string, TableCarry>>({});
+  const [tablesChoice, setTablesChoice] = useState<TablesChoice>(EVERY_TABLE);
 
   /**
    * The structure of the notebook, which is what an export chooses from: it has
@@ -113,7 +135,10 @@ export function ExportChoice({
     queryFn: () => listTables(notebookId),
     enabled: open && notebookId !== '',
   });
-  const tableNames = (tables.data ?? []).map((table) => table.name);
+  const offeredTables = (tables.data ?? []).map((table) => ({
+    name: table.name,
+    rows: table.rows,
+  }));
   const dashboards = useQuery({
     queryKey: queryKeys.notebookDashboards(notebookId),
     queryFn: () => listDashboards(notebookId),
@@ -137,7 +162,15 @@ export function ExportChoice({
     [tree, scope, picked],
   );
 
-  const counts = tree && chosen ? countsOf(tree, chosen) : null;
+  const whole = preset === 'everything';
+  const offeredDashboards = dashboards.data ?? [];
+  const tablesNow = whole ? EVERY_TABLE : tablesChoice;
+  const tableCounts = carriedTables(tablesNow, offeredTables, offeredDashboards);
+  /** Dashboards chosen whose table stays out: the export waits until they are resolved (#399). */
+  const broken = whole
+    ? []
+    : inconsistentDashboards(tablesChoice, offeredTables, offeredDashboards);
+  const counts = tree && chosen ? { ...countsOf(tree, chosen), ...tableCounts } : null;
 
   return (
     <TransferDialog
@@ -155,15 +188,23 @@ export function ExportChoice({
               <strong>{carriedParts(counts, t).join(' · ')}</strong>
             </p>
           )}
+          {broken.length > 0 ? (
+            <p className="transfer-summary is-wrong" role="alert">
+              {t('portability.tables.blocked', { count: broken.length })}
+            </p>
+          ) : null}
           <button type="button" className="button is-quiet" onClick={onClose}>
             {t('portability.cancel')}
           </button>
           <button
             type="button"
             className="button is-primary"
-            disabled={notebooks.length === 0}
+            disabled={notebooks.length === 0 || broken.length > 0}
             onClick={() =>
-              onConfirm(preset === 'choose' ? chosen : null, tablesOf(carry, tableNames))
+              onConfirm(
+                whole ? null : chosen,
+                transferTablesOf(whole, tablesChoice, offeredTables, offeredDashboards),
+              )
             }
           >
             {t('portability.startExport')}
@@ -208,6 +249,12 @@ export function ExportChoice({
             tab={tab}
             onTab={setTab}
             preset={preset}
+            tablesOffer={{
+              tables: offeredTables,
+              dashboards: offeredDashboards,
+              choice: tablesChoice,
+              onChoice: setTablesChoice,
+            }}
             onPreset={(next) => {
               setPreset(next);
               if (next === 'everything') {
@@ -219,15 +266,6 @@ export function ExportChoice({
         ) : (
           <p className="status">{t('common.loading')}</p>
         ))}
-
-      {notebooks.length > 0 && tables.data ? (
-        <TableChoices
-          tables={tables.data.map((table) => ({ name: table.name, rows: table.rows }))}
-          carry={carry}
-          onCarry={setCarry}
-          dashboards={dashboards.data ?? []}
-        />
-      ) : null}
     </TransferDialog>
   );
 }

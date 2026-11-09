@@ -1,5 +1,5 @@
 /**
- * The signature the messages of the pool carry (RN-ACC-017). What these cases
+ * The signature the messages of the pool carry (RN-ACC-042). What these cases
  * protect is that the PNG a message shows is the lockup of the brand book as it
  * is now, and not a drawing the brand has since moved on from.
  */

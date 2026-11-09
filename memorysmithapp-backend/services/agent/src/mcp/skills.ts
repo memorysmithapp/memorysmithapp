@@ -313,6 +313,14 @@ holds.
   template belongs to one folder.
 - **Open the template with the frontmatter block**, the lines between the two
   \`---\` at the top, carrying \`name:\` and the properties the guidance declares.
+- **Every key a note of the folder may carry is in that block, the optional ones
+  too.** A key that applies only sometimes, like a follow-up date or the site of
+  an observation, is written there with a placeholder that says when it applies
+  and that the line is removed when it does not:
+  \`follow_up: <YYYY-MM-DD, once the date is confirmed; remove the line otherwise>\`.
+  Never declare a key in a placeholder of the body: the next agent copies the
+  frontmatter of the template, and a key that is not in it is a key the folder
+  does not have.
 - **Show the body with headings from \`#\`**, in the order a note of this folder is
   read.
 - **Show the formatting the material calls for** — the table of a comparison, the
@@ -1126,6 +1134,15 @@ everything else is a card with a download. \`list_files\` says what the notebook
 keeps already, so a note points at the file that is there instead of a second
 copy of it.
 
+## Giving it back
+
+When the person asks for a file the notebook keeps, call \`read_file\` with the
+file as \`list_files\` names it. Up to 4 MB it answers the content, an image as
+an image, a text as text and anything else as an embedded resource, so you
+can read it; and always a \`downloadUrl\` that saves the file under its own
+name for an hour. Hand the person that link: it is the file, whatever its
+size, and it is how they get one above 4 MB.
+
 ## Before you say it is done
 
 Run \`check_notebook\`. Besides the links, it lists \`openUploads\` — uploads not
@@ -1155,6 +1172,12 @@ with their columns. Rows go into the table that is already there for them;
 
 ## Where the rows come from
 
+Whichever way they come, **the person sees the columns before the table
+exists**: their names, their types, what goes in each and the key, and you
+create the table only after they answer. A person who asked you to build it
+asked for the result, not for columns they never saw, and a table created on a
+schema they would have changed is one you alter or delete afterwards.
+
 1. **A file the person has: a CSV or an Excel workbook.** Keep it whole, the
    way the skill \`${'keep-files'}\` says — \`begin_file_upload\` and its parts, or
    \`keep_file\` with \`content\` for a small CSV — or, when the file is with
@@ -1167,7 +1190,9 @@ with their columns. Rows go into the table that is already there for them;
    whole, naming the line: fix it in the file, or widen the column, and import
    again.
 2. **No file: a page on the screen, a PDF you read, what the person tells
-   you.** You are the one who turns it into rows. Write them with
+   you.** You are the one who turns it into rows. Propose the columns from
+   what you read, with two or three of the rows as they would be written, and
+   wait for the answer. Then create the table and write the rows with
    \`insert_rows\`, up to 50 a call, each an object by column name.
 
 ## The schema
@@ -1177,7 +1202,8 @@ the next agent reads to know what goes there. Prefer the narrowest type that
 holds the data — a date as \`{ "type": "string", "format": "date" }\`, an amount
 as a number, a status as a string with \`enum\` — because a filter compares by
 type: \`amount:>100\` compares numbers only in a number column. Show the person
-the schema before \`create_table\`.
+the schema before \`create_table\`, in words and not as JSON, and wait for their
+answer.
 
 ## The key, and reading the same data twice
 

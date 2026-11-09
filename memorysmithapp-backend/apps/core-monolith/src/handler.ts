@@ -226,6 +226,7 @@ import {
   forgetPublication,
   NO_EDGE_CACHE,
   publicCatalogUseCasesOf,
+  RelayAuthorNotifier,
   SesAuthorNotifier,
 } from './catalog.js';
 import {
@@ -934,7 +935,10 @@ const app = createApp({
     catalog,
     reports: catalogReports,
     cache: catalogCache,
-    notifier: new SesAuthorNotifier(required('SENDER_ADDRESS')),
+    // An installation with MAIL=smtp hands every message to its relay (#396).
+    notifier: process.env['MAIL_FUNCTION']
+      ? new RelayAuthorNotifier(process.env['MAIL_FUNCTION'])
+      : new SesAuthorNotifier(required('SENDER_ADDRESS')),
   }),
   nameOf: async (email) => {
     const parsed = Email.create(email);

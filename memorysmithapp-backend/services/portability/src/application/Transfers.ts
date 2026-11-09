@@ -62,7 +62,7 @@ export interface TransferWork {
   readonly selection?: ImportSelection | null | undefined;
   /**
    * What an export carries of each table, by name, whatever the selection is
-   * (#366, RN-PRT-049). Absent is every table with its rows.
+   * (#366, RN-PRT-057). Absent is every table with its rows.
    */
   readonly tables?: readonly TableChoice[] | undefined;
   readonly uploadKey?: string | undefined;
@@ -124,7 +124,7 @@ export class StartExport {
      * storage of the plan (RN-SUB-021).
      */
     selection?: ImportSelection | null;
-    /** What it carries of each table (#366, RN-PRT-049); absent is every table with its rows. */
+    /** What it carries of each table (#366, RN-PRT-057); absent is every table with its rows. */
     tables?: readonly TableChoice[] | undefined;
   }): Promise<Result<Transfer, DomainError>> {
     const brief = await this.notebooks.brief(input.notebookId);

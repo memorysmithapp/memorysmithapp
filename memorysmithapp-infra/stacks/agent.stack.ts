@@ -35,6 +35,8 @@ export interface AgentStackProps extends StackProps {
   /** Where the sign-in page answers, already assembled by the identity stack. */
   hostedUiOrigin: string;
   proxyClient: cognito.UserPoolClient;
+  /** The provider a connector's sign-in goes straight to, when it is the only one (#395). */
+  directProvider?: string | null;
   /**
    * Where the tools reach the other contexts. svc-agent forwards the caller's
    * own token, so the subscription that arrives at the core is the one fixed
@@ -98,6 +100,7 @@ export class AgentStack extends Stack {
         COGNITO_ISSUER: cognitoIssuer,
         COGNITO_DOMAIN: cognitoDomain,
         PROXY_CLIENT_ID: props.proxyClient.userPoolClientId,
+        ...(props.directProvider ? { IDENTITY_PROVIDER: props.directProvider } : {}),
         STATE_SECRET_ID: stateSecret.secretArn,
         INTERNAL_API_ORIGIN: props.internalApiOrigin,
       },

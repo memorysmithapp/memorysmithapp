@@ -19,6 +19,8 @@
  * Deleted notes do not enter the export (RN-PRT-006).
  */
 
+import type { ParameterDeclaration } from './NotebookModel.js';
+
 /**
  * The shape is declared here and VALIDATED at the edge, against the schema the
  * contracts package publishes: `domain/` imports only the kernel, and a zod
@@ -26,7 +28,32 @@
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.3';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.4';
+
+/** One version of a model, as a document carries it (#397): its meta and its snapshot. */
+export interface DocumentModelVersion {
+  readonly number: number;
+  readonly changelog: string;
+  readonly createdAt: string;
+  readonly objective: string;
+  readonly description: string;
+  readonly audience: string;
+  readonly parameters: readonly ParameterDeclaration[];
+  readonly basedOn: string | null;
+  /** The notebook the version froze, without history and without a model of its own. */
+  readonly document: NotebookSnapshot;
+}
+
+/** The model a notebook is declared as, as a document carries it (#397, RN-PRT-054). */
+export interface DocumentModel {
+  readonly objective: string;
+  readonly description: string;
+  readonly audience: string;
+  readonly parameters: readonly ParameterDeclaration[];
+  readonly basedOn: string | null;
+  /** Every version its owner keeps, the oldest first. */
+  readonly versions: readonly DocumentModelVersion[];
+}
 
 /**
  * One entry of the trail, as the archive carries it, and the revisions those
@@ -131,7 +158,7 @@ export function dashboardsCarried(
   });
 }
 
-/** What a transfer carries of one table, by name (RN-PRT-049). */
+/** What a transfer carries of one table, by name (RN-PRT-057). */
 export interface TableChoice {
   readonly name: string;
   readonly rows: boolean;
@@ -171,7 +198,12 @@ export interface NotebookDocument {
   readonly tables?: readonly DocumentTable[];
   /** Absent from every document written before `1.3` (#368). */
   readonly dashboards?: readonly DocumentDashboard[];
+  /** The model the notebook is declared as; absent from every document written before `1.4` (#397). */
+  readonly model?: DocumentModel;
 }
+
+/** A notebook as a version of a model freezes it: a document with no model of its own. */
+export type NotebookSnapshot = Omit<NotebookDocument, 'model'>;
 
 /** What the Knowledge context hands over, with nothing computed. */
 export interface ExportFolder {
@@ -243,10 +275,12 @@ export function carried(
      */
     files?: readonly string[] | undefined;
     /**
-     * The tables, by name, each with or without its rows (RN-PRT-049). Absent
+     * The tables, by name, each with or without its rows (RN-PRT-057). Absent
      * is every table with its rows; a table not named is left out.
      */
     tables?: readonly TableChoice[] | undefined;
+    /** The dashboards, by name (#399). Absent is every dashboard whose tables go. */
+    dashboards?: readonly string[] | undefined;
   } | null,
 ): ExportInput {
   if (!selection) return input;
@@ -289,11 +323,23 @@ export function carried(
     ...(selection.tables === undefined
       ? {}
       : { tables: tablesChosen(input.tables ?? [], selection.tables) }),
+    ...(selection.dashboards === undefined
+      ? {}
+      : { dashboards: dashboardsNamed(input.dashboards ?? [], selection.dashboards) }),
   };
 }
 
+/** The dashboards a choice names (#399), by name; the tables they draw from still decide whether they go. */
+export function dashboardsNamed<T extends { readonly name: string }>(
+  dashboards: readonly T[],
+  names: readonly string[],
+): T[] {
+  const named = new Set(names.map((name) => name.normalize('NFC').toLowerCase()));
+  return dashboards.filter((dashboard) => named.has(dashboard.name.normalize('NFC').toLowerCase()));
+}
+
 /**
- * The tables a transfer carries (RN-PRT-049): those it names, each with its
+ * The tables a transfer carries (RN-PRT-057): those it names, each with its
  * rows or with its schema alone. The choice is made at each transfer and
  * stored on nothing; what is stored is the archive.
  */
@@ -390,7 +436,12 @@ export function carriesEntry(
   return false;
 }
 
-export function buildNotebookDocument(input: ExportInput, now: string): NotebookDocument {
+export function buildNotebookDocument(
+  input: ExportInput,
+  now: string,
+  /** The model the notebook is declared as, when it is one and the export is not a version of it (#397). */
+  model: DocumentModel | null = null,
+): NotebookDocument {
   return {
     documentVersion: NOTEBOOK_DOCUMENT_VERSION,
     exportedAt: now,
@@ -433,6 +484,8 @@ export function buildNotebookDocument(input: ExportInput, now: string): Notebook
       const dashboards = dashboardsCarried(input.dashboards ?? [], input.tables ?? []);
       return dashboards.length > 0 ? { dashboards } : {};
     })(),
+    // And the model, whenever the notebook is declared as one (#397).
+    ...(model ? { model } : {}),
   };
 }
 

@@ -170,6 +170,89 @@ test.describe('the pages of an account', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('chooses the tables and dashboards of an export as the other species, and holds a dashboard without its table (#399)', async ({
+    app,
+    owner,
+    state,
+    words,
+    appLocale,
+  }) => {
+    const said = {
+      en_US: {
+        part: 'Part of it',
+        choose: 'Choose items',
+        tab: 'Tables and dashboards',
+        schemaOnly: 'Schema only',
+      },
+      pt_BR: {
+        part: 'Parte dele',
+        choose: 'Escolher itens',
+        tab: 'Tabelas e painéis',
+        schemaOnly: 'Só o schema',
+      },
+    }[appLocale];
+    const name = `Tables ${randomBytes(4).toString('hex')}`;
+    const { notebookId } = await owner.ok<{ notebookId: string }>('POST', '/knowledge/notebooks', {
+      name,
+      description: 'A notebook a web case exports in part.',
+    });
+    try {
+      await owner.ok('POST', `/knowledge/notebooks/${notebookId}/tables`, {
+        name: 'costs',
+        description: 'Costs.',
+        schema: {
+          type: 'object',
+          properties: { amount: { type: 'number' } },
+          required: ['amount'],
+        },
+      });
+      await owner.ok('POST', `/knowledge/notebooks/${notebookId}/dashboards`, {
+        name: 'Total',
+        definition: {
+          components: [{ type: 'kpi', source: { table: 'costs', measure: 'sum(amount)' } }],
+        },
+      });
+      await app.goto(`${state.surfaces.site}/`);
+      const card = app.locator('article.notebook-card', { hasText: name });
+      await card.getByRole('button', { name: words.moreActions }).click();
+      await app.getByRole('menuitem', { name: words.exportNotebook }).click();
+      const dialog = app.locator('.transfer-dialog');
+
+      // The whole notebook states what goes, and offers no box to touch.
+      await expect(dialog.locator('.chooser-scope input[type="checkbox"]')).toHaveCount(0);
+      await expect(dialog.locator('.chooser-scope-row.is-tables')).toBeVisible();
+
+      // Part of it: the tables and dashboards are chosen in a tab of their own.
+      await dialog.getByRole('radio', { name: said.part }).check();
+      await dialog
+        .locator('.chooser-scope-row.is-tables')
+        .getByRole('radio', { name: said.choose })
+        .click();
+      await expect(dialog.getByRole('tab', { name: new RegExp(`^${said.tab}`) })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+
+      // What goes of a table is the same segmented control as beside it (#404).
+      const schemaOnly = dialog
+        .locator('.tables-panel .is-table')
+        .getByRole('radio', { name: said.schemaOnly });
+      await schemaOnly.click();
+      await expect(schemaOnly).toHaveAttribute('aria-checked', 'true');
+
+      // A dashboard whose table stays out is marked, and holds the export.
+      const start = dialog.getByRole('button', { name: words.startExport, exact: true });
+      await dialog.locator('.tables-panel .is-table').getByRole('checkbox').uncheck();
+      await expect(dialog.locator('.tables-panel .is-dashboard.is-twin')).toBeVisible();
+      await expect(start).toBeDisabled();
+      await dialog.locator('.tables-panel .is-dashboard').getByRole('checkbox').uncheck();
+      await expect(start).toBeEnabled();
+      await app.keyboard.press('Escape');
+    } finally {
+      await owner.call('DELETE', `/knowledge/notebooks/${notebookId}`);
+    }
+  });
+
   test('exports a notebook from its card, and its owner deletes it there after saying so (#199)', async ({
     app,
     owner,
@@ -245,6 +328,8 @@ test.describe('the pages of an account', () => {
       `uploads.${new URL(state.surfaces.site).host}`,
     );
     await expect(app.locator('#about-files-panel li')).toHaveCount(3);
+    // Every screen the interface serves, each named once (#401).
+    await expect(app.locator('.about-list > div')).toHaveCount(12);
     // And the foot says which version this is, beside the way in.
     if (state.version) {
       await expect(app.locator('.about-version')).toContainText(state.version);
@@ -665,6 +750,68 @@ test.describe('the pages of an account', () => {
     });
   });
 
+  test('draws a table block of a note as a Markdown table of the same note, paged and sorted as before (#403)', async ({
+    app,
+    owner,
+    notebook,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const name = `custos-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name,
+      description: 'Custos de uma obra',
+      schema: {
+        type: 'object',
+        properties: { item: { type: 'string' }, valor: { type: 'number' } },
+        required: ['item'],
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(name)}/rows`, {
+      rows: [
+        { item: 'Um item de nome longo o bastante para quebrar a linha da célula', valor: 10 },
+        { item: 'Outro', valor: 20 },
+      ],
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: [
+        '---',
+        `name: Duas tabelas ${randomBytes(3).toString('hex')}`,
+        '---',
+        '',
+        '| item | valor |',
+        '| --- | ---: |',
+        '| Um | 1 |',
+        '',
+        '```table',
+        `table: ${name}`,
+        'columns: item, valor',
+        'total: valor',
+        '```',
+        '',
+      ].join('\n'),
+    });
+    try {
+      await app.goto(notebook.page(`/notes/${noteId}`));
+      const markdown = app.locator('.markdown > table').first();
+      const block = app.locator('.markdown .data-table table');
+      await expect(block.locator('tbody tr')).toHaveCount(2);
+
+      // The cells of the block wrap and are ruled as the Markdown table's are,
+      // and its header scrolls with the note instead of sticking (#403).
+      for (const cell of [markdown.locator('td').first(), block.locator('td').first()]) {
+        await expect(cell).toHaveCSS('white-space', 'normal');
+        await expect(cell).toHaveCSS('border-left-style', 'solid');
+      }
+      await expect(block.locator('thead th').first()).toHaveCSS('position', 'static');
+      // And it keeps what makes it a table of the notebook: its total.
+      await expect(block.locator('tfoot')).toContainText('30');
+    } finally {
+      await owner.call('DELETE', `${path}/notes/${noteId}`);
+      await owner.call('DELETE', `${path}/tables/${encodeURIComponent(name)}`);
+    }
+  });
+
   test('[page:/notebooks/:notebookId/tables] lists the tables of a notebook, opens one on its rows and its schema, and deletes it (#366)', async ({
     app,
     owner,
@@ -723,7 +870,7 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveURL(notebook.page('/tables'));
 
     await app.locator('.table-row', { hasText: name }).click();
-    const grid = app.locator('table.data-table');
+    const grid = app.locator('table.tables-grid');
     // A value in the reader's language, and a sort by clicking the column.
     await expect(grid).toContainText(appLocale === 'pt_BR' ? '1.250,75' : '1,250.75');
     await grid.getByRole('button', { name: 'valor' }).click();

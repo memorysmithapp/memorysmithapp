@@ -63,6 +63,12 @@ export interface LiveSession {
   readonly avatar: AvatarSourceDto;
   /** The picture they uploaded, as a data URL, when that is the source. */
   readonly picture: string | null;
+  /**
+   * Whether the account is held through the organization's identity provider
+   * (#395), whose password is the organization's: the interface offers no
+   * change of a password it does not hold.
+   */
+  readonly federated: boolean;
 }
 
 interface SessionStore {
@@ -145,6 +151,8 @@ export const useLiveSession = create<SessionStore>((set) => ({
           welcomeSeen: dto.welcomeSeen ?? true,
           avatar: dto.user.avatar ?? 'gravatar',
           picture: dto.user.picture ?? null,
+          // Only the ID token names the linked identities; the access token does not.
+          federated: claimsOf(tokens.idToken)?.federated ?? false,
         },
       });
     } catch (error) {
@@ -177,6 +185,7 @@ export const useLiveSession = create<SessionStore>((set) => ({
                 welcomeSeen: true,
                 avatar: 'gravatar',
                 picture: null,
+                federated: claims.federated,
               }
             : null,
       });
@@ -214,5 +223,6 @@ export function authConfig(): AuthConfig {
     redirectUri: `${window.location.origin}/auth/callback`,
     scopes: 'openid email profile',
     lang: providerLang(),
+    identityProvider: config.identityProvider,
   };
 }

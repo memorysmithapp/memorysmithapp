@@ -655,6 +655,13 @@ function parseShare(item: Item): Share {
  * the owner's subscription, because who could reach a notebook is part of its
  * life (RN-AUD-011).
  */
+/**
+ * Every read of a share is strongly consistent (#390): the owner shares and
+ * the grantee accepts, the grantee accepts and leaves, one request after the
+ * other, and an eventually consistent read a moment after the write found
+ * nothing and answered that the notebook was not found. A share is one small
+ * item, so the read costs one unit where it cost half.
+ */
 export class DynamoShareRepository implements ShareRepository {
   constructor(
     private readonly db: DynamoDBDocumentClient,
@@ -723,6 +730,7 @@ export class DynamoShareRepository implements ShareRepository {
           PK: `S#${owner.subscriptionId.value}`,
           SK: `${sharePrefix(notebookId)}${grantee.value}`,
         },
+        ConsistentRead: true,
       }),
     );
     return response.Item ? parseShare(response.Item as Item) : null;
@@ -736,7 +744,11 @@ export class DynamoShareRepository implements ShareRepository {
 
   async findIncoming(grantee: UserId, notebookId: NotebookId): Promise<Share | null> {
     const response = await this.db.send(
-      new GetCommand({ TableName: this.tableName, Key: granteeKey(grantee, notebookId) }),
+      new GetCommand({
+        TableName: this.tableName,
+        Key: granteeKey(grantee, notebookId),
+        ConsistentRead: true,
+      }),
     );
     return response.Item ? parseShare(response.Item as Item) : null;
   }
@@ -779,6 +791,7 @@ export class DynamoShareRepository implements ShareRepository {
           KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
           ExpressionAttributeValues: { ':pk': partition, ':prefix': prefix },
           ExclusiveStartKey: start,
+          ConsistentRead: true,
         }),
       );
       items.push(...((response.Items ?? []) as Item[]));

@@ -11,6 +11,52 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-08
+
+### Added
+
+- **An installation signs its people in through the organization's identity provider.** With `IDP_NAME`, `IDP_ISSUER` and `IDP_CLIENT_ID`, and the client secret in `IDP_CLIENT_SECRET`, the sign-in of the interface and of the connector offers the organization's OIDC provider, such as Red Hat build of Keycloak, beside the password, or, with `SIGN_IN=idp`, goes straight to it, where the person signs in with the login, password and second factor of the organization. Whoever signs in that way is one account per e-mail: the first sign-in links the identity to the account holding the address, with its subscription and notebooks, or creates one, and `IDP_FIRST_SIGN_IN` chooses whether a person with no account asks for a subscription, is refused unless `onboard --federated` prepared them, or gets an active subscription at once. The address comes from the claim `IDP_EMAIL_CLAIM` names, a name typed in MemorySmith is never overwritten by the provider's, and the interface offers no change of a password the organization holds. (#395)
+
+- **An installation sends its e-mail through the organization's own relay.** With `MAIL=smtp` and `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` and the password in `SMTP_PASSWORD`, the invitation, the verification code, the code of a forgotten password and the withdrawal notice of the catalog leave through the organization's SMTP relay, over TLS, from `SENDER_ADDRESS`, written as they are through SES and in the language of the account, and the installation uses no SES. A relay that answers only inside the organization's network is reached from subnets and security groups it names in `MAIL_SUBNET_IDS` and `MAIL_SECURITY_GROUP_IDS`. With SES, `install-account` now says when SES of the region is still in its sandbox, which sends only to verified addresses until AWS grants production access. (#396)
+
+- **An agent gives back a file the notebook keeps.** Asked for a photo, a PDF or a recording the notebook keeps, an agent had no way to reach it, not even an address to download it from. `read_file` now answers, to whoever may read the notebook, a link that downloads the file under its own name for an hour, and, up to 4 MB, its content too, so the agent can look at an image, read a text or a CSV and receive any other type as an embedded resource; a larger file answers with the link alone. (#394)
+
+- **The agent evaluation measures Codex beside Claude Code.** A round played every case with Claude Code as the agent, though people also reach MemorySmith from tools of OpenAI. A model named `codex` or `codex:<model>` in `--models` is now played by Codex, through the same connector, under the same cases, the same simulated person and the same checks, and connected as a client named *Codex*. Its room is closed as the one of Claude Code is: an empty directory outside any repository, no user configuration, rules or project document, a read-only sandbox, and the shell, the web, plugins, skills, memories and the apps of the ChatGPT account turned off, so the agent acts only through the connector, which AE-00 holds. It runs under the `CODEX_HOME` that `AGENT_EVAL_CODEX_HOME` names, or the operator's own sign-in, and the scorecard gives it a column of its own, with the tokens it spent where Codex prints no price (#406).
+
+### Changed
+
+- **The page of a notebook model shows one part at a time.** What the model says of itself, its parameters, its versions and its publication are four tabs instead of one long form. The objective, the description, the audience and the credit are fields of several lines that show their whole text, with how many characters each holds of its limit. The parameters are a list of one line each, with its type and whether it is required or what it defaults to, and each is added, edited and removed in a modal that saves the model when it is confirmed. The dialog of a new model on Home asks only its name and what it says of itself, and opens the parameters tab once it is created. (#400)
+
+- **A version of a notebook model carries every table with its rows.** A table created in a model is part of it, so creating a version no longer asks which tables go with their rows, with their schema alone or not at all: the form asks only what changed, and every table and dashboard goes, the publication still saying which rows anybody will read. The connector's `create_model_version` no longer takes `tables`, so an agent versions a model the same way. (#405)
+
+- **Exporting and importing choose tables and dashboards as they choose everything else.** The whole notebook carries every table with its rows and every dashboard, and shows what goes without a box to tick, where it showed boxes nobody could tick. Choosing part of it offers a tab of tables and dashboards, as the other species have: they go or not, all of them or item by item, each table with its schema alone or with its schema and rows, and each dashboard on its own, which before could not be chosen at all. A dashboard chosen whose table stays out is marked, naming the table, and the transfer waits until it is resolved. The import chooses the same way. What goes of a table, its schema alone or its schema and rows, is chosen with the same segmented control as the choices beside it. (#399, #404)
+
+### Fixed
+
+- **The agent evaluation hears an agent that waits on an offer.** A round handed a message to the simulated person only when it held a question mark or its turn wrote nothing, so an agent that showed a model and closed on *Se estiver bom, eu crio a versão 1* was left waiting, and its run was scored as one that never created the version. Every message now goes to the simulated person while the case allows another turn, and the person, who reads it as a person would, ends the conversation when nothing is asked of them (#408).
+
+- **An agent shows the columns of a table before it creates it, however the rows arrive.** Handed a month of expenses in plain words and asked to *build it for me*, an agent created the table and the dashboard at once, on columns the person never saw: the skill `keep-tables` asked to show the schema first only for a CSV or an Excel file. It now asks for it whichever way the rows come, with a few rows as they would be written, and reads *build it for me* as a request for the result rather than an approval of the columns (#407).
+
+- **A template declares every key its notes may carry, the optional ones too.** An agent designing a notebook wrote a key that applies only sometimes, a follow-up date or the site of an observation, as an instruction in the body of the template, and then put the key in the note: the next agent copying the template never saw it, and the folder carried a property no template declared. The skill `design-notebook` now asks for every such key in the frontmatter of the template, with a placeholder saying when it applies and that the line goes when it does not (#409).
+
+- **The community pages end where their content ends.** The search, a model and a version scrolled past their last line: their frame was as tall as the window inside a root that already was, which pushed the banner of the environment out of view and, on a phone, overshot the page even with no banner. The frame now fills the window and scrolls inside it, as every other page does (#410).
+
+- **A yes-or-no parameter is a box to tick when a notebook is created from a model.** Its box was stretched across the dialog, as wide and tall as a text field, by the rule that shapes every field that takes text. It is now a box of its own size beside the name of the parameter, which ticks it when clicked, and no box or radio inside a field takes the shape of a text field again (#411).
+
+- **Accepting a notebook a moment after it was shared no longer answers that the notebook was not found.** A share was read with a read that could miss the write of a moment before, so accepting it, leaving it right after accepting, or the owner's list of shares could answer as if the share did not exist yet; every read of a share now sees the last write. (#390)
+
+- **A table of the notebook shown in a note looks like any other table of the note.** It was drawn as the grid of the Tables screen, in a box with a filled header that stuck and cells that never wrapped; it is now drawn as a Markdown table of the same note, with its count, pages, sorting and total. (#403)
+
+- **The About page names every screen of the interface.** What you find here now says what the files, the tables, the dashboards, the notebook model, sharing and the community models are, besides the notebooks, folders, Guidance, graph, search and transfers it named, and says that an exported notebook carries its tables, dashboards and model. The section on files through the assistant also says that the assistant gives a kept file back, as its content and as a link that downloads it. (#401)
+
+- **A dialog is the only thing that scrolls while it is open.** The dialog of a new notebook model showed two scrollbars, its own and the one of the page behind it, which kept scrolling under it; the page behind a dialog is now locked. On a phone the dialog of a new notebook and of a new model now fills the screen, where it stopped short of the right edge. (#398)
+
+- **The menu of New notebook opens under the button.** On Home it opened above and to the left of it, away from the button that opened it; it now opens right under it, as every other menu does. (#402)
+
+- **An exported notebook model is imported as a model.** Exporting a notebook declared as a model carried the notebook alone, so importing it, in another installation or back in the same one, gave a plain notebook and lost its parameters and its versions. The export now carries the model, what it declares and every version with its changelog and snapshot, in version `1.4` of the format; imported by the owner of the subscription, it arrives as a model with its versions, ready to create notebooks from and numbered to continue where it was, unpublished. Imported by another member, the notebook comes alone, since only the owner declares a model. (#397)
+
+- **A file whose keep failed after its bytes were stored no longer leaves them in storage for good.** Nothing named those bytes, so no page, tool, quota or job ever reached them; `pnpm tools data purge-unnamed-files` now lists, by identifier and size, the bytes no file names that are older than a keep in flight, 24 hours unless `--older-than` says otherwise, and with `--apply` hands them to the purge, the only path that destroys content. (#377)
+
 ## [0.16.0] - 2026-11-03
 
 ### Added
@@ -946,7 +992,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3

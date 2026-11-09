@@ -43,7 +43,7 @@ export const GROUPS: readonly Group[] = [
           'Create an account and its subscription, or the first platform administrator of an empty pool',
         usage: [
           'pnpm tools onboard --environment staging [--email ana@example.com] [--name Ana]',
-          '  [--quota 1GB] [--status active] [--set-password] [--locale en_US]',
+          '  [--quota 1GB] [--status active] [--set-password | --federated] [--locale en_US]',
         ],
         runner: { kind: 'tsx', entry: join(TOOLS, 'commands/onboard.ts') },
       },
@@ -58,6 +58,7 @@ export const GROUPS: readonly Group[] = [
         summary: 'Run a maintenance job of the core; it writes only with --apply',
         usage: [
           'pnpm tools data <job> [--environment staging] [--apply]',
+          'pnpm tools data purge-unnamed-files [--environment staging] [--older-than 24] [--apply]',
           'pnpm tools data reproject-links --environment staging --follow <execution>',
         ],
         runner: { kind: 'tsx', entry: join(TOOLS, 'commands/maintenance.ts') },
@@ -89,6 +90,10 @@ export const GROUPS: readonly Group[] = [
         usage: [
           'pnpm tools agent-eval --environment staging [--models sonnet,haiku] [--runs 3]',
           '  [--cases AE-00,AE-01] [--user-model sonnet] [--open-room]',
+          '  A model named codex or codex:<model> is played by Codex; the simulated user stays Claude Code.',
+          '  The room runs under AGENT_EVAL_CLAUDE_CONFIG_DIR (CLAUDE_CONFIG_DIR=<dir> claude auth login)',
+          '  and, for Codex, AGENT_EVAL_CODEX_HOME (CODEX_HOME=<dir> codex login), each signed in with an',
+          "  account kept for the evaluation; unset, the operator's own sign-in is used.",
         ],
         runner: { kind: 'tsx', entry: join(TOOLS, 'agent-eval/run.ts') },
       },

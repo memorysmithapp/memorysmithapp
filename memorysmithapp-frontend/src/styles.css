@@ -2148,9 +2148,13 @@ a:hover {
 }
 /* The page behind a modal does not scroll under it. The choice a link of a
    note opens is the renderer's dialog, which touches nothing outside the note
-   (#291), so the page reads it off the open dialog. */
+   (#291), so the page reads it off the open dialog. The page scrolls inside
+   `.app-main`, not the document, so that is what is locked too: locking the
+   body alone left its scrollbar beside the modal's own (#398). */
 body.has-modal,
-body:has(.markdown dialog[open]) {
+body:has(.markdown dialog[open]),
+body.has-modal .app-main,
+body:has(.markdown dialog[open]) .app-main {
   overflow: hidden;
 }
 .link-choice-card {
@@ -5011,6 +5015,46 @@ body.has-sheet .app-main {
   justify-self: end;
   text-align: right;
 }
+/* Under the whole notebook a row states what goes, with a mark (#399). */
+.chooser-mark {
+  display: inline-flex;
+  justify-content: center;
+  width: 1rem;
+  color: var(--text-soft);
+}
+.chooser-mark.is-on {
+  color: var(--accent);
+  font-weight: 700;
+}
+/* The tab of the tables and dashboards (#399). */
+.tables-panel-group + .tables-panel-group {
+  margin-top: 1rem;
+}
+.tables-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.tables-panel-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.chooser-row.is-table,
+.chooser-row.is-dashboard {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+.chooser-row.is-table .chooser-reach {
+  margin-left: auto;
+}
+.chooser-note.is-wrong,
+.transfer-summary.is-wrong {
+  color: var(--danger);
+}
 .chooser-scope-row:last-child {
   border-bottom: 0;
 }
@@ -5546,7 +5590,11 @@ body.has-sheet .app-main {
 }
 /* The field of the Controles (#201): 38 px, the 8 px radius of the buttons,
    and focus as the blue edge. */
-.field input {
+/* A box and a radio keep their own size inside a field (#411): this is the
+   shape of a field that takes text. `:where` keeps the weight of
+   `.field input`, so the rules after it, the 16 px of a phone among them,
+   still win. */
+.field input:where(:not([type='checkbox'], [type='radio'])) {
   width: 100%;
   min-height: 38px;
   padding: 0 12px;
@@ -6778,43 +6826,121 @@ body.has-sheet .app-main {
   gap: 0.75rem;
   margin-top: 1rem;
 }
-.parameters-editor {
+/* The model, one part at a time (#400). */
+.model-tabs {
+  margin-top: 1rem;
+}
+.model-panel {
+  margin-top: 1rem;
+}
+.model-panel > .model-form,
+.model-panel > .model-versions,
+.model-panel > .model-publication {
+  margin-top: 0;
+}
+/* A text of several lines grows with what it holds instead of scrolling. */
+.growing-text {
+  resize: vertical;
+  overflow: hidden;
+  min-height: 3rem;
+}
+.field-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.field-count {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.model-summary {
   display: grid;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-.parameter-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 0.75rem;
   margin: 0;
-  padding: 0.75rem;
+}
+.model-summary dt {
+  font-weight: 600;
+}
+.model-summary dd {
+  margin: 0.15rem 0 0;
+  white-space: pre-wrap;
+}
+.model-parameters-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.model-parameters-head .hint {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+.parameter-lines {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
 }
-.parameter-row .field {
-  margin-bottom: 0.75rem;
+.parameter-line {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
 }
-.parameter-description,
-.parameter-default,
-.parameter-problem,
-.parameter-written {
+.parameter-line + .parameter-line {
+  border-top: 1px solid var(--border);
+}
+.parameter-line-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.parameter-line-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+.parameter-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.75rem;
+}
+.parameter-fields .parameter-description,
+.parameter-fields .parameter-default,
+.parameter-fields .parameter-problem,
+.parameter-fields .parameter-written {
   grid-column: 1 / -1;
+}
+@media (max-width: 40rem) {
+  .parameter-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .parameter-line-type,
+  .parameter-line-requirement {
+    grid-column: 1;
+    font-size: 0.875rem;
+  }
+  .parameter-line-actions {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    flex-direction: column;
+  }
+  .parameter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .parameter-required {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-}
-.parameter-remove {
-  justify-self: end;
-}
-@media (max-width: 40rem) {
-  .parameter-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .parameter-list {
   margin: 0;
@@ -6895,8 +7021,12 @@ body.has-sheet .app-main {
   background: var(--code-bg);
   font-size: 0.875rem;
 }
-.new-notebook .ask-dialog-box {
-  width: min(36rem, calc(100vw - 2rem));
+/* Wider than a question, on a screen with room for it: on a phone the modal
+   is the whole screen, as every other one (#398). */
+@media (min-width: 40.0625rem) {
+  .new-notebook .ask-dialog-box {
+    width: min(36rem, calc(100vw - 2rem));
+  }
 }
 .new-notebook-form,
 .new-notebook-model,
@@ -6910,6 +7040,15 @@ body.has-sheet .app-main {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+/* The menu of New notebook opens right under it, as every menu opens under its
+   trigger (#402). */
+.new-notebook-anchor {
+  position: relative;
+}
+.menu.new-notebook-menu {
+  top: calc(100% + 4px);
+  left: 0;
+}
 .share-licence {
   margin-bottom: 0.75rem;
 }
@@ -6920,8 +7059,14 @@ body.has-sheet .app-main {
 /* ── The community catalog (#360) ────────────────────────────────────────────
    Pages a visitor with no account reaches, so they carry a head of their own
    instead of the frame of the application. */
+/* The first row of the root, scrolled inside it as the shell is (#410): a
+   frame a viewport tall pushed the banner of the environment out of the window,
+   and on a phone, where 100vh outgrows the visible window, overshot the end of
+   the page even with no banner. */
 .community-frame {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--bg);
 }
 .community-nav {
@@ -7058,41 +7203,43 @@ body.has-sheet .app-main {
 .table-detail-meta {
   margin: 0;
 }
-.data-table-scroll {
+/* The grid of the Tables screen and of a dashboard, named apart from the
+   `table` block of a note, which the renderer draws as a Markdown table (#403). */
+.tables-grid-scroll {
   overflow-x: auto;
   max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
 }
-.data-table {
+.tables-grid {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.86rem;
 }
-.data-table th,
-.data-table td {
+.tables-grid th,
+.tables-grid td {
   padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   vertical-align: top;
 }
-.data-table tbody tr:last-child th,
-.data-table tbody tr:last-child td {
+.tables-grid tbody tr:last-child th,
+.tables-grid tbody tr:last-child td {
   border-bottom: 0;
 }
-.data-table thead th {
+.tables-grid thead th {
   background: var(--bg);
   font-weight: 600;
   position: sticky;
   top: 0;
 }
-.data-table .is-numeric {
+.tables-grid .is-numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.data-table-sort {
+.tables-grid-sort {
   display: inline-flex;
   gap: 4px;
   border: 0;
@@ -7102,7 +7249,7 @@ body.has-sheet .app-main {
   font: inherit;
   cursor: pointer;
 }
-.data-table-arrow {
+.tables-grid-arrow {
   color: var(--accent);
   min-width: 0.7em;
 }
@@ -7117,7 +7264,7 @@ body.has-sheet .app-main {
   font-size: 0.76rem;
   font-weight: 400;
 }
-.data-table-pages {
+.tables-grid-pages {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -7125,47 +7272,9 @@ body.has-sheet .app-main {
   color: var(--text-soft);
   font-size: 0.82rem;
 }
-.data-table-page-buttons {
+.tables-grid-page-buttons {
   display: flex;
   gap: 6px;
-}
-.table-choices {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin: 12px 0 0;
-  min-width: 0;
-}
-.table-choices legend {
-  font-weight: 600;
-  padding: 0 4px;
-}
-.table-choices ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.table-choices-hint {
-  color: var(--text-soft);
-  font-size: 0.82rem;
-  margin: 0 0 8px;
-}
-.table-choice {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.table-choice label {
-  overflow-wrap: anywhere;
-}
-.table-choice-rows {
-  color: var(--text-soft);
-  font-size: 0.8rem;
-  margin-left: 6px;
 }
 
 /* The Dashboards of a notebook (#368): a layout of cards that becomes one
@@ -7595,7 +7704,7 @@ body.has-sheet .app-main {
 .dashboard-print .dash-matrix :is(th, td) {
   padding-inline: 5px;
 }
-.dashboard-print .data-table-scroll {
+.dashboard-print .tables-grid-scroll {
   overflow: visible;
 }
 .dashboard-print {

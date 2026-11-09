@@ -1,5 +1,5 @@
 /**
- * Renders the signature the messages of the pool carry (RN-ACC-017).
+ * Renders the signature the messages of the pool carry (RN-ACC-042).
  *
  *   pnpm -C memorysmithapp-infra exec playwright install chromium
  *   pnpm -C memorysmithapp-infra exec tsx commands/render-email-lockup.ts

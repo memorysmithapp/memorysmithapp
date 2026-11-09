@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { changePassword } from '../../shared/api/backend';
 import { ApiError } from '../../shared/api/error-mapper';
+import { useLiveSession } from '../../shared/auth/session';
 
 /**
  * Changing a password from inside a live session (#168, RN-ACC-023).
@@ -48,6 +49,8 @@ export function PasswordPage() {
   const [tried, setTried] = useState(false);
 
   useDocumentTitle(t('password.heading'), null);
+  /** The organization's provider holds this password, not MemorySmith (#395). */
+  const federated = useLiveSession((s) => s.session?.federated ?? false);
 
   const mismatched = again.length > 0 && next !== again;
   const ready = current.length > 0 && next.length > 0 && next === again;
@@ -84,6 +87,8 @@ export function PasswordPage() {
       </PasswordScreen>
     );
   }
+
+  if (federated) return <Navigate to="/profile" replace />;
 
   return (
     <PasswordScreen heading={t('password.heading')}>

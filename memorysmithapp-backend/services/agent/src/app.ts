@@ -54,6 +54,34 @@ function issuedTokens(body: string): IssuedTokens | null {
  * environment. Every parameter is required, and the Lambda entrypoint is the
  * only place that wires the real adapters.
  */
+/**
+ * Where the first leg sends the browser: the sign-in of the pool, under the
+ * one client of the proxy, carrying the state that names the connector. On an
+ * installation that signs in only through the organization's provider, it
+ * goes straight there (#395).
+ */
+export function upstreamAuthorize(
+  config: Pick<
+    AgentConfig,
+    'cognitoDomain' | 'proxyClientId' | 'publicOrigin' | 'identityProvider'
+  >,
+  state: string,
+  codeChallenge: string,
+): string {
+  const upstream = new URL(`${config.cognitoDomain}/oauth2/authorize`);
+  upstream.searchParams.set('response_type', 'code');
+  upstream.searchParams.set('client_id', config.proxyClientId);
+  upstream.searchParams.set('redirect_uri', `${config.publicOrigin}/callback`);
+  upstream.searchParams.set('scope', 'openid email profile');
+  upstream.searchParams.set('state', state);
+  upstream.searchParams.set('code_challenge', codeChallenge);
+  upstream.searchParams.set('code_challenge_method', 'S256');
+  if (config.identityProvider) {
+    upstream.searchParams.set('identity_provider', config.identityProvider);
+  }
+  return upstream.toString();
+}
+
 export function createApp(
   config: AgentConfig,
   resolveStateSecret: SecretResolver,
@@ -143,15 +171,7 @@ export function createApp(
       await resolveStateSecret(),
     );
 
-    const upstream = new URL(`${config.cognitoDomain}/oauth2/authorize`);
-    upstream.searchParams.set('response_type', 'code');
-    upstream.searchParams.set('client_id', config.proxyClientId);
-    upstream.searchParams.set('redirect_uri', `${config.publicOrigin}/callback`);
-    upstream.searchParams.set('scope', 'openid email profile');
-    upstream.searchParams.set('state', state);
-    upstream.searchParams.set('code_challenge', codeChallenge);
-    upstream.searchParams.set('code_challenge_method', 'S256');
-    return c.redirect(upstream.toString(), 302);
+    return c.redirect(upstreamAuthorize(config, state, codeChallenge), 302);
   });
 
   // ---- Callback from Cognito (item 3, second leg) --------------------------

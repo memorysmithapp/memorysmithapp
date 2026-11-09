@@ -34,6 +34,11 @@ export interface RuntimeConfig {
   readonly cognitoDomain: string;
   /** The app client of the interface. */
   readonly cognitoClientId: string;
+  /**
+   * The organization's provider the sign-in goes straight to, when the
+   * installation signs in only through it (#395), or `null` everywhere else.
+   */
+  readonly identityProvider: string | null;
   readonly environment: DeploymentEnvironment;
   readonly version: string;
 }
@@ -73,6 +78,10 @@ export function parseRuntimeConfig(raw: unknown): RuntimeConfig {
         : null,
     cognitoDomain: text(fields, 'cognitoDomain').replace(/\/$/, ''),
     cognitoClientId: text(fields, 'cognitoClientId'),
+    identityProvider:
+      typeof fields['identityProvider'] === 'string' && fields['identityProvider'].trim()
+        ? fields['identityProvider'].trim()
+        : null,
     environment: environment as DeploymentEnvironment,
     version: text(fields, 'version'),
   };

@@ -242,6 +242,7 @@ describe('The tool catalog is the public contract', () => {
       'request_file',
       'discard_file_upload',
       'list_files',
+      'read_file',
       'delete_file',
       // The Tables of a notebook and their rows (#366).
       'list_tables',
@@ -3208,5 +3209,102 @@ describe('import_table (#366)', () => {
     expect(result.content[0]?.text ?? '').not.toContain('VALIDATION');
     expect(result.isError).not.toBe(true);
     expect(sent).toEqual({ file: 'statement-c3ae3d33.csv', mode: 'insert', dryRun: false });
+  });
+});
+
+describe('read_file gives a kept file back (#394, RN-AGT-066)', () => {
+  const NOTEBOOK = '01JBQ2X00000000000000000V1';
+  const fileOf = (fileId: string, name: string, mimeType: string, bytes: number) => ({
+    fileId,
+    name,
+    description: '',
+    mimeType,
+    tags: [],
+    path: '',
+    bytes,
+    sha256: 'a'.repeat(64),
+  });
+  const files = [
+    fileOf('01JBQ2X00000000000000000F1', 'planta.png', 'image/png', 4),
+    fileOf('01JBQ2X00000000000000000F2', 'contrato.pdf', 'application/pdf', 5),
+    fileOf('01JBQ2X00000000000000000F3', 'gastos.csv', 'text/csv', 9),
+    fileOf('01JBQ2X00000000000000000F4', 'obra.mp4', 'video/mp4', 50 * 1024 * 1024),
+  ];
+  const link = (fileId: string) => ({
+    url: `https://files.example/${fileId}?inline`,
+    downloadUrl: `https://files.example/${fileId}?attachment`,
+    opens: true,
+    expiresAt: '2026-11-08T13:00:00.000Z',
+  });
+  const bytesOf: Record<string, Uint8Array> = {
+    [link('01JBQ2X00000000000000000F1').downloadUrl]: new Uint8Array([137, 80, 78, 71]),
+    [link('01JBQ2X00000000000000000F2').downloadUrl]: new TextEncoder().encode('%PDF-'),
+    [link('01JBQ2X00000000000000000F3').downloadUrl]: new TextEncoder().encode('data;valor'),
+  };
+  const downloaded: string[] = [];
+  const adapter = gateways({
+    knowledge: {
+      listFiles: async () => files,
+      linkToFile: async (_caller: unknown, _notebook: string, fileId: string) => link(fileId),
+      downloadLinked: async (url: string) => {
+        downloaded.push(url);
+        return bytesOf[url] ?? new Uint8Array();
+      },
+    },
+  });
+  const read = (file: string) => adapter.call('read_file', { notebook: NOTEBOOK, file }, caller);
+  const described = (result: { content: Array<{ type: string; text?: string }> }) =>
+    JSON.parse(
+      result.content.find((part) => part.type === 'text' && part.text?.startsWith('{'))?.text ??
+        '{}',
+    ) as Record<string, unknown>;
+
+  it('answers an image as an image, and the link that downloads it under its name', async () => {
+    const result = await read('01JBQ2X00000000000000000F1');
+    expect(result.content[0]).toEqual({
+      type: 'image',
+      data: Buffer.from([137, 80, 78, 71]).toString('base64'),
+      mimeType: 'image/png',
+    });
+    expect(described(result)).toMatchObject({
+      name: 'planta.png',
+      downloadUrl: link('01JBQ2X00000000000000000F1').downloadUrl,
+      expiresAt: '2026-11-08T13:00:00.000Z',
+      inline: true,
+    });
+  });
+
+  it('answers a PDF as an embedded resource, and a CSV as text', async () => {
+    const pdf = await read('01JBQ2X00000000000000000F2');
+    expect(pdf.content[0]).toEqual({
+      type: 'resource',
+      resource: {
+        uri: link('01JBQ2X00000000000000000F2').downloadUrl,
+        mimeType: 'application/pdf',
+        blob: Buffer.from('%PDF-').toString('base64'),
+      },
+    });
+    const csv = await read('01JBQ2X00000000000000000F3');
+    expect(csv.content[0]).toEqual({ type: 'text', text: 'data;valor' });
+  });
+
+  it('answers a file above 4 MB with the link alone, saying so, and never downloads it', async () => {
+    const result = await read('01JBQ2X00000000000000000F4');
+    expect(result.content).toHaveLength(1);
+    expect(described(result)).toMatchObject({ name: 'obra.mp4', inline: false });
+    expect(String(described(result)['note'])).toContain('downloadUrl');
+    expect(downloaded).not.toContain(link('01JBQ2X00000000000000000F4').downloadUrl);
+  });
+
+  it('answers not found for a file the notebook does not keep', async () => {
+    const result = await read('01JBQ2X00000000000000000F9');
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toMatch(/^NOT_FOUND:/);
+  });
+
+  it('is a read: it changes nothing', () => {
+    expect(TOOL_CATALOG.find((tool) => tool.name === 'read_file')?.annotations.readOnlyHint).toBe(
+      true,
+    );
   });
 });

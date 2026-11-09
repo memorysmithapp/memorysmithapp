@@ -110,6 +110,7 @@ const api = new ApiStack(app, id('Api'), {
   webClientId: identity.webClient.userPoolClientId,
   frontendOrigin: `https://${network.siteDomainName}`,
   senderAddress: network.senderAddress,
+  mailFunction: identity.mailFunction,
 });
 
 const projections = new ProjectionsStack(app, id('Projections'), { env, environment, data });
@@ -122,6 +123,7 @@ const agent = new AgentStack(app, id('Agent'), {
   userPool: identity.userPool,
   hostedUiOrigin: identity.hostedUiOrigin,
   proxyClient: identity.proxyClient,
+  directProvider: identity.directProvider,
   internalApiOrigin: api.apiOrigin,
   coreApi: api.httpApi,
   siteOrigin: `https://${network.siteDomainName}`,
@@ -147,6 +149,7 @@ const release = new FrontendReleaseStack(app, id('FrontendRelease'), {
     catalogOrigin: api.catalogOrigin,
     cognitoDomain: identity.hostedUiOrigin,
     cognitoClientId: identity.webClient.userPoolClientId,
+    ...(identity.directProvider ? { identityProvider: identity.directProvider } : {}),
     environment: deployment.environment,
     version: deployment.version,
   },

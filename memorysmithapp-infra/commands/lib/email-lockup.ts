@@ -1,5 +1,5 @@
 /**
- * The signature the messages of the pool carry (RN-ACC-017).
+ * The signature the messages of the pool carry (RN-ACC-042).
  *
  * E-mail clients show no SVG, so a message carries a PNG of the lockup, served
  * from the site of the environment. It is rendered from the same SVG the sign-in

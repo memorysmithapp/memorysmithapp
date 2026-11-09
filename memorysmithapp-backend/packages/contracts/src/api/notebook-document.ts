@@ -35,6 +35,7 @@ import {
   ulidSchema,
 } from '../common.js';
 import { domainEventTypeSchema, eventSubjectSchema } from '../events.js';
+import { parameterDeclarationSchema } from './models.js';
 
 /**
  * The version of the DOCUMENT, which is not the version of the product. It says
@@ -43,16 +44,16 @@ import { domainEventTypeSchema, eventSubjectSchema } from '../events.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.3';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.4';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
- * carry, `1.2` the files the notebook keeps and `1.3` its tables, and none
- * added anything else: an older document is a newer one with that part
- * missing, so it is read exactly as it always was (RN-PRT-022, RN-PRT-025,
- * RN-PRT-049).
+ * carry, `1.2` the files the notebook keeps, `1.3` its tables and `1.4` the
+ * model it is declared as, and none added anything else: an older document is
+ * a newer one with that part missing, so it is read exactly as it always was
+ * (RN-PRT-022, RN-PRT-025, RN-PRT-057, RN-PRT-054).
  */
-export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3'] as const;
+export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3', '1.4'] as const;
 
 export const documentFolderSchema = z.object({
   folderId: ulidSchema,
@@ -159,7 +160,7 @@ export const documentFileSchema = z.object({
 /**
  * One Table of the notebook (#366): its schema in JSON Schema, its key by
  * column name and its rows by column name. `rows` is absent when the transfer
- * carried the schema alone (RN-PRT-049). No identifier travels: an import mints
+ * carried the schema alone (RN-PRT-057). No identifier travels: an import mints
  * its own, and a note names a table by its name.
  */
 export const documentTableSchema = z.object({
@@ -180,7 +181,8 @@ export const documentDashboardSchema = z.object({
   definition: z.record(z.string(), z.unknown()),
 });
 
-export const notebookDocumentSchema = z.object({
+/** What a notebook holds, which a document carries and a version of a model freezes. */
+const notebookContentSchema = z.object({
   /** The shape of this document. Read before anything else. */
   documentVersion: z.enum(READABLE_DOCUMENT_VERSIONS),
   exportedAt: instantSchema,
@@ -211,7 +213,44 @@ export const notebookDocumentSchema = z.object({
   dashboards: z.array(documentDashboardSchema).optional(),
 });
 
+/**
+ * One version of the model (#397): what it froze of the model and its
+ * snapshot, a notebook without history, carried as the document it is kept as.
+ */
+export const documentModelVersionSchema = z.object({
+  number: z.number().int().positive(),
+  changelog: z.string().max(2000),
+  createdAt: instantSchema,
+  objective: z.string().min(1).max(500),
+  description: z.string().max(500),
+  audience: z.string().max(300),
+  parameters: z.array(parameterDeclarationSchema),
+  basedOn: z.string().max(200).nullable(),
+  document: notebookContentSchema,
+});
+
+/**
+ * The model a notebook is declared as (#397, RN-PRT-054): what it says of
+ * itself and every version its owner keeps, the oldest first. A publication
+ * in the community catalog belongs to the installation it was made in and is
+ * never carried.
+ */
+export const documentModelSchema = z.object({
+  objective: z.string().min(1).max(500),
+  description: z.string().max(500),
+  audience: z.string().max(300),
+  parameters: z.array(parameterDeclarationSchema).max(50),
+  basedOn: z.string().max(200).nullable(),
+  versions: z.array(documentModelVersionSchema),
+});
+
+export const notebookDocumentSchema = notebookContentSchema.extend({
+  /** The model the notebook is declared as, absent from every document written before `1.4`. */
+  model: documentModelSchema.optional(),
+});
+
 export type NotebookDocument = z.infer<typeof notebookDocumentSchema>;
+export type DocumentModel = z.infer<typeof documentModelSchema>;
 export type DocumentFile = z.infer<typeof documentFileSchema>;
 export type DocumentTable = z.infer<typeof documentTableSchema>;
 export type DocumentDashboard = z.infer<typeof documentDashboardSchema>;

@@ -213,6 +213,16 @@ export interface NotebookFileRef {
   readonly sha256: string;
 }
 
+/** The two addresses of a file, as the link route answers them (#171, #394). */
+export interface FileLinkRef {
+  /** Shows the file where a browser displays it, and downloads it otherwise. */
+  readonly url: string;
+  /** Always downloads it, under its own name. */
+  readonly downloadUrl: string;
+  readonly opens: boolean;
+  readonly expiresAt: string;
+}
+
 export interface NoteLink {
   readonly target: string;
   /**
@@ -387,6 +397,13 @@ export interface KnowledgeGateway {
     },
   ): Promise<NotebookFileRef>;
   listFiles(caller: AgentCaller, notebookId: string): Promise<NotebookFileRef[]>;
+  /** Where the bytes of a file are, minted now and expiring together (#394). */
+  linkToFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<FileLinkRef>;
+  /**
+   * The bytes behind a link of `linkToFile`, refused above `maxBytes` before
+   * they are read whole: what an agent receives in one answer has a ceiling.
+   */
+  downloadLinked(url: string, maxBytes: number): Promise<Uint8Array>;
   /**
    * An upload in parts (#240, RN-PRT-027): the file declared with the size and
    * the hash of the whole, sent in parts by URL or inline, and kept only when
@@ -604,7 +621,6 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     notebookId: string,
     changelog: string,
-    tables?: ReadonlyArray<{ name: string; rows: boolean }>,
   ): Promise<ModelVersionDto>;
   modelVersion(
     caller: AgentCaller,

@@ -8,8 +8,19 @@
  * user-subscription link, replaces the stub in delivery 5.
  */
 
-import { CfnOutput, Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import {
+  CfnOutput,
+  Duration,
+  RemovalPolicy,
+  SecretValue,
+  Stack,
+  type StackProps,
+} from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kms from 'aws-cdk-lib/aws-kms';
+import type { CfnFunction, IFunction } from 'aws-cdk-lib/aws-lambda';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import type { Construct } from 'constructs';
 import { ARecord, RecordTarget, type IHostedZone } from 'aws-cdk-lib/aws-route53';
@@ -20,6 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
+import { identityProviderSecretName, relaySecretName } from '../installation/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -45,7 +57,7 @@ export interface IdentityStackProps extends StackProps {
  *
  * Every invitation, confirmation code and forgot-password code is written by
  * the trigger, in HTML, with the signature of the brand and in the language of
- * the account (RN-ACC-017, RN-ACC-018; `pool-messages.ts` in the Access
+ * the account (RN-ACC-042, RN-ACC-018; `pool-messages.ts` in the Access
  * service). They used to be the provider's factory text, and then these
  * templates, in plain text and in en-US whatever the account spoke. What stays
  * here is what the pool would send for a message the trigger left unanswered,
@@ -118,6 +130,13 @@ export class IdentityStack extends Stack {
   readonly webClient: cognito.UserPoolClient;
   /** The issuer every service validates tokens against. */
   readonly issuer: string;
+  /**
+   * The provider the sign-in goes straight to, sent as `identity_provider` on
+   * `/authorize`, when the installation signs in only through it (#395).
+   */
+  readonly directProvider: string | null;
+  /** The function every message leaves through when the installation has its own relay (#396). */
+  readonly mailFunction: IFunction | null;
 
   constructor(scope: Construct, id: string, props: IdentityStackProps) {
     super(scope, id, props);
@@ -152,7 +171,7 @@ export class IdentityStack extends Stack {
 
     /**
      * Where the messages of the pool are written, in the language of the account
-     * (RN-ACC-017, RN-ACC-018). It reads only the event: the language is an
+     * (RN-ACC-042, RN-ACC-018). It reads only the event: the language is an
      * attribute of the account, and the site is where a message sends the person.
      */
     const customMessage = new ServiceLambda(this, 'CustomMessage', {
@@ -173,6 +192,8 @@ export class IdentityStack extends Stack {
       environment: { SITE_ORIGIN: `https://${props.siteDomainName}` },
     }).function;
 
+    const relay = this.relay(props);
+
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: physicalName(props.environment, 'memorysmith-users'),
       featurePlan: cognito.FeaturePlan.ESSENTIALS,
@@ -191,17 +212,21 @@ export class IdentityStack extends Stack {
       },
       mfa: cognito.Mfa.OPTIONAL,
       /**
-       * Through SES, from the domain of the environment (RN-ACC-017). The
+       * Through SES, from the domain of the environment (RN-ACC-042). The
        * identity is verified before this stack is deployed (network.stack).
        */
-      email: props.hostedZone
-        ? cognito.UserPoolEmail.withSES({
-            fromEmail: props.senderAddress,
-            fromName: 'MemorySmith',
-            sesVerifiedDomain: props.siteDomainName,
-          })
-        : // No domain to verify (#342): Cognito's own sender, and its daily limit.
-          cognito.UserPoolEmail.withCognito(),
+      // With its own relay, no message leaves through the pool's sender: the
+      // custom email sender below sends them all (#396).
+      ...(relay ? { customSenderKmsKey: relay.key } : {}),
+      email:
+        props.hostedZone && !relay
+          ? cognito.UserPoolEmail.withSES({
+              fromEmail: props.senderAddress,
+              fromName: 'MemorySmith',
+              sesVerifiedDomain: props.siteDomainName,
+            })
+          : // No domain to verify (#342): Cognito's own sender, and its daily limit.
+            cognito.UserPoolEmail.withCognito(),
       userInvitation: invitation(props.environment, props.siteDomainName),
       userVerification: verification(props.environment, props.siteDomainName),
     });
@@ -212,6 +237,16 @@ export class IdentityStack extends Stack {
       cognito.LambdaVersion.V2_0,
     );
     this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_MESSAGE, customMessage);
+    if (relay) {
+      this.userPool.addTrigger(cognito.UserPoolOperation.CUSTOM_EMAIL_SENDER, relay.sender);
+    }
+    this.mailFunction = relay?.sender ?? null;
+
+    const federation = this.federate(props);
+    this.directProvider =
+      props.environment.identityProvider?.signIn === 'idp'
+        ? props.environment.identityProvider.name
+        : null;
 
     this.issuer = `https://cognito-idp.${this.region}.amazonaws.com/${this.userPool.userPoolId}`;
 
@@ -261,6 +296,7 @@ export class IdentityStack extends Stack {
       userPoolClientName: 'cimd-proxy',
       generateSecret: false,
       authFlows: { userSrp: true },
+      ...(federation ? { supportedIdentityProviders: federation.admitted } : {}),
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
@@ -287,6 +323,7 @@ export class IdentityStack extends Stack {
         // pool, so it grants nothing to whoever holds only a password.
         adminUserPassword: true,
       },
+      ...(federation ? { supportedIdentityProviders: federation.admitted } : {}),
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
@@ -300,6 +337,12 @@ export class IdentityStack extends Stack {
       accessTokenValidity: Duration.hours(1),
       refreshTokenValidity: Duration.days(30),
     });
+
+    if (federation) {
+      // A client that admits a provider is created after it, or Cognito refuses it.
+      this.proxyClient.node.addDependency(federation.provider);
+      this.webClient.node.addDependency(federation.provider);
+    }
 
     /**
      * The platform group. A PLATFORM_ADMIN operates the platform and is NOT a
@@ -481,5 +524,185 @@ export class IdentityStack extends Stack {
     new CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new CfnOutput(this, 'WebClientId', { value: this.webClient.userPoolClientId });
     new CfnOutput(this, 'CognitoDomain', { value: this.hostedUiOrigin });
+  }
+
+  /**
+   * The function that speaks to the organization's relay, and the key the pool
+   * encrypts each code with for it (#396). Nothing here exists unless the
+   * installation sends through a relay of its own.
+   */
+  private relay(props: IdentityStackProps): { sender: IFunction; key: kms.Key } | null {
+    const declared = props.environment.relay;
+    if (!declared) return null;
+
+    const key = new kms.Key(this, 'MailCodeKey', {
+      description: 'Encrypts the codes the user pool hands its custom email sender.',
+      enableKeyRotation: true,
+      // It guards codes that live minutes, and nothing is ever kept under it.
+      removalPolicy: RemovalPolicy.DESTROY,
+      pendingWindow: Duration.days(7),
+    });
+    // The pool encrypts under it; naming the pool here would be a cycle, so
+    // the account and the service say who.
+    key.addToResourcePolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.ServicePrincipal('cognito-idp.amazonaws.com')],
+        actions: ['kms:Encrypt'],
+        resources: ['*'],
+        conditions: {
+          StringEquals: { 'aws:SourceAccount': this.account },
+          ArnLike: {
+            'aws:SourceArn': `arn:${this.partition}:cognito-idp:${this.region}:${this.account}:userpool/*`,
+          },
+        },
+      }),
+    );
+
+    const secret = Secret.fromSecretNameV2(
+      this,
+      'RelayPassword',
+      relaySecretName(props.environment),
+    );
+    const service = new ServiceLambda(this, 'MailSender', {
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmithapp-backend',
+        'services',
+        'access',
+        'src',
+        'adapters',
+        'inbound',
+        'mail-sender.ts',
+      ),
+      description: "Sends every message of the installation through the organization's relay.",
+      timeout: Duration.seconds(15),
+      memorySize: 512,
+      environment: {
+        SMTP_HOST: declared.host,
+        SMTP_PORT: String(declared.port),
+        ...(declared.user
+          ? { SMTP_USER: declared.user, SMTP_SECRET_ID: relaySecretName(props.environment) }
+          : {}),
+        SENDER_ADDRESS: declared.sender,
+        SITE_ORIGIN: `https://${props.siteDomainName}`,
+        KEY_ARN: key.keyArn,
+      },
+    });
+    const sender = service.function;
+    key.grantDecrypt(sender);
+    if (declared.user) secret.grantRead(sender);
+
+    // Inside the organization's VPC, which reaches its relay: the subnets and
+    // the groups are theirs, so they are named, never looked up or created.
+    if (declared.subnetIds.length > 0) {
+      (sender.node.defaultChild as CfnFunction).vpcConfig = {
+        subnetIds: [...declared.subnetIds],
+        securityGroupIds: [...declared.securityGroupIds],
+      };
+      sender.role?.addManagedPolicy(
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole'),
+      );
+    }
+    return { sender, key };
+  }
+
+  /**
+   * The organization's identity provider, over OIDC, and the trigger that
+   * links each of its identities to the account of the same e-mail on its
+   * first sign-in (#395, ADR-026). Nothing here exists unless the
+   * installation declares a provider, so the project's own pool is untouched.
+   */
+  private federate(props: IdentityStackProps): {
+    provider: cognito.UserPoolIdentityProviderOidc;
+    admitted: cognito.UserPoolClientIdentityProvider[];
+  } | null {
+    const declared = props.environment.identityProvider;
+    if (!declared) return null;
+    const requireVerified = declared.emailClaim === 'email' && !declared.trustEmail;
+
+    const provider = new cognito.UserPoolIdentityProviderOidc(this, 'OrganizationProvider', {
+      userPool: this.userPool,
+      name: declared.name,
+      issuerUrl: declared.issuer,
+      clientId: declared.clientId,
+      // A reference the deployment resolves, never the value: `deliver` wrote
+      // it into Secrets Manager, and pinning its version makes a new secret a
+      // change of the template.
+      clientSecret: SecretValue.secretsManager(identityProviderSecretName(props.environment), {
+        ...(declared.secretVersion ? { versionId: declared.secretVersion } : {}),
+      }).unsafeUnwrap(),
+      scopes: ['openid', 'email', 'profile'],
+      attributeRequestMethod: cognito.OidcAttributeRequestMethod.GET,
+      attributeMapping: {
+        email: cognito.ProviderAttribute.other(declared.emailClaim),
+        // The provider's name lands in given_name, which nothing else writes:
+        // the mapping runs on every sign-in and must never overwrite the name
+        // the person typed (RN-ACC-021). The trigger copies it once.
+        givenName: cognito.ProviderAttribute.other('name'),
+        ...(requireVerified
+          ? { emailVerified: cognito.ProviderAttribute.other('email_verified') }
+          : {}),
+      },
+    });
+
+    const preSignUp = new ServiceLambda(this, 'PreSignUp', {
+      latencyAlarm: true,
+      entry: join(
+        here,
+        '..',
+        '..',
+        'memorysmithapp-backend',
+        'services',
+        'access',
+        'src',
+        'adapters',
+        'inbound',
+        'pre-sign-up.ts',
+      ),
+      description: "Links an identity of the organization's provider to the account of its e-mail.",
+      // The pool waits five seconds for a trigger, whatever it is given.
+      timeout: Duration.seconds(5),
+      memorySize: 512,
+      environment: {
+        ACCESS_TABLE: props.accessTable.tableName,
+        FIRST_SIGN_IN: declared.firstSignIn,
+        EMAIL_CLAIM: declared.emailClaim,
+        REQUIRE_VERIFIED: String(requireVerified),
+        QUOTA: declared.quota ?? '1GB',
+      },
+    }).function;
+    this.userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUp);
+    // `automatic` writes the subscription and its link; the others only read.
+    if (declared.firstSignIn === 'automatic') props.accessTable.grantReadWriteData(preSignUp);
+
+    // A policy of its own, not of the function's role: the pool names the
+    // function as its trigger, so a statement on the role naming the pool
+    // would be a cycle.
+    const policy = new iam.Policy(this, 'PreSignUpPool', {
+      statements: [
+        new iam.PolicyStatement({
+          actions: [
+            'cognito-idp:AdminGetUser',
+            'cognito-idp:AdminCreateUser',
+            'cognito-idp:AdminLinkProviderForUser',
+            'cognito-idp:AdminUpdateUserAttributes',
+          ],
+          resources: [this.userPool.userPoolArn],
+        }),
+      ],
+    });
+    if (preSignUp.role) policy.attachToRole(preSignUp.role);
+
+    return {
+      provider,
+      admitted: [
+        cognito.UserPoolClientIdentityProvider.custom(declared.name),
+        ...(declared.signIn === 'idp+password'
+          ? [cognito.UserPoolClientIdentityProvider.COGNITO]
+          : []),
+      ],
+    };
   }
 }

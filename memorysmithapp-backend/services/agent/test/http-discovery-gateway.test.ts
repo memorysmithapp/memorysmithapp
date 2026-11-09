@@ -420,3 +420,35 @@ describe('the connector reads a kept file as the contracts publish it', () => {
     expect(kept.sha256).toBe(sha256);
   });
 });
+
+describe('the bytes behind the link of a file (#394)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const gateway = new HttpKnowledgeGateway('https://api.internal');
+
+  it('reads them whole when they fit', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 })),
+    );
+    expect([...(await gateway.downloadLinked('https://files.example/f', 10))]).toEqual([1, 2, 3]);
+  });
+
+  it('refuses what is larger than the ceiling, by its declared length, before reading it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(new Uint8Array([1]), { status: 200, headers: { 'content-length': '99' } }),
+      ),
+    );
+    await expect(gateway.downloadLinked('https://files.example/f', 10)).rejects.toThrow('above 10');
+  });
+
+  it('says so when the link answers no file', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 403 })),
+    );
+    await expect(gateway.downloadLinked('https://files.example/f', 10)).rejects.toThrow('403');
+  });
+});

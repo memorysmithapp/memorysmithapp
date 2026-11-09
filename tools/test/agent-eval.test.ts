@@ -16,14 +16,18 @@ import { skillsAnnounced, uncoveredSkills } from '../agent-eval/lib/coverage.js'
 import { leaksIn } from '../agent-eval/lib/leaks.js';
 import {
   claudeArguments,
+  CODEX_TOKEN_VARIABLE,
+  codexArguments,
+  executorOf,
+  roomCodexHome,
   roomConfigDir,
   roomEnvironment,
   SIMULATED_USER_PREAMBLE,
   type Room,
 } from '../agent-eval/lib/room.js';
 import { scorecard } from '../agent-eval/lib/scorecard.js';
-import { emptyTranscript, readTurn } from '../agent-eval/lib/transcript.js';
-import { waitsForPerson } from '../agent-eval/lib/turns.js';
+import { emptyTranscript, readCodexTurn, readTurn } from '../agent-eval/lib/transcript.js';
+import { END_OF_CONVERSATION, endsConversation } from '../agent-eval/lib/turns.js';
 
 const event = (value: unknown): string => JSON.stringify(value);
 
@@ -58,6 +62,86 @@ describe('the transcript of a session', () => {
     expect(transcript.tools).toEqual([]);
     expect(transcript.toolUses).toEqual([{ tool: 'whoami', input: {}, turn: 0 }]);
     expect(transcript.toolResults).toEqual(['served']);
+  });
+});
+
+describe('the transcript of a Codex session (#406)', () => {
+  const item = (value: Record<string, unknown>) => event({ type: 'item.completed', item: value });
+
+  it('reads its thread, what it said, what it called of the server and the tokens it spent', () => {
+    const transcript = emptyTranscript();
+    const outcome = readCodexTurn(
+      [
+        event({ type: 'thread.started', thread_id: 't1' }),
+        item({ id: 'item_0', type: 'reasoning', text: 'thinking' }),
+        item({
+          id: 'item_1',
+          type: 'mcp_tool_call',
+          server: 'memorysmith',
+          tool: 'whoami',
+          arguments: {},
+          result: { content: [{ type: 'text', text: 'served' }] },
+          error: null,
+          status: 'completed',
+        }),
+        item({
+          id: 'item_2',
+          type: 'mcp_tool_call',
+          server: 'memorysmith',
+          tool: 'create_note',
+          arguments: { title: 'Hello' },
+          result: null,
+          error: { message: 'refused' },
+          status: 'failed',
+        }),
+        item({ id: 'item_3', type: 'agent_message', text: 'Done?' }),
+        event({
+          type: 'turn.completed',
+          usage: { input_tokens: 100, cached_input_tokens: 80, output_tokens: 5 },
+        }),
+        'not json',
+      ],
+      0,
+      transcript,
+    );
+
+    expect(outcome).toEqual({ sessionId: 't1', text: 'Done?', isError: false, costUsd: null });
+    expect(transcript.tools).toEqual(['mcp__memorysmith__whoami', 'mcp__memorysmith__create_note']);
+    expect(transcript.toolUses).toEqual([
+      { tool: 'whoami', input: {}, turn: 0 },
+      { tool: 'create_note', input: { title: 'Hello' }, turn: 0 },
+    ]);
+    expect(transcript.toolResults).toEqual(['served', 'refused']);
+    expect(transcript.texts).toEqual([{ turn: 0, text: 'Done?' }]);
+    expect(transcript.tokens).toBe(105);
+  });
+
+  it('names a tool of its own it used, which fails the room', () => {
+    const transcript = emptyTranscript();
+    readCodexTurn(
+      [item({ id: 'item_0', type: 'command_execution', command: 'cat AGENTS.md' })],
+      0,
+      transcript,
+    );
+    const [held] = runChecks(['room-held'], {
+      transcript,
+      before: [],
+      after: [],
+      finalText: '',
+      absent: [],
+      leaks: [],
+    });
+    expect(held?.passed).toBe(false);
+    expect(held?.detail).toContain('command_execution');
+  });
+
+  it('says a failed turn', () => {
+    const outcome = readCodexTurn(
+      [event({ type: 'turn.failed', error: { message: 'usage limit' } })],
+      0,
+      emptyTranscript(),
+    );
+    expect(outcome).toMatchObject({ isError: true, text: 'usage limit' });
   });
 });
 
@@ -98,31 +182,19 @@ describe('a leak into the clean room', () => {
   });
 });
 
-describe('a message that waits for the person (#312)', () => {
-  it('waits when it asks, with a question mark or without one', () => {
-    const transcript = emptyTranscript();
-    expect(waitsForPerson('Shall I go ahead?', transcript, 0)).toBe(true);
-    expect(
-      waitsForPerson(
-        'Se essa estrutura estiver boa, me confirme e diga se a criação é de teste.',
-        transcript,
-        0,
-      ),
-    ).toBe(true);
+describe('the end of a conversation, which the simulated user reads (#408)', () => {
+  it('is the marker in the reply of the simulated user, and nothing else', () => {
+    expect(endsConversation(END_OF_CONVERSATION)).toBe(true);
+    expect(endsConversation(` ${END_OF_CONVERSATION}\n`)).toBe(true);
+    expect(endsConversation('Pode criar a versão, está ótimo.')).toBe(false);
+    expect(endsConversation('Obrigado, era isso.')).toBe(false);
   });
 
-  it('is done when its turn wrote and it asks nothing', () => {
-    const transcript = emptyTranscript();
-    transcript.toolUses.push({ tool: 'whoami', input: {}, turn: 1 });
-    transcript.toolUses.push({ tool: 'create_note', input: {}, turn: 1 });
-    expect(waitsForPerson('The notebook is ready.', transcript, 1)).toBe(false);
-  });
-
-  it('reads only the writes of its own turn', () => {
-    const transcript = emptyTranscript();
-    transcript.toolUses.push({ tool: 'create_notebook', input: {}, turn: 0 });
-    transcript.toolUses.push({ tool: 'list_notes', input: {}, turn: 1 });
-    expect(waitsForPerson('Paste the examples here.', transcript, 1)).toBe(true);
+  it('is taught to the simulated user, with an offer to go on still answered', () => {
+    expect(SIMULATED_USER_PREAMBLE).toContain(`reply with exactly ${END_OF_CONVERSATION}`);
+    expect(SIMULATED_USER_PREAMBLE).toMatch(
+      /offers to go on once you agree, in whatever words, answer it/,
+    );
   });
 });
 
@@ -377,6 +449,75 @@ describe('the clean room', () => {
     expect(roomEnvironment(null, { PATH: '/bin' })).toEqual({ PATH: '/bin' });
   });
 
+  it('plays a model named codex with Codex, and any other with Claude Code (#406)', () => {
+    expect(executorOf('codex')).toEqual({ kind: 'codex', model: null });
+    expect(executorOf('codex:gpt-5.6-sol')).toEqual({ kind: 'codex', model: 'gpt-5.6-sol' });
+    expect(executorOf('sonnet')).toEqual({ kind: 'claude', model: 'sonnet' });
+    expect(roomCodexHome({ AGENT_EVAL_CODEX_HOME: ' /eval/codex ' })).toBe('/eval/codex');
+    expect(roomCodexHome({})).toBeNull();
+  });
+
+  it('gives Codex only the connector, read-only, with its token in the environment (#406)', () => {
+    const codexRoom: Room = {
+      ...room,
+      mcpUrl: 'https://mcp/mcp',
+      token: 'T',
+      codexHome: '/eval/codex',
+    };
+    const { args, cwd, env } = codexArguments({
+      room: codexRoom,
+      role: 'executor',
+      model: 'codex:gpt-5.6-sol',
+      prompt: '- hi',
+      resume: null,
+    });
+    expect(cwd).toBe('W');
+    expect(args.slice(0, 2)).toEqual(['exec', '--json']);
+    expect(args).toEqual(
+      expect.arrayContaining([
+        '--ignore-user-config',
+        '--ignore-rules',
+        'sandbox_mode="read-only"',
+      ]),
+    );
+    for (const feature of ['apps', 'plugins', 'shell_tool', 'unified_exec', 'memories']) {
+      expect(args[args.indexOf(feature) - 1]).toBe('--disable');
+    }
+    expect(args[args.indexOf('-m') + 1]).toBe('gpt-5.6-sol');
+    expect(args).toContain('mcp_servers.memorysmith.url="https://mcp/mcp"');
+    expect(args).toContain(
+      `mcp_servers.memorysmith.bearer_token_env_var="${CODEX_TOKEN_VARIABLE}"`,
+    );
+    expect(args.slice(-2)).toEqual(['--', '- hi']);
+    expect(args.some((arg) => arg === 'T' || arg.includes('Bearer'))).toBe(false);
+    expect(env[CODEX_TOKEN_VARIABLE]).toBe('T');
+    expect(env['CODEX_HOME']).toBe('/eval/codex');
+
+    const resumed = codexArguments({
+      room: codexRoom,
+      role: 'executor',
+      model: 'codex',
+      prompt: 'again',
+      resume: 't1',
+    });
+    expect(resumed.args.slice(0, 3)).toEqual(['exec', 'resume', 't1']);
+    expect(resumed.args).not.toContain('-m');
+  });
+
+  it('gives Codex its shell back only when the room is opened, never the apps of its account', () => {
+    const { args, cwd } = codexArguments({
+      room: { ...room, mcpUrl: 'https://mcp/mcp', token: 'T' },
+      role: 'executor',
+      model: 'codex',
+      prompt: 'hi',
+      resume: null,
+      openedAt: 'REPO',
+    });
+    expect(cwd).toBe('REPO');
+    expect(args).not.toContain('shell_tool');
+    expect(args[args.indexOf('apps') - 1]).toBe('--disable');
+  });
+
   it('tells the simulated user a test environment is fine (#312)', () => {
     expect(SIMULATED_USER_PREAMBLE).toMatch(/test environment.*go ahead/);
   });
@@ -562,6 +703,45 @@ describe('the scorecard of a round', () => {
     });
     expect(card).toContain('| room-held | 1/2 | — |');
     expect(card).toContain('| runs discarded for a leak | 0 | 1 |');
+  });
+
+  it('gives Codex its column, with its tokens and no price (#406)', () => {
+    const card = scorecard({
+      round: 'r1',
+      environment: 'staging',
+      version: '0.17.0-rc.1+abc1234',
+      models: ['sonnet', 'codex'],
+      results: [
+        {
+          caseId: 'AE-00',
+          variant: 'en_US',
+          model: 'sonnet',
+          run: 1,
+          outcomes: [{ check: 'room-held', passed: true, detail: '' }],
+          leaks: [],
+          costUsd: 0.25,
+          tokens: 1000,
+          turns: 1,
+          error: null,
+        },
+        {
+          caseId: 'AE-00',
+          variant: 'en_US',
+          model: 'codex',
+          run: 1,
+          outcomes: [{ check: 'room-held', passed: true, detail: '' }],
+          leaks: [],
+          costUsd: null,
+          tokens: 2500,
+          turns: 1,
+          error: null,
+        },
+      ],
+    });
+    expect(card).toContain('| Check | sonnet | codex |');
+    expect(card).toContain('| room-held | 1/1 | 1/1 |');
+    expect(card).toContain('| cost of the executor, USD | 0.25 | — |');
+    expect(card).toContain('| tokens of the executor | 1,000 | 2,500 |');
   });
 });
 

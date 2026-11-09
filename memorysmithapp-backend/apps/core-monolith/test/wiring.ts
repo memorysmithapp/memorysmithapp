@@ -179,6 +179,8 @@ import {
   InMemoryTransferStore,
 } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import {
+  CarriedModel,
+  RestoreModel,
   CreateFromVersion,
   CreateModelVersion,
   DeclareModel,
@@ -759,6 +761,14 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       serializeNotebookDocument,
       // The history an export may be asked to carry (RN-PRT-022).
       new AuditHistorySource(auditTrail, revisions),
+      // And the model the notebook is declared as (#397).
+      new CarriedModel({
+        models: modelStoreOf(source),
+        transfers,
+        versions: {
+          read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
+        },
+      }),
     );
   };
   const modelStores = new Map<string, InMemoryModelStore>();
@@ -917,6 +927,26 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
                 // transfer every reproduced entry records (RN-PRT-023).
                 new ImportedTrailWriter(auditTrail, request.subscription.subscriptionId.value),
                 work.transferId,
+                // The model the document carries, declared again (#397).
+                new RestoreModel(
+                  {
+                    models: modelStoreOf(request.subscription),
+                    transfers,
+                    archives: archiveStore,
+                    pack: (snapshot) => {
+                      const written = serializeNotebookDocument(snapshot);
+                      return createZip(
+                        [{ path: written.entry, content: written.content }],
+                        new Date(),
+                      );
+                    },
+                  },
+                  {
+                    subscriptionId: request.subscription.subscriptionId.value,
+                    userId: request.subscription.userId.value,
+                    isOwner: request.isOwner,
+                  },
+                ),
               ),
               author.value,
             ).execute(work);

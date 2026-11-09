@@ -106,40 +106,44 @@ export function DashboardPage() {
         heading={
           <div className="home-heading-row">
             <h1 className="home-heading">{t('dashboard.selectNotebook')}</h1>
-            {/* A notebook, blank or from a model (#359), or a new model (#373). */}
-            <button
-              ref={newTrigger}
-              type="button"
-              className="button is-quiet is-small"
-              aria-haspopup="menu"
-              aria-expanded={offering}
-              onClick={() => setOffering((value) => !value)}
-            >
-              <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
-            </button>
-            <Menu
-              open={offering}
-              onClose={() => setOffering(false)}
-              trigger={newTrigger}
-              label={t('newNotebook.open')}
-            >
-              <MenuItem
-                onSelect={() => {
-                  setOffering(false);
-                  setCreating(true);
-                }}
+            {/* A notebook, blank or from a model (#359), or a new model (#373),
+                in a menu anchored right under the button (#402). */}
+            <div className="new-notebook-anchor">
+              <button
+                ref={newTrigger}
+                type="button"
+                className="button is-quiet is-small"
+                aria-haspopup="menu"
+                aria-expanded={offering}
+                onClick={() => setOffering((value) => !value)}
               >
-                {t('newNotebook.open')}
-              </MenuItem>
-              <MenuItem
-                onSelect={() => {
-                  setOffering(false);
-                  setCreatingModel(true);
-                }}
+                <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
+              </button>
+              <Menu
+                open={offering}
+                onClose={() => setOffering(false)}
+                trigger={newTrigger}
+                label={t('newNotebook.open')}
+                className="new-notebook-menu"
               >
-                {t('newNotebook.openModel')}
-              </MenuItem>
-            </Menu>
+                <MenuItem
+                  onSelect={() => {
+                    setOffering(false);
+                    setCreating(true);
+                  }}
+                >
+                  {t('newNotebook.open')}
+                </MenuItem>
+                <MenuItem
+                  onSelect={() => {
+                    setOffering(false);
+                    setCreatingModel(true);
+                  }}
+                >
+                  {t('newNotebook.openModel')}
+                </MenuItem>
+              </Menu>
+            </div>
           </div>
         }
         prevLabel={t('dashboard.prevNotebooks')}

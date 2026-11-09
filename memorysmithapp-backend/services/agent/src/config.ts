@@ -22,6 +22,12 @@ export interface AgentConfig {
    * in the environment; it is read at runtime through a SecretResolver.
    */
   stateSecretId: string;
+  /**
+   * The organization's provider a sign-in goes straight to, sent as
+   * `identity_provider`, when the installation signs in only through it
+   * (#395). Absent, the sign-in page of the pool opens as it always did.
+   */
+  identityProvider?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
@@ -37,5 +43,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
     cognitoDomain: required('COGNITO_DOMAIN').replace(/\/$/, ''),
     proxyClientId: required('PROXY_CLIENT_ID'),
     stateSecretId: required('STATE_SECRET_ID'),
+    ...(env['IDENTITY_PROVIDER'] ? { identityProvider: env['IDENTITY_PROVIDER'] } : {}),
   };
 }

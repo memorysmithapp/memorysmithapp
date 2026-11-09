@@ -474,3 +474,36 @@ describe('the purge of a Content Slot deleted on its own', () => {
     expect(events[0]?.['payload']).toMatchObject({ live: false, revisions: 1 });
   });
 });
+
+describe('the purge of the bytes of a file nothing names (#377)', () => {
+  it('destroys every revision of the object, and writes nothing in the table', async () => {
+    const { purge, purged, kinds, rows, events } = tableOf([]);
+    const orphan = slot('a keep that failed');
+
+    const outcome = await purge.run({
+      type: 'FileUnnamed',
+      subscriptionId: SUBSCRIPTION,
+      authorship: null,
+      contentRef: null,
+      payload: { contentId: orphan },
+    });
+
+    expect(outcome).toEqual({ purged: 1, done: true });
+    expect(purged).toEqual([orphan]);
+    expect(kinds.get(orphan)).toBe('file');
+    expect(rows.size).toBe(0);
+    expect(events).toEqual([]);
+  });
+
+  it('destroys nothing for an identifier that is not one', async () => {
+    const { purge, purged } = tableOf([]);
+    await purge.run({
+      type: 'FileUnnamed',
+      subscriptionId: SUBSCRIPTION,
+      authorship: null,
+      contentRef: null,
+      payload: { contentId: '../c/everything' },
+    });
+    expect(purged).toEqual([]);
+  });
+});

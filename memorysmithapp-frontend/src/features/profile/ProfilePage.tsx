@@ -169,9 +169,12 @@ export function ProfilePage() {
             wide
           />
         </button>
-        <Link className="button is-quiet" to="/profile/password" state={{ from: '/profile' }}>
-          {t('password.heading')}
-        </Link>
+        {/* The organization's provider holds the password of a federated account (#395). */}
+        {session?.federated ? null : (
+          <Link className="button is-quiet" to="/profile/password" state={{ from: '/profile' }}>
+            {t('password.heading')}
+          </Link>
+        )}
       </div>
     </article>
   );

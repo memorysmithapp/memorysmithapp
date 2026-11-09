@@ -118,4 +118,70 @@ test.describe('a notebook model', () => {
     const after = await owner.ok<ModelDto>('GET', `/portability/models/${notebook.notebookId}`);
     expect(after.versions).toEqual([]);
   });
+
+  test('travels with its export: imported back, it is a model with its version (#397)', async ({
+    owner,
+    notebook,
+  }) => {
+    await owner.ok('PUT', `/portability/models/${notebook.notebookId}`, {
+      objective: 'Keep what a functional case finds',
+      description: '',
+      audience: '',
+      parameters: [
+        { name: 'case', description: '', example: 'AE-01', type: 'text', required: true },
+      ],
+      basedOn: null,
+    });
+    await owner.ok('POST', `/portability/models/${notebook.notebookId}/versions`, {
+      changelog: 'The first version',
+    });
+    await eventually(
+      'the version to be built',
+      () => owner.ok<ModelDto>('GET', `/portability/models/${notebook.notebookId}`),
+      (each) => each.versions[0]?.status !== 'running',
+    );
+
+    const started = await owner.ok<{ transferId: string }>(
+      'POST',
+      `/portability/notebooks/${notebook.notebookId}/export`,
+    );
+    const exported = await eventually(
+      'the export to end',
+      () => owner.ok<{ status: string }>('GET', `/portability/transfers/${started.transferId}`),
+      (each) => each.status !== 'running',
+    );
+    expect(exported.status).toBe('ready');
+    const { uploadKey } = await owner.ok<{ uploadKey: string }>(
+      'POST',
+      '/portability/imports/from-export',
+      { transferId: started.transferId },
+    );
+    const applied = await owner.ok<{ transferId: string }>('POST', '/portability/imports/apply', {
+      uploadKey,
+      name: `${notebook.name} imported`,
+    });
+    const imported = await eventually(
+      'the import to end',
+      () =>
+        owner.ok<{ status: string; notebookId: string | null }>(
+          'GET',
+          `/portability/transfers/${applied.transferId}`,
+        ),
+      (each) => each.status !== 'running',
+    );
+    expect(imported.status).toBe('ready');
+
+    try {
+      const model = await owner.ok<ModelDto>('GET', `/portability/models/${imported.notebookId}`);
+      expect(model.objective).toBe('Keep what a functional case finds');
+      expect(model.parameters.map((each) => each.name)).toEqual(['case']);
+      expect(model.versions).toEqual([
+        expect.objectContaining({ number: 1, status: 'ready', changelog: 'The first version' }),
+      ]);
+    } finally {
+      await owner.call('DELETE', `/knowledge/notebooks/${imported.notebookId}`);
+      await owner.call('DELETE', `/portability/transfers/${started.transferId}`);
+      await owner.call('DELETE', `/portability/transfers/${applied.transferId}`);
+    }
+  });
 });

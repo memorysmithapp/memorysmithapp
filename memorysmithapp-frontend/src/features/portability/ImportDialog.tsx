@@ -1,4 +1,10 @@
-import { TableChoices, tablesOf, type TableCarry } from './TableChoices';
+import {
+  carriedTables,
+  EVERY_TABLE,
+  inconsistentDashboards,
+  transferTablesOf,
+  type TablesChoice,
+} from './tables-choice';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -78,7 +84,7 @@ export function ImportDialog({
   const [filter, setFilter] = useState('');
   const [tab, setTab] = useState<ChooserTab>('context');
   const [starting, setStarting] = useState(false);
-  const [carry, setCarry] = useState<Record<string, TableCarry>>({});
+  const [tablesChoice, setTablesChoice] = useState<TablesChoice>(EVERY_TABLE);
   const [source, setSource] = useState<Source>('file');
   /** The kept export the document was read from, which the import copies server-side. */
   const [keptId, setKeptId] = useState<string | null>(null);
@@ -168,11 +174,29 @@ export function ImportDialog({
   const taken = (notebooks.data ?? []).some(
     (notebook) => notebook.name.trim().toLowerCase() === name.trim().toLowerCase(),
   );
-  const counts = tree && chosen ? countsOf(tree, chosen) : null;
+  const whole = preset === 'everything';
+  const tablesNow = whole ? EVERY_TABLE : tablesChoice;
+  /** Dashboards chosen whose table stays out: the import waits until they are resolved (#399). */
+  const broken =
+    document && !whole
+      ? inconsistentDashboards(tablesChoice, offeredTablesOf(document), document.dashboards ?? [])
+      : [];
+  const counts =
+    tree && chosen && document
+      ? {
+          ...countsOf(tree, chosen),
+          ...carriedTables(tablesNow, offeredTablesOf(document), document.dashboards ?? []),
+        }
+      : null;
   const twins = document && chosen ? twinNames(document, chosen) : [];
   const dangling = document && chosen ? danglingLinks(document, chosen) : 0;
   const ready =
-    document !== null && name.trim().length > 0 && !taken && twins.length === 0 && !starting;
+    document !== null &&
+    name.trim().length > 0 &&
+    !taken &&
+    twins.length === 0 &&
+    broken.length === 0 &&
+    !starting;
 
   async function begin(): Promise<void> {
     if (!file || !document) return;
@@ -200,9 +224,11 @@ export function ImportDialog({
         importSelection(
           preset,
           chosen,
-          tablesOf(
-            carry,
-            (document.tables ?? []).map((table) => table.name),
+          transferTablesOf(
+            preset === 'everything',
+            tablesChoice,
+            offeredTablesOf(document),
+            document.dashboards ?? [],
           ),
         ),
         // What the person calls this file: the upload is addressed by an
@@ -325,6 +351,8 @@ export function ImportDialog({
                       {[t('portability.oneNotebook'), ...carriedParts(counts, t)].join(' · ')}
                     </strong>
                     {dangling > 0 && ` · ${t('portability.danglingLinks', { count: dangling })}`}
+                    {broken.length > 0 &&
+                      ` · ${t('portability.tables.blocked', { count: broken.length })}`}
                   </>
                 )}
               </p>
@@ -481,16 +509,6 @@ export function ImportDialog({
             />
           </div>
 
-          <TableChoices
-            tables={(document.tables ?? []).map((table) => ({
-              name: table.name,
-              rows: table.rows ? table.rows.length : null,
-            }))}
-            carry={carry}
-            onCarry={setCarry}
-            dashboards={document.dashboards ?? []}
-          />
-
           {chosen && (
             <TransferChooser
               tree={tree}
@@ -510,6 +528,12 @@ export function ImportDialog({
               nameTaken={taken ? name.trim() : null}
               onFixName={fixName}
               onFindNote={findNote}
+              tablesOffer={{
+                tables: offeredTablesOf(document),
+                dashboards: document.dashboards ?? [],
+                choice: tablesChoice,
+                onChoice: setTablesChoice,
+              }}
             />
           )}
         </>
@@ -518,16 +542,29 @@ export function ImportDialog({
   );
 }
 
+/** The tables an archive offers; one it carries without rows offers its schema alone. */
+function offeredTablesOf(document: NotebookDocument): Array<{ name: string; rows: number | null }> {
+  return (document.tables ?? []).map((table) => ({
+    name: table.name,
+    rows: table.rows ? table.rows.length : null,
+  }));
+}
+
 /**
- * What an import writes: nothing said is the whole archive, a choice of tables
- * narrows its tables and leaves the rest whole (#366, RN-PRT-049).
+ * What an import writes: nothing said is the whole archive; a choice of tables
+ * and dashboards narrows them and leaves the rest whole (#366, #399).
  */
 function importSelection(
   preset: Preset,
   chosen: Chosen | null,
-  tables: Array<{ name: string; rows: boolean }> | undefined,
+  carriage: { tables?: Array<{ name: string; rows: boolean }>; dashboards?: string[] },
 ): TransferSelection | null {
   const narrowed = preset === 'choose' && chosen ? selectionOf(chosen) : null;
-  if (!tables) return narrowed;
-  return chosen ? { ...(narrowed ?? selectionOf(chosen)), tables } : null;
+  if (!carriage.tables && !carriage.dashboards) return narrowed;
+  if (!chosen) return null;
+  return {
+    ...(narrowed ?? selectionOf(chosen)),
+    ...(carriage.tables ? { tables: carriage.tables } : {}),
+    ...(carriage.dashboards ? { dashboards: carriage.dashboards } : {}),
+  };
 }

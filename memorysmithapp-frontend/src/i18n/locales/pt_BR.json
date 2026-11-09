@@ -379,7 +379,8 @@
       "templates": "Modelos de pasta",
       "notes": "Notas",
       "conflicts": "Inconsistências",
-      "files": "Arquivos"
+      "files": "Arquivos",
+      "tables": "Tabelas e painéis"
     },
     "noTemplate": "sem Modelo de pasta",
     "wholeNotebook": "O caderno todo",
@@ -443,6 +444,23 @@
       "pick": "Escolha uma exportação",
       "none": "Nenhuma exportação guardada ainda. Uma exportação guardada em Transferências pode ser importada daqui.",
       "reading": "Lendo o arquivo…"
+    },
+    "countTables_one": "{{count}} tabela",
+    "countTables_other": "{{count}} tabelas",
+    "countDashboards_one": "{{count}} painel",
+    "countDashboards_other": "{{count}} painéis",
+    "tables": {
+      "tables": "Tabelas",
+      "dashboards": "Painéis",
+      "all": "Todas",
+      "none": "Nenhuma",
+      "schema": "Só o schema",
+      "schemaAndRows": "Schema e dados",
+      "carryOf": "O que vai da tabela {{table}}",
+      "needsTable": "Usa a tabela {{table}}, que fica de fora: inclua a tabela ou desmarque o painel.",
+      "carried": "{{tables}} de {{heldTables}} tabelas · {{dashboards}} de {{heldDashboards}} painéis",
+      "blocked_one": "{{count}} painel usa uma tabela que fica de fora",
+      "blocked_other": "{{count}} painéis usam uma tabela que fica de fora"
     }
   },
   "attachments": {
@@ -510,13 +528,7 @@
     "deleteConfirm": "Apagar de vez",
     "deleting": "Apagando…",
     "carry": {
-      "heading": "Tabelas",
-      "rows": "Com as linhas",
-      "schema": "Só o schema",
-      "none": "Fora",
-      "publicHint": "As linhas que vão ficam públicas quando o modelo é publicado na comunidade.",
-      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}.",
-      "dashboardLeftOut": "O painel {{dashboard}} fica de fora, porque usa a tabela {{table}}."
+      "published": "Estas tabelas vão com as linhas, que qualquer pessoa vai ler: {{tables}}."
     },
     "shownBy_one": "Aparece em {{count}} nota",
     "shownBy_other": "Aparece em {{count}} notas",
@@ -703,6 +715,22 @@
         "term": "Orientação e Modelos de pasta",
         "definition": "Podem ser lidos em telas próprias, então você vê as regras que um agente está seguindo antes de ler o que ele escreveu."
       },
+      "files": {
+        "term": "Arquivos",
+        "definition": "Cada caderno guarda fotos, PDFs, gravações e planilhas, que uma nota mostra pelo nome. A tela de arquivos do caderno lista todos, com o tamanho e onde cada um aparece."
+      },
+      "tables": {
+        "term": "Tabelas",
+        "definition": "Dados estruturados do caderno, como custos ou um cronograma, que uma nota mostra com uma consulta. Cada tabela é lida, filtrada e editada linha a linha na tela de tabelas."
+      },
+      "dashboards": {
+        "term": "Painéis",
+        "definition": "Indicadores, gráficos, cronogramas e quadros montados sobre as tabelas do caderno, sempre com o que elas guardam no momento."
+      },
+      "model": {
+        "term": "Modelo de caderno",
+        "definition": "Um caderno declarado como modelo cria outros a partir dele, com os parâmetros preenchidos. Suas versões ficam congeladas, e cada uma pode ser publicada na comunidade."
+      },
       "graph": {
         "term": "Grafo",
         "definition": "Cada nota como um ponto e cada link como uma linha, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
@@ -711,9 +739,17 @@
         "term": "Busca",
         "definition": "Nas notas de um caderno, pelo que elas dizem e pelas propriedades que declaram."
       },
+      "sharing": {
+        "term": "Compartilhamento",
+        "definition": "Um caderno pode ser compartilhado com uma pessoa de outra assinatura, só para ler ou para escrever. O que chega até você aparece nas notificações, e você aceita ou recusa."
+      },
+      "community": {
+        "term": "Modelos da comunidade",
+        "definition": "Os modelos de caderno que outras pessoas publicaram, para ler e criar um caderno a partir de um deles. Fica no menu da sua foto."
+      },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação e os Modelos de pasta, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelo ícone ao lado da sua foto. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
@@ -747,8 +783,9 @@
     },
     "start": "Começar",
     "files": {
-      "heading": "Enviando arquivos pelo assistente",
+      "heading": "Arquivos pelo assistente",
       "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
+      "back": "E ele devolve um arquivo que o caderno guarda: peça a foto, o PDF ou a gravação, e ele lê o conteúdo de um arquivo de até 4 MB e entrega a você um link que baixa o arquivo com o próprio nome, válido por uma hora, de qualquer tamanho.",
       "editor": "Quando o aplicativo não deixa, o assistente pede o arquivo a você: ele aparece em <b>Transferências</b>, na aba <b>Aguardando você</b>, com o nome que a nota espera. Escolha, arraste ou cole o arquivo ali, e ele é guardado inteiro, já aparecendo na nota. Para anexar algo por conta própria, abra a nota, clique em <b>Editar</b> no canto superior direito dela e depois no clipe da barra de ferramentas, que anexa um arquivo do computador, um que o caderno já guarda ou uma imagem de um endereço da web; ou cole ou arraste o arquivo sobre a nota.",
       "claude": {
         "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
@@ -1198,7 +1235,21 @@
     "publishNeedsName": "Escreva seu nome no perfil antes: o catálogo mostra o nome, nunca o e-mail.",
     "publishedAs": "Publicado por {{author}}, em {{language}}.",
     "publicPage": "Abrir a página pública",
-    "withdraw": "Retirar da comunidade"
+    "withdraw": "Retirar da comunidade",
+    "tabs": {
+      "about": "Sobre o modelo",
+      "parameters": "Parâmetros",
+      "versions": "Versões",
+      "community": "Comunidade"
+    },
+    "editParameter": "Editar",
+    "editParameterOf": "Editar o parâmetro {{name}}",
+    "removeParameterOf": "Remover o parâmetro {{name}}",
+    "addParameterTitle": "Novo parâmetro",
+    "editParameterTitle": "Editar parâmetro",
+    "removeParameterTitle": "Remover o parâmetro {{name}}?",
+    "removeParameterBody": "Os cadernos criados a partir das próximas versões não vão mais preencher {{reference}}. Onde {{reference}} já está escrito nas notas, ele fica como está.",
+    "defaultsToNothing": "padrão vazio"
   },
   "newNotebook": {
     "open": "Novo caderno",
@@ -1217,7 +1268,8 @@
     "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
     "noVersion": "Este modelo ainda não tem versão pronta.",
     "fromVersion": "Da versão {{number}}: {{changelog}}",
-    "community": "Ou encontre um modelo na comunidade"
+    "community": "Ou encontre um modelo na comunidade",
+    "parametersAfter": "Os parâmetros você declara depois, na aba Parâmetros, que abre assim que o modelo é criado."
   },
   "community": {
     "title": "Modelos da comunidade",

@@ -28,6 +28,7 @@ import {
   subjectsOf,
   type CarriedSubjects,
   type DocumentHistory,
+  type DocumentModel,
   type ExportInput,
   type NotebookDocument,
   type TableChoice,
@@ -65,6 +66,11 @@ export interface ExportSource {
  */
 export interface HistorySource {
   of(notebookId: string, carried: CarriedSubjects | null): Promise<DocumentHistory>;
+}
+
+/** The model a notebook is declared as, which its export carries (#397, RN-PRT-054). */
+export interface ModelCarrier {
+  of(notebookId: string): Promise<DocumentModel | null>;
 }
 
 /** Where the archive lands, and how the caller reaches it. */
@@ -113,6 +119,8 @@ export class ExportNotebook {
      * not exercise it. An export that asks for one without it carries none.
      */
     private readonly history: HistorySource | null = null,
+    /** Absent where no model can be reached; the export then carries the notebook alone. */
+    private readonly models: ModelCarrier | null = null,
   ) {}
 
   async execute(input: {
@@ -126,7 +134,7 @@ export class ExportNotebook {
      * export (RN-SUB-021).
      */
     selection?: ImportSelection | null | undefined;
-    /** What the archive carries of each table, by name (#366, RN-PRT-049). */
+    /** What the archive carries of each table, by name (#366, RN-PRT-057). */
     tables?: readonly TableChoice[] | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
     /**
@@ -141,7 +149,7 @@ export class ExportNotebook {
 
     const selected = carried(source, input.selection ?? null);
     // The tables are chosen apart from the rest, and a choice made either way
-    // narrows them (#366, RN-PRT-049).
+    // narrows them (#366, RN-PRT-057).
     const wanted = input.tables
       ? { ...selected, tables: tablesChosen(selected.tables ?? [], input.tables) }
       : selected;
@@ -172,7 +180,11 @@ export class ExportNotebook {
     // writes nothing the schema does not describe, which is what makes the
     // format a specification rather than whatever this function happened to
     // produce (RN-PRT-011).
-    const document = buildNotebookDocument({ ...wanted, history }, input.now.toISOString());
+    // A model travels with its notebook (#397), and a version, which is the
+    // notebook alone, never carries one.
+    const model =
+      !input.modelVersion && this.models ? await this.models.of(input.notebookId) : null;
+    const document = buildNotebookDocument({ ...wanted, history }, input.now.toISOString(), model);
     const written = this.serialize(document);
     const archive = this.zip(
       [{ path: written.entry, content: written.content }],

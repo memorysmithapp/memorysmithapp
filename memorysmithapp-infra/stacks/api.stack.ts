@@ -43,6 +43,7 @@ import {
 import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import type { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import type { IUserPool } from 'aws-cdk-lib/aws-cognito';
+import type { IFunction } from 'aws-cdk-lib/aws-lambda';
 import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -119,6 +120,8 @@ export interface ApiStackProps extends StackProps {
    * model (#358).
    */
   readonly senderAddress: string;
+  /** The function that sends through the organization's relay, when there is one (#396). */
+  readonly mailFunction?: IFunction | null;
 }
 
 export class ApiStack extends Stack {
@@ -233,6 +236,7 @@ export class ApiStack extends Stack {
       // The edge a withdrawal empties, and who an author is told from (#360).
       CATALOG_DISTRIBUTION_ID: catalogEdge.distributionId,
       SENDER_ADDRESS: props.senderAddress,
+      ...(props.mailFunction ? { MAIL_FUNCTION: props.mailFunction.functionName } : {}),
     };
 
     const api = new ServiceLambda(this, 'CoreApi', {
@@ -320,13 +324,18 @@ export class ApiStack extends Stack {
         ],
       }),
     );
-    api.function.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['ses:SendEmail'],
-        resources: ['*'],
-        conditions: { StringEquals: { 'ses:FromAddress': props.senderAddress } },
-      }),
-    );
+    if (props.mailFunction) {
+      // Through the organization's relay, and no SES at all (#396).
+      props.mailFunction.grantInvoke(api.function);
+    } else {
+      api.function.addToRolePolicy(
+        new PolicyStatement({
+          actions: ['ses:SendEmail'],
+          resources: ['*'],
+          conditions: { StringEquals: { 'ses:FromAddress': props.senderAddress } },
+        }),
+      );
+    }
 
     /**
      * The public route of the catalog, a function of its own (#356): what it

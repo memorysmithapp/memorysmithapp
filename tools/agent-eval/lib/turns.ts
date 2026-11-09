@@ -1,20 +1,19 @@
 /**
- * Whether the executor is waiting for the person, which is what hands its
- * message to the simulated user.
+ * Whether the conversation is over, which the simulated user decides.
  *
- * A question mark is not the test, because a person is asked for something in
- * the imperative as often as in a question: "me confirme e diga se…", "paste
- * the examples here". The round used to end at the first message without one,
- * and two runs that proposed a notebook and waited for the answer were scored
- * as runs that wrote nothing (#312). A message waits when it asks, or when the
- * turn that wrote it wrote nothing, since an executor that has done the work
- * writes it before it says so; the cap of the case bounds the rest.
+ * Whether a message waits for the person is a reading of the message. The
+ * round used to read it itself: a question mark, or a turn that wrote nothing
+ * (#312). A turn that wrote and closed on an offer in the conditional, "Se
+ * estiver bom, eu crio a versão 1", matched neither, and the round ended on an
+ * agent that was waiting (#408). So every message goes to the simulated user
+ * while the cap of the case allows another turn, and the simulated user, who
+ * reads it as the person would, answers the marker when nothing is asked of
+ * them. The marker ends the round and never reaches the executor.
  */
 
-import { WRITES } from './checks.js';
-import type { Transcript } from './transcript.js';
+export const END_OF_CONVERSATION = '[DONE]';
 
-export function waitsForPerson(text: string, transcript: Transcript, turn: number): boolean {
-  if (text.includes('?')) return true;
-  return !transcript.toolUses.some((use) => use.turn === turn && WRITES.has(use.tool));
+/** Whether the reply of the simulated user ends the conversation. */
+export function endsConversation(reply: string): boolean {
+  return reply.includes(END_OF_CONVERSATION);
 }

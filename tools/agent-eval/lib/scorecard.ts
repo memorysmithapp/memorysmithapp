@@ -1,6 +1,6 @@
 /**
  * The scorecard of a round: per case and
- * per model, how many runs passed each mechanical check, and the place where
+ * per executor and model, how many runs passed each mechanical check, and the place where
  * the judge writes what needs judgement. It is posted on the issue of the cycle
  * as a dated record.
  */
@@ -14,7 +14,9 @@ export interface RunResult {
   readonly run: number;
   readonly outcomes: readonly CheckOutcome[];
   readonly leaks: readonly string[];
-  readonly costUsd: number;
+  /** Null for an executor that prints no price, such as Codex (#406). */
+  readonly costUsd: number | null;
+  readonly tokens?: number;
   readonly turns: number;
   readonly error: string | null;
 }
@@ -70,11 +72,21 @@ export function scorecard(input: {
       `| runs that failed to run | ${input.models.map((model) => count(model, (result) => result.error !== null)).join(' | ')} |`,
       `| runs discarded for a leak | ${input.models.map((model) => count(model, (result) => result.leaks.length > 0)).join(' | ')} |`,
       `| cost of the executor, USD | ${input.models
+        .map((model) => {
+          const priced = results.filter(
+            (result) => result.model === model && result.costUsd !== null,
+          );
+          return priced.length === 0
+            ? '—'
+            : priced.reduce((total, result) => total + (result.costUsd ?? 0), 0).toFixed(2);
+        })
+        .join(' | ')} |`,
+      `| tokens of the executor | ${input.models
         .map((model) =>
           results
             .filter((result) => result.model === model)
-            .reduce((total, result) => total + result.costUsd, 0)
-            .toFixed(2),
+            .reduce((total, result) => total + (result.tokens ?? 0), 0)
+            .toLocaleString('en-US'),
         )
         .join(' | ')} |`,
       '',

@@ -800,8 +800,8 @@ export function RowsTable({
   if (total === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
   return (
     <>
-      <div className="data-table-scroll">
-        <table className="data-table">
+      <div className="tables-grid-scroll">
+        <table className="tables-grid">
           <thead>
             <tr>
               {columns.map((column) => (
@@ -842,7 +842,7 @@ export function RowsTable({
         </table>
       </div>
       {pages > 1 ? (
-        <nav className="data-table-pages" aria-label={t('tables.pages')}>
+        <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
           <span>
             {t('tables.showing', {
               first: (page - 1) * size + 1,
@@ -850,7 +850,7 @@ export function RowsTable({
               total,
             })}
           </span>
-          <span className="data-table-page-buttons">
+          <span className="tables-grid-page-buttons">
             <button
               type="button"
               className="button is-quiet is-small"
@@ -1047,8 +1047,8 @@ export function Matrix({
   const value = (cell: unknown) => formatValue(cell, options, locale);
   if (rows.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
   return (
-    <div className="data-table-scroll">
-      <table className="data-table dash-matrix">
+    <div className="tables-grid-scroll">
+      <table className="tables-grid dash-matrix">
         <thead>
           <tr>
             <th scope="col" />

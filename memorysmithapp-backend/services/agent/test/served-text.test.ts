@@ -196,3 +196,45 @@ describe('the product teaches the conversion instead of performing it', () => {
     expect(skill?.body ?? '').toMatch(/third reader/i);
   });
 });
+
+describe('the skill keep-tables shows the columns before the table exists (#407)', () => {
+  const body = skillNamed('keep-tables')?.body ?? '';
+  const ways = body.slice(
+    body.indexOf('## Where the rows come from'),
+    body.indexOf('## The schema'),
+  );
+
+  it('says so once for every way the rows arrive, before the ways', () => {
+    const before = ways.slice(0, ways.indexOf('1. **A file'));
+    expect(before).toMatch(/Whichever way they come/);
+    expect(before).toMatch(/only after they answer/);
+  });
+
+  it('asks rows the person types to wait for the answer too, not only a file', () => {
+    const typed = ways.slice(ways.indexOf('2. **No file'));
+    expect(typed).toMatch(/Propose the columns/);
+    expect(typed.indexOf('wait for the answer')).toBeLessThan(typed.indexOf('insert_rows'));
+  });
+
+  it('reads "build it for me" as a request for the result, not an approval of the columns', () => {
+    expect(ways).toMatch(/asked for the result, not for columns they never saw/);
+  });
+});
+
+describe('the skill design-notebook declares an optional key in the frontmatter of the template (#409)', () => {
+  const body = skillNamed('design-notebook')?.body ?? '';
+  const templates = body.slice(body.indexOf('## Templates'), body.indexOf('## Formatting'));
+
+  it('puts every key a note may carry in the frontmatter block, the optional ones too', () => {
+    expect(templates).toMatch(/Every key a note of the folder may carry is in that block/);
+    expect(templates).toMatch(/the optional ones\s+too/);
+  });
+
+  it('shows an optional key with a placeholder that says when the line goes', () => {
+    expect(templates).toMatch(/`follow_up: <YYYY-MM-DD, [^`]*remove the line otherwise>`/);
+  });
+
+  it('never declares a key in a placeholder of the body', () => {
+    expect(templates).toMatch(/Never declare a key in a placeholder of the body/);
+  });
+});

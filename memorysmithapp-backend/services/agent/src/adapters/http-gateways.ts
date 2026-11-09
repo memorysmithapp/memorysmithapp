@@ -29,6 +29,7 @@ import type {
   RequestFileRequest,
   TransferDto,
   UploadStatusDto,
+  FileLinkDto,
   FileListDto,
   FolderDto,
   FolderNumberDto,
@@ -78,6 +79,7 @@ import {
   type RelatedNode,
   type SearchHit,
   type NotebookListing,
+  type FileLinkRef,
   type NotebookFileRef,
 } from '../mcp/gateway.js';
 
@@ -539,13 +541,12 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     caller: AgentCaller,
     notebookId: string,
     changelog: string,
-    tables?: ReadonlyArray<{ name: string; rows: boolean }>,
   ): Promise<ModelVersionDto> {
     return callApi<ModelVersionDto>(
       this.origin,
       caller,
       `/portability/models/${notebookId}/versions`,
-      { method: 'POST', body: { changelog, ...(tables ? { tables } : {}) } },
+      { method: 'POST', body: { changelog } },
     );
   }
 
@@ -744,6 +745,39 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `/knowledge/notebooks/${notebookId}/files`,
     );
     return listed.files.map(fileRefOf);
+  }
+
+  async linkToFile(caller: AgentCaller, notebookId: string, fileId: string): Promise<FileLinkRef> {
+    return callApi<FileLinkDto>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/files/${encodeURIComponent(fileId)}/link`,
+    );
+  }
+
+  async downloadLinked(url: string, maxBytes: number): Promise<Uint8Array> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new GatewayError(
+        'UPSTREAM',
+        `The file could not be read: its link answered ${response.status}.`,
+      );
+    }
+    const declared = Number(response.headers.get('content-length') ?? '0');
+    if (declared > maxBytes) {
+      throw new GatewayError(
+        'LIMIT_EXCEEDED',
+        `The file holds ${declared} bytes, above ${maxBytes}.`,
+      );
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes) {
+      throw new GatewayError(
+        'LIMIT_EXCEEDED',
+        `The file holds ${bytes.byteLength} bytes, above ${maxBytes}.`,
+      );
+    }
+    return bytes;
   }
 
   async listTables(caller: AgentCaller, notebookId: string): Promise<NotebookTableDto[]> {

@@ -25,6 +25,9 @@ const MODEL_WORDS: Record<
     readonly required: string;
     readonly declare: string;
     readonly saved: string;
+    readonly save: string;
+    readonly tabAbout: string;
+    readonly tabVersions: string;
     readonly changelog: string;
     readonly createVersion: string;
     readonly ready: string;
@@ -46,6 +49,9 @@ const MODEL_WORDS: Record<
     required: 'Required',
     declare: 'Declare as a model',
     saved: 'Saved.',
+    save: 'Save',
+    tabAbout: 'About the model',
+    tabVersions: 'Versions',
     changelog: 'What changed since the last version',
     createVersion: 'Create a version',
     ready: 'Ready',
@@ -66,6 +72,9 @@ const MODEL_WORDS: Record<
     required: 'Obrigatório',
     declare: 'Declarar como Modelo de caderno',
     saved: 'Salvo.',
+    save: 'Salvar',
+    tabAbout: 'Sobre o modelo',
+    tabVersions: 'Versões',
     changelog: 'O que mudou desde a última versão',
     createVersion: 'Criar uma versão',
     ready: 'Pronta',
@@ -77,6 +86,38 @@ const MODEL_WORDS: Record<
 };
 
 test.describe('notebook models', () => {
+  test('opens the menu under New notebook, and the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398, #402)', async ({
+    app,
+    notebook,
+    appLocale,
+  }) => {
+    const words = MODEL_WORDS[appLocale];
+    // From a page of the run, then Home until it shows: the first visit of an
+    // account opens the welcome surface in its place, once.
+    await app.goto(notebook.page('/model'));
+    const newNotebook = app.getByRole('button', { name: words.newNotebook });
+    await expect(async () => {
+      await app.goto(new URL('/', app.url()).href);
+      await expect(newNotebook).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
+    await newNotebook.click();
+    // The menu opens right under the button, aligned with it (#402).
+    const button = await newNotebook.boundingBox();
+    const menu = await app.getByRole('menu', { name: words.newNotebook }).boundingBox();
+    expect(menu && button && menu.y >= button.y + button.height).toBe(true);
+    expect(menu && button && Math.abs(menu.x - button.x) <= 1).toBe(true);
+    await app.getByRole('menuitem', { name: words.newModel }).click();
+    const box = app.locator('.new-notebook .ask-dialog-box');
+    await expect(box).toBeVisible();
+
+    // The page scrolls inside .app-main, and a modal locks it: one scrollbar.
+    await expect(app.locator('.app-main')).toHaveCSS('overflow-y', 'hidden');
+
+    // On a phone the modal is the whole screen, edge to edge.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(async () => (await box.boundingBox())?.width ?? 0).toBe(390);
+  });
+
   test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] creates a model from Home, freezes a version and creates a notebook from it', async ({
     app,
     notebook,
@@ -95,20 +136,29 @@ test.describe('notebook models', () => {
     const modelName = `${notebook.name} model`;
     await app.getByLabel(words.name, { exact: true }).first().fill(modelName);
     await app.getByLabel(words.objective, { exact: true }).fill('Keep the findings of one review');
-    await app.getByRole('button', { name: words.addParameter }).click();
-    const row = app.locator('.parameter-row').first();
-    await row.getByLabel(words.parameterName, { exact: true }).fill('client');
-    await row.getByLabel(words.required, { exact: true }).check();
+    // The dialog asks the essentials, and the parameters wait for their tab (#400).
+    await expect(app.getByRole('button', { name: words.addParameter })).toHaveCount(0);
     await app.getByRole('button', { name: words.declare }).click();
-    await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 60_000 });
+    await app.waitForURL(/\/notebooks\/[0-9a-z]{26}\/model\?tab=parameters$/, { timeout: 60_000 });
     // A part of the Context, with no reload, and it is where the model is kept.
-    const item = app.locator('#notebook-nav-parts a').first();
-    await expect(item).toHaveText(words.modelItem);
-    await item.click();
+    await expect(app.locator('#notebook-nav-parts a').first()).toHaveText(words.modelItem);
+
+    // A parameter is added in a modal, and written when it is confirmed.
+    await app.getByRole('button', { name: words.addParameter }).click();
+    const modal = app.locator('.parameter-modal');
+    await modal.getByLabel(words.parameterName, { exact: true }).fill('client');
+    await modal.getByLabel(words.required, { exact: true }).check();
+    await modal.getByRole('button', { name: words.save, exact: true }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(app.locator('.parameter-line', { hasText: '{{client}}' })).toBeVisible();
+
+    // What the model says of itself is a tab of its own, its texts shown whole.
+    await app.getByRole('tab', { name: words.tabAbout }).click();
     await expect(app.locator('.model-form textarea').first()).toHaveValue(
       'Keep the findings of one review',
     );
 
+    await app.getByRole('tab', { name: words.tabVersions }).click();
     await app.getByLabel(words.changelog).fill('The first version');
     await app.getByRole('button', { name: words.createVersion }).click();
     const version = app.locator('.model-version', { hasText: 'v1' });
@@ -134,6 +184,47 @@ test.describe('notebook models', () => {
     const model = listed.find((each) => each.name === modelName);
     expect(model).toBeDefined();
     if (model) await owner.ok('DELETE', `/knowledge/notebooks/${model.notebookId}`);
+  });
+
+  test('[page:/notebooks/:notebookId/model/versions/:version] draws a yes-or-no parameter as a box beside its name when a notebook is created from a version (#411)', async ({
+    app,
+    notebook,
+    owner,
+    appLocale,
+  }) => {
+    const words = MODEL_WORDS[appLocale];
+    const model = `/portability/models/${notebook.notebookId}`;
+    await owner.ok('PUT', model, {
+      objective: 'Keep the findings of one review',
+      parameters: [
+        { name: 'withMinutes', type: 'boolean', required: false, default: true },
+        { name: 'client', type: 'text', required: true },
+      ],
+    });
+    await owner.call('POST', `${model}/versions`, { changelog: 'The first version' });
+    await eventually(
+      'the first version of the model is ready',
+      () => owner.ok<{ versions: Array<{ status: string }> }>('GET', model),
+      (read) => read.versions[0]?.status === 'ready',
+      { timeoutMs: 120_000 },
+    );
+
+    await app.goto(notebook.page('/model/versions/1'));
+    await app.getByRole('button', { name: words.create }).click();
+    const form = app.locator('form.create-from-model');
+    const box = form.locator('#value-withMinutes');
+    await expect(box).toBeChecked();
+    // A box of its own size, never the width of the text field below it.
+    const drawn = await box.boundingBox();
+    const text = await form.locator('#value-client').boundingBox();
+    expect(drawn && drawn.width <= 24 && drawn.height <= 24).toBe(true);
+    expect(text && text.width > 200).toBe(true);
+    // Its name is its label, beside it: clicking the name ticks it.
+    await form
+      .locator('label.parameter-required', { hasText: 'withMinutes' })
+      .locator('span')
+      .click();
+    await expect(box).not.toBeChecked();
   });
 
   test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, and never its notebook', async ({
@@ -170,6 +261,8 @@ test.describe('notebook models', () => {
       await expect(page.getByText(words.sharedBy, { exact: false })).toContainText(
         state.accounts.owner.email,
       );
+      // The versions are a tab of their own (#400).
+      await page.getByRole('tab', { name: words.tabVersions }).click();
       await page
         .locator('.model-version', { hasText: 'v1' })
         .getByRole('link', { name: words.open })

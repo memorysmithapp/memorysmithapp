@@ -47,8 +47,10 @@ import {
 } from '@memorysmithapp/kernel';
 import {
   type DocumentHistory,
+  type DocumentModel,
   type NotebookDocument,
   dashboardsCarried,
+  dashboardsNamed,
   tablesChosen,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { TransferStore } from '../domain/Transfer.js';
@@ -66,7 +68,16 @@ export interface ModelFill {
   readonly values: Readonly<Record<string, ParameterValue>>;
 }
 
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3'];
+/** Declares again the model a document carried, in the subscription of the import (#397). */
+export interface ModelRestorer {
+  restore(input: {
+    notebookId: string;
+    notebookName: string;
+    model: DocumentModel;
+  }): Promise<Result<{ declared: boolean; versions: number }, DomainError>>;
+}
+
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4'];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -277,10 +288,12 @@ export interface ImportSelection {
    */
   readonly files?: readonly string[] | undefined;
   /**
-   * The tables, by name, each with or without its rows (RN-PRT-049). Absent is
+   * The tables, by name, each with or without its rows (RN-PRT-057). Absent is
    * every table the archive holds, with the rows it carries.
    */
   readonly tables?: ReadonlyArray<{ readonly name: string; readonly rows: boolean }> | undefined;
+  /** The dashboards, by name (#399). Absent is every dashboard whose tables come. */
+  readonly dashboards?: readonly string[] | undefined;
 }
 
 /** How an import says where it got to, and whether it should still be running. */
@@ -391,6 +404,11 @@ export class ImportNotebook {
     private readonly trail: TrailWriter | null = null,
     /** The transfer this import is, recorded on every entry it reproduces. */
     private readonly transferId: string = '',
+    /**
+     * Where the model a document carries is declared again (#397). Absent where
+     * no model can be written; the notebook is then imported alone.
+     */
+    private readonly models: ModelRestorer | null = null,
   ) {}
 
   /**
@@ -434,6 +452,9 @@ export class ImportNotebook {
       if (!document.ok) return document;
       let written = document.value;
       if (input.fill) {
+        // A notebook created from a version depends on no model (RN-PRT-040),
+        // and a snapshot carries none; this holds it even for one that did.
+        written = withoutModel(written);
         // The values were checked when the creation was asked for, and are
         // checked again here, against the declarations the version froze.
         const values = resolveValues(input.fill.declarations, input.fill.values);
@@ -688,7 +709,7 @@ export class ImportNotebook {
     }
 
     // The tables, after the files: a note that shows one is already written
-    // by the time it arrives (#366, RN-PRT-049).
+    // by the time it arrives (#366, RN-PRT-057).
     const tables = selection?.tables
       ? tablesChosen(document.tables ?? [], selection.tables)
       : (document.tables ?? []);
@@ -721,7 +742,10 @@ export class ImportNotebook {
 
     // The dashboards last: each one is checked against the tables it draws
     // from, and goes only when all of them came (#368, RN-PRT-053).
-    for (const dashboard of dashboardsCarried(document.dashboards ?? [], tables)) {
+    const offered = selection?.dashboards
+      ? dashboardsNamed(document.dashboards ?? [], selection.dashboards)
+      : (document.dashboards ?? []);
+    for (const dashboard of dashboardsCarried(offered, tables)) {
       const created = await this.writer.createDashboard({
         notebookId,
         name: dashboard.name,
@@ -735,6 +759,16 @@ export class ImportNotebook {
     if (chosen.history && document.history && this.trail) {
       const replayed = await this.replay(document.history, notebookId, minted);
       if (!replayed.ok) return undo(replayed);
+    }
+
+    // The model last, once the notebook it describes is whole (#397).
+    if (document.model && this.models) {
+      const restored = await this.models.restore({
+        notebookId,
+        notebookName: name ?? document.notebook.name,
+        model: document.model,
+      });
+      if (!restored.ok) return undo(restored);
     }
 
     // What was actually WRITTEN under the selection, and not what the document
@@ -923,4 +957,10 @@ function orderedFolders(document: NotebookDocument): NotebookDocument['folders']
 
 function byPosition(a: { position: string }, b: { position: string }): number {
   return a.position < b.position ? -1 : a.position > b.position ? 1 : 0;
+}
+
+/** The document without the model it may carry. */
+function withoutModel(document: NotebookDocument): NotebookDocument {
+  const { model: _model, ...rest } = document;
+  return rest;
 }
