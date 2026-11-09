@@ -13,6 +13,7 @@ import { queryState } from '../../shared/api/query-state';
 import { queryKeys } from '../../shared/api/query-keys';
 import { TransferDialogs } from '../portability/StartTransfer';
 import { NotebookActions } from './NotebookActions';
+import { ShelfHeading } from './ShelfHeading';
 import { NewNotebookDialog } from '../models/NewNotebookDialog';
 import { byName } from './catalogue';
 import { useIncomingShares, useOwnShares } from '../sharing/shares';
@@ -82,17 +83,23 @@ export function NotebooksPage() {
 
   return (
     <section className="page shelf-page">
-      <div className="shelf-heading">
-        <div>
-          <h1>{t('nav.notebooks')}</h1>
-          <p className="page-intro">{t('notebooks.intro')}</p>
-        </div>
-        {/* A notebook, blank or from a model (#359); a new model starts on
-            the page of the models (#418). */}
-        <button type="button" className="button is-primary" onClick={() => setCreating(true)}>
-          <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
-        </button>
-      </div>
+      <ShelfHeading
+        page="notebooks"
+        title={t('nav.notebooks')}
+        count={entries?.length}
+        help={t('notebooks.help')}
+        action={
+          // A notebook, blank or from a model (#359); a new model starts on
+          // the page of the models (#418).
+          <button
+            type="button"
+            className="button is-primary is-small"
+            onClick={() => setCreating(true)}
+          >
+            <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
+          </button>
+        }
+      />
       <div className="shelf-grid">
         {entries?.map((entry, index) => {
           const strip = index % 2 === 0 ? 'blue' : 'orange';

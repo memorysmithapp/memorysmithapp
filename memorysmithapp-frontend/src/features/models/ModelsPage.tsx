@@ -17,6 +17,7 @@ import { TransferDialogs } from '../portability/StartTransfer';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { useOwnShares } from '../sharing/shares';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
+import { ShelfHeading } from '../dashboard/ShelfHeading';
 import { ShelfCard, formatDay } from '../dashboard/NotebookCard';
 
 /**
@@ -60,17 +61,21 @@ export function ModelsPage() {
 
   return (
     <section className="page shelf-page">
-      <div className="shelf-heading">
-        <div>
-          <h1>{t('models.title')}</h1>
-          <p className="page-intro">{t('models.intro')}</p>
-        </div>
-        <div className="shelf-actions">
-          <button type="button" className="button is-primary" onClick={() => setCreating(true)}>
+      <ShelfHeading
+        page="models"
+        title={t('models.title')}
+        count={models?.length}
+        help={t('models.help')}
+        action={
+          <button
+            type="button"
+            className="button is-primary is-small"
+            onClick={() => setCreating(true)}
+          >
             <ActionWord icon={<PlusIcon />} word={t('models.new')} />
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {state === 'error' ? <p className="status">{t(messageKeyOf(query.error))}</p> : null}
       {models?.length === 0 ? <p className="hint">{t('models.empty')}</p> : null}

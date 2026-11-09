@@ -88,10 +88,12 @@
     "about": "Sobre o MemorySmith.app",
     "search": "Pesquisar"
   },
+  "shelf": {
+    "help": "Para que serve esta página"
+  },
   "models": {
-    "title": "Modelos de caderno",
-    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. O ícone no canto diz de quem é cada um; o ⋯ de um seu exporta, compartilha ou apaga.",
-    "new": "Novo Modelo de caderno",
+    "title": "Modelos",
+    "new": "Novo modelo",
     "empty": "Nenhum caderno que você lê é modelo ainda. Crie um aqui, ou peça a um agente que declare um caderno como modelo.",
     "sharedBy": "Compartilhado por {{owner}}",
     "published": "Na comunidade",
@@ -104,7 +106,8 @@
       "sharedByMe": "Seu modelo, compartilhado por você",
       "sharedWithMe": "Um modelo compartilhado com você por {{owner}}",
       "published": "Seu modelo, publicado por você"
-    }
+    },
+    "help": "Um modelo é um caderno que serve de molde: cada versão fica congelada e cria cadernos novos, com os parâmetros preenchidos. Aqui estão os seus e os compartilhados com você como modelo. O ⋯ de um seu exporta, compartilha ou apaga."
   },
   "language": {
     "heading": "Idioma",
@@ -128,7 +131,7 @@
     "updatedAt": "atualizado em {{date}}",
     "open": "Abrir caderno",
     "openShort": "Abrir",
-    "intro": "Todos os cadernos da assinatura, e os compartilhados com você, pelo nome. O ícone no canto diz de quem é cada um; o ⋯ exporta, compartilha ou apaga."
+    "help": "Seus cadernos e os compartilhados com você, em ordem alfabética. O ícone no canto diz de quem é cada um; o ⋯ exporta, compartilha ou apaga. Um caderno novo começa em branco ou a partir de um modelo."
   },
   "structure": {
     "morePages": "Tabelas, painéis e mais",
@@ -1302,8 +1305,7 @@
     "parametersAfter": "Os parâmetros você declara depois, na aba Parâmetros, que abre assim que o modelo é criado."
   },
   "community": {
-    "title": "Modelos da comunidade",
-    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. A pesquisa no topo encontra um pelo nome; o ícone no canto diz se um é seu, e o ⋯ cria um caderno a partir da versão mais recente.",
+    "title": "Comunidade",
     "nothing": "Nenhum modelo publicado responde a esta busca.",
     "author": "Autor",
     "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
@@ -1323,7 +1325,8 @@
       "pt": "Português",
       "en": "Inglês",
       "es": "Espanhol"
-    }
+    },
+    "help": "Modelos que outras pessoas publicaram, livres para usar (CC0). Abra um para ler as versões e criar um caderno seu a partir dele. Para achar um pelo nome, use a pesquisa do topo."
   },
   "globalSearch": {
     "placeholder": "Encontre cadernos, modelos e modelos da comunidade…",

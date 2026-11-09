@@ -23,6 +23,7 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { CreateFromModelForm } from '../models/CreateFromModel';
 import { ShelfCard } from '../dashboard/NotebookCard';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
+import { ShelfHeading } from '../dashboard/ShelfHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { MenuItem } from '../../shared/components/Menu';
 import { ParameterList } from '../models/ModelPage';
@@ -72,12 +73,12 @@ export function CommunityPage() {
   return (
     <>
       <section className="page shelf-page community-page">
-        <div className="shelf-heading">
-          <div>
-            <h1>{t('community.title')}</h1>
-            <p className="page-intro">{t('community.intro')}</p>
-          </div>
-        </div>
+        <ShelfHeading
+          page="community"
+          title={t('community.title')}
+          count={found.data?.length}
+          help={t('community.help')}
+        />
         {found.isPending ? (
           <p className="hint">{t('common.loading')}</p>
         ) : found.isError ? (

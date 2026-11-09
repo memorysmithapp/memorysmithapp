@@ -88,10 +88,12 @@
     "about": "About MemorySmith.app",
     "search": "Search"
   },
+  "shelf": {
+    "help": "What this page is for"
+  },
   "models": {
-    "title": "Notebook models",
-    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. The icon in a corner says whose each one is; the ⋯ of one of yours exports, shares or deletes it.",
-    "new": "New notebook model",
+    "title": "Models",
+    "new": "New model",
     "empty": "No notebook you read is a model yet. Create one here, or ask an agent to declare a notebook as one.",
     "sharedBy": "Shared by {{owner}}",
     "published": "In the community",
@@ -104,7 +106,8 @@
       "sharedByMe": "Your model, shared by you",
       "sharedWithMe": "A model shared with you by {{owner}}",
       "published": "Your model, published by you"
-    }
+    },
+    "help": "A model is a notebook that serves as a mould: each version is frozen and creates new notebooks, with its parameters filled in. Here are yours and the ones shared with you as a model. The ⋯ of one of yours exports, shares or deletes it."
   },
   "language": {
     "heading": "Language",
@@ -128,7 +131,7 @@
     "updatedAt": "updated {{date}}",
     "open": "Open notebook",
     "openShort": "Open",
-    "intro": "Every notebook of the subscription, and the ones shared with you, by name. The icon in a corner says whose each one is; ⋯ exports, shares or deletes it."
+    "help": "Your notebooks and the ones shared with you, by name. The icon in a corner says whose each one is; ⋯ exports, shares or deletes it. A new notebook starts blank or from a model."
   },
   "structure": {
     "morePages": "Tables, dashboards and more",
@@ -1299,8 +1302,7 @@
     "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created."
   },
   "community": {
-    "title": "Community models",
-    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. The search at the top finds one by name; the icon in a corner says whether one is yours, and ⋯ creates a notebook from its latest version.",
+    "title": "Community",
     "nothing": "No published model answers this search.",
     "author": "Author",
     "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
@@ -1320,7 +1322,8 @@
       "pt": "Portuguese",
       "en": "English",
       "es": "Spanish"
-    }
+    },
+    "help": "Models other people published, free to use (CC0). Open one to read its versions and create a notebook of your own from it. To find one by name, use the search at the top."
   },
   "globalSearch": {
     "placeholder": "Find notebooks, models and community models…",

@@ -7879,24 +7879,58 @@ body.has-sheet .app-main {
   max-width: none;
 }
 .shelf-heading {
+  position: relative;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 20px;
 }
 .shelf-heading h1 {
-  margin: 0 0 6px;
+  margin: 0;
 }
-.shelf-heading .page-intro {
-  max-width: 44rem;
-  margin-bottom: 0;
+.shelf-count {
+  font-weight: 400;
+  color: var(--text-soft);
 }
-.shelf-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* The `?` beside the action, and what the page is for under it, over the
+   cards, until a click elsewhere or Esc puts it away. */
+.shelf-help-anchor {
+  position: relative;
+}
+.shelf-help {
+  color: var(--text-soft);
+}
+.shelf-help[aria-expanded='true'] {
+  color: var(--text);
+}
+.shelf-help-box {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(380px, calc(100vw - 2rem));
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--menu-shadow);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.shelf-help-box p {
+  margin: 0;
+}
+/* On a phone the box takes the width of the heading, under it. */
+@media (max-width: 40rem) {
+  .shelf-help-anchor {
+    position: static;
+  }
+  .shelf-help-box {
+    right: 0;
+    width: auto;
+  }
 }
 .shelf-grid {
   display: grid;
