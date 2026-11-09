@@ -40,7 +40,7 @@ const MODEL_WORDS: Record<
   en_US: {
     objective: 'Objective',
     newNotebook: 'New notebook',
-    newModel: 'New notebook model',
+    newModel: 'New model',
     modelItem: 'Model',
     name: 'Name',
     notAModel: 'This notebook is not a model.',
@@ -63,7 +63,7 @@ const MODEL_WORDS: Record<
   pt_BR: {
     objective: 'Objetivo',
     newNotebook: 'Novo caderno',
-    newModel: 'Novo Modelo de caderno',
+    newModel: 'Novo modelo',
     modelItem: 'Modelo de caderno',
     name: 'Nome',
     notAModel: 'Este caderno não é um Modelo de caderno.',
@@ -387,7 +387,7 @@ const COMMUNITY_WORDS: Record<
   }
 > = {
   en_US: {
-    title: 'Community models',
+    title: 'Community',
     communityGroup: 'Community',
     licence: 'Published under CC0 1.0',
     report: 'Report this model',
@@ -396,7 +396,7 @@ const COMMUNITY_WORDS: Record<
     version: (number) => `Version ${number}`,
   },
   pt_BR: {
-    title: 'Modelos da comunidade',
+    title: 'Comunidade',
     communityGroup: 'Comunidade',
     licence: 'Publicado sob CC0 1.0',
     report: 'Denunciar este modelo',

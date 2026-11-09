@@ -105,7 +105,16 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(`${state.surfaces.site}/notebooks`);
 
-    await expect(app.getByRole('heading', { name: words.notebooks, level: 1 })).toBeVisible();
+    // Its name with how many it holds, the action beside it, and what the
+    // page is for behind a `?` (#418).
+    const heading = app.getByRole('heading', { name: words.notebooks, level: 1 });
+    await expect(heading).toBeVisible();
+    await expect(heading).toHaveText(/\(\d+\)/);
+    await expect(app.locator('.shelf-help-box')).toHaveCount(0);
+    await app.locator('button.shelf-help').click();
+    await expect(app.locator('.shelf-help-box')).toBeVisible();
+    await app.keyboard.press('Escape');
+    await expect(app.locator('.shelf-help-box')).toHaveCount(0);
     const card = app.locator('article.notebook-card', { hasText: notebook.name });
     await expect(card).toBeVisible();
     // The card is drawn with its graph, which is decoration and says so (#198).
