@@ -766,7 +766,7 @@
       },
       "search": {
         "term": "Busca",
-        "definition": "Pesquisar, no menu do topo ou com Ctrl K, encontra cadernos, modelos e modelos da comunidade pelo nome; dentro de um caderno, o campo no topo da barra lateral busca nas notas pelo que elas dizem e pelas propriedades que declaram."
+        "definition": "A pesquisa no topo de toda página, ou Ctrl K, encontra cadernos, modelos e modelos da comunidade pelo nome; dentro de um caderno, o campo no topo da barra lateral busca nas notas pelo que elas dizem e pelas propriedades que declaram."
       },
       "sharing": {
         "term": "Compartilhamento",
@@ -778,7 +778,7 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu do topo; o ícone ao lado da sua foto mostra uma em andamento. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu; o sino no topo mostra uma em andamento e conta os arquivos que um agente pediu a você. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
@@ -1303,17 +1303,7 @@
   },
   "community": {
     "title": "Modelos da comunidade",
-    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. O ícone no canto diz se um é seu; o ⋯ cria um caderno a partir da versão mais recente.",
-    "search": "Buscar",
-    "searchHint": "Palavras do nome, do objetivo, do autor…",
-    "find": "Buscar",
-    "language": "Idioma",
-    "languages": {
-      "any": "Qualquer idioma",
-      "pt": "Português",
-      "en": "Inglês",
-      "es": "Espanhol"
-    },
+    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. A pesquisa no topo encontra um pelo nome; o ícone no canto diz se um é seu, e o ⋯ cria um caderno a partir da versão mais recente.",
     "nothing": "Nenhum modelo publicado responde a esta busca.",
     "author": "Autor",
     "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
@@ -1326,6 +1316,13 @@
     "cardMeta_other": "{{language}} · atualizado em {{date}} · {{count}} versões",
     "menu": {
       "fromVersion": "Criar um caderno a partir da versão {{number}}"
+    },
+    "language": "Idioma",
+    "languages": {
+      "any": "Qualquer idioma",
+      "pt": "Português",
+      "en": "Inglês",
+      "es": "Espanhol"
     }
   },
   "globalSearch": {

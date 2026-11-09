@@ -13,13 +13,16 @@ import { Menu } from '../../shared/components/Menu';
 import { BellIcon, CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { sharesChanged, useNotifications } from './shares';
 import { ActionWord } from '../../shared/components/ActionWord';
+import { TransfersRecent, useTransfersStatus } from '../portability/TransfersStatus';
 
 /**
- * The notifications of the person, beside Transfers and the user menu (#256,
- * RN-ACC-029): every change of a share, told to the side that did not make
- * it. A share waiting for an answer is answered here as on its card; every
- * other notice is read and dismissed. The count on the button is everything
- * listed, because each item is something still to see or to do.
+ * The notifications of the person, beside the user menu (#256, RN-ACC-029):
+ * every change of a share, told to the side that did not make it, and the
+ * status of the transfers under them (#418). A share waiting for an answer is
+ * answered here as on its card; every other notice is read and dismissed. The
+ * count on the button is every notice and every file an agent asked for,
+ * because each is something still to see or to do; a ring says a transfer
+ * runs, and a dot that one finished unseen.
  */
 export function NotificationsMenu() {
   const { t } = useTranslation();
@@ -27,7 +30,8 @@ export function NotificationsMenu() {
   const trigger = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
   const notifications = useNotifications().data ?? [];
-  const count = notifications.length;
+  const transfers = useTransfersStatus();
+  const count = notifications.length + transfers.waiting;
 
   return (
     <div className="notifications-menu">
@@ -35,7 +39,13 @@ export function NotificationsMenu() {
         ref={trigger}
         type="button"
         className="icon-button notifications-trigger"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() =>
+          setOpen((current) => {
+            // Opening the panel is what clears the dot: the person has seen them.
+            if (!current) transfers.seeAll();
+            return !current;
+          })
+        }
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={
@@ -50,6 +60,13 @@ export function NotificationsMenu() {
             {count}
           </span>
         )}
+        {transfers.ring !== null && (
+          <span
+            className="transfers-ring"
+            style={{ ['--progress' as string]: `${Math.round(transfers.ring * 100)}%` }}
+          />
+        )}
+        {transfers.unseen && count === 0 && <span className="transfers-dot" />}
       </button>
       <Menu
         open={open}
@@ -73,6 +90,7 @@ export function NotificationsMenu() {
             ))}
           </ul>
         )}
+        <TransfersRecent transfers={transfers.transfers} onClose={close} />
       </Menu>
     </div>
   );

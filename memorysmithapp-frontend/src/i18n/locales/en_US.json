@@ -763,7 +763,7 @@
       },
       "search": {
         "term": "Search",
-        "definition": "Search, in the menu at the top or with Ctrl K, finds notebooks, models and community models by name; inside a notebook, the field at the top of its sidebar searches its notes by what they say and by the properties they declare."
+        "definition": "The search at the top of every page, or Ctrl K, finds notebooks, models and community models by name; inside a notebook, the field at the top of its sidebar searches its notes by what they say and by the properties they declare."
       },
       "sharing": {
         "term": "Sharing",
@@ -775,7 +775,7 @@
       },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from Transfers in the menu at the top; the icon beside your picture shows one under way. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
+        "definition": "Exporting a notebook, or importing one, from Transfers in the menu; the bell at the top shows one under way and counts the files an agent asked you for. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {
@@ -1300,17 +1300,7 @@
   },
   "community": {
     "title": "Community models",
-    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. The icon in a corner says whether one is yours; ⋯ creates a notebook from its latest version.",
-    "search": "Find",
-    "searchHint": "Words of the name, the objective, the author…",
-    "find": "Find",
-    "language": "Language",
-    "languages": {
-      "any": "Any language",
-      "pt": "Portuguese",
-      "en": "English",
-      "es": "Spanish"
-    },
+    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. The search at the top finds one by name; the icon in a corner says whether one is yours, and ⋯ creates a notebook from its latest version.",
     "nothing": "No published model answers this search.",
     "author": "Author",
     "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
@@ -1323,6 +1313,13 @@
     "cardMeta_other": "{{language}} · updated {{date}} · {{count}} versions",
     "menu": {
       "fromVersion": "Create a notebook from version {{number}}"
+    },
+    "language": "Language",
+    "languages": {
+      "any": "Any language",
+      "pt": "Portuguese",
+      "en": "English",
+      "es": "Spanish"
     }
   },
   "globalSearch": {

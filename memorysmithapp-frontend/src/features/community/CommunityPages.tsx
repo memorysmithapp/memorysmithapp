@@ -43,15 +43,14 @@ function useDay(): (instant: string) => string {
     );
 }
 
-const LANGUAGES = ['', 'pt', 'en', 'es'] as const;
-
-/** Finds published models by words and language. */
+/**
+ * Every published model, as cards (#418): what to look for is typed in the
+ * search of the header, which finds community models with the notebooks and
+ * the models of the person.
+ */
 export function CommunityPage() {
   const { t } = useTranslation();
   const day = useDay();
-  const [typed, setTyped] = useState('');
-  const [text, setText] = useState('');
-  const [language, setLanguage] = useState<string>('');
   const navigate = useNavigate();
   useDocumentTitle(t('community.title'));
   // What I published myself, which its mark says (#418).
@@ -66,14 +65,9 @@ export function CommunityPage() {
     [mine.data],
   );
   const found = useQuery({
-    queryKey: queryKeys.catalog(text, language || null),
-    queryFn: () => searchCatalog({ text, language: language || null }),
+    queryKey: queryKeys.catalog('', null),
+    queryFn: () => searchCatalog({ text: '', language: null }),
   });
-
-  function submit(event: FormEvent): void {
-    event.preventDefault();
-    setText(typed.trim());
-  }
 
   return (
     <>
@@ -84,30 +78,6 @@ export function CommunityPage() {
             <p className="page-intro">{t('community.intro')}</p>
           </div>
         </div>
-        <form className="community-search" role="search" onSubmit={submit}>
-          <label className="field">
-            <span className="field-label">{t('community.search')}</span>
-            <input
-              type="search"
-              value={typed}
-              placeholder={t('community.searchHint')}
-              onChange={(event) => setTyped(event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">{t('community.language')}</span>
-            <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-              {LANGUAGES.map((each) => (
-                <option key={each} value={each}>
-                  {t(`community.languages.${each || 'any'}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" className="button is-primary">
-            {t('community.find')}
-          </button>
-        </form>
         {found.isPending ? (
           <p className="hint">{t('common.loading')}</p>
         ) : found.isError ? (

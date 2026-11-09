@@ -19,6 +19,11 @@ const DEBOUNCE_MS = 250;
 /** As many of each kind as a glance reads; the pages hold the rest. */
 const PER_GROUP = 6;
 
+/** ⌘K with a Command key, Ctrl K everywhere else. */
+export const SHORTCUT = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '')
+  ? '⌘K'
+  : 'Ctrl K';
+
 interface Hit {
   key: string;
   name: string;
@@ -27,20 +32,23 @@ interface Hit {
 }
 
 /**
- * Search, from the menu of the product (#418): notebooks, models and community
- * models, found by what they are called. The notebooks and the models are the
- * lists the pages already read, narrowed here; the community is asked, since
- * it is larger than any list a page holds. What is inside the notes of a
- * notebook is searched from the top of the notebook's sidebar.
+ * The search of the product, a field in the first row of the header (#418):
+ * notebooks, models and community models, found by what they are called, in
+ * groups under the field. The notebooks and the models are the lists the pages
+ * already read, narrowed here; the community is asked, since it is larger than
+ * any list a page holds. Ctrl K takes the focus to the field from anywhere.
+ * What is inside the notes of a notebook is searched from the top of the
+ * notebook's sidebar.
  */
-export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function GlobalSearch() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [typed, setTyped] = useState('');
   const [debounced, setDebounced] = useState('');
-  const panel = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -48,40 +56,45 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
     return () => clearTimeout(timer);
   }, [typed]);
 
-  // A result chosen is a page left: the search goes with it.
-  useEffect(() => onClose(), [pathname, onClose]);
+  // A result chosen is a page left: the field is emptied and the list closes.
+  useEffect(() => {
+    setOpen(false);
+    setTyped('');
+  }, [pathname]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      field.current?.focus();
+      field.current?.select();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    field.current?.focus();
-    field.current?.select();
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
-    }
     function onPointerDown(event: MouseEvent) {
-      if (!panel.current?.contains(event.target as Node)) onClose();
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
     }
-    document.addEventListener('keydown', onKeyDown);
     document.addEventListener('mousedown', onPointerDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('mousedown', onPointerDown);
-    };
-  }, [open, onClose]);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
 
+  const wanted = typed.trim().toLocaleLowerCase(locale);
+  const asking = open && wanted !== '';
   const notebooks = useQuery({
     queryKey: queryKeys.notebooks(),
     queryFn: listNotebooks,
-    enabled: open,
+    enabled: asking,
   });
-  const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels, enabled: open });
+  const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels, enabled: asking });
   const community = useQuery({
     queryKey: queryKeys.catalog(debounced, null),
     queryFn: () => searchCatalog({ text: debounced, language: null }),
-    enabled: open && debounced !== '',
+    enabled: asking && debounced !== '',
   });
-
-  const wanted = typed.trim().toLocaleLowerCase(locale);
 
   const groups = useMemo((): Array<{
     key: string;
@@ -142,18 +155,11 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
     ].filter((group) => group.hits.length > 0);
   }, [wanted, notebooks.data, models.data, community.data, debounced, typed, locale, t]);
 
-  if (!open) return null;
-
   const first = groups[0]?.hits[0];
-  const waiting = wanted !== '' && (community.isFetching || debounced !== typed.trim());
+  const waiting = community.isFetching || debounced !== typed.trim();
 
   return (
-    <div
-      ref={panel}
-      className="search-popover global-search"
-      role="dialog"
-      aria-label={t('nav.search')}
-    >
+    <div ref={box} className="global-search" role="search">
       <div className="search-box">
         <SearchIcon className="search-box-icon" width={15} height={15} />
         <input
@@ -161,42 +167,57 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
           type="search"
           value={typed}
           placeholder={t('globalSearch.placeholder')}
-          aria-label={t('globalSearch.placeholder')}
-          onChange={(event) => setTyped(event.target.value)}
+          aria-label={t('nav.search')}
+          aria-expanded={asking}
+          aria-controls="global-search-results"
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            setTyped(event.target.value);
+            setOpen(true);
+          }}
           onKeyDown={(event) => {
-            // Enter opens the first thing found.
+            // Enter opens the first thing found; Esc empties the field.
             if (event.key === 'Enter' && first) navigate(first.to);
+            if (event.key === 'Escape') {
+              setTyped('');
+              setOpen(false);
+            }
           }}
         />
+        {typed === '' ? (
+          <kbd className="search-box-key" aria-hidden="true">
+            {SHORTCUT}
+          </kbd>
+        ) : null}
       </div>
-      <div className="global-search-results">
-        {wanted === '' ? (
-          <p className="search-empty">{t('globalSearch.typeMore')}</p>
-        ) : groups.length === 0 ? (
-          <p className="search-empty">
-            {waiting ? t('search.searching') : t('globalSearch.nothing')}
-          </p>
-        ) : (
-          groups.map((group) => (
-            <section key={group.key} className="global-search-group" aria-label={group.title}>
-              <p className="global-search-title">{group.title}</p>
-              <ul>
-                {group.hits.map((hit) => (
-                  <li key={hit.key}>
-                    <Link to={hit.to} onClick={onClose}>
-                      {group.icon}
-                      <span className="global-search-name">{hit.name}</span>
-                      {hit.detail ? (
-                        <span className="global-search-detail">{hit.detail}</span>
-                      ) : null}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))
-        )}
-      </div>
+      {asking ? (
+        <div id="global-search-results" className="global-search-results">
+          {groups.length === 0 ? (
+            <p className="search-empty">
+              {waiting ? t('search.searching') : t('globalSearch.nothing')}
+            </p>
+          ) : (
+            groups.map((group) => (
+              <section key={group.key} className="global-search-group" aria-label={group.title}>
+                <p className="global-search-title">{group.title}</p>
+                <ul>
+                  {group.hits.map((hit) => (
+                    <li key={hit.key}>
+                      <Link to={hit.to}>
+                        {group.icon}
+                        <span className="global-search-name">{hit.name}</span>
+                        {hit.detail ? (
+                          <span className="global-search-detail">{hit.detail}</span>
+                        ) : null}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
