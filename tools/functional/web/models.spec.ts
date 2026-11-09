@@ -340,16 +340,22 @@ test.describe('notebook models', () => {
       await app.goto(`${state.surfaces.site}/community`);
       await expect(app.locator('.app-menu-row nav.top-menu')).toBeVisible();
       await expect(app.getByRole('heading', { name: words.title, level: 1 })).toBeVisible();
-      await app.getByRole('searchbox').fill(notebook.name);
-      await app.getByRole('button', { name: words.find, exact: true }).click();
-      // The model is a card, the card the notebooks and the models use (#418).
+      // Every published model is a card, the card the notebooks and the
+      // models use, its corner saying it is the owner's own (#418).
       const card = app.locator('article.notebook-card', { hasText: notebook.name });
-      // Its corner says it is the owner's own, published (#418).
       await expect(card.locator('.ownership-mark[data-ownership="own"]')).toBeVisible({
         timeout: 90_000,
       });
       await expect(card.locator('button.notebook-card-more')).toBeVisible();
-      await card.locator('a.notebook-open').click();
+      // And the search of the header finds it among the community models.
+      const field = app.locator('.app-header .global-search input[type="search"]');
+      await field.fill(notebook.name);
+      await app
+        .locator('.global-search-group', {
+          has: app.getByText(words.communityGroup, { exact: true }),
+        })
+        .locator('a', { hasText: notebook.name })
+        .click({ timeout: 90_000 });
 
       await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
       await expect(app.getByText(words.licence, { exact: false })).toBeVisible();
@@ -372,7 +378,7 @@ const COMMUNITY_WORDS: Record<
   AppLocale,
   {
     readonly title: string;
-    readonly find: string;
+    readonly communityGroup: string;
     readonly licence: string;
     readonly report: string;
     readonly create: string;
@@ -382,7 +388,7 @@ const COMMUNITY_WORDS: Record<
 > = {
   en_US: {
     title: 'Community models',
-    find: 'Find',
+    communityGroup: 'Community',
     licence: 'Published under CC0 1.0',
     report: 'Report this model',
     create: 'Create a notebook from this version',
@@ -391,7 +397,7 @@ const COMMUNITY_WORDS: Record<
   },
   pt_BR: {
     title: 'Modelos da comunidade',
-    find: 'Buscar',
+    communityGroup: 'Comunidade',
     licence: 'Publicado sob CC0 1.0',
     report: 'Denunciar este modelo',
     create: 'Criar um caderno a partir desta versão',

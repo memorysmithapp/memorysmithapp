@@ -141,7 +141,7 @@ test.describe('the pages of an account', () => {
       await expect(app.locator('aside')).toHaveCount(0);
     }
     const items = app.locator('nav.top-menu .top-menu-item');
-    await expect(items).toHaveCount(7);
+    await expect(items).toHaveCount(6);
     // Each entry carries its icon.
     for (const item of await items.all()) await expect(item.locator('svg')).toHaveCount(1);
     // The slogan left the header.
@@ -154,21 +154,24 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
 
-    // Search finds a notebook by its name, from Ctrl K, and Enter opens it.
+    // The search of the first row finds a notebook by its name; Ctrl K takes
+    // the focus to it from anywhere.
+    const field = app.locator('.app-header .global-search input[type="search"]');
+    await expect(field).toBeVisible();
+    await expect(field).not.toBeFocused();
     await app.keyboard.press('ControlOrMeta+k');
-    const field = app.locator('.global-search input[type="search"]');
     await expect(field).toBeFocused();
     await field.fill(notebook.name);
-    await expect(
-      app.locator('.global-search-group a', { hasText: notebook.name }).first(),
-    ).toBeVisible();
+    const hit = app.locator('.global-search-group a', { hasText: notebook.name }).first();
+    await expect(hit).toBeVisible();
     await testInfo.attach('shell-search.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
-    await app.locator('.global-search-group a', { hasText: notebook.name }).first().click();
+    await hit.click();
     await expect(app).toHaveURL(new RegExp(`/notebooks/${notebook.notebookId.toLowerCase()}`));
-    await expect(app.locator('.global-search')).toHaveCount(0);
+    await expect(field).toHaveValue('');
+    await expect(app.locator('.global-search-results')).toHaveCount(0);
 
     // Inside a notebook, its sidebar sits under the menu, its search at the top,
     // and it folds to its icons by a choice the browser remembers.
@@ -2546,7 +2549,8 @@ async function startExport(
   words: { transfers: string; newExport: string; notebookField: string; startExport: string },
   notebookName: string,
 ): Promise<void> {
-  await app.getByRole('button', { name: words.transfers }).click();
+  // Transfers, in the menu, is where an export starts (#418).
+  await app.goto(new URL('/transfers', app.url()).href);
   await app.getByRole('button', { name: words.newExport }).click();
   // Scoped to the dialog and exact: `Notebook` is the start of several
   // accessible names on the page behind it.
@@ -2765,16 +2769,20 @@ test.describe('the transfers of a person', () => {
     expect(gap, 'room between the last line and the foot of the window').toBeGreaterThanOrEqual(24);
   });
 
-  test('opens the Transfers panel inside a phone screen (#195)', async ({ app, state, words }) => {
+  test('opens the bell, with the transfers under the notices, inside a phone screen (#195, #418)', async ({
+    app,
+    state,
+  }) => {
     await app.setViewportSize({ width: 320, height: 640 });
     await app.goto(`${state.surfaces.site}/`);
-    await app.getByRole('button', { name: words.transfers }).click();
+    await app.locator('button.notifications-trigger').click();
 
-    const panel = app.locator('.transfers-panel');
-    await expect(panel).toBeVisible();
-    const box = await panel.boundingBox();
-    expect(box, 'the panel has a box').not.toBeNull();
-    expect(box!.x, 'the panel starts on the screen').toBeGreaterThanOrEqual(0);
+    const section = app.locator('.transfers-recent-section');
+    await expect(section).toBeVisible();
+    await expect(section.locator('a.transfers-see-all')).toBeVisible();
+    const box = await section.boundingBox();
+    expect(box, 'the section has a box').not.toBeNull();
+    expect(box!.x, 'the section starts on the screen').toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width, 'and ends on it').toBeLessThanOrEqual(320);
   });
 
