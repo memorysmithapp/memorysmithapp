@@ -36,9 +36,9 @@ async function contextOf(agent: Client, notebook: string, folder: string): Promi
   return { guidance: read.guidance ?? null, template: revision, structure: read.structure };
 }
 
-/** The other person answers on their Home, in the browser, as a person does. */
+/** The other person answers on their notebooks, in the browser, as a person does (#418). */
 async function acceptOnHome(page: Page, site: string, name: string): Promise<void> {
-  await page.goto(`${site}/`);
+  await page.goto(`${site}/notebooks`);
   const card = page.locator('article', { hasText: name }).first();
   await card.getByRole('button', { name: 'Accept', exact: true }).click({ timeout: 60_000 });
   await expect(page.getByRole('button', { name: 'Accept', exact: true })).toHaveCount(0, {

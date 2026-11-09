@@ -19,8 +19,9 @@ import { webSession } from '../support/web-session.js';
 export type AppLocale = 'en_US' | 'pt_BR';
 
 export interface Words {
-  /** The heading over the notebooks of the dashboard. */
-  readonly openNotebook: string;
+  /** The heading of Home, and of the page of the notebooks (#418). */
+  readonly home: string;
+  readonly notebooks: string;
   /** The BCP 47 tag the case compares names in. */
   readonly locale: string;
   /** The heading of the space of the subscription on Home (#198). */
@@ -155,7 +156,8 @@ export interface Words {
 
 export const WORDS: Record<AppLocale, Words> = {
   en_US: {
-    openNotebook: 'Open a notebook',
+    home: 'Home',
+    notebooks: 'Notebooks',
     locale: 'en-US',
     space: 'Subscription space',
     moreActions: 'More actions',
@@ -252,7 +254,8 @@ export const WORDS: Record<AppLocale, Words> = {
     historyMoved: 'Moved',
   },
   pt_BR: {
-    openNotebook: 'Abrir um caderno',
+    home: 'Início',
+    notebooks: 'Cadernos',
     locale: 'pt-BR',
     space: 'Espaço da assinatura',
     moreActions: 'Mais ações',

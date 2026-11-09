@@ -34,7 +34,7 @@ test.describe('signing in', () => {
 
     await signInOnManagedLogin(page, state.accounts.owner);
     await page.waitForURL(`${state.surfaces.site}/`, { timeout: 60_000 });
-    await expect(page.getByRole('heading', { name: words.openNotebook })).toBeVisible();
+    await expect(page.getByRole('heading', { name: words.home, level: 1 })).toBeVisible();
   });
 
   test('[page:/auth/callback] says why a sign-in did not complete, and offers to try again', async ({
@@ -54,29 +54,19 @@ test.describe('signing in', () => {
 });
 
 test.describe('the pages of an account', () => {
-  test('[page:/] lists the notebooks of the account, and says which environment and version this is', async ({
+  test('[page:/] shows the space of the subscription, and says which environment and version this is', async ({
     app,
-    notebook,
     state,
     words,
   }) => {
     await app.goto(`${state.surfaces.site}/`);
 
-    await expect(app.getByRole('heading', { name: words.openNotebook })).toBeVisible();
-    const card = app.locator('article.notebook-card', { hasText: notebook.name });
-    await expect(card).toBeVisible();
-    // The card is drawn with its graph, which is decoration and says so (#198).
-    await expect(card.locator('svg.card-graph')).toHaveAttribute('aria-hidden', 'true');
-
-    /**
-     * The notebooks by name in the reader's language, and the space of the
-     * subscription where the four counts about links used to be (#198).
-     */
-    const names = await app.locator('article.notebook-card h2').allTextContents();
-    const collator = new Intl.Collator(words.locale, { sensitivity: 'base', numeric: true });
-    expect(names).toEqual([...names].sort((a, b) => collator.compare(a, b)));
+    // Home is the space of the subscription; the notebooks have a page of
+    // their own (#418).
+    await expect(app.getByRole('heading', { name: words.home, level: 1 })).toBeVisible();
     await expect(app.getByRole('heading', { name: words.space })).toBeVisible();
     await expect(app.locator('.home-counts')).toBeVisible();
+    await expect(app.locator('article.notebook-card')).toHaveCount(0);
     await expect(app).toHaveTitle(`[${state.environment}] MemorySmith`);
     await expect(app.locator('.environment-banner')).toContainText(
       state.version ? `Staging · ${state.version}` : 'Staging',
@@ -107,88 +97,114 @@ test.describe('the pages of an account', () => {
     }
   });
 
-  test('[page:/] keeps the whole width outside a notebook, moves between notebooks from the menu of the header, and opens the search of a notebook from its magnifier (#414, #418)', async ({
+  test('[page:/notebooks] lists the notebooks of the account as cards, by name (#198, #418)', async ({
     app,
     notebook,
     state,
+    words,
+  }) => {
+    await app.goto(`${state.surfaces.site}/notebooks`);
+
+    await expect(app.getByRole('heading', { name: words.notebooks, level: 1 })).toBeVisible();
+    const card = app.locator('article.notebook-card', { hasText: notebook.name });
+    await expect(card).toBeVisible();
+    // The card is drawn with its graph, which is decoration and says so (#198).
+    await expect(card.locator('svg.card-graph')).toHaveAttribute('aria-hidden', 'true');
+    // By name in the reader's language.
+    const names = await app.locator('article.notebook-card h2').allTextContents();
+    const collator = new Intl.Collator(words.locale, { sensitivity: 'base', numeric: true });
+    expect(names).toEqual([...names].sort((a, b) => collator.compare(a, b)));
+    await expect(app).toHaveTitle(`[${state.environment}] ${words.notebooks} · MemorySmith`);
+  });
+
+  test('[page:/] keeps the menu in a row of its own on every page, the whole width outside a notebook, and finds notebooks from Search (#414, #418)', async ({
+    app,
+    notebook,
+    state,
+    words,
   }, testInfo) => {
     await app.setViewportSize({ width: 1440, height: 900 });
 
-    // Outside a notebook there is no sidebar: the menu of the product is in
-    // the header, and the page keeps the width.
-    for (const path of ['/', '/transfers', '/profile', '/models', '/about']) {
+    // The menu is the second row of the header, on every page of the frame,
+    // the community and About included; a sidebar only inside a notebook.
+    for (const path of [
+      '/',
+      '/notebooks',
+      '/models',
+      '/community',
+      '/transfers',
+      '/about',
+      '/profile',
+    ]) {
       await app.goto(`${state.surfaces.site}${path}`);
-      await expect(app.locator('nav.top-menu')).toBeVisible();
+      await expect(app.locator('.app-menu-row nav.top-menu')).toBeVisible();
       await expect(app.locator('aside')).toHaveCount(0);
     }
-    await app.goto(`${state.surfaces.site}/`);
-    // The slogan left the header, and a page without a notebook has no search.
+    const items = app.locator('nav.top-menu .top-menu-item');
+    await expect(items).toHaveCount(7);
+    // Each entry carries its icon.
+    for (const item of await items.all()) await expect(item.locator('svg')).toHaveCount(1);
+    // The slogan left the header.
     await expect(app.locator('.app-header .tagline')).toHaveCount(0);
-    await expect(app.locator('.notebook-search-trigger')).toHaveCount(0);
-    // The row of notebooks scrolls inside Home and never widens the shell: the
-    // header keeps its actions inside the window.
+    await app.goto(`${state.surfaces.site}/notebooks`);
     await expect(app.locator('button.user-menu-trigger')).toBeInViewport({ ratio: 1 });
     expect((await app.locator('.app-shell').boundingBox())?.width ?? 0).toBeLessThanOrEqual(1440);
-    await testInfo.attach('shell-home.png', {
+    await testInfo.attach('shell-notebooks.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
 
-    // Notebooks opens a list to switch to, narrowed by name.
-    const switcher = app.locator('nav.top-menu .top-menu-anchor > button');
-    await switcher.click();
-    const list = app.locator('.notebook-switcher');
-    await expect(list).toBeVisible();
-    await list.locator('input.notebook-switcher-filter').fill(notebook.name);
-    await expect(list.getByRole('menuitem', { name: notebook.name })).toBeVisible();
-    await testInfo.attach('shell-switcher.png', {
+    // Search finds a notebook by its name, from Ctrl K, and Enter opens it.
+    await app.keyboard.press('ControlOrMeta+k');
+    const field = app.locator('.global-search input[type="search"]');
+    await expect(field).toBeFocused();
+    await field.fill(notebook.name);
+    await expect(
+      app.locator('.global-search-group a', { hasText: notebook.name }).first(),
+    ).toBeVisible();
+    await testInfo.attach('shell-search.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
-    await list.getByRole('menuitem', { name: notebook.name }).click();
+    await app.locator('.global-search-group a', { hasText: notebook.name }).first().click();
     await expect(app).toHaveURL(new RegExp(`/notebooks/${notebook.notebookId.toLowerCase()}`));
+    await expect(app.locator('.global-search')).toHaveCount(0);
 
-    // Inside a notebook, its sidebar sits under the header and folds to its
-    // icons by a choice the browser remembers.
+    // Inside a notebook, its sidebar sits under the menu, its search at the top,
+    // and it folds to its icons by a choice the browser remembers.
     const sidebar = app.locator('aside#notebook-sidebar');
-    await expect(sidebar).toBeVisible();
+    await expect(sidebar.locator('.search-box input[type="search"]')).toBeVisible();
     await sidebar.locator('button.sidebar-fold').click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
     await app.reload();
     await expect(app.locator('aside#notebook-sidebar')).toHaveClass(/is-collapsed/);
-
-    // The search is a magnifier among the icons, and Ctrl K opens it from
-    // anywhere, with the field taking the focus.
-    const trigger = app.locator('.notebook-search-trigger');
-    await expect(trigger).toBeVisible();
-    const field = app.locator('#notebook-search .search-box input[type="search"]');
-    await expect(field).toBeHidden();
-    await app.keyboard.press('ControlOrMeta+k');
-    await expect(field).toBeFocused();
-    await field.fill('Checklist');
-    await expect(app.locator('#notebook-search .search-results')).toBeVisible();
-    await testInfo.attach('shell-notebook-search.png', {
+    await testInfo.attach('shell-notebook-folded.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
-    await app.keyboard.press('Escape');
-    await expect(field).toBeHidden();
-
-    // Opened again, and the browser remembers it.
     await app.locator('aside#notebook-sidebar button.sidebar-fold').click();
     await expect(app.locator('aside#notebook-sidebar')).not.toHaveClass(/is-collapsed/);
     await testInfo.attach('shell-notebook.png', {
       body: await app.screenshot(),
       contentType: 'image/png',
     });
+
+    // On a phone the menu stays, a row that scrolls sideways.
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.goto(`${state.surfaces.site}/about`);
+    await expect(app.locator('.app-menu-row nav.top-menu')).toBeVisible();
+    await expect(app.locator('nav.top-menu .top-menu-item.active')).toHaveText(words.aboutMenu);
+    await testInfo.attach('shell-phone.png', {
+      body: await app.screenshot(),
+      contentType: 'image/png',
+    });
   });
 
-  test('ends the row of notebooks on the margins of Home, on a computer and on a phone (#212, #213)', async ({
+  test('lays the notebooks in a grid on the margins of the page, on a computer and on a phone (#212, #213, #418)', async ({
     app,
     notebook,
     state,
-    words,
   }) => {
     const edges = async (selector: string) => {
       const box = await app.locator(selector).first().boundingBox();
@@ -196,22 +212,23 @@ test.describe('the pages of an account', () => {
       return { left: box!.x, right: box!.x + box!.width };
     };
 
-    // A computer: the row is cut on the right margin, with the rule of its title.
+    // A computer: the grid spans the heading, edge to edge.
     await app.setViewportSize({ width: 1280, height: 800 });
-    await app.goto(`${state.surfaces.site}/`);
+    await app.goto(`${state.surfaces.site}/notebooks`);
     await expect(app.locator('article.notebook-card', { hasText: notebook.name })).toBeVisible();
-    await expect(app.getByRole('heading', { name: words.openNotebook })).toBeVisible();
-    const head = await edges('.carousel-head');
-    const row = await edges('.notebook-grid');
-    expect(Math.abs(row.right - head.right)).toBeLessThanOrEqual(1);
+    const head = await edges('.shelf-heading');
+    const grid = await edges('.shelf-grid');
+    expect(Math.abs(grid.right - head.right)).toBeLessThanOrEqual(1);
+    expect(Math.abs(grid.left - head.left)).toBeLessThanOrEqual(1);
 
-    // A phone: the first card rests on the left margin, where the title starts.
+    // A phone: one card a row, resting on the left margin where the title starts.
     await app.setViewportSize({ width: 390, height: 800 });
-    await app.goto(`${state.surfaces.site}/`);
+    await app.goto(`${state.surfaces.site}/notebooks`);
     await expect(app.locator('article.notebook-card').first()).toBeVisible();
-    const title = await edges('.carousel-head');
+    const title = await edges('.shelf-heading');
     const first = await edges('article.notebook-card');
     expect(Math.abs(first.left - title.left)).toBeLessThanOrEqual(1);
+    expect(first.right).toBeLessThanOrEqual(390);
   });
 
   test('opens the user menu as a menu: arrows move, the theme changes at once, Esc closes it (#201)', async ({
@@ -289,7 +306,7 @@ test.describe('the pages of an account', () => {
           components: [{ type: 'kpi', source: { table: 'costs', measure: 'sum(amount)' } }],
         },
       });
-      await app.goto(`${state.surfaces.site}/`);
+      await app.goto(`${state.surfaces.site}/notebooks`);
       const card = app.locator('article.notebook-card', { hasText: name });
       await card.getByRole('button', { name: words.moreActions }).click();
       await app.getByRole('menuitem', { name: words.exportNotebook }).click();
@@ -341,7 +358,7 @@ test.describe('the pages of an account', () => {
       name,
       description: 'A notebook a web case deletes.',
     });
-    await app.goto(`${state.surfaces.site}/`);
+    await app.goto(`${state.surfaces.site}/notebooks`);
     const card = app.locator('article.notebook-card', { hasText: name });
     const more = card.getByRole('button', { name: words.moreActions });
 
@@ -502,13 +519,13 @@ test.describe('the pages of an account', () => {
     const checklist = new RegExp(`/notes/${notebook.noteId}$`, 'i');
     await expect(app).toHaveURL(checklist);
 
-    // Out to Home and back in, inside the application: the defect this guards
-    // resumed only on the first arrival of the page session, and a notebook is
-    // shared, accepted and answered from Home, so every return landed on the
-    // context.
+    // Out to the notebooks and back in, inside the application: the defect
+    // this guards resumed only on the first arrival of the page session, and a
+    // notebook is shared, accepted and answered from that list, so every
+    // return landed on the context.
     for (let round = 0; round < 2; round++) {
       await app.locator('aside#notebook-sidebar a.back-link').click();
-      await expect(app).toHaveURL(`${state.surfaces.site}/`);
+      await expect(app).toHaveURL(`${state.surfaces.site}/notebooks`);
       await app
         .locator('article.notebook-card', { hasText: notebook.name })
         .locator('a.notebook-open')
@@ -543,32 +560,29 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveURL(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
   });
 
-  test('closes the search with Esc wherever the focus went, and keeps the query when a click puts it away (#192, #418)', async ({
+  test('closes the results of the search with Esc wherever the focus went (#192)', async ({
     app,
     notebook,
   }) => {
     await app.goto(notebook.page());
 
-    await app.locator('.notebook-search-trigger').click();
-    const box = app.locator('#notebook-search .search-box input[type="search"]');
+    const box = app.locator('.search-box input[type="search"]');
     await box.fill('Checklist');
-    const results = app.locator('#notebook-search .search-results');
+    const results = app.locator('.search-results');
     await expect(results).toBeVisible();
 
-    // A click outside puts the search away and keeps the query (#232); the
-    // magnifier brings it back as it was.
+    // The focus leaves the box, which is where the only handler used to be.
     await app.locator('aside#notebook-sidebar .sidebar-notebook').click();
-    await expect(box).toBeHidden();
-    await app.locator('.notebook-search-trigger').click();
+    // A click outside puts the list away and keeps the query (#232); the
+    // field brings it back.
+    await expect(results).toBeHidden();
     await expect(box).toHaveValue('Checklist');
     await box.focus();
     await expect(results).toBeVisible();
-
-    // Esc closes it from wherever the focus is, and throws the query out.
-    await app.locator('#notebook-search').locator('.search-hint').click();
+    await app.locator('aside#notebook-sidebar .back-link').focus();
     await app.keyboard.press('Escape');
-    await expect(box).toBeHidden();
-    await app.keyboard.press('ControlOrMeta+k');
+
+    await expect(results).toBeHidden();
     await expect(box).toHaveValue('');
   });
 
@@ -2707,7 +2721,7 @@ test.describe('a notebook out and back in, through the browser', () => {
     await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();
     await row.getByRole('button', { name: words.deleteForGood, exact: true }).click();
     await expect(row).toHaveCount(0);
-    await app.goto(`${state.surfaces.site}/`);
+    await app.goto(`${state.surfaces.site}/notebooks`);
     await expect(app.locator('article.notebook-card', { hasText: free })).toBeVisible();
   });
 });

@@ -104,8 +104,8 @@ test.describe('notebook models', () => {
     await expect(app.locator('.models-list .model-card, .models-page .hint').first()).toBeVisible();
     await testInfo.attach('models.png', { body: await app.screenshot(), contentType: 'image/png' });
 
-    // Home offers a notebook only; a model starts here (#418).
-    await app.goto(new URL('/', app.url()).href);
+    // The notebooks offer a notebook only; a model starts here (#418).
+    await app.goto(new URL('/notebooks', app.url()).href);
     await expect(app.getByRole('button', { name: words.newNotebook })).toBeVisible();
     await expect(app.getByRole('button', { name: words.newModel })).toHaveCount(0);
     await app.goto(new URL('/models', app.url()).href);
@@ -282,8 +282,9 @@ test.describe('notebook models', () => {
     }
   });
 
-  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model with no account, reads it and its version, and asks to sign in to create from it', async ({
+  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model signed in, under the menu, reads it and its version, and sends a visitor with no session to sign in first (#418)', async ({
     page,
+    app,
     notebook,
     owner,
     state,
@@ -309,24 +310,34 @@ test.describe('notebook models', () => {
     });
 
     try {
-      // No session at all: the catalog is read by anybody.
+      // No session at all: the community asks to sign in first (RN-PRT-059).
       await speak(page, state, appLocale);
+      const authorize = page.waitForRequest((request) =>
+        request.url().startsWith(`${state.surfaces.auth}/oauth2/authorize`),
+      );
       await page.goto(`${state.surfaces.site}/community`);
-      await expect(page.getByRole('heading', { name: words.title, level: 1 })).toBeVisible();
-      await page.getByRole('searchbox').fill(notebook.name);
-      await page.getByRole('button', { name: words.find, exact: true }).click();
-      await page.getByRole('link', { name: notebook.name }).click({ timeout: 90_000 });
+      await authorize;
 
-      await expect(page.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
-      await expect(page.getByText(words.licence, { exact: false })).toBeVisible();
-      await expect(page.getByRole('link', { name: words.signInToReport })).toBeVisible();
-      await page
+      // Signed in, it is a page of the application, under its menu.
+      await app.goto(`${state.surfaces.site}/community`);
+      await expect(app.locator('.app-menu-row nav.top-menu')).toBeVisible();
+      await expect(app.getByRole('heading', { name: words.title, level: 1 })).toBeVisible();
+      await app.getByRole('searchbox').fill(notebook.name);
+      await app.getByRole('button', { name: words.find, exact: true }).click();
+      // The model is a card, the card the notebooks and the models use (#418).
+      const card = app.locator('article.notebook-card', { hasText: notebook.name });
+      await card.locator('a.notebook-open').click({ timeout: 90_000 });
+
+      await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
+      await expect(app.getByText(words.licence, { exact: false })).toBeVisible();
+      await expect(app.getByRole('button', { name: words.report })).toBeVisible();
+      await app
         .locator('.model-version', { hasText: 'v1' })
         .getByRole('link', { name: words.open })
         .click();
-      await expect(page.getByRole('heading', { name: words.version(1) })).toBeVisible();
-      await expect(page.getByRole('link', { name: words.signInToCreate })).toBeVisible();
-      await expect(page).toHaveTitle(new RegExp(notebook.name));
+      await expect(app.getByRole('heading', { name: words.version(1) })).toBeVisible();
+      await expect(app.getByRole('button', { name: words.create })).toBeVisible();
+      await expect(app).toHaveTitle(new RegExp(notebook.name));
     } finally {
       await owner.call('DELETE', `${model}/publication`);
     }
@@ -340,8 +351,8 @@ const COMMUNITY_WORDS: Record<
     readonly title: string;
     readonly find: string;
     readonly licence: string;
-    readonly signInToReport: string;
-    readonly signInToCreate: string;
+    readonly report: string;
+    readonly create: string;
     readonly open: string;
     readonly version: (number: number) => string;
   }
@@ -350,8 +361,8 @@ const COMMUNITY_WORDS: Record<
     title: 'Community models',
     find: 'Find',
     licence: 'Published under CC0 1.0',
-    signInToReport: 'Sign in to report this model',
-    signInToCreate: 'Sign in to create a notebook from this version',
+    report: 'Report this model',
+    create: 'Create a notebook from this version',
     open: 'Open',
     version: (number) => `Version ${number}`,
   },
@@ -359,8 +370,8 @@ const COMMUNITY_WORDS: Record<
     title: 'Modelos da comunidade',
     find: 'Buscar',
     licence: 'Publicado sob CC0 1.0',
-    signInToReport: 'Entre para denunciar este modelo',
-    signInToCreate: 'Entre para criar um caderno a partir desta versão',
+    report: 'Denunciar este modelo',
+    create: 'Criar um caderno a partir desta versão',
     open: 'Abrir',
     version: (number) => `Versão ${number}`,
   },
