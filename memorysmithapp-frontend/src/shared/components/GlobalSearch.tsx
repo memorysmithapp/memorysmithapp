@@ -1,23 +1,36 @@
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Link, useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import { listModels, listNotebooks, searchCatalog } from '../api/source';
+import { Trans, useTranslation } from 'react-i18next';
+import {
+  getNotebookStructure,
+  listModels,
+  listNotebooks,
+  searchCatalog,
+  searchNotes,
+} from '../api/source';
+import type { SearchHit } from '../types/api';
+import { ApiError } from '../api/error-mapper';
 import { queryKeys } from '../api/query-keys';
 import {
   communityModelAddress,
+  identifierOf,
   modelAddress,
   notebookAddress,
   sharedModelAddress,
 } from '../api/note-address';
 import { intlLocale } from '../../i18n/intl-locale';
 import { byName } from '../../features/dashboard/catalogue';
-import { BookIcon, CopyIcon, GlobeIcon, SearchIcon } from './icons';
+import { BookIcon, CopyIcon, FileIcon, GlobeIcon, SearchIcon } from './icons';
+import { flatten, readable } from '../../features/search/note-hits';
+import { highlight } from '../../features/search/highlight';
 
 /** Long enough that a typed word asks the catalog once. */
 const DEBOUNCE_MS = 250;
 /** As many of each kind as a glance reads; the pages hold the rest. */
 const PER_GROUP = 6;
+/** The notes of the notebook open, which is what is searched for most. */
+const NOTES = 20;
 
 /** ⌘K with a Command key, Ctrl K everywhere else. */
 export const SHORTCUT = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '')
@@ -28,6 +41,8 @@ interface Hit {
   key: string;
   name: string;
   detail: string | null;
+  /** The passage a note matched in, with the words searched marked. */
+  excerpt?: ReactNode;
   to: string;
 }
 
@@ -36,9 +51,9 @@ interface Hit {
  * notebooks, models and community models, found by what they are called, in
  * groups under the field. The notebooks and the models are the lists the pages
  * already read, narrowed here; the community is asked, since it is larger than
- * any list a page holds. Ctrl K takes the focus to the field from anywhere.
- * What is inside the notes of a notebook is searched from the top of the
- * notebook's sidebar.
+ * any list a page holds. Inside a notebook it also searches what its notes
+ * say and the properties they declare, first, in the query language of the
+ * backend. Ctrl K takes the focus to the field from anywhere.
  */
 export function GlobalSearch() {
   const { t, i18n } = useTranslation();
@@ -50,6 +65,8 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
+  // The notebook open, whose notes are searched too.
+  const notebookId = identifierOf(useMatch('/notebooks/:notebookId/*')?.params.notebookId) ?? '';
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(typed.trim()), DEBOUNCE_MS);
@@ -76,10 +93,22 @@ export function GlobalSearch() {
   useEffect(() => {
     if (!open) return;
     function onPointerDown(event: MouseEvent) {
+      // A click outside puts the list away and keeps what was typed (#232).
       if (!box.current?.contains(event.target as Node)) setOpen(false);
     }
+    function onKeyDown(event: KeyboardEvent) {
+      // Esc empties it wherever the focus went (#192); a key some other
+      // surface already took is left to that surface.
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      setTyped('');
+      setOpen(false);
+    }
     document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [open]);
 
   const wanted = typed.trim().toLocaleLowerCase(locale);
@@ -90,6 +119,22 @@ export function GlobalSearch() {
     enabled: asking,
   });
   const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels, enabled: asking });
+  // The tree the notebook already loaded, which turns a hit into a link.
+  const structure = useQuery({
+    queryKey: queryKeys.notebookStructure(notebookId),
+    queryFn: () => getNotebookStructure(notebookId),
+    enabled: notebookId !== '' && asking,
+  });
+  const notes = useQuery({
+    queryKey: queryKeys.notebookSearch(notebookId, debounced),
+    queryFn: () => searchNotes(notebookId, debounced, NOTES),
+    enabled: notebookId !== '' && asking && debounced !== '',
+    // The previous answer stays while the next is in flight, so the list does
+    // not blink empty between two keystrokes.
+    placeholderData: (previous: SearchHit[] | undefined) => previous,
+    retry: false,
+    staleTime: 30_000,
+  });
   const community = useQuery({
     queryKey: queryKeys.catalog(debounced, null),
     queryFn: () => searchCatalog({ text: debounced, language: null }),
@@ -104,6 +149,23 @@ export function GlobalSearch() {
   }> => {
     if (wanted === '') return [];
     const matches = (text: string) => text.toLocaleLowerCase(locale).includes(wanted);
+    const byId = new Map(
+      flatten(notebookId, structure.data?.folders ?? []).map((note) => [note.id, note]),
+    );
+    const inNotebook = (notebookId === '' ? [] : (notes.data ?? [])).flatMap((hit) => {
+      const note = byId.get(hit.note.noteId);
+      if (!note) return [];
+      const passage = readable(hit.excerpt);
+      return [
+        {
+          key: hit.note.noteId,
+          name: note.name ?? t('note.unnamed'),
+          detail: `${note.folderPath}${hit.section ? ` · ${hit.section}` : ''}`,
+          excerpt: passage ? highlight(passage, debounced) : undefined,
+          to: note.address,
+        },
+      ];
+    });
     const ownNotebooks = byName(notebooks.data ?? [], locale)
       .filter((notebook) => matches(notebook.name))
       .slice(0, PER_GROUP)
@@ -135,6 +197,12 @@ export function GlobalSearch() {
       }));
     return [
       {
+        key: 'notes',
+        title: t('globalSearch.groups.notes', { notebook: structure.data?.notebook.name ?? '' }),
+        icon: <FileIcon />,
+        hits: inNotebook,
+      },
+      {
         key: 'notebooks',
         title: t('globalSearch.groups.notebooks'),
         icon: <BookIcon />,
@@ -153,10 +221,24 @@ export function GlobalSearch() {
         hits: published,
       },
     ].filter((group) => group.hits.length > 0);
-  }, [wanted, notebooks.data, models.data, community.data, debounced, typed, locale, t]);
+  }, [
+    wanted,
+    notebooks.data,
+    models.data,
+    community.data,
+    notes.data,
+    structure.data,
+    notebookId,
+    debounced,
+    typed,
+    locale,
+    t,
+  ]);
 
   const first = groups[0]?.hits[0];
-  const waiting = community.isFetching || debounced !== typed.trim();
+  const waiting = community.isFetching || notes.isFetching || debounced !== typed.trim();
+  // A query the backend cannot read says so, in the words of the search of notes.
+  const invalid = notes.error instanceof ApiError && notes.error.code === 'VALIDATION';
 
   return (
     <div ref={box} className="global-search" role="search">
@@ -166,7 +248,9 @@ export function GlobalSearch() {
           ref={field}
           type="search"
           value={typed}
-          placeholder={t('globalSearch.placeholder')}
+          placeholder={t(
+            notebookId ? 'globalSearch.placeholderNotebook' : 'globalSearch.placeholder',
+          )}
           aria-label={t('nav.search')}
           aria-expanded={asking}
           aria-controls="global-search-results"
@@ -176,12 +260,8 @@ export function GlobalSearch() {
             setOpen(true);
           }}
           onKeyDown={(event) => {
-            // Enter opens the first thing found; Esc empties the field.
+            // Enter opens the first thing found.
             if (event.key === 'Enter' && first) navigate(first.to);
-            if (event.key === 'Escape') {
-              setTyped('');
-              setOpen(false);
-            }
           }}
         />
         {typed === '' ? (
@@ -192,6 +272,9 @@ export function GlobalSearch() {
       </div>
       {asking ? (
         <div id="global-search-results" className="global-search-results">
+          {notes.error ? (
+            <p className="search-empty">{t(invalid ? 'search.invalid' : 'search.failed')}</p>
+          ) : null}
           {groups.length === 0 ? (
             <p className="search-empty">
               {waiting ? t('search.searching') : t('globalSearch.nothing')}
@@ -209,6 +292,9 @@ export function GlobalSearch() {
                         {hit.detail ? (
                           <span className="global-search-detail">{hit.detail}</span>
                         ) : null}
+                        {hit.excerpt ? (
+                          <span className="global-search-excerpt">{hit.excerpt}</span>
+                        ) : null}
                       </Link>
                     </li>
                   ))}
@@ -216,6 +302,12 @@ export function GlobalSearch() {
               </section>
             ))
           )}
+          {/* Inside a notebook, the language its notes are searched in. */}
+          {notebookId ? (
+            <p className="search-hint">
+              <Trans i18nKey="search.syntaxHint" components={{ c: <code /> }} />
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

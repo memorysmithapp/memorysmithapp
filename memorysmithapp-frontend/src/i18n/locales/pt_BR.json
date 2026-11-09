@@ -86,7 +86,9 @@
     "community": "Comunidade",
     "transfers": "Transferências",
     "about": "Sobre",
-    "search": "Pesquisar"
+    "search": "Pesquisar",
+    "openMenu": "Abrir o menu",
+    "closeMenu": "Fechar o menu"
   },
   "shelf": {
     "help": "Para que serve esta página"
@@ -149,14 +151,10 @@
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Buscar em todo o caderno…",
     "searching": "Buscando…",
-    "empty": "Nenhuma nota encontrada.",
     "invalid": "Consulta inválida. Verifique as aspas, os parênteses e os operadores.",
     "failed": "A busca falhou. Tente de novo.",
-    "syntaxHint": "Busca no texto inteiro. Aceita <c>\"frase exata\"</c>, <c>-excluir</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> e atributos do frontmatter, como <c>maturity:evergreen</c>.",
-    "open": "Buscar",
-    "openNotebook": "Buscar no caderno"
+    "syntaxHint": "Busca no texto inteiro. Aceita <c>\"frase exata\"</c>, <c>-excluir</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> e atributos do frontmatter, como <c>maturity:evergreen</c>."
   },
   "notebooks": {
     "heading": "Cadernos",
@@ -803,7 +801,7 @@
       },
       "search": {
         "term": "Busca",
-        "definition": "A pesquisa no topo de toda página, ou Ctrl K, encontra cadernos, modelos e modelos da comunidade pelo nome; dentro de um caderno, o campo no topo da barra lateral busca nas notas pelo que elas dizem e pelas propriedades que declaram."
+        "definition": "A pesquisa no topo de toda página, ou Ctrl K, encontra cadernos, modelos e modelos da comunidade pelo nome; dentro de um caderno ela busca também nas notas dele, primeiro, pelo que dizem e pelas propriedades que declaram."
       },
       "sharing": {
         "term": "Compartilhamento",
@@ -1359,11 +1357,13 @@
   "globalSearch": {
     "placeholder": "Encontre cadernos, modelos e modelos da comunidade…",
     "groups": {
+      "notes": "Em {{notebook}}",
       "notebooks": "Cadernos",
       "models": "Modelos",
       "community": "Comunidade"
     },
     "nothing": "Nada com esse nome.",
-    "typeMore": "Digite para encontrar um caderno, um modelo ou um modelo da comunidade."
+    "typeMore": "Digite para encontrar um caderno, um modelo ou um modelo da comunidade.",
+    "placeholderNotebook": "Pesquisar neste caderno, em cadernos, modelos e na comunidade…"
   }
 }

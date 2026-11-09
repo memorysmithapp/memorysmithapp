@@ -4,14 +4,17 @@ import { BookIcon, CopyIcon, GlobeIcon, HomeIcon, InfoIcon, TransfersIcon } from
 
 /**
  * The menu of the product (#418): the second row of the header, only for it,
- * centred, each entry with its icon. It is on every page of the frame and
- * never folds away; on a narrow window the row scrolls sideways instead.
+ * centred, each entry with its icon. It is on every page of the frame; on a
+ * phone it is a list in the menu of the ☰ (#419).
  */
-export function TopMenu() {
+export function TopMenu({ layout = 'row' }: { layout?: 'row' | 'list' }) {
   const { t } = useTranslation();
 
   return (
-    <nav className="top-menu" aria-label={t('nav.label')}>
+    <nav
+      className={layout === 'list' ? 'top-menu is-list' : 'top-menu'}
+      aria-label={t('nav.label')}
+    >
       <NavLink to="/" end className="top-menu-item">
         <HomeIcon />
         {t('nav.home')}
