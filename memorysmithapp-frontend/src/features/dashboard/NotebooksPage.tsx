@@ -83,7 +83,10 @@ export function NotebooksPage() {
   return (
     <section className="page shelf-page">
       <div className="shelf-heading">
-        <h1>{t('nav.notebooks')}</h1>
+        <div>
+          <h1>{t('nav.notebooks')}</h1>
+          <p className="page-intro">{t('notebooks.intro')}</p>
+        </div>
         {/* A notebook, blank or from a model (#359); a new model starts on
             the page of the models (#418). */}
         <button type="button" className="button is-primary" onClick={() => setCreating(true)}>

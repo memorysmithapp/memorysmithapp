@@ -90,17 +90,28 @@
   },
   "models": {
     "title": "Notebook models",
-    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. Each creates notebooks from its ready versions.",
+    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. The icon in a corner says whose each one is; ⋯ creates a notebook from it or opens its versions.",
     "new": "New notebook model",
     "empty": "No notebook you read is a model yet. Create one here, or ask an agent to declare a notebook as one.",
     "community": "Find a model in the community",
     "sharedBy": "Shared by {{owner}}",
-    "mine": "Yours",
     "published": "In the community",
     "parameters_one": "{{count}} parameter",
     "parameters_other": "{{count}} parameters",
     "updated": "updated {{date}}",
-    "open": "Open the model"
+    "open": "Open the model",
+    "mark": {
+      "own": "Your model",
+      "sharedByMe": "Your model, shared by you",
+      "sharedWithMe": "A model shared with you by {{owner}}",
+      "published": "Your model, published by you"
+    },
+    "menu": {
+      "newNotebook": "New notebook from this model",
+      "versions": "Its versions",
+      "publication": "Its publication in the community",
+      "notebook": "Open its notebook"
+    }
   },
   "language": {
     "heading": "Language",
@@ -123,7 +134,8 @@
     "noteCount_other": "{{count}} notes",
     "updatedAt": "updated {{date}}",
     "open": "Open notebook",
-    "openShort": "Open"
+    "openShort": "Open",
+    "intro": "Every notebook of the subscription, and the ones shared with you, by name. The icon in a corner says whose each one is; ⋯ exports, shares or deletes it."
   },
   "structure": {
     "morePages": "Tables, dashboards and more",
@@ -996,7 +1008,8 @@
     "ownership": {
       "own": "Your notebook",
       "sharedByMe": "Your notebook, shared by you",
-      "sharedWithMe": "Shared with you by {{owner}}"
+      "sharedWithMe": "Shared with you by {{owner}}",
+      "community": "Published in the community by {{owner}}"
     },
     "accept": "Accept",
     "reject": "Decline",
@@ -1294,7 +1307,7 @@
   },
   "community": {
     "title": "Community models",
-    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from.",
+    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. The icon in a corner says whether one is yours; ⋯ creates a notebook from its latest version.",
     "search": "Find",
     "searchHint": "Words of the name, the objective, the author…",
     "find": "Find",
@@ -1314,7 +1327,11 @@
     "reported": "Thank you: the report reached the operator of the platform.",
     "by": "By {{author}}",
     "cardMeta_one": "{{language}} · updated {{date}} · {{count}} version",
-    "cardMeta_other": "{{language}} · updated {{date}} · {{count}} versions"
+    "cardMeta_other": "{{language}} · updated {{date}} · {{count}} versions",
+    "menu": {
+      "fromVersion": "Create a notebook from version {{number}}"
+    },
+    "yourModels": "Your models"
   },
   "globalSearch": {
     "placeholder": "Find notebooks, models and community models…",

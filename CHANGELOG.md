@@ -13,7 +13,7 @@ issues each entry cites.
 
 ### Added
 
-- **Notebook models have a page of their own.** Models, in the menu, lists every notebook model you read, yours and the ones shared with you as a model, as cards saying what each is for, whose it is, whether it is in the community and how many parameters it asks. A new model starts there; New notebook now creates a notebook only, blank or from a model. (#418)
+- **Notebook models have a page of their own.** Models, in the menu, lists every notebook model you read, yours and the ones shared with you as a model, as cards saying what each is for, whether it is in the community and how many parameters it asks, with an icon in the corner saying whose it is, its words in a tooltip, and a ⋯ that creates a notebook from it or opens its versions, its publication or its notebook. A new model starts there; New notebook now creates a notebook only, blank or from a model. (#418)
 
 - **Search finds notebooks, models and community models from anywhere.** Search, at the end of the menu or with `Ctrl K` (`⌘K` on a Mac), finds them by name as you type, in groups, and Enter opens the first. The search inside the notes of a notebook stays at the top of the notebook's sidebar. (#418)
 
@@ -21,7 +21,7 @@ issues each entry cites.
 
 - **A menu on every page, in a row of its own.** The header now has two rows: the brand and your controls, then the menu of the product with an icon beside each entry: Home, Notebooks, Models, Community, Transfers, About MemorySmith.app and Search. It never folds away; on a narrow window the row scrolls sideways. About and Community left the menu of your picture; the ⇅ icon stays to show a transfer under way. Light and dark switch from a button in the header, and the user menu still offers following the system. The slogan left the header and stays on the sign-in screen. (#414, #418)
 
-- **Home shows the space of the subscription, and Notebooks lists the notebooks.** Home is now what fills the subscription and how much is left. Notebooks is a page of its own with every notebook as a card in a grid that fills the width, the ones shared with you among them, where a share is accepted or declined; the row that scrolled sideways and its expand button are gone. Models and the community use the same card. (#418)
+- **Home shows the space of the subscription, and Notebooks lists the notebooks.** Home is now what fills the subscription and how much is left. Notebooks is a page of its own with every notebook as a card in a grid that fills the width, the ones shared with you among them, where a share is accepted or declined; the row that scrolled sideways and its expand button are gone. Models and the community use the same card and the same page: a title, a line on what it holds, and the action that adds one. A community card says whether the model is yours or whose it is, and its ⋯ creates a notebook from its latest version. (#418)
 
 - **A sidebar only inside a notebook, and it folds to its icons.** Outside a notebook the page keeps the whole width. Inside one, the button at the foot of its sidebar folds it to its icons, so a note can take the whole width, and the browser remembers the choice. All notebooks, at its top, goes to Notebooks. (#414, #418)
 

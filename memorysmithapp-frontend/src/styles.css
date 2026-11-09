@@ -665,8 +665,13 @@ a:hover {
   justify-content: center;
   color: var(--text-soft);
 }
+/* Its words are a tooltip, so the pointer says there is one to read (#418). */
+.ownership-mark[title] {
+  cursor: help;
+}
 .ownership-mark[data-ownership='sharedWithMe'],
-.ownership-mark[data-ownership='sharedByMe'] {
+.ownership-mark[data-ownership='sharedByMe'],
+.ownership-mark[data-ownership='community'] {
   color: var(--text);
 }
 .notebook-card-text .notebook-card-byline {

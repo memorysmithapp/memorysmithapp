@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { PublicModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -8,6 +8,7 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import {
   communityModelAddress,
   communityVersionAddress,
+  modelAddress,
   identifierOf,
 } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -15,12 +16,16 @@ import {
   createFromCatalog,
   getCatalogModel,
   getCatalogVersion,
+  listModels,
   reportModel,
   searchCatalog,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { CreateFromModelForm } from '../models/CreateFromModel';
 import { ShelfCard } from '../dashboard/NotebookCard';
+import { ShelfCorner } from '../dashboard/ShelfCorner';
+import { OwnershipMark } from '../sharing/OwnershipMark';
+import { MenuItem } from '../../shared/components/Menu';
 import { ParameterList } from '../models/ModelPage';
 import { VersionContents } from '../models/ModelVersionPage';
 
@@ -48,7 +53,19 @@ export function CommunityPage() {
   const [typed, setTyped] = useState('');
   const [text, setText] = useState('');
   const [language, setLanguage] = useState<string>('');
+  const navigate = useNavigate();
   useDocumentTitle(t('community.title'));
+  // What I published myself, which its mark says (#418).
+  const mine = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
+  const published = useMemo(
+    () =>
+      new Map(
+        (mine.data ?? []).flatMap((model) =>
+          model.publication ? [[model.publication.publicId, model.notebookId] as const] : [],
+        ),
+      ),
+    [mine.data],
+  );
   const found = useQuery({
     queryKey: queryKeys.catalog(text, language || null),
     queryFn: () => searchCatalog({ text, language: language || null }),
@@ -62,8 +79,17 @@ export function CommunityPage() {
   return (
     <>
       <section className="page shelf-page community-page">
-        <h1>{t('community.title')}</h1>
-        <p className="page-intro">{t('community.intro')}</p>
+        <div className="shelf-heading">
+          <div>
+            <h1>{t('community.title')}</h1>
+            <p className="page-intro">{t('community.intro')}</p>
+          </div>
+          <div className="shelf-actions">
+            <Link to="/models" className="button is-quiet">
+              {t('community.yourModels')}
+            </Link>
+          </div>
+        </div>
         <form className="community-search" role="search" onSubmit={submit}>
           <label className="field">
             <span className="field-label">{t('community.search')}</span>
@@ -96,24 +122,64 @@ export function CommunityPage() {
           <p className="hint">{t('community.nothing')}</p>
         ) : (
           <div className="shelf-grid">
-            {found.data.map((model, index) => (
-              <ShelfCard
-                key={model.publicId}
-                seed={model.publicId}
-                strip={index % 2 === 0 ? 'blue' : 'orange'}
-                name={model.name}
-                description={model.objective}
-                byline={t('community.by', { author: model.author })}
-                meta={t('community.cardMeta', {
-                  language: model.language,
-                  date: day(model.updatedAt),
-                  count: model.versions.length,
-                })}
-                to={communityModelAddress(model.publicId)}
-                openLabel={t('models.open')}
-                openShort={t('notebooks.openShort')}
-              />
-            ))}
+            {found.data.map((model, index) => {
+              const ownModel = published.get(model.publicId);
+              const own = ownModel !== undefined;
+              const to = communityModelAddress(model.publicId);
+              const latest = Math.max(0, ...model.versions.map((version) => version.number));
+              return (
+                <ShelfCard
+                  key={model.publicId}
+                  seed={model.publicId}
+                  strip={index % 2 === 0 ? 'blue' : 'orange'}
+                  name={model.name}
+                  description={model.objective}
+                  byline={t('community.by', { author: model.author })}
+                  meta={t('community.cardMeta', {
+                    language: model.language,
+                    date: day(model.updatedAt),
+                    count: model.versions.length,
+                  })}
+                  to={to}
+                  openLabel={t('models.open')}
+                  openShort={t('notebooks.openShort')}
+                  corner={
+                    <ShelfCorner
+                      title={model.name}
+                      mark={
+                        <OwnershipMark
+                          ownership={own ? 'own' : 'community'}
+                          owner={model.author}
+                          label={own ? t('models.mark.published') : undefined}
+                        />
+                      }
+                    >
+                      {() => (
+                        <>
+                          <MenuItem onSelect={() => navigate(to)}>{t('models.open')}</MenuItem>
+                          {latest > 0 ? (
+                            <MenuItem
+                              onSelect={() =>
+                                navigate(communityVersionAddress(model.publicId, latest))
+                              }
+                            >
+                              {t('community.menu.fromVersion', { number: latest })}
+                            </MenuItem>
+                          ) : null}
+                          {ownModel ? (
+                            <MenuItem
+                              onSelect={() => navigate(`${modelAddress(ownModel)}?tab=community`)}
+                            >
+                              {t('models.menu.publication')}
+                            </MenuItem>
+                          ) : null}
+                        </>
+                      )}
+                    </ShelfCorner>
+                  }
+                />
+              );
+            })}
           </div>
         )}
       </section>

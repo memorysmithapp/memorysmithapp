@@ -90,17 +90,28 @@
   },
   "models": {
     "title": "Modelos de caderno",
-    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. Cada um cria cadernos a partir das suas versões prontas.",
+    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. O ícone no canto diz de quem é cada um; o ⋯ cria um caderno a partir dele ou abre suas versões.",
     "new": "Novo Modelo de caderno",
     "empty": "Nenhum caderno que você lê é modelo ainda. Crie um aqui, ou peça a um agente que declare um caderno como modelo.",
     "community": "Encontrar um modelo na comunidade",
     "sharedBy": "Compartilhado por {{owner}}",
-    "mine": "Seu",
     "published": "Na comunidade",
     "parameters_one": "{{count}} parâmetro",
     "parameters_other": "{{count}} parâmetros",
     "updated": "atualizado em {{date}}",
-    "open": "Abrir o modelo"
+    "open": "Abrir o modelo",
+    "mark": {
+      "own": "Seu modelo",
+      "sharedByMe": "Seu modelo, compartilhado por você",
+      "sharedWithMe": "Um modelo compartilhado com você por {{owner}}",
+      "published": "Seu modelo, publicado por você"
+    },
+    "menu": {
+      "newNotebook": "Novo caderno a partir deste modelo",
+      "versions": "Suas versões",
+      "publication": "Sua publicação na comunidade",
+      "notebook": "Abrir o caderno dele"
+    }
   },
   "language": {
     "heading": "Idioma",
@@ -123,7 +134,8 @@
     "noteCount_other": "{{count}} notas",
     "updatedAt": "atualizado em {{date}}",
     "open": "Abrir caderno",
-    "openShort": "Abrir"
+    "openShort": "Abrir",
+    "intro": "Todos os cadernos da assinatura, e os compartilhados com você, pelo nome. O ícone no canto diz de quem é cada um; o ⋯ exporta, compartilha ou apaga."
   },
   "structure": {
     "morePages": "Tabelas, painéis e mais",
@@ -999,7 +1011,8 @@
     "ownership": {
       "own": "Seu caderno",
       "sharedByMe": "Seu caderno, compartilhado por você",
-      "sharedWithMe": "Compartilhado com você por {{owner}}"
+      "sharedWithMe": "Compartilhado com você por {{owner}}",
+      "community": "Publicado na comunidade por {{owner}}"
     },
     "accept": "Aceitar",
     "reject": "Recusar",
@@ -1297,7 +1310,7 @@
   },
   "community": {
     "title": "Modelos da comunidade",
-    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele.",
+    "intro": "Modelos de caderno que outras pessoas publicaram, cada um um caderno inteiro com as pastas, os Modelos de pasta e os exemplos, para você criar um caderno seu a partir dele. O ícone no canto diz se um é seu; o ⋯ cria um caderno a partir da versão mais recente.",
     "search": "Buscar",
     "searchHint": "Palavras do nome, do objetivo, do autor…",
     "find": "Buscar",
@@ -1317,7 +1330,11 @@
     "reported": "Obrigado: a denúncia chegou ao operador da plataforma.",
     "by": "Por {{author}}",
     "cardMeta_one": "{{language}} · atualizado em {{date}} · {{count}} versão",
-    "cardMeta_other": "{{language}} · atualizado em {{date}} · {{count}} versões"
+    "cardMeta_other": "{{language}} · atualizado em {{date}} · {{count}} versões",
+    "menu": {
+      "fromVersion": "Criar um caderno a partir da versão {{number}}"
+    },
+    "yourModels": "Seus modelos"
   },
   "globalSearch": {
     "placeholder": "Encontre cadernos, modelos e modelos da comunidade…",
