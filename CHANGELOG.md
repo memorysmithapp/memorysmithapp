@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-08
+
 ### Added
 
 - **An installation signs its people in through the organization's identity provider.** With `IDP_NAME`, `IDP_ISSUER` and `IDP_CLIENT_ID`, and the client secret in `IDP_CLIENT_SECRET`, the sign-in of the interface and of the connector offers the organization's OIDC provider, such as Red Hat build of Keycloak, beside the password, or, with `SIGN_IN=idp`, goes straight to it, where the person signs in with the login, password and second factor of the organization. Whoever signs in that way is one account per e-mail: the first sign-in links the identity to the account holding the address, with its subscription and notebooks, or creates one, and `IDP_FIRST_SIGN_IN` chooses whether a person with no account asks for a subscription, is refused unless `onboard --federated` prepared them, or gets an active subscription at once. The address comes from the claim `IDP_EMAIL_CLAIM` names, a name typed in MemorySmith is never overwritten by the provider's, and the interface offers no change of a password the organization holds. (#395)
@@ -990,7 +992,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.1...v0.14.3
