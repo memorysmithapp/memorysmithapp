@@ -8,7 +8,6 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import {
   communityModelAddress,
   communityVersionAddress,
-  modelAddress,
   identifierOf,
 } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -59,9 +58,9 @@ export function CommunityPage() {
   const mine = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
   const published = useMemo(
     () =>
-      new Map(
+      new Set(
         (mine.data ?? []).flatMap((model) =>
-          model.publication ? [[model.publication.publicId, model.notebookId] as const] : [],
+          model.publication ? [model.publication.publicId] : [],
         ),
       ),
     [mine.data],
@@ -83,11 +82,6 @@ export function CommunityPage() {
           <div>
             <h1>{t('community.title')}</h1>
             <p className="page-intro">{t('community.intro')}</p>
-          </div>
-          <div className="shelf-actions">
-            <Link to="/models" className="button is-quiet">
-              {t('community.yourModels')}
-            </Link>
           </div>
         </div>
         <form className="community-search" role="search" onSubmit={submit}>
@@ -123,8 +117,7 @@ export function CommunityPage() {
         ) : (
           <div className="shelf-grid">
             {found.data.map((model, index) => {
-              const ownModel = published.get(model.publicId);
-              const own = ownModel !== undefined;
+              const own = published.has(model.publicId);
               const to = communityModelAddress(model.publicId);
               const latest = Math.max(0, ...model.versions.map((version) => version.number));
               return (
@@ -154,10 +147,8 @@ export function CommunityPage() {
                         />
                       }
                     >
-                      {() => (
-                        <>
-                          <MenuItem onSelect={() => navigate(to)}>{t('models.open')}</MenuItem>
-                          {latest > 0 ? (
+                      {latest > 0
+                        ? () => (
                             <MenuItem
                               onSelect={() =>
                                 navigate(communityVersionAddress(model.publicId, latest))
@@ -165,16 +156,8 @@ export function CommunityPage() {
                             >
                               {t('community.menu.fromVersion', { number: latest })}
                             </MenuItem>
-                          ) : null}
-                          {ownModel ? (
-                            <MenuItem
-                              onSelect={() => navigate(`${modelAddress(ownModel)}?tab=community`)}
-                            >
-                              {t('models.menu.publication')}
-                            </MenuItem>
-                          ) : null}
-                        </>
-                      )}
+                          )
+                        : null}
                     </ShelfCorner>
                   }
                 />

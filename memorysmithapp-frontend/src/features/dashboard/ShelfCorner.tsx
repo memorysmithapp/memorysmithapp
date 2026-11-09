@@ -16,12 +16,14 @@ export function ShelfCorner({
   mark: ReactNode;
   /** The line a sheet opens on, on a phone: what the card is. */
   title: string;
-  children: (close: () => void) => ReactNode;
+  /** The items of the ⋯, handed a way to close it; none, and there is no ⋯. */
+  children: ((close: () => void) => ReactNode) | null;
 }) {
   const { t } = useTranslation();
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  if (!children) return <div className="notebook-card-corner">{mark}</div>;
 
   return (
     <div className="notebook-card-corner">

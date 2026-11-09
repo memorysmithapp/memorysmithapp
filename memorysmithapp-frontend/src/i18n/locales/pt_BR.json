@@ -90,10 +90,9 @@
   },
   "models": {
     "title": "Modelos de caderno",
-    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. O ícone no canto diz de quem é cada um; o ⋯ cria um caderno a partir dele ou abre suas versões.",
+    "intro": "Os cadernos declarados como modelo que você lê: os seus, e os compartilhados com você como modelo. O ícone no canto diz de quem é cada um; o ⋯ cria um caderno a partir dele.",
     "new": "Novo Modelo de caderno",
     "empty": "Nenhum caderno que você lê é modelo ainda. Crie um aqui, ou peça a um agente que declare um caderno como modelo.",
-    "community": "Encontrar um modelo na comunidade",
     "sharedBy": "Compartilhado por {{owner}}",
     "published": "Na comunidade",
     "parameters_one": "{{count}} parâmetro",
@@ -108,8 +107,6 @@
     },
     "menu": {
       "newNotebook": "Novo caderno a partir deste modelo",
-      "versions": "Suas versões",
-      "publication": "Sua publicação na comunidade",
       "notebook": "Abrir o caderno dele"
     }
   },
@@ -1333,8 +1330,7 @@
     "cardMeta_other": "{{language}} · atualizado em {{date}} · {{count}} versões",
     "menu": {
       "fromVersion": "Criar um caderno a partir da versão {{number}}"
-    },
-    "yourModels": "Seus modelos"
+    }
   },
   "globalSearch": {
     "placeholder": "Encontre cadernos, modelos e modelos da comunidade…",

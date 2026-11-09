@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listModels } from '../../shared/api/source';
@@ -13,7 +13,7 @@ import { PlusIcon } from '../../shared/components/icons';
 import { intlLocale } from '../../i18n/intl-locale';
 import { byName } from '../dashboard/catalogue';
 import { NewModelDialog, NewNotebookDialog } from './NewNotebookDialog';
-import { MenuDivider, MenuItem } from '../../shared/components/Menu';
+import { MenuItem } from '../../shared/components/Menu';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { useOwnShares } from '../sharing/shares';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
@@ -60,9 +60,6 @@ export function ModelsPage() {
           <p className="page-intro">{t('models.intro')}</p>
         </div>
         <div className="shelf-actions">
-          <Link to="/community" className="button is-quiet">
-            {t('models.community')}
-          </Link>
           <button type="button" className="button is-primary" onClick={() => setCreating(true)}>
             <ActionWord icon={<PlusIcon />} word={t('models.new')} />
           </button>
@@ -122,7 +119,6 @@ export function ModelsPage() {
                   >
                     {(close) => (
                       <>
-                        <MenuItem onSelect={() => navigate(to)}>{t('models.open')}</MenuItem>
                         <MenuItem
                           onSelect={() => {
                             close();
@@ -131,19 +127,10 @@ export function ModelsPage() {
                         >
                           {t('models.menu.newNotebook')}
                         </MenuItem>
-                        <MenuItem onSelect={() => navigate(`${to}?tab=versions`)}>
-                          {t('models.menu.versions')}
-                        </MenuItem>
                         {own ? (
-                          <>
-                            <MenuItem onSelect={() => navigate(`${to}?tab=community`)}>
-                              {t('models.menu.publication')}
-                            </MenuItem>
-                            <MenuDivider />
-                            <MenuItem onSelect={() => navigate(notebookAddress(model.notebookId))}>
-                              {t('models.menu.notebook')}
-                            </MenuItem>
-                          </>
+                          <MenuItem onSelect={() => navigate(notebookAddress(model.notebookId))}>
+                            {t('models.menu.notebook')}
+                          </MenuItem>
                         ) : null}
                       </>
                     )}

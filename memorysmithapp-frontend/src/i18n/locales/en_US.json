@@ -90,10 +90,9 @@
   },
   "models": {
     "title": "Notebook models",
-    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. The icon in a corner says whose each one is; ⋯ creates a notebook from it or opens its versions.",
+    "intro": "The notebooks declared as models that you read: yours, and the ones shared with you as a model. The icon in a corner says whose each one is; ⋯ creates a notebook from it.",
     "new": "New notebook model",
     "empty": "No notebook you read is a model yet. Create one here, or ask an agent to declare a notebook as one.",
-    "community": "Find a model in the community",
     "sharedBy": "Shared by {{owner}}",
     "published": "In the community",
     "parameters_one": "{{count}} parameter",
@@ -108,8 +107,6 @@
     },
     "menu": {
       "newNotebook": "New notebook from this model",
-      "versions": "Its versions",
-      "publication": "Its publication in the community",
       "notebook": "Open its notebook"
     }
   },
@@ -1330,8 +1327,7 @@
     "cardMeta_other": "{{language}} · updated {{date}} · {{count}} versions",
     "menu": {
       "fromVersion": "Create a notebook from version {{number}}"
-    },
-    "yourModels": "Your models"
+    }
   },
   "globalSearch": {
     "placeholder": "Find notebooks, models and community models…",
