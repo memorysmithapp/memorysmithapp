@@ -108,7 +108,17 @@ test.describe('notebook models', () => {
     const card = app.locator('.shelf-grid article.notebook-card').first();
     if ((await card.count()) > 0) {
       await expect(card.locator('.ownership-mark[title]')).toBeVisible();
-      await expect(card.locator('button.notebook-card-more')).toBeVisible();
+    }
+    // A model of mine carries the ⋯ of a notebook card: export, share, delete.
+    const mine = app.locator('.shelf-grid article.notebook-card', {
+      has: app.locator(
+        '.ownership-mark[data-ownership="own"], .ownership-mark[data-ownership="sharedByMe"]',
+      ),
+    });
+    if ((await mine.count()) > 0) {
+      await mine.first().locator('button.notebook-card-more').click();
+      await expect(app.getByRole('menuitem')).toHaveCount(3);
+      await app.keyboard.press('Escape');
     }
     await testInfo.attach('models.png', { body: await app.screenshot(), contentType: 'image/png' });
 
