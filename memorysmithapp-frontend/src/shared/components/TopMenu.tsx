@@ -1,5 +1,7 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { identifierOf } from '../api/note-address';
+import { useIsModel } from '../api/is-model';
 import { BookIcon, CopyIcon, GlobeIcon, HomeIcon, InfoIcon, TransfersIcon } from './icons';
 
 /**
@@ -10,11 +12,16 @@ import { BookIcon, CopyIcon, GlobeIcon, HomeIcon, InfoIcon, TransfersIcon } from
 export function TopMenu({ layout = 'row' }: { layout?: 'row' | 'list' }) {
   const { t } = useTranslation();
   // A model of one's own is read at the address of its notebook, and it is
-  // still a model: Models is lit there, never Notebooks (#422).
+  // still a model: Models is lit on its every page — its model, its notes, its
+  // folders — never Notebooks (#422).
   const { pathname } = useLocation();
-  const inModel = isOwnModelAddress(pathname);
+  const notebookId = identifierOf(/^\/notebooks\/([^/]+)/i.exec(pathname)?.[1]) ?? '';
+  const isModel = useIsModel(notebookId);
+  const inModel = isOwnModelAddress(pathname) || isModel === true;
   const inModels = inModel || /^\/models(\/|$)/i.test(pathname);
-  const inNotebooks = !inModel && /^\/notebooks(\/|$)/i.test(pathname);
+  // Inside a notebook not yet known to be one or the other, neither is lit.
+  const inNotebooks =
+    !inModel && /^\/notebooks(\/|$)/i.test(pathname) && (notebookId === '' || isModel === false);
 
   return (
     <nav
