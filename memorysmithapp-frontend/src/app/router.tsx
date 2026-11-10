@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
@@ -37,12 +37,13 @@ import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
 import { ModelsPage } from '../features/models/ModelsPage';
 import { NotebooksPage } from '../features/dashboard/NotebooksPage';
+import { CommunityModelPage, CommunityPage } from '../features/community/CommunityPages';
 import {
-  CommunityModelPage,
-  CommunityPage,
-  CommunityVersionPage,
-} from '../features/community/CommunityPages';
-import { ModelVersionPage, SharedModelVersionPage } from '../features/models/ModelVersionPage';
+  communityModelAddress,
+  identifierOf,
+  modelAddress,
+  sharedModelAddress,
+} from '../shared/api/note-address';
 import { RequireSession, RootLayout } from './RootLayout';
 
 /**
@@ -53,6 +54,24 @@ import { RequireSession, RootLayout } from './RootLayout';
 function NotFound() {
   const { t } = useTranslation();
   return <p className="status">{t('common.notFound')}</p>;
+}
+
+/**
+ * The address of a version of a model, kept by a bookmark from before #431: a
+ * model has no versions any more, so it opens the model as it stands, where a
+ * notebook is created from it, rather than answering not-found.
+ */
+function OldModelVersion({ kind }: { kind: 'own' | 'shared' | 'community' }) {
+  const { notebookId, publicId } = useParams();
+  const id = identifierOf(kind === 'community' ? publicId : notebookId);
+  if (!id) return <NotFound />;
+  const address =
+    kind === 'community'
+      ? communityModelAddress(id)
+      : kind === 'shared'
+        ? sharedModelAddress(id)
+        : modelAddress(id);
+  return <Navigate to={`${address}?tab=contents`} replace />;
 }
 
 /**
@@ -105,10 +124,13 @@ export const router = createBrowserRouter([
               // of the header from then on (#167, #418).
               { path: '/about', element: <AboutPage /> },
               // The community catalog, read by a person signed in, inside the
-              // frame and its menu (#360, #418, RN-PRT-059).
+              // frame and its menu (#360, #418, RN-PRT-076).
               { path: '/community', element: <CommunityPage /> },
               { path: '/community/:publicId', element: <CommunityModelPage /> },
-              { path: '/community/:publicId/versions/:version', element: <CommunityVersionPage /> },
+              {
+                path: '/community/:publicId/versions/:version',
+                element: <OldModelVersion kind="community" />,
+              },
               // What a person is called, the face beside it, and the password
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },
@@ -119,7 +141,7 @@ export const router = createBrowserRouter([
               { path: '/models/:notebookId', element: <SharedModelPage /> },
               {
                 path: '/models/:notebookId/versions/:version',
-                element: <SharedModelVersionPage />,
+                element: <OldModelVersion kind="shared" />,
               },
               {
                 path: '/notebooks/:notebookId',
@@ -143,7 +165,7 @@ export const router = createBrowserRouter([
                   },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'model', element: <ModelPage /> },
-                  { path: 'model/versions/:version', element: <ModelVersionPage /> },
+                  { path: 'model/versions/:version', element: <OldModelVersion kind="own" /> },
                   { path: 'folders', element: <FoldersPage /> },
                   { path: 'folders/:folderId', element: <FolderPage /> },
                   { path: 'notes/:noteId', element: <NoteRoute /> },

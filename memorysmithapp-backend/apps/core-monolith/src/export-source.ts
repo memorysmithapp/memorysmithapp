@@ -69,7 +69,11 @@ interface KnowledgeSide {
 export class KnowledgeExportSource implements ExportSource {
   constructor(private readonly knowledge: KnowledgeSide) {}
 
-  async load(notebookId: string): Promise<ExportInput | null> {
+  async load(
+    notebookId: string,
+    _report?: (readNotes: number, totalNotes: number) => void,
+    options?: { readonly fileBytes?: boolean },
+  ): Promise<ExportInput | null> {
     const parsed = NotebookId.create(notebookId);
     if (!parsed.ok) return null;
 
@@ -113,10 +117,13 @@ export class KnowledgeExportSource implements ExportSource {
         this.knowledge.content.read(note.bodyRef),
       ),
       // The bytes themselves, because an archive whose pictures live somewhere
-      // else is not an archive (RN-PRT-025).
-      mapWithConcurrency(kept, READ_CONCURRENCY, (file) =>
-        this.knowledge.fileStore.read(file.contentRef),
-      ),
+      // else is not an archive (RN-PRT-025); a model read whole says what each
+      // file is and reads none of them (#431).
+      options?.fileBytes === false
+        ? Promise.resolve(kept.map(() => new Uint8Array()))
+        : mapWithConcurrency(kept, READ_CONCURRENCY, (file) =>
+            this.knowledge.fileStore.read(file.contentRef),
+          ),
     ]);
 
     return {

@@ -54,6 +54,11 @@ export const MAINTENANCE_JOBS = {
     entry: 'memorysmithapp-backend/apps/core-monolith/src/migrate-slots.ts',
     rebuilds: 'the Guidance and the Templates written before they had a life of their own',
   },
+  // A model keeps no copy of its notebook since #431, so what it froze before goes.
+  'forget-model-versions': {
+    entry: 'memorysmithapp-backend/apps/core-monolith/src/forget-model-versions.ts',
+    deletes: 'the versions notebook models kept before they were read as they stand',
+  },
 } as const satisfies Record<string, MaintenanceJob>;
 
 export type MaintenanceJobName = keyof typeof MAINTENANCE_JOBS;

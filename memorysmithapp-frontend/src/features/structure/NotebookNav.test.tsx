@@ -31,7 +31,7 @@ const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match
 
 describe('the item of a notebook model', () => {
   it('is the first part of the Context in a notebook that is a model', () => {
-    const shown = hrefs(menu({ objective: 'x', versions: [] }));
+    const shown = hrefs(menu({ objective: 'x', parameters: [] }));
     // The overview of the notebook first (#417), then its Context, whose first
     // part is the model.
     expect(shown[0]).toMatch(new RegExp(`${NOTEBOOK.toLowerCase()}$`, 'i'));

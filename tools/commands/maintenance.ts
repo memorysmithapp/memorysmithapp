@@ -8,6 +8,7 @@
  *   pnpm tools data purge-unnamed-files --environment production [--older-than 24] [--apply]
  *   pnpm tools data reproject-links --environment staging [--apply]
  *   pnpm tools data reproject-links --environment staging --follow <execution>
+ *   pnpm tools data forget-model-versions --environment staging [--apply]
  *
  * With credentials of the account of the environment, and refused under any
  * other; a job that names the environments it may run in is refused in every

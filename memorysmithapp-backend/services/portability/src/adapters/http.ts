@@ -21,6 +21,9 @@
  *   GET    /prints/:p                  ->  the print, with a link once its file is made
  *   POST   /notebooks/:v/previews      ->  starts drawing a note or a draft (RN-PRT-032)
  *   GET    /previews/:p                ->  the preview, with its image once it is drawn
+ *   GET    /models/:v/contents         ->  a model notebook as it stands (#431)
+ *   GET    /models/:v/history          ->  what changed in it, the newest first
+ *   POST   /models/:v/notebooks        ->  a notebook created from it, as an import
  *
  * **An export is a job and not a request** (RN-PRT-019). Building the archive
  * means reading every note of the notebook, and the function behind this API
@@ -40,8 +43,7 @@
 import { Hono, type Context } from 'hono';
 import {
   beginUploadRequestSchema,
-  createFromVersionRequestSchema,
-  createModelVersionRequestSchema,
+  createFromModelRequestSchema,
   declareModelRequestSchema,
   publishModelRequestSchema,
   reportModelRequestSchema,
@@ -77,16 +79,15 @@ import type { GetPrint, StartPrint } from '../application/Prints.js';
 import type { GetPreview, StartPreview } from '../application/Previews.js';
 import type { Transfer } from '../domain/Transfer.js';
 import type {
-  CreateFromVersion,
-  CreateModelVersion,
+  CreateFromModel,
   DeclareModel,
-  DeleteModelVersion,
   GetModel,
   ListModels,
-  ModelVersion,
-  ViewModelVersion,
-  VersionView,
+  ModelContents,
+  ReadModelHistory,
+  ViewModel,
 } from '../application/Models.js';
+import type { ModelChange } from '../domain/ModelHistory.js';
 import type {
   Author,
   CreateFromCatalog,
@@ -144,8 +145,8 @@ export interface PortabilityRequest {
    */
   readonly accessToken: string;
   /**
-   * Whether the caller owns the subscription, which declaring a model and
-   * creating its versions ask (#353): they occupy its storage.
+   * Whether the caller owns the subscription, which declaring a model asks
+   * (#353).
    */
   readonly isOwner: boolean;
   /**
@@ -179,10 +180,9 @@ export interface PortabilityUseCases {
   readonly declareModel: (request: PortabilityRequest) => DeclareModel;
   readonly getModel: (request: PortabilityRequest) => GetModel;
   readonly listModels: (request: PortabilityRequest) => ListModels;
-  readonly createModelVersion: (request: PortabilityRequest) => CreateModelVersion;
-  readonly viewModelVersion: (request: PortabilityRequest) => ViewModelVersion;
-  readonly deleteModelVersion: (request: PortabilityRequest) => DeleteModelVersion;
-  readonly createFromVersion: (request: PortabilityRequest) => CreateFromVersion;
+  readonly viewModel: (request: PortabilityRequest) => ViewModel;
+  readonly modelHistory: (request: PortabilityRequest) => ReadModelHistory;
+  readonly createFromModel: (request: PortabilityRequest) => CreateFromModel;
   // The community catalog (#360).
   readonly publishModel: (request: PortabilityRequest) => PublishModel;
   readonly withdrawModel: (request: PortabilityRequest) => WithdrawModel;
@@ -191,7 +191,7 @@ export interface PortabilityUseCases {
   readonly reportModel: (request: PortabilityRequest) => ReportModel;
 }
 
-/** A model on the wire (#353): what it says of itself, and its versions. */
+/** A model on the wire (#353): what it says of itself. */
 function modelToDto(model: NotebookModel): Record<string, unknown> {
   return {
     notebookId: model.notebookId,
@@ -214,38 +214,26 @@ function parameterToDto(parameter: ParameterDeclaration): Record<string, unknown
   };
 }
 
-function versionToDto(version: ModelVersion): Record<string, unknown> {
-  return {
-    number: version.number,
-    changelog: version.changelog,
-    createdAt: version.createdAt,
-    status: version.status,
-    bytes: version.bytes,
-  };
-}
-
-/** A version read whole: what it froze, and the notebook it holds, without its file bytes. */
-function versionViewToDto({
-  model,
-  version,
-  document,
-  references,
-}: VersionView): Record<string, unknown> {
-  const meta = version.transfer.model;
+/** A model read whole, as it stands (#431): what it declares and every part of its notebook. */
+function contentsToDto({ model, document, references }: ModelContents): Record<string, unknown> {
   return {
     notebookId: model.notebookId,
-    version: versionToDto(version),
-    objective: meta?.objective ?? model.objective,
-    description: meta?.description ?? model.description,
-    audience: meta?.audience ?? model.audience,
-    parameters: (meta?.parameters ?? model.parameters).map(parameterToDto),
-    basedOn: meta?.basedOn ?? model.basedOn,
+    objective: model.objective,
+    description: model.description,
+    audience: model.audience,
+    parameters: model.parameters.map(parameterToDto),
+    basedOn: model.basedOn,
     ...documentToDto(document),
     references,
   };
 }
 
-/** What a frozen snapshot holds, on the wire: every part, and the size of each file. */
+/** One change of a model on the wire (#431). */
+export function changeToDto(change: ModelChange): Record<string, unknown> {
+  return { ...change };
+}
+
+/** What a model notebook holds, on the wire: every part, and what each file is. */
 export function documentToDto(document: NotebookDocument): Record<string, unknown> {
   return {
     notebook: document.notebook,
@@ -261,17 +249,12 @@ export function documentToDto(document: NotebookDocument): Record<string, unknow
       folderId: note.folderId,
       body: note.body,
     })),
-    files: (document.files ?? []).map((file) => ({
-      name: file.name,
-      mimeType: file.mimeType,
-      // The bytes travel as base64 in the document; what is said is their size.
-      bytes: Math.floor((file.bytes.replace(/=+$/, '').length * 3) / 4),
-    })),
+    files: (document.files ?? []).map((file) => ({ name: file.name, mimeType: file.mimeType })),
     tables: (document.tables ?? []).map((table) => ({
       name: table.name,
       description: table.description,
       columns: Object.keys((table.schema['properties'] as Record<string, unknown>) ?? {}),
-      rows: table.rows ? table.rows.length : null,
+      rows: table.rows?.length ?? 0,
     })),
     dashboards: (document.dashboards ?? []).map((dashboard) => ({
       name: dashboard.name,
@@ -385,16 +368,28 @@ export function createPortabilityRoutes(
     const request = c.get('portability');
     const found = await useCases.getModel(request).execute(c.req.param('v') ?? '');
     if (!found.ok) return fail(c, found.error);
-    const { model, versions, sharedBy } = found.value;
+    const { model, name, sharedBy } = found.value;
     // Where it stands in the community catalog, for whoever reads it here (#360).
     const publication =
       sharedBy === null ? await useCases.publicationOf(request).execute(model.notebookId) : null;
-    return c.json({
-      ...modelToDto(model),
-      sharedBy,
-      publication,
-      versions: versions.map(versionToDto),
-    });
+    return c.json({ ...modelToDto(model), name, sharedBy, publication });
+  });
+
+  /** The model notebook as it stands, read whole (#431). */
+  app.get('/models/:v/contents', async (c) => {
+    const request = c.get('portability');
+    const viewed = await useCases.viewModel(request).execute(c.req.param('v') ?? '');
+    return present(c, viewed, contentsToDto);
+  });
+
+  /** What changed in the model notebook, the newest change first (#431). */
+  app.get('/models/:v/history', async (c) => {
+    const request = c.get('portability');
+    const history = await useCases.modelHistory(request).execute(c.req.param('v') ?? '');
+    return present(c, history, ({ changes, truncated }) => ({
+      changes: changes.map(changeToDto),
+      truncated,
+    }));
   });
 
   app.put('/models/:v', async (c) => {
@@ -415,46 +410,24 @@ export function createPortabilityRoutes(
     return present(c, declared, modelToDto);
   });
 
-  app.post('/models/:v/versions', async (c) => {
-    const request = c.get('portability');
-    if (!request.authorship.ok) return fail(c, request.authorship.error);
-    const body = createModelVersionRequestSchema.safeParse(await c.req.json().catch(() => ({})));
-    if (!body.success) return fail(c, DomainError.validation('A changelog is a text'));
-    const created = await useCases.createModelVersion(request).execute({
-      notebookId: c.req.param('v') ?? '',
-      changelog: body.data.changelog,
-      by: request.authorship.value,
-    });
-    return created.ok ? c.json(versionToDto(created.value), 202) : fail(c, created.error);
-  });
-
-  app.get('/models/:v/versions/:n', async (c) => {
-    const request = c.get('portability');
-    const viewed = await useCases.viewModelVersion(request).execute({
-      notebookId: c.req.param('v') ?? '',
-      number: Number(c.req.param('n')),
-    });
-    return present(c, viewed, versionViewToDto);
-  });
-
   /**
-   * An independent notebook created from a version (#359): its parameters
-   * filled in, written by the worker as any import is. The answer is the
-   * import, which the client follows until it ends.
+   * An independent notebook created from a model (#359, #431): a copy of its
+   * notebook as it stands, its parameters filled in, written by the worker as
+   * any import is. The answer is the import, which the client follows until
+   * it ends.
    */
-  app.post('/models/:v/versions/:n/notebooks', async (c) => {
+  app.post('/models/:v/notebooks', async (c) => {
     const request = c.get('portability');
     if (!request.authorship.ok) return fail(c, request.authorship.error);
-    const body = createFromVersionRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    const body = createFromModelRequestSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!body.success) {
       return fail(
         c,
         DomainError.validation('A creation takes a name and the values of the parameters'),
       );
     }
-    const started = await useCases.createFromVersion(request).execute({
+    const started = await useCases.createFromModel(request).execute({
       notebookId: c.req.param('v') ?? '',
-      number: Number(c.req.param('n')),
       name: body.data.name,
       values: body.data.values,
       by: request.authorship.value,
@@ -487,11 +460,11 @@ export function createPortabilityRoutes(
     return withdrawn.ok ? c.body(null, 204) : fail(c, withdrawn.error);
   });
 
-  /** A notebook created from a published version, in the caller's own subscription (#360). */
-  app.post('/catalog/:p/versions/:n/notebooks', async (c) => {
+  /** A notebook created from a published model, in the caller's own subscription (#360, #431). */
+  app.post('/catalog/:p/notebooks', async (c) => {
     const request = c.get('portability');
     if (!request.authorship.ok) return fail(c, request.authorship.error);
-    const body = createFromVersionRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+    const body = createFromModelRequestSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!body.success) {
       return fail(
         c,
@@ -500,7 +473,6 @@ export function createPortabilityRoutes(
     }
     const started = await useCases.createFromCatalog(request).execute({
       publicId: c.req.param('p') ?? '',
-      number: Number(c.req.param('n')),
       name: body.data.name,
       values: body.data.values,
       by: request.authorship.value,
@@ -518,15 +490,6 @@ export function createPortabilityRoutes(
       reason: body.data.reason,
     });
     return reported.ok ? c.body(null, 204) : fail(c, reported.error);
-  });
-
-  app.delete('/models/:v/versions/:n', async (c) => {
-    const request = c.get('portability');
-    const deleted = await useCases.deleteModelVersion(request).execute({
-      notebookId: c.req.param('v') ?? '',
-      number: Number(c.req.param('n')),
-    });
-    return deleted.ok ? c.body(null, 204) : fail(c, deleted.error);
   });
 
   app.post('/notebooks/:v/export', async (c) => {

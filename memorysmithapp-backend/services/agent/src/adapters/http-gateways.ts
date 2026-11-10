@@ -17,11 +17,12 @@ import { CORRELATION_HEADER, currentCorrelationId } from '@memorysmithapp/observ
 import { pageOf } from '../mcp/note-pages.js';
 import type {
   DeclareModelRequest,
+  ModelContentsDto,
+  ModelHistoryDto,
   ModelListDto,
-  ModelVersionDto,
-  ModelVersionViewDto,
+  PublicModelContentsDto,
   PublicModelDto,
-  PublicVersionViewDto,
+  PublicModelHistoryDto,
   NotebookModelDto,
   BacklinksDto,
   BeginUploadRequest,
@@ -533,49 +534,35 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return callApi<NotebookModelDto>(this.origin, caller, `/portability/models/${notebookId}`);
   }
 
+  async modelContents(caller: AgentCaller, notebookId: string): Promise<ModelContentsDto> {
+    return callApi<ModelContentsDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/contents`,
+    );
+  }
+
+  async modelHistory(caller: AgentCaller, notebookId: string): Promise<ModelHistoryDto> {
+    return callApi<ModelHistoryDto>(
+      this.origin,
+      caller,
+      `/portability/models/${notebookId}/history`,
+    );
+  }
+
   async listModels(caller: AgentCaller): Promise<ModelListDto['models']> {
     return (await callApi<ModelListDto>(this.origin, caller, '/portability/models')).models;
   }
 
-  async createModelVersion(
-    caller: AgentCaller,
-    notebookId: string,
-    changelog: string,
-  ): Promise<ModelVersionDto> {
-    return callApi<ModelVersionDto>(
-      this.origin,
-      caller,
-      `/portability/models/${notebookId}/versions`,
-      { method: 'POST', body: { changelog } },
-    );
-  }
-
-  async modelVersion(
-    caller: AgentCaller,
-    notebookId: string,
-    number: number,
-  ): Promise<ModelVersionViewDto> {
-    return callApi<ModelVersionViewDto>(
-      this.origin,
-      caller,
-      `/portability/models/${notebookId}/versions/${number}`,
-    );
-  }
-
-  async deleteModelVersion(caller: AgentCaller, notebookId: string, number: number): Promise<void> {
-    await callApi(this.origin, caller, `/portability/models/${notebookId}/versions/${number}`, {
-      method: 'DELETE',
-    });
-  }
-
+  /** A copy of the model notebook as it stands now, its parameters filled in (#431). */
   async createFromModel(
     caller: AgentCaller,
-    input: { notebookId: string; version: number; name: string; values: Record<string, unknown> },
+    input: { notebookId: string; name: string; values: Record<string, unknown> },
   ): Promise<TransferDto> {
     return callApi<TransferDto>(
       this.origin,
       caller,
-      `/portability/models/${input.notebookId}/versions/${input.version}/notebooks`,
+      `/portability/models/${input.notebookId}/notebooks`,
       { method: 'POST', body: { name: input.name, values: input.values } },
     );
   }
@@ -617,34 +604,32 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     ).models;
   }
 
-  async communityModel(caller: AgentCaller, publicId: string): Promise<PublicModelDto> {
-    return callApi<PublicModelDto>(
+  /** A published model, read whole as it stands now, with what the catalog says of it (#431). */
+  async communityContents(caller: AgentCaller, publicId: string): Promise<PublicModelContentsDto> {
+    return callApi<PublicModelContentsDto>(
       this.origin,
       caller,
-      `/public/catalog/${encodeURIComponent(publicId)}`,
+      `/public/catalog/${encodeURIComponent(publicId)}/contents`,
     );
   }
 
-  async communityVersion(
-    caller: AgentCaller,
-    publicId: string,
-    number: number,
-  ): Promise<PublicVersionViewDto> {
-    return callApi<PublicVersionViewDto>(
+  /** When and what changed in a published model, never who (#431). */
+  async communityHistory(caller: AgentCaller, publicId: string): Promise<PublicModelHistoryDto> {
+    return callApi<PublicModelHistoryDto>(
       this.origin,
       caller,
-      `/public/catalog/${encodeURIComponent(publicId)}/versions/${number}`,
+      `/public/catalog/${encodeURIComponent(publicId)}/history`,
     );
   }
 
   async createFromCommunity(
     caller: AgentCaller,
-    input: { publicId: string; version: number; name: string; values: Record<string, unknown> },
+    input: { publicId: string; name: string; values: Record<string, unknown> },
   ): Promise<TransferDto> {
     return callApi<TransferDto>(
       this.origin,
       caller,
-      `/portability/catalog/${encodeURIComponent(input.publicId)}/versions/${input.version}/notebooks`,
+      `/portability/catalog/${encodeURIComponent(input.publicId)}/notebooks`,
       { method: 'POST', body: { name: input.name, values: input.values } },
     );
   }

@@ -44,16 +44,18 @@ import { parameterDeclarationSchema } from './models.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.4';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.5';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
  * carry, `1.2` the files the notebook keeps, `1.3` its tables and `1.4` the
  * model it is declared as, and none added anything else: an older document is
  * a newer one with that part missing, so it is read exactly as it always was
- * (RN-PRT-022, RN-PRT-025, RN-PRT-057, RN-PRT-054).
+ * (RN-PRT-022, RN-PRT-025, RN-PRT-057, RN-PRT-073). `1.5` stopped writing the
+ * versions of a model, which a model no longer has (#431): the versions a
+ * `1.4` document carries are read and left out.
  */
-export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3', '1.4'] as const;
+export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5'] as const;
 
 export const documentFolderSchema = z.object({
   folderId: ulidSchema,
@@ -181,7 +183,7 @@ export const documentDashboardSchema = z.object({
   definition: z.record(z.string(), z.unknown()),
 });
 
-/** What a notebook holds, which a document carries and a version of a model freezes. */
+/** What a notebook holds, which a document carries and a `1.4` version of a model froze. */
 const notebookContentSchema = z.object({
   /** The shape of this document. Read before anything else. */
   documentVersion: z.enum(READABLE_DOCUMENT_VERSIONS),
@@ -214,8 +216,9 @@ const notebookContentSchema = z.object({
 });
 
 /**
- * One version of the model (#397): what it froze of the model and its
- * snapshot, a notebook without history, carried as the document it is kept as.
+ * One version of the model, as a `1.4` document carried it (#397): what it
+ * froze of the model and its snapshot. A model has no versions since `1.5`
+ * (#431), so one is read and left out, and never written.
  */
 export const documentModelVersionSchema = z.object({
   number: z.number().int().positive(),
@@ -230,10 +233,10 @@ export const documentModelVersionSchema = z.object({
 });
 
 /**
- * The model a notebook is declared as (#397, RN-PRT-054): what it says of
- * itself and every version its owner keeps, the oldest first. A publication
- * in the community catalog belongs to the installation it was made in and is
- * never carried.
+ * The model a notebook is declared as (#397, RN-PRT-073): what it says of
+ * itself. A publication in the community catalog belongs to the installation
+ * it was made in and is never carried, and neither is its history, which is
+ * the history of the notebook (#431).
  */
 export const documentModelSchema = z.object({
   objective: z.string().min(1).max(500),
@@ -241,7 +244,8 @@ export const documentModelSchema = z.object({
   audience: z.string().max(300),
   parameters: z.array(parameterDeclarationSchema).max(50),
   basedOn: z.string().max(200).nullable(),
-  versions: z.array(documentModelVersionSchema),
+  /** Written by `1.4` only, and left out when it is read (#431). */
+  versions: z.array(documentModelVersionSchema).optional(),
 });
 
 export const notebookDocumentSchema = notebookContentSchema.extend({

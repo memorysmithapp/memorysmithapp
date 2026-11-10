@@ -169,8 +169,9 @@ export function NotebookOverview() {
             <Stat
               wide
               icon={<CopyIcon />}
-              value={model.data.versions.length}
-              label={t('overview.modelVersions', { count: model.data.versions.length })}
+              // A model keeps no versions (#431): what it asks of a notebook made from it.
+              value={model.data.parameters.length}
+              label={t('overview.modelParameters', { count: model.data.parameters.length })}
               to={modelAddress(notebookId)}
             />
           ) : null}

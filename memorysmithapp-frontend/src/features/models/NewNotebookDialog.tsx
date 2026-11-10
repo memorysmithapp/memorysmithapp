@@ -6,10 +6,10 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { communityAddress, modelAddress, notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
+  createFromModel,
   createNotebook,
   declareModel,
   getModel,
-  getModelVersion,
   listModels,
 } from '../../shared/api/source';
 import { ActionWord } from '../../shared/components/ActionWord';
@@ -203,13 +203,6 @@ function FromModel({ onClose }: { onClose: () => void }) {
     queryFn: () => getModel(chosen ?? ''),
     enabled: chosen !== null,
   });
-  const latest = model.data?.versions.find((each) => each.status === 'ready');
-  // The parameters a notebook is created with are the ones the version froze.
-  const version = useQuery({
-    queryKey: queryKeys.modelVersion(chosen ?? '', latest?.number ?? 0),
-    queryFn: () => getModelVersion(chosen ?? '', latest?.number ?? 0),
-    enabled: chosen !== null && latest !== undefined,
-  });
 
   if (models.isPending) return <FieldsSkeleton />;
   if (models.isError) return <p className="status">{t(messageKeyOf(models.error))}</p>;
@@ -247,27 +240,16 @@ function FromModel({ onClose }: { onClose: () => void }) {
       {chosen && model.data ? (
         <>
           <p className="hint">{model.data.objective}</p>
-          {latest && version.data ? (
-            <>
-              <p className="hint">
-                {t('newNotebook.fromVersion', {
-                  number: latest.number,
-                  changelog: latest.changelog,
-                })}
-              </p>
-              <CreateFromModelForm
-                notebookId={chosen}
-                version={latest.number}
-                parameters={version.data.parameters}
-                onCancel={onClose}
-              />
-            </>
-          ) : latest ? (
-            <FieldsSkeleton fields={2} />
-          ) : (
-            <p className="hint">{t('newNotebook.noVersion')}</p>
-          )}
+          {/* The model as it stands, with the parameters it declares now (#431). */}
+          <CreateFromModelForm
+            key={chosen}
+            parameters={model.data.parameters}
+            onCancel={onClose}
+            create={(input) => createFromModel(chosen, input)}
+          />
         </>
+      ) : chosen && model.isPending ? (
+        <FieldsSkeleton fields={2} />
       ) : null}
     </div>
   );

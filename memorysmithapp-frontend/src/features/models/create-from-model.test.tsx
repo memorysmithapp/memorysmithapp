@@ -32,7 +32,10 @@ beforeAll(async () => {
     renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
         <MemoryRouter>
-          <CreateFromModelForm notebookId="n" version={1} parameters={parameters} />
+          <CreateFromModelForm
+            parameters={parameters}
+            create={async () => Promise.reject(new Error('not created here'))}
+          />
         </MemoryRouter>
       </QueryClientProvider>,
     );

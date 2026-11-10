@@ -117,7 +117,7 @@
       },
       "sharedWithMe": {
         "label": "A model shared with you by {{owner}}",
-        "explain": "{{owner}} shared this model with you. You read its versions and create notebooks from them; its notebook stays with them."
+        "explain": "{{owner}} shared this model with you. You read it as it stands, and its history, and create notebooks from it; its notebook stays with them."
       }
     },
     "community": {
@@ -127,7 +127,7 @@
       },
       "community": {
         "label": "Published in the community by {{owner}}",
-        "explain": "{{owner}} published this model in the community, free to use (CC0). Its ⋯ creates a notebook of your own from its latest version."
+        "explain": "{{owner}} published this model in the community, free to use (CC0). Its ⋯ creates a notebook of your own from it."
       }
     }
   },
@@ -141,7 +141,7 @@
     "parameters_other": "{{count}} parameters",
     "updated": "updated {{date}}",
     "open": "Open the model",
-    "help": "A model is a notebook that serves as a mould: each version is frozen and creates new notebooks, with its parameters filled in. Here are yours and the ones shared with you as a model. The ⋯ of one of yours exports, shares or deletes it."
+    "help": "A model is a notebook that serves as a mould: it creates new notebooks as it stands, with its parameters filled in, and keeps the history of its changes. Here are yours and the ones shared with you as a model. The ⋯ of one of yours exports, shares or deletes it."
   },
   "language": {
     "heading": "Language",
@@ -168,7 +168,7 @@
     "guidance": "Guidance",
     "folders": "Folders",
     "foldersHint": "The tree, with the description of each folder",
-    "modelHint": "What it declares as a model: its objective, its parameters and its versions",
+    "modelHint": "What it declares as a model: its objective, its parameters, what it holds and its history",
     "noFolders": "This notebook has no folders yet.",
     "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
@@ -788,7 +788,7 @@
       },
       "model": {
         "term": "Notebook model",
-        "definition": "A notebook declared as a model creates others from it, with its parameters filled in. Its versions are frozen, and each can be published to the community. Models, in the menu at the top, lists them and creates a new one."
+        "definition": "A notebook declared as a model creates others from it, as it stands, with its parameters filled in. Its history lists every change, and it can be published to the community; to keep a state of it, export the notebook. Models, in the menu at the top, lists them and creates a new one."
       },
       "graph": {
         "term": "Graph",
@@ -1081,7 +1081,7 @@
       "reader": "Reads and exports the whole notebook, and writes nothing.",
       "contentEditor": "Also writes, moves and deletes notes and keeps files. The folders, the Guidance and the Templates stay yours to change.",
       "notebookEditor": "Also creates, edits and deletes folders, the Guidance and the Templates. Sharing and deleting the notebook stay with you.",
-      "modelReader": "Reads this model and its versions and creates notebooks from them, and never opens the notebook itself."
+      "modelReader": "Reads this model as it stands, and its history, and creates notebooks from it, and never opens the notebook itself."
     }
   },
   "notifications": {
@@ -1252,39 +1252,22 @@
     "save": "Save",
     "saving": "Saving…",
     "saved": "Saved.",
-    "versions": "Versions",
-    "changelog": "What changed since the last version",
-    "versionHint": "A version freezes the notebook as it is now. It never changes afterwards, and it counts once in the storage.",
-    "createVersion": "Create a version",
-    "creatingVersion": "Creating…",
-    "noVersions": "No version yet.",
-    "status": {
-      "running": "Being created",
-      "ready": "Ready",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
-    "openVersion": "Open",
-    "deleteVersion": "Delete…",
-    "deleteVersionForGood": "Delete v{{number}}",
-    "versionTitle": "Version {{number}}",
-    "undeclared": "This version writes {{names}}, which no parameter declares: a notebook created from it would keep them as written.",
+    "undeclared": "This model writes {{names}}, which no parameter declares: a notebook created from it would keep them as written.",
     "unused": "Declared and not written anywhere: {{names}}.",
     "contents": "What it holds",
     "none": "None.",
-    "create": "Create a notebook from this version",
+    "create": "Create a notebook from this model",
     "creating": "Creating…",
     "newName": "Name of the new notebook",
     "newNameHint": "Left empty, it is the name of the model, filled in.",
     "stillCreating": "The notebook is still being written; it appears on Home when it is.",
     "creationFailed": "The notebook was not created. Transfers says why.",
     "referenceExample": "name",
-    "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner.",
+    "sharedBy": "Shared with you by {{owner}}. You read this model as it stands, and its history, and create notebooks from it; the notebook it is stays with its owner.",
     "community": "Community",
-    "publishHint": "Publishing shows the model and every version you keep to every person signed in to MemorySmith.app, by the name of your account and never your e-mail; whoever reads it creates notebooks from it. You withdraw it at any time.",
+    "publishHint": "Publishing shows the model as it stands, and the history of its changes without who made them, to every person signed in to MemorySmith.app, by the name of your account and never your e-mail; whoever reads it creates notebooks from it. You withdraw it at any time.",
     "publishLicence": "Every distribution of a model is under CC0 1.0: anybody may reuse and republish it freely, the community included.",
     "publish": "Publish to the community",
-    "publishNeedsVersion": "Create a version first: the community reads versions, never the notebook.",
     "publishNeedsName": "Write your name in your profile first: the catalog shows it, never your e-mail.",
     "publishedAs": "Published by {{author}}, in {{language}}.",
     "publicPage": "Open its public page",
@@ -1292,7 +1275,8 @@
     "tabs": {
       "about": "About the model",
       "parameters": "Parameters",
-      "versions": "Versions",
+      "contents": "Contents",
+      "history": "History",
       "community": "Community"
     },
     "editParameter": "Edit",
@@ -1301,8 +1285,44 @@
     "addParameterTitle": "New parameter",
     "editParameterTitle": "Edit parameter",
     "removeParameterTitle": "Remove the parameter {{name}}?",
-    "removeParameterBody": "Notebooks created from the next versions will no longer fill in {{reference}}. Where {{reference}} is already written in the notes, it stays as written.",
-    "defaultsToNothing": "empty by default"
+    "removeParameterBody": "Notebooks created from the model from now on will no longer fill in {{reference}}. Where {{reference}} is already written in the notes, it stays as written.",
+    "defaultsToNothing": "empty by default",
+    "contentsHint": "The model as it stands now: a notebook created from it starts as this. To keep a state of it, export the notebook.",
+    "historyHint": "Every change of the notebook this model is, the newest first: who made it, through which connector, and the line they left.",
+    "historyEmpty": "No change was recorded yet.",
+    "historyTruncated": "Older changes are left out.",
+    "change": {
+      "NotebookCreated": "Notebook created",
+      "NotebookRenamed": "Notebook renamed",
+      "GuidanceUpdated": "Guidance written",
+      "GuidanceDeleted": "Guidance deleted",
+      "FolderAdded": "Folder added",
+      "FolderRenamed": "Folder renamed",
+      "FolderDescribed": "Folder described",
+      "FolderNotesOrdered": "Notes of a folder ordered",
+      "FolderMoved": "Folder moved",
+      "FolderReordered": "Folder reordered",
+      "FolderRemoved": "Folder removed",
+      "TemplateUpdated": "Template written",
+      "TemplateDeleted": "Template deleted",
+      "FileKept": "File kept",
+      "FileDeleted": "File deleted",
+      "TableCreated": "Table created",
+      "TableAltered": "Table altered",
+      "TableDeleted": "Table deleted",
+      "RowsInserted": "Rows inserted",
+      "RowsUpdated": "Rows updated",
+      "RowsDeleted": "Rows deleted",
+      "DashboardCreated": "Dashboard created",
+      "DashboardChanged": "Dashboard changed",
+      "DashboardDeleted": "Dashboard deleted",
+      "NoteCreated": "Note created",
+      "NoteUpdated": "Note written",
+      "NoteReordered": "Note reordered",
+      "NoteMoved": "Note moved",
+      "NoteDeleted": "Note deleted",
+      "NoteRestored": "Note restored"
+    }
   },
   "newNotebook": {
     "open": "New notebook",
@@ -1319,8 +1339,6 @@
     "creating": "Creating…",
     "model": "Model",
     "noModels": "No notebook of this subscription is declared as a model yet.",
-    "noVersion": "This model has no ready version yet.",
-    "fromVersion": "From version {{number}}: {{changelog}}",
     "community": "Or find a model in the community",
     "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created."
   },
@@ -1334,11 +1352,7 @@
     "sendReport": "Send the report",
     "reported": "Thank you: the report reached the operator of the platform.",
     "by": "By {{author}}",
-    "cardMeta_one": "{{language}} · updated {{date}} · {{count}} version",
-    "cardMeta_other": "{{language}} · updated {{date}} · {{count}} versions",
-    "menu": {
-      "fromVersion": "Create a notebook from version {{number}}"
-    },
+    "cardMeta": "{{language}} · updated {{date}}",
     "language": "Language",
     "languages": {
       "any": "Any language",
@@ -1346,7 +1360,8 @@
       "en": "English",
       "es": "Spanish"
     },
-    "help": "Models other people published, free to use (CC0). Open one to read its versions and create a notebook of your own from it. To find one by name, use the search at the top."
+    "help": "Models other people published, free to use (CC0). Open one to read it as it stands, and its history, and create a notebook of your own from it. To find one by name, use the search at the top.",
+    "historyHint": "Every change of this model, the newest first, and the line its author left."
   },
   "globalSearch": {
     "placeholder": "Find notebooks, models and community models…",
@@ -1368,8 +1383,8 @@
     "notes_other": "notes",
     "attachments_one": "attachment",
     "attachments_other": "attachments",
-    "modelVersions_one": "version of this notebook model",
-    "modelVersions_other": "versions of this notebook model",
+    "modelParameters_one": "parameter of this notebook model",
+    "modelParameters_other": "parameters of this notebook model",
     "guidance": "Guidance written",
     "noGuidance": "no Guidance yet",
     "templates_one": "Template",

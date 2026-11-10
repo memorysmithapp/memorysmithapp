@@ -22,9 +22,9 @@ import { ShelfCard, formatDay } from '../dashboard/NotebookCard';
 import { ShelfSkeleton } from '../../shared/components/skeletons';
 
 /**
- * The notebook models a person reads, in one place (#418, RN-PRT-058): theirs,
+ * The notebook models a person reads, in one place (#418, RN-PRT-075): theirs,
  * and the ones shared with them as a model. Each opens its model page, where
- * its versions are kept; a new model starts here. Home keeps only the new
+ * it is read as it stands, with its history (#431); a new model starts here. Home keeps only the new
  * notebook, blank or from one of these.
  */
 export function ModelsPage() {

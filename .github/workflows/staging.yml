@@ -20,7 +20,7 @@ on:
         description: A maintenance job to apply after the delivery
         type: choice
         default: none
-        options: [none, recount-storage, reproject-links, both]
+        options: [none, recount-storage, reproject-links, both, forget-model-versions]
       # What costs money is off unless it is chosen here (ADR-021), and the
       # next delivery that does not choose it removes it again.
       alarms:
@@ -100,6 +100,13 @@ jobs:
       - name: Maintenance
         if: inputs.maintenance != 'none' && vars.INSTALLATION == ''
         run: |
+          # The versions of models go before the recount, which then counts
+          # what is left (#431).
+          if [ "${{ inputs.maintenance }}" = forget-model-versions ]; then
+            pnpm tools data forget-model-versions --environment staging --apply
+            pnpm tools data recount-storage --environment staging --apply
+            exit 0
+          fi
           if [ "${{ inputs.maintenance }}" != reproject-links ]; then
             pnpm tools data recount-storage --environment staging --apply
           fi

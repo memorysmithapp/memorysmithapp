@@ -6033,6 +6033,21 @@ button.attachment-thumb:focus-visible {
   color: var(--text-soft);
   font-style: italic;
 }
+/* What a change of a model was about, and how long its session lasted (#431). */
+.history-subject {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.history-span {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
 /* An edit session (#300): one entry, opening into its saves. */
 .history-saves > summary {
   cursor: pointer;
@@ -7091,12 +7106,10 @@ button.attachment-thumb:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
-.model-page,
-.model-version-page {
+.model-page {
   max-width: 48rem;
 }
 .model-form,
-.model-versions,
 .model-summary,
 .model-create {
   margin-top: 1.5rem;
@@ -7115,7 +7128,8 @@ button.attachment-thumb:focus-visible {
   margin-top: 1rem;
 }
 .model-panel > .model-form,
-.model-panel > .model-versions,
+.model-panel > .model-contents,
+.model-panel > .model-history-panel,
 .model-panel > .model-publication {
   margin-top: 0;
 }
@@ -7179,8 +7193,7 @@ button.attachment-thumb:focus-visible {
 }
 /* The row under a resting mouse, as a row of the folders shows it, kept
    inside the round corners of the list (#429). */
-.parameter-line:hover,
-.model-version:hover {
+.parameter-line:hover {
   background: var(--hover);
 }
 .parameter-line:first-child {
@@ -7246,57 +7259,14 @@ button.attachment-thumb:focus-visible {
 .parameter-list li + li {
   margin-top: 0.35rem;
 }
-.model-version-new {
-  margin-bottom: 1rem;
-}
-.model-version-list {
-  list-style: none;
+/* The parts of a model as it stands (#431): its files, tables and dashboards. */
+.model-parts {
   margin: 0;
-  padding: 0;
-}
-.model-version {
-  display: grid;
-  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-}
-.model-version:last-child {
-  border-bottom: 0;
-}
-.model-version-number {
-  font-family: var(--display);
-  font-weight: 700;
-}
-.model-version-when {
-  color: var(--text-soft);
-  font-size: 0.8125rem;
-}
-.model-version-changelog {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-left: 1.25rem;
   font-size: 0.875rem;
 }
-/* The public row has no status chip, so one column fewer, and the button
-   keeps its width while the changelog is cut (#384). */
-.model-version.is-public {
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-}
-.model-version-confirm {
-  display: inline-flex;
-  gap: 0.5rem;
-}
-@media (max-width: 40rem) {
-  .model-version,
-  .model-version.is-public {
-    grid-template-columns: auto auto minmax(0, 1fr);
-  }
-  .model-version-changelog {
-    grid-column: 1 / -1;
-    white-space: normal;
-  }
+.model-parts li + li {
+  margin-top: 0.35rem;
 }
 .model-source {
   overflow-x: auto;

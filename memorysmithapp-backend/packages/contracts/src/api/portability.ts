@@ -54,7 +54,7 @@ export const transferSelectionSchema = z.object({
   tables: z.array(z.object({ name: z.string().min(1).max(64), rows: z.boolean() })).optional(),
   /**
    * The dashboards the transfer carries, by name (#399). Absent is every
-   * dashboard whose tables go (RN-PRT-053); a dashboard not named is left out,
+   * dashboard whose tables go (RN-PRT-072); a dashboard not named is left out,
    * and one named whose table stays out does not go either.
    */
   dashboards: z.array(z.string().min(1).max(120)).max(500).optional(),

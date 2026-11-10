@@ -1,7 +1,7 @@
 /**
  * Notebook models through the connector (#353, #354, #359) and the community
  * catalog (#360), as an agent works with them: a notebook declared as a model,
- * frozen into a version, read whole and used to create a notebook; then
+ * read whole as it stands with its history (#431) and used to create a notebook; then
  * published, found, read and created from as a community model, and withdrawn.
  */
 
@@ -41,11 +41,12 @@ const test = base.extend<Fixtures>({
 });
 
 interface Model {
-  versions: Array<{ number: number; status: string }>;
+  contents: { notes: Array<{ body: string }> };
+  history: { changes: Array<{ type: string }>; truncated: boolean };
 }
 
 test.describe('notebook models through the connector', () => {
-  test('[tool:declare_model] [tool:get_model] [tool:list_models] [tool:create_model_version] [tool:read_model_version] [tool:create_notebook_from_model] [tool:delete_model_version] [tool:publish_model] [tool:search_community_models] [tool:read_community_model] [tool:read_community_version] [tool:create_notebook_from_community_model] [tool:withdraw_model] declares a model, versions it, creates from it, and publishes it to the community', async ({
+  test('[tool:declare_model] [tool:get_model] [tool:list_models] [tool:create_notebook_from_model] [tool:publish_model] [tool:search_community_models] [tool:read_community_model] [tool:create_notebook_from_community_model] [tool:withdraw_model] declares a model, reads it as it stands with its history, creates from it, and publishes it to the community', async ({
     agent,
     state,
   }) => {
@@ -83,25 +84,19 @@ test.describe('notebook models through the connector', () => {
       ).toBe(false);
       expect((await callTool(agent, 'list_models')).text).toContain(notebookId);
 
-      const started = parsed<{ number: number }>(
-        await callTool(agent, 'create_model_version', { notebook: notebookId, changelog: 'First' }),
-      );
-      expect(started.number).toBe(1);
-      await eventually(
-        'the version to be built',
+      // The model as its notebook stands, and the trail of it, which follows
+      // a write within seconds.
+      const model = await eventually(
+        'the history of the model to hold its note',
         async () => parsed<Model>(await callTool(agent, 'get_model', { notebook: notebookId })),
-        (model) => model.versions[0]?.status === 'ready',
-        { timeoutMs: 120_000 },
+        (each) => each.history.changes.some((change) => change.type === 'NoteCreated'),
       );
-      const version = parsed<{ notes: Array<{ body: string }> }>(
-        await callTool(agent, 'read_model_version', { notebook: notebookId, version: 1 }),
-      );
-      expect(version.notes[0]?.body).toContain('{{team}}');
+      expect(model.contents.notes[0]?.body).toContain('{{team}}');
+      expect(model).not.toHaveProperty('versions');
 
       const own = parsed<{ notebook?: string; status: string }>(
         await callTool(agent, 'create_notebook_from_model', {
           notebook: notebookId,
-          version: 1,
           name: `From the model ${marker}`,
           values: { team: 'Agents' },
         }),
@@ -139,18 +134,16 @@ test.describe('notebook models through the connector', () => {
         (answer) => answer.models.length > 0,
       );
       expect(found.models.map((each) => each.publicId)).toEqual([published.publicId]);
-      const community = parsed<{ versions: Array<{ number: number }> }>(
-        await callTool(agent, 'read_community_model', { model: published.publicId }),
-      );
-      expect(community.versions.map((each) => each.number)).toEqual([1]);
-      expect(
-        (await callTool(agent, 'read_community_version', { model: published.publicId, version: 1 }))
-          .text,
-      ).toContain('{{team}}');
+      const community = parsed<{
+        contents: { notes: Array<{ body: string }> };
+        history: { changes: Array<Record<string, unknown>> };
+      }>(await callTool(agent, 'read_community_model', { model: published.publicId }));
+      expect(community.contents.notes[0]?.body).toContain('{{team}}');
+      // When and what, never who (#431).
+      for (const change of community.history.changes) expect(change).not.toHaveProperty('agent');
       const fromCommunity = parsed<{ notebook?: string; status: string }>(
         await callTool(agent, 'create_notebook_from_community_model', {
           model: published.publicId,
-          version: 1,
           name: `From the community ${marker}`,
           values: { team: 'Community' },
         }),
@@ -164,10 +157,6 @@ test.describe('notebook models through the connector', () => {
       expect(
         (await callTool(agent, 'read_community_model', { model: published.publicId })).isError,
       ).toBe(true);
-      expect(
-        (await callTool(agent, 'delete_model_version', { notebook: notebookId, version: 1 }))
-          .isError,
-      ).toBe(false);
     } finally {
       for (const each of created) await callTool(agent, 'delete_notebook', { notebook: each });
       await callTool(agent, 'delete_notebook', { notebook: notebookId });

@@ -15,10 +15,9 @@ interface PublicModel {
   name: string;
   author: string;
   licence: string;
-  versions: Array<{ number: number }>;
 }
 
-/** A notebook of the publisher declared as a model, with one ready version. */
+/** A notebook of the publisher declared as a model. */
 async function modelOf(publisher: Api, name: string): Promise<string> {
   const { notebookId } = await publisher.ok<{ notebookId: string }>(
     'POST',
@@ -38,24 +37,11 @@ async function modelOf(publisher: Api, name: string): Promise<string> {
     objective: 'Keep the findings of one team',
     parameters: [{ name: 'team', description: 'The team', type: 'text', required: true }],
   });
-  await publisher.ok('POST', `/portability/models/${notebookId}/versions`, {
-    changelog: 'The first version',
-  });
-  await eventually(
-    'the version to be built',
-    () =>
-      publisher.ok<{ versions: Array<{ status: string }> }>(
-        'GET',
-        `/portability/models/${notebookId}`,
-      ),
-    (model) => model.versions[0]?.status === 'ready',
-    { timeoutMs: 120_000 },
-  );
   return notebookId;
 }
 
 test.describe('the community catalog', () => {
-  test('[route:PUT /portability/models/:v/publication] [route:GET /public/catalog] [route:GET /public/catalog/:p] [route:GET /public/catalog/:p/versions/:n] [route:POST /portability/catalog/:p/versions/:n/notebooks] [route:DELETE /portability/models/:v/publication] publishes a model, which anybody finds and reads and a person signed in creates from, and withdraws it', async ({
+  test('[route:PUT /portability/models/:v/publication] [route:GET /public/catalog] [route:GET /public/catalog/:p] [route:GET /public/catalog/:p/contents] [route:GET /public/catalog/:p/history] [route:POST /portability/catalog/:p/notebooks] [route:DELETE /portability/models/:v/publication] publishes a model, which anybody finds and reads as it stands and a person signed in creates from, and withdraws it', async ({
     other,
     owner,
     anonymous,
@@ -73,7 +59,7 @@ test.describe('the community catalog', () => {
       );
       expect(published).toMatchObject({ author: 'Functional Author', licence: 'CC0-1.0' });
 
-      // No account: found by a word of its name, read, and its version read whole.
+      // No account: found by a word of its name, read whole as it stands, with its history.
       const found = await eventually(
         'the model to be found',
         () => anonymous.ok<{ models: PublicModel[] }>('GET', `/public/catalog?q=${marker}`),
@@ -86,16 +72,23 @@ test.describe('the community catalog', () => {
       );
       expect(read.status).toBe(200);
       expect(JSON.stringify(read.body)).not.toContain('@');
-      const version = await anonymous.ok<{ notes: Array<{ body: string }> }>(
+      const contents = await anonymous.ok<{ notes: Array<{ body: string }> }>(
         'GET',
-        `/public/catalog/${published.publicId}/versions/1`,
+        `/public/catalog/${published.publicId}/contents`,
       );
-      expect(version.notes[0]?.body).toContain('{{team}}');
+      expect(contents.notes[0]?.body).toContain('{{team}}');
+      // When and what changed, never who (#431).
+      const history = await anonymous.ok<{ changes: Array<Record<string, unknown>> }>(
+        'GET',
+        `/public/catalog/${published.publicId}/history`,
+      );
+      for (const change of history.changes) expect(change).not.toHaveProperty('agent');
+      expect(JSON.stringify(history)).not.toContain('@');
 
       // Signed in, a notebook of the creator's own subscription.
       const started = await owner.call<{ transferId: string }>(
         'POST',
-        `/portability/catalog/${published.publicId}/versions/1/notebooks`,
+        `/portability/catalog/${published.publicId}/notebooks`,
         { name: `From the catalog ${marker}`, values: { team: 'Functional' } },
       );
       expect(started.status).toBe(202);
@@ -168,12 +161,12 @@ test.describe('the community catalog', () => {
         ).status,
       ).toBe(204);
       expect((await anonymous.call('GET', `/public/catalog/${publicId}`)).status).toBe(404);
-      // The model and its version stay with the author.
-      const model = await other.ok<{ versions: unknown[]; publication: unknown }>(
+      // The model stays with the author.
+      const model = await other.ok<{ objective: string; publication: unknown }>(
         'GET',
         `/portability/models/${notebookId}`,
       );
-      expect(model.versions).toHaveLength(1);
+      expect(model.objective).toBe('Keep the findings of one team');
       expect(model.publication).toBeNull();
 
       expect(

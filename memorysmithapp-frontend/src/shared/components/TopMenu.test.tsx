@@ -34,7 +34,7 @@ function lit(pathname: string, model?: unknown): string[] {
   ].map((match) => match[1] ?? match[2] ?? '');
 }
 
-const A_MODEL = { objective: 'x', versions: [] };
+const A_MODEL = { objective: 'x', parameters: [] };
 
 describe('the lit entry of the menu', () => {
   it('is Notebooks inside a notebook that is no model', () => {
@@ -48,9 +48,9 @@ describe('the lit entry of the menu', () => {
     expect(lit(`/notebooks/${NOTEBOOK}/folders`, A_MODEL)).toEqual(['/models']);
   });
 
-  it("is Models on a model of one's own, and on its versions, even before it is read", () => {
+  it("is Models on a model of one's own, even before it is read", () => {
     expect(lit(`/notebooks/${NOTEBOOK}/model`)).toEqual(['/models']);
-    expect(lit(`/notebooks/${NOTEBOOK}/model/versions/2`)).toEqual(['/models']);
+    expect(lit(`/notebooks/${NOTEBOOK}/model?tab=history`)).toEqual(['/models']);
   });
 
   it('is neither inside a notebook not yet known to be one or the other', () => {

@@ -409,10 +409,9 @@ test.describe('the transfers of a person', () => {
     expect(after.transfers.map((each) => each.transferId)).not.toContain(transfer.transferId);
     // Measured against what each listing holds, because another case of this
     // account may keep an export between the two: what the listed exports do
-    // not account for stays the same, and this one left with its bytes. A
-    // version of a model counts and is not listed (RN-PRT-036), so a case that
-    // makes or deletes one in between crosses the measure, which is taken again
-    // with an export of its own.
+    // not account for stays the same, and this one left with its bytes. An
+    // export another case makes or deletes in between crosses the measure,
+    // which is taken again with an export of its own.
     const beyond = (list: { transfers: TransferDto[]; keptBytes: number }) =>
       list.keptBytes -
       list.transfers

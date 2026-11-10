@@ -16,16 +16,17 @@ import type { CatalogOperatorUseCases } from '@memorysmithapp/svc-portability/ad
 import {
   DismissReport,
   ListReports,
+  ReadCatalogContents,
+  ReadCatalogHistory,
   ReadCatalogModel,
-  ReadCatalogVersion,
   SearchCatalog,
   WithdrawByOperator,
   type AuthorNotifier,
   type CatalogCache,
   type CatalogReading,
+  type ReadingOf,
   type SubscriptionAccess,
 } from '@memorysmithapp/svc-portability/application/catalog';
-import type { VersionReader } from '@memorysmithapp/svc-portability/application/models';
 import type {
   CatalogEntry,
   CatalogReports,
@@ -95,7 +96,7 @@ export function withdrawalNotice(
       '',
       `Why: ${reason}`,
       '',
-      'The model and its versions stay in your subscription, unchanged, and the notebooks created from it are not touched. You may publish it again once what was reported is addressed.',
+      'The model stays in your subscription, unchanged, and the notebooks created from it are not touched. You may publish it again once what was reported is addressed.',
       '',
       '—',
       '',
@@ -103,7 +104,7 @@ export function withdrawalNotice(
       '',
       `Motivo: ${reason}`,
       '',
-      'O modelo e as versões dele continuam na sua assinatura, sem mudança, e os cadernos criados a partir dele não são tocados. Você pode publicá-lo de novo depois de tratar o que foi denunciado.',
+      'O modelo continua na sua assinatura, sem mudança, e os cadernos criados a partir dele não são tocados. Você pode publicá-lo de novo depois de tratar o que foi denunciado.',
     ].join('\n'),
   };
 }
@@ -185,12 +186,13 @@ export class RelayAuthorNotifier extends AuthorNotice {
 /** What reads the catalog for anybody, over the same use cases everywhere. */
 export function publicCatalogUseCasesOf(
   reading: CatalogReading,
-  versions: VersionReader,
+  readingOf: ReadingOf,
 ): PublicCatalogUseCases {
   return {
     search: () => new SearchCatalog(reading),
     readModel: () => new ReadCatalogModel(reading),
-    readVersion: () => new ReadCatalogVersion({ ...reading, versions }),
+    readContents: () => new ReadCatalogContents({ ...reading, readingOf }),
+    readHistory: () => new ReadCatalogHistory({ ...reading, readingOf }),
   };
 }
 
@@ -209,7 +211,7 @@ export function catalogOperatorUseCasesOf(deps: {
 
 /**
  * A model notebook was deleted (#360): its catalog entry goes first, so the
- * public route stops answering before its versions are destroyed.
+ * public route stops answering before the model is forgotten.
  */
 export async function forgetPublication(
   deps: {

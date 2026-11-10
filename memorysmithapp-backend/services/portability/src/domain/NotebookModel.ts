@@ -4,14 +4,13 @@
  * who it is for and the parameters a notebook created from it fills in.
  *
  * The model is the notebook itself, edited and tested like any notebook; what
- * this aggregate holds is what the notebook cannot say about itself. Its
- * versions are frozen snapshots of the notebook, kept as exports of it without
- * history (RN-PRT-009): each one counts once in the storage of the subscription,
- * as a kept export does, and a notebook created from one is a completed copy
- * that depends on nothing of the model afterwards.
+ * this aggregate holds is what the notebook cannot say about itself. It keeps
+ * no copy of the notebook (#431): a notebook created from it is a copy of the
+ * notebook as it stands at that moment, completed and depending on nothing of
+ * the model afterwards, and what changed in the model is the history of its
+ * notebook, read from the trail. A person who wants a state kept exports it.
  *
- * Only the owner of the subscription declares a model, because it occupies the
- * storage of the subscription, and only the owner creates its versions.
+ * Only the owner of the subscription declares a model.
  */
 
 import { DomainError, err, isParameterName, ok, type Result } from '@memorysmithapp/kernel';
@@ -49,12 +48,10 @@ export interface NotebookModel {
   readonly parameters: readonly ParameterDeclaration[];
   /** An optional credit, shown with the model when it is filled in, never required. */
   readonly basedOn: string | null;
-  /** The owner who declared it: whose versions, kept as exports, are its. */
+  /** The owner who declared it. */
   readonly ownerUserId: string;
   readonly declaredAt: string;
   readonly updatedAt: string;
-  /** The number the next version is created with: 1, 2, … (#353). */
-  readonly nextVersion: number;
   /**
    * When its owner accepted that the model is distributed under CC0 1.0, on
    * its first distribution (#357); null while it was never distributed, when
@@ -68,7 +65,11 @@ export interface NotebookModel {
 /** The one licence every distribution of a model is under (#357). */
 export const MODEL_LICENCE = 'CC0-1.0';
 
-/** What a version froze of its model, beside the snapshot of the notebook. */
+/**
+ * What a version froze of its model, as the record of one created before
+ * #431 holds it: what marks a kept export as a version, which the job that
+ * deletes them finds them by.
+ */
 export interface ModelVersionMeta {
   readonly number: number;
   readonly changelog: string;
@@ -95,7 +96,6 @@ const LIMITS = {
   basedOn: 200,
   parameterDescription: 300,
   parameterExample: 200,
-  changelog: 2000,
   parameters: 50,
 } as const;
 
@@ -207,18 +207,10 @@ export function checkedDeclaration(input: ModelDeclaration): Result<ModelDeclara
   });
 }
 
-/** The changelog of a version, trimmed and bounded. */
-export function checkedChangelog(changelog: string): Result<string, DomainError> {
-  const trimmed = changelog.trim();
-  return trimmed.length > LIMITS.changelog
-    ? err(DomainError.validation(`A changelog holds at most ${LIMITS.changelog} characters`))
-    : ok(trimmed);
-}
-
 /**
- * The key prefix the versions of models are kept under, apart from every other
- * export, so a reader of versions can be granted them and nothing else (#356).
- * The key names no notebook, as no key of the bucket does (INV-04).
+ * The key prefix the versions of models were kept under before #431, apart
+ * from every other export (#356): what the job that deletes them reads. The
+ * key names no notebook, as no key of the bucket does (INV-04).
  */
 export function modelVersionPrefixOf(subscriptionId: string): string {
   return `s/${subscriptionId}/models/`;
@@ -229,10 +221,5 @@ export interface ModelStore {
   /** Every model of the subscription. */
   list(): Promise<NotebookModel[]>;
   put(model: NotebookModel): Promise<void>;
-  /**
-   * Takes the next number, once: two versions created at once never share one.
-   * Answers the number taken, or null when the model is gone.
-   */
-  takeVersionNumber(notebookId: string): Promise<number | null>;
   remove(notebookId: string): Promise<void>;
 }

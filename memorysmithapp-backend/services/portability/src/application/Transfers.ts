@@ -25,6 +25,7 @@ import {
 } from '../domain/Transfer.js';
 import type { ArchiveStore } from './ExportNotebook.js';
 import {
+  freshUploadKey,
   refusalOf,
   type ImportJob,
   type ImportSelection,
@@ -41,20 +42,33 @@ const URL_TTL_SECONDS = 900;
  * from, the name the notebook will carry and what part of the document was
  * chosen (RN-PRT-017).
  */
+/** Where a model notebook is, for the worker that copies it (#431). */
+export interface ModelSourceRef {
+  readonly subscriptionId: string;
+  readonly notebookId: string;
+  /** The owner of the model, as whom its notebook is read. */
+  readonly ownerUserId: string;
+}
+
 export interface TransferWork {
   readonly subscriptionId: string;
   readonly userId: string;
   readonly transferId: string;
   readonly kind: 'export' | 'import';
   readonly notebookId?: string | undefined;
-  /** An export that is a version of a notebook model (#353). */
-  readonly modelVersion?: boolean | undefined;
   /**
-   * An import that creates a notebook from a version of a model (#359): the
-   * parameters it declared and the values supplied, filled in before anything
-   * is written (#354).
+   * An import that creates a notebook from a model (#359): the parameters it
+   * declares and the values supplied, filled in before anything is written
+   * (#354).
    */
   readonly fill?: ModelFill | undefined;
+  /**
+   * The model notebook such an import copies, where it is (#431): the worker
+   * writes the notebook as it stands into `uploadKey` and imports it from
+   * there. The API took it from the model the caller may read — their own, a
+   * share or a catalog entry — never from the request (INV-02).
+   */
+  readonly modelSource?: ModelSourceRef | undefined;
   /**
    * What the transfer carries, or nothing for the whole notebook: an export
    * chooses now as an import already did (RN-PRT-017, RN-PRT-024).
@@ -189,7 +203,10 @@ export class StartImport {
   ) {}
 
   async execute(input: {
-    uploadKey: string;
+    /** The upload to import; minted here for a notebook created from a model. */
+    uploadKey?: string | undefined;
+    /** The model notebook the worker copies into a fresh upload, instead of one (#431). */
+    fromModel?: ModelSourceRef | undefined;
     name: string;
     selection: ImportSelection | null;
     /**
@@ -199,12 +216,13 @@ export class StartImport {
      */
     fileName?: string | null;
     by: Authorship;
-    /** A creation from a version of a model: its parameters, filled in by the worker (#359). */
+    /** A creation from a model: its parameters, filled in by the worker (#359). */
     fill?: ModelFill | undefined;
-    /** Which version it came from, kept on the record as information only (#359). */
+    /** Which model it came from, kept on the record as information only (#359). */
     origin?: TransferOrigin | undefined;
   }): Promise<Result<Transfer, DomainError>> {
-    if (!input.uploadKey.startsWith(`s/${this.subscriptionId}/imports/`)) {
+    const uploadKey = input.fromModel ? freshUploadKey(this.subscriptionId) : input.uploadKey;
+    if (!uploadKey?.startsWith(`s/${this.subscriptionId}/imports/`)) {
       return err(DomainError.notFound('Upload not found'));
     }
     if (input.name.trim().length === 0) {
@@ -229,10 +247,11 @@ export class StartImport {
       userId: this.userId,
       transferId: transfer.transferId,
       kind: 'import',
-      uploadKey: input.uploadKey,
+      uploadKey,
       name: transfer.notebookName,
       selection: input.selection,
       ...(input.fill ? { fill: input.fill } : {}),
+      ...(input.fromModel ? { modelSource: input.fromModel } : {}),
       authorship: {
         userId: input.by.user.value,
         agent: input.by.agent
@@ -303,7 +322,7 @@ export class ListTransfers {
       this.transfers.transitUsage(),
     ]);
     return ok({
-      // A version of a model is shown with its model, not among the person's
+      // A version a model kept before #431 is not among the person's
       // transfers, though it counts in the storage as any kept export (#353).
       transfers: await Promise.all(
         transfers.filter((transfer) => !transfer.model).map((transfer) => this.observe(transfer)),
@@ -485,7 +504,6 @@ export class RunExport {
         selection: work.selection ?? null,
         ...(work.tables ? { tables: work.tables } : {}),
         report,
-        ...(work.modelVersion ? { modelVersion: true } : {}),
       });
       await Promise.all(pending);
 
@@ -561,12 +579,23 @@ export interface ImportRunner {
   }): Promise<Result<ImportJob, DomainError>>;
 }
 
+/**
+ * Writes a model notebook, as it stands now, into the upload an import of a
+ * notebook created from it reads (#431): the notebook without its history, the
+ * way an export reads it, from the subscription the model is in.
+ */
+export interface ModelCopier {
+  copy(source: ModelSourceRef, uploadKey: string): Promise<Result<void, DomainError>>;
+}
+
 export class RunImport {
   constructor(
     private readonly transfers: TransferStore,
     private readonly importer: ImportRunner,
     private readonly by: Authorship,
     private readonly unexpected: UnexpectedFailure = IGNORED,
+    /** Absent where no model is copied: the harness of a test that does not exercise it. */
+    private readonly models: ModelCopier | null = null,
   ) {}
 
   async execute(work: TransferWork): Promise<void> {
@@ -597,6 +626,22 @@ export class RunImport {
     };
 
     try {
+      // A notebook created from a model is a copy of the model as it stands
+      // when the work runs, and the copy is what the import reads (#431).
+      if (work.modelSource) {
+        const copied = this.models
+          ? await this.models.copy(work.modelSource, work.uploadKey ?? '')
+          : null;
+        if (!copied?.ok) {
+          await this.transfers.patch(work.userId, work.transferId, {
+            status: 'failed',
+            finishedAt: Instant.now().toISOString(),
+            failure: copied ? refusalOf(copied.error) : 'NOT_FOUND',
+          });
+          return;
+        }
+      }
+
       const written = await this.importer.execute({
         uploadKey: work.uploadKey ?? '',
         name: work.name ?? null,

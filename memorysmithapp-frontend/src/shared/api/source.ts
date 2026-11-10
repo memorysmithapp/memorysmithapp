@@ -497,12 +497,11 @@ export {
 // Notebook models (#353, #354, #359), and a blank notebook beside them: straight
 // to the API, as sharing is.
 export {
-  createFromVersion,
-  createModelVersion,
+  createFromModel,
   declareModel,
-  deleteModelVersion,
   getModel,
-  getModelVersion,
+  getModelContents,
+  getModelHistory,
   listModels,
   createNotebook,
 } from './backend';
@@ -515,8 +514,9 @@ export { getFacetsById, getNoteFacets, getNotebookGraph, getNotebookHealth } fro
 // in does with it.
 export {
   createFromCatalog,
+  getCatalogContents,
+  getCatalogHistory,
   getCatalogModel,
-  getCatalogVersion,
   publishModel,
   reportModel,
   searchCatalog,

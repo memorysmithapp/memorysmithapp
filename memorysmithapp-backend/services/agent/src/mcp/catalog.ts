@@ -1538,7 +1538,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     ),
     annotations: { readOnlyHint: true },
   },
-  // ---- Notebook models (#353, #354, #359) ---------------------------------
+  // ---- Notebook models (#353, #354, #359, #431) ---------------------------
   {
     name: 'declare_model',
     title: 'Declare a notebook as a model',
@@ -1546,11 +1546,16 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Declares a notebook of this subscription as a MODEL, from which other notebooks are ' +
       'created, or declares it again to change what it says of itself. Only the owner of the ' +
       'subscription may. A model is not a template: a template is the suggested shape of the ' +
-      'notes of one folder, a model is a whole notebook to be copied. Write in the notebook ' +
+      'notes of one folder, a model is a whole notebook to be copied. The model IS its notebook, ' +
+      'read as it stands whenever a notebook is created from it: a change to the notebook is a ' +
+      'change to the model, and its history is the history of the notebook. Every table of the ' +
+      'notebook goes with its rows, and every dashboard: a table in a model is part of it, and ' +
+      "its rows are public once the model is published, so a table whose rows are someone's own " +
+      'does not belong in a model: say so to the person before declaring. Write in the notebook ' +
       'itself `{{name}}` wherever a value goes, and declare each name here once, with what it ' +
       `is, an example, its type and whether it is required or what it defaults to. Read the skill ` +
       '`derive-model` first when the model comes from a notebook that worked, and `design-notebook` ' +
-      'when it is designed from scratch. Answers the model and its versions.',
+      'when it is designed from scratch. Answers the model.',
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -1591,15 +1596,23 @@ const DEFINITIONS: readonly ToolDefinition[] = [
   },
   {
     name: 'get_model',
-    title: 'Read the model of a notebook',
+    title: 'Read a model, whole, with its history',
     description:
       'What a notebook declared as a model says of itself — its objective, audience and ' +
-      'parameters — and its versions, the newest first, each with its number, changelog and ' +
-      'status. A model shared with this person from another subscription names its owner in ' +
-      '`sharedBy`, and only its owner versions it. `licence` is `CC0-1.0` once the model was ' +
-      'distributed: whoever receives it may reuse and republish it freely, the community ' +
-      'included, so say so before the person shares one. A notebook that is no model answers ' +
-      'NOT_FOUND.',
+      'parameters — then `contents`, the model notebook whole as it stands now, which is what a ' +
+      'notebook created from it starts as: its guidance, folders and templates, notes, files, ' +
+      'tables and dashboards, and `references`, the `{{name}}` it writes that no parameter ' +
+      'declares, which a notebook created from it would keep, and the parameters nothing uses. ' +
+      'Last, `history`: the changes of the notebook, the newest first, each with when, what ' +
+      'changed, the connector that wrote it (`agent`, null for a person in the interface) and ' +
+      'its message; an edit session is one change, with its `saves` and `since`, and ' +
+      '`truncated` says older ones were left out. A model keeps no frozen state: a person who ' +
+      'wants to keep one exports the notebook. Review the contents with the person before the ' +
+      'model is shared. A model shared with this person from another subscription names its ' +
+      'owner in `sharedBy`, and only its owner changes it. `licence` is `CC0-1.0` once the ' +
+      'model was distributed: whoever receives it may reuse and republish it freely, the ' +
+      'community included, so say so before the person shares one. A notebook that is no model ' +
+      'answers NOT_FOUND.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -1615,77 +1628,19 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
-    name: 'create_model_version',
-    title: 'Create a version of a model',
-    description:
-      'Freezes the model notebook as it is now into its next version, 1, 2, …, with a ' +
-      'changelog saying what changed since the last. A version never changes afterwards, ' +
-      'counts once in the storage, and is what notebooks are created from. Only the owner of ' +
-      'the subscription may, after reviewing the notebook with them. It is built in the ' +
-      'background: get_model says when its status is ready, and read_model_version then shows ' +
-      'exactly what it holds, and what it writes as `{{name}}` without declaring. Every table ' +
-      'of the notebook goes with its rows, and every dashboard: a table in a model is part of ' +
-      'it. The rows are public once the model is published, so a table whose rows are ' +
-      "someone's own does not belong in a model: say so to the person before versioning.",
-    inputSchema: object(
-      {
-        notebook: notebookArgument,
-        changelog: { type: 'string', description: 'What changed since the last version.' },
-      },
-      ['notebook'],
-    ),
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-  },
-  {
-    name: 'read_model_version',
-    title: 'Read a version of a model whole',
-    description:
-      'Everything a version holds — its guidance, folders, templates, notes and files, its ' +
-      'parameters and changelog — and `references`: the `{{name}}` it writes that no parameter ' +
-      'declares, which a notebook created from it would keep, and the parameters nothing ' +
-      'uses. Review it with the person before the version is shared.',
-    inputSchema: object(
-      {
-        notebook: notebookArgument,
-        version: { type: 'integer', description: 'The number of the version.' },
-      },
-      ['notebook', 'version'],
-    ),
-    annotations: { readOnlyHint: true },
-  },
-  {
-    name: 'delete_model_version',
-    title: 'Delete a version of a model',
-    description:
-      'Deletes one version of a model and frees its storage. Notebooks already created from it ' +
-      'are not touched. Only the owner of the subscription may; confirm with them first.',
-    inputSchema: object(
-      {
-        notebook: notebookArgument,
-        version: { type: 'integer', description: 'The number of the version.' },
-      },
-      ['notebook', 'version'],
-    ),
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
-  },
-  {
     name: 'create_notebook_from_model',
     title: 'Create a notebook from a model',
     description:
-      'Creates an independent notebook of this subscription from a version of a model, with ' +
-      'a value for each of its parameters, by name: one not given takes its default, and a ' +
-      'required one missing, or a value not of its type, is refused before anything is ' +
-      'written, naming each. Ask the person for the values first, using the description and ' +
+      'Creates an independent notebook of this subscription from a model, a copy of the model ' +
+      'notebook as it stands now, with a value for each of its parameters, by name: one not ' +
+      'given takes its default, and a required one missing, or a value not of its type, is ' +
+      'refused before anything is written, naming each. Ask the person for the values first, using the description and ' +
       'example of each parameter. Every `{{name}}` is filled in; the new notebook depends on ' +
       'nothing of the model afterwards. It waits for the notebook to be written and answers ' +
       'its identifier, or the transfer to follow when it takes longer.',
     inputSchema: object(
       {
         notebook: { ...notebookArgument, description: 'The model, by its notebook identifier.' },
-        version: {
-          type: 'integer',
-          description: 'The version to create from, usually the latest.',
-        },
         name: {
           type: 'string',
           description: 'Optional: the name of the new notebook; the name of the model, filled in.',
@@ -1696,7 +1651,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           additionalProperties: true,
         },
       },
-      ['notebook', 'version', 'values'],
+      ['notebook', 'values'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
@@ -1705,9 +1660,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Publish a model to the community',
     description:
       'Publishes a model of this subscription to the community catalog, where anybody, with ' +
-      'an account or not, finds it and reads every version kept, and whoever signs in creates ' +
-      'notebooks from it. Only the owner of the subscription publishes, and the model needs a ' +
-      'ready version. Every distribution of a model is under CC0 1.0: anybody may reuse and ' +
+      'an account or not, finds it, reads it whole as its notebook stands and the history of ' +
+      'its changes, and whoever signs in creates notebooks from it. What the notebook changes ' +
+      'afterwards is what the catalog shows from then on. Only the owner of the subscription ' +
+      'publishes. Every distribution of a model is under CC0 1.0: anybody may reuse and ' +
       'republish it freely, so say so to the person and pass acceptLicence only once they ' +
       'agree. The catalog shows the name of their account, never the e-mail; a refusal with ' +
       'reason AUTHOR_NAME means they write their name in their profile first. Publishing again ' +
@@ -1732,7 +1688,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     name: 'withdraw_model',
     title: 'Withdraw a model from the community',
     description:
-      'Withdraws a published model from the community catalog. The model and its versions ' +
+      'Withdraws a published model from the community catalog. The model and its notebook ' +
       'stay in this subscription, and nothing anybody created from it is touched; what was ' +
       'already copied stays with whoever copied it.',
     inputSchema: object(
@@ -1747,7 +1703,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     description:
       'Finds the models published to the community, by every word given in their name, ' +
       'objective, description, audience or author, and by language. Each answers its public ' +
-      'identifier, what it is for, its author, its parameters and its versions. Offer one ' +
+      'identifier, what it is for, its author and its parameters. Offer one ' +
       'before designing a notebook from scratch, when it fits what the person wants.',
     inputSchema: object({
       query: { type: 'string', description: 'Optional: words to find.' },
@@ -1760,8 +1716,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Read a community model',
     description:
       'A model published to the community, by its public identifier: what it is for, who it ' +
-      'is for, its author and credit, its parameters, and every version its author keeps, the ' +
-      'newest first, each with its number, date and changelog.',
+      'is for, its author and credit, its parameters, then `contents`, the model whole as it ' +
+      'stands now — its Guidance, every folder with its Template, every note, the files it ' +
+      'keeps, its tables and dashboards, with `{{name}}` where a value goes — and `history`, ' +
+      'the changes of its notebook, the newest first: when and what, never who. Read it with ' +
+      'the person before creating a notebook from it.',
     inputSchema: object(
       { model: { type: 'string', description: 'The public identifier of the model.' } },
       ['model'],
@@ -1769,36 +1728,16 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
-    name: 'read_community_version',
-    title: 'Read a version of a community model',
-    description:
-      'A version of a published model, whole: its Guidance, every folder with its Template, ' +
-      'every note and the files it keeps, with `{{name}}` where a value goes. Read it with the ' +
-      'person before creating a notebook from it.',
-    inputSchema: object(
-      {
-        model: { type: 'string', description: 'The public identifier of the model.' },
-        version: { type: 'integer', description: 'The number of the version.' },
-      },
-      ['model', 'version'],
-    ),
-    annotations: { readOnlyHint: true },
-  },
-  {
     name: 'create_notebook_from_community_model',
     title: 'Create a notebook from a community model',
     description:
-      'Creates an independent notebook of this subscription from a version of a model ' +
-      'published to the community, with a value for each of its parameters, by name, as ' +
-      'create_notebook_from_model does; it is written and counted here, and depends on ' +
-      'nothing of the model afterwards. Ask the person for the values first.',
+      'Creates an independent notebook of this subscription from a model published to the ' +
+      'community, a copy of it as it stands now, with a value for each of its parameters, by ' +
+      'name, as create_notebook_from_model does; it is written and counted here, and depends ' +
+      'on nothing of the model afterwards. Ask the person for the values first.',
     inputSchema: object(
       {
         model: { type: 'string', description: 'The public identifier of the model.' },
-        version: {
-          type: 'integer',
-          description: 'The version to create from, usually the latest.',
-        },
         name: {
           type: 'string',
           description: 'Optional: the name of the new notebook; the name of the model, filled in.',
@@ -1809,7 +1748,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           additionalProperties: true,
         },
       },
-      ['model', 'version', 'values'],
+      ['model', 'values'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },

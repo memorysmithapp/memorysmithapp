@@ -2,10 +2,11 @@
  * The routes of the community catalog that no subscription is behind (#360).
  *
  * The public ones answer anybody, an account or none, and are served by a
- * handler of their own whose permissions reach the catalog entries and the
- * snapshots of versions and nothing else (#356): every read starts from an
- * entry, the one way a public request reaches a subscription (INV-02). Their
- * answers may be kept at the edge for a minute; a withdrawal empties it.
+ * handler of their own whose permissions reach the catalog entries and what a
+ * model notebook is read with, and nothing written (#356, #431): every read
+ * starts from an entry, the one way a public request reaches a subscription
+ * (INV-02). Their answers may be kept at the edge for a minute; a withdrawal
+ * empties it.
  *
  * The operator's routes are for a platform session, which holds no
  * subscription and reaches no customer content (INV-12): they read the
@@ -19,14 +20,15 @@ import type {
   DismissReport,
   ListReports,
   PlatformActor,
+  ReadCatalogContents,
+  ReadCatalogHistory,
   ReadCatalogModel,
-  ReadCatalogVersion,
   SearchCatalog,
   WithdrawByOperator,
 } from '../application/Catalog.js';
 import { documentToDto } from './http.js';
 
-/** How long the edge keeps a public answer (#356): short, so a new version shows soon. */
+/** How long the edge keeps a public answer (#356): short, so a change of the model shows soon. */
 export const PUBLIC_MAX_AGE_SECONDS = 60;
 
 /**
@@ -40,7 +42,8 @@ export const PUBLIC_STALE_SECONDS = 300;
 export interface PublicCatalogUseCases {
   readonly search: () => SearchCatalog;
   readonly readModel: () => ReadCatalogModel;
-  readonly readVersion: () => ReadCatalogVersion;
+  readonly readContents: () => ReadCatalogContents;
+  readonly readHistory: () => ReadCatalogHistory;
 }
 
 function fail(c: Context, error: DomainError): Response {
@@ -69,29 +72,27 @@ export function createPublicCatalogRoutes(useCases: PublicCatalogUseCases): Hono
     return read.ok ? cached(c, read.value) : fail(c, read.error);
   });
 
-  app.get('/:p/versions/:n', async (c) => {
-    const read = await useCases.readVersion().execute({
-      publicId: c.req.param('p'),
-      number: Number(c.req.param('n')),
-    });
+  /** The model notebook as it stands, read whole (#431). */
+  app.get('/:p/contents', async (c) => {
+    const read = await useCases.readContents().execute(c.req.param('p'));
     if (!read.ok) return fail(c, read.error);
-    const { model, version, document, references } = read.value;
+    const { model, document, references } = read.value;
     return cached(c, {
       model,
-      version: {
-        number: version.number,
-        changelog: version.changelog,
-        createdAt: version.createdAt,
-        bytes: version.bytes,
-      },
       objective: model.objective,
       description: model.description,
       audience: model.audience,
-      parameters: version.parameters,
+      parameters: model.parameters,
       basedOn: model.basedOn,
       ...documentToDto(document),
       references,
     });
+  });
+
+  /** What changed in it, the newest first: when and what, never who (#431). */
+  app.get('/:p/history', async (c) => {
+    const read = await useCases.readHistory().execute(c.req.param('p'));
+    return read.ok ? cached(c, read.value) : fail(c, read.error);
   });
 
   return app;

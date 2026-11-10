@@ -28,7 +28,7 @@ import {
 import type { NotebookDocument } from '@memorysmithapp/svc-portability/domain';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { Role, type SubscriptionContext } from '@memorysmithapp/kernel';
+import { Role, SubscriptionContext } from '@memorysmithapp/kernel';
 import {
   DynamoAvatarRepository,
   DynamoConnectorBindingRepository,
@@ -72,6 +72,8 @@ import {
   DynamoTransferStore,
 } from '@memorysmithapp/svc-portability/adapters/dynamo';
 import type { ModelStore } from '@memorysmithapp/svc-portability/domain/model';
+import type { ModelReading } from '@memorysmithapp/svc-portability/application/models';
+import { KnowledgeExportSource } from './export-source.js';
 import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters/http';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
@@ -150,23 +152,47 @@ export function parseNotebookDocument(json: string): NotebookDocument {
 }
 
 /**
- * The snapshot a version of a notebook model froze (#353): the archive of a
- * kept export, unzipped and read against the published schema, or null when
- * the object is gone or is not one.
+ * How a model notebook of this subscription is read where it is (#431): its
+ * parts as an export reads them, and the entries the trail keeps of it, with
+ * the connector of each and nothing else of who wrote it.
  */
-export async function readVersionDocument(
-  read: (key: string) => Promise<Buffer | null>,
-  unzip: (archive: Buffer) => Record<string, string>,
-  key: string,
-): Promise<NotebookDocument | null> {
-  const archive = await read(key);
-  if (!archive) return null;
-  try {
-    const json = Object.entries(unzip(archive)).find(([name]) => name.endsWith('.json'))?.[1];
-    return json === undefined ? null : parseNotebookDocument(json);
-  } catch {
-    return null;
-  }
+export function buildModelReading(
+  infra: Infrastructure,
+  context: SubscriptionContext,
+): ModelReading {
+  const trail = new DynamoAuditTrail(infra.db, infra.auditTable, context.subscriptionId);
+  return {
+    source: new KnowledgeExportSource(buildKnowledge(infra, context)),
+    trail: async (notebookId) =>
+      (await trail.activityOf(notebookId, null, null)).map((event) => ({
+        occurredAt: event.occurredAt.toISOString(),
+        type: event.type,
+        subject: event.subject,
+        subjectId: event.subjectId,
+        payload: event.payload,
+        agent: event.authorship.agent?.clientName ?? null,
+      })),
+  };
+}
+
+/**
+ * How a model notebook another subscription holds is read, by the entry of the
+ * community catalog that names it (#431): as its owner, in their subscription,
+ * and nothing a request says reaches here (INV-02).
+ */
+export function buildModelReadingOf(
+  infra: Infrastructure,
+): (holder: { subscriptionId: string; ownerUserId: string }) => ModelReading {
+  return (holder) => {
+    const context = SubscriptionContext.fromClaims({
+      sub: holder.ownerUserId,
+      subscription_id: holder.subscriptionId,
+      subscription_status: 'active',
+    });
+    if (!context.ok)
+      throw new Error(`A model named an unusable subscription: ${context.error.message}`);
+    return buildModelReading(infra, context.value);
+  };
 }
 
 /** The models of a subscription (#353), beside its transfers. */

@@ -1,7 +1,7 @@
 /**
- * Filling in the parameters of a model (#354, RN-PRT-037 to RN-PRT-039): the
- * values a person supplies for a version, checked against what the model
- * declared, and written into every place a reference stands, so a notebook
+ * Filling in the parameters of a model (#354, RN-PRT-063, RN-PRT-064): the
+ * values a person supplies for a model, checked against what the model
+ * declares, and written into every place a reference stands, so a notebook
  * created from the model keeps no reference.
  *
  * Where a reference stands is the specification's reader's to say (§7.14,
@@ -44,7 +44,7 @@ export type FilledValues = ReadonlyMap<string, Filled>;
  * The value of every declared parameter: what was supplied, or the default of
  * one that is not required. A required parameter left out, or a value that is
  * not of its type, refuses the creation before anything is written, naming
- * each one (RN-PRT-037).
+ * each one (RN-PRT-063).
  */
 export function resolveValues(
   declarations: readonly ParameterDeclaration[],
@@ -186,7 +186,7 @@ export function fillText(text: string, values: FilledValues): string {
 }
 
 /**
- * The document of a version with every declared parameter filled in: the name
+ * The copy of a model notebook with every declared parameter filled in: the name
  * and the description of the notebook, its Guidance, the name, the description
  * and the Template of each folder, and every note, its frontmatter included.
  */
@@ -209,7 +209,7 @@ export function fillDocument(document: NotebookDocument, values: FilledValues): 
     })),
     notes: document.notes.map((note) => ({ ...note, body: fillMarkdown(note.body, values) })),
     // A table's name and descriptions are filled, and never a row: a row is
-    // data, and data is never rewritten underneath (RN-PRT-050).
+    // data, and data is never rewritten underneath (RN-PRT-071).
     ...(document.tables
       ? { tables: document.tables.map((table) => fillTable(table, values)) }
       : {}),
@@ -275,7 +275,7 @@ function tableTexts(table: DocumentTable): string[] {
 }
 
 /**
- * What a version writes and what its model declares, compared (RN-PRT-039): a
+ * What a model notebook writes and what its model declares, compared (RN-PRT-064): a
  * reference no declaration answers, which a notebook created from it would
  * keep, and a declaration no text uses, which asks for a value for nothing.
  */

@@ -339,7 +339,7 @@ export const connectorSchema = agentIdentitySchema;
  * `content-editor` also writes the notes, their moves and the files; a
  * `notebook-editor` also maintains the folders, the Guidance and the
  * Templates. A `model-reader` reaches only the model of a notebook declared
- * as one and its versions, never the notebook (#355). Sharing, the profiles
+ * as one, as it stands, and its history, never the notebook (#355, #431). Sharing, the profiles
  * and deleting the notebook stay with the owner.
  */
 export const shareProfileSchema = z.enum([

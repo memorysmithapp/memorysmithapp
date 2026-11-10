@@ -117,7 +117,7 @@
       },
       "sharedWithMe": {
         "label": "Um modelo compartilhado com você por {{owner}}",
-        "explain": "{{owner}} compartilhou este modelo com você. Você lê as versões e cria cadernos a partir delas; o caderno do modelo continua com quem compartilhou."
+        "explain": "{{owner}} compartilhou este modelo com você. Você o lê como está, e o histórico dele, e cria cadernos a partir dele; o caderno do modelo continua com quem compartilhou."
       }
     },
     "community": {
@@ -127,7 +127,7 @@
       },
       "community": {
         "label": "Publicado na comunidade por {{owner}}",
-        "explain": "{{owner}} publicou este modelo na comunidade, livre para usar (CC0). O ⋯ cria um caderno seu a partir da versão mais recente."
+        "explain": "{{owner}} publicou este modelo na comunidade, livre para usar (CC0). O ⋯ cria um caderno seu a partir dele."
       }
     }
   },
@@ -141,7 +141,7 @@
     "parameters_other": "{{count}} parâmetros",
     "updated": "atualizado em {{date}}",
     "open": "Abrir o modelo",
-    "help": "Um modelo é um caderno que serve de molde: cada versão fica congelada e cria cadernos novos, com os parâmetros preenchidos. Aqui estão os seus e os compartilhados com você como modelo. O ⋯ de um seu exporta, compartilha ou apaga."
+    "help": "Um modelo é um caderno que serve de molde: ele cria cadernos novos como está, com os parâmetros preenchidos, e guarda o histórico das mudanças. Aqui estão os seus e os compartilhados com você como modelo. O ⋯ de um seu exporta, compartilha ou apaga."
   },
   "language": {
     "heading": "Idioma",
@@ -168,7 +168,7 @@
     "guidance": "Orientação",
     "folders": "Pastas",
     "foldersHint": "A árvore com a descrição de cada pasta",
-    "modelHint": "O que ele declara como modelo: o objetivo, os parâmetros e as versões",
+    "modelHint": "O que ele declara como modelo: o objetivo, os parâmetros, o que ele guarda e o histórico",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo de pasta",
@@ -791,7 +791,7 @@
       },
       "model": {
         "term": "Modelo de caderno",
-        "definition": "Um caderno declarado como modelo cria outros a partir dele, com os parâmetros preenchidos. Suas versões ficam congeladas, e cada uma pode ser publicada na comunidade. Os Modelos, no menu do topo, listam todos e criam um novo."
+        "definition": "Um caderno declarado como modelo cria outros a partir dele, como está, com os parâmetros preenchidos. O histórico lista cada mudança, e ele pode ser publicado na comunidade; para guardar um estado dele, exporte o caderno. Os Modelos, no menu do topo, listam todos e criam um novo."
       },
       "graph": {
         "term": "Grafo",
@@ -1084,7 +1084,7 @@
       "reader": "Lê e exporta o caderno inteiro, e não escreve nada.",
       "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos de pasta continuam sendo seus para mudar.",
       "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de pasta. Compartilhar e apagar o caderno continuam com você.",
-      "modelReader": "Lê este modelo e as versões dele e cria cadernos a partir delas, e nunca abre o caderno em si."
+      "modelReader": "Lê este modelo como está, e o histórico dele, e cria cadernos a partir dele, e nunca abre o caderno em si."
     }
   },
   "notifications": {
@@ -1255,39 +1255,22 @@
     "save": "Salvar",
     "saving": "Salvando…",
     "saved": "Salvo.",
-    "versions": "Versões",
-    "changelog": "O que mudou desde a última versão",
-    "versionHint": "Uma versão congela o caderno como está agora. Ela não muda depois, e conta uma vez no armazenamento.",
-    "createVersion": "Criar uma versão",
-    "creatingVersion": "Criando…",
-    "noVersions": "Nenhuma versão ainda.",
-    "status": {
-      "running": "Sendo criada",
-      "ready": "Pronta",
-      "failed": "Falhou",
-      "cancelled": "Cancelada"
-    },
-    "openVersion": "Abrir",
-    "deleteVersion": "Apagar…",
-    "deleteVersionForGood": "Apagar v{{number}}",
-    "versionTitle": "Versão {{number}}",
-    "undeclared": "Esta versão escreve {{names}}, que nenhum parâmetro declara: um caderno criado a partir dela os manteria como estão.",
+    "undeclared": "Este modelo escreve {{names}}, que nenhum parâmetro declara: um caderno criado a partir dele os manteria como estão.",
     "unused": "Declarados e não escritos em lugar nenhum: {{names}}.",
-    "contents": "O que ela guarda",
+    "contents": "O que ele guarda",
     "none": "Nenhuma.",
-    "create": "Criar um caderno a partir desta versão",
+    "create": "Criar um caderno a partir deste modelo",
     "creating": "Criando…",
     "newName": "Nome do caderno novo",
     "newNameHint": "Vazio, é o nome do modelo, preenchido.",
     "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
     "creationFailed": "O caderno não foi criado. Transferências diz por quê.",
     "referenceExample": "nome",
-    "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo e as versões dele e cria cadernos a partir delas; o caderno que ele é fica com o dono.",
+    "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo como está, e o histórico dele, e cria cadernos a partir dele; o caderno que ele é fica com o dono.",
     "community": "Comunidade",
-    "publishHint": "Publicar mostra o modelo e todas as versões que você mantém a toda pessoa que entra no MemorySmith.app, pelo nome da sua conta e nunca pelo seu e-mail; quem o lê cria cadernos a partir dele. Você o retira quando quiser.",
+    "publishHint": "Publicar mostra o modelo como está, e o histórico das mudanças sem dizer quem as fez, a toda pessoa que entra no MemorySmith.app, pelo nome da sua conta e nunca pelo seu e-mail; quem o lê cria cadernos a partir dele. Você o retira quando quiser.",
     "publishLicence": "Toda distribuição de um modelo é sob CC0 1.0: qualquer pessoa pode reutilizá-lo e republicá-lo livremente, inclusive na comunidade.",
     "publish": "Publicar na comunidade",
-    "publishNeedsVersion": "Crie uma versão antes: a comunidade lê versões, nunca o caderno.",
     "publishNeedsName": "Escreva seu nome no perfil antes: o catálogo mostra o nome, nunca o e-mail.",
     "publishedAs": "Publicado por {{author}}, em {{language}}.",
     "publicPage": "Abrir a página pública",
@@ -1295,7 +1278,8 @@
     "tabs": {
       "about": "Sobre o modelo",
       "parameters": "Parâmetros",
-      "versions": "Versões",
+      "contents": "Conteúdo",
+      "history": "Histórico",
       "community": "Comunidade"
     },
     "editParameter": "Editar",
@@ -1304,8 +1288,44 @@
     "addParameterTitle": "Novo parâmetro",
     "editParameterTitle": "Editar parâmetro",
     "removeParameterTitle": "Remover o parâmetro {{name}}?",
-    "removeParameterBody": "Os cadernos criados a partir das próximas versões não vão mais preencher {{reference}}. Onde {{reference}} já está escrito nas notas, ele fica como está.",
-    "defaultsToNothing": "padrão vazio"
+    "removeParameterBody": "Os cadernos criados a partir do modelo daqui em diante não vão mais preencher {{reference}}. Onde {{reference}} já está escrito nas notas, ele fica como está.",
+    "defaultsToNothing": "padrão vazio",
+    "contentsHint": "O modelo como está agora: um caderno criado a partir dele começa assim. Para guardar um estado dele, exporte o caderno.",
+    "historyHint": "Cada mudança do caderno que este modelo é, da mais recente para a mais antiga: quem fez, por qual conector, e a linha que deixou.",
+    "historyEmpty": "Nenhuma mudança foi registrada ainda.",
+    "historyTruncated": "As mudanças mais antigas ficaram de fora.",
+    "change": {
+      "NotebookCreated": "Caderno criado",
+      "NotebookRenamed": "Caderno renomeado",
+      "GuidanceUpdated": "Orientação escrita",
+      "GuidanceDeleted": "Orientação excluída",
+      "FolderAdded": "Pasta adicionada",
+      "FolderRenamed": "Pasta renomeada",
+      "FolderDescribed": "Pasta descrita",
+      "FolderNotesOrdered": "Notas de uma pasta ordenadas",
+      "FolderMoved": "Pasta movida",
+      "FolderReordered": "Pasta reordenada",
+      "FolderRemoved": "Pasta removida",
+      "TemplateUpdated": "Modelo de pasta escrito",
+      "TemplateDeleted": "Modelo de pasta excluído",
+      "FileKept": "Arquivo guardado",
+      "FileDeleted": "Arquivo excluído",
+      "TableCreated": "Tabela criada",
+      "TableAltered": "Tabela alterada",
+      "TableDeleted": "Tabela excluída",
+      "RowsInserted": "Linhas inseridas",
+      "RowsUpdated": "Linhas atualizadas",
+      "RowsDeleted": "Linhas excluídas",
+      "DashboardCreated": "Painel criado",
+      "DashboardChanged": "Painel alterado",
+      "DashboardDeleted": "Painel excluído",
+      "NoteCreated": "Nota criada",
+      "NoteUpdated": "Nota gravada",
+      "NoteReordered": "Nota reordenada",
+      "NoteMoved": "Nota movida",
+      "NoteDeleted": "Nota excluída",
+      "NoteRestored": "Nota restaurada"
+    }
   },
   "newNotebook": {
     "open": "Novo caderno",
@@ -1322,8 +1342,6 @@
     "creating": "Criando…",
     "model": "Modelo de caderno",
     "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
-    "noVersion": "Este modelo ainda não tem versão pronta.",
-    "fromVersion": "Da versão {{number}}: {{changelog}}",
     "community": "Ou encontre um modelo na comunidade",
     "parametersAfter": "Os parâmetros você declara depois, na aba Parâmetros, que abre assim que o modelo é criado."
   },
@@ -1337,11 +1355,7 @@
     "sendReport": "Enviar a denúncia",
     "reported": "Obrigado: a denúncia chegou ao operador da plataforma.",
     "by": "Por {{author}}",
-    "cardMeta_one": "{{language}} · atualizado em {{date}} · {{count}} versão",
-    "cardMeta_other": "{{language}} · atualizado em {{date}} · {{count}} versões",
-    "menu": {
-      "fromVersion": "Criar um caderno a partir da versão {{number}}"
-    },
+    "cardMeta": "{{language}} · atualizado em {{date}}",
     "language": "Idioma",
     "languages": {
       "any": "Qualquer idioma",
@@ -1349,7 +1363,8 @@
       "en": "Inglês",
       "es": "Espanhol"
     },
-    "help": "Modelos que outras pessoas publicaram, livres para usar (CC0). Abra um para ler as versões e criar um caderno seu a partir dele. Para achar um pelo nome, use a pesquisa do topo."
+    "help": "Modelos que outras pessoas publicaram, livres para usar (CC0). Abra um para lê-lo como está, e o histórico dele, e criar um caderno seu a partir dele. Para achar um pelo nome, use a pesquisa do topo.",
+    "historyHint": "Cada mudança deste modelo, da mais recente para a mais antiga, e a linha que o autor deixou."
   },
   "globalSearch": {
     "placeholder": "Encontre cadernos, modelos e modelos da comunidade…",
@@ -1371,8 +1386,8 @@
     "notes_other": "notas",
     "attachments_one": "anexo",
     "attachments_other": "anexos",
-    "modelVersions_one": "versão deste Modelo de caderno",
-    "modelVersions_other": "versões deste Modelo de caderno",
+    "modelParameters_one": "parâmetro deste Modelo de caderno",
+    "modelParameters_other": "parâmetros deste Modelo de caderno",
     "guidance": "Orientação escrita",
     "noGuidance": "sem Orientação",
     "templates_one": "Modelo de pasta",

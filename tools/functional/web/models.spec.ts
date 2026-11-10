@@ -1,13 +1,13 @@
 /**
- * Notebook models in the interface (#353, #354, #355, #359): the owner declares
- * a notebook as a model, freezes it into a version and creates a notebook from
- * it; a person of another subscription the model is shared with as a model
- * reader reads it and its versions on pages of their own, outside any notebook.
+ * Notebook models in the interface (#353, #354, #355, #359, #431): the owner
+ * declares a notebook as a model, reads it as it stands with its history and
+ * creates a notebook from it; a person of another subscription the model is
+ * shared with as a model reader reads it on pages of their own, outside any
+ * notebook. A model has no versions, and an address of one opens the model.
  */
 
 import { apiToken } from '../support/accounts.js';
 import { Api } from '../support/api.js';
-import { eventually } from '../support/eventually.js';
 import { expect, openAs, speak, test, type AppLocale } from './fixtures.js';
 
 /** The words of the model pages, copied from the locale files of the interface. */
@@ -27,12 +27,8 @@ const MODEL_WORDS: Record<
     readonly saved: string;
     readonly save: string;
     readonly tabAbout: string;
-    readonly tabVersions: string;
-    readonly changelog: string;
-    readonly createVersion: string;
-    readonly ready: string;
-    readonly open: string;
-    readonly version: (number: number) => string;
+    readonly tabContents: string;
+    readonly tabHistory: string;
     readonly create: string;
     readonly sharedBy: string;
   }
@@ -51,13 +47,9 @@ const MODEL_WORDS: Record<
     saved: 'Saved.',
     save: 'Save',
     tabAbout: 'About the model',
-    tabVersions: 'Versions',
-    changelog: 'What changed since the last version',
-    createVersion: 'Create a version',
-    ready: 'Ready',
-    open: 'Open',
-    version: (number) => `Version ${number}`,
-    create: 'Create a notebook from this version',
+    tabContents: 'Contents',
+    tabHistory: 'History',
+    create: 'Create a notebook from this model',
     sharedBy: 'Shared with you by',
   },
   pt_BR: {
@@ -74,13 +66,9 @@ const MODEL_WORDS: Record<
     saved: 'Salvo.',
     save: 'Salvar',
     tabAbout: 'Sobre o modelo',
-    tabVersions: 'Versões',
-    changelog: 'O que mudou desde a última versão',
-    createVersion: 'Criar uma versão',
-    ready: 'Pronta',
-    open: 'Abrir',
-    version: (number) => `Versão ${number}`,
-    create: 'Criar um caderno a partir desta versão',
+    tabContents: 'Conteúdo',
+    tabHistory: 'Histórico',
+    create: 'Criar um caderno a partir deste modelo',
     sharedBy: 'Compartilhado com você por',
   },
 };
@@ -153,12 +141,12 @@ test.describe('notebook models', () => {
     await expect.poll(async () => (await box.boundingBox())?.width ?? 0).toBe(390);
   });
 
-  test('[page:/notebooks/:notebookId/model] [page:/notebooks/:notebookId/model/versions/:version] creates a model from the models, freezes a version and creates a notebook from it', async ({
+  test('[page:/notebooks/:notebookId/model] creates a model from the models, reads its history and what it holds, and creates a notebook from it (#431)', async ({
     app,
     notebook,
     owner,
     appLocale,
-  }) => {
+  }, testInfo) => {
     const words = MODEL_WORDS[appLocale];
     // A notebook that is no model offers none.
     await app.goto(notebook.page('/model'));
@@ -222,14 +210,22 @@ test.describe('notebook models', () => {
       'Keep the findings of one review',
     );
 
-    await app.getByRole('tab', { name: words.tabVersions }).click();
-    await app.getByLabel(words.changelog).fill('The first version');
-    await app.getByRole('button', { name: words.createVersion }).click();
-    const version = app.locator('.model-version', { hasText: 'v1' });
-    await expect(version.getByText(words.ready, { exact: true })).toBeVisible({ timeout: 120_000 });
+    // Its history is the trail of its notebook, which follows a write within
+    // seconds, read by a person in the interface (#431).
+    await app.getByRole('tab', { name: words.tabHistory }).click();
+    await expect(app.locator('.model-history > li').first()).toBeVisible({ timeout: 90_000 });
+    await testInfo.attach('model-history.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
 
-    await version.getByRole('link', { name: words.open }).click();
-    await expect(app.getByRole('heading', { name: words.version(1) })).toBeVisible();
+    // What it holds now is where a notebook is created from it.
+    await app.getByRole('tab', { name: words.tabContents }).click();
+    await expect(app.locator('section.model-contents')).toBeVisible();
+    await testInfo.attach('model-contents.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
     await app.getByRole('button', { name: words.create }).click();
     const name = `${notebook.name} for Aurora`;
     const form = app.locator('form.create-from-model');
@@ -250,7 +246,7 @@ test.describe('notebook models', () => {
     if (model) await owner.ok('DELETE', `/knowledge/notebooks/${model.notebookId}`);
   });
 
-  test('[page:/notebooks/:notebookId/model/versions/:version] draws a yes-or-no parameter as a box beside its name when a notebook is created from a version (#411)', async ({
+  test('[page:/notebooks/:notebookId/model/versions/:version] draws a yes-or-no parameter as a box beside its name when a notebook is created from a model, whose old address of a version opens it (#411, #431)', async ({
     app,
     notebook,
     owner,
@@ -265,15 +261,10 @@ test.describe('notebook models', () => {
         { name: 'client', type: 'text', required: true },
       ],
     });
-    await owner.call('POST', `${model}/versions`, { changelog: 'The first version' });
-    await eventually(
-      'the first version of the model is ready',
-      () => owner.ok<{ versions: Array<{ status: string }> }>('GET', model),
-      (read) => read.versions[0]?.status === 'ready',
-      { timeoutMs: 120_000 },
-    );
 
+    // An address of a version, bookmarked before #431, opens what the model holds.
     await app.goto(notebook.page('/model/versions/1'));
+    await app.waitForURL(/\/model\?tab=contents$/);
     await app.getByRole('button', { name: words.create }).click();
     const form = app.locator('form.create-from-model');
     const box = form.locator('#value-withMinutes');
@@ -291,7 +282,7 @@ test.describe('notebook models', () => {
     await expect(box).not.toBeChecked();
   });
 
-  test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, and never its notebook', async ({
+  test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, with what it holds and its history, and never its notebook', async ({
     page,
     notebook,
     owner,
@@ -302,13 +293,6 @@ test.describe('notebook models', () => {
     const words = MODEL_WORDS[appLocale];
     const model = `/portability/models/${notebook.notebookId}`;
     await owner.ok('PUT', model, { objective: 'Keep the findings of one review' });
-    await owner.call('POST', `${model}/versions`, { changelog: 'The first version' });
-    await eventually(
-      'the first version of the model is ready',
-      () => owner.ok<{ versions: Array<{ status: string }> }>('GET', model),
-      (read) => read.versions[0]?.status === 'ready',
-      { timeoutMs: 120_000 },
-    );
 
     const other = new Api(state.surfaces.api, await apiToken(state, state.accounts.other));
     const shares = `/access/notebooks/${notebook.notebookId}/shares`;
@@ -325,13 +309,16 @@ test.describe('notebook models', () => {
       await expect(page.getByText(words.sharedBy, { exact: false })).toContainText(
         state.accounts.owner.email,
       );
-      // The versions are a tab of their own (#400).
-      await page.getByRole('tab', { name: words.tabVersions }).click();
-      await page
-        .locator('.model-version', { hasText: 'v1' })
-        .getByRole('link', { name: words.open })
-        .click();
-      await expect(page.getByRole('heading', { name: words.version(1) })).toBeVisible();
+      // What it holds and its history are tabs of their own (#400, #431).
+      await page.getByRole('tab', { name: words.tabContents }).click();
+      await expect(page.getByRole('button', { name: words.create })).toBeVisible();
+      await page.getByRole('tab', { name: words.tabHistory }).click();
+      await expect(page.locator('.model-history > li').first()).toBeVisible({ timeout: 90_000 });
+      // An address of a version opens the model, as it stands.
+      await page.goto(
+        `${state.surfaces.site}/models/${notebook.notebookId.toLowerCase()}/versions/1`,
+      );
+      await page.waitForURL(/\?tab=contents$/);
       await expect(page.getByRole('button', { name: words.create })).toBeVisible();
 
       // The notebook itself stays closed to a model reader.
@@ -343,7 +330,7 @@ test.describe('notebook models', () => {
     }
   });
 
-  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model signed in, under the menu, reads it and its version, and sends a visitor with no session to sign in first (#418)', async ({
+  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model signed in, under the menu, reads what it holds and its history, and sends a visitor with no session to sign in first (#418, #431)', async ({
     browser,
     app,
     notebook,
@@ -354,13 +341,6 @@ test.describe('notebook models', () => {
     const words = COMMUNITY_WORDS[appLocale];
     const model = `/portability/models/${notebook.notebookId}`;
     await owner.ok('PUT', model, { objective: `Keep the findings of ${notebook.name}` });
-    await owner.call('POST', `${model}/versions`, { changelog: 'The first version' });
-    await eventually(
-      'the first version of the model is ready',
-      () => owner.ok<{ versions: Array<{ status: string }> }>('GET', model),
-      (read) => read.versions[0]?.status === 'ready',
-      { timeoutMs: 120_000 },
-    );
     const profile = await owner.ok<{ name: string; email: string }>('GET', '/access/profile');
     if (!profile.name.trim() || profile.name === profile.email) {
       await owner.ok('PUT', '/access/profile', { name: 'Functional Owner', avatar: 'initials' });
@@ -371,7 +351,7 @@ test.describe('notebook models', () => {
     });
 
     try {
-      // No session at all: the community asks to sign in first (RN-PRT-059).
+      // No session at all: the community asks to sign in first (RN-PRT-076).
       // A context of its own, because `app` is `page` already signed in.
       const visitor = await browser.newPage();
       try {
@@ -415,20 +395,22 @@ test.describe('notebook models', () => {
       await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
       await expect(app.getByText(words.licence, { exact: false })).toBeVisible();
       await expect(app.getByRole('button', { name: words.report })).toBeVisible();
-      await app
-        .locator('.model-version', { hasText: 'v1' })
-        .getByRole('link', { name: words.open })
-        .click();
-      await expect(app.getByRole('heading', { name: words.version(1) })).toBeVisible();
-      await expect(app.getByRole('button', { name: words.create })).toBeVisible();
       await expect(app).toHaveTitle(new RegExp(notebook.name));
+      const modelAddress = app.url();
+      await app.getByRole('tab', { name: words.tabContents }).click();
+      await expect(app.getByRole('button', { name: words.create })).toBeVisible();
+      // Its history says when and what, never who (#431).
+      await app.getByRole('tab', { name: words.tabHistory }).click();
+      await expect(app.locator('.model-history > li').first()).toBeVisible({ timeout: 90_000 });
+      await expect(app.locator('.model-history .history-author')).toHaveCount(0);
 
-      // The trail goes back: to the model from its version, and to every
-      // model of the community from the model (#422).
+      // An address of a version opens the model as it stands.
+      await app.goto(`${modelAddress.replace(/\?.*$/, '')}/versions/1`);
+      await app.waitForURL(/\?tab=contents$/);
+      await expect(app.getByRole('button', { name: words.create })).toBeVisible();
+
+      // The trail goes back to every model of the community (#422).
       const trail = app.locator('.notebook-bar .notebook-breadcrumb');
-      await expect(trail.locator('.crumb.is-last')).toHaveText('v1');
-      await trail.getByRole('link', { name: notebook.name }).click();
-      await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
       await trail.locator('a.crumb[href="/community"]').click();
       await expect(app.getByRole('heading', { name: words.title, level: 1 })).toBeVisible();
     } finally {
@@ -446,8 +428,8 @@ const COMMUNITY_WORDS: Record<
     readonly licence: string;
     readonly report: string;
     readonly create: string;
-    readonly open: string;
-    readonly version: (number: number) => string;
+    readonly tabContents: string;
+    readonly tabHistory: string;
   }
 > = {
   en_US: {
@@ -455,17 +437,17 @@ const COMMUNITY_WORDS: Record<
     communityGroup: 'Community',
     licence: 'Published under CC0 1.0',
     report: 'Report this model',
-    create: 'Create a notebook from this version',
-    open: 'Open',
-    version: (number) => `Version ${number}`,
+    create: 'Create a notebook from this model',
+    tabContents: 'Contents',
+    tabHistory: 'History',
   },
   pt_BR: {
     title: 'Comunidade',
     communityGroup: 'Comunidade',
     licence: 'Publicado sob CC0 1.0',
     report: 'Denunciar este modelo',
-    create: 'Criar um caderno a partir desta versão',
-    open: 'Abrir',
-    version: (number) => `Versão ${number}`,
+    create: 'Criar um caderno a partir deste modelo',
+    tabContents: 'Conteúdo',
+    tabHistory: 'Histórico',
   },
 };

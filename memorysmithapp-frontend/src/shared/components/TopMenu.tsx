@@ -64,7 +64,7 @@ export function TopMenu({ layout = 'row' }: { layout?: 'row' | 'list' }) {
   );
 }
 
-/** `/notebooks/{id}/model` and its versions: the pages of a model of one's own. */
+/** `/notebooks/{id}/model` and below it: the pages of a model of one's own. */
 function isOwnModelAddress(pathname: string): boolean {
   return /^\/notebooks\/[^/]+\/model(\/|$)/i.test(pathname);
 }

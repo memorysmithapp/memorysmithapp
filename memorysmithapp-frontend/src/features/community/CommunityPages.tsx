@@ -1,40 +1,38 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { PublicModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import {
-  communityModelAddress,
-  communityVersionAddress,
-  identifierOf,
-} from '../../shared/api/note-address';
+import { communityModelAddress, identifierOf } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
   createFromCatalog,
+  getCatalogContents,
+  getCatalogHistory,
   getCatalogModel,
-  getCatalogVersion,
   listModels,
   reportModel,
   searchCatalog,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { useLiveInterval } from '../../shared/api/live';
-import { PageSkeleton, ShelfSkeleton } from '../../shared/components/skeletons';
-import { CreateFromModelForm } from '../models/CreateFromModel';
+import { PageSkeleton, RowsSkeleton, ShelfSkeleton } from '../../shared/components/skeletons';
+import { Tabs } from '../../shared/components/Tabs';
 import { ShelfCard } from '../dashboard/NotebookCard';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { PageHeading } from '../../shared/components/PageHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { MenuItem } from '../../shared/components/Menu';
-import { ParameterList, SharedModelBar } from '../models/ModelPage';
-import { VersionContents } from '../models/ModelVersionPage';
+import { SharedModelBar } from '../models/ModelPage';
+import { ModelContents, ParameterList } from '../models/ModelContents';
+import { ModelHistoryList } from '../models/ModelHistory';
 
 /**
  * The community catalog (#360): the models their owners published, read and
  * created from by a person signed in, inside the frame of the application and
- * its menu (#418, RN-PRT-059). The list is the shelf of cards the notebooks
+ * its menu (#418, RN-PRT-076). The list is the shelf of cards the notebooks
  * and the models use.
  */
 
@@ -108,7 +106,6 @@ export function CommunityPage() {
             {models.map((model, index) => {
               const own = published.has(model.publicId);
               const to = communityModelAddress(model.publicId);
-              const latest = Math.max(0, ...model.versions.map((version) => version.number));
               return (
                 <ShelfCard
                   key={model.publicId}
@@ -120,7 +117,6 @@ export function CommunityPage() {
                   meta={t('community.cardMeta', {
                     language: model.language,
                     date: day(model.updatedAt),
-                    count: model.versions.length,
                   })}
                   to={to}
                   openLabel={t('models.open')}
@@ -136,17 +132,12 @@ export function CommunityPage() {
                         />
                       }
                     >
-                      {latest > 0
-                        ? () => (
-                            <MenuItem
-                              onSelect={() =>
-                                navigate(communityVersionAddress(model.publicId, latest))
-                              }
-                            >
-                              {t('community.menu.fromVersion', { number: latest })}
-                            </MenuItem>
-                          )
-                        : null}
+                      {() => (
+                        // The model as it stands, where a notebook is created from it (#431).
+                        <MenuItem onSelect={() => navigate(`${to}?tab=contents`)}>
+                          {t('model.create')}
+                        </MenuItem>
+                      )}
                     </ShelfCorner>
                   }
                 />
@@ -163,11 +154,26 @@ function usePublicId(): string {
   return identifierOf(useParams().publicId) ?? '';
 }
 
-/** A published model: what it is for, its author, its parameters and its versions. */
+/** The parts of a published model, one tab each, as a model of one's own shows them (#400, #431). */
+const COMMUNITY_TABS = ['about', 'contents', 'history'] as const;
+type CommunityTab = (typeof COMMUNITY_TABS)[number];
+
+function useCommunityTab(): [CommunityTab, (tab: CommunityTab) => void] {
+  const [params, setParams] = useSearchParams();
+  const asked = params.get('tab');
+  const tab: CommunityTab = COMMUNITY_TABS.find((each) => each === asked) ?? 'about';
+  return [tab, (next) => setParams(next === 'about' ? {} : { tab: next }, { replace: true })];
+}
+
+/**
+ * A published model: what it is for, its author and its parameters, what it
+ * holds as it stands — where a notebook is created from it — and its history,
+ * when and what but never who (#431).
+ */
 export function CommunityModelPage() {
   const { t } = useTranslation();
-  const day = useDay();
   const publicId = usePublicId();
+  const [tab, selectTab] = useCommunityTab();
   const model = useQuery({
     queryKey: queryKeys.catalogModel(publicId),
     queryFn: () => getCatalogModel(publicId),
@@ -192,28 +198,81 @@ export function CommunityModelPage() {
         ) : (
           <>
             <h1>{model.data.name}</h1>
-            <ModelFacts model={model.data} />
-            <h2>{t('model.versions')}</h2>
-            <ul className="row-card model-version-list">
-              {model.data.versions.map((version) => (
-                <li key={version.number} className="model-version is-public">
-                  <span className="model-version-number">v{version.number}</span>
-                  <span className="model-version-when">{day(version.createdAt)}</span>
-                  <span className="model-version-changelog">{version.changelog}</span>
-                  <Link
-                    to={communityVersionAddress(publicId, version.number)}
-                    className="button is-quiet is-small"
-                  >
-                    {t('model.openVersion')}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Report publicId={publicId} />
+            <Tabs
+              id="model"
+              label={model.data.name}
+              className="model-tabs"
+              active={tab}
+              onSelect={selectTab}
+              tabs={[
+                { key: 'about', label: t('model.tabs.about') },
+                { key: 'contents', label: t('model.tabs.contents') },
+                { key: 'history', label: t('model.tabs.history') },
+              ]}
+            />
+            <div
+              id="model-panel"
+              role="tabpanel"
+              aria-labelledby={`model-tab-${tab}`}
+              className="model-panel"
+            >
+              {tab === 'about' ? (
+                <>
+                  <ModelFacts model={model.data} />
+                  <Report publicId={publicId} />
+                </>
+              ) : null}
+              {tab === 'contents' ? <CommunityContents publicId={publicId} /> : null}
+              {tab === 'history' ? <CommunityHistory publicId={publicId} /> : null}
+            </div>
           </>
         )}
       </article>
     </div>
+  );
+}
+
+/** A published model as it stands, and a notebook created from it once signed in (#431). */
+function CommunityContents({ publicId }: { publicId: string }) {
+  const { t } = useTranslation();
+  const contents = useQuery({
+    queryKey: queryKeys.catalogContents(publicId),
+    queryFn: () => getCatalogContents(publicId),
+    retry: false,
+  });
+  if (contents.isPending) return <PageSkeleton />;
+  if (contents.isError) return <p className="status">{t(messageKeyOf(contents.error))}</p>;
+  return (
+    <ModelContents
+      contents={contents.data}
+      create={(input) => createFromCatalog(publicId, input)}
+    />
+  );
+}
+
+/** The history of a published model: when, what and the line left, never who (#431). */
+function CommunityHistory({ publicId }: { publicId: string }) {
+  const { t } = useTranslation();
+  const history = useQuery({
+    queryKey: queryKeys.catalogHistory(publicId),
+    queryFn: () => getCatalogHistory(publicId),
+    retry: false,
+  });
+  return (
+    <section className="model-history-panel" aria-label={t('model.tabs.history')}>
+      <p className="hint">{t('community.historyHint')}</p>
+      {history.isPending ? (
+        <RowsSkeleton rows={4} />
+      ) : history.isError ? (
+        <p className="status">{t('history.failed')}</p>
+      ) : (
+        <ModelHistoryList
+          changes={history.data.changes}
+          truncated={history.data.truncated}
+          withAuthor={false}
+        />
+      )}
+    </section>
   );
 }
 
@@ -290,71 +349,5 @@ function Report({ publicId }: { publicId: string }) {
         </p>
       ) : null}
     </form>
-  );
-}
-
-/** A published version, read whole, and a notebook created from it once signed in. */
-export function CommunityVersionPage() {
-  const { t } = useTranslation();
-  const publicId = usePublicId();
-  const number = Number(useParams().version);
-  const [creating, setCreating] = useState(false);
-  const version = useQuery({
-    queryKey: queryKeys.catalogVersion(publicId, number),
-    queryFn: () => getCatalogVersion(publicId, number),
-    retry: false,
-  });
-  useDocumentTitle(
-    version.data ? `${version.data.model.name} v${number}` : null,
-    t('community.title'),
-  );
-
-  return (
-    <div className="trail-page">
-      {/* Community / the model / its version (#422). */}
-      <SharedModelBar
-        crumbs={[
-          { label: t('nav.community'), to: '/community' },
-          {
-            label: version.data?.model.name ?? '',
-            to: communityModelAddress(publicId),
-          },
-          { label: `v${number}` },
-        ]}
-      />
-      <article className="content-pane model-version-page community-page">
-        {version.isPending ? (
-          <PageSkeleton />
-        ) : version.isError ? (
-          <p className="status">{t(messageKeyOf(version.error))}</p>
-        ) : (
-          <>
-            <h1>{t('model.versionTitle', { number })}</h1>
-            {version.data.version.changelog ? (
-              <p className="page-intro">{version.data.version.changelog}</p>
-            ) : null}
-            <h2>{t('model.parameters')}</h2>
-            <ParameterList parameters={version.data.parameters} />
-            {creating ? (
-              <section className="model-create" aria-label={t('model.create')}>
-                <h2>{t('model.create')}</h2>
-                <CreateFromModelForm
-                  notebookId={publicId}
-                  version={number}
-                  parameters={version.data.parameters}
-                  onCancel={() => setCreating(false)}
-                  create={(input) => createFromCatalog(publicId, number, input)}
-                />
-              </section>
-            ) : (
-              <button type="button" className="button is-primary" onClick={() => setCreating(true)}>
-                {t('model.create')}
-              </button>
-            )}
-            <VersionContents view={version.data} />
-          </>
-        )}
-      </article>
-    </div>
   );
 }

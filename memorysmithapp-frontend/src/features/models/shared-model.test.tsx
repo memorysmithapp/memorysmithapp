@@ -9,7 +9,11 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { NotebookModelDto } from '@memorysmithapp/contracts';
+import type {
+  ModelContentsDto,
+  ModelHistoryDto,
+  NotebookModelDto,
+} from '@memorysmithapp/contracts';
 import { queryKeys } from '../../shared/api/query-keys';
 
 const NOTEBOOK = '01J8X2K9QZ3M4N5P6R7S8T9V0A';
@@ -37,21 +41,45 @@ const MODEL = {
   updatedAt: '2026-10-25T10:00:00.000Z',
   licence: 'CC0-1.0',
   sharedBy: 'owner@example.com',
-  versions: [
+} satisfies NotebookModelDto;
+
+const HISTORY = {
+  changes: [
     {
-      number: 1,
-      changelog: 'The first version',
-      createdAt: '2026-10-25T10:00:00.000Z',
-      status: 'ready',
-      bytes: 10,
+      occurredAt: '2026-10-26T09:00:00.000Z',
+      since: '2026-10-26T09:00:00.000Z',
+      saves: 1,
+      type: 'GuidanceUpdated',
+      subject: 'Notebook',
+      subjectId: NOTEBOOK,
+      name: null,
+      agent: 'Claude',
+      message: 'Say who signs the minutes',
     },
   ],
-} satisfies NotebookModelDto;
+  truncated: false,
+} satisfies ModelHistoryDto;
+
+const CONTENTS = {
+  notebookId: NOTEBOOK,
+  objective: MODEL.objective,
+  description: '',
+  audience: '',
+  parameters: [],
+  basedOn: null,
+  notebook: { name: 'Assemblies', description: '', guidance: 'One note per assembly.' },
+  folders: [],
+  notes: [],
+  files: [],
+  tables: [],
+  dashboards: [],
+  references: { undeclared: [], unused: [] },
+} satisfies ModelContentsDto;
 
 let SharedModelPage: () => React.JSX.Element;
 
 beforeAll(async () => {
-  await import('../../i18n');
+  await (await import('../../i18n')).default.changeLanguage('en_US');
   ({ SharedModelPage } = await import('./ModelPage'));
 }, 30_000);
 
@@ -59,6 +87,8 @@ describe('a model shared as a model reader', () => {
   const render = (address: string) => {
     const client = new QueryClient();
     client.setQueryData(queryKeys.model(NOTEBOOK), MODEL);
+    client.setQueryData(queryKeys.modelHistory(NOTEBOOK), HISTORY);
+    client.setQueryData(queryKeys.modelContents(NOTEBOOK), CONTENTS);
     return renderToStaticMarkup(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={[address]}>
@@ -80,11 +110,26 @@ describe('a model shared as a model reader', () => {
     const html = render(`/models/${NOTEBOOK.toLowerCase()}`);
     expect(html).toContain('role="tablist"');
     expect(html).toMatch(/id="model-tab-community"[^>]*disabled=""/);
-    expect(html).not.toContain('/versions/1"');
+    expect(html).not.toContain('/versions/');
   });
 
-  it('opens the tab its address names, the versions with a link to each', () => {
+  it('opens its history, with who made each change and the line left (#431)', () => {
+    const html = render(`/models/${NOTEBOOK.toLowerCase()}?tab=history`);
+    expect(html).toMatch(/id="model-tab-history"[^>]*aria-selected="true"/);
+    expect(html).toContain('<span class="history-author">Claude</span>');
+    expect(html).toContain('Guidance written');
+    expect(html).toContain('Say who signs the minutes');
+  });
+
+  it('opens what it holds as it stands, where a notebook is created from it (#431)', () => {
+    const html = render(`/models/${NOTEBOOK.toLowerCase()}?tab=contents`);
+    expect(html).toContain('One note per assembly.');
+    expect(html).toContain('Create a notebook from this model');
+  });
+
+  it('has no tab of versions any more (#431)', () => {
     const html = render(`/models/${NOTEBOOK.toLowerCase()}?tab=versions`);
-    expect(html).toContain(`href="/models/${NOTEBOOK.toLowerCase()}/versions/1"`);
+    expect(html).not.toContain('model-tab-versions');
+    expect(html).toMatch(/id="model-tab-about"[^>]*aria-selected="true"/);
   });
 });

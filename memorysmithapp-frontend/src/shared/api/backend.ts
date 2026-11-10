@@ -56,12 +56,13 @@ import type {
   SubscriptionUsageDto,
   DeclareModelRequest,
   ModelListDto,
-  ModelVersionDto,
-  ModelVersionViewDto,
+  ModelContentsDto,
+  ModelHistoryDto,
+  CreateFromModelRequest,
   PublicModelDto,
-  PublicVersionViewDto,
+  PublicModelContentsDto,
+  PublicModelHistoryDto,
   NotebookModelDto,
-  ParameterValueDto,
 } from '@memorysmithapp/contracts';
 import type {
   FolderNode,
@@ -180,37 +181,25 @@ export async function declareModel(
   });
 }
 
-export async function createModelVersion(
-  notebookId: string,
-  changelog: string,
-): Promise<ModelVersionDto> {
-  return request<ModelVersionDto>(`/portability/models/${notebookId}/versions`, {
-    method: 'POST',
-    // Every table goes with its rows, and every dashboard (#405, RN-PRT-056).
-    body: { changelog },
-  });
+/**
+ * What a model notebook holds, read as it stands now (#431): a model has no
+ * frozen version, so this is what a notebook created from it starts as.
+ */
+export async function getModelContents(notebookId: string): Promise<ModelContentsDto> {
+  return request<ModelContentsDto>(`/portability/models/${notebookId}/contents`);
 }
 
-export async function getModelVersion(
-  notebookId: string,
-  version: number,
-): Promise<ModelVersionViewDto> {
-  return request<ModelVersionViewDto>(`/portability/models/${notebookId}/versions/${version}`);
+/** The history of a model: the changes of its notebook, the newest first (#431). */
+export async function getModelHistory(notebookId: string): Promise<ModelHistoryDto> {
+  return request<ModelHistoryDto>(`/portability/models/${notebookId}/history`);
 }
 
-export async function deleteModelVersion(notebookId: string, version: number): Promise<void> {
-  await request<void>(`/portability/models/${notebookId}/versions/${version}`, {
-    method: 'DELETE',
-  });
-}
-
-/** An independent notebook created from a version; the answer is the import to follow. */
-export async function createFromVersion(
+/** An independent notebook created from a model as it stands; the answer is the import to follow. */
+export async function createFromModel(
   notebookId: string,
-  version: number,
-  input: { name: string; values: Record<string, ParameterValueDto> },
+  input: CreateFromModelRequest,
 ): Promise<TransferDto> {
-  return request<TransferDto>(`/portability/models/${notebookId}/versions/${version}/notebooks`, {
+  return request<TransferDto>(`/portability/models/${notebookId}/notebooks`, {
     method: 'POST',
     body: input,
   });
@@ -249,20 +238,22 @@ export async function getCatalogModel(publicId: string): Promise<PublicModelDto>
   return publicRequest<PublicModelDto>(`/public/catalog/${publicId}`);
 }
 
-export async function getCatalogVersion(
-  publicId: string,
-  version: number,
-): Promise<PublicVersionViewDto> {
-  return publicRequest<PublicVersionViewDto>(`/public/catalog/${publicId}/versions/${version}`);
+/** A published model, read whole as it stands now (#431). */
+export async function getCatalogContents(publicId: string): Promise<PublicModelContentsDto> {
+  return publicRequest<PublicModelContentsDto>(`/public/catalog/${publicId}/contents`);
 }
 
-/** A notebook of this subscription from a published version, for whoever signed in. */
+/** The history of a published model: when and what, never who (#431). */
+export async function getCatalogHistory(publicId: string): Promise<PublicModelHistoryDto> {
+  return publicRequest<PublicModelHistoryDto>(`/public/catalog/${publicId}/history`);
+}
+
+/** A notebook of this subscription from a published model, for whoever signed in. */
 export async function createFromCatalog(
   publicId: string,
-  version: number,
-  input: { name: string; values: Record<string, ParameterValueDto> },
+  input: CreateFromModelRequest,
 ): Promise<TransferDto> {
-  return request<TransferDto>(`/portability/catalog/${publicId}/versions/${version}/notebooks`, {
+  return request<TransferDto>(`/portability/catalog/${publicId}/notebooks`, {
     method: 'POST',
     body: input,
   });

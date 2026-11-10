@@ -62,7 +62,7 @@ import { fillDocument, resolveValues } from '../domain/ParameterFilling.js';
  * history an export may carry and changed nothing else, so a `1.0` document is
  * read exactly as it always was (RN-PRT-022).
  */
-/** The parameters a creation from a version fills in, and the values supplied (#354). */
+/** The parameters a creation from a model fills in, and the values supplied (#354). */
 export interface ModelFill {
   readonly declarations: readonly ParameterDeclaration[];
   readonly values: Readonly<Record<string, ParameterValue>>;
@@ -74,10 +74,17 @@ export interface ModelRestorer {
     notebookId: string;
     notebookName: string;
     model: DocumentModel;
-  }): Promise<Result<{ declared: boolean; versions: number }, DomainError>>;
+  }): Promise<Result<{ declared: boolean }, DomainError>>;
 }
 
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4'];
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = [
+  '1.0',
+  '1.1',
+  '1.2',
+  '1.3',
+  '1.4',
+  '1.5',
+];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -452,7 +459,7 @@ export class ImportNotebook {
       if (!document.ok) return document;
       let written = document.value;
       if (input.fill) {
-        // A notebook created from a version depends on no model (RN-PRT-040),
+        // A notebook created from a model depends on no model (RN-PRT-065),
         // and a snapshot carries none; this holds it even for one that did.
         written = withoutModel(written);
         // The values were checked when the creation was asked for, and are
@@ -741,7 +748,7 @@ export class ImportNotebook {
     }
 
     // The dashboards last: each one is checked against the tables it draws
-    // from, and goes only when all of them came (#368, RN-PRT-053).
+    // from, and goes only when all of them came (#368, RN-PRT-072).
     const offered = selection?.dashboards
       ? dashboardsNamed(document.dashboards ?? [], selection.dashboards)
       : (document.dashboards ?? []);

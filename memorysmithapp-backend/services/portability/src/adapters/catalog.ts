@@ -21,7 +21,6 @@ import type {
   CatalogReport,
   CatalogReports,
   CatalogStore,
-  CatalogVersion,
 } from '../domain/CommunityCatalog.js';
 import { parameterOf } from './dynamo.js';
 
@@ -97,7 +96,17 @@ export class DynamoCatalogStore implements CatalogStore {
 }
 
 function entryOf(item: Item): CatalogEntry {
+  // An entry written before #431 listed versions, the newest first, each with
+  // the parameters it declared: what it says of the model is read from the
+  // newest one until it is said again.
   const versions = Array.isArray(item['versions']) ? (item['versions'] as Item[]) : [];
+  const newest = versions[0];
+  const declared = Array.isArray(item['parameters'])
+    ? (item['parameters'] as Item[])
+    : Array.isArray(newest?.['parameters'])
+      ? (newest['parameters'] as Item[])
+      : [];
+  const publishedAt = String(item['publishedAt'] ?? '');
   return {
     publicId: String(item['publicId']),
     subscriptionId: String(item['subscriptionId']),
@@ -111,21 +120,9 @@ function entryOf(item: Item): CatalogEntry {
     audience: String(item['audience'] ?? ''),
     language: String(item['language'] ?? ''),
     basedOn: item['basedOn'] ? String(item['basedOn']) : null,
-    publishedAt: String(item['publishedAt'] ?? ''),
-    versions: versions.map(versionOf),
-  };
-}
-
-function versionOf(item: Item): CatalogVersion {
-  const parameters = Array.isArray(item['parameters']) ? (item['parameters'] as Item[]) : [];
-  return {
-    number: Number(item['number']),
-    changelog: String(item['changelog'] ?? ''),
-    createdAt: String(item['createdAt'] ?? ''),
-    bytes: Number(item['bytes'] ?? 0),
-    key: String(item['key'] ?? ''),
-    versionId: item['versionId'] ? String(item['versionId']) : null,
-    parameters: parameters.map(parameterOf),
+    publishedAt,
+    updatedAt: String(item['updatedAt'] ?? newest?.['createdAt'] ?? publishedAt),
+    parameters: declared.map(parameterOf),
   };
 }
 

@@ -22,8 +22,8 @@ import {
   TrashIcon,
 } from '../../shared/components/icons';
 
-/** The parts of a model, one tab each (#400). */
-export const MODEL_TABS = ['about', 'parameters', 'versions', 'community'] as const;
+/** The parts of a model, one tab each (#400): what it holds as it stands, and its history (#431). */
+export const MODEL_TABS = ['about', 'parameters', 'contents', 'history', 'community'] as const;
 export type ModelTab = (typeof MODEL_TABS)[number];
 
 export function isModelTab(value: string | null): value is ModelTab {
@@ -53,7 +53,8 @@ export function ModelTabs({
       tabs={[
         { key: 'about', label: t('model.tabs.about') },
         { key: 'parameters', label: t('model.tabs.parameters'), total: model.parameters.length },
-        { key: 'versions', label: t('model.tabs.versions'), total: model.versions.length },
+        { key: 'contents', label: t('model.tabs.contents') },
+        { key: 'history', label: t('model.tabs.history') },
         { key: 'community', label: t('model.tabs.community'), disabled: !owner },
       ]}
     />

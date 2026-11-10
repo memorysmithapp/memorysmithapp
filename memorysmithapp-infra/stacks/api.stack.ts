@@ -283,9 +283,9 @@ export class ApiStack extends Stack {
      * `exports/` and to nothing else, so no revision of a note is within its
      * reach: the one principal allowed to destroy one of those is the purge
      * worker below (INV-08). The version is the one the worker recorded when
-     * it wrote the archive, so nothing is listed to find it. A version of a
-     * notebook model is a kept export too, under `models/` (#353), and is
-     * destroyed the same way.
+     * it wrote the archive, so nothing is listed to find it. A version a
+     * notebook model kept before #431 is a kept export too, under `models/`
+     * (#353), and is destroyed the same way when its notebook is deleted.
      */
     api.function.addToRolePolicy(
       new PolicyStatement({
@@ -341,8 +341,11 @@ export class ApiStack extends Stack {
      * The public route of the catalog, a function of its own (#356): what it
      * may reach is what makes it safe to answer anybody. It reads the catalog
      * partition of the portability table and nothing else of it, the status of
-     * a subscription and no other attribute of the access table, and the
-     * snapshots of versions of models; it writes nothing.
+     * a subscription and no other attribute of the access table, and what a
+     * published model notebook is read with as it stands (#431, ADR-028): the
+     * items of the knowledge table, the content of notes, Guidance and
+     * Templates, and the trail of the notebook through its index. It writes
+     * nothing, and every read starts from a catalog entry (INV-02).
      */
     const publicCatalog = new ServiceLambda(this, 'PublicCatalog', {
       entry: join(backend, 'apps', 'core-monolith', 'src', 'catalog.handler.ts'),
@@ -350,9 +353,11 @@ export class ApiStack extends Stack {
       environment: {
         PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
         ACCESS_TABLE: props.data.accessTable.table.tableName,
+        KNOWLEDGE_TABLE: props.data.knowledgeTable.table.tableName,
+        AUDIT_TABLE: props.data.auditTable.table.tableName,
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
       },
-      timeout: Duration.seconds(10),
+      timeout: Duration.seconds(20),
       memorySize: 512,
     });
     publicCatalog.function.addToRolePolicy(
@@ -374,8 +379,23 @@ export class ApiStack extends Stack {
     );
     publicCatalog.function.addToRolePolicy(
       new PolicyStatement({
+        actions: ['dynamodb:GetItem', 'dynamodb:Query'],
+        resources: [
+          props.data.knowledgeTable.table.tableArn,
+          `${props.data.knowledgeTable.table.tableArn}/index/*`,
+        ],
+      }),
+    );
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:Query'],
+        resources: [`${props.data.auditTable.table.tableArn}/index/*`],
+      }),
+    );
+    publicCatalog.function.addToRolePolicy(
+      new PolicyStatement({
         actions: ['s3:GetObject', 's3:GetObjectVersion'],
-        resources: [props.data.contentBucket.arnForObjects('s/*/models/*')],
+        resources: [props.data.contentBucket.arnForObjects('s/*/c/*')],
       }),
     );
     if (props.data.contentBucket.encryptionKey) {

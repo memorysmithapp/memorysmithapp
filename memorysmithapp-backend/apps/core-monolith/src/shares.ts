@@ -298,8 +298,8 @@ export class DeleteNotebookAndShares extends DeleteNotebook {
     private readonly owner: SubscriptionContext,
     private readonly shares: ShareRepository,
     /**
-     * What else goes with the notebook: its model and every version of it
-     * (#353), which belong to Portability.
+     * What else goes with the notebook: its model (#353), which belongs to
+     * Portability.
      */
     private readonly alsoForget: (notebookId: NotebookId) => Promise<void> = async () => undefined,
   ) {
@@ -326,8 +326,8 @@ export class DeleteNotebookAndShares extends DeleteNotebook {
 export function modelSourcesOf(input: {
   readonly user: UserId;
   readonly own: SubscriptionContext;
-  /** Whether the session's own subscription holds this notebook, alive. */
-  readonly holds: (notebookId: string) => Promise<boolean>;
+  /** The name of this notebook when the session's own subscription holds it, alive. */
+  readonly holds: (notebookId: string) => Promise<string | null>;
   /** Whether the session may read a notebook of its own subscription. */
   readonly canRead: (notebookId: string) => Promise<boolean>;
   readonly depsOf: (context: SubscriptionContext) => ModelSource['deps'];
@@ -336,10 +336,12 @@ export function modelSourcesOf(input: {
 }): ModelSources {
   return {
     of: async (notebookId) => {
-      if (await input.holds(notebookId)) {
+      const held = await input.holds(notebookId);
+      if (held !== null) {
         if (!(await input.canRead(notebookId))) return null;
         return {
           subscriptionId: input.own.subscriptionId.value,
+          name: held,
           deps: input.depsOf(input.own),
           sharedBy: null,
         };
@@ -348,8 +350,11 @@ export function modelSourcesOf(input: {
       if (!parsed) return null;
       const share = await openModelShareOf(input.user, parsed, input.sharing);
       if (!share) return null;
+      const view = await input.sharing.notebooks.through(share);
+      if (!view) return null;
       return {
         subscriptionId: share.ownerSubscriptionId.value,
+        name: view.name,
         deps: input.depsOf(contextThrough(share)),
         sharedBy: share.ownerEmail.value,
       };

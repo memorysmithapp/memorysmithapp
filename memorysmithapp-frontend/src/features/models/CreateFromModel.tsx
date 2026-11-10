@@ -10,11 +10,11 @@ import type {
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
 import { notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
-import { createFromVersion, getTransfer } from '../../shared/api/source';
+import { getTransfer } from '../../shared/api/source';
 import { valuesOf } from './model-form';
 
 /**
- * Creating an independent notebook from a version of a model (#359): a name,
+ * Creating an independent notebook from a model as it stands (#359, #431): a name,
  * the model's own filled in when it is left empty, and a field for each
  * parameter by its type, with what it is and an example. A required one left
  * empty, or a value of the wrong type, is refused before anything is written,
@@ -22,18 +22,14 @@ import { valuesOf } from './model-form';
  * form follows it and opens it.
  */
 export function CreateFromModelForm({
-  notebookId,
-  version,
   parameters,
   onCancel,
-  create: start = (input) => createFromVersion(notebookId, version, input),
+  create: start,
 }: {
-  notebookId: string;
-  version: number;
   parameters: readonly ParameterDeclarationDto[];
   onCancel?: () => void;
-  /** How the notebook is created: from a model of the person's, or from the community (#360). */
-  create?: (input: {
+  /** How the notebook is created: from a model the person reads, or from the community (#360). */
+  create: (input: {
     name: string;
     values: Record<string, ParameterValueDto>;
   }) => Promise<TransferDto>;

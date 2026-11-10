@@ -18,8 +18,11 @@ import { S3Client } from '@aws-sdk/client-s3';
 import {
   AgentIdentity,
   Authorship,
+  DomainError,
+  err,
   Instant,
   NotebookId,
+  ok,
   SubscriptionContext,
   UserId,
 } from '@memorysmithapp/kernel';
@@ -27,6 +30,7 @@ import { ExportNotebook } from '@memorysmithapp/svc-portability/application';
 import {
   RunExport,
   RunImport,
+  type ModelCopier,
   type TransferWork,
 } from '@memorysmithapp/svc-portability/application/transfers';
 import { ImportNotebook } from '@memorysmithapp/svc-portability/application/import';
@@ -68,14 +72,10 @@ import {
   buildModels,
   buildShares,
   parseNotebookDocument,
-  readVersionDocument,
   serializeNotebookDocument,
   type Infrastructure,
 } from './composition-root.js';
 import { CarriedModel, RestoreModel } from '@memorysmithapp/svc-portability/application/models';
-import { DynamoCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
-import { refreshPublication } from '@memorysmithapp/svc-portability/application/catalog';
-import { NO_EDGE_CACHE } from './catalog.js';
 
 interface QueueEvent {
   Records?: Array<{
@@ -215,21 +215,36 @@ async function ownsSubscription(context: SubscriptionContext): Promise<boolean> 
   return resolved.ok && resolved.value.isOwner;
 }
 
-/**
- * The model a notebook of this subscription is declared as, as its export
- * carries it (#397): its versions are read from the archives they were kept as.
- */
+/** The model a notebook of this subscription is declared as, as its export carries it (#397). */
 function carriedModelOf(source: SubscriptionContext): CarriedModel {
-  const uploads = new S3UploadStore(infra.s3, infra.contentBucket);
-  return new CarriedModel({
-    models: buildModels(infra, source),
-    transfers: new DynamoTransferStore(
-      infra.db,
-      infra.portabilityTable,
-      source.subscriptionId.value,
-    ),
-    versions: { read: (key) => readVersionDocument((at) => uploads.read(at), readZip, key) },
-  });
+  return new CarriedModel({ models: buildModels(infra, source) });
+}
+
+/**
+ * Writes a model notebook as it stands into the upload an import of a notebook
+ * created from it reads (#431): the notebook without its history and without
+ * its model, read as its owner in the subscription it is in, which the API took
+ * from the model the caller may read and never from the request (INV-02).
+ */
+function modelCopierFor(work: TransferWork): ModelCopier {
+  return {
+    copy: async (source, uploadKey) => {
+      const holder = SubscriptionContext.fromClaims({
+        sub: source.ownerUserId,
+        subscription_id: source.subscriptionId,
+        subscription_status: 'active',
+      });
+      if (!holder.ok) return err(DomainError.notFound('Model not found'));
+      const copied = await new ExportNotebook(
+        new KnowledgeExportSource(buildKnowledge(infra, holder.value)),
+        new S3ArchiveStore(infra.s3, infra.contentBucket),
+        createZip,
+        work.subscriptionId,
+        serializeNotebookDocument,
+      ).execute({ notebookId: source.notebookId, now: Instant.now(), modelCopyAt: uploadKey });
+      return copied.ok ? ok() : copied;
+    },
+  };
 }
 
 /**
@@ -284,15 +299,7 @@ async function run(work: TransferWork): Promise<void> {
       work.transferId,
       // The model the document carries, declared again here (#397).
       new RestoreModel(
-        {
-          models: buildModels(infra, context),
-          transfers,
-          archives: new S3ArchiveStore(infra.s3, infra.contentBucket),
-          pack: (snapshot) => {
-            const written = serializeNotebookDocument(snapshot);
-            return createZip([{ path: written.entry, content: written.content }], new Date());
-          },
-        },
+        { models: buildModels(infra, context) },
         {
           subscriptionId: work.subscriptionId,
           userId: work.userId,
@@ -300,7 +307,13 @@ async function run(work: TransferWork): Promise<void> {
         },
       ),
     );
-    await new RunImport(transfers, importer, authorshipOf(work), unexpected).execute(work);
+    await new RunImport(
+      transfers,
+      importer,
+      authorshipOf(work),
+      unexpected,
+      modelCopierFor(work),
+    ).execute(work);
     return;
   }
 
@@ -322,16 +335,4 @@ async function run(work: TransferWork): Promise<void> {
     carriedModelOf(source),
   );
   await new RunExport(transfers, exporter, unexpected).execute(work);
-  // A version made ready joins the catalog entry of a published model (#360).
-  if (work.modelVersion && work.notebookId) {
-    await refreshPublication(
-      {
-        models: buildModels(infra, context),
-        transfers,
-        catalog: new DynamoCatalogStore(infra.db, infra.portabilityTable),
-        cache: NO_EDGE_CACHE,
-      },
-      work.notebookId,
-    );
-  }
 }

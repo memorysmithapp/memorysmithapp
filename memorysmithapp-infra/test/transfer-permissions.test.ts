@@ -228,8 +228,8 @@ describe('the copy of a kept export into an upload', () => {
 
   it('never destroys what it copied from, beyond what deleting an export already does', () => {
     // The API deletes a version under `exports/` (RN-PRT-020), under
-    // `models/` (a version of a model is a kept export, #353) and under
-    // `uploads/` (RN-PRT-028), and nowhere else: the copy adds no delete of
+    // `models/` (a version a model kept before #431 is a kept export, #353)
+    // and under `uploads/` (RN-PRT-028), and nowhere else: the copy adds no delete of
     // any kind, and no revision of a note or a file is within its reach.
     const deletes = allowed.filter((each) =>
       each.actions.some((action) => action.startsWith('s3:Delete')),
@@ -372,13 +372,13 @@ describe('the public route of the catalog', () => {
     expect(actions.filter((action) => !reads.test(action))).toEqual([]);
   });
 
-  it('reads the snapshots of versions of models and no other object', () => {
+  it('reads the content of notes, Guidance and Templates, and no other object (#431)', () => {
     const s3 = allowed.filter((each) => each.actions.some((action) => action.startsWith('s3:')));
     expect(s3).toHaveLength(1);
-    expect(s3[0]?.resource).toContain('s/*/models/*');
+    expect(s3[0]?.resource).toContain('s/*/c/*');
   });
 
-  it('reads the catalog partition of the portability table, and the status of a subscription', () => {
+  it('reads the catalog partition of the portability table, the status of a subscription, a notebook and its trail', () => {
     const statements = Object.values(api.findResources('AWS::IAM::Policy'))
       .filter((policy) =>
         ((policy.Properties as { Roles?: Array<{ Ref?: string }> }).Roles ?? []).some(
@@ -391,9 +391,16 @@ describe('the public route of the catalog', () => {
             .PolicyDocument.Statement,
       )
       .filter((statement) => JSON.stringify(statement['Action']).includes('dynamodb:'));
-    expect(statements).toHaveLength(2);
-    for (const statement of statements) expect(statement['Condition']).toBeDefined();
-    expect(JSON.stringify(statements)).toContain('"dynamodb:LeadingKeys":["CATALOG"]');
-    expect(JSON.stringify(statements)).toContain('"dynamodb:Attributes":["PK","SK","status"]');
+    expect(statements).toHaveLength(4);
+    const conditioned = statements.filter((statement) => statement['Condition'] !== undefined);
+    expect(conditioned).toHaveLength(2);
+    expect(JSON.stringify(conditioned)).toContain('"dynamodb:LeadingKeys":["CATALOG"]');
+    expect(JSON.stringify(conditioned)).toContain('"dynamodb:Attributes":["PK","SK","status"]');
+    // The trail is read through its index only, and nothing of it is written (INV-06).
+    const trail = statements.find((statement) =>
+      JSON.stringify(statement['Resource']).includes('AuditTable'),
+    );
+    expect(trail?.['Action']).toBe('dynamodb:Query');
+    expect(JSON.stringify(trail?.['Resource'])).toContain('/index/*');
   });
 });

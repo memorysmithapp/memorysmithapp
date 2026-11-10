@@ -655,7 +655,7 @@ describe('the rows of a table, added up (#368)', () => {
   });
 });
 
-describe('the dashboards of a notebook in a transfer (RN-PRT-053)', () => {
+describe('the dashboards of a notebook in a transfer (RN-PRT-072)', () => {
   const dashboardOver = (table: string) => ({
     components: [{ type: 'kpi', source: { table, measure: 'count()' } }],
   });

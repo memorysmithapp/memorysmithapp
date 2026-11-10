@@ -376,10 +376,11 @@ notebook is theirs, independent of the model, and is then read and written like
 any other.
 
 When none of the subscription fits, \`search_community_models\` finds the models
-others published to the community. Read the one that fits with the person —
-\`read_community_model\` and \`read_community_version\` — and create from it with
-\`create_notebook_from_community_model\` the same way: the notebook is written in
-this subscription and depends on nothing of the model.
+others published to the community. Read the one that fits with the person with
+\`read_community_model\`, which answers it whole as it stands and the history of
+its changes, and create from it with \`create_notebook_from_community_model\` the
+same way: the notebook is written in this subscription and depends on nothing of
+the model.
 
 ## A notebook that is a model
 
@@ -401,10 +402,12 @@ as this skill says, with four differences:
    that shows it, written for the model, with parameters where a case would put
    its own words.
 
-Then, with the person, call \`declare_model\`, review the notebook, and create
-its first version with \`create_model_version\`. Offer to try it: create a
-notebook from that version with sample values, read it together, and delete it.
-The trial is recommended and never required.
+Then, with the person, review the notebook and call \`declare_model\`. The model
+is its notebook: what is changed in the notebook afterwards is what the next
+notebook created from it starts as, and \`get_model\` answers the history of those
+changes. A person who wants to keep a state of it exports the notebook. Offer to
+try it: create a notebook from the model with sample values, read it together,
+and delete it. The trial is recommended and never required.
 `;
 
 /**
@@ -422,8 +425,10 @@ source code and structuring what is learned. Getting from one to the other is
 rewriting, and this is how.
 
 The source notebook is never changed. The model is a **new notebook** of the
-subscription, created for it and declared as a model at the end. Only the owner
-of the subscription declares a model and creates its versions.
+subscription, created for it and declared as a model at the end. The model IS
+that notebook, read as it stands whenever a notebook is created from it, and its
+history is the history of the notebook. Only the owner of the subscription
+declares a model and changes it.
 
 ## The method
 
@@ -456,24 +461,24 @@ author, never yours.
    copy a real one only when the author asks for it, and only after reviewing it
    with them line by line.
 6. **Review it with the author.** Show what was removed, what was generalized,
-   what became a parameter, and every assumption you made. Nothing becomes a
-   version without their approval.
+   what became a parameter, and every assumption you made. Nothing is declared a
+   model without their approval.
 
 ## Building it
 
 1. Create the model notebook with \`create_notebook\`, and write its guidance,
    folders, templates and examples as \`design-notebook\` says, with the rewritten
    text.
-2. Declare it with \`declare_model\`: the objective the author chose, who it is
-   for, and each parameter — its name, what it is, an example, its type
-   (\`text\`, \`list\`, \`boolean\` or \`date\`), and whether it is required or what
-   it defaults to.
-3. Create its first version with \`create_model_version\`, with a changelog that
-   says what it is. When \`get_model\` says it is ready, read it with
-   \`read_model_version\`: \`references.undeclared\` must be empty, and every
-   parameter in \`references.unused\` is either written where it belongs or
-   removed from the declaration.
-4. Offer the trial: create a notebook from the version with sample values, read
+2. Once the author reviewed it, declare it with \`declare_model\`: the objective
+   the author chose, who it is for, and each parameter — its name, what it is,
+   an example, its type (\`text\`, \`list\`, \`boolean\` or \`date\`), and whether
+   it is required or what it defaults to.
+3. Read it with \`get_model\`: \`contents.references.undeclared\` must be empty,
+   and every parameter in \`contents.references.unused\` is either written where
+   it belongs or removed from the declaration. A change made afterwards is made
+   in the notebook itself, and \`get_model\` lists it in \`history\`; there is no
+   frozen copy, so an author who wants to keep a state exports the notebook.
+4. Offer the trial: create a notebook from the model with sample values, read
    it with the author, and delete it. It is recommended, never required.
 5. Sharing or publishing it is the author's decision, never a step of this
    method. When they ask to publish it to the community with \`publish_model\`,
@@ -487,7 +492,8 @@ author, never yours.
 - Do not keep a name of a person or of an organization of the source in the
   model, unless the author asked to.
 - Do not broaden the objective, or narrow it, without the author's agreement.
-- Do not create a version the author has not reviewed.
+- Do not declare a model the author has not reviewed, and never share or publish
+  one without their asking.
 `;
 
 /**

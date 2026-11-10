@@ -74,7 +74,7 @@ async function ownerOf(
  * model reader is offered only a notebook declared as a model, and sharing a
  * model distributes it under CC0 1.0, which its owner accepts once, on its
  * first distribution, and is refused until then, whoever the e-mail is
- * (RN-ACC-037, RN-ACC-038).
+ * (RN-ACC-044, RN-ACC-038).
  */
 async function mayDistribute(
   deps: ShareDependencies,

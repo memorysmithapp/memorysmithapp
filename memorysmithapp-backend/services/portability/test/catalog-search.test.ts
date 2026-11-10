@@ -23,17 +23,8 @@ function entryOf(publicId: string, subscriptionId: string, updatedAt: string): C
     language: 'pt-BR',
     basedOn: null,
     publishedAt: updatedAt,
-    versions: [
-      {
-        number: 1,
-        changelog: '',
-        createdAt: updatedAt,
-        bytes: 1,
-        key: `s/${subscriptionId}/models/${publicId}`,
-        versionId: null,
-        parameters: [],
-      },
-    ],
+    updatedAt,
+    parameters: [],
   };
 }
 
