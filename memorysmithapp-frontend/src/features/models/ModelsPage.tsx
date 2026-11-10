@@ -70,7 +70,8 @@ export function ModelsPage() {
         action={
           <button
             type="button"
-            className="button is-primary is-small"
+            // The quiet button every page head uses, as Transfers does (#422).
+            className="button is-quiet"
             onClick={() => setCreating(true)}
           >
             <ActionWord icon={<PlusIcon />} word={t('models.new')} />
