@@ -377,6 +377,15 @@ test.describe('notebook models', () => {
       await expect(app.getByRole('heading', { name: words.version(1) })).toBeVisible();
       await expect(app.getByRole('button', { name: words.create })).toBeVisible();
       await expect(app).toHaveTitle(new RegExp(notebook.name));
+
+      // The trail goes back: to the model from its version, and to every
+      // model of the community from the model (#422).
+      const trail = app.locator('.notebook-bar .notebook-breadcrumb');
+      await expect(trail.locator('.crumb.is-last')).toHaveText('v1');
+      await trail.getByRole('link', { name: notebook.name }).click();
+      await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
+      await trail.locator('a.crumb[href="/community"]').click();
+      await expect(app.getByRole('heading', { name: words.title, level: 1 })).toBeVisible();
     } finally {
       await owner.call('DELETE', `${model}/publication`);
     }
