@@ -186,8 +186,9 @@ test.describe('notebook models', () => {
       'href',
       '/models',
     );
-    // Its Context lists what it declares as a model, first of its parts (#422).
-    await app.locator('.notebook-breadcrumb a.crumb.is-notebook').click();
+    // Its Context lists what it declares as a model, first of its parts (#422);
+    // the Context is a page of its own, under the overview (#417).
+    await app.locator('aside#notebook-sidebar a.nav-row[href$="/context"]').click();
     await expect(app.locator('a.context-card')).toHaveCount(4);
     await expect(app.locator('a.context-card').first()).toHaveAttribute('href', /\/model$/);
     await app.goto(modelPage);

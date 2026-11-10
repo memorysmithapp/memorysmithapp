@@ -538,7 +538,11 @@ test.describe('the pages of an account', () => {
     // Five numbers, read from the notebook, and the note written last under them.
     await expect(app.locator('.overview-stats .overview-stat')).toHaveCount(5);
     await expect(app.locator('.overview-stats .skeleton')).toHaveCount(0);
-    await expect(app.locator('a.overview-row', { hasText: 'Checklist' })).toBeVisible();
+    await expect(
+      app
+        .locator('.overview-section', { has: app.locator('#overview-lately') })
+        .locator('a.overview-row', { hasText: 'Checklist' }),
+    ).toBeVisible();
     // Never read here before, so there is nothing to continue.
     await expect(app.locator('a.overview-resume')).toHaveCount(0);
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
