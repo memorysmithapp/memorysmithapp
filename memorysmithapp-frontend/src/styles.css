@@ -484,14 +484,22 @@ a:hover {
 /* Folded (#414): the column keeps its icons and gives the page the rest. What
    needs words to be read — the name of the notebook, the captions, the tree —
    waits until it opens again. */
+/* Its icons are centred in the whole column, with no padding at the sides: a
+   36 px row inside 64 px less the border and a 14 px padding on each side
+   overflowed by half a pixel, and that half pixel drew a scroll bar beside
+   the icons (#422). A short window still scrolls the column, with no bar. */
 .notebook-sidebar.is-collapsed {
   width: 64px;
-  padding-inline: 14px;
+  padding-inline: 0;
   align-items: center;
+  scrollbar-width: none;
+}
+.notebook-sidebar.is-collapsed::-webkit-scrollbar {
+  display: none;
 }
 .is-collapsed .sidebar-foot {
   align-self: stretch;
-  margin-inline: -14px;
+  margin-inline: 0;
   padding-inline: 0;
   display: flex;
   justify-content: center;
@@ -1274,7 +1282,9 @@ a:hover {
      browser draws in the bottom-left corner covers it and never the last
      folder of the tree. */
   padding: 20px 20px 0;
+  /* The column scrolls down a long tree, and never sideways (#422). */
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 100%;
   position: sticky;
   top: 0;
