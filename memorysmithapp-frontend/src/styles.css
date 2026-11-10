@@ -3814,6 +3814,34 @@ button.attachment-thumb:focus-visible {
   }
 }
 
+/* The trail of a page outside a notebook — the community, a model shared as a
+   model reader — starts where the text of the page under it starts (#422):
+   the bar keeps the whole width, and the trail takes the column of
+   `.content-pane` and its side padding, at every width that padding changes. */
+.trail-page > .notebook-bar {
+  padding: 0;
+}
+.trail-page > .notebook-bar > .notebook-breadcrumb {
+  max-width: 48.75rem;
+  margin: 0 auto;
+  padding-inline: 2.5rem;
+}
+@media (max-width: 1180px) {
+  .trail-page > .notebook-bar > .notebook-breadcrumb {
+    padding-inline: 1.75rem;
+  }
+}
+@media (max-width: 860px) {
+  .trail-page > .notebook-bar > .notebook-breadcrumb {
+    padding-inline: 1rem;
+  }
+}
+@media (max-width: 380px) {
+  .trail-page > .notebook-bar > .notebook-breadcrumb {
+    padding-inline: 0.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .notebook-sidebar,
   .graph-switch input,

@@ -489,7 +489,8 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
  * notebook's trail, which starts at the notebook; it starts at the page of the
  * menu the person came from, and is drawn as that trail is. The page wraps
  * the bar and its article in one block, `.trail-page`, so the row of
- * `.app-main` lays them one under the other and never side by side.
+ * `.app-main` lays them one under the other and never side by side, and the
+ * trail starts where the text of the article does.
  */
 export function SharedModelBar({ crumbs }: { crumbs: Crumb[] }) {
   const { t } = useTranslation();
