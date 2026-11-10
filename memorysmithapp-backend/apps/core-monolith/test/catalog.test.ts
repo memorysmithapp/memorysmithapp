@@ -143,6 +143,15 @@ describe('publishing a model to the community (#360)', () => {
     // What anybody sees names no subscription, no owner and no e-mail.
     expect(JSON.stringify(model)).not.toContain(OWNER.email);
     expect(JSON.stringify(model)).not.toContain(ownerSubscription);
+
+    // The list of the owner's models says it is published, and as which
+    // entry, which is how its cards know it for the owner's own (#418).
+    const listed = await json<{
+      models: Array<{ notebookId: string; publication: { publicId: string } | null }>;
+    }>(await call(OWNER.token, '/portability/models'));
+    expect(listed.models.find((each) => each.notebookId === notebookId)?.publication).toMatchObject(
+      { publicId: model['publicId'] },
+    );
   });
 
   it('refuses a member and a model with no ready version', async () => {

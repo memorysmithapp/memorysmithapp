@@ -360,13 +360,25 @@ export function createPortabilityRoutes(
   app.get('/models', async (c) => {
     const request = c.get('portability');
     const listed = await useCases.listModels(request).execute();
-    return present(c, listed, (models) => ({
-      models: models.map(({ model, name, sharedBy }) => ({
+    if (!listed.ok) return fail(c, listed.error);
+    // Where each model of one's own stands in the community, so its card says
+    // it is published and the community knows it for its author's (#418);
+    // read at once, and only for a model that is published (#420).
+    const publications = await Promise.all(
+      listed.value.map(({ model, sharedBy }) =>
+        sharedBy === null && model.publicId
+          ? useCases.publicationOf(request).execute(model.notebookId)
+          : Promise.resolve(null),
+      ),
+    );
+    return c.json({
+      models: listed.value.map(({ model, name, sharedBy }, at) => ({
         ...modelToDto(model),
         name,
         sharedBy,
+        publication: publications[at] ?? null,
       })),
-    }));
+    });
   });
 
   app.get('/models/:v', async (c) => {
