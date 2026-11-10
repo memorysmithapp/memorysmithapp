@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { BrandMark } from './BrandMark';
 import { NotificationsMenu } from '../../features/sharing/NotificationsMenu';
 import { UserMenu } from './UserMenu';
@@ -31,11 +31,10 @@ export function AppShell() {
         <header className="app-header">
           <div className="header-start">
             {narrow ? <MobileMenuButton /> : null}
-            {/* The brand says where the person is, and opens nothing: Home is
-              the first entry of the menu (#422). */}
-            <div className="brand">
+            {/* The brand leads Home, as the first entry of the menu does (#426). */}
+            <Link to="/" className="brand">
               <BrandMark />
-            </div>
+            </Link>
           </div>
           {/* The slogan left the header for the sign-in screen, where it
             explains the product to who is not inside it yet (#414). */}

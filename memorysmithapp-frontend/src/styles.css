@@ -191,6 +191,15 @@ a:hover {
   gap: 10px;
   color: var(--text);
 }
+/* A way Home that reads as the brand: never underlined (#426). */
+.brand:hover {
+  text-decoration: none;
+}
+.brand:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: var(--focus-ring);
+}
 .brand-symbol {
   height: 28px;
   width: auto;

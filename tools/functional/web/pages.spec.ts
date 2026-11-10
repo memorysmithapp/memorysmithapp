@@ -2953,8 +2953,9 @@ test.describe('the transfers of a person', () => {
   test('opens the bell inside a phone screen (#195, #418)', async ({ app, state }) => {
     await app.setViewportSize({ width: 320, height: 640 });
     await app.goto(`${state.surfaces.site}/`);
-    // The brand is the symbol and the name, on a phone too (#426).
+    // The brand is the symbol and the name, on a phone too, and leads Home (#426).
     await expect(app.locator('.app-header .brand-word')).toBeVisible();
+    await expect(app.locator('.app-header a.brand')).toHaveAttribute('href', '/');
     await app.locator('button.notifications-trigger').click();
 
     const panel = app.locator('.notifications-panel');
