@@ -146,6 +146,29 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveTitle(`[${state.environment}] ${words.notebooks} · MemorySmith`);
   });
 
+  test('[page:/] offers the notebooks read in last, each with the note read in it (#424)', async ({
+    app,
+    notebook,
+    state,
+    words,
+  }) => {
+    // Nothing read in this browser yet: Home offers nothing to continue.
+    await app.goto(`${state.surfaces.site}/`);
+    await expect(app.locator('main header.page-heading h1')).toBeVisible();
+    await expect(app.locator('.continue-reading')).toHaveCount(0);
+
+    await app.goto(notebook.page(`/notes/${notebook.noteId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-notebook')).toHaveText(notebook.name);
+    await app.locator('nav.top-menu a.top-menu-item[href="/"]').click();
+
+    const section = app.locator('.continue-reading');
+    await expect(section.getByRole('heading', { name: words.resume })).toBeVisible();
+    const card = section.locator('a.overview-resume', { hasText: notebook.name });
+    await expect(card).toContainText('Checklist');
+    await card.click();
+    await expect(app).toHaveURL(new RegExp(`/notes/${notebook.noteId}$`, 'i'));
+  });
+
   test('[page:/] keeps the menu in a row of its own on every page, the whole width outside a notebook, and finds notebooks from Search (#414, #418)', async ({
     app,
     notebook,

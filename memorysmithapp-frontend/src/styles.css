@@ -3505,6 +3505,24 @@ input[type='radio'] {
   font-size: 0.78rem;
   color: var(--text-soft);
 }
+/* Home's way back to the notebooks read in last (#424): the card of the
+   overview's Continue, four of them side by side. */
+.continue-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.continue-reading h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.continue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: 12px;
+}
+
 /* What the notebook holds, five, and apart from them what asks for
    attention, two, in the order of the sidebar (#423). */
 .overview-numbers {
