@@ -39,6 +39,9 @@ export const PUBLIC_MAX_AGE_SECONDS = 60;
  */
 export const PUBLIC_STALE_SECONDS = 300;
 
+/** The most models one page of the search answers (#432). */
+export const MAX_PAGE = 50;
+
 export interface PublicCatalogUseCases {
   readonly search: () => SearchCatalog;
   readonly readModel: () => ReadCatalogModel;
@@ -63,8 +66,18 @@ export function createPublicCatalogRoutes(useCases: PublicCatalogUseCases): Hono
 
   app.get('/', async (c) => {
     const language = c.req.query('language')?.trim() || null;
-    const models = await useCases.search().execute({ text: c.req.query('q') ?? '', language });
-    return cached(c, { models });
+    const asked = c.req.query('limit');
+    const limit = asked === undefined ? undefined : Number(asked);
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE)) {
+      return fail(c, DomainError.validation(`A page holds from 1 to ${MAX_PAGE} models`));
+    }
+    const found = await useCases.search().execute({
+      text: c.req.query('q') ?? '',
+      language,
+      limit,
+      cursor: c.req.query('cursor') ?? null,
+    });
+    return cached(c, found);
   });
 
   app.get('/:p', async (c) => {

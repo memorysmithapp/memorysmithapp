@@ -187,7 +187,7 @@ export class ListNotebookShares {
 
 /**
  * Every share of every notebook of the subscription, for the cards of the notebooks,
- * which say which of the owner's notebooks are shared (RN-ACC-043). Only the
+ * which say which of the owner's notebooks are shared (RN-ACC-045). Only the
  * owner shares, so a member is answered an empty list rather than a refusal:
  * there is nothing of theirs to mark.
  */

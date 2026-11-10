@@ -524,7 +524,8 @@
       "carried": "{{tables}} de {{heldTables}} tabelas · {{dashboards}} de {{heldDashboards}} painéis",
       "blocked_one": "{{count}} painel usa uma tabela que fica de fora",
       "blocked_other": "{{count}} painéis usam uma tabela que fica de fora"
-    }
+    },
+    "searchNotebooks": "Busque cadernos pelo nome"
   },
   "attachments": {
     "heading": "Anexos",
@@ -1341,9 +1342,14 @@
     "create": "Criar",
     "creating": "Criando…",
     "model": "Modelo de caderno",
-    "noModels": "Nenhum caderno desta assinatura foi declarado como Modelo de caderno ainda.",
-    "community": "Ou encontre um modelo na comunidade",
-    "parametersAfter": "Os parâmetros você declara depois, na aba Parâmetros, que abre assim que o modelo é criado."
+    "parametersAfter": "Os parâmetros você declara depois, na aba Parâmetros, que abre assim que o modelo é criado.",
+    "origins": {
+      "mine": "Meus",
+      "shared": "Compartilhados comigo",
+      "community": "Comunidade"
+    },
+    "searchModels": "Busque modelos pelo nome ou pelo que servem",
+    "chooseAnother": "Escolher outro"
   },
   "community": {
     "title": "Comunidade",
@@ -1424,5 +1430,12 @@
     "name": "Nome",
     "updated": "Alterada em",
     "author": "Por"
+  },
+  "picker": {
+    "loading": "Carregando…",
+    "failed": "Não foi possível buscar. Tente de novo.",
+    "noMatch": "Nada corresponde ao que você digitou.",
+    "none": "Nada aqui ainda.",
+    "more": "Mostrar mais"
   }
 }

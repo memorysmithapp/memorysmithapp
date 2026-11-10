@@ -8,6 +8,7 @@
 
 import { apiToken } from '../support/accounts.js';
 import { Api } from '../support/api.js';
+import type { Page } from '@playwright/test';
 import { expect, openAs, speak, test, type AppLocale } from './fixtures.js';
 
 /** The words of the model pages, copied from the locale files of the interface. */
@@ -72,6 +73,44 @@ const MODEL_WORDS: Record<
     sharedBy: 'Compartilhado com você por',
   },
 };
+
+/** The words of the picker of a model (#432), copied from the locale files of the interface. */
+const PICKER_WORDS: Record<
+  AppLocale,
+  {
+    readonly fromModel: string;
+    readonly model: string;
+    readonly mine: string;
+    readonly shared: string;
+    readonly community: string;
+  }
+> = {
+  en_US: {
+    fromModel: 'From a model',
+    model: 'Model',
+    mine: 'Mine',
+    shared: 'Shared with me',
+    community: 'Community',
+  },
+  pt_BR: {
+    fromModel: 'De um Modelo de caderno',
+    model: 'Modelo de caderno',
+    mine: 'Meus',
+    shared: 'Compartilhados comigo',
+    community: 'Comunidade',
+  },
+};
+
+/** Opens New notebook on the notebooks, from a model, and answers its picker. */
+async function openModelPicker(app: Page, site: string, locale: AppLocale) {
+  const words = MODEL_WORDS[locale];
+  const picker = PICKER_WORDS[locale];
+  await app.goto(`${site}/notebooks`);
+  await app.getByRole('button', { name: words.newNotebook }).click();
+  const box = app.locator('.new-notebook .ask-dialog-box');
+  await box.getByRole('radio', { name: picker.fromModel }).click();
+  return { box, field: box.getByRole('combobox', { name: picker.model, exact: true }) };
+}
 
 test.describe('notebook models', () => {
   test('[page:/models] lists the models a person reads, and opens the dialog of a new model as the only thing that scrolls, the whole screen on a phone (#398, #418)', async ({
@@ -282,6 +321,95 @@ test.describe('notebook models', () => {
     await expect(box).not.toBeChecked();
   });
 
+  test('[page:/notebooks] [page:/transfers] finds a model of its own and a community model in one picker, creates a notebook from the community one from the keyboard, and picks a notebook to export the same way (#432)', async ({
+    app,
+    notebook,
+    owner,
+    state,
+    appLocale,
+    words: common,
+  }, testInfo) => {
+    const words = MODEL_WORDS[appLocale];
+    const picker = PICKER_WORDS[appLocale];
+    const model = `/portability/models/${notebook.notebookId}`;
+    await owner.ok('PUT', model, {
+      objective: `Keep the findings of ${notebook.name}`,
+      parameters: [{ name: 'client', type: 'text', required: true }],
+    });
+    const profile = await owner.ok<{ name: string; email: string }>('GET', '/access/profile');
+    if (!profile.name.trim() || profile.name === profile.email) {
+      await owner.ok('PUT', '/access/profile', { name: 'Functional Owner', avatar: 'initials' });
+    }
+    await owner.ok('PUT', `${model}/publication`, { language: 'en', acceptLicence: true });
+    const name = `${notebook.name} from the community`;
+
+    try {
+      // Mine: read whole and filtered as the name is typed.
+      const { box, field } = await openModelPicker(app, state.surfaces.site, appLocale);
+      await box.getByRole('tab', { name: new RegExp(`^${picker.mine}`) }).click();
+      await field.fill(notebook.name);
+      await expect(box.locator('.search-picker-row', { hasText: notebook.name })).toBeVisible();
+      await testInfo.attach('picker-mine.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+
+      // The community: searched on the server, a page at a time.
+      await box.getByRole('tab', { name: picker.community, exact: true }).click();
+      await expect(box.locator('.search-picker-row', { hasText: notebook.name })).toBeVisible({
+        timeout: 90_000,
+      });
+      await testInfo.attach('picker-community.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+
+      // From the keyboard: the field keeps the focus and Enter picks the lit row.
+      await field.press('Enter');
+      const form = box.locator('form.create-from-model');
+      await expect(form).toBeVisible();
+      await form.locator('input').first().fill(name);
+      await form.locator('#value-client').fill('Aurora');
+      await form.getByRole('button', { name: words.create }).click();
+      // Created in the dialog, never on another page, and opened.
+      await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 120_000 });
+
+      // On a phone the picker is the dialog, the whole screen.
+      await app.setViewportSize({ width: 390, height: 844 });
+      const phone = await openModelPicker(app, state.surfaces.site, appLocale);
+      await phone.field.fill(notebook.name);
+      await expect.poll(async () => (await phone.box.boundingBox())?.width ?? 0).toBe(390);
+      await testInfo.attach('picker-phone.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await app.keyboard.press('Escape');
+
+      // The export asks for its notebook in the same picker.
+      await app.setViewportSize({ width: 1280, height: 800 });
+      await app.goto(`${state.surfaces.site}/transfers`);
+      await app
+        .locator('.transfers-page')
+        .getByRole('button', { name: common.newExport, exact: true })
+        .click();
+      const dialog = app.locator('.transfer-dialog');
+      await dialog.getByRole('combobox', { name: common.notebookField, exact: true }).fill(name);
+      await expect(dialog.locator('.search-picker-row', { hasText: name }).first()).toBeVisible();
+      await testInfo.attach('export-picker.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+    } finally {
+      const listed = await owner.ok<Array<{ notebookId: string; name: string }>>(
+        'GET',
+        '/knowledge/notebooks',
+      );
+      const created = listed.find((each) => each.name === name);
+      if (created) await owner.call('DELETE', `/knowledge/notebooks/${created.notebookId}`);
+      await owner.call('DELETE', `${model}/publication`);
+    }
+  });
+
   test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, with what it holds and its history, and never its notebook', async ({
     page,
     notebook,
@@ -320,6 +448,15 @@ test.describe('notebook models', () => {
       );
       await page.waitForURL(/\?tab=contents$/);
       await expect(page.getByRole('button', { name: words.create })).toBeVisible();
+
+      // And New notebook finds it among the models shared with them (#432).
+      const picker = PICKER_WORDS[appLocale];
+      const { box, field } = await openModelPicker(page, state.surfaces.site, appLocale);
+      await box.getByRole('tab', { name: new RegExp(`^${picker.shared}`) }).click();
+      await field.fill(notebook.name);
+      await box.locator('.search-picker-row', { hasText: notebook.name }).click();
+      await expect(box.locator('form.create-from-model')).toBeVisible();
+      await page.keyboard.press('Escape');
 
       // The notebook itself stays closed to a model reader.
       await page.goto(notebook.page());

@@ -31,7 +31,7 @@ type Entry =
  * shared with the person, as cards in a grid, by name, and a new one; a
  * notebook declared as a model is on the page of the models instead (#422). A
  * notebook shared with a person appears here and nowhere else of the product's
- * lists (RN-ACC-043). The space of the subscription is Home's.
+ * lists (RN-ACC-045). The space of the subscription is Home's.
  */
 export function NotebooksPage() {
   const { t, i18n } = useTranslation();
@@ -51,9 +51,9 @@ export function NotebooksPage() {
     [query.data, locale],
   );
   /**
-   * The notebooks shared with me appear here and nowhere else of the product's
-   * lists — not in the space, which counts what is mine, nor among what an
-   * export chooses from (RN-ACC-043) — among mine, by the same order.
+   * The notebooks shared with me appear here, among mine, by the same order,
+   * and in the picker of an export under their own tab — never in the space,
+   * which counts what is mine (RN-ACC-045).
    */
   const incoming = useIncomingShares();
   /**

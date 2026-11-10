@@ -231,17 +231,39 @@ export class SearchCatalog {
   /**
    * Each subscription of an author is asked once, and all of them at once
    * (#420): the answer waits for the slowest of them, never for their sum.
+   *
+   * The newest published first, and a page at a time when a limit is asked
+   * (#432): the cursor is where the next page starts, null on the last one. A
+   * search that asks no limit answers every model it finds.
    */
-  async execute(query: { text: string; language: string | null }): Promise<PublicModel[]> {
+  async execute(query: {
+    text: string;
+    language: string | null;
+    limit?: number | undefined;
+    cursor?: string | null | undefined;
+  }): Promise<{ models: PublicModel[]; next: string | null }> {
     const candidates = (await this.deps.catalog.list()).filter((entry) => matches(entry, query));
     const subscriptions = [...new Set(candidates.map((entry) => entry.subscriptionId))];
     const answers = await Promise.all(subscriptions.map((id) => this.deps.access.grants(id)));
     const granting = new Map(subscriptions.map((id, at) => [id, answers[at] === true]));
-    return candidates
+    const found = candidates
       .filter((entry) => granting.get(entry.subscriptionId))
       .map(publicViewOf)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      .sort(
+        (a, b) =>
+          b.publishedAt.localeCompare(a.publishedAt) || a.publicId.localeCompare(b.publicId),
+      );
+    if (query.limit === undefined) return { models: found, next: null };
+    const from = cursorOffset(query.cursor);
+    const to = from + query.limit;
+    return { models: found.slice(from, to), next: to < found.length ? String(to) : null };
   }
+}
+
+/** Where a page of the search starts: the cursor the last page answered, or the start. */
+function cursorOffset(cursor: string | null | undefined): number {
+  const offset = Number(cursor ?? 0);
+  return Number.isInteger(offset) && offset > 0 ? offset : 0;
 }
 
 export class ReadCatalogModel {

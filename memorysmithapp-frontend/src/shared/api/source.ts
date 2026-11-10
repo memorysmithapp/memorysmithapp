@@ -520,5 +520,6 @@ export {
   publishModel,
   reportModel,
   searchCatalog,
+  searchCatalogPage,
   withdrawModel,
 } from './backend';

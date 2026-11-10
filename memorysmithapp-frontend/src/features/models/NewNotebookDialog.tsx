@@ -1,17 +1,25 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { communityAddress, modelAddress, notebookAddress } from '../../shared/api/note-address';
+import { modelAddress, notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
+  createFromCatalog,
   createFromModel,
   createNotebook,
   declareModel,
+  getCatalogModel,
   getModel,
   listModels,
+  searchCatalogPage,
 } from '../../shared/api/source';
+import {
+  SearchPicker,
+  type PickerItem,
+  type PickerSource,
+} from '../../shared/components/SearchPicker';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { Modal } from '../../shared/components/Modal';
@@ -194,63 +202,130 @@ function BlankNotebook({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Where a model comes from, as the tabs of the picker say it (#432). */
+type ModelOrigin = 'mine' | 'shared' | 'community';
+
+/** How many community models one page of the picker brings (#432). */
+const COMMUNITY_PAGE = 20;
+
+/**
+ * A notebook from a model (#359, #432): the model is found in one picker, the
+ * person's own models, the ones shared with them and the community's, by
+ * typing part of what it is called or is for, and created from in this dialog
+ * whichever it is.
+ */
 function FromModel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
-  const [chosen, setChosen] = useState<string | null>(null);
-  const model = useQuery({
-    queryKey: queryKeys.model(chosen ?? ''),
-    queryFn: () => getModel(chosen ?? ''),
-    enabled: chosen !== null,
-  });
+  const [picked, setPicked] = useState<{ origin: ModelOrigin; item: PickerItem } | null>(null);
 
+  if (picked) {
+    return <ChosenModel {...picked} onBack={() => setPicked(null)} onClose={onClose} />;
+  }
   if (models.isPending) return <FieldsSkeleton />;
   if (models.isError) return <p className="status">{t(messageKeyOf(models.error))}</p>;
-  // Beside the models the person may use, the ones others published (#360).
-  const community = (
-    <p className="hint">
-      <Link to={communityAddress()} onClick={onClose}>
-        {t('newNotebook.community')}
-      </Link>
-    </p>
-  );
-  if (models.data.length === 0) {
-    return (
-      <>
-        <p className="hint">{t('newNotebook.noModels')}</p>
-        {community}
-      </>
-    );
-  }
+
+  const itemOf = (model: (typeof models.data)[number]): PickerItem => ({
+    id: model.notebookId,
+    name: model.name,
+    line: model.objective,
+    by: model.sharedBy,
+  });
+  const mine = models.data.filter((model) => model.sharedBy === null).map(itemOf);
+  const shared = models.data.filter((model) => model.sharedBy !== null).map(itemOf);
+  const sources: Array<PickerSource<ModelOrigin>> = [
+    { key: 'mine', label: t('newNotebook.origins.mine'), kind: 'local', items: mine },
+    { key: 'shared', label: t('newNotebook.origins.shared'), kind: 'local', items: shared },
+    {
+      key: 'community',
+      label: t('newNotebook.origins.community'),
+      kind: 'remote',
+      queryKey: ['catalog-page'],
+      search: async (text, cursor) => {
+        const page = await searchCatalogPage({ text, limit: COMMUNITY_PAGE, cursor });
+        return {
+          items: page.models.map((model) => ({
+            id: model.publicId,
+            name: model.name,
+            line: model.objective,
+            by: model.author,
+          })),
+          next: page.next,
+        };
+      },
+    },
+  ];
 
   return (
     <div className="new-notebook-model">
-      {community}
-      <label className="field">
-        <span className="field-label">{t('newNotebook.model')}</span>
-        <select value={chosen ?? ''} onChange={(event) => setChosen(event.target.value || null)}>
-          <option value="">—</option>
-          {models.data.map((each) => (
-            <option key={each.notebookId} value={each.notebookId}>
-              {each.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {chosen && model.data ? (
+      <SearchPicker
+        label={t('newNotebook.model')}
+        placeholder={t('newNotebook.searchModels')}
+        sources={sources}
+        // A person with no model of their own starts where there are some.
+        initial={mine.length > 0 ? 'mine' : shared.length > 0 ? 'shared' : 'community'}
+        onPick={(origin, item) => setPicked({ origin, item })}
+      />
+    </div>
+  );
+}
+
+/**
+ * The model picked, and the notebook created from it: the parameters it
+ * declares now, read from the model itself or from the community (#431).
+ */
+function ChosenModel({
+  origin,
+  item,
+  onBack,
+  onClose,
+}: {
+  origin: ModelOrigin;
+  item: PickerItem;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const community = origin === 'community';
+  const own = useQuery({
+    queryKey: queryKeys.model(item.id),
+    queryFn: () => getModel(item.id),
+    enabled: !community,
+  });
+  const published = useQuery({
+    queryKey: queryKeys.catalogModel(item.id),
+    queryFn: () => getCatalogModel(item.id),
+    enabled: community,
+  });
+  const read = community ? published : own;
+  const model = read.data ?? null;
+
+  return (
+    <div className="new-notebook-model">
+      <div className="new-notebook-chosen">
+        <strong>{item.name}</strong>
+        {item.by ? <span className="hint"> — {item.by}</span> : null}
+        <button type="button" className="button is-quiet is-small" onClick={onBack}>
+          {t('newNotebook.chooseAnother')}
+        </button>
+      </div>
+      {read.isPending ? (
+        <FieldsSkeleton fields={2} />
+      ) : !model ? (
+        <p className="status">{t(messageKeyOf(read.error))}</p>
+      ) : (
         <>
-          <p className="hint">{model.data.objective}</p>
-          {/* The model as it stands, with the parameters it declares now (#431). */}
+          <p className="hint">{model.objective}</p>
           <CreateFromModelForm
-            key={chosen}
-            parameters={model.data.parameters}
+            key={`${origin}-${item.id}`}
+            parameters={model.parameters}
             onCancel={onClose}
-            create={(input) => createFromModel(chosen, input)}
+            create={(input) =>
+              community ? createFromCatalog(item.id, input) : createFromModel(item.id, input)
+            }
           />
         </>
-      ) : chosen && model.isPending ? (
-        <FieldsSkeleton fields={2} />
-      ) : null}
+      )}
     </div>
   );
 }

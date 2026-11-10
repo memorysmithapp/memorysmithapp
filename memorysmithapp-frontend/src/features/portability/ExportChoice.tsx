@@ -28,6 +28,7 @@ import {
 } from './import-selection';
 import { queryKeys } from '../../shared/api/query-keys';
 import { RowsSkeleton } from '../../shared/components/skeletons';
+import { SearchPicker } from '../../shared/components/SearchPicker';
 
 /**
  * What an export carries, asked in the dialog both sides share (#160).
@@ -79,8 +80,12 @@ export function ExportChoice({
   onClose,
 }: {
   open: boolean;
-  /** The notebooks this person can see, which is what may be exported. */
-  notebooks: ReadonlyArray<{ id: string; name: string }>;
+  /**
+   * The notebooks this person can see, which is what may be exported: their
+   * own, and the ones shared with them, with whom (#432).
+   */
+  notebooks: ReadonlyArray<{ id: string; name: string; sharedBy?: string | null }>;
+  /** The notebook chosen, or empty while the picker asks for one. */
   notebookId: string;
   onChooseNotebook: (notebookId: string) => void;
   /**
@@ -200,7 +205,7 @@ export function ExportChoice({
           <button
             type="button"
             className="button is-primary"
-            disabled={notebooks.length === 0 || broken.length > 0}
+            disabled={notebooks.length === 0 || notebookId === '' || broken.length > 0}
             onClick={() =>
               onConfirm(
                 whole ? null : chosen,
@@ -215,27 +220,46 @@ export function ExportChoice({
     >
       {notebooks.length === 0 ? (
         <p className="status">{t('transfers.noNotebooks')}</p>
+      ) : notebookId === '' ? (
+        // Which notebook, found by typing part of its name, among the person's
+        // own and the ones shared with them (#432).
+        <SearchPicker
+          label={t('portability.exportNotebook')}
+          placeholder={t('portability.searchNotebooks')}
+          sources={[
+            {
+              key: 'mine',
+              label: t('newNotebook.origins.mine'),
+              kind: 'local',
+              items: notebooks.filter((notebook) => !notebook.sharedBy),
+            },
+            {
+              key: 'shared',
+              label: t('newNotebook.origins.shared'),
+              kind: 'local',
+              items: notebooks
+                .filter((notebook) => notebook.sharedBy)
+                .map((notebook) => ({ ...notebook, by: notebook.sharedBy ?? null })),
+            },
+          ]}
+          onPick={(_origin, item) => onChooseNotebook(item.id)}
+        />
       ) : (
-        <div className="transfer-field">
-          {/* The label is beside the control and not around it: a label that
-              wraps a select takes the text of the chosen option into the name
-              of the field, which is what a screen reader announces. */}
-          <label htmlFor="export-choice-notebook">{t('portability.exportNotebook')}</label>
-          <select
-            id="export-choice-notebook"
-            value={notebookId}
-            onChange={(event) => onChooseNotebook(event.target.value)}
+        <div className="transfer-field export-chosen">
+          <span className="field-label">{t('portability.exportNotebook')}</span>
+          <strong>{notebooks.find((notebook) => notebook.id === notebookId)?.name}</strong>
+          <button
+            type="button"
+            className="button is-quiet is-small"
+            onClick={() => onChooseNotebook('')}
           >
-            {notebooks.map((notebook) => (
-              <option key={notebook.id} value={notebook.id}>
-                {notebook.name}
-              </option>
-            ))}
-          </select>
+            {t('newNotebook.chooseAnother')}
+          </button>
         </div>
       )}
 
       {notebooks.length > 0 &&
+        notebookId !== '' &&
         (tree && chosen ? (
           <TransferChooser
             tree={tree}

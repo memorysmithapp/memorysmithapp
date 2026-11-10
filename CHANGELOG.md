@@ -47,6 +47,8 @@ issues each entry cites.
 
 - **Transfers says Export and Import.** Its two buttons say only the action, *Export* and *Import*, and on a phone they share one row, each half of it. (#433)
 
+- **One picker finds the model of a new notebook, and the notebook of an export.** New notebook, from a model, no longer offers a list to scroll: you type part of a model's name or of what it is for, among your own models, the ones shared with you and the community's, each a tab, and create from any of them without leaving the dialog. The community is searched as you type, the most recently published first, twenty at a time with *Show more*. The export asks for its notebook the same way, among your own and the ones shared with you. The arrows move through the list and Enter picks; on a phone the picker is the whole screen. A search of the catalog through the API asks for one page with `limit` and the next with the `cursor` the page answered. (#432)
+
 ### Fixed
 
 - **Every card and every row shows it is under the mouse, all of it.** A card of a notebook's overview darkened only the part of it its link filled; it, the Templates of a notebook and every card now darken their edge, all of it, and the rows of the attachments, of a model's parameters and of its versions take the shade a row of the folders takes. (#429)

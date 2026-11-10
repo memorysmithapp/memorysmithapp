@@ -521,7 +521,8 @@
       "carried": "{{tables}} of {{heldTables}} tables · {{dashboards}} of {{heldDashboards}} dashboards",
       "blocked_one": "{{count}} dashboard draws from a table that stays out",
       "blocked_other": "{{count}} dashboards draw from a table that stays out"
-    }
+    },
+    "searchNotebooks": "Search notebooks by name"
   },
   "attachments": {
     "heading": "Attachments",
@@ -1338,9 +1339,14 @@
     "create": "Create",
     "creating": "Creating…",
     "model": "Model",
-    "noModels": "No notebook of this subscription is declared as a model yet.",
-    "community": "Or find a model in the community",
-    "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created."
+    "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created.",
+    "origins": {
+      "mine": "Mine",
+      "shared": "Shared with me",
+      "community": "Community"
+    },
+    "searchModels": "Search models by name or what they are for",
+    "chooseAnother": "Choose another"
   },
   "community": {
     "title": "Community",
@@ -1421,5 +1427,12 @@
     "name": "Name",
     "updated": "Changed",
     "author": "By"
+  },
+  "picker": {
+    "loading": "Loading…",
+    "failed": "Could not search. Try again.",
+    "noMatch": "Nothing matches what you typed.",
+    "none": "Nothing here yet.",
+    "more": "Show more"
   }
 }

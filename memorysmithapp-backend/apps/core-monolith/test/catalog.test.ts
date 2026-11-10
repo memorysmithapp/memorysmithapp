@@ -223,6 +223,17 @@ describe('publishing a model to the community (#360)', () => {
       await call(null, '/public/catalog'),
     );
     expect(both.models.map((each) => each.author).sort()).toEqual(['Ana Pereira', 'Bruno Costa']);
+    // A page at a time, the newest published first (#432).
+    const page = await json<{ models: Array<{ author: string }>; next: string | null }>(
+      await call(null, '/public/catalog?limit=1'),
+    );
+    expect(page.models.map((each) => each.author)).toEqual(['Bruno Costa']);
+    const rest = await json<{ models: Array<{ author: string }>; next: string | null }>(
+      await call(null, `/public/catalog?limit=1&cursor=${page.next ?? ''}`),
+    );
+    expect(rest.models.map((each) => each.author)).toEqual(['Ana Pereira']);
+    expect(rest.next).toBeNull();
+    expect((await call(null, '/public/catalog?limit=500')).status).toBe(400);
     expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(200);
 
     // Withdrawn by its owner: gone from the catalog, the stranger's notebook untouched.

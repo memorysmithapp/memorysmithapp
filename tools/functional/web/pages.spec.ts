@@ -428,9 +428,8 @@ test.describe('the pages of an account', () => {
     // Export lands in the dialog with this notebook already chosen.
     await more.click();
     await app.getByRole('menuitem', { name: words.exportNotebook }).click();
-    await expect(
-      app.locator('.transfer-dialog').getByLabel(words.notebookField, { exact: true }),
-    ).toHaveValue(notebookId);
+    // Chosen already, so the picker waits behind *Choose another* (#432).
+    await expect(app.locator('.transfer-dialog .export-chosen strong')).toHaveText(name);
     await app.keyboard.press('Escape');
 
     // Deleting asks on the card, and keeping it puts the card back as it was.
@@ -2756,12 +2755,13 @@ async function startExport(
     .locator('.transfers-page')
     .getByRole('button', { name: words.newExport, exact: true })
     .click();
-  // Scoped to the dialog and exact: `Notebook` is the start of several
-  // accessible names on the page behind it.
-  await app
-    .locator('.transfer-dialog')
-    .getByLabel(words.notebookField, { exact: true })
-    .selectOption({ label: notebookName });
+  // The notebook is found in the picker by typing its name, and picked from
+  // the rows under it (#432). Scoped to the dialog and exact: `Notebook` is
+  // the start of several accessible names on the page behind it.
+  const dialog = app.locator('.transfer-dialog');
+  await dialog.getByRole('combobox', { name: words.notebookField, exact: true }).fill(notebookName);
+  await dialog.locator('.search-picker-row', { hasText: notebookName }).first().click();
+  await expect(dialog.locator('.export-chosen strong')).toHaveText(notebookName);
   // Inside the dialog and exact: `Export` is also the start of the button that
   // opened it.
   await app

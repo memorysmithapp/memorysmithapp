@@ -56,8 +56,27 @@ describe('the search of the catalog', () => {
     const found = await search.execute({ text: '', language: null });
 
     // The newest first, the suspended author's model left out (RN-SUB-007).
-    expect(found.map((model) => model.publicId)).toEqual(['m4', 'm3', 'm1']);
+    expect(found.models.map((model) => model.publicId)).toEqual(['m4', 'm3', 'm1']);
+    expect(found.next).toBeNull();
     expect([...asked].sort()).toEqual(['sub-a', 'sub-b', 'sub-c']);
     expect(mostAtOnce).toBe(3);
+  });
+
+  it('answers a page at a time, the newest published first, with where the next starts (#432)', async () => {
+    const entries = Array.from({ length: 5 }, (_, at) =>
+      entryOf(`m${at}`, 'sub-a', `2026-11-0${at + 1}T00:00:00.000Z`),
+    );
+    const search = new SearchCatalog({
+      catalog: { list: async () => entries } as unknown as CatalogStore,
+      access: { grants: async () => true },
+    });
+
+    const first = await search.execute({ text: '', language: null, limit: 2 });
+    expect(first.models.map((model) => model.publicId)).toEqual(['m4', 'm3']);
+    const second = await search.execute({ text: '', language: null, limit: 2, cursor: first.next });
+    expect(second.models.map((model) => model.publicId)).toEqual(['m2', 'm1']);
+    const last = await search.execute({ text: '', language: null, limit: 2, cursor: second.next });
+    expect(last.models.map((model) => model.publicId)).toEqual(['m0']);
+    expect(last.next).toBeNull();
   });
 });

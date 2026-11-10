@@ -180,7 +180,14 @@ export const publicModelSchema = z.object({
   parameters: z.array(parameterDeclarationSchema),
 });
 
-export const catalogSearchSchema = z.object({ models: z.array(publicModelSchema) });
+/**
+ * What a search of the catalog finds, the newest published first (#432): one
+ * page when a limit was asked, and where the next one starts, null on the last.
+ */
+export const catalogSearchSchema = z.object({
+  models: z.array(publicModelSchema),
+  next: z.string().nullable(),
+});
 
 /** A published model, read whole as it stands now, and nothing else of its subscription (#431). */
 export const publicModelContentsSchema = modelContentsSchema

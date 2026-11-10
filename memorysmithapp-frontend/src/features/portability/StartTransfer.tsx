@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { listNotebooks, startExport } from '../../shared/api/source';
+import { listIncomingShares, listNotebooks, startExport } from '../../shared/api/source';
 import { ExportChoice, type TablesCarriage } from './ExportChoice';
 import { ImportDialog } from './ImportDialog';
 import { useRefreshTransfers } from './transfers';
@@ -84,9 +84,8 @@ export function TransferDialogs({
    */
   notebookId?: string;
   /**
-   * The name of that notebook when it is not among the person's own: one
-   * shared with them, which is exported from its card and from nowhere else
-   * (#256, RN-ACC-043).
+   * The name of that notebook when it is not among the ones the picker lists:
+   * one shared with them, exported from its card (#256, RN-ACC-045).
    */
   notebookName?: string | undefined;
   /** The kept export an import opens on, when started from its row (#207). */
@@ -105,18 +104,34 @@ export function TransferDialogs({
     enabled: starting === 'export',
   });
 
+  /**
+   * The notebooks shared with the person that they may export, which the
+   * picker lists beside their own (#432): a model reader reaches only the
+   * model, never the notebook (RN-ACC-044).
+   */
+  const shares = useQuery({
+    queryKey: queryKeys.incomingShares(),
+    queryFn: listIncomingShares,
+    enabled: starting === 'export',
+  });
+
   const own = (notebooks.data ?? []).map((notebook) => ({
     id: notebook.id,
     name: notebook.name,
+    sharedBy: null,
   }));
+  const shared = (shares.data ?? [])
+    .filter((share) => share.state === 'accepted' && share.profile !== 'model-reader')
+    .filter((share) => !own.some((notebook) => notebook.id === share.notebookId))
+    .map((share) => ({ id: share.notebookId, name: share.name, sharedBy: share.ownerEmail }));
+  const listed = [...own, ...shared];
   const choices =
-    preset && presetName && !own.some((notebook) => notebook.id === preset)
-      ? [{ id: preset, name: presetName }, ...own]
-      : own;
+    preset && presetName && !listed.some((notebook) => notebook.id === preset)
+      ? [{ id: preset, name: presetName, sharedBy: null }, ...listed]
+      : listed;
 
-  // The first of the list unless another was chosen, so the dialog always has
-  // an answer and the common case is one click.
-  const chosen = notebookId || (choices[0]?.id ?? '');
+  // The notebook it was opened for, or none until the picker is answered (#432).
+  const chosen = notebookId;
 
   async function begin(carrying: Chosen | null, carriage: TablesCarriage): Promise<void> {
     if (!chosen) return;

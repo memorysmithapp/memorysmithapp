@@ -8265,3 +8265,73 @@ button.attachment-thumb:focus-visible {
 .mobile-menu-group .nav-row {
   min-height: 44px;
 }
+
+/* The picker of a notebook or a model (#432): the field, the places as tabs,
+   and the rows under them, drawn inside the dialog that asks. The list keeps
+   its own height and scrolls, so the dialog does not grow with the catalog. */
+.search-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.search-picker .search-box {
+  margin-bottom: 0;
+}
+.search-picker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.search-picker-list {
+  max-height: min(46vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.search-picker-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--text);
+}
+.search-picker-row.is-lit {
+  background: var(--accent-soft);
+}
+.search-picker-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.search-picker-by {
+  font-size: 12px;
+  color: var(--text-soft);
+  text-align: end;
+}
+.search-picker-line {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-picker-more {
+  align-self: center;
+}
+@media (max-width: 40rem) {
+  /* On a phone the dialog is the screen, and the list takes what is left of it. */
+  .search-picker-list {
+    max-height: none;
+  }
+  .search-picker-row {
+    min-height: 44px;
+  }
+}
+/* The model or the notebook picked, and the way back to the picker (#432). */
+.new-notebook-chosen,
+.export-chosen {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}

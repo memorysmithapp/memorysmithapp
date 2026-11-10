@@ -234,6 +234,23 @@ export async function searchCatalog(query: {
   return (await publicRequest<{ models: PublicModelDto[] }>(`/public/catalog${suffix}`)).models;
 }
 
+/**
+ * One page of what a search of the catalog finds, the newest published first
+ * (#432), and where the next one starts, null on the last.
+ */
+export async function searchCatalogPage(query: {
+  text: string;
+  limit: number;
+  cursor: string | null;
+}): Promise<{ models: PublicModelDto[]; next: string | null }> {
+  const params = new URLSearchParams({ limit: String(query.limit) });
+  if (query.text.trim()) params.set('q', query.text.trim());
+  if (query.cursor) params.set('cursor', query.cursor);
+  return publicRequest<{ models: PublicModelDto[]; next: string | null }>(
+    `/public/catalog?${params.toString()}`,
+  );
+}
+
 export async function getCatalogModel(publicId: string): Promise<PublicModelDto> {
   return publicRequest<PublicModelDto>(`/public/catalog/${publicId}`);
 }
