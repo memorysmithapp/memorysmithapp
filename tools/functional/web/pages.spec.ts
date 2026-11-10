@@ -2999,12 +2999,12 @@ test.describe('the transfers of a person', () => {
     });
     await app.setViewportSize({ width: 390, height: 844 });
     await sideBySide();
-    // Each half of the row on a phone, not the width of its word.
-    const row = await start.boundingBox();
+    // Each half of the row on a phone, not the width of its word: measured
+    // against the screen, since the row itself could shrink to its buttons.
     const half = await start
       .getByRole('button', { name: words.newExport, exact: true })
       .boundingBox();
-    expect((half?.width ?? 0) / (row?.width ?? 1)).toBeGreaterThan(0.45);
+    expect(half?.width ?? 0).toBeGreaterThan((390 - 2 * 16) / 2 - 12);
     await testInfo.attach('transfers-buttons-phone.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',

@@ -4719,6 +4719,7 @@ button.attachment-thumb:focus-visible {
   .transfers-start {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    width: 100%;
   }
   .transfers-start > .button {
     width: 100%;
