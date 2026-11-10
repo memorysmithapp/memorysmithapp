@@ -133,6 +133,14 @@ jobs:
           FUNCTIONAL_VERSION: ${{ steps.version.outputs.version }}
         run: pnpm tools functional
 
+      # What the suite wrote, and what a run cut short left, goes after every
+      # run, whether it passed or not (#436): the notebooks of accounts gone,
+      # the accounts of runs older than a day, and the empty subscriptions
+      # whose owner is gone.
+      - name: Clean up what the suite left
+        if: always() && inputs.functional && vars.INSTALLATION == ''
+        run: pnpm tools data cleanup-staging --environment staging --apply
+
       # A failed suite is when somebody reads the report, so it is kept either way.
       - uses: actions/upload-artifact@v7
         if: always() && inputs.functional

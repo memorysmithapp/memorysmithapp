@@ -33,7 +33,8 @@ export const MAINTENANCE_JOBS = {
   // First, because it is what makes a scan of staging worth running (#276).
   'cleanup-staging': {
     entry: 'memorysmithapp-backend/apps/core-monolith/src/cleanup-staging.ts',
-    deletes: 'the notebooks the functional suite abandoned',
+    deletes:
+      'the notebooks the functional suite abandoned, the accounts of its runs cut short, and its empty subscriptions',
     only: ['staging'],
   },
   'recount-storage': {

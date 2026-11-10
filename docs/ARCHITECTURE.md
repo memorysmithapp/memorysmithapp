@@ -159,6 +159,8 @@ A note's `TransactWriteItems` holds the `NOTE` item under its version lock, its 
 
 A status transition changes the subscription's `META` and its place in the platform queue, and nothing else: no consumer of a subscription event moves, rekeys or deletes data. The status governs access (`ResolveRequestContext`), never address.
 
+One exception, in staging alone: `cleanup-staging` removes a subscription the functional suite made (its owner an `@example.com` account) once that owner is gone and it holds no notebook, deleting its items from every table but the trail (#436). The job refuses every environment but staging by name, so no subscription of production is ever removed.
+
 ### INV-12 A platform administrator session carries no subscription
 
 The platform routes are reserved to the Cognito group `platform-admin` (`requirePlatformAdmin`), and a token without the claim `subscription_id` yields no `SubscriptionContext`, so no Knowledge repository can be constructed under it. An operator account holds no link to a subscription: `onboard` gives the first account of a pool the group and nothing else, and the pre-token generation trigger never adds `subscription_id` to a member of the group, whatever links it holds, so the group can only take the claim away (`test/pre-token-generation.test.ts` of Access).
@@ -223,7 +225,7 @@ Nobody delivers production from a workstation. The workflows ([`SDLC.md` §10](S
 | Workflow | Started by | Does |
 |---|---|---|
 | *CI* | a pull request, a push to `release/**` | the checks; no AWS |
-| *Staging* | hand, on a branch; inputs: adapter tests, functional suite, a maintenance job, alarms, dashboards, tracing | `deliver` to staging, then what was asked |
+| *Staging* | hand, on a branch; inputs: adapter tests, functional suite, a maintenance job, alarms, dashboards, tracing | `deliver` to staging, then what was asked, and `cleanup-staging --apply` after the functional suite |
 | *Production* | a merge to `main` touching what is deployed, with alarms, dashboards and tracing off; or by hand, with inputs for each | `release-checks`, the checks, `deliver` to production, `publish-release` |
 | *Production maintenance* | hand; the job, and `report` or `apply` | `reproject-links` or `forget-model-versions` against production, each run in AWS under a role of its own |
 
@@ -259,7 +261,7 @@ What operates and evaluates the product runs from the root with `pnpm tools <com
 | Command | Does |
 |---|---|
 | `onboard` | Creates or hands over an account and its subscription, with its quota and status; the first account of a pool gets the platform and no subscription |
-| `data cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist; staging only |
+| `data cleanup-staging [--apply]` | Deletes the notebooks of functional-suite accounts that no longer exist, and of accounts older than 24 hours with the accounts themselves, and removes the empty suite subscriptions whose owner is gone; staging only, run after every staging run |
 | `data recount-storage [--apply]` | Rebuilds the storage counters from what is kept |
 | `data purge-deleted-files [--apply]` | Hands the purge every file deleted on its own that it never heard of |
 | `data purge-unnamed-files [--older-than 24] [--apply]` | Hands the purge the bytes under `f/` that no file names and that are older than a keep in flight, by identifier and size, never reading them |
