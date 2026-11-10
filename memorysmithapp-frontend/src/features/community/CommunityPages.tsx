@@ -27,7 +27,7 @@ import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { ShelfHeading } from '../dashboard/ShelfHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { MenuItem } from '../../shared/components/Menu';
-import { ParameterList } from '../models/ModelPage';
+import { ParameterList, SharedModelBar } from '../models/ModelPage';
 import { VersionContents } from '../models/ModelVersionPage';
 
 /**
@@ -159,7 +159,14 @@ export function CommunityModelPage() {
   useDocumentTitle(model.data?.name, t('community.title'));
 
   return (
-    <>
+    <div className="trail-page">
+      {/* The way back to every model of the community (#422). */}
+      <SharedModelBar
+        crumbs={[
+          { label: t('nav.community'), to: '/community' },
+          { label: model.data?.name ?? '' },
+        ]}
+      />
       <article className="content-pane community-page">
         {model.isPending ? (
           <PageSkeleton />
@@ -189,7 +196,7 @@ export function CommunityModelPage() {
           </>
         )}
       </article>
-    </>
+    </div>
   );
 }
 
@@ -286,7 +293,18 @@ export function CommunityVersionPage() {
   );
 
   return (
-    <>
+    <div className="trail-page">
+      {/* Community / the model / its version (#422). */}
+      <SharedModelBar
+        crumbs={[
+          { label: t('nav.community'), to: '/community' },
+          {
+            label: version.data?.model.name ?? '',
+            to: communityModelAddress(publicId),
+          },
+          { label: `v${number}` },
+        ]}
+      />
       <article className="content-pane model-version-page community-page">
         {version.isPending ? (
           <PageSkeleton />
@@ -294,9 +312,6 @@ export function CommunityVersionPage() {
           <p className="status">{t(messageKeyOf(version.error))}</p>
         ) : (
           <>
-            <p className="hint">
-              <Link to={communityModelAddress(publicId)}>{version.data.model.name}</Link>
-            </p>
             <h1>{t('model.versionTitle', { number })}</h1>
             {version.data.version.changelog ? (
               <p className="page-intro">{version.data.version.changelog}</p>
@@ -323,6 +338,6 @@ export function CommunityVersionPage() {
           </>
         )}
       </article>
-    </>
+    </div>
   );
 }

@@ -47,15 +47,18 @@ export function SharedModelVersionPage() {
   const number = Number(useParams().version);
   useDocumentTitle(t('model.versionTitle', { number }));
   return (
-    <VersionView
-      notebookId={notebookId}
-      number={number}
-      crumbs={[
-        { label: t('model.title'), to: sharedModelAddress(notebookId) },
-        { label: `v${number}` },
-      ]}
-      shared
-    />
+    <div className="trail-page">
+      <VersionView
+        notebookId={notebookId}
+        number={number}
+        crumbs={[
+          { label: t('nav.models'), to: '/models' },
+          { label: t('model.title'), to: sharedModelAddress(notebookId) },
+          { label: `v${number}` },
+        ]}
+        shared
+      />
+    </div>
   );
 }
 

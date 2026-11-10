@@ -27,7 +27,7 @@ issues each entry cites.
 
 - **On a phone, a ☰ instead of the sheet at the foot of the screen.** The sheet that rose from the foot of the screen to navigate a notebook is gone: some people got lost in it. On a phone the header is one row, and its ☰ opens a menu from the top holding the search, the menu of the product, and inside a notebook the notebook in groups, its Context, its pages and its tree. It closes when you choose a page, with Esc or with a tap outside. Your menu and the bell drop from the same place, instead of rising as a sheet from the foot of the screen, and opening one closes the ☰. (#419, #422)
 
-- **The community is read signed in.** Its pages, every published model as cards, a model and a version, are now pages of the application under its menu, and a person who is not signed in is asked to sign in first; they are no longer indexed by search engines. Publishing a model says it is shown to every person signed in. (#418)
+- **The community is read signed in.** Its pages, every published model as cards, a model and a version, are now pages of the application under its menu, and a person who is not signed in is asked to sign in first; they are no longer indexed by search engines. Publishing a model says it is shown to every person signed in. A model of the community and its versions open on a trail back to the community, as a model shared with you opens on one back to Models. (#418, #422)
 
 - **About opens on *About MemorySmith.app*.** The heading names the page instead of welcoming you: *About*, and under it, centred, the symbol and the name spelt as the header spells it, its *.app* in orange. (#422)
 

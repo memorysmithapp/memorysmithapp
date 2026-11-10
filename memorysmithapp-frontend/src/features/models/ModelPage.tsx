@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -141,8 +141,10 @@ export function SharedModelPage() {
   });
 
   return (
-    <>
-      <SharedModelBar crumbs={[{ label: t('model.title') }]} />
+    <div className="trail-page">
+      <SharedModelBar
+        crumbs={[{ label: t('nav.models'), to: '/models' }, { label: t('model.title') }]}
+      />
       <article className="content-pane model-page">
         {model.isPending ? (
           <ModelSkeleton />
@@ -176,7 +178,7 @@ export function SharedModelPage() {
           </>
         )}
       </article>
-    </>
+    </div>
   );
 }
 
@@ -482,19 +484,42 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
 }
 
 /**
- * The trail of a model shared as a model reader (#355): no notebook is open, so
- * it is not the notebook's trail, which reads the notebook it starts from.
+ * The trail of a page outside a notebook (#355, #422): a model shared as a
+ * model reader, and the community. No notebook is open, so it is not the
+ * notebook's trail, which starts at the notebook; it starts at the page of the
+ * menu the person came from, and is drawn as that trail is. The page wraps
+ * the bar and its article in one block, `.trail-page`, so the row of
+ * `.app-main` lays them one under the other and never side by side.
  */
 export function SharedModelBar({ crumbs }: { crumbs: Crumb[] }) {
   const { t } = useTranslation();
+  // A crumb whose name is still being read waits for it.
+  const shown = crumbs.filter((crumb) => crumb.label !== '');
+  const last = shown.length - 1;
   return (
     <div className="notebook-bar">
-      <nav className="shared-model-trail" aria-label={t('model.title')}>
-        {crumbs.map((crumb, index) => (
-          <span key={`${crumb.label}-${index}`}>
-            {index > 0 ? ' / ' : null}
-            {crumb.to ? <Link to={crumb.to}>{crumb.label}</Link> : crumb.label}
-          </span>
+      <nav className="notebook-breadcrumb" aria-label={t('structure.breadcrumb')}>
+        {shown.map((crumb, index) => (
+          <Fragment key={`${index}-${crumb.label}`}>
+            {index > 0 ? (
+              <span className="crumb-separator" aria-hidden="true">
+                /
+              </span>
+            ) : null}
+            {crumb.to ? (
+              <Link to={crumb.to} className="crumb" title={crumb.label}>
+                {crumb.label}
+              </Link>
+            ) : (
+              <span
+                className={`crumb${index === last ? ' is-last' : ''}`}
+                aria-current="page"
+                title={crumb.label}
+              >
+                {crumb.label}
+              </span>
+            )}
+          </Fragment>
         ))}
       </nav>
     </div>
