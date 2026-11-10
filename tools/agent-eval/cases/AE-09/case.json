@@ -18,7 +18,7 @@
     "The structure is generic: folders, descriptions and templates name the kind of thing they hold, never one condominium.",
     "It proposes the parameters that change from one condominium to the next, writes them as {{name}} where they go, and declares each with a description, an example, a type and whether it is required.",
     "Each folder with a template holds one illustrative note written for the model.",
-    "It declares the model and creates its first version only after the person approves, and offers to try it."
+    "It declares the model only after the person approves, and offers to try it."
   ],
   "variants": [
     {

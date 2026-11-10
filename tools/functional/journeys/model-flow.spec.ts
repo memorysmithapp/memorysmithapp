@@ -1,12 +1,12 @@
 /**
  * The whole flow of a notebook model (#361), across two people, their agents
  * and the public catalog, against the deployed environment: a regulated-domain
- * model with parameters, examples and a file, frozen into versions; notebooks
- * created from it, read and written as any other; shared with a named person
+ * model with parameters, examples and a file, read as it stands (#431);
+ * notebooks created from it, read and written as any other; shared with a named person
  * as a model reader and as an editor; published, found and used by that person
  * as a stranger would, derived and republished without credit, and withdrawn.
- * Storage is counted once for the author and once per created notebook, and
- * never for access.
+ * Storage is counted once for the author's notebook and once per created
+ * notebook, and never for the model or for access.
  */
 
 import { expect, test } from '@playwright/test';
@@ -36,19 +36,6 @@ const SVG =
 async function bytesOf(api: Api, notebookId: string): Promise<number | null> {
   const usage = await api.ok<Usage>('GET', '/access/usage');
   return usage.notebooks.find((each) => each.notebookId === notebookId)?.bytes ?? null;
-}
-
-async function readyVersion(api: Api, notebookId: string, number: number): Promise<void> {
-  await eventually(
-    `version ${number} to be built`,
-    () =>
-      api.ok<{ versions: Array<{ number: number; status: string }> }>(
-        'GET',
-        `/portability/models/${notebookId}`,
-      ),
-    (model) => model.versions.some((each) => each.number === number && each.status === 'ready'),
-    { timeoutMs: 120_000 },
-  );
 }
 
 /** Every note of a notebook, whole, as an agent reads them. */
@@ -177,24 +164,19 @@ test('a regulated-domain model goes from its author to a named person and to the
       ).isError,
     ).toBe(false);
 
-    await callTool(ownerAgent, 'create_model_version', {
-      notebook: model,
-      changelog: 'Primeira versão',
-    });
-    await readyVersion(owner, model, 1);
-    const version = parsed<{
-      references: { undeclared: string[]; unused: string[] };
-      files: unknown[];
-    }>(await callTool(ownerAgent, 'read_model_version', { notebook: model, version: 1 }));
-    expect(version.references).toEqual({ undeclared: [], unused: [] });
-    expect(version.files).toHaveLength(1);
-    // The version counts once in the author's storage, as a kept export.
-    // The version is counted once, with its author, as a kept export of its size.
-    const counted = await owner.ok<{ versions: Array<{ number: number; bytes: number }> }>(
-      'GET',
-      `/portability/models/${model}`,
+    // The model as it stands: what it writes against what it declares, and its file.
+    const read = parsed<{
+      contents: { references: { undeclared: string[]; unused: string[] }; files: unknown[] };
+    }>(await callTool(ownerAgent, 'get_model', { notebook: model }));
+    expect(read.contents.references).toEqual({ undeclared: [], unused: [] });
+    expect(read.contents.files).toHaveLength(1);
+    // A model keeps no copy of itself: nothing is kept for it beside its notebook.
+    const kept = await owner.ok<{
+      transfers: Array<{ kind: string; notebookId: string | null }>;
+    }>('GET', '/portability/transfers');
+    expect(kept.transfers.some((each) => each.kind === 'export' && each.notebookId === model)).toBe(
+      false,
     );
-    expect(counted.versions.find((each) => each.number === 1)?.bytes).toBeGreaterThan(0);
 
     // ---- Two independent notebooks of the author, each with its values ------
     const fromOwn: string[] = [];
@@ -202,7 +184,6 @@ test('a regulated-domain model goes from its author to a named person and to the
       const answer = parsed<{ notebook?: string; status: string }>(
         await callTool(ownerAgent, 'create_notebook_from_model', {
           notebook: model,
-          version: 1,
           values: { orgao, abertura: '2026-01-15', modalidades: ['pregão', 'concorrência'] },
         }),
       );
@@ -243,8 +224,6 @@ test('a regulated-domain model goes from its author to a named person and to the
       folder,
       content: '---\nname: Contratos de {{orgao}}\n---\n\nOs contratos.\n',
     });
-    await callTool(ownerAgent, 'create_model_version', { notebook: model, changelog: 'Contratos' });
-    await readyVersion(owner, model, 2);
     expect(await notesOf(ownerAgent, fromOwn[0] ?? '')).not.toContain('Contratos de');
 
     // ---- Shared with a named person, as a model reader -----------------------
@@ -267,7 +246,6 @@ test('a regulated-domain model goes from its author to a named person and to the
     const sharedCopy = parsed<{ notebook?: string; status: string }>(
       await callTool(otherAgent, 'create_notebook_from_model', {
         notebook: model,
-        version: 2,
         values: { orgao: 'Prefeitura de Salto', abertura: '2026-03-01' },
       }),
     );
@@ -292,9 +270,15 @@ test('a regulated-domain model goes from its author to a named person and to the
         })
       ).isError,
     ).toBe(false);
+    // Declaring the model stays with its owner.
     expect(
-      (await callTool(otherAgent, 'create_model_version', { notebook: model, changelog: 'Minha' }))
-        .isError,
+      (
+        await callTool(otherAgent, 'declare_model', {
+          notebook: model,
+          objective: 'Minha',
+          parameters: [],
+        })
+      ).isError,
     ).toBe(true);
     await owner.ok('DELETE', `${shares}/${otherUser}`);
 
@@ -305,9 +289,6 @@ test('a regulated-domain model goes from its author to a named person and to the
       () => bytesOf(owner, model),
       (bytes) => (bytes ?? 0) > (modelBytes ?? 0),
     );
-    const versionsBefore = (
-      await owner.ok<{ versions: unknown[] }>('GET', `/portability/models/${model}`)
-    ).versions.length;
     const published = parsed<{ publicId: string }>(
       await callTool(ownerAgent, 'publish_model', {
         notebook: model,
@@ -315,12 +296,12 @@ test('a regulated-domain model goes from its author to a named person and to the
         acceptLicence: true,
       }),
     );
-    // Publishing copies nothing: the notebook and its versions are as they were.
+    // Publishing copies nothing: the notebook is counted as it was.
     expect(await bytesOf(owner, model)).toBe(publishingBytes);
     const found = await eventually(
       'the model to be found in the community',
       async () =>
-        parsed<{ models: Array<{ publicId: string; versions: Array<{ number: number }> }> }>(
+        parsed<{ models: Array<{ publicId: string }> }>(
           await callTool(otherAgent, 'search_community_models', {
             query: `licitações ${marker}`,
             language: 'pt',
@@ -329,14 +310,12 @@ test('a regulated-domain model goes from its author to a named person and to the
       (answer) => answer.models.length > 0,
     );
     expect(found.models[0]?.publicId).toBe(published.publicId);
-    expect(found.models[0]?.versions.map((each) => each.number)).toEqual([2, 1]);
     const anonymous = await fetch(`${state.surfaces.api}/public/catalog/${published.publicId}`);
     expect(anonymous.status).toBe(200);
     expect(await anonymous.text()).not.toContain(state.accounts.owner.email);
     const community = parsed<{ notebook?: string; status: string }>(
       await callTool(otherAgent, 'create_notebook_from_community_model', {
         model: published.publicId,
-        version: 2,
         values: { orgao: 'Prefeitura de Indaiatuba', abertura: '2026-04-01' },
       }),
     );
@@ -351,11 +330,6 @@ test('a regulated-domain model goes from its author to a named person and to the
       parameters: [],
       basedOn: null,
     });
-    await callTool(otherAgent, 'create_model_version', {
-      notebook: strangerCopy,
-      changelog: 'Derivado',
-    });
-    await readyVersion(other, strangerCopy, 1);
     const derived = parsed<{ publicId: string; author: string; basedOn: string | null }>(
       await callTool(otherAgent, 'publish_model', {
         notebook: strangerCopy,
@@ -364,11 +338,18 @@ test('a regulated-domain model goes from its author to a named person and to the
       }),
     );
     expect(derived.basedOn).toBeNull();
-    const original = parsed<{ versions: Array<{ number: number }>; author: string }>(
-      await callTool(otherAgent, 'read_community_model', { model: published.publicId }),
-    );
-    expect(original.versions.map((each) => each.number)).toEqual([2, 1]);
+    const original = parsed<{
+      author: string;
+      contents: { notes: Array<{ body: string }> };
+      history: { changes: Array<Record<string, unknown>> };
+    }>(await callTool(otherAgent, 'read_community_model', { model: published.publicId }));
     expect(original.author).not.toBe(derived.author);
+    // Read as it stands: the note the editor wrote reached the community, and
+    // its history says when and what, never who (#431).
+    expect(original.contents.notes.some((note) => note.body.includes('Atas de {{orgao}}'))).toBe(
+      true,
+    );
+    for (const change of original.history.changes) expect(change).not.toHaveProperty('agent');
 
     // ---- Withdrawn: gone from the catalog, nothing created from it touched ---
     expect((await callTool(ownerAgent, 'withdraw_model', { notebook: model })).isError).toBe(false);
@@ -376,9 +357,7 @@ test('a regulated-domain model goes from its author to a named person and to the
       404,
     );
     expect(await bytesOf(owner, model)).toBe(publishingBytes);
-    expect(
-      (await owner.ok<{ versions: unknown[] }>('GET', `/portability/models/${model}`)).versions,
-    ).toHaveLength(versionsBefore);
+    expect((await callTool(ownerAgent, 'get_model', { notebook: model })).isError).toBe(false);
     expect(await notesOf(otherAgent, strangerCopy)).toContain('Prefeitura de Indaiatuba');
     await callTool(otherAgent, 'withdraw_model', { notebook: strangerCopy });
   } finally {

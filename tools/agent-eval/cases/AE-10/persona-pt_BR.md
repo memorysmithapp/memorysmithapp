@@ -12,7 +12,7 @@ Um modelo, a partir desse caderno, para outras empresas organizarem o uso da Lei
 - Nomes de pessoas, da Metalúrgica Andrade, de Joinville, do projeto FR-3 e das prensas: tirar tudo. O nome da empresa e o ano-base viram parâmetros obrigatórios; o nome de quem responde pelo caderno vira parâmetro opcional, padrão "a definir".
 - Exemplos: escrever exemplos novos, genéricos; não copiar o projeto real nem o dispêndio real.
 - O nome do modelo pode ser "Lei do Bem — incentivos à PD&I".
-- Quando ele mostrar o que vai fazer ou o que fez, e estiver de acordo com o que você decidiu acima, aprove e diga para ele seguir, inclusive para criar a primeira versão.
+- Quando ele mostrar o que vai fazer ou o que fez, e estiver de acordo com o que você decidiu acima, aprove e diga para ele seguir, inclusive para declarar o modelo.
 
 # Como você responde
 

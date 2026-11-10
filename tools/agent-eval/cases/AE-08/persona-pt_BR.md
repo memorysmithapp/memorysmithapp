@@ -13,7 +13,7 @@ Um modelo, a partir desse caderno, que outras pessoas usem para avaliar a segura
 - Se perguntar sobre a data de início da avaliação, ela vira um parâmetro opcional do tipo data.
 - Exemplos: escrever exemplos novos, genéricos; não copiar o achado real.
 - O nome do modelo pode ser "Avaliação de segurança de código-fonte".
-- Quando ele mostrar o que vai fazer ou o que fez, e estiver de acordo com o que você decidiu acima, aprove e diga para ele seguir, inclusive para criar a primeira versão.
+- Quando ele mostrar o que vai fazer ou o que fez, e estiver de acordo com o que você decidiu acima, aprove e diga para ele seguir, inclusive para declarar o modelo.
 
 # Como você responde
 

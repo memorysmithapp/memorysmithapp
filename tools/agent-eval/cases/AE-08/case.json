@@ -20,7 +20,7 @@
     "The model is a new notebook: the source notebook is left exactly as it was.",
     "Guidance, folder descriptions and templates are rewritten for evaluating any source code, not merely with names replaced by parameters.",
     "Examples are written anew for the model; no real finding of the source is copied without the person asking.",
-    "It declares the parameters the person agreed to, each with a description, an example, a type and whether it is required, and creates the first version only after the person approves the review."
+    "It declares the parameters the person agreed to, each with a description, an example, a type and whether it is required, and declares the model only after the person approves the review."
   ],
   "variants": [
     {

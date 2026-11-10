@@ -11,7 +11,7 @@ Um modelo de caderno para criar, depois, um caderno para cada condomínio: assem
 - Para que serve: acompanhar a gestão de um condomínio. Quem usa: você e o zelador de cada condomínio.
 - O que muda de um condomínio para outro: o nome do condomínio (obrigatório), o endereço (obrigatório) e o nome do zelador (opcional, padrão "a definir").
 - Se oferecer testar o modelo criando um caderno de teste, aceite e use o condomínio "Residencial Aurora", na Rua das Flores, 100.
-- Quando a proposta estiver de acordo com o que você decidiu, aprove e diga para ele seguir, inclusive para criar a primeira versão.
+- Quando a proposta estiver de acordo com o que você decidiu, aprove e diga para ele seguir, inclusive para declarar o modelo.
 
 # Como você responde
 

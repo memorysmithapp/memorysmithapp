@@ -86,10 +86,8 @@ export const WRITES: ReadonlySet<string> = new Set([
   'finish_file_upload',
   'request_file',
   'delete_file',
-  // A notebook model and what is made of it (#353, #359).
+  // A notebook model and what is made of it (#353, #359, #431).
   'declare_model',
-  'create_model_version',
-  'delete_model_version',
   'create_notebook_from_model',
   // The community catalog (#360).
   'publish_model',
@@ -235,13 +233,9 @@ function textOf(notebook: NotebookSnapshot): string {
 /** What a run of a model asks of it (#352). */
 const MODEL_CHECKS = {
   'model-declared': (input: CheckInput): CheckOutcome => {
+    // A model is its notebook, declared: it has no version to create (#431).
     const declared = input.transcript.toolUses.some((use) => use.tool === 'declare_model');
-    const versioned = input.transcript.toolUses.some((use) => use.tool === 'create_model_version');
-    return outcome(
-      'model-declared',
-      declared && versioned,
-      declared ? (versioned ? '' : 'no version was created') : 'no notebook was declared a model',
-    );
+    return outcome('model-declared', declared, declared ? '' : 'no notebook was declared a model');
   },
 
   'model-keeps-no-source-term': (input: CheckInput): CheckOutcome => {

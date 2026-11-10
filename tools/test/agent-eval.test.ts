@@ -784,15 +784,12 @@ describe('the checks of a model (#352)', () => {
     expect(clean?.passed).toBe(true);
   });
 
-  it('says whether the source stayed as it was, and whether a model was declared and versioned', () => {
+  it('says whether the source stayed as it was, and whether a model was declared', () => {
     const source = notebook('source', 'Avaliação.');
     const changed = notebook('source', 'Avaliação, mudada.');
     expect(runChecks(['source-untouched'], input([source], [changed], []))[0]?.passed).toBe(false);
     expect(runChecks(['source-untouched'], input([source], [source], []))[0]?.passed).toBe(true);
-    expect(
-      runChecks(['model-declared'], input([], [], ['declare_model', 'create_model_version']))[0]
-        ?.passed,
-    ).toBe(true);
-    expect(runChecks(['model-declared'], input([], [], ['declare_model']))[0]?.passed).toBe(false);
+    expect(runChecks(['model-declared'], input([], [], ['declare_model']))[0]?.passed).toBe(true);
+    expect(runChecks(['model-declared'], input([], [], ['create_note']))[0]?.passed).toBe(false);
   });
 });
