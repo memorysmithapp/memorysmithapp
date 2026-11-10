@@ -186,6 +186,8 @@ test.describe('the pages of an account', () => {
     // and it folds to its icons by a choice the browser remembers.
     const sidebar = app.locator('aside#notebook-sidebar');
     await expect(sidebar).toBeVisible();
+    // The way back to the notebooks is the menu above, and only it (#422).
+    await expect(sidebar.locator('a[href="/notebooks"]')).toHaveCount(0);
     await sidebar.locator('button.sidebar-fold').click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
@@ -540,7 +542,7 @@ test.describe('the pages of an account', () => {
     // notebook is shared, accepted and answered from that list, so every
     // return landed on the context.
     for (let round = 0; round < 2; round++) {
-      await app.locator('aside#notebook-sidebar a.back-link').click();
+      await app.locator('nav.top-menu a.top-menu-item[href="/notebooks"]').click();
       await expect(app).toHaveURL(`${state.surfaces.site}/notebooks`);
       await app
         .locator('article.notebook-card', { hasText: notebook.name })
@@ -600,7 +602,7 @@ test.describe('the pages of an account', () => {
     await box.focus();
     await expect(results).toBeVisible();
     // The focus leaves the box, which is where the only handler used to be.
-    await app.locator('aside#notebook-sidebar .back-link').focus();
+    await app.locator('aside#notebook-sidebar button.sidebar-fold').focus();
     await app.keyboard.press('Escape');
 
     await expect(results).toBeHidden();
