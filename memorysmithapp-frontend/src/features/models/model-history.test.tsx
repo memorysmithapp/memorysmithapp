@@ -74,31 +74,46 @@ beforeAll(async () => {
     );
 }, 30_000);
 
-describe('the history of a model (#431)', () => {
+describe('the history of a model (#431, #435)', () => {
+  it('is the list of a folder: when, who, what changed and the line left', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = draw(CHANGES);
+    expect(html).toContain('class="tables-grid folder-notes-table model-history-table"');
+    expect(html).toMatch(
+      /<thead><tr><th scope="col">When<\/th><th scope="col">Who<\/th><th scope="col">What changed<\/th><th scope="col">Line left<\/th><\/tr><\/thead>/,
+    );
+    expect(html.match(/<tr/g)).toHaveLength(CHANGES.length + 1);
+  });
+
   it('says who made each change: the connector, or the person in the interface', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CHANGES);
-    expect(html).toContain('<span class="history-author">Claude</span>');
-    expect(html).toContain('<span class="history-author">From the interface</span>');
+    expect(html).toContain('<td data-label="Who" class="model-history-who is-agent">Claude</td>');
+    expect(html).toContain(
+      '<td data-label="Who" class="model-history-who">From the interface</td>',
+    );
   });
 
   it('says what changed, by its kind and its name, and the line its author left', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CHANGES);
-    expect(html).toContain('Template written');
-    expect(html).toContain('<p class="history-subject">Assemblies</p>');
-    expect(html).toContain('Ask for the quorum in every minute');
-    expect(html).toContain('No line was left about this change.');
+    expect(html).toContain(
+      '<span class="property-chip">Template written</span><span class="model-history-name">Assemblies</span>',
+    );
+    expect(html).toContain(
+      '<td data-label="Line left" class="model-history-line">Ask for the quorum in every minute</td>',
+    );
+    expect(html).toContain('<span class="is-empty">No line was left about this change.</span>');
     // A kind the interface does not know yet reads as the type it is.
     expect(html).toContain('SomethingNew');
   });
 
-  it('shows an edit session as one change, with its saves and since when', async () => {
+  it('shows an edit session as one row, with its saves and since when', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CHANGES);
-    expect(html).toContain('class="history-session"');
-    expect(html).toMatch(/<p class="history-span">3 saves, since Nov \d+, 2026/);
-    expect(html.match(/history-span/g)).toHaveLength(1);
+    expect(html.match(/class="is-session"/g)).toHaveLength(1);
+    expect(html).toMatch(/<span class="model-history-saves">3 saves, since Nov \d+, 2026/);
+    expect(html.match(/model-history-saves/g)).toHaveLength(1);
   });
 
   it('says when older changes were left out, and only then', async () => {
@@ -107,13 +122,15 @@ describe('the history of a model (#431)', () => {
     expect(draw(CHANGES)).not.toContain('Older changes are left out.');
   });
 
-  it('never says who in the community', async () => {
+  it('never says who in the community, not even its column', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(
       CHANGES.map(({ agent: _agent, ...change }) => change),
       { withAuthor: false },
     );
-    expect(html).not.toContain('history-author');
+    expect(html).not.toContain('model-history-who');
+    expect(html).not.toContain('>Who<');
+    expect(html).not.toContain('From the interface');
     expect(html).toContain('Note written');
   });
 
@@ -121,6 +138,7 @@ describe('the history of a model (#431)', () => {
     await i18n.changeLanguage('pt_BR');
     const html = draw(CHANGES);
     expect(html).toContain('Pela interface');
+    expect(html).toContain('O que mudou');
     expect(html).toContain('Modelo de pasta escrito');
     expect(html).toContain('3 salvamentos, desde');
     expect(html).toContain('nov.');

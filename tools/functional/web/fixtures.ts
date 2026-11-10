@@ -89,6 +89,8 @@ export interface Words {
   readonly inconsistency: string;
   /** The space the kept exports take, as the page says it (#205). */
   readonly ofYourPlan: string;
+  /** What Transfers is for, behind the `?` of its heading (#435): its first words. */
+  readonly transfersHelp: string;
   /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
   /** The whole notebook, or part of it: the head of the first tab (#161). */
@@ -215,6 +217,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tabConflicts: 'Conflicts',
     inconsistency: 'inconsistenc',
     ofYourPlan: 'of your plan',
+    transfersHelp: 'Every export and import of your account.',
     importAction: 'Import',
     partOfIt: 'Part of it',
     tabNotes: 'Notes',
@@ -319,6 +322,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tabConflicts: 'Inconsistências',
     inconsistency: 'inconsistência',
     ofYourPlan: 'do seu plano',
+    transfersHelp: 'Cada exportação e importação da sua conta.',
     importAction: 'Importar',
     partOfIt: 'Parte dele',
     tabNotes: 'Notas',
@@ -434,9 +438,9 @@ export async function speak(page: Page, state: RunState, locale: AppLocale): Pro
         const key = scope.localStorage.key(index);
         if (key?.startsWith('memorysmith.lastNote')) scope.localStorage.removeItem(key);
       }
-      // The help of a shelf opens by itself on a first visit (#418), over the
-      // cards a case clicks; a case that reads it opens it with its `?`.
-      for (const shelf of ['notebooks', 'models', 'community']) {
+      // The help of a page opens by itself on a first visit (#418, #435), over
+      // what a case clicks; a case that reads it opens it with its `?`.
+      for (const shelf of ['notebooks', 'models', 'community', 'transfers']) {
         scope.localStorage.setItem(`memorysmith.shelfHelpSeen.${shelf}`, '1');
       }
     },

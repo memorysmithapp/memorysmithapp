@@ -7116,8 +7116,7 @@ button.attachment-thumb:focus-visible {
   max-width: 48rem;
 }
 .model-form,
-.model-summary,
-.model-create {
+.model-summary {
   margin-top: 1.5rem;
 }
 .model-form-actions {
@@ -7572,6 +7571,43 @@ button.attachment-thumb:focus-visible {
   }
   .folder-notes-table td[data-label]:empty {
     display: none;
+  }
+}
+
+/* The history of a model, drawn as the list of a folder (#431, #435): when,
+   who, what changed with its name, and the line left. An edit session says its
+   saves under its time. On a phone each change stacks as a note of a folder. */
+.model-history-table .model-history-when time {
+  display: block;
+}
+.model-history-saves {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+}
+.model-history-table .model-history-what {
+  white-space: normal;
+  min-width: 12rem;
+}
+.model-history-table .model-history-what .property-chip {
+  margin-right: 6px;
+}
+.model-history-table .model-history-line {
+  width: 100%;
+  white-space: normal;
+  min-width: 14rem;
+}
+.model-history-line .is-empty {
+  color: var(--text-soft);
+  font-style: italic;
+}
+@media (max-width: 640px) {
+  .model-history-table .model-history-when time {
+    font-weight: 600;
+  }
+  .model-history-table .model-history-what,
+  .model-history-table .model-history-line {
+    min-width: 0;
   }
 }
 
@@ -8272,8 +8308,10 @@ button.attachment-thumb:focus-visible {
 }
 
 /* The picker of a notebook or a model (#432): the field, the places as tabs,
-   and the rows under them, drawn inside the dialog that asks. The list keeps
-   its own height and scrolls, so the dialog does not grow with the catalog. */
+   and the rows under them, drawn inside the dialog that asks. The rows are the
+   list of a folder (#416, #435), the name, what it is for and whose it is; the
+   list keeps its own height and scrolls, so the dialog does not grow with the
+   catalog, and its head stays on top while it does. */
 .search-picker {
   display: flex;
   flex-direction: column;
@@ -8293,32 +8331,22 @@ button.attachment-thumb:focus-visible {
   overscroll-behavior: contain;
 }
 .search-picker-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  padding: 10px 14px;
   cursor: pointer;
-  color: var(--text);
 }
-.search-picker-row.is-lit {
+.search-picker-row.is-lit td {
   background: var(--accent-soft);
 }
-.search-picker-name {
+.search-picker-table .search-picker-name {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.search-picker-by {
-  font-size: 12px;
+.search-picker-table .search-picker-line {
+  white-space: normal;
+  min-width: 12rem;
   color: var(--text-soft);
-  text-align: end;
 }
-.search-picker-line {
-  grid-column: 1 / -1;
-  font-size: 13px;
+.search-picker-table .search-picker-by {
   color: var(--text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .search-picker-more {
   align-self: center;
@@ -8328,8 +8356,20 @@ button.attachment-thumb:focus-visible {
   .search-picker-list {
     max-height: none;
   }
+}
+@media (max-width: 640px) {
+  /* Each row stacks as a row of a folder does, and the whole row is lit. */
   .search-picker-row {
     min-height: 44px;
+  }
+  .search-picker-row.is-lit {
+    background: var(--accent-soft);
+  }
+  .search-picker-row.is-lit td {
+    background: none;
+  }
+  .search-picker-table .search-picker-line {
+    min-width: 0;
   }
 }
 /* The model or the notebook picked, and the way back to the picker (#432). */

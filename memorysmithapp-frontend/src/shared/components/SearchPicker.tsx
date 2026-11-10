@@ -17,7 +17,8 @@ import { Tabs } from './Tabs';
  * newest published first, with *Show more*.
  *
  * The list is the keyboard's: the arrows move through it from the field and
- * Enter picks, so the field never loses the focus while the rows change.
+ * Enter picks, so the field never loses the focus while the rows change. It
+ * is drawn as the list of a folder (#416, #435), and serves the export too.
  */
 
 /** One row of the picker. */
@@ -193,24 +194,47 @@ export function SearchPicker<K extends string>({
         ) : !rows?.length ? (
           <p className="search-empty">{text.trim() ? t('picker.noMatch') : t('picker.none')}</p>
         ) : (
-          <ul className="row-card search-picker-list" role="listbox" aria-label={label}>
-            {rows.map((item, at) => (
-              <li
-                key={item.id}
-                id={optionId(at)}
-                role="option"
-                aria-selected={at === highlighted}
-                className={at === highlighted ? 'search-picker-row is-lit' : 'search-picker-row'}
-                onMouseEnter={() => setHighlighted(at)}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => choose(at)}
-              >
-                <span className="search-picker-name">{item.name}</span>
-                {item.by ? <span className="search-picker-by">{item.by}</span> : null}
-                {item.line ? <span className="search-picker-line">{item.line}</span> : null}
-              </li>
-            ))}
-          </ul>
+          // The list of a folder (#416, #435): the name, what it is for and
+          // whose it is, one column each. The rows are the options of the
+          // listbox, so the table is drawn for the eye only, its head unread.
+          <div className="tables-grid-scroll search-picker-list">
+            <table
+              className="tables-grid folder-notes-table search-picker-table"
+              role="presentation"
+            >
+              <thead aria-hidden="true">
+                <tr>
+                  <th>{t('picker.columns.name')}</th>
+                  <th>{t('picker.columns.line')}</th>
+                  <th>{t('picker.columns.by')}</th>
+                </tr>
+              </thead>
+              <tbody role="listbox" aria-label={label}>
+                {rows.map((item, at) => (
+                  <tr
+                    key={item.id}
+                    id={optionId(at)}
+                    role="option"
+                    aria-selected={at === highlighted}
+                    className={
+                      at === highlighted ? 'search-picker-row is-lit' : 'search-picker-row'
+                    }
+                    onMouseEnter={() => setHighlighted(at)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => choose(at)}
+                  >
+                    <td className="folder-notes-name search-picker-name">{item.name}</td>
+                    <td data-label={t('picker.columns.line')} className="search-picker-line">
+                      {item.line ?? ''}
+                    </td>
+                    <td data-label={t('picker.columns.by')} className="search-picker-by">
+                      {item.by ?? t('picker.yours')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         {remote && pages.hasNextPage ? (
           <button

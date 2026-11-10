@@ -84,7 +84,12 @@ export function ExportChoice({
    * The notebooks this person can see, which is what may be exported: their
    * own, and the ones shared with them, with whom (#432).
    */
-  notebooks: ReadonlyArray<{ id: string; name: string; sharedBy?: string | null }>;
+  notebooks: ReadonlyArray<{
+    id: string;
+    name: string;
+    line?: string | null;
+    sharedBy?: string | null;
+  }>;
   /** The notebook chosen, or empty while the picker asks for one. */
   notebookId: string;
   onChooseNotebook: (notebookId: string) => void;

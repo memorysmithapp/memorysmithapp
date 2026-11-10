@@ -1,7 +1,9 @@
 /**
  * A boolean parameter of a model is a box of its own size beside its name
  * (#411): it was drawn inside a field whose rule gave every input the shape
- * of a text box, and stretched across the dialog.
+ * of a text box, and stretched across the dialog. And New notebook from a
+ * model keeps Cancel and Create in its footer all along, Create waiting for a
+ * model and its required parameters (#435).
  */
 
 import { readFileSync } from 'node:fs';
@@ -9,7 +11,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { ParameterDeclarationDto } from '@memorysmithapp/contracts';
+import type { NotebookModelDto, ParameterDeclarationDto } from '@memorysmithapp/contracts';
+import { queryKeys } from '../../shared/api/query-keys';
 
 const stored = new Map<string, string>();
 vi.stubGlobal('localStorage', {
@@ -24,22 +27,49 @@ vi.stubGlobal('localStorage', {
 } as Storage);
 
 let form: (parameters: ParameterDeclarationDto[]) => string;
+let dialog: (parameters: ParameterDeclarationDto[] | null, origin?: 'mine' | 'community') => string;
 
 beforeAll(async () => {
-  await import('../../i18n');
-  const { CreateFromModelForm } = await import('./CreateFromModel');
+  await (await import('../../i18n')).default.changeLanguage('en_US');
+  const { CreateFromModelFields, EMPTY_DRAFT } = await import('./CreateFromModel');
+  const { FromModel } = await import('./NewNotebookDialog');
   form = (parameters) =>
     renderToStaticMarkup(
-      <QueryClientProvider client={new QueryClient()}>
+      <CreateFromModelFields parameters={parameters} draft={EMPTY_DRAFT} onChange={() => {}} />,
+    );
+  // New notebook from a model, on its picker (`null`) or with a model chosen (#435).
+  dialog = (parameters, origin = 'mine') => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.models(), []);
+    const model = { ...MODEL, parameters: parameters ?? [] };
+    client.setQueryData(queryKeys.model(MODEL.notebookId), model);
+    client.setQueryData(queryKeys.catalogModel('community-1'), model);
+    const item =
+      origin === 'mine'
+        ? { id: MODEL.notebookId, name: 'Assemblies' }
+        : { id: 'community-1', name: 'Assemblies', by: 'Ana' };
+    return renderToStaticMarkup(
+      <QueryClientProvider client={client}>
         <MemoryRouter>
-          <CreateFromModelForm
-            parameters={parameters}
-            create={async () => Promise.reject(new Error('not created here'))}
-          />
+          <FromModel onClose={() => {}} initial={parameters ? { origin, item } : null} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
+  };
 }, 30_000);
+
+const MODEL = {
+  notebookId: '01J8X2K9QZ3M4N5P6R7S8T9V0A',
+  objective: 'Run the assemblies of one condominium',
+  description: '',
+  audience: '',
+  parameters: [],
+  basedOn: null,
+  declaredAt: '2026-10-25T10:00:00.000Z',
+  updatedAt: '2026-10-25T10:00:00.000Z',
+  licence: 'CC0-1.0',
+  sharedBy: null,
+} satisfies NotebookModelDto;
 
 const parameter = (over: Partial<ParameterDeclarationDto>): ParameterDeclarationDto => ({
   name: 'withMinutes',
@@ -69,6 +99,44 @@ describe('a boolean parameter when a notebook is created from a model (#411)', (
   it('leaves a text parameter as a field with its label above', () => {
     const html = form([parameter({ name: 'city', type: 'text', default: null })]);
     expect(html).toContain('<label for="value-city" class="field-label">city</label>');
+  });
+});
+
+describe('New notebook from a model (#435)', () => {
+  const create = (html: string) => html.match(/<button type="submit"[^>]*>Create<\/button>/)?.[0];
+
+  it('has Cancel and a disabled Create in its footer while the model is being chosen', () => {
+    const html = dialog(null);
+    expect(html).toContain('role="combobox"');
+    expect(html).toMatch(
+      /<div class="ask-dialog-foot"><button type="button" class="button is-quiet">Cancel<\/button><button type="submit"/,
+    );
+    expect(create(html)).toContain('disabled=""');
+  });
+
+  it('folds the picker into the model chosen, with its parameters under it', () => {
+    const html = dialog([parameter({ name: 'city', type: 'text', required: true, default: null })]);
+    expect(html).not.toContain('role="combobox"');
+    expect(html).toMatch(/class="new-notebook-chosen"><strong>Assemblies<\/strong>/);
+    expect(html).toContain('Choose another');
+    expect(html).toContain('id="value-city"');
+    expect(html).toContain('class="ask-dialog-foot"');
+  });
+
+  it('keeps Create disabled until every required parameter is filled', () => {
+    const required = parameter({ name: 'city', type: 'text', required: true, default: null });
+    expect(create(dialog([required]))).toContain('disabled=""');
+    // A box always says yes or no, so a required one never holds Create back.
+    expect(create(dialog([parameter({ required: true, default: null })]))).not.toContain(
+      'disabled',
+    );
+    expect(create(dialog([parameter({})]))).not.toContain('disabled');
+  });
+
+  it('chooses a community model the same way', () => {
+    const html = dialog([], 'community');
+    expect(html).toContain(' — Ana');
+    expect(create(html)).not.toContain('disabled');
   });
 });
 

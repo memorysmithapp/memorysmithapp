@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { PublicModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -8,7 +8,6 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { communityModelAddress, identifierOf } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
-  createFromCatalog,
   getCatalogContents,
   getCatalogHistory,
   getCatalogModel,
@@ -24,7 +23,6 @@ import { ShelfCard } from '../dashboard/NotebookCard';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { PageHeading } from '../../shared/components/PageHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
-import { MenuItem } from '../../shared/components/Menu';
 import { SharedModelBar } from '../models/ModelPage';
 import { ModelContents, ParameterList } from '../models/ModelContents';
 import { ModelHistoryList } from '../models/ModelHistory';
@@ -32,7 +30,7 @@ import { ModelHistoryList } from '../models/ModelHistory';
 /**
  * The community catalog (#360): the models their owners published, read and
  * created from by a person signed in, inside the frame of the application and
- * its menu (#418, RN-PRT-076). The list is the shelf of cards the notebooks
+ * its menu (#418, RN-PRT-079). The list is the shelf of cards the notebooks
  * and the models use.
  */
 
@@ -52,7 +50,6 @@ function useDay(): (instant: string) => string {
 export function CommunityPage() {
   const { t } = useTranslation();
   const day = useDay();
-  const navigate = useNavigate();
   useDocumentTitle(t('community.title'));
   // What I published myself, which its mark says (#418).
   const mine = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
@@ -132,12 +129,8 @@ export function CommunityPage() {
                         />
                       }
                     >
-                      {() => (
-                        // The model as it stands, where a notebook is created from it (#431).
-                        <MenuItem onSelect={() => navigate(`${to}?tab=contents`)}>
-                          {t('model.create')}
-                        </MenuItem>
-                      )}
+                      {/* A notebook is created from it in New notebook, the one way (#435). */}
+                      {null}
                     </ShelfCorner>
                   }
                 />
@@ -167,8 +160,8 @@ function useCommunityTab(): [CommunityTab, (tab: CommunityTab) => void] {
 
 /**
  * A published model: what it is for, its author and its parameters, what it
- * holds as it stands — where a notebook is created from it — and its history,
- * when and what but never who (#431).
+ * holds as it stands, and its history, when and what but never who (#431). A
+ * notebook is created from it in New notebook (#435).
  */
 export function CommunityModelPage() {
   const { t } = useTranslation();
@@ -232,7 +225,7 @@ export function CommunityModelPage() {
   );
 }
 
-/** A published model as it stands, and a notebook created from it once signed in (#431). */
+/** A published model as it stands (#431). */
 function CommunityContents({ publicId }: { publicId: string }) {
   const { t } = useTranslation();
   const contents = useQuery({
@@ -242,12 +235,7 @@ function CommunityContents({ publicId }: { publicId: string }) {
   });
   if (contents.isPending) return <PageSkeleton />;
   if (contents.isError) return <p className="status">{t(messageKeyOf(contents.error))}</p>;
-  return (
-    <ModelContents
-      contents={contents.data}
-      create={(input) => createFromCatalog(publicId, input)}
-    />
-  );
+  return <ModelContents contents={contents.data} />;
 }
 
 /** The history of a published model: when, what and the line left, never who (#431). */

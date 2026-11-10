@@ -24,7 +24,13 @@ import { ActionWord } from '../../shared/components/ActionWord';
 import { CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
-import { CreateFromModelForm } from './CreateFromModel';
+import {
+  CreateFromModelFields,
+  EMPTY_DRAFT,
+  useCreateFromModel,
+  type CreateDraft,
+} from './CreateFromModel';
+import { missingRequired } from './model-form';
 import { aboutOf, AboutFields, declarationOf, type AboutDraft } from './ModelParts';
 import { FieldsSkeleton } from '../../shared/components/skeletons';
 
@@ -203,25 +209,117 @@ function BlankNotebook({ onClose }: { onClose: () => void }) {
 }
 
 /** Where a model comes from, as the tabs of the picker say it (#432). */
-type ModelOrigin = 'mine' | 'shared' | 'community';
+export type ModelOrigin = 'mine' | 'shared' | 'community';
 
 /** How many community models one page of the picker brings (#432). */
 const COMMUNITY_PAGE = 20;
 
 /**
- * A notebook from a model (#359, #432): the model is found in one picker, the
- * person's own models, the ones shared with them and the community's, by
- * typing part of what it is called or is for, and created from in this dialog
- * whichever it is.
+ * A notebook from a model (#359, #432, #435): the model is found in one
+ * picker, the person's own models, the ones shared with them and the
+ * community's, by typing part of what it is called or is for. Choosing one
+ * folds the picker into the line of that model, with *Choose another*, and its
+ * parameters under it. Cancel and Create are in the footer all along, as in a
+ * blank notebook; Create waits for a model and every required parameter.
  */
-function FromModel({ onClose }: { onClose: () => void }) {
+export function FromModel({
+  onClose,
+  initial = null,
+}: {
+  onClose: () => void;
+  /** A model already chosen when it opens; none, and it opens on the picker. */
+  initial?: { origin: ModelOrigin; item: PickerItem } | null;
+}) {
+  const { t } = useTranslation();
+  const [picked, setPicked] = useState(initial);
+  const [draft, setDraft] = useState<CreateDraft>(EMPTY_DRAFT);
+  const creation = useCreateFromModel();
+  const community = picked?.origin === 'community';
+  const chosenId = picked?.item.id ?? '';
+  const own = useQuery({
+    queryKey: queryKeys.model(chosenId),
+    queryFn: () => getModel(chosenId),
+    enabled: picked !== null && !community,
+  });
+  const published = useQuery({
+    queryKey: queryKeys.catalogModel(chosenId),
+    queryFn: () => getCatalogModel(chosenId),
+    enabled: picked !== null && community,
+  });
+  const read = community ? published : own;
+  const model = picked ? (read.data ?? null) : null;
+  const ready = model !== null && missingRequired(model.parameters, draft.typed).length === 0;
+
+  function choose(next: { origin: ModelOrigin; item: PickerItem } | null): void {
+    setPicked(next);
+    setDraft(EMPTY_DRAFT);
+    creation.reset();
+  }
+
+  return (
+    <form
+      className="new-notebook-form new-notebook-model"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!picked || !model || !ready) return;
+        const id = picked.item.id;
+        void creation.create(
+          (input) => (community ? createFromCatalog(id, input) : createFromModel(id, input)),
+          model.parameters,
+          draft,
+        );
+      }}
+    >
+      {picked ? (
+        <>
+          <div className="new-notebook-chosen">
+            <strong>{picked.item.name}</strong>
+            {picked.item.by ? <span className="hint"> — {picked.item.by}</span> : null}
+            <button type="button" className="button is-quiet is-small" onClick={() => choose(null)}>
+              {t('newNotebook.chooseAnother')}
+            </button>
+          </div>
+          {read.isPending ? (
+            <FieldsSkeleton fields={2} />
+          ) : !model ? (
+            <p className="status">{t(messageKeyOf(read.error))}</p>
+          ) : (
+            <>
+              <p className="hint">{model.objective}</p>
+              <CreateFromModelFields
+                key={`${picked.origin}-${picked.item.id}`}
+                parameters={model.parameters}
+                draft={draft}
+                onChange={setDraft}
+                missing={creation.missing}
+              />
+            </>
+          )}
+        </>
+      ) : (
+        <ModelPicker onPick={(origin, item) => choose({ origin, item })} />
+      )}
+      {creation.failure ? (
+        <p className="share-failure" role="alert">
+          {creation.failure}
+        </p>
+      ) : null}
+      <div className="ask-dialog-foot">
+        <button type="button" className="button is-quiet" onClick={onClose}>
+          {t('common.cancel')}
+        </button>
+        <button type="submit" className="button is-primary" disabled={creation.busy || !ready}>
+          {creation.busy ? t('newNotebook.creating') : t('newNotebook.create')}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** The picker of the model, among the person's own, the shared and the community's (#432). */
+function ModelPicker({ onPick }: { onPick: (origin: ModelOrigin, item: PickerItem) => void }) {
   const { t } = useTranslation();
   const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
-  const [picked, setPicked] = useState<{ origin: ModelOrigin; item: PickerItem } | null>(null);
-
-  if (picked) {
-    return <ChosenModel {...picked} onBack={() => setPicked(null)} onClose={onClose} />;
-  }
   if (models.isPending) return <FieldsSkeleton />;
   if (models.isError) return <p className="status">{t(messageKeyOf(models.error))}</p>;
 
@@ -257,75 +355,13 @@ function FromModel({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="new-notebook-model">
-      <SearchPicker
-        label={t('newNotebook.model')}
-        placeholder={t('newNotebook.searchModels')}
-        sources={sources}
-        // A person with no model of their own starts where there are some.
-        initial={mine.length > 0 ? 'mine' : shared.length > 0 ? 'shared' : 'community'}
-        onPick={(origin, item) => setPicked({ origin, item })}
-      />
-    </div>
-  );
-}
-
-/**
- * The model picked, and the notebook created from it: the parameters it
- * declares now, read from the model itself or from the community (#431).
- */
-function ChosenModel({
-  origin,
-  item,
-  onBack,
-  onClose,
-}: {
-  origin: ModelOrigin;
-  item: PickerItem;
-  onBack: () => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const community = origin === 'community';
-  const own = useQuery({
-    queryKey: queryKeys.model(item.id),
-    queryFn: () => getModel(item.id),
-    enabled: !community,
-  });
-  const published = useQuery({
-    queryKey: queryKeys.catalogModel(item.id),
-    queryFn: () => getCatalogModel(item.id),
-    enabled: community,
-  });
-  const read = community ? published : own;
-  const model = read.data ?? null;
-
-  return (
-    <div className="new-notebook-model">
-      <div className="new-notebook-chosen">
-        <strong>{item.name}</strong>
-        {item.by ? <span className="hint"> — {item.by}</span> : null}
-        <button type="button" className="button is-quiet is-small" onClick={onBack}>
-          {t('newNotebook.chooseAnother')}
-        </button>
-      </div>
-      {read.isPending ? (
-        <FieldsSkeleton fields={2} />
-      ) : !model ? (
-        <p className="status">{t(messageKeyOf(read.error))}</p>
-      ) : (
-        <>
-          <p className="hint">{model.objective}</p>
-          <CreateFromModelForm
-            key={`${origin}-${item.id}`}
-            parameters={model.parameters}
-            onCancel={onClose}
-            create={(input) =>
-              community ? createFromCatalog(item.id, input) : createFromModel(item.id, input)
-            }
-          />
-        </>
-      )}
-    </div>
+    <SearchPicker
+      label={t('newNotebook.model')}
+      placeholder={t('newNotebook.searchModels')}
+      sources={sources}
+      // A person with no model of their own starts where there are some.
+      initial={mine.length > 0 ? 'mine' : shared.length > 0 ? 'shared' : 'community'}
+      onPick={onPick}
+    />
   );
 }

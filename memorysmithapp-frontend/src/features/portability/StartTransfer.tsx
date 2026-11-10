@@ -118,6 +118,8 @@ export function TransferDialogs({
   const own = (notebooks.data ?? []).map((notebook) => ({
     id: notebook.id,
     name: notebook.name,
+    // What it is for, a column of the picker (#435).
+    line: notebook.description,
     sharedBy: null,
   }));
   const shared = (shares.data ?? [])

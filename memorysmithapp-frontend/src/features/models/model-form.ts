@@ -116,3 +116,22 @@ export function valuesOf(
   }
   return values;
 }
+
+/**
+ * The required parameters still left empty, which keep Create of New notebook
+ * from a model disabled (#435). A yes-or-no is a box, and a box always says
+ * one of the two, so it is never missing.
+ */
+export function missingRequired(
+  parameters: readonly ParameterDeclarationDto[],
+  typed: Readonly<Record<string, string>>,
+): string[] {
+  return parameters
+    .filter(
+      (parameter) =>
+        parameter.required &&
+        parameter.type !== 'boolean' &&
+        (typed[parameter.name] ?? '').trim().length === 0,
+    )
+    .map((parameter) => parameter.name);
+}

@@ -667,6 +667,8 @@
       "request": "Waiting for you"
     },
     "empty": "Nothing has been transferred yet.",
+    "help": "Every export and import of your account. An export is kept here until you delete it, counts towards your plan, and outlives the notebook it came from, so it is the way back from a deletion by mistake. An import creates a new notebook from an exported file. The uploads an agent sends in parts reserve space of your plan until they finish, and the files an agent asked you for wait here for you.",
+    "keptOfPlan": "<b>{{size}}</b> of your plan",
     "keptBytes": "Space used: {{size}}",
     "download": "Download",
     "delete": "Delete",
@@ -711,7 +713,6 @@
       "running": "Running",
       "stalled": "Stopped"
     },
-    "keptSentence": "Exports are kept until you delete them, and take <b>{{size}}</b> of your plan.",
     "keptShort": "Space used: <b>{{size}}</b>",
     "deleteAsk": "Delete this export?",
     "deleteFrees": "This is for good and frees {{size}} of your plan. The notebook, if it still exists, is not touched.",
@@ -726,7 +727,6 @@
     "platform": "through {{platform}}",
     "lastPart": "last part {{when}}",
     "noPartYet": "no part yet",
-    "transitSentence": "The agent's open uploads reserve <b>{{size}}</b>.",
     "importUnavailable": "Notebook unavailable.",
     "uploadUnavailable": "No notebook: this upload's notebook is not available. Link it to a notebook to finish it.",
     "link": "Link to a notebook",
@@ -1257,8 +1257,6 @@
     "unused": "Declared and not written anywhere: {{names}}.",
     "contents": "What it holds",
     "none": "None.",
-    "create": "Create a notebook from this model",
-    "creating": "Creating…",
     "newName": "Name of the new notebook",
     "newNameHint": "Left empty, it is the name of the model, filled in.",
     "stillCreating": "The notebook is still being written; it appears on Home when it is.",
@@ -1292,6 +1290,12 @@
     "historyHint": "Every change of the notebook this model is, the newest first: who made it, through which connector, and the line they left.",
     "historyEmpty": "No change was recorded yet.",
     "historyTruncated": "Older changes are left out.",
+    "historyColumns": {
+      "when": "When",
+      "who": "Who",
+      "what": "What changed",
+      "line": "Line left"
+    },
     "change": {
       "NotebookCreated": "Notebook created",
       "NotebookRenamed": "Notebook renamed",
@@ -1433,6 +1437,12 @@
     "failed": "Could not search. Try again.",
     "noMatch": "Nothing matches what you typed.",
     "none": "Nothing here yet.",
-    "more": "Show more"
+    "more": "Show more",
+    "columns": {
+      "name": "Name",
+      "line": "What it is for",
+      "by": "Whose"
+    },
+    "yours": "Yours"
   }
 }

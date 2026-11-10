@@ -22,23 +22,37 @@ import {
   TrashIcon,
 } from '../../shared/components/icons';
 
-/** The parts of a model, one tab each (#400): what it holds as it stands, and its history (#431). */
+/**
+ * The parts of a model, one tab each (#400): what it holds as it stands, and
+ * its history (#431). What it holds is read where its notebook cannot be
+ * opened, by a model reader; the page of one's own model leaves it out, since
+ * whoever reads the notebook reads it by navigating it (#435).
+ */
 export const MODEL_TABS = ['about', 'parameters', 'contents', 'history', 'community'] as const;
 export type ModelTab = (typeof MODEL_TABS)[number];
 
-export function isModelTab(value: string | null): value is ModelTab {
-  return value !== null && (MODEL_TABS as readonly string[]).includes(value);
+/** The tabs of the page of one's own model, which has no Contents (#435). */
+export const OWN_MODEL_TABS: readonly ModelTab[] = MODEL_TABS.filter((tab) => tab !== 'contents');
+
+export function isModelTab(
+  value: string | null,
+  tabs: readonly ModelTab[] = MODEL_TABS,
+): value is ModelTab {
+  return value !== null && (tabs as readonly string[]).includes(value);
 }
 
 /** The strip of the tabs of a model; the community is the owner's, and a reader sees it closed. */
 export function ModelTabs({
   model,
   owner,
+  contents,
   active,
   onSelect,
 }: {
   model: NotebookModelDto;
   owner: boolean;
+  /** Whether what it holds is a tab: only where its notebook cannot be opened (#435). */
+  contents: boolean;
   active: ModelTab;
   onSelect: (tab: ModelTab) => void;
 }) {
@@ -53,7 +67,7 @@ export function ModelTabs({
       tabs={[
         { key: 'about', label: t('model.tabs.about') },
         { key: 'parameters', label: t('model.tabs.parameters'), total: model.parameters.length },
-        { key: 'contents', label: t('model.tabs.contents') },
+        ...(contents ? [{ key: 'contents' as const, label: t('model.tabs.contents') }] : []),
         { key: 'history', label: t('model.tabs.history') },
         { key: 'community', label: t('model.tabs.community'), disabled: !owner },
       ]}

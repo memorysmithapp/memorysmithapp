@@ -670,6 +670,8 @@
       "request": "Aguardando você"
     },
     "empty": "Nada foi transferido ainda.",
+    "help": "Cada exportação e importação da sua conta. Uma exportação fica guardada aqui até você apagar, conta no seu plano e sobrevive ao caderno de onde veio, por isso é o caminho de volta de uma exclusão por engano. Uma importação cria um caderno novo a partir de um arquivo exportado. Os envios que um agente faz em partes reservam espaço do seu plano até terminarem, e os arquivos que um agente pediu a você esperam aqui.",
+    "keptOfPlan": "<b>{{size}}</b> do seu plano",
     "keptBytes": "Espaço usado: {{size}}",
     "download": "Baixar",
     "delete": "Apagar",
@@ -714,7 +716,6 @@
       "running": "Em andamento",
       "stalled": "Parada"
     },
-    "keptSentence": "As exportações ficam guardadas até você apagar e ocupam <b>{{size}}</b> do seu plano.",
     "keptShort": "Espaço usado: <b>{{size}}</b>",
     "deleteAsk": "Apagar esta exportação?",
     "deleteFrees": "Isto é definitivo e libera {{size}} do seu plano. O caderno, se ainda existir, não é tocado.",
@@ -729,7 +730,6 @@
     "platform": "pelo {{platform}}",
     "lastPart": "último pacote {{when}}",
     "noPartYet": "nenhum pacote ainda",
-    "transitSentence": "Os envios do agente em andamento reservam <b>{{size}}</b>.",
     "importUnavailable": "Caderno indisponível.",
     "uploadUnavailable": "Sem caderno: o caderno deste envio não está disponível. Vincule-o a um caderno para concluir.",
     "link": "Vincular a um caderno",
@@ -1260,8 +1260,6 @@
     "unused": "Declarados e não escritos em lugar nenhum: {{names}}.",
     "contents": "O que ele guarda",
     "none": "Nenhuma.",
-    "create": "Criar um caderno a partir deste modelo",
-    "creating": "Criando…",
     "newName": "Nome do caderno novo",
     "newNameHint": "Vazio, é o nome do modelo, preenchido.",
     "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
@@ -1295,6 +1293,12 @@
     "historyHint": "Cada mudança do caderno que este modelo é, da mais recente para a mais antiga: quem fez, por qual conector, e a linha que deixou.",
     "historyEmpty": "Nenhuma mudança foi registrada ainda.",
     "historyTruncated": "As mudanças mais antigas ficaram de fora.",
+    "historyColumns": {
+      "when": "Quando",
+      "who": "Quem",
+      "what": "O que mudou",
+      "line": "Linha deixada"
+    },
     "change": {
       "NotebookCreated": "Caderno criado",
       "NotebookRenamed": "Caderno renomeado",
@@ -1436,6 +1440,12 @@
     "failed": "Não foi possível buscar. Tente de novo.",
     "noMatch": "Nada corresponde ao que você digitou.",
     "none": "Nada aqui ainda.",
-    "more": "Mostrar mais"
+    "more": "Mostrar mais",
+    "columns": {
+      "name": "Nome",
+      "line": "Para que serve",
+      "by": "De quem é"
+    },
+    "yours": "Seu"
   }
 }

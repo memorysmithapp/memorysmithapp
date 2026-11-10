@@ -1,7 +1,8 @@
 /**
  * A notebook model read as it stands (#431): what a notebook created from it
  * starts as, part by part, and what it writes against what it declares
- * (#354). It replaced the page of a frozen version. Rendered to static markup.
+ * (#354). It replaced the page of a frozen version, and creates nothing itself
+ * (#435). Rendered to static markup.
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -65,7 +66,7 @@ beforeAll(async () => {
     renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
         <MemoryRouter>
-          <ModelContents contents={contents} create={async () => Promise.reject(new Error())} />
+          <ModelContents contents={contents} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -92,10 +93,11 @@ describe('a model as it stands (#431)', () => {
     expect(html).toContain('Declared and not written anywhere: year.');
   });
 
-  it('creates a notebook from the model itself, never from a version', async () => {
+  it('creates no notebook itself: New notebook is the one way (#435)', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CONTENTS);
-    expect(html).toContain('Create a notebook from this model');
+    expect(html).not.toContain('Create a notebook');
+    expect(html).not.toContain('<form');
     expect(html).not.toMatch(/version/i);
   });
 
@@ -116,7 +118,7 @@ describe('a model as it stands (#431)', () => {
   it('speaks pt_BR', async () => {
     await i18n.changeLanguage('pt_BR');
     const html = draw(CONTENTS);
-    expect(html).toContain('Criar um caderno a partir deste modelo');
+    expect(html).toContain('O que ele guarda');
     expect(html).toContain('Orientação');
     await i18n.changeLanguage('en_US');
   });

@@ -58,8 +58,10 @@ function NotFound() {
 
 /**
  * The address of a version of a model, kept by a bookmark from before #431: a
- * model has no versions any more, so it opens the model as it stands, where a
- * notebook is created from it, rather than answering not-found.
+ * model has no versions any more, so it opens the model as it stands rather
+ * than answering not-found. A model shared as a model reader and a community
+ * model open on what they hold; one's own has no Contents, since its notebook
+ * is read by navigating it, and opens on its first tab (#435).
  */
 function OldModelVersion({ kind }: { kind: 'own' | 'shared' | 'community' }) {
   const { notebookId, publicId } = useParams();
@@ -71,7 +73,7 @@ function OldModelVersion({ kind }: { kind: 'own' | 'shared' | 'community' }) {
       : kind === 'shared'
         ? sharedModelAddress(id)
         : modelAddress(id);
-  return <Navigate to={`${address}?tab=contents`} replace />;
+  return <Navigate to={kind === 'own' ? address : `${address}?tab=contents`} replace />;
 }
 
 /**
@@ -124,7 +126,7 @@ export const router = createBrowserRouter([
               // of the header from then on (#167, #418).
               { path: '/about', element: <AboutPage /> },
               // The community catalog, read by a person signed in, inside the
-              // frame and its menu (#360, #418, RN-PRT-076).
+              // frame and its menu (#360, #418, RN-PRT-079).
               { path: '/community', element: <CommunityPage /> },
               { path: '/community/:publicId', element: <CommunityModelPage /> },
               {

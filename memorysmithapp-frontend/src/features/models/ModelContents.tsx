@@ -1,17 +1,10 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type {
-  ModelContentsDto,
-  NotebookModelDto,
-  ParameterValueDto,
-  TransferDto,
-} from '@memorysmithapp/contracts';
+import type { ModelContentsDto, NotebookModelDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
-import { createFromModel, getModelContents } from '../../shared/api/source';
+import { getModelContents } from '../../shared/api/source';
 import { PageSkeleton } from '../../shared/components/skeletons';
-import { CreateFromModelForm } from './CreateFromModel';
 
 /** The parameters of a model, as a reader sees them. */
 export function ParameterList({ parameters }: { parameters: NotebookModelDto['parameters'] }) {
@@ -39,60 +32,25 @@ export function ParameterList({ parameters }: { parameters: NotebookModelDto['pa
 /** What a model holds, whoever reads it: the community's read leaves the notebook out. */
 export type ModelContentsView = Omit<ModelContentsDto, 'notebookId'>;
 
-type Create = (input: {
-  name: string;
-  values: Record<string, ParameterValueDto>;
-}) => Promise<TransferDto>;
-
 /**
  * A model as it stands now (#431): what it writes against what it declares
- * (#354), its parameters, the notebook created from it, and every part such a
- * notebook starts as — the Guidance, each folder with its Template and its
- * notes, the files, the tables with how many rows they carry and the
- * dashboards. A model keeps no frozen version, so this is read live.
+ * (#354), its parameters, and every part a notebook created from it starts as
+ * — the Guidance, each folder with its Template and its notes, the files, the
+ * tables with how many rows they carry and the dashboards. A model keeps no
+ * frozen version, so this is read live. It is read where the notebook cannot
+ * be opened, and a notebook is created from it in New notebook (#435).
  */
-export function ModelContents({
-  contents,
-  create,
-}: {
-  contents: ModelContentsView;
-  create: Create;
-}) {
+export function ModelContents({ contents }: { contents: ModelContentsView }) {
   const { t } = useTranslation();
-  const [creating, setCreating] = useState(false);
   const { undeclared, unused } = contents.references;
 
   return (
     <section className="model-contents" aria-labelledby="model-contents-heading">
       <p className="hint">{t('model.contentsHint')}</p>
-      {undeclared.length > 0 ? (
-        <p className="callout-warning" role="alert">
-          {t('model.undeclared', { names: undeclared.map((name) => `{{${name}}}`).join(', ') })}
-        </p>
-      ) : null}
-      {unused.length > 0 ? (
-        <p className="hint">{t('model.unused', { names: unused.join(', ') })}</p>
-      ) : null}
+      <ReferenceWarnings undeclared={undeclared} unused={unused} />
 
       <h2>{t('model.parameters')}</h2>
       <ParameterList parameters={contents.parameters} />
-
-      {creating ? (
-        <section className="model-create" aria-label={t('model.create')}>
-          <h2>{t('model.create')}</h2>
-          <CreateFromModelForm
-            parameters={contents.parameters}
-            onCancel={() => setCreating(false)}
-            create={create}
-          />
-        </section>
-      ) : (
-        <p className="model-create">
-          <button type="button" className="button is-primary" onClick={() => setCreating(true)}>
-            {t('model.create')}
-          </button>
-        </p>
-      )}
 
       <h2 id="model-contents-heading">{t('model.contents')}</h2>
       <details className="template-card">
@@ -160,7 +118,7 @@ export function ModelContents({
   );
 }
 
-/** The contents of a model the person reads, its own or shared as a model reader (#355, #431). */
+/** The contents of a model shared with the person as a model reader (#355, #431, #435). */
 export function ModelContentsPanel({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const contents = useQuery({
@@ -169,10 +127,51 @@ export function ModelContentsPanel({ notebookId }: { notebookId: string }) {
   });
   if (contents.isPending) return <PageSkeleton />;
   if (contents.isError) return <p className="status">{t(messageKeyOf(contents.error))}</p>;
+  return <ModelContents contents={contents.data} />;
+}
+
+/**
+ * What the notebook writes and the model declares, compared (RN-PRT-064): a
+ * reference no parameter answers, which a notebook created from it would
+ * keep, and a parameter no text uses.
+ */
+export function ReferenceWarnings({
+  undeclared,
+  unused,
+}: {
+  undeclared: readonly string[];
+  unused: readonly string[];
+}) {
+  const { t } = useTranslation();
   return (
-    <ModelContents
-      contents={contents.data}
-      create={(input) => createFromModel(notebookId, input)}
+    <>
+      {undeclared.length > 0 ? (
+        <p className="callout-warning" role="alert">
+          {t('model.undeclared', { names: undeclared.map((name) => `{{${name}}}`).join(', ') })}
+        </p>
+      ) : null}
+      {unused.length > 0 ? (
+        <p className="hint">{t('model.unused', { names: unused.join(', ') })}</p>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * The same comparison where the owner edits the parameters, read from the
+ * notebook as it stands: with no Contents tab on the page of one's own model,
+ * this is where they learn a reference is answered by nothing (#435).
+ */
+export function ModelReferences({ notebookId }: { notebookId: string }) {
+  const contents = useQuery({
+    queryKey: queryKeys.modelContents(notebookId),
+    queryFn: () => getModelContents(notebookId),
+  });
+  if (!contents.data) return null;
+  return (
+    <ReferenceWarnings
+      undeclared={contents.data.references.undeclared}
+      unused={contents.data.references.unused}
     />
   );
 }

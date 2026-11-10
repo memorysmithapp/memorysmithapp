@@ -13,13 +13,15 @@ import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import {
   isModelTab,
+  MODEL_TABS,
   ModelAbout,
   ModelAboutSummary,
   ModelParameters,
   ModelTabs,
+  OWN_MODEL_TABS,
   type ModelTab,
 } from './ModelParts';
-import { ModelContentsPanel, ParameterList } from './ModelContents';
+import { ModelContentsPanel, ModelReferences, ParameterList } from './ModelContents';
 import { ModelHistoryPanel } from './ModelHistory';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { CloseIcon, UploadIcon } from '../../shared/components/icons';
@@ -28,10 +30,12 @@ import { ModelSkeleton } from '../../shared/components/skeletons';
 /**
  * The model of a notebook (#353): what a notebook declared as a model says of
  * itself — what it is for, who it is for, its parameters, an optional credit —
- * what it holds as it stands, and its history (#431). The owner of the
- * subscription declares it and says it again; whoever reads the notebook reads
- * its model. A model keeps no frozen version: a notebook created from it
- * starts as it stands, and keeping a state of it is exporting the notebook.
+ * and its history (#431). The owner of the subscription declares it and says
+ * it again; whoever reads the notebook reads its model, and reads what it
+ * holds by navigating the notebook, so this page has no Contents (#435). A
+ * model keeps no frozen version: a notebook created from it starts as it
+ * stands, and keeping a state of it is exporting the notebook. A notebook is
+ * created from it in New notebook, the one way to create one (#435).
  */
 export function ModelPage() {
   const { t } = useTranslation();
@@ -40,13 +44,17 @@ export function ModelPage() {
   const owner = structure.permissions.administer;
   const client = useQueryClient();
   useDocumentTitle(t('model.title'), structure.notebook.name);
-  const [tab, selectTab] = useModelTab();
+  const [tab, selectTab] = useModelTab(OWN_MODEL_TABS);
 
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
     queryFn: () => getModel(notebookId),
   });
-  const saved = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
+  // What it declares changed, and with it which references it answers (#435).
+  const saved = () => {
+    void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
+    void client.invalidateQueries({ queryKey: queryKeys.modelContents(notebookId) });
+  };
 
   return (
     <>
@@ -60,7 +68,13 @@ export function ModelPage() {
         ) : model.data ? (
           <>
             {/* One part of the model at a time (#400). */}
-            <ModelTabs model={model.data} owner={owner} active={tab} onSelect={selectTab} />
+            <ModelTabs
+              model={model.data}
+              owner={owner}
+              contents={false}
+              active={tab}
+              onSelect={selectTab}
+            />
             <div
               id="model-panel"
               role="tabpanel"
@@ -76,12 +90,14 @@ export function ModelPage() {
               ) : null}
               {tab === 'parameters' ? (
                 owner ? (
-                  <ModelParameters notebookId={notebookId} model={model.data} onSaved={saved} />
+                  <>
+                    <ModelReferences notebookId={notebookId} />
+                    <ModelParameters notebookId={notebookId} model={model.data} onSaved={saved} />
+                  </>
                 ) : (
                   <ParameterList parameters={model.data.parameters} />
                 )
               ) : null}
-              {tab === 'contents' ? <ModelContentsPanel notebookId={notebookId} /> : null}
               {tab === 'history' ? <ModelHistoryPanel notebookId={notebookId} /> : null}
               {tab === 'community' && owner ? (
                 <Publication notebookId={notebookId} model={model.data} />
@@ -98,12 +114,13 @@ export function ModelPage() {
 
 /**
  * The tab of the model that is open, kept in the address (`?tab=`), so a
- * reload, a link and the dialog of a new model open the one meant (#400).
+ * reload, a link and the dialog of a new model open the one meant (#400). A
+ * tab the page does not have opens its first one.
  */
-function useModelTab(): [ModelTab, (tab: ModelTab) => void] {
+function useModelTab(tabs: readonly ModelTab[]): [ModelTab, (tab: ModelTab) => void] {
   const [params, setParams] = useSearchParams();
   const asked = params.get('tab');
-  const tab: ModelTab = isModelTab(asked) ? asked : 'about';
+  const tab: ModelTab = isModelTab(asked, tabs) ? asked : 'about';
   return [tab, (next) => setParams(next === 'about' ? {} : { tab: next }, { replace: true })];
 }
 
@@ -111,7 +128,7 @@ export function SharedModelPage() {
   const { t } = useTranslation();
   const notebookId = useNotebookId();
   useDocumentTitle(t('model.title'));
-  const [tab, selectTab] = useModelTab();
+  const [tab, selectTab] = useModelTab(MODEL_TABS);
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
     queryFn: () => getModel(notebookId),
@@ -134,7 +151,14 @@ export function SharedModelPage() {
             {model.data.sharedBy ? (
               <p className="page-intro">{t('model.sharedBy', { owner: model.data.sharedBy })}</p>
             ) : null}
-            <ModelTabs model={model.data} owner={false} active={tab} onSelect={selectTab} />
+            {/* What it holds is read here, where its notebook cannot be opened (#435). */}
+            <ModelTabs
+              model={model.data}
+              owner={false}
+              contents
+              active={tab}
+              onSelect={selectTab}
+            />
             <div
               id="model-panel"
               role="tabpanel"
@@ -168,7 +192,7 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
   const published = model.publication ?? null;
   /**
    * What every person signed in will read of the tables, said where it is
-   * published (#366, RN-PRT-076): the community reads the model as it stands
+   * published (#366, RN-PRT-079): the community reads the model as it stands
    * (#431), and every table goes with its rows.
    */
   const contents = useQuery({

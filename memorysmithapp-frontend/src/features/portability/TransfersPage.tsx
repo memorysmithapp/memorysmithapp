@@ -63,7 +63,8 @@ type Filter = 'all' | 'request' | 'export' | 'import' | 'agent';
  * mistake (RN-PRT-012).
  *
  * Drawn to the approved design (#205): the space the kept exports take under
- * the title, because it counts against the plan; tabs that say how many each
+ * the title, because it counts against the plan, and what the page is for
+ * behind the `?` of its heading (#435); tabs that say how many each
  * holds; and the rows in one card, each with its kind, its file, its state and
  * the one or two things that can be done to it.
  *
@@ -95,7 +96,6 @@ export function TransfersPage() {
   const rows = all.filter((transfer) => filter === 'all' || transfer.kind === filter);
   const visible = notebooks.data ? new Set(notebooks.data.map((notebook) => notebook.id)) : null;
   const writable = (notebooks.data ?? []).filter((notebook) => canWrite(notebook.effectiveRole));
-  const transit = transfers.data?.transitBytes ?? 0;
   const size = (bytes: number) => formatBytes(bytes, locale);
 
   return (
@@ -103,23 +103,17 @@ export function TransfersPage() {
       <PageHeading
         title={t('transfers.heading')}
         action={<TransferActions onStart={setStarting} />}
+        // What the page is for waits behind its `?`, as on the other pages
+        // outside a notebook (#435); under the title, only what the kept
+        // exports take of the plan.
+        help={{ page: 'transfers', text: t('transfers.help') }}
       >
         <p className="transfers-kept">
           <Trans
-            i18nKey="transfers.keptSentence"
+            i18nKey="transfers.keptOfPlan"
             values={{ size: size(transfers.data?.keptBytes ?? 0) }}
             components={{ b: <strong /> }}
           />
-          {transit > 0 ? (
-            <>
-              {' '}
-              <Trans
-                i18nKey="transfers.transitSentence"
-                values={{ size: size(transit) }}
-                components={{ b: <strong /> }}
-              />
-            </>
-          ) : null}
         </p>
       </PageHeading>
       <TransferDialogs

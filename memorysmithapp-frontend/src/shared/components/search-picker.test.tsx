@@ -1,8 +1,8 @@
 /**
  * The picker of a notebook or a model (#432): a field, the places as tabs
  * with how many each holds, and the rows under them, filtered by every word
- * typed in what a row is called, what it is for and whose it is. Rendered to
- * static markup.
+ * typed in what a row is called, what it is for and whose it is, drawn as the
+ * list of a folder (#435). Rendered to static markup.
  */
 
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -84,6 +84,27 @@ describe('the picker of a notebook or a model (#432)', () => {
     expect(html).not.toContain('Diário de obra');
     // The first row is the one Enter picks.
     expect(html).toMatch(/aria-selected="true"[^>]*>.*Diário de pesquisa/);
+  });
+
+  it('draws the rows as the list of a folder: the name, what it is for and whose it is (#435)', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = render([
+      { key: 'mine', label: 'Mine', kind: 'local', items: MINE },
+      { key: 'shared', label: 'Shared with me', kind: 'local', items: SHARED },
+    ]);
+    expect(html).toContain('class="tables-grid folder-notes-table search-picker-table"');
+    expect(html).toMatch(
+      /<thead aria-hidden="true"><tr><th>Name<\/th><th>What it is for<\/th><th>Whose<\/th><\/tr><\/thead>/,
+    );
+    // Each row is an option of the listbox, its cells the three columns.
+    expect(html).toMatch(/<tbody role="listbox" aria-label="Model">/);
+    expect(html).toMatch(
+      /<tr id="[^"]+-option-0" role="option" aria-selected="true" class="search-picker-row is-lit"><td class="folder-notes-name search-picker-name">Diário de pesquisa<\/td><td data-label="What it is for" class="search-picker-line">Hipóteses, achados e fontes<\/td><td data-label="Whose" class="search-picker-by">Yours<\/td><\/tr>/,
+    );
+    await i18n.changeLanguage('pt_BR');
+    const pt = render([{ key: 'mine', label: 'Meus', kind: 'local', items: MINE }]);
+    expect(pt).toContain('<th>Para que serve</th><th>De quem é</th>');
+    await i18n.changeLanguage('en_US');
   });
 
   it('says so when a place holds nothing yet, in each language', async () => {

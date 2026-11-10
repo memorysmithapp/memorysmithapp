@@ -3011,6 +3011,35 @@ test.describe('the transfers of a person', () => {
     });
   });
 
+  test('[page:/transfers] says what the page is for behind the `?` of its heading, and under the title only what the kept exports take of the plan, on a computer and on a phone (#435)', async ({
+    app,
+    state,
+    words,
+  }, testInfo) => {
+    const open = async () => {
+      await app.goto(`${state.surfaces.site}/transfers`);
+      await expect(app.getByRole('heading', { level: 1, name: words.transfers })).toBeVisible();
+      // Under the title, the space of the plan alone: no sentence of what the page is for.
+      const kept = app.locator('.page-heading-line .transfers-kept');
+      await expect(kept).toContainText(words.ofYourPlan);
+      await expect(kept).not.toContainText(words.transfersHelp);
+      await expect(app.locator('.shelf-help-box')).toHaveCount(0);
+      await app.locator('.page-heading button.shelf-help').click();
+      await expect(app.locator('.shelf-help-box')).toContainText(words.transfersHelp);
+    };
+    await open();
+    await testInfo.attach('transfers-help.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await app.setViewportSize({ width: 390, height: 844 });
+    await open();
+    await testInfo.attach('transfers-help-phone.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+  });
+
   test('opens the bell inside a phone screen (#195, #418)', async ({ app, state }) => {
     await app.setViewportSize({ width: 320, height: 640 });
     await app.goto(`${state.surfaces.site}/`);

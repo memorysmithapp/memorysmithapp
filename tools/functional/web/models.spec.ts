@@ -1,14 +1,15 @@
 /**
- * Notebook models in the interface (#353, #354, #355, #359, #431): the owner
- * declares a notebook as a model, reads it as it stands with its history and
- * creates a notebook from it; a person of another subscription the model is
- * shared with as a model reader reads it on pages of their own, outside any
- * notebook. A model has no versions, and an address of one opens the model.
+ * Notebook models in the interface (#353, #354, #355, #359, #431, #435): the
+ * owner declares a notebook as a model and reads its history, and a notebook
+ * is created from it in New notebook, the one way; a person of another
+ * subscription the model is shared with as a model reader reads it, what it
+ * holds included, on pages of their own, outside any notebook. A model has no
+ * versions, and an address of one opens the model.
  */
 
 import { apiToken } from '../support/accounts.js';
 import { Api } from '../support/api.js';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect, openAs, speak, test, type AppLocale } from './fixtures.js';
 
 /** The words of the model pages, copied from the locale files of the interface. */
@@ -30,6 +31,8 @@ const MODEL_WORDS: Record<
     readonly tabAbout: string;
     readonly tabContents: string;
     readonly tabHistory: string;
+    /** The footer of New notebook, as in a blank one (#435). */
+    readonly cancel: string;
     readonly create: string;
     readonly sharedBy: string;
   }
@@ -50,7 +53,8 @@ const MODEL_WORDS: Record<
     tabAbout: 'About the model',
     tabContents: 'Contents',
     tabHistory: 'History',
-    create: 'Create a notebook from this model',
+    cancel: 'Cancel',
+    create: 'Create',
     sharedBy: 'Shared with you by',
   },
   pt_BR: {
@@ -69,7 +73,8 @@ const MODEL_WORDS: Record<
     tabAbout: 'Sobre o modelo',
     tabContents: 'Conteúdo',
     tabHistory: 'Histórico',
-    create: 'Criar um caderno a partir deste modelo',
+    cancel: 'Cancelar',
+    create: 'Criar',
     sharedBy: 'Compartilhado com você por',
   },
 };
@@ -83,6 +88,7 @@ const PICKER_WORDS: Record<
     readonly mine: string;
     readonly shared: string;
     readonly community: string;
+    readonly chooseAnother: string;
   }
 > = {
   en_US: {
@@ -91,6 +97,7 @@ const PICKER_WORDS: Record<
     mine: 'Mine',
     shared: 'Shared with me',
     community: 'Community',
+    chooseAnother: 'Choose another',
   },
   pt_BR: {
     fromModel: 'De um Modelo de caderno',
@@ -98,6 +105,7 @@ const PICKER_WORDS: Record<
     mine: 'Meus',
     shared: 'Compartilhados comigo',
     community: 'Comunidade',
+    chooseAnother: 'Escolher outro',
   },
 };
 
@@ -109,7 +117,34 @@ async function openModelPicker(app: Page, site: string, locale: AppLocale) {
   await app.getByRole('button', { name: words.newNotebook }).click();
   const box = app.locator('.new-notebook .ask-dialog-box');
   await box.getByRole('radio', { name: picker.fromModel }).click();
-  return { box, field: box.getByRole('combobox', { name: picker.model, exact: true }) };
+  return {
+    box,
+    field: box.getByRole('combobox', { name: picker.model, exact: true }),
+    // Cancel and Create are in the footer all along, as in a blank notebook (#435).
+    cancel: box
+      .locator('.ask-dialog-foot')
+      .getByRole('button', { name: words.cancel, exact: true }),
+    create: box
+      .locator('.ask-dialog-foot')
+      .getByRole('button', { name: words.create, exact: true }),
+  };
+}
+
+/** The row of the picker whose name is exactly this one, never one that starts with it. */
+function rowNamed(box: Locator, name: string): Locator {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const exact = new RegExp(`^${escaped}$`);
+  return box
+    .locator('.search-picker-row')
+    .filter({ has: box.page().locator('.search-picker-name', { hasText: exact }) });
+}
+
+/** Opens one's own models in the picker of New notebook, searched by a name. */
+async function pickOwnModel(app: Page, site: string, locale: AppLocale, name: string) {
+  const opened = await openModelPicker(app, site, locale);
+  await opened.box.getByRole('tab', { name: new RegExp(`^${PICKER_WORDS[locale].mine}`) }).click();
+  await opened.field.fill(name);
+  return opened;
 }
 
 test.describe('notebook models', () => {
@@ -180,11 +215,12 @@ test.describe('notebook models', () => {
     await expect.poll(async () => (await box.boundingBox())?.width ?? 0).toBe(390);
   });
 
-  test('[page:/notebooks/:notebookId/model] creates a model from the models, reads its history and what it holds, and creates a notebook from it (#431)', async ({
+  test('[page:/notebooks/:notebookId/model] creates a model from the models, reads its history as the list of a folder with no Contents tab, and creates a notebook from it in New notebook (#431, #435)', async ({
     app,
     notebook,
     owner,
     appLocale,
+    state,
   }, testInfo) => {
     const words = MODEL_WORDS[appLocale];
     // A notebook that is no model offers none.
@@ -249,28 +285,43 @@ test.describe('notebook models', () => {
       'Keep the findings of one review',
     );
 
+    // Its owner reads the notebook by navigating it, so its page has no
+    // Contents, and no button creates a notebook from it there (#435).
+    await expect(app.getByRole('tab', { name: words.tabContents })).toHaveCount(0);
+    await expect(app.locator('section.model-contents')).toHaveCount(0);
+
     // Its history is the trail of its notebook, which follows a write within
-    // seconds, read by a person in the interface (#431).
+    // seconds, read by a person in the interface (#431), drawn as the list of
+    // a folder (#435).
     await app.getByRole('tab', { name: words.tabHistory }).click();
-    await expect(app.locator('.model-history > li').first()).toBeVisible({ timeout: 90_000 });
+    const rows = app.locator('.model-history-table tbody tr');
+    await expect(rows.first()).toBeVisible({ timeout: 90_000 });
+    await expect(rows.first().locator('.model-history-what .property-chip')).toBeVisible();
     await testInfo.attach('model-history.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
-
-    // What it holds now is where a notebook is created from it.
-    await app.getByRole('tab', { name: words.tabContents }).click();
-    await expect(app.locator('section.model-contents')).toBeVisible();
-    await testInfo.attach('model-contents.png', {
+    await app.setViewportSize({ width: 390, height: 844 });
+    await expect(rows.first()).toBeVisible();
+    await testInfo.attach('model-history-phone.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
-    await app.getByRole('button', { name: words.create }).click();
+    await app.setViewportSize({ width: 1280, height: 800 });
+
+    // A notebook is created from it in New notebook, the one way (#435).
+    const { box, create } = await pickOwnModel(app, state.surfaces.site, appLocale, modelName);
+    await expect(create).toBeDisabled();
+    await rowNamed(box, modelName).click();
+    const fields = box.locator('.create-from-model');
+    await expect(fields).toBeVisible();
+    // Its one parameter is required, so Create waits for it.
+    await expect(create).toBeDisabled();
     const name = `${notebook.name} for Aurora`;
-    const form = app.locator('form.create-from-model');
-    await form.locator('input').first().fill(name);
-    await form.locator('#value-client').fill('Aurora');
-    await form.getByRole('button', { name: words.create }).click();
+    await fields.locator('input').first().fill(name);
+    await fields.locator('#value-client').fill('Aurora');
+    await expect(create).toBeEnabled();
+    await create.click();
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 120_000 });
 
     const listed = await owner.ok<Array<{ notebookId: string; name: string }>>(
@@ -285,13 +336,15 @@ test.describe('notebook models', () => {
     if (model) await owner.ok('DELETE', `/knowledge/notebooks/${model.notebookId}`);
   });
 
-  test('[page:/notebooks/:notebookId/model/versions/:version] draws a yes-or-no parameter as a box beside its name when a notebook is created from a model, whose old address of a version opens it (#411, #431)', async ({
+  test('[page:/notebooks/:notebookId/model/versions/:version] draws a yes-or-no parameter as a box beside its name in New notebook from a model, with Cancel and Create in its footer before and after choosing, and the old address of a version opens the model (#411, #431, #435)', async ({
     app,
     notebook,
     owner,
+    state,
     appLocale,
-  }) => {
+  }, testInfo) => {
     const words = MODEL_WORDS[appLocale];
+    const picker = PICKER_WORDS[appLocale];
     const model = `/portability/models/${notebook.notebookId}`;
     await owner.ok('PUT', model, {
       objective: 'Keep the findings of one review',
@@ -301,24 +354,84 @@ test.describe('notebook models', () => {
       ],
     });
 
-    // An address of a version, bookmarked before #431, opens what the model holds.
+    // An address of a version, bookmarked before #431, opens the model on its
+    // first tab: the page of one's own model has no Contents (#435).
     await app.goto(notebook.page('/model/versions/1'));
-    await app.waitForURL(/\/model\?tab=contents$/);
-    await app.getByRole('button', { name: words.create }).click();
-    const form = app.locator('form.create-from-model');
-    const box = form.locator('#value-withMinutes');
-    await expect(box).toBeChecked();
+    await app.waitForURL(/\/model$/);
+    await expect(app.getByRole('tab', { name: words.tabAbout })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(app.getByRole('tab', { name: words.tabContents })).toHaveCount(0);
+
+    // New notebook from a model: Cancel and Create in the footer while the
+    // model is chosen, Create disabled (#435).
+    const { box, cancel, create } = await pickOwnModel(
+      app,
+      state.surfaces.site,
+      appLocale,
+      notebook.name,
+    );
+    const row = rowNamed(box, notebook.name);
+    await expect(row).toBeVisible();
+    await expect(cancel).toBeVisible();
+    await expect(create).toBeDisabled();
+    await testInfo.attach('new-notebook-from-model.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+
+    // Choosing folds the picker into the line of the model, with its
+    // parameters under it.
+    await row.click();
+    await expect(box.getByRole('combobox', { name: picker.model, exact: true })).toHaveCount(0);
+    await expect(
+      box.locator('.new-notebook-chosen').getByRole('button', { name: picker.chooseAnother }),
+    ).toBeVisible();
+    const fields = box.locator('.create-from-model');
+    const tick = fields.locator('#value-withMinutes');
+    await expect(tick).toBeChecked();
+    await expect(cancel).toBeVisible();
+    await expect(create).toBeDisabled();
+    await testInfo.attach('new-notebook-from-model-chosen.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
     // A box of its own size, never the width of the text field below it.
-    const drawn = await box.boundingBox();
-    const text = await form.locator('#value-client').boundingBox();
+    const drawn = await tick.boundingBox();
+    const text = await fields.locator('#value-client').boundingBox();
     expect(drawn && drawn.width <= 24 && drawn.height <= 24).toBe(true);
     expect(text && text.width > 200).toBe(true);
     // Its name is its label, beside it: clicking the name ticks it.
-    await form
+    await fields
       .locator('label.parameter-required', { hasText: 'withMinutes' })
       .locator('span')
       .click();
-    await expect(box).not.toBeChecked();
+    await expect(tick).not.toBeChecked();
+    // Create waits for the required parameter, and only for it.
+    await expect(create).toBeDisabled();
+    await fields.locator('#value-client').fill('Aurora');
+    await expect(create).toBeEnabled();
+    await cancel.click();
+    await expect(box).toHaveCount(0);
+
+    // On a phone, before and after choosing, the footer is the foot of the screen.
+    await app.setViewportSize({ width: 390, height: 844 });
+    const phone = await pickOwnModel(app, state.surfaces.site, appLocale, notebook.name);
+    const phoneRow = rowNamed(phone.box, notebook.name);
+    await expect(phoneRow).toBeVisible();
+    await expect(phone.create).toBeVisible();
+    await testInfo.attach('new-notebook-from-model-phone.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await phoneRow.click();
+    await expect(phone.box.locator('.create-from-model #value-withMinutes')).toBeVisible();
+    await expect(phone.create).toBeDisabled();
+    await testInfo.attach('new-notebook-from-model-chosen-phone.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
   });
 
   test('[page:/notebooks] [page:/transfers] finds a model of its own and a community model in one picker, creates a notebook from the community one from the keyboard, and picks a notebook to export the same way (#432)', async ({
@@ -366,11 +479,15 @@ test.describe('notebook models', () => {
 
       // From the keyboard: the field keeps the focus and Enter picks the lit row.
       await field.press('Enter');
-      const form = box.locator('form.create-from-model');
-      await expect(form).toBeVisible();
-      await form.locator('input').first().fill(name);
-      await form.locator('#value-client').fill('Aurora');
-      await form.getByRole('button', { name: words.create }).click();
+      const fields = box.locator('.create-from-model');
+      await expect(fields).toBeVisible();
+      await fields.locator('input').first().fill(name);
+      await fields.locator('#value-client').fill('Aurora');
+      // Created from the footer, as a blank notebook is (#435).
+      await box
+        .locator('.ask-dialog-foot')
+        .getByRole('button', { name: words.create, exact: true })
+        .click();
       // Created in the dialog, never on another page, and opened.
       await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 120_000 });
 
@@ -410,14 +527,14 @@ test.describe('notebook models', () => {
     }
   });
 
-  test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, with what it holds and its history, and never its notebook', async ({
+  test('[page:/models/:notebookId] [page:/models/:notebookId/versions/:version] opens a model shared as a model reader, with what it holds and its history, never its notebook, and creates from it in New notebook only (#435)', async ({
     page,
     notebook,
     owner,
     state,
     appLocale,
     words: common,
-  }) => {
+  }, testInfo) => {
     const words = MODEL_WORDS[appLocale];
     const model = `/portability/models/${notebook.notebookId}`;
     await owner.ok('PUT', model, { objective: 'Keep the findings of one review' });
@@ -437,17 +554,34 @@ test.describe('notebook models', () => {
       await expect(page.getByText(words.sharedBy, { exact: false })).toContainText(
         state.accounts.owner.email,
       );
-      // What it holds and its history are tabs of their own (#400, #431).
+      // What it holds and its history are tabs of their own (#400, #431); what
+      // it holds is read here, where its notebook cannot be opened, and
+      // nothing on it creates a notebook (#435).
       await page.getByRole('tab', { name: words.tabContents }).click();
-      await expect(page.getByRole('button', { name: words.create })).toBeVisible();
+      const contents = page.locator('section.model-contents');
+      await expect(contents).toBeVisible();
+      await expect(contents.locator('form, .create-from-model')).toHaveCount(0);
+      await testInfo.attach('model-reader.png', {
+        body: await page.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(contents).toBeVisible();
+      await testInfo.attach('model-reader-phone.png', {
+        body: await page.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await page.setViewportSize({ width: 1280, height: 800 });
       await page.getByRole('tab', { name: words.tabHistory }).click();
-      await expect(page.locator('.model-history > li').first()).toBeVisible({ timeout: 90_000 });
-      // An address of a version opens the model, as it stands.
+      await expect(page.locator('.model-history-table tbody tr').first()).toBeVisible({
+        timeout: 90_000,
+      });
+      // An address of a version opens what the model holds, as it stands.
       await page.goto(
         `${state.surfaces.site}/models/${notebook.notebookId.toLowerCase()}/versions/1`,
       );
       await page.waitForURL(/\?tab=contents$/);
-      await expect(page.getByRole('button', { name: words.create })).toBeVisible();
+      await expect(page.locator('section.model-contents')).toBeVisible();
 
       // And New notebook finds it among the models shared with them (#432).
       const picker = PICKER_WORDS[appLocale];
@@ -455,7 +589,7 @@ test.describe('notebook models', () => {
       await box.getByRole('tab', { name: new RegExp(`^${picker.shared}`) }).click();
       await field.fill(notebook.name);
       await box.locator('.search-picker-row', { hasText: notebook.name }).click();
-      await expect(box.locator('form.create-from-model')).toBeVisible();
+      await expect(box.locator('.create-from-model')).toBeVisible();
       await page.keyboard.press('Escape');
 
       // The notebook itself stays closed to a model reader.
@@ -467,7 +601,7 @@ test.describe('notebook models', () => {
     }
   });
 
-  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model signed in, under the menu, reads what it holds and its history, and sends a visitor with no session to sign in first (#418, #431)', async ({
+  test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model signed in, under the menu, reads what it holds and its history, creates nothing on its page, and sends a visitor with no session to sign in first (#418, #431, #435)', async ({
     browser,
     app,
     notebook,
@@ -488,7 +622,7 @@ test.describe('notebook models', () => {
     });
 
     try {
-      // No session at all: the community asks to sign in first (RN-PRT-076).
+      // No session at all: the community asks to sign in first (RN-PRT-079).
       // A context of its own, because `app` is `page` already signed in.
       const visitor = await browser.newPage();
       try {
@@ -518,7 +652,8 @@ test.describe('notebook models', () => {
       await expect(card.locator('.ownership-mark[data-ownership="own"]')).toBeVisible({
         timeout: 90_000,
       });
-      await expect(card.locator('button.notebook-card-more')).toBeVisible();
+      // A notebook is created from it in New notebook, so its card has no ⋯ (#435).
+      await expect(card.locator('button.notebook-card-more')).toHaveCount(0);
       // And the search of the header finds it among the community models.
       const field = app.locator('.app-header .global-search input[type="search"]');
       await field.fill(notebook.name);
@@ -535,16 +670,21 @@ test.describe('notebook models', () => {
       await expect(app).toHaveTitle(new RegExp(notebook.name));
       const modelAddress = app.url();
       await app.getByRole('tab', { name: words.tabContents }).click();
-      await expect(app.getByRole('button', { name: words.create })).toBeVisible();
-      // Its history says when and what, never who (#431).
+      const contents = app.locator('section.model-contents');
+      await expect(contents).toBeVisible();
+      await expect(contents.locator('form, .create-from-model')).toHaveCount(0);
+      // Its history says when and what, never who, not even the column (#431, #435).
       await app.getByRole('tab', { name: words.tabHistory }).click();
-      await expect(app.locator('.model-history > li').first()).toBeVisible({ timeout: 90_000 });
-      await expect(app.locator('.model-history .history-author')).toHaveCount(0);
+      await expect(app.locator('.model-history-table tbody tr').first()).toBeVisible({
+        timeout: 90_000,
+      });
+      await expect(app.locator('.model-history-table .model-history-who')).toHaveCount(0);
+      await expect(app.locator('.model-history-table thead th')).toHaveCount(3);
 
-      // An address of a version opens the model as it stands.
+      // An address of a version opens what the model holds as it stands.
       await app.goto(`${modelAddress.replace(/\?.*$/, '')}/versions/1`);
       await app.waitForURL(/\?tab=contents$/);
-      await expect(app.getByRole('button', { name: words.create })).toBeVisible();
+      await expect(app.locator('section.model-contents')).toBeVisible();
 
       // The trail goes back to every model of the community (#422).
       const trail = app.locator('.notebook-bar .notebook-breadcrumb');
@@ -564,7 +704,6 @@ const COMMUNITY_WORDS: Record<
     readonly communityGroup: string;
     readonly licence: string;
     readonly report: string;
-    readonly create: string;
     readonly tabContents: string;
     readonly tabHistory: string;
   }
@@ -574,7 +713,6 @@ const COMMUNITY_WORDS: Record<
     communityGroup: 'Community',
     licence: 'Published under CC0 1.0',
     report: 'Report this model',
-    create: 'Create a notebook from this model',
     tabContents: 'Contents',
     tabHistory: 'History',
   },
@@ -583,7 +721,6 @@ const COMMUNITY_WORDS: Record<
     communityGroup: 'Comunidade',
     licence: 'Publicado sob CC0 1.0',
     report: 'Denunciar este modelo',
-    create: 'Criar um caderno a partir deste modelo',
     tabContents: 'Conteúdo',
     tabHistory: 'Histórico',
   },

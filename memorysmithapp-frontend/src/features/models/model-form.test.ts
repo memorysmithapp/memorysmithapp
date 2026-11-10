@@ -8,6 +8,7 @@ import {
   declarationsOf,
   draftOf,
   emptyParameter,
+  missingRequired,
   parameterProblem,
   valueOf,
   valuesOf,
@@ -127,5 +128,31 @@ describe('a date that is not required (#363)', () => {
     };
     expect(parameterProblem(draft, [])).toBeNull();
     expect(declarationsOf([draft])?.[0]?.default).toBe('');
+  });
+});
+
+describe('the required parameters left empty (#435)', () => {
+  const of = (name: string, type: 'text' | 'list' | 'boolean' | 'date', required: boolean) => ({
+    name,
+    description: '',
+    example: '',
+    type,
+    required,
+    default: required ? null : type === 'boolean' ? false : '',
+  });
+  const parameters = [
+    of('client', 'text', true),
+    of('items', 'list', true),
+    of('signed', 'boolean', true),
+    of('note', 'text', false),
+  ];
+
+  it('names every required one with nothing but spaces typed, never a box', () => {
+    expect(missingRequired(parameters, {})).toEqual(['client', 'items']);
+    expect(missingRequired(parameters, { client: '  ', items: 'a' })).toEqual(['client']);
+  });
+
+  it('names none once each holds a value, whatever the optional ones hold', () => {
+    expect(missingRequired(parameters, { client: 'Aurora', items: 'a\nb' })).toEqual([]);
   });
 });

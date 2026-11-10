@@ -12,11 +12,12 @@ export type ModelHistoryChange = Omit<ModelChangeDto, 'agent'> & { agent?: strin
 
 /**
  * The history of a model (#431): the changes of the notebook it is, the newest
- * first, read like the history of a note — when, who through which connector,
- * what changed and the line its author left. An edit session is one change,
- * with how many saves it held and since when. The community reads it without
- * who (`withAuthor` false). Keeping a state of the model is exporting its
- * notebook; nothing here is frozen.
+ * first, drawn as the list of a folder is (#416, #435) — when, who through
+ * which connector, what changed with the name of what it changed, and the line
+ * its author left. An edit session is one row, with how many saves it held and
+ * since when. The community reads it without who (`withAuthor` false), the
+ * column left out. Keeping a state of the model is exporting its notebook;
+ * nothing here is frozen.
  */
 export function ModelHistoryList({
   changes,
@@ -36,42 +37,61 @@ export function ModelHistoryList({
   });
 
   return (
-    <>
-      <ol className="history-list model-history">
-        {changes.map((change, index) => (
-          <li
-            key={`${change.occurredAt}-${change.subjectId}-${index}`}
-            className={change.saves > 1 ? 'history-session' : undefined}
-          >
-            <div className="history-head">
-              <time dateTime={change.occurredAt}>{when.format(new Date(change.occurredAt))}</time>
-              {withAuthor ? (
-                // The connector when an agent wrote it, and the person otherwise.
-                <span className="history-author">{change.agent ?? t('history.aPerson')}</span>
-              ) : null}
-              <span className="chip history-kind">
-                {t(`model.change.${change.type}`, change.type)}
-              </span>
-            </div>
-            {change.name ? <p className="history-subject">{change.name}</p> : null}
-            {change.saves > 1 ? (
-              <p className="history-span">
-                {t('history.sessionSaves', {
-                  count: change.saves,
-                  from: when.format(new Date(change.since)),
-                })}
-              </p>
-            ) : null}
-            {change.message ? (
-              <p className="history-message">{change.message}</p>
-            ) : (
-              <p className="history-message is-empty">{t('history.noMessage')}</p>
-            )}
-          </li>
-        ))}
-      </ol>
+    <div className="folder-notes model-history">
+      <div className="tables-grid-scroll">
+        <table className="tables-grid folder-notes-table model-history-table">
+          <thead>
+            <tr>
+              <th scope="col">{t('model.historyColumns.when')}</th>
+              {withAuthor ? <th scope="col">{t('model.historyColumns.who')}</th> : null}
+              <th scope="col">{t('model.historyColumns.what')}</th>
+              <th scope="col">{t('model.historyColumns.line')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {changes.map((change, index) => (
+              <tr
+                key={`${change.occurredAt}-${change.subjectId}-${index}`}
+                className={change.saves > 1 ? 'is-session' : undefined}
+              >
+                <td className="model-history-when">
+                  <time dateTime={change.occurredAt}>
+                    {when.format(new Date(change.occurredAt))}
+                  </time>
+                  {change.saves > 1 ? (
+                    <span className="model-history-saves">
+                      {t('history.sessionSaves', {
+                        count: change.saves,
+                        from: when.format(new Date(change.since)),
+                      })}
+                    </span>
+                  ) : null}
+                </td>
+                {withAuthor ? (
+                  // The connector when an agent wrote it, and the person otherwise.
+                  <td
+                    data-label={t('model.historyColumns.who')}
+                    className={change.agent ? 'model-history-who is-agent' : 'model-history-who'}
+                  >
+                    {change.agent ?? t('history.aPerson')}
+                  </td>
+                ) : null}
+                <td data-label={t('model.historyColumns.what')} className="model-history-what">
+                  <span className="property-chip">
+                    {t(`model.change.${change.type}`, change.type)}
+                  </span>
+                  {change.name ? <span className="model-history-name">{change.name}</span> : null}
+                </td>
+                <td data-label={t('model.historyColumns.line')} className="model-history-line">
+                  {change.message ?? <span className="is-empty">{t('history.noMessage')}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {truncated ? <p className="hint">{t('model.historyTruncated')}</p> : null}
-    </>
+    </div>
   );
 }
 
