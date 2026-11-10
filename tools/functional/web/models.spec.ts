@@ -168,6 +168,11 @@ test.describe('notebook models', () => {
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}\/model\?tab=parameters$/, { timeout: 60_000 });
     // A part of the Context, with no reload, and it is where the model is kept.
     await expect(app.locator('#notebook-nav-parts a').first()).toHaveText(words.modelItem);
+    // A model of one's own is a model: the menu lights Models, never Notebooks (#422).
+    await expect(app.locator('nav.top-menu .top-menu-item.active')).toHaveAttribute(
+      'href',
+      '/models',
+    );
 
     // A parameter is added in a modal, and written when it is confirmed.
     await app.getByRole('button', { name: words.addParameter }).click();
