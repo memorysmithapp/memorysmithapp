@@ -3532,13 +3532,13 @@ input[type='radio'] {
   gap: 12px;
 }
 
-/* Seven cards of one size, four to a row, two on a phone (#423). */
+/* Nine cards of one size, five to a row, two on a phone (#423, #427). */
 .overview-stats {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 @media (max-width: 640px) {

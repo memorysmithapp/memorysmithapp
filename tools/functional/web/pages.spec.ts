@@ -558,16 +558,16 @@ test.describe('the pages of an account', () => {
     // It starts on the shelf the notebook is on, the way back to it (#422).
     await expect(trail.locator('a.crumb.is-shelf')).toHaveAttribute('href', '/notebooks');
     await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
-    // Seven cards of one size, four to a row, in the order of the sidebar (#423).
+    // Nine cards of one size, five to a row, in the order of the sidebar (#423, #427).
     const stats = app.locator('.overview-stats .overview-stat');
-    await expect(stats).toHaveCount(7);
+    await expect(stats).toHaveCount(9);
     await expect(app.locator('.overview-stats .skeleton')).toHaveCount(0);
     const leads = await app
       .locator('.overview-stats a.overview-stat-link')
       .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
     expect(
       leads.filter((href) => !href.startsWith('#')).map((href) => href.split('/').pop()),
-    ).toEqual(['folders', 'attachments', 'tables', 'dashboards']);
+    ).toEqual(['guidance', 'templates', 'folders', 'attachments', 'tables', 'dashboards']);
     const widths = await stats.evaluateAll((cards) =>
       cards.map((card) => Math.round((card as unknown as { offsetWidth: number }).offsetWidth)),
     );

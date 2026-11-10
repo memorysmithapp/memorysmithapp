@@ -7,6 +7,8 @@ import {
   attachmentsAddress,
   dashboardsAddress,
   foldersAddress,
+  guidanceAddress,
+  templatesAddress,
   linkTargetAddress,
   noteAddress,
   tablesAddress,
@@ -47,6 +49,13 @@ function notesOf(folders: FolderNode[]): Array<{ note: NoteSummary; folder: stri
 
 function countFolders(folders: FolderNode[]): number {
   return folders.reduce((total, folder) => total + 1 + countFolders(folder.children), 0);
+}
+
+function countTemplates(folders: FolderNode[]): number {
+  return folders.reduce(
+    (total, folder) => total + (folder.hasTemplate ? 1 : 0) + countTemplates(folder.children),
+    0,
+  );
 }
 
 /**
@@ -99,6 +108,9 @@ export function NotebookOverview() {
   const last = lastId ? notes.find(({ note }) => note.id === lastId) : undefined;
 
   const folderCount = countFolders(structure.folders);
+  const templateCount = countTemplates(structure.folders);
+  // What every agent reads first: written, or not yet (#427).
+  const written = Boolean(structure.guidance?.trim());
   const pending = health.data?.pendingLinks ?? [];
   const orphans = health.data?.orphans ?? [];
 
@@ -119,9 +131,20 @@ export function NotebookOverview() {
           </Link>
         ) : null}
 
-        {/* Seven cards of one size, four to a row, in the order of the sidebar:
-            what the notebook holds, then what asks for attention (#423). */}
+        {/* Nine cards of one size, five to a row, in the order of the sidebar:
+            its Context, what it holds, then what asks for attention (#423, #427). */}
         <ul className="overview-stats" aria-label={t('overview.stats')}>
+          <Stat
+            value={written ? '✓' : UNREAD}
+            label={written ? t('overview.guidance') : t('overview.noGuidance')}
+            to={guidanceAddress(notebookId)}
+            attention={!written}
+          />
+          <Stat
+            value={templateCount}
+            label={t('overview.templates', { count: templateCount })}
+            to={templatesAddress(notebookId)}
+          />
           <Stat
             value={folderCount}
             label={t('overview.folders', { count: folderCount })}
