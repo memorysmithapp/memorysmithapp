@@ -3920,14 +3920,8 @@ button.attachment-thumb:focus-visible {
   .brand {
     min-width: 0;
   }
-  /* On a phone the symbol alone: the name is still read out, not drawn (#422). */
-  .app-header .brand-word {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
+  .brand-word {
+    font-size: 0.906rem;
     white-space: nowrap;
   }
 
