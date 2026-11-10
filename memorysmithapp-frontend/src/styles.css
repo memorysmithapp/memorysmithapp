@@ -325,9 +325,9 @@ a:hover {
   left: 14px;
 }
 .global-search .search-box input:focus {
-  /* The field says it has the focus by a darker edge and the caret in it,
-     with no ring of the accent (#418, #422). */
-  border-color: var(--text-soft);
+  /* The field keeps its edge with the focus: the caret in it says so, with
+     no ring and no darker edge (#418, #422). */
+  border-color: var(--border);
   box-shadow: none;
 }
 .search-box-key {
@@ -2779,12 +2779,6 @@ body:has(.markdown dialog[open]) .app-main {
   border-radius: 50%;
   cursor: pointer;
   display: flex;
-}
-/* The avatar carries the focus ring while its menu is open. */
-.user-menu-trigger[aria-expanded='true'] {
-  box-shadow:
-    0 0 0 2px var(--surface),
-    0 0 0 4px var(--accent);
 }
 .avatar {
   border-radius: 50%;
@@ -6428,11 +6422,8 @@ button.attachment-thumb:focus-visible {
   color: var(--text);
 }
 .icon-button.notifications-trigger[aria-expanded='true'] {
-  /* White, with the ring the avatar wears while its menu is open (#422). */
+  /* White, and with no ring, as the avatar while its menu is open (#422). */
   background: var(--surface);
-  box-shadow:
-    0 0 0 2px var(--surface),
-    0 0 0 4px var(--accent);
 }
 .menu.notifications-panel {
   top: calc(100% + 8px);
