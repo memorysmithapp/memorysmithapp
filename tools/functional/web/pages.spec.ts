@@ -2809,6 +2809,12 @@ test.describe('the transfers of a person', () => {
     expect(box, 'the panel has a box').not.toBeNull();
     expect(box!.x, 'the panel starts on the screen').toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width, 'and ends on it').toBeLessThanOrEqual(320);
+    // It drops from under the header, as the ☰ does, and never rises as a sheet (#422).
+    const header = await app.locator('.app-header').boundingBox();
+    expect(box!.y, 'the panel starts under the header').toBeGreaterThanOrEqual(
+      (header?.y ?? 0) + (header?.height ?? 0) - 1,
+    );
+    await expect(app.locator('.sheet')).toHaveCount(0);
   });
 
   test('[page:/transfers] exports a notebook from its page, keeps it, downloads it again and deletes it', async ({
