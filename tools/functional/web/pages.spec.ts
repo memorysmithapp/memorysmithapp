@@ -163,8 +163,10 @@ test.describe('the pages of an account', () => {
 
     const section = app.locator('.continue-reading');
     await expect(section.getByRole('heading', { name: words.resume })).toBeVisible();
-    const card = section.locator('a.overview-resume', { hasText: notebook.name });
-    await expect(card).toContainText('Checklist');
+    // Each card says the notebook, the folder and the title of the note (#428).
+    const card = section.locator('a.continue-card', { hasText: notebook.name });
+    await expect(card.locator('.continue-card-folder')).toHaveText('Findings');
+    await expect(card.locator('.continue-card-title')).toHaveText('Checklist');
     await card.click();
     await expect(app).toHaveURL(new RegExp(`/notes/${notebook.noteId}$`, 'i'));
   });

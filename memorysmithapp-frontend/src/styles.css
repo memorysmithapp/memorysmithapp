@@ -3526,10 +3526,70 @@ input[type='radio'] {
   margin: 0;
   font-size: 1.05rem;
 }
+/* Five across the width, each the notebook, the folder and the title (#428). */
 .continue-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+}
+.continue-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+a.continue-card:hover {
+  border-color: var(--text-soft);
+  text-decoration: none;
+}
+a.continue-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.continue-card-notebook {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.continue-card-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.continue-card-folder svg {
+  flex-shrink: 0;
+}
+.continue-card-title {
+  margin-top: 2px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 860px) {
+  .continue-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .continue-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Nine cards of one size, five to a row, two on a phone (#423, #427). */
