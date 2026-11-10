@@ -346,6 +346,12 @@ test.describe('notebook models', () => {
       await page.goto(`${state.surfaces.site}/community`);
       await authorize;
 
+      // A notebook declared as a model is a model: it is not among the
+      // notebooks, whose count is drawn once every list is read (#422).
+      await app.goto(`${state.surfaces.site}/notebooks`);
+      await expect(app.locator('.shelf-page .shelf-count')).toBeVisible({ timeout: 30_000 });
+      await expect(app.locator('article.notebook-card', { hasText: notebook.name })).toHaveCount(0);
+
       // Signed in, it is a page of the application, under its menu.
       await app.goto(`${state.surfaces.site}/community`);
       await expect(app.locator('.app-menu-row nav.top-menu')).toBeVisible();
