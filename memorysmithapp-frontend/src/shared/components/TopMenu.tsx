@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookIcon, CopyIcon, GlobeIcon, HomeIcon, InfoIcon, TransfersIcon } from './icons';
 
@@ -9,6 +9,12 @@ import { BookIcon, CopyIcon, GlobeIcon, HomeIcon, InfoIcon, TransfersIcon } from
  */
 export function TopMenu({ layout = 'row' }: { layout?: 'row' | 'list' }) {
   const { t } = useTranslation();
+  // A model of one's own is read at the address of its notebook, and it is
+  // still a model: Models is lit there, never Notebooks (#422).
+  const { pathname } = useLocation();
+  const inModel = isOwnModelAddress(pathname);
+  const inModels = inModel || /^\/models(\/|$)/i.test(pathname);
+  const inNotebooks = !inModel && /^\/notebooks(\/|$)/i.test(pathname);
 
   return (
     <nav
@@ -19,14 +25,22 @@ export function TopMenu({ layout = 'row' }: { layout?: 'row' | 'list' }) {
         <HomeIcon />
         {t('nav.home')}
       </NavLink>
-      <NavLink to="/notebooks" className="top-menu-item">
+      <Link
+        to="/notebooks"
+        className={menuItemClass(inNotebooks)}
+        aria-current={inNotebooks ? 'page' : undefined}
+      >
         <BookIcon />
         {t('nav.notebooks')}
-      </NavLink>
-      <NavLink to="/models" className="top-menu-item">
+      </Link>
+      <Link
+        to="/models"
+        className={menuItemClass(inModels)}
+        aria-current={inModels ? 'page' : undefined}
+      >
         <CopyIcon />
         {t('nav.models')}
-      </NavLink>
+      </Link>
       <NavLink to="/community" className="top-menu-item">
         <GlobeIcon />
         {t('nav.community')}
@@ -41,4 +55,13 @@ export function TopMenu({ layout = 'row' }: { layout?: 'row' | 'list' }) {
       </NavLink>
     </nav>
   );
+}
+
+/** `/notebooks/{id}/model` and its versions: the pages of a model of one's own. */
+function isOwnModelAddress(pathname: string): boolean {
+  return /^\/notebooks\/[^/]+\/model(\/|$)/i.test(pathname);
+}
+
+function menuItemClass(active: boolean): string {
+  return active ? 'top-menu-item active' : 'top-menu-item';
 }
