@@ -8,7 +8,7 @@
  *   pnpm tools data purge-unnamed-files --environment production [--older-than 24] [--apply]
  *   pnpm tools data reproject-links --environment staging [--apply]
  *   pnpm tools data reproject-links --environment staging --follow <execution>
- *   pnpm tools data forget-model-versions --environment staging [--apply]
+ *   pnpm tools data forget-model-versions --environment production [--apply]
  *
  * With credentials of the account of the environment, and refused under any
  * other; a job that names the environments it may run in is refused in every
@@ -20,7 +20,8 @@
  * the resources and nothing else. `reproject-links` runs in AWS instead, as a
  * state machine (#311): the command starts the run, follows it and prints its
  * summary, and a run whose command was interrupted finishes on its own, to be
- * followed again with `--follow`.
+ * followed again with `--follow`. `forget-model-versions` runs in AWS too, as
+ * a function the command invokes and whose answer it prints (#434).
  */
 
 import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
@@ -32,6 +33,7 @@ import {
   StartExecutionCommand,
 } from '@aws-sdk/client-sfn';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -39,6 +41,9 @@ import { parseArgs } from 'node:util';
 import {
   accountRefusal,
   environmentRefusal,
+  forgetExitCode,
+  forgetLines,
+  type ForgetSummary,
   isMaintenanceJob,
   jobVariables,
   MAINTENANCE_JOBS,
@@ -100,6 +105,24 @@ if ('stateMachine' in job) {
       ...(values.follow ? { executionArn: values.follow } : {}),
     }),
   );
+}
+
+if ('function' in job) {
+  // A run in AWS, answered at once: the role that invokes it reaches nothing
+  // it deletes (#434).
+  const answer = await new LambdaClient({ region }).send(
+    new InvokeCommand({
+      FunctionName: `${job.function}-${environment}`,
+      Payload: new TextEncoder().encode(
+        JSON.stringify({ mode: values.apply ? 'apply' : 'report' }),
+      ),
+    }),
+  );
+  const payload = new TextDecoder().decode(answer.Payload ?? new Uint8Array());
+  if (answer.FunctionError) fail(`The function failed: ${payload}`);
+  const summary = JSON.parse(payload) as ForgetSummary;
+  process.stdout.write(`${forgetLines(summary).join('\n')}\n`);
+  process.exit(forgetExitCode(summary));
 }
 
 const cloudFormation = new CloudFormationClient({ region });

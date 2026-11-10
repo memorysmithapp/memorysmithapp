@@ -401,6 +401,47 @@ export class ApiStack extends Stack {
     if (props.data.contentBucket.encryptionKey) {
       props.data.contentBucket.encryptionKey.grantDecrypt(publicCatalog.function);
     }
+    /**
+     * The deletion of the versions notebook models kept before #431 (#434,
+     * ADR-028): a function of its own, so that what starts it — the staging
+     * command and the workflow of production maintenance — may invoke it and
+     * reach no table and no bucket, as the rebuild of the link graph is run
+     * (ADR-017). Its role finds the records of the versions, deletes each as
+     * its owner deleting it would — the archive by its revision under
+     * `models/`, the record, the counter of what it occupied — and says the
+     * entries of the catalog again. It reaches no notebook and no note.
+     */
+    const forgetVersions = new ServiceLambda(this, 'ForgetModelVersions', {
+      entry: join(backend, 'apps', 'core-monolith', 'src', 'forget-model-versions.handler.ts'),
+      description: 'MemorySmith maintenance: deletes the versions models kept before #431.',
+      functionName: physicalName(props.environment, 'mv-forget-model-versions'),
+      environment: {
+        PORTABILITY_TABLE: props.data.portabilityTable.table.tableName,
+        CONTENT_BUCKET: props.data.contentBucket.bucketName,
+      },
+      timeout: Duration.minutes(5),
+      memorySize: 512,
+    });
+    forgetVersions.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          'dynamodb:Scan',
+          'dynamodb:Query',
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:UpdateItem',
+          'dynamodb:DeleteItem',
+        ],
+        resources: [props.data.portabilityTable.table.tableArn],
+      }),
+    );
+    forgetVersions.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/models/*')],
+      }),
+    );
+
     // ---- The outbox relay ---------------------------------------------------
 
     const relayDlq = new Queue(this, 'RelayDeadLetter', {

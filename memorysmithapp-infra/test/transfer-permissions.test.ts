@@ -404,3 +404,36 @@ describe('the public route of the catalog', () => {
     expect(JSON.stringify(trail?.['Resource'])).toContain('/index/*');
   });
 });
+
+/**
+ * The function that deletes the versions models kept before #431 (#434): what
+ * a role of delivery invokes in place of reaching the data itself, so it must
+ * reach the records of transfers and the archives of versions, and nothing of
+ * a notebook, a note or the trail.
+ */
+describe('the deletion of the versions models kept before #431', () => {
+  const FORGET = 'MemorySmith maintenance: deletes the versions models kept before #431.';
+  const { api } = templates();
+  const role = rolesByDescription(api).get(FORGET) ?? '';
+  const allowed = allowedOf(api, role);
+
+  it('is a function of its own', () => {
+    expect(role).not.toBe('');
+  });
+
+  it('deletes objects under models/ and no other object', () => {
+    const s3 = allowed.filter((each) => each.actions.some((action) => action.startsWith('s3:')));
+    expect(s3).toHaveLength(1);
+    expect(s3[0]?.actions.sort()).toEqual(['s3:DeleteObject', 's3:DeleteObjectVersion']);
+    expect(s3[0]?.resource).toContain('s/*/models/*');
+  });
+
+  it('reaches the portability table and no other', () => {
+    const tables = allowed.filter((each) =>
+      each.actions.some((action) => action.startsWith('dynamodb:')),
+    );
+    expect(tables).toHaveLength(1);
+    expect(tables[0]?.resource).toContain('PortabilityTable');
+    expect(JSON.stringify(allowed)).not.toMatch(/KnowledgeTable|AuditTable|AccessTable/);
+  });
+});

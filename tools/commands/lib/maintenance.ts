@@ -16,6 +16,12 @@ export interface MaintenanceJob {
    * (#311), by the base of its physical name.
    */
   readonly stateMachine?: string;
+  /**
+   * The function a job runs as in AWS, invoked and answered at once, by the
+   * base of its physical name (#434): what starts it reaches no table and no
+   * bucket.
+   */
+  readonly function?: string;
   /** What it rebuilds, as a person reads it, or what it deletes, for a job that deletes. */
   readonly rebuilds?: string;
   readonly deletes?: string;
@@ -54,9 +60,10 @@ export const MAINTENANCE_JOBS = {
     entry: 'memorysmithapp-backend/apps/core-monolith/src/migrate-slots.ts',
     rebuilds: 'the Guidance and the Templates written before they had a life of their own',
   },
-  // A model keeps no copy of its notebook since #431, so what it froze before goes.
+  // A model keeps no copy of its notebook since #431, so what it froze before
+  // goes, by a function in AWS that production may run too (#434).
   'forget-model-versions': {
-    entry: 'memorysmithapp-backend/apps/core-monolith/src/forget-model-versions.ts',
+    function: 'mv-forget-model-versions',
     deletes: 'the versions notebook models kept before they were read as they stand',
   },
 } as const satisfies Record<string, MaintenanceJob>;
@@ -219,4 +226,34 @@ export function runExitCode(summary: ReprojectionSummary | null): number {
   if (!summary) return 1;
   if (summary.lost > 0) return 2;
   return summary.failed.length > 0 ? 1 : 0;
+}
+
+/** What the function that deletes the versions of models answers (#434). */
+export interface ForgetSummary {
+  readonly mode: 'report' | 'apply';
+  readonly versions: number;
+  readonly subscriptions: number;
+  readonly bytes: number;
+  readonly catalogEntries: number;
+  readonly deleted: number;
+  readonly failures: readonly string[];
+}
+
+/** The summary as a person reads it, one fact a line. */
+export function forgetLines(summary: ForgetSummary): string[] {
+  return [
+    `${summary.versions} versions of models, in ${summary.subscriptions} subscriptions, hold ${summary.bytes} bytes.`,
+    `${summary.catalogEntries} catalog entries.`,
+    ...(summary.mode === 'apply'
+      ? [
+          `${summary.deleted} versions deleted, the catalog entries said again without them.`,
+          ...summary.failures.map((failure) => `Not deleted: ${failure}`),
+        ]
+      : ['Nothing was deleted: this was a report.']),
+  ];
+}
+
+/** A run that was asked to apply fails when any version stayed. */
+export function forgetExitCode(summary: ForgetSummary): number {
+  return summary.mode === 'apply' && summary.failures.length > 0 ? 1 : 0;
 }
