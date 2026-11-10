@@ -4720,6 +4720,10 @@ button.attachment-thumb:focus-visible {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
+  .transfers-start > .button {
+    width: 100%;
+    justify-content: center;
+  }
   .transfers-rows {
     padding: 0 14px;
   }
