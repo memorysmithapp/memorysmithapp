@@ -329,7 +329,7 @@ test.describe('notebook models', () => {
   });
 
   test('[page:/community] [page:/community/:publicId] [page:/community/:publicId/versions/:version] finds a published model signed in, under the menu, reads it and its version, and sends a visitor with no session to sign in first (#418)', async ({
-    page,
+    browser,
     app,
     notebook,
     owner,
@@ -357,12 +357,18 @@ test.describe('notebook models', () => {
 
     try {
       // No session at all: the community asks to sign in first (RN-PRT-059).
-      await speak(page, state, appLocale);
-      const authorize = page.waitForRequest((request) =>
-        request.url().startsWith(`${state.surfaces.auth}/oauth2/authorize`),
-      );
-      await page.goto(`${state.surfaces.site}/community`);
-      await authorize;
+      // A context of its own, because `app` is `page` already signed in.
+      const visitor = await browser.newPage();
+      try {
+        await speak(visitor, state, appLocale);
+        const authorize = visitor.waitForRequest((request) =>
+          request.url().startsWith(`${state.surfaces.auth}/oauth2/authorize`),
+        );
+        await visitor.goto(`${state.surfaces.site}/community`);
+        await authorize;
+      } finally {
+        await visitor.close();
+      }
 
       // A notebook declared as a model is a model: it is not among the
       // notebooks, whose count is drawn once every list is read (#422).
