@@ -558,20 +558,20 @@ test.describe('the pages of an account', () => {
     // It starts on the shelf the notebook is on, the way back to it (#422).
     await expect(trail.locator('a.crumb.is-shelf')).toHaveAttribute('href', '/notebooks');
     await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
-    // Seven numbers in the order of the sidebar, the two that ask for
-    // attention apart (#423), and the note written last under them.
-    await expect(app.locator('.overview-stats .overview-stat')).toHaveCount(7);
+    // Seven cards of one size, four to a row, in the order of the sidebar (#423).
+    const stats = app.locator('.overview-stats .overview-stat');
+    await expect(stats).toHaveCount(7);
     await expect(app.locator('.overview-stats .skeleton')).toHaveCount(0);
     const leads = await app
-      .locator('.overview-stats:not(.is-attention-group) a.overview-stat-link')
+      .locator('.overview-stats a.overview-stat-link')
       .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
-    expect(leads.map((href) => href.split('/').pop())).toEqual([
-      'folders',
-      'attachments',
-      'tables',
-      'dashboards',
-    ]);
-    await expect(app.locator('.overview-stats.is-attention-group .overview-stat')).toHaveCount(2);
+    expect(
+      leads.filter((href) => !href.startsWith('#')).map((href) => href.split('/').pop()),
+    ).toEqual(['folders', 'attachments', 'tables', 'dashboards']);
+    const widths = await stats.evaluateAll((cards) =>
+      cards.map((card) => Math.round((card as unknown as { offsetWidth: number }).offsetWidth)),
+    );
+    expect(new Set(widths).size).toBe(1);
     await expect(
       app
         .locator('.overview-section', { has: app.locator('#overview-lately') })

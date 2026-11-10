@@ -119,47 +119,44 @@ export function NotebookOverview() {
           </Link>
         ) : null}
 
-        {/* In the order of the sidebar: what the notebook holds, then, apart,
-            what asks for attention (#423). */}
-        <div className="overview-numbers">
-          <ul className="overview-stats" aria-label={t('overview.stats')}>
-            <Stat
-              value={folderCount}
-              label={t('overview.folders', { count: folderCount })}
-              to={foldersAddress(notebookId)}
-            />
-            <Stat value={notes.length} label={t('overview.notes', { count: notes.length })} />
-            <Stat
-              value={count(files)}
-              label={t('overview.attachments', { count: files.data?.length ?? 0 })}
-              to={attachmentsAddress(notebookId)}
-            />
-            <Stat
-              value={count(tables)}
-              label={t('overview.tables', { count: tables.data?.length ?? 0 })}
-              to={tablesAddress(notebookId)}
-            />
-            <Stat
-              value={count(dashboards)}
-              label={t('overview.dashboards', { count: dashboards.data?.length ?? 0 })}
-              to={dashboardsAddress(notebookId)}
-            />
-          </ul>
-          <ul className="overview-stats is-attention-group" aria-label={t('overview.attention')}>
-            <Stat
-              value={health.isError ? UNREAD : health.data ? pending.length : undefined}
-              label={t('overview.pending', { count: pending.length })}
-              to={pending.length > 0 ? '#overview-pending' : undefined}
-              attention={pending.length > 0}
-            />
-            <Stat
-              value={health.isError ? UNREAD : health.data ? orphans.length : undefined}
-              label={t('overview.orphans', { count: orphans.length })}
-              to={orphans.length > 0 ? '#overview-orphans' : undefined}
-              attention={orphans.length > 0}
-            />
-          </ul>
-        </div>
+        {/* Seven cards of one size, four to a row, in the order of the sidebar:
+            what the notebook holds, then what asks for attention (#423). */}
+        <ul className="overview-stats" aria-label={t('overview.stats')}>
+          <Stat
+            value={folderCount}
+            label={t('overview.folders', { count: folderCount })}
+            to={foldersAddress(notebookId)}
+          />
+          <Stat value={notes.length} label={t('overview.notes', { count: notes.length })} />
+          <Stat
+            value={count(files)}
+            label={t('overview.attachments', { count: files.data?.length ?? 0 })}
+            to={attachmentsAddress(notebookId)}
+          />
+          <Stat
+            value={count(tables)}
+            label={t('overview.tables', { count: tables.data?.length ?? 0 })}
+            to={tablesAddress(notebookId)}
+          />
+          <Stat
+            value={count(dashboards)}
+            label={t('overview.dashboards', { count: dashboards.data?.length ?? 0 })}
+            to={dashboardsAddress(notebookId)}
+          />
+
+          <Stat
+            value={health.isError ? UNREAD : health.data ? pending.length : undefined}
+            label={t('overview.pending', { count: pending.length })}
+            to={pending.length > 0 ? '#overview-pending' : undefined}
+            attention={pending.length > 0}
+          />
+          <Stat
+            value={health.isError ? UNREAD : health.data ? orphans.length : undefined}
+            label={t('overview.orphans', { count: orphans.length })}
+            to={orphans.length > 0 ? '#overview-orphans' : undefined}
+            attention={orphans.length > 0}
+          />
+        </ul>
 
         <section className="overview-section" aria-labelledby="overview-lately">
           <h2 id="overview-lately">{t('overview.lately')}</h2>
