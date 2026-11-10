@@ -4,13 +4,20 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import {
+  attachmentsAddress,
+  dashboardsAddress,
   foldersAddress,
   linkTargetAddress,
   noteAddress,
   tablesAddress,
 } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
-import { getNotebookHealth, listTables } from '../../shared/api/source';
+import {
+  getNotebookFiles,
+  getNotebookHealth,
+  listDashboards,
+  listTables,
+} from '../../shared/api/source';
 import { useLiveInterval } from '../../shared/api/live';
 import { useLiveSession } from '../../shared/auth/session';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -67,6 +74,19 @@ export function NotebookOverview() {
     queryFn: () => listTables(notebookId),
     refetchInterval: live,
   });
+  // The same reads as the pages the numbers lead to, so each says what its page shows.
+  const files = useQuery({
+    queryKey: queryKeys.notebookFiles(notebookId),
+    queryFn: () => getNotebookFiles(notebookId),
+    refetchInterval: live,
+  });
+  const dashboards = useQuery({
+    queryKey: queryKeys.notebookDashboards(notebookId),
+    queryFn: () => listDashboards(notebookId),
+    refetchInterval: live,
+  });
+  const count = (query: { isError: boolean; data?: readonly unknown[] }) =>
+    query.isError ? UNREAD : query.data?.length;
 
   const notes = useMemo(() => notesOf(structure.folders), [structure.folders]);
   const lately = useMemo(
@@ -78,6 +98,7 @@ export function NotebookOverview() {
   const lastId = lastNoteOf(me, notebookId);
   const last = lastId ? notes.find(({ note }) => note.id === lastId) : undefined;
 
+  const folderCount = countFolders(structure.folders);
   const pending = health.data?.pendingLinks ?? [];
   const orphans = health.data?.orphans ?? [];
 
@@ -98,31 +119,47 @@ export function NotebookOverview() {
           </Link>
         ) : null}
 
-        <ul className="overview-stats" aria-label={t('overview.stats')}>
-          <Stat value={notes.length} label={t('overview.notes', { count: notes.length })} />
-          <Stat
-            value={countFolders(structure.folders)}
-            label={t('overview.folders', { count: countFolders(structure.folders) })}
-            to={foldersAddress(notebookId)}
-          />
-          <Stat
-            value={tables.isError ? UNREAD : tables.data?.length}
-            label={t('overview.tables', { count: tables.data?.length ?? 0 })}
-            to={tablesAddress(notebookId)}
-          />
-          <Stat
-            value={health.isError ? UNREAD : health.data ? pending.length : undefined}
-            label={t('overview.pending', { count: pending.length })}
-            to={pending.length > 0 ? '#overview-pending' : undefined}
-            attention={pending.length > 0}
-          />
-          <Stat
-            value={health.isError ? UNREAD : health.data ? orphans.length : undefined}
-            label={t('overview.orphans', { count: orphans.length })}
-            to={orphans.length > 0 ? '#overview-orphans' : undefined}
-            attention={orphans.length > 0}
-          />
-        </ul>
+        {/* In the order of the sidebar: what the notebook holds, then, apart,
+            what asks for attention (#423). */}
+        <div className="overview-numbers">
+          <ul className="overview-stats" aria-label={t('overview.stats')}>
+            <Stat
+              value={folderCount}
+              label={t('overview.folders', { count: folderCount })}
+              to={foldersAddress(notebookId)}
+            />
+            <Stat value={notes.length} label={t('overview.notes', { count: notes.length })} />
+            <Stat
+              value={count(files)}
+              label={t('overview.attachments', { count: files.data?.length ?? 0 })}
+              to={attachmentsAddress(notebookId)}
+            />
+            <Stat
+              value={count(tables)}
+              label={t('overview.tables', { count: tables.data?.length ?? 0 })}
+              to={tablesAddress(notebookId)}
+            />
+            <Stat
+              value={count(dashboards)}
+              label={t('overview.dashboards', { count: dashboards.data?.length ?? 0 })}
+              to={dashboardsAddress(notebookId)}
+            />
+          </ul>
+          <ul className="overview-stats is-attention-group" aria-label={t('overview.attention')}>
+            <Stat
+              value={health.isError ? UNREAD : health.data ? pending.length : undefined}
+              label={t('overview.pending', { count: pending.length })}
+              to={pending.length > 0 ? '#overview-pending' : undefined}
+              attention={pending.length > 0}
+            />
+            <Stat
+              value={health.isError ? UNREAD : health.data ? orphans.length : undefined}
+              label={t('overview.orphans', { count: orphans.length })}
+              to={orphans.length > 0 ? '#overview-orphans' : undefined}
+              attention={orphans.length > 0}
+            />
+          </ul>
+        </div>
 
         <section className="overview-section" aria-labelledby="overview-lately">
           <h2 id="overview-lately">{t('overview.lately')}</h2>
