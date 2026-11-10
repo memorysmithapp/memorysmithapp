@@ -173,6 +173,20 @@ test.describe('notebook models', () => {
       'href',
       '/models',
     );
+    // On every page of it, its folders among them, and its trail starts on
+    // Models (#422).
+    const modelPage = app.url();
+    await app.locator('#notebook-nav-parts a[href$="/folders"]').click();
+    await app.waitForURL(/\/folders$/);
+    await expect(app.locator('nav.top-menu .top-menu-item.active')).toHaveAttribute(
+      'href',
+      '/models',
+    );
+    await expect(app.locator('.notebook-breadcrumb a.crumb.is-shelf')).toHaveAttribute(
+      'href',
+      '/models',
+    );
+    await app.goto(modelPage);
 
     // A parameter is added in a modal, and written when it is confirmed.
     await app.getByRole('button', { name: words.addParameter }).click();

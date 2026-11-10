@@ -512,6 +512,8 @@ test.describe('the pages of an account', () => {
     const trail = app.locator('.notebook-bar .notebook-breadcrumb');
     await expect(trail.locator('.crumb.is-notebook')).toHaveText(notebook.name);
     await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
+    // It starts on the shelf the notebook is on, the way back to it (#422).
+    await expect(trail.locator('a.crumb.is-shelf')).toHaveAttribute('href', '/notebooks');
     await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
     // Three parts of the same weight, each a way into a page of its own (#227).
     const cards = app.locator('a.context-card');
@@ -1080,9 +1082,11 @@ test.describe('the pages of an account', () => {
     await expect(
       tree.locator(':scope > li > .tree-folder a', { hasText: 'Findings' }),
     ).toBeVisible();
-    // The trail starts at the notebook and goes straight to the folder.
+    // The trail starts on the shelf of the notebook, then the notebook, and
+    // goes straight to the folder (#422).
     const crumbs = app.locator('.notebook-breadcrumb a');
-    await expect(crumbs.first()).toHaveText(notebook.name);
+    await expect(crumbs.first()).toHaveAttribute('href', '/notebooks');
+    await expect(crumbs.nth(1)).toHaveText(notebook.name);
   });
 
   test('widens the sidebar with the window and names every row of the tree whole (#274)', async ({
