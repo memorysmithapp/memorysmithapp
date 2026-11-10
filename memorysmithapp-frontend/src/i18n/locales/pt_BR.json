@@ -168,6 +168,7 @@
     "guidance": "Orientação",
     "folders": "Pastas",
     "foldersHint": "A árvore com a descrição de cada pasta",
+    "modelHint": "O que ele declara como modelo: o objetivo, os parâmetros e as versões",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo de pasta",

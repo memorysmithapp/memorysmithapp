@@ -168,6 +168,7 @@
     "guidance": "Guidance",
     "folders": "Folders",
     "foldersHint": "The tree, with the description of each folder",
+    "modelHint": "What it declares as a model: its objective, its parameters and its versions",
     "noFolders": "This notebook has no folders yet.",
     "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
