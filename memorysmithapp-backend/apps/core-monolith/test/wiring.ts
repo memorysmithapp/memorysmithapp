@@ -269,6 +269,7 @@ import {
   TableUses,
   ResolveLinkTarget,
   GetFacetStats,
+  GetNoteFacets,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -674,6 +675,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     graph: () => new NotebookGraphQuery(discoveryDeps),
     search: () => new SearchNotes(discoveryDeps),
     facets: () => new GetFacetStats(discoveryDeps),
+    noteFacets: () => new GetNoteFacets(discoveryDeps),
   };
 
   /**

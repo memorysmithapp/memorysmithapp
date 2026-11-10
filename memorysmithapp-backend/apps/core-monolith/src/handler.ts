@@ -135,6 +135,7 @@ import {
   TableUses,
   ResolveLinkTarget,
   GetFacetStats,
+  GetNoteFacets,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -533,6 +534,7 @@ const discoveryUseCases: DiscoveryUseCases = {
   graph: (request) => new NotebookGraphQuery(discoveryFor(request.subscription)),
   search: (request) => new SearchNotes(discoveryFor(request.subscription)),
   facets: (request) => new GetFacetStats(discoveryFor(request.subscription)),
+  noteFacets: (request) => new GetNoteFacets(discoveryFor(request.subscription)),
 };
 
 /**

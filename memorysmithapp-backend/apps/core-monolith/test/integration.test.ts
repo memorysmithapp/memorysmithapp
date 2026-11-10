@@ -312,6 +312,17 @@ describe('Discovery answers over the API', () => {
     expect(reviewed?.values).toHaveLength(2);
   });
 
+  it('answers what each note declares, for a folder to show it as a column (#416)', async () => {
+    const { notebookId, notes } = await seed();
+    const answer = (await (
+      await call(`/discovery/notebooks/${notebookId}/note-facets`)
+    ).json()) as { notes: Array<{ noteId: string; facets: Record<string, string[]> }> };
+
+    const byNote = new Map(answer.notes.map((note) => [note.noteId, note.facets]));
+    expect(byNote.get(notes['lei']!)?.['maturity']).toEqual(['evergreen']);
+    expect(byNote.get(notes['achado']!)?.['maturity']).toEqual(['seed']);
+  });
+
   it('answers 404 for a notebook of another subscription', async () => {
     const { notebookId } = await seed();
     harness.verifier.issue('token-b', { sub: 'user-b', email: 'b@example.com' });
@@ -335,6 +346,10 @@ describe('Discovery answers over the API', () => {
 
     const attempt = await call(`/discovery/notebooks/${notebookId}/facets`, { token: 'token-b' });
     expect(attempt.status).toBe(404);
+    const portraits = await call(`/discovery/notebooks/${notebookId}/note-facets`, {
+      token: 'token-b',
+    });
+    expect(portraits.status).toBe(404);
   });
 });
 
