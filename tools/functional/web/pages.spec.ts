@@ -189,6 +189,8 @@ test.describe('the pages of an account', () => {
     await sidebar.locator('button.sidebar-fold').click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
+    // Folded, the icons fit the column, so no scroll bar is drawn beside them (#422).
+    expect(await sidebar.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await app.reload();
     await expect(app.locator('aside#notebook-sidebar')).toHaveClass(/is-collapsed/);
     await testInfo.attach('shell-notebook-folded.png', {
