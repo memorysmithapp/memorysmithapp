@@ -6805,6 +6805,11 @@ button.attachment-thumb:focus-visible {
   --token-comment: var(--text-soft);
   --token-punctuation: var(--text);
 }
+/* The note is drawn on the paper: the reading theme paints its container
+   with the colour of the screen, which a white sheet has no use for (#425). */
+.print-part .markdown {
+  background: none;
+}
 .print-part a {
   color: inherit;
   text-decoration: underline;

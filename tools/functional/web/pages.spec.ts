@@ -1837,6 +1837,19 @@ test.describe('the pages of an account', () => {
     expect(await paper.evaluate(() => localStorage.getItem('memorysmith.preferences'))).toContain(
       '"dark"',
     );
+    // The note is drawn on the paper, with no colour of the screen behind it (#425).
+    const behind = await preview.locator('.pagedjs_page .markdown').evaluateAll((notes) =>
+      notes.map(
+        (note) =>
+          (
+            globalThis as unknown as {
+              getComputedStyle(element: object): { backgroundColor: string };
+            }
+          ).getComputedStyle(note).backgroundColor,
+      ),
+    );
+    expect(behind.length).toBeGreaterThan(0);
+    for (const colour of behind) expect(colour).toBe('rgba(0, 0, 0, 0)');
 
     const groups = paper.getByRole('radiogroup');
     const [properties, tables, orientation] = [groups.nth(0), groups.nth(1), groups.nth(2)];

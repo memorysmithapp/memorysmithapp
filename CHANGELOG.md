@@ -43,6 +43,10 @@ issues each entry cites.
 
 - **The notebooks and models shared with you, and the community, open about as fast as your own notebooks.** They used to be read one after another, so the more you had shared with you the longer the list took; now they are read at once, and so are the notices of the bell. Notebooks shows its cards when both your notebooks and the ones shared with you are there, so no card moves to make room for another. The community answers at once from the edge while it fetches a fresh list, even after a while nobody opened it; a model you publish is on it at once, and the page reads the list again every half minute, like the other lists. (#420)
 
+### Fixed
+
+- **A printed note is laid on white paper.** Its body was drawn on the grey of the screen inside each white sheet; it now has no colour behind it, in the preview, on paper and in a PDF. (#425)
+
 ## [0.17.0] - 2026-11-08
 
 ### Added
