@@ -20,6 +20,7 @@ import {
   searchCatalog,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
+import { useLiveInterval } from '../../shared/api/live';
 import { PageSkeleton, ShelfSkeleton } from '../../shared/components/skeletons';
 import { CreateFromModelForm } from '../models/CreateFromModel';
 import { ShelfCard } from '../dashboard/NotebookCard';
@@ -69,7 +70,24 @@ export function CommunityPage() {
   const found = useQuery({
     queryKey: queryKeys.catalog('', null),
     queryFn: () => searchCatalog({ text: '', language: null }),
+    // Read again like every list on the screen (#206): the edge answers what
+    // it holds while it fetches a fresh list (#420), so a model published or
+    // withdrawn a moment ago reaches the page on a later reading.
+    refetchInterval: useLiveInterval(),
   });
+  /**
+   * What the person published is on the page at once, whatever the edge still
+   * holds (#420): their own models answer it from the API, which no edge keeps.
+   */
+  const models = useMemo(() => {
+    if (!found.data) return undefined;
+    const listed = new Set(found.data.map((model) => model.publicId));
+    const missing = (mine.data ?? []).flatMap((model) =>
+      model.publication && !listed.has(model.publication.publicId) ? [model.publication] : [],
+    );
+    if (missing.length === 0) return found.data;
+    return [...found.data, ...missing].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [found.data, mine.data]);
 
   return (
     <>
@@ -77,18 +95,18 @@ export function CommunityPage() {
         <ShelfHeading
           page="community"
           title={t('community.title')}
-          count={found.data?.length}
+          count={models?.length}
           help={t('community.help')}
         />
         {found.isPending ? (
           <ShelfSkeleton />
         ) : found.isError ? (
           <p className="status">{t(messageKeyOf(found.error))}</p>
-        ) : found.data.length === 0 ? (
+        ) : !models || models.length === 0 ? (
           <p className="hint">{t('community.nothing')}</p>
         ) : (
           <div className="shelf-grid">
-            {found.data.map((model, index) => {
+            {models.map((model, index) => {
               const own = published.has(model.publicId);
               const to = communityModelAddress(model.publicId);
               const latest = Math.max(0, ...model.versions.map((version) => version.number));
