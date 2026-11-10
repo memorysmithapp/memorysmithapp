@@ -15,7 +15,6 @@ import { queryKeys } from '../api/query-keys';
 import {
   communityModelAddress,
   identifierOf,
-  modelAddress,
   notebookAddress,
   sharedModelAddress,
 } from '../api/note-address';
@@ -187,8 +186,9 @@ export function GlobalSearch() {
         name: model.name,
         detail: model.objective || null,
         to:
+          // Of my own, its notebook's overview, as a notebook opens (#417).
           model.sharedBy === null
-            ? modelAddress(model.notebookId)
+            ? notebookAddress(model.notebookId)
             : sharedModelAddress(model.notebookId),
       }));
     const published = (debounced === typed.trim() ? (community.data ?? []) : [])

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listModels, listNotebooks } from '../../shared/api/source';
 import { queryKeys } from '../../shared/api/query-keys';
-import { modelAddress, sharedModelAddress } from '../../shared/api/note-address';
+import { notebookAddress, sharedModelAddress } from '../../shared/api/note-address';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -107,7 +107,10 @@ export function ModelsPage() {
                 }
                 meta={`${parameters} · ${t('models.updated', { date: day })}`}
                 shortMeta={`${parameters} · ${day}`}
-                to={own ? modelAddress(model.notebookId) : sharedModelAddress(model.notebookId)}
+                // A model of mine is a notebook of mine, and opens on its
+                // overview as every notebook does (#417); one shared as a
+                // model reaches no notebook, only the model (#355).
+                to={own ? notebookAddress(model.notebookId) : sharedModelAddress(model.notebookId)}
                 openLabel={t('models.open')}
                 openShort={t('notebooks.openShort')}
                 corner={parts.corner}

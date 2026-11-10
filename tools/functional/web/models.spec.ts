@@ -121,6 +121,11 @@ test.describe('notebook models', () => {
       ),
     });
     if ((await mine.count()) > 0) {
+      // It is a notebook of mine, and opens on its overview as one does (#417).
+      await expect(mine.first().locator('a.notebook-open')).toHaveAttribute(
+        'href',
+        /^\/notebooks\/[0-9a-z]{26}$/,
+      );
       await mine.first().locator('button.notebook-card-more').click();
       await expect(app.getByRole('menuitem')).toHaveCount(3);
       await app.keyboard.press('Escape');
