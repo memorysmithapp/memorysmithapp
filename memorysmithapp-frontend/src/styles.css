@@ -314,19 +314,25 @@ a:hover {
   margin: 0;
 }
 .global-search .search-box input {
-  background: var(--bg);
+  /* White, as everything else in the header, and round at both ends, as the
+     avatar and the bell beside it are (#422). */
+  background: var(--surface);
+  border-radius: 999px;
+  padding-left: 38px;
   padding-right: 64px;
 }
+.global-search .search-box-icon {
+  left: 14px;
+}
 .global-search .search-box input:focus {
-  /* The field says it has the focus by its fill and the caret in it, with no
-     ring of the accent (#418). */
-  background: var(--surface);
-  border-color: var(--border);
+  /* The field says it has the focus by a darker edge and the caret in it,
+     with no ring of the accent (#418, #422). */
+  border-color: var(--text-soft);
   box-shadow: none;
 }
 .search-box-key {
   position: absolute;
-  right: 9px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   padding: 1px 6px;
@@ -338,6 +344,11 @@ a:hover {
   color: var(--text-soft);
   background: var(--surface);
   pointer-events: none;
+}
+/* The key inside the round field is round too (#422). */
+.global-search .search-box-key {
+  padding: 1px 8px;
+  border-radius: 999px;
 }
 .global-search-results {
   position: absolute;
@@ -6407,13 +6418,20 @@ button.attachment-thumb:focus-visible {
 }
 .notifications-trigger {
   position: relative;
+  /* A circle the size of the avatar beside it (#422). */
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   color: var(--text-soft);
 }
 .notifications-trigger:hover {
   color: var(--text);
 }
 .notifications-trigger[aria-expanded='true'] {
-  box-shadow: var(--focus-ring);
+  /* The ring the avatar wears while its menu is open (#422). */
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
 }
 .menu.notifications-panel {
   top: calc(100% + 8px);
