@@ -4,7 +4,7 @@ import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ModelVersionViewDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import { modelAddress, notebookAddress, sharedModelAddress } from '../../shared/api/note-address';
+import { contextAddress, modelAddress, sharedModelAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getModelVersion } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -32,7 +32,7 @@ export function ModelVersionPage() {
       notebookId={notebookId}
       number={number}
       crumbs={[
-        { label: t('structure.heading'), to: notebookAddress(notebookId) },
+        { label: t('structure.heading'), to: contextAddress(notebookId) },
         { label: t('model.title'), to: modelAddress(notebookId) },
         { label: `v${number}` },
       ]}

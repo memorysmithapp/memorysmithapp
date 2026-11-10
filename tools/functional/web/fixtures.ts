@@ -35,6 +35,9 @@ export interface Words {
   /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
+  /** The root of a notebook, and its way back to the note last read (#417). */
+  readonly overview: string;
+  readonly resume: string;
   /** The page of the folders, a part of the Context (#227). */
   readonly folders: string;
   readonly guidance: string;
@@ -167,6 +170,8 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteForGood: 'Delete for good',
     openImported: 'Open notebook',
     context: 'Notebook Context',
+    overview: 'Overview',
+    resume: 'Continue where you left off',
     folders: 'Folders',
     guidance: 'Guidance',
     templates: 'Templates',
@@ -265,6 +270,8 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteForGood: 'Apagar de vez',
     openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
+    overview: 'Visão geral',
+    resume: 'Continuar de onde parei',
     folders: 'Pastas',
     guidance: 'Orientação',
     templates: 'Modelos de pasta',

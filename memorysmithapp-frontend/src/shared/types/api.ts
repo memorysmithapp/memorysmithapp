@@ -25,6 +25,16 @@ export interface NoteSummary {
    * (RN-KNW-062): the Guidance, the folder's Template or the structure.
    */
   staleContext?: readonly ('guidance' | 'template' | 'structure')[];
+  /** When the note last changed, and who changed it: a person, or an agent for one (#416, #417). */
+  updatedAt: string;
+  updatedBy: NoteAuthor;
+}
+
+/** Who wrote a revision: the person, and the agent when one wrote it for them. */
+export interface NoteAuthor {
+  userId: string;
+  /** The client the agent called itself, or null when the person wrote it. */
+  agent: string | null;
 }
 
 export interface FolderNode {

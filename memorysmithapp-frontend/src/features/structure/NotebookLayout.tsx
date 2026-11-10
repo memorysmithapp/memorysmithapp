@@ -15,7 +15,6 @@ import { SkeletonBar } from '../../shared/components/Skeleton';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useNotebookId } from './route-ids';
-import { leaveNotebook } from './arrival';
 import { queryKeys } from '../../shared/api/query-keys';
 import { flushEverySession, useEditSessions } from '../../shared/store/edit-sessions';
 import { usePreferences } from '../../shared/store/preferences';
@@ -39,10 +38,6 @@ export function NotebookLayout() {
   const narrow = useMatchMedia(NARROW_NOTEBOOK);
   // Folded to its icons, by the same choice as the shell's sidebar (#414).
   const collapsed = usePreferences((s) => s.sidebarCollapsed);
-
-  // Leaving a notebook — for Home, for another notebook — makes coming back an
-  // arrival again, which resumes where the reading stopped (ResumeReading).
-  useEffect(() => () => leaveNotebook(notebookId), [notebookId]);
 
   const query = useQuery({
     queryKey: queryKeys.notebookStructure(notebookId),

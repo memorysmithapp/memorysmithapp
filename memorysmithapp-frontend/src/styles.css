@@ -3457,6 +3457,154 @@ input[type='radio'] {
   flex-direction: column;
   gap: 10px;
 }
+/* ---- The overview of a notebook (#417) ------------------------------------
+ *
+ * Its root: the way back to the note last read, the notebook in numbers, what
+ * changed last, and the links that wait for a note or the notes nothing links
+ * to. Cards and rows of the same weight as the Context's.
+ */
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.overview-resume {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+.overview-resume:hover {
+  border-color: var(--text-soft);
+  text-decoration: none;
+}
+.overview-resume:focus-visible,
+.overview-stat-link:focus-visible,
+.overview-row:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.overview-resume-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+.overview-resume-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.overview-resume-label {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.overview-resume-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.overview-resume-folder {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+.overview-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.overview-stat {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.overview-stat > :is(.overview-stat-link, .overview-stat-value) {
+  color: var(--text);
+}
+.overview-stat:not(:has(.overview-stat-link)),
+.overview-stat-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+}
+.overview-stat-link {
+  border-radius: 14px;
+  color: var(--text);
+}
+.overview-stat-link:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.overview-stat-value {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1;
+  min-height: 1.6rem;
+}
+.overview-stat.is-attention .overview-stat-value {
+  color: var(--signal);
+}
+.overview-stat-label {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.overview-section h2 {
+  margin: 0;
+}
+.overview-section .hint {
+  margin: 0;
+}
+.overview-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  color: var(--text);
+}
+.overview-row:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.overview-row-name {
+  font-weight: 500;
+  font-size: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.overview-row-meta {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.overview-row-meta .is-agent {
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .overview-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .overview-row-meta {
+    white-space: normal;
+  }
+}
+
 .context-card {
   display: flex;
   align-items: center;

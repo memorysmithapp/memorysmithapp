@@ -42,6 +42,8 @@ import type {
   ResolvedTargetDto,
   SessionDto,
   FacetStatsDto,
+  NotebookHealthDto,
+  NoteFacetsDto,
   NotebookDetailDto,
   NotebookGraphDto,
   NotebookNamesDto,
@@ -311,6 +313,11 @@ function nest(folders: FolderDto[], notes: NoteSummaryDto[]): FolderNode[] {
           name: note.name,
           folderId: note.folderId,
           ...(note.staleContext ? { staleContext: note.staleContext } : {}),
+          updatedAt: note.updatedAt,
+          updatedBy: {
+            userId: note.updatedBy.userId,
+            agent: note.updatedBy.agent?.clientName ?? null,
+          },
         })),
       children: build(folder.folderId),
     }));
@@ -556,6 +563,19 @@ export async function getTemplate(
 /** The two Discovery reads the dashboard aggregates. */
 export async function getFacetsById(notebookId: string): Promise<FacetStatsDto> {
   return request<FacetStatsDto>(`/discovery/notebooks/${notebookId}/facets`);
+}
+
+/** The orphans and the pending links of a notebook (RN-DSC-004), for its overview (#417). */
+export async function getNotebookHealth(notebookId: string): Promise<NotebookHealthDto> {
+  return request<NotebookHealthDto>(`/discovery/notebooks/${notebookId}/health`);
+}
+
+/** What each note of a notebook declares in its frontmatter, by note (#416). */
+export async function getNoteFacets(
+  notebookId: string,
+): Promise<Map<string, Record<string, string[]>>> {
+  const answer = await request<NoteFacetsDto>(`/discovery/notebooks/${notebookId}/note-facets`);
+  return new Map(answer.notes.map((note) => [note.noteId, note.facets]));
 }
 
 /**

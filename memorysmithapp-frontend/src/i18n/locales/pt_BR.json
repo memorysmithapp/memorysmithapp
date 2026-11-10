@@ -1362,5 +1362,32 @@
     "nothing": "Nada com esse nome.",
     "typeMore": "Digite para encontrar um caderno, um modelo ou um modelo da comunidade.",
     "placeholderNotebook": "Pesquisar neste caderno, em cadernos, modelos e na comunidade…"
+  },
+  "overview": {
+    "title": "Visão geral",
+    "resume": "Continuar de onde parei",
+    "stats": "Este caderno em números",
+    "notes_one": "nota",
+    "notes_other": "notas",
+    "folders_one": "pasta",
+    "folders_other": "pastas",
+    "tables_one": "tabela",
+    "tables_other": "tabelas",
+    "pending_one": "link pendente",
+    "pending_other": "links pendentes",
+    "orphans_one": "nota órfã",
+    "orphans_other": "notas órfãs",
+    "lately": "Alteradas por último",
+    "noNotes": "Este caderno ainda não tem notas.",
+    "pendingTitle": "Links pendentes",
+    "pendingHint": "Links para uma nota que ninguém escreveu ainda. Cada um vira link no momento em que uma nota recebe esse nome.",
+    "pendingFrom": "em {{note}}",
+    "orphansTitle": "Notas órfãs",
+    "orphansHint": "Notas para as quais nenhuma outra nota aponta."
+  },
+  "noteAuthor": {
+    "you": "você",
+    "person": "uma pessoa",
+    "agent": "agente {{name}}"
   }
 }

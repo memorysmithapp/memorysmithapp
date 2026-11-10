@@ -507,7 +507,7 @@ test.describe('the pages of an account', () => {
     await app.waitForURL(`${state.surfaces.site}/transfers`);
   });
 
-  test('[page:/notebooks/:notebookId] opens a notebook on its context: the trail and its three parts', async ({
+  test('[page:/notebooks/:notebookId] opens a notebook on its overview: the notebook in numbers and what changed last (#417)', async ({
     app,
     notebook,
     state,
@@ -518,19 +518,41 @@ test.describe('the pages of an account', () => {
     // The trail names the page and no heading repeats it (#225).
     const trail = app.locator('.notebook-bar .notebook-breadcrumb');
     await expect(trail.locator('.crumb.is-notebook')).toHaveText(notebook.name);
-    await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
+    await expect(trail.locator('.crumb.is-last')).toHaveText(words.overview);
     // It starts on the shelf the notebook is on, the way back to it (#422).
     await expect(trail.locator('a.crumb.is-shelf')).toHaveAttribute('href', '/notebooks');
     await expect(app.getByRole('heading', { level: 1 })).toHaveCount(0);
+    // Five numbers, read from the notebook, and the note written last under them.
+    await expect(app.locator('.overview-stats .overview-stat')).toHaveCount(5);
+    await expect(app.locator('.overview-stats .skeleton')).toHaveCount(0);
+    await expect(app.locator('a.overview-row', { hasText: 'Checklist' })).toBeVisible();
+    // Never read here before, so there is nothing to continue.
+    await expect(app.locator('a.overview-resume')).toHaveCount(0);
+    await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
+  });
+
+  test('[page:/notebooks/:notebookId/context] opens the Context of a notebook: the trail and its three parts', async ({
+    app,
+    notebook,
+    words,
+  }) => {
+    await app.goto(notebook.page('/context'));
+
+    const trail = app.locator('.notebook-bar .notebook-breadcrumb');
+    await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
     // Three parts of the same weight, each a way into a page of its own (#227).
     const cards = app.locator('a.context-card');
     await expect(cards).toHaveCount(3);
     await expect(cards.filter({ hasText: words.guidance })).toBeVisible();
     await expect(cards.filter({ hasText: words.folders })).toBeVisible();
-    await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
+    // The sidebar leads to it, and to the overview above it.
+    const sidebar = app.locator('aside#notebook-sidebar');
+    await expect(sidebar.locator('a.nav-row', { hasText: words.context })).toHaveClass(/active/);
+    await sidebar.locator('a.nav-row', { hasText: words.overview }).click();
+    await expect(app).toHaveURL(notebook.page());
   });
 
-  test('[page:/notebooks/:notebookId] comes back to the note last read every time the notebook is entered, and answers its context from inside', async ({
+  test('[page:/notebooks/:notebookId] offers the note last read first, every time the notebook is entered (#417)', async ({
     app,
     notebook,
     state,
@@ -538,7 +560,7 @@ test.describe('the pages of an account', () => {
   }) => {
     await app.goto(notebook.page());
     const last = app.locator('.notebook-bar .notebook-breadcrumb .crumb.is-last');
-    await expect(last).toHaveText(words.context);
+    await expect(last).toHaveText(words.overview);
 
     await app.locator('aside#notebook-sidebar .tree-folder a', { hasText: 'Findings' }).click();
     await app.locator('a.note-row', { hasText: 'Checklist' }).click();
@@ -546,10 +568,8 @@ test.describe('the pages of an account', () => {
     const checklist = new RegExp(`/notes/${notebook.noteId}$`, 'i');
     await expect(app).toHaveURL(checklist);
 
-    // Out to the notebooks and back in, inside the application: the defect
-    // this guards resumed only on the first arrival of the page session, and a
-    // notebook is shared, accepted and answered from that list, so every
-    // return landed on the context.
+    // Out to the notebooks and back in, inside the application: the notebook
+    // opens on its overview, and the note last read is its first item.
     for (let round = 0; round < 2; round++) {
       await app.locator('nav.top-menu a.top-menu-item[href="/notebooks"]').click();
       await expect(app).toHaveURL(`${state.surfaces.site}/notebooks`);
@@ -557,12 +577,17 @@ test.describe('the pages of an account', () => {
         .locator('article.notebook-card', { hasText: notebook.name })
         .locator('a.notebook-open')
         .click();
+      await expect(last).toHaveText(words.overview);
+      const resume = app.locator('a.overview-resume');
+      await expect(resume).toContainText(words.resume);
+      await expect(resume).toContainText('Checklist');
+      await resume.click();
       await expect(app).toHaveURL(checklist);
     }
 
-    // From inside, the name of the notebook is a request for its context.
+    // From inside, the name of the notebook is a request for its overview.
     await app.locator('.notebook-bar .notebook-breadcrumb .crumb.is-notebook').click();
-    await expect(last).toHaveText(words.context);
+    await expect(last).toHaveText(words.overview);
   });
 
   test('[page:/notebooks/:notebookId/folders] lists the folders of a notebook with what each keeps, under the Context', async ({

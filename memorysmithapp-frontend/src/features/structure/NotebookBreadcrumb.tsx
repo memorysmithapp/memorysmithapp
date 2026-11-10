@@ -12,7 +12,7 @@ import { fitTrail, type TrailFit } from './trail-fit';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { FolderNode } from '../../shared/types/api';
-import { folderAddress, notebookAddress } from '../../shared/api/note-address';
+import { contextAddress, folderAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
 import { useIsModel } from '../../shared/api/is-model';
@@ -235,7 +235,7 @@ export function folderCrumbs(notebookId: string, chain: FolderNode[]): Crumb[] {
  * Context, and their trail says so: *Caderno / Contexto do caderno / Orientação*.
  */
 export function contextCrumbs(notebookId: string, t: TFunction, page: string): Crumb[] {
-  return [{ label: t('structure.heading'), to: notebookAddress(notebookId) }, { label: page }];
+  return [{ label: t('structure.heading'), to: contextAddress(notebookId) }, { label: page }];
 }
 
 /**

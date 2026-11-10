@@ -1359,5 +1359,32 @@
     "nothing": "Nothing has that name.",
     "typeMore": "Type to find a notebook, a model or a community model.",
     "placeholderNotebook": "Search this notebook, notebooks, models and the community…"
+  },
+  "overview": {
+    "title": "Overview",
+    "resume": "Continue where you left off",
+    "stats": "This notebook in numbers",
+    "notes_one": "note",
+    "notes_other": "notes",
+    "folders_one": "folder",
+    "folders_other": "folders",
+    "tables_one": "table",
+    "tables_other": "tables",
+    "pending_one": "pending link",
+    "pending_other": "pending links",
+    "orphans_one": "orphan",
+    "orphans_other": "orphans",
+    "lately": "Changed lately",
+    "noNotes": "This notebook has no notes yet.",
+    "pendingTitle": "Pending links",
+    "pendingHint": "Links to a note nobody has written yet. Each becomes a link the moment a note takes that name.",
+    "pendingFrom": "from {{note}}",
+    "orphansTitle": "Orphans",
+    "orphansHint": "Notes no other note links to."
+  },
+  "noteAuthor": {
+    "you": "you",
+    "person": "a person",
+    "agent": "agent {{name}}"
   }
 }

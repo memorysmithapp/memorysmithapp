@@ -8,7 +8,8 @@ import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { FolderPage } from '../features/structure/FolderPage';
 import { FoldersPage } from '../features/structure/FoldersPage';
 import { NoteRoute } from '../features/structure/NoteRoute';
-import { ResumeReading } from '../features/structure/ResumeReading';
+import { NotebookOverview } from '../features/structure/NotebookOverview';
+import { NotebookContextPage } from '../features/structure/NotebookContextPage';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AboutPage, WelcomeGate } from '../features/about/AboutPage';
@@ -124,7 +125,10 @@ export const router = createBrowserRouter([
                 path: '/notebooks/:notebookId',
                 element: <NotebookLayout />,
                 children: [
-                  { index: true, element: <ResumeReading /> },
+                  // What the notebook is, on one screen (#417); its Context is
+                  // a page of its own.
+                  { index: true, element: <NotebookOverview /> },
+                  { path: 'context', element: <NotebookContextPage /> },
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },

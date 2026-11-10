@@ -48,6 +48,14 @@ export function notebookAddress(notebookId: string): string {
 }
 
 /**
+ * The Notebook Context: its Guidance, its Templates and its folders (#227). It
+ * was the root of the notebook until the root became its overview (#417).
+ */
+export function contextAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/context`;
+}
+
+/**
  * A folder is addressed under `folders/` (RN-DSC-045). `folders` alone is the
  * page of the folders, a part of the Notebook Context (#227): it answered
  * not-found while the Context itself listed them (#196).
