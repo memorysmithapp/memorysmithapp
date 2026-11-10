@@ -17,7 +17,7 @@ import { TransferDialogs } from '../portability/StartTransfer';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { useOwnShares } from '../sharing/shares';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
-import { ShelfHeading } from '../dashboard/ShelfHeading';
+import { PageHeading } from '../../shared/components/PageHeading';
 import { ShelfCard, formatDay } from '../dashboard/NotebookCard';
 import { ShelfSkeleton } from '../../shared/components/skeletons';
 
@@ -62,11 +62,10 @@ export function ModelsPage() {
 
   return (
     <section className="page shelf-page">
-      <ShelfHeading
-        page="models"
+      <PageHeading
         title={t('models.title')}
         count={models?.length}
-        help={t('models.help')}
+        help={{ page: 'models', text: t('models.help') }}
         action={
           <button
             type="button"

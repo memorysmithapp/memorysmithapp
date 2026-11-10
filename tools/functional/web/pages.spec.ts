@@ -97,6 +97,19 @@ test.describe('the pages of an account', () => {
     }
   });
 
+  test('draws one head on every page outside a notebook, the one the shelves use (#415)', async ({
+    app,
+    state,
+  }) => {
+    for (const path of ['/', '/notebooks', '/models', '/community', '/transfers', '/profile']) {
+      await app.goto(`${state.surfaces.site}${path}`);
+      const head = app.locator('main header.page-heading .shelf-heading h1');
+      await expect(head, `the head of ${path}`).toBeVisible();
+      // And no other title of the first level beside it.
+      await expect(app.locator('main h1'), `one title on ${path}`).toHaveCount(1);
+    }
+  });
+
   test('[page:/notebooks] lists the notebooks of the account as cards, by name (#198, #418)', async ({
     app,
     notebook,

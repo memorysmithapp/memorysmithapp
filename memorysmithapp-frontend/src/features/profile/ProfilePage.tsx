@@ -10,6 +10,7 @@ import { preparePicture } from '../../shared/lib/picture';
 import { ApiError } from '../../shared/api/error-mapper';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { CheckIcon } from '../../shared/components/icons';
+import { PageHeading } from '../../shared/components/PageHeading';
 
 const SOURCES: AvatarSource[] = ['gravatar', 'initials', 'upload'];
 
@@ -91,7 +92,7 @@ export function ProfilePage() {
 
   return (
     <article className="profile">
-      <h1>{t('profile.heading')}</h1>
+      <PageHeading title={t('profile.heading')} />
 
       {/* One card, as the design draws it (#215): the picture above, the
           fields below, a hairline between them. */}

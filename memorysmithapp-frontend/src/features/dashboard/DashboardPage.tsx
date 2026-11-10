@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { PageHeading } from '../../shared/components/PageHeading';
 import { SubscriptionSpace } from './SubscriptionSpace';
 
 /**
@@ -11,7 +12,7 @@ export function DashboardPage() {
 
   return (
     <section className="page home">
-      <h1 className="home-heading">{t('nav.home')}</h1>
+      <PageHeading title={t('nav.home')} />
       <SubscriptionSpace />
     </section>
   );

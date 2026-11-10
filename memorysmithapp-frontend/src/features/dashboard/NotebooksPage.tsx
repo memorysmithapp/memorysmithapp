@@ -13,7 +13,7 @@ import { queryState } from '../../shared/api/query-state';
 import { queryKeys } from '../../shared/api/query-keys';
 import { TransferDialogs } from '../portability/StartTransfer';
 import { NotebookActions } from './NotebookActions';
-import { ShelfHeading } from './ShelfHeading';
+import { PageHeading } from '../../shared/components/PageHeading';
 import { NewNotebookDialog } from '../models/NewNotebookDialog';
 import { byName } from './catalogue';
 import { useIncomingShares, useOwnShares } from '../sharing/shares';
@@ -106,11 +106,10 @@ export function NotebooksPage() {
 
   return (
     <section className="page shelf-page">
-      <ShelfHeading
-        page="notebooks"
+      <PageHeading
         title={t('nav.notebooks')}
         count={entries?.length}
-        help={t('notebooks.help')}
+        help={{ page: 'notebooks', text: t('notebooks.help') }}
         action={
           // A notebook, blank or from a model (#359); a new model starts on
           // the page of the models (#418).

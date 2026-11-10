@@ -47,6 +47,7 @@ import {
   UploadIcon,
 } from '../../shared/components/icons';
 import { RowsSkeleton } from '../../shared/components/skeletons';
+import { PageHeading } from '../../shared/components/PageHeading';
 
 type Filter = 'all' | 'request' | 'export' | 'import' | 'agent';
 
@@ -99,29 +100,28 @@ export function TransfersPage() {
 
   return (
     <section className="page transfers-page">
-      <div className="transfers-page-heading">
-        <div>
-          <h1>{t('transfers.heading')}</h1>
-          <p className="transfers-kept">
-            <Trans
-              i18nKey="transfers.keptSentence"
-              values={{ size: size(transfers.data?.keptBytes ?? 0) }}
-              components={{ b: <strong /> }}
-            />
-            {transit > 0 ? (
-              <>
-                {' '}
-                <Trans
-                  i18nKey="transfers.transitSentence"
-                  values={{ size: size(transit) }}
-                  components={{ b: <strong /> }}
-                />
-              </>
-            ) : null}
-          </p>
-        </div>
-        <TransferActions onStart={setStarting} />
-      </div>
+      <PageHeading
+        title={t('transfers.heading')}
+        action={<TransferActions onStart={setStarting} />}
+      >
+        <p className="transfers-kept">
+          <Trans
+            i18nKey="transfers.keptSentence"
+            values={{ size: size(transfers.data?.keptBytes ?? 0) }}
+            components={{ b: <strong /> }}
+          />
+          {transit > 0 ? (
+            <>
+              {' '}
+              <Trans
+                i18nKey="transfers.transitSentence"
+                values={{ size: size(transit) }}
+                components={{ b: <strong /> }}
+              />
+            </>
+          ) : null}
+        </p>
+      </PageHeading>
       <TransferDialogs
         starting={starting}
         exportId={importFrom}

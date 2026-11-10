@@ -597,13 +597,6 @@ a:hover {
 .carousel-head {
   margin-bottom: 16px;
 }
-.home-heading {
-  margin: 0;
-  font-size: 1.5rem;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
 .carousel-rule {
   flex: 1;
   min-width: 1rem;
@@ -4391,17 +4384,6 @@ button.attachment-thumb:focus-visible {
 .transfers-page {
   max-width: 64rem;
 }
-.transfers-page-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-.transfers-page-heading h1 {
-  margin: 0 0 6px;
-}
 .transfers-kept {
   margin: 0;
   color: var(--text-soft);
@@ -5641,14 +5623,6 @@ button.attachment-thumb:focus-visible {
   max-width: calc(560px + 56px);
   margin: 0 auto;
   padding: 40px 28px 56px;
-}
-.profile h1 {
-  margin: 0 0 20px;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 26px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
 }
 /* The profile in one card (#215): the picture above, the fields below. */
 .profile-card {
@@ -7841,13 +7815,19 @@ button.attachment-thumb:focus-visible {
 .shelf-page {
   max-width: none;
 }
+/* The head of every page outside a notebook (#415), born on the shelves. */
+.page-heading {
+  margin-bottom: 20px;
+}
+.page-heading-line {
+  margin-top: 6px;
+}
 .shelf-heading {
   position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 14px;
-  margin-bottom: 20px;
 }
 .shelf-heading h1 {
   margin: 0;

@@ -25,7 +25,7 @@ import { PageSkeleton, ShelfSkeleton } from '../../shared/components/skeletons';
 import { CreateFromModelForm } from '../models/CreateFromModel';
 import { ShelfCard } from '../dashboard/NotebookCard';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
-import { ShelfHeading } from '../dashboard/ShelfHeading';
+import { PageHeading } from '../../shared/components/PageHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { MenuItem } from '../../shared/components/Menu';
 import { ParameterList, SharedModelBar } from '../models/ModelPage';
@@ -92,11 +92,10 @@ export function CommunityPage() {
   return (
     <>
       <section className="page shelf-page community-page">
-        <ShelfHeading
-          page="community"
+        <PageHeading
           title={t('community.title')}
           count={models?.length}
-          help={t('community.help')}
+          help={{ page: 'community', text: t('community.help') }}
         />
         {found.isPending ? (
           <ShelfSkeleton />
