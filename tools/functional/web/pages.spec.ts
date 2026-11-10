@@ -115,6 +115,13 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.shelf-help-box')).toBeVisible();
     await app.keyboard.press('Escape');
     await expect(app.locator('.shelf-help-box')).toHaveCount(0);
+    // A mouse resting on the `?` opens it with no click, and leaving puts it
+    // away (#422).
+    await app.mouse.move(0, 0);
+    await app.locator('button.shelf-help').hover();
+    await expect(app.locator('.shelf-help-box')).toBeVisible();
+    await app.mouse.move(0, 0);
+    await expect(app.locator('.shelf-help-box')).toHaveCount(0);
     const card = app.locator('article.notebook-card', { hasText: notebook.name });
     await expect(card).toBeVisible();
     // The card is drawn with its graph, which is decoration and says so (#198).
