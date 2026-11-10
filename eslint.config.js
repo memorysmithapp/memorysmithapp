@@ -56,6 +56,22 @@ export default tseslint.config(
     },
   },
   {
+    // A capture of the functional report is taken with every CSS animation at
+    // its end: Playwright counts an element at opacity 0 as visible, so a menu
+    // caught while it fades in is drawn half transparent (#430).
+    files: ['tools/functional/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.property.name='screenshot']:not(:has(Property[key.name='animations']))",
+          message: "Take the capture with { animations: 'disabled' } (#430).",
+        },
+      ],
+    },
+  },
+  {
     // Tests may lean on non-null assertions to keep the arrange step readable.
     files: ['**/test/**/*.ts', '**/*.test.ts', '**/*.test.tsx'],
     rules: {

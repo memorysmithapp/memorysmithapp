@@ -204,7 +204,7 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('button.user-menu-trigger')).toBeInViewport({ ratio: 1 });
     expect((await app.locator('.app-shell').boundingBox())?.width ?? 0).toBeLessThanOrEqual(1440);
     await testInfo.attach('shell-notebooks.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
 
@@ -219,7 +219,7 @@ test.describe('the pages of an account', () => {
     const hit = app.locator('.global-search-group a', { hasText: notebook.name }).first();
     await expect(hit).toBeVisible();
     await testInfo.attach('shell-search.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await hit.click();
@@ -241,13 +241,13 @@ test.describe('the pages of an account', () => {
     await app.reload();
     await expect(app.locator('aside#notebook-sidebar')).toHaveClass(/is-collapsed/);
     await testInfo.attach('shell-notebook-folded.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.locator('aside#notebook-sidebar button.sidebar-fold').click();
     await expect(app.locator('aside#notebook-sidebar')).not.toHaveClass(/is-collapsed/);
     await testInfo.attach('shell-notebook.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
 
@@ -259,7 +259,7 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('#mobile-menu nav.top-menu')).toBeVisible();
     await expect(app.locator('#mobile-menu .top-menu-item.active')).toHaveText(words.aboutMenu);
     await testInfo.attach('shell-phone.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
   });
@@ -948,11 +948,13 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.dash-lane')).toHaveCount(2);
     await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
     await app.screenshot({
+      animations: 'disabled',
       path: test.info().outputPath(`dashboard-${appLocale}.png`),
       fullPage: true,
     });
     await app.setViewportSize({ width: 390, height: 844 });
     await app.screenshot({
+      animations: 'disabled',
       path: test.info().outputPath(`dashboard-${appLocale}-phone.png`),
       fullPage: true,
     });
@@ -1063,6 +1065,7 @@ test.describe('the pages of an account', () => {
     ).toBeVisible();
     await expect(app.getByText(appLocale === 'pt_BR' ? '1.280,75' : '1,280.75')).toBeVisible();
     await app.screenshot({
+      animations: 'disabled',
       path: test.info().outputPath(`table-block-${appLocale}.png`),
       fullPage: true,
     });
@@ -1088,6 +1091,7 @@ test.describe('the pages of an account', () => {
     await app.getByRole('tab', { name: words.tableSchema }).click();
     await expect(app.locator('table.schema-table')).toContainText('Quando foi pago');
     await app.screenshot({
+      animations: 'disabled',
       path: test.info().outputPath(`tables-${appLocale}.png`),
       fullPage: true,
     });
@@ -1226,7 +1230,7 @@ test.describe('the pages of an account', () => {
       expect(pane?.width ?? 0).toBeGreaterThanOrEqual(779);
       expect((pane?.x ?? 0) + 1).toBeGreaterThanOrEqual((sidebar?.x ?? 0) + (sidebar?.width ?? 0));
       await testInfo.attach(`sidebar-${width}.png`, {
-        body: await app.screenshot(),
+        body: await app.screenshot({ animations: 'disabled' }),
         contentType: 'image/png',
       });
     }
@@ -1300,7 +1304,9 @@ test.describe('the pages of an account', () => {
     });
     expect(colours.label).toBe(colours.button);
     await testInfo.attach('order-hint.png', {
-      body: await app.locator('.folder-group', { has: group }).screenshot(),
+      body: await app
+        .locator('.folder-group', { has: group })
+        .screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
@@ -1390,7 +1396,7 @@ test.describe('the pages of an account', () => {
       .fill('One proposal per note, until it is decided.');
     await expect(dialog.getByText('43/500')).toBeVisible();
     await testInfo.attach('folder-edit-dialog.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await dialog.getByRole('button', { name: words.folderEditSave, exact: true }).click();
@@ -1414,7 +1420,7 @@ test.describe('the pages of an account', () => {
     await refusing.getByRole('button', { name: words.folderEditSave, exact: true }).click();
     await expect(refusing.getByRole('alert')).toContainText(words.folderEditNameTaken);
     await testInfo.attach('folder-edit-refused.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
@@ -1434,7 +1440,7 @@ test.describe('the pages of an account', () => {
     const sheet = app.getByRole('dialog', { name: words.folderEditHeading });
     await expect(sheet.getByLabel(words.folderEditDescription, { exact: true })).toBeVisible();
     await testInfo.attach('folder-edit-sheet-phone.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
@@ -1497,7 +1503,7 @@ test.describe('the pages of an account', () => {
         'The definition, after the embed.',
       );
       await testInfo.attach(name, {
-        body: await app.screenshot({ fullPage: true }),
+        body: await app.screenshot({ animations: 'disabled', fullPage: true }),
         contentType: 'image/png',
       });
       return note;
@@ -1624,7 +1630,10 @@ test.describe('the pages of an account', () => {
       .poll(async () => (await stored()).content, { timeout: 15_000 })
       // The end of the note is the empty line after its last line break.
       .toContain('First take.\n A sentence this case typed. And a second pause.');
-    await testInfo.attach('editor.png', { body: await app.screenshot(), contentType: 'image/png' });
+    await testInfo.attach('editor.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
     await toRead.click();
     await expect(app.getByText('And a second pause.')).toBeVisible();
     // The table keeps the spacing it was typed with: only the edited line changed.
@@ -1658,7 +1667,7 @@ test.describe('the pages of an account', () => {
     const notice = app.getByRole('dialog', { name: words.conflict });
     await expect(notice).toBeVisible();
     await testInfo.attach('editor-conflict.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await notice.getByRole('button', { name: words.saveAnyway }).click();
@@ -1888,6 +1897,7 @@ test.describe('the pages of an account', () => {
       for (let index = 0; index < (await pages.count()); index++) {
         await testInfo.attach(`${name}-${index + 1}.png`, {
           body: await pages.nth(index).screenshot({
+            animations: 'disabled',
             style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
           }),
           contentType: 'image/png',
@@ -2017,7 +2027,7 @@ test.describe('the pages of an account', () => {
       }),
     ).toBeVisible();
     await testInfo.attach('phone.png', {
-      body: await paper.screenshot(),
+      body: await paper.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await paper.setViewportSize({ width: 1280, height: 720 });
@@ -2109,7 +2119,7 @@ test.describe('the pages of an account', () => {
     // Nothing is offered on an image.
     await expect(drawn.getByRole('button')).toHaveCount(0);
     await testInfo.attach('dashboard.png', {
-      body: await drawn.screenshot(),
+      body: await drawn.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
   });
@@ -2197,7 +2207,9 @@ test.describe('the pages of an account', () => {
     await combo.scrollIntoViewIfNeeded();
     // A chart answers a click once it has finished rising.
     await app.waitForTimeout(1500);
-    await app.locator('.dashboard').screenshot({ path: testInfo.outputPath('second-batch.png') });
+    await app
+      .locator('.dashboard')
+      .screenshot({ animations: 'disabled', path: testInfo.outputPath('second-batch.png') });
 
     // The first bar of the combo is the phase `fundo`.
     const box = await combo.boundingBox();
@@ -2206,9 +2218,10 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.dashboard-cross')).toBeVisible();
     await expect(total).toContainText('50');
     await app.waitForTimeout(1500);
-    await app
-      .locator('.dashboard')
-      .screenshot({ path: testInfo.outputPath('second-batch-filtered.png') });
+    await app.locator('.dashboard').screenshot({
+      animations: 'disabled',
+      path: testInfo.outputPath('second-batch-filtered.png'),
+    });
     await app.locator('.dashboard-cross button').click();
     await expect(total).toContainText('75');
     await expect(app.locator('.dashboard-cross')).toHaveCount(0);
@@ -2296,7 +2309,9 @@ test.describe('the pages of an account', () => {
     await expect(app.locator('.dashboard-card .dash-chart svg')).toHaveCount(5);
     await expect(app.locator('.dash-problem')).toHaveCount(0);
     await app.waitForTimeout(1500);
-    await app.locator('.dashboard').screenshot({ path: testInfo.outputPath('third-batch.png') });
+    await app
+      .locator('.dashboard')
+      .screenshot({ animations: 'disabled', path: testInfo.outputPath('third-batch.png') });
   });
 
   test('[page:/notebooks/:notebookId/preview] draws a draft, or a part of it, at the reading width in the light theme, for the renderer to capture (#260)', async ({
@@ -2338,7 +2353,7 @@ test.describe('the pages of an account', () => {
     const box = await drawn.boundingBox();
     expect(box).toMatchObject({ x: 0, y: 0, width: 760 });
     await testInfo.attach('draft.png', {
-      body: await drawn.screenshot(),
+      body: await drawn.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
 
@@ -2348,7 +2363,7 @@ test.describe('the pages of an account', () => {
     await expect(drawn.locator('h1')).toHaveCount(0);
     await expect(drawn).not.toContainText('Not part of the limits');
     await testInfo.attach('part.png', {
-      body: await drawn.screenshot(),
+      body: await drawn.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
 
@@ -2491,7 +2506,7 @@ A note to rename.
     await expect(dialog.getByText(words.moveLinksKeep)).toBeVisible();
     await dialog.getByLabel(words.moveFolder, { exact: true }).selectOption({ label: 'Concepts' });
     await testInfo.attach('move-dialog.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await dialog.getByRole('button', { name: words.moveNote, exact: true }).click();
@@ -2523,7 +2538,7 @@ A note to rename.
     await refusing.getByRole('button', { name: words.moveNote, exact: true }).click();
     await expect(refusing.getByRole('alert')).toContainText(words.moveNameTaken);
     await testInfo.attach('move-refused.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     // Closed by its own button before the window narrows: an Escape may land on
@@ -2539,7 +2554,7 @@ A note to rename.
     const sheet = app.getByRole('dialog', { name: words.moveHeading });
     await expect(sheet.getByText(words.moveLinksKeep)).toBeVisible();
     await testInfo.attach('move-sheet-phone.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.keyboard.press('Escape');
@@ -2672,7 +2687,7 @@ A note to rename.
     }
     await expect(menu.locator('.mobile-menu-group ul.tree-root')).toBeVisible();
     await testInfo.attach('phone-menu.png', {
-      body: await app.screenshot(),
+      body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
 

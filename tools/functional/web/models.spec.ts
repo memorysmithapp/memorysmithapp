@@ -130,7 +130,10 @@ test.describe('notebook models', () => {
       await expect(app.getByRole('menuitem')).toHaveCount(3);
       await app.keyboard.press('Escape');
     }
-    await testInfo.attach('models.png', { body: await app.screenshot(), contentType: 'image/png' });
+    await testInfo.attach('models.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
 
     // The notebooks offer a notebook only; a model starts here (#418).
     await app.goto(new URL('/notebooks', app.url()).href);
