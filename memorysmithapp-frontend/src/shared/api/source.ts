@@ -509,7 +509,7 @@ export {
 
 // What Discovery says of a notebook as a whole: its orphans and pending links
 // for its overview (#417), and what each note declares for a folder (#416).
-export { getFacetsById, getNoteFacets, getNotebookHealth } from './backend';
+export { getFacetsById, getNoteFacets, getNotebookGraph, getNotebookHealth } from './backend';
 
 // The community catalog (#360): what anybody reads, and what a person signed
 // in does with it.

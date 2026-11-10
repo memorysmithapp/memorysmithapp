@@ -191,6 +191,12 @@ test.describe('notebook models', () => {
       'href',
       '/models',
     );
+    // Its overview opens on its model, a card the whole row above the others,
+    // with the icon of the sidebar (#429).
+    await app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row').first().click();
+    const modelCard = app.locator('.overview-stats .overview-stat.is-wide');
+    await expect(modelCard.locator('a.overview-stat-link')).toHaveAttribute('href', /\/model$/);
+    await expect(modelCard.locator('.overview-stat-icon svg')).toBeVisible();
     // Its Context lists what it declares as a model, first of its parts (#422);
     // the Context is a page of its own, under the overview (#417).
     await app.locator('aside#notebook-sidebar a.nav-row[href$="/context"]').click();

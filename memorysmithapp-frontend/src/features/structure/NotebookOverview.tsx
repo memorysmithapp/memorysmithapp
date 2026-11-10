@@ -7,7 +7,9 @@ import {
   attachmentsAddress,
   dashboardsAddress,
   foldersAddress,
+  graphAddress,
   guidanceAddress,
+  modelAddress,
   templatesAddress,
   linkTargetAddress,
   noteAddress,
@@ -15,7 +17,9 @@ import {
 } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
+  getModel,
   getNotebookFiles,
+  getNotebookGraph,
   getNotebookHealth,
   listDashboards,
   listTables,
@@ -23,7 +27,20 @@ import {
 import { useLiveInterval } from '../../shared/api/live';
 import { useLiveSession } from '../../shared/auth/session';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { HistoryIcon } from '../../shared/components/icons';
+import {
+  CopyIcon,
+  DashboardIcon,
+  FileIcon,
+  FolderIcon,
+  GraphIcon,
+  GuidanceIcon,
+  HistoryIcon,
+  LinkIcon,
+  PaperclipIcon,
+  TableIcon,
+  TemplateIcon,
+  UnlinkedIcon,
+} from '../../shared/components/icons';
 import { SkeletonBar } from '../../shared/components/Skeleton';
 import { lastNoteOf } from '../../shared/store/last-note';
 import type { FolderNode, NoteSummary } from '../../shared/types/api';
@@ -94,6 +111,17 @@ export function NotebookOverview() {
     queryFn: () => listDashboards(notebookId),
     refetchInterval: live,
   });
+  // Null for a notebook that is no model (#373).
+  const model = useQuery({
+    queryKey: queryKeys.model(notebookId),
+    queryFn: () => getModel(notebookId),
+  });
+  const graph = useQuery({
+    queryKey: queryKeys.notebookGraph(notebookId),
+    queryFn: () => getNotebookGraph(notebookId),
+    refetchInterval: live,
+  });
+  const links = graph.data?.edges.length ?? 0;
   const count = (query: { isError: boolean; data?: readonly unknown[] }) =>
     query.isError ? UNREAD : query.data?.length;
 
@@ -131,49 +159,80 @@ export function NotebookOverview() {
           </Link>
         ) : null}
 
-        {/* Nine cards of one size, five to a row, in the order of the sidebar:
-            its Context, what it holds, then what asks for attention (#423, #427). */}
+        {/* Ten cards of one size, five to a row, in the order of the sidebar:
+            its Context, what it holds, its graph, then what asks for attention
+            (#423, #427, #429). */}
         <ul className="overview-stats" aria-label={t('overview.stats')}>
+          {/* A notebook that is a model: its model first, as in the sidebar,
+              on a row of its own above the ten (#373, #429). */}
+          {model.data ? (
+            <Stat
+              wide
+              icon={<CopyIcon />}
+              value={model.data.versions.length}
+              label={t('overview.modelVersions', { count: model.data.versions.length })}
+              to={modelAddress(notebookId)}
+            />
+          ) : null}
           <Stat
-            value={written ? '✓' : UNREAD}
+            // No count: the words say whether it is written.
+            icon={<GuidanceIcon />}
+            value={null}
             label={written ? t('overview.guidance') : t('overview.noGuidance')}
             to={guidanceAddress(notebookId)}
             attention={!written}
           />
           <Stat
+            icon={<TemplateIcon />}
             value={templateCount}
             label={t('overview.templates', { count: templateCount })}
             to={templatesAddress(notebookId)}
           />
           <Stat
+            icon={<FolderIcon />}
             value={folderCount}
             label={t('overview.folders', { count: folderCount })}
             to={foldersAddress(notebookId)}
           />
-          <Stat value={notes.length} label={t('overview.notes', { count: notes.length })} />
           <Stat
+            icon={<FileIcon />}
+            value={notes.length}
+            label={t('overview.notes', { count: notes.length })}
+          />
+          <Stat
+            icon={<PaperclipIcon />}
             value={count(files)}
             label={t('overview.attachments', { count: files.data?.length ?? 0 })}
             to={attachmentsAddress(notebookId)}
           />
           <Stat
+            icon={<TableIcon />}
             value={count(tables)}
             label={t('overview.tables', { count: tables.data?.length ?? 0 })}
             to={tablesAddress(notebookId)}
           />
           <Stat
+            icon={<DashboardIcon />}
             value={count(dashboards)}
             label={t('overview.dashboards', { count: dashboards.data?.length ?? 0 })}
             to={dashboardsAddress(notebookId)}
           />
+          <Stat
+            icon={<GraphIcon />}
+            value={graph.isError ? UNREAD : graph.data ? links : undefined}
+            label={t('overview.links', { count: links })}
+            to={graphAddress(notebookId)}
+          />
 
           <Stat
+            icon={<LinkIcon />}
             value={health.isError ? UNREAD : health.data ? pending.length : undefined}
             label={t('overview.pending', { count: pending.length })}
             to={pending.length > 0 ? '#overview-pending' : undefined}
             attention={pending.length > 0}
           />
           <Stat
+            icon={<UnlinkedIcon />}
             value={health.isError ? UNREAD : health.data ? orphans.length : undefined}
             label={t('overview.orphans', { count: orphans.length })}
             to={orphans.length > 0 ? '#overview-orphans' : undefined}
@@ -256,26 +315,33 @@ export function NotebookOverview() {
 
 /** One number of the strip, a way into where it is seen when there is one. */
 function Stat({
+  icon,
   value,
   label,
   to,
   attention = false,
+  wide = false,
 }: {
-  /** Undefined while it is read, a dash when it could not be. */
-  value: number | string | undefined;
+  /** The icon of what it counts, the one the sidebar draws beside it (#429). */
+  icon: ReactNode;
+  /** Undefined while it is read, a dash when it could not be, null where a count says nothing. */
+  value: number | string | null | undefined;
   label: string;
   to?: string;
   attention?: boolean;
+  /** The whole row, for the one card a model adds above the others. */
+  wide?: boolean;
 }) {
   const body: ReactNode = (
     <>
       <span className="overview-stat-value">
+        <span className="overview-stat-icon">{icon}</span>
         {value === undefined ? <SkeletonBar width="2rem" height="1.6rem" /> : value}
       </span>
       <span className="overview-stat-label">{label}</span>
     </>
   );
-  const className = `overview-stat${attention ? ' is-attention' : ''}`;
+  const className = `overview-stat${attention ? ' is-attention' : ''}${wide ? ' is-wide' : ''}`;
   if (!to) return <li className={className}>{body}</li>;
   return (
     <li className={className}>

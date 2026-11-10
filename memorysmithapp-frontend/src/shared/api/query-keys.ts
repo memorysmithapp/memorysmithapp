@@ -43,6 +43,8 @@ export const queryKeys = {
   notebookTables: (notebookId: string) => ['notebook-tables', notebookId] as const,
   /** The orphans and pending links of a notebook (#417). */
   notebookHealth: (notebookId: string) => ['notebook-health', notebookId] as const,
+  /** The graph of a notebook, which its overview counts the links of (#429). */
+  notebookGraph: (notebookId: string) => ['notebook-graph', notebookId] as const,
   /** The facets of a notebook, and what each of its notes declares (#416). */
   notebookFacets: (notebookId: string) => ['notebook-facets', notebookId] as const,
   noteFacets: (notebookId: string) => ['note-facets', notebookId] as const,
