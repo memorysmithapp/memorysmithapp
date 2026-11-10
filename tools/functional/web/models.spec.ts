@@ -186,6 +186,10 @@ test.describe('notebook models', () => {
       'href',
       '/models',
     );
+    // Its Context lists what it declares as a model, first of its parts (#422).
+    await app.locator('.notebook-breadcrumb a.crumb.is-notebook').click();
+    await expect(app.locator('a.context-card')).toHaveCount(4);
+    await expect(app.locator('a.context-card').first()).toHaveAttribute('href', /\/model$/);
     await app.goto(modelPage);
 
     // A parameter is added in a modal, and written when it is confirmed.
