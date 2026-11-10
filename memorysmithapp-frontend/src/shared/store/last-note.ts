@@ -84,6 +84,15 @@ export function lastNoteOf(personId: string, notebookId: string): string | null 
   return read(personId)[notebookId] ?? null;
 }
 
+/**
+ * Every notebook this person read in here, each with its note, in the order
+ * they were first remembered. Home offers them after the ones it dated (#424).
+ */
+export function lastNotesOf(personId: string): Array<{ notebookId: string; noteId: string }> {
+  if (!PERSON.test(personId)) return [];
+  return Object.entries(read(personId)).map(([notebookId, noteId]) => ({ notebookId, noteId }));
+}
+
 export function forgetNote(personId: string, notebookId: string): void {
   if (!PERSON.test(personId)) return;
   const current = read(personId);
