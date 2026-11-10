@@ -2752,7 +2752,7 @@ async function startExport(
   await app.goto(new URL('/transfers', app.url()).href);
   // Exact: the button says one word, which other names on the page start with (#433).
   await app
-    .locator('.transfers-page')
+    .locator('.transfers-start')
     .getByRole('button', { name: words.newExport, exact: true })
     .click();
   // The notebook is found in the picker by typing its name, and picked from
@@ -2826,8 +2826,9 @@ test.describe('a notebook out and back in, through the browser', () => {
      * used to be a page of its own, so the two halves of one job were asked
      * for in two shapes (#160).
      */
+    // The button of the page, not the Import of a kept export's row (#433).
     await app
-      .locator('.transfers-page')
+      .locator('.transfers-start')
       .getByRole('button', { name: words.importNotebook, exact: true })
       .click();
     const dialog = app.locator('.transfer-dialog');

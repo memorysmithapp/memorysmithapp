@@ -389,7 +389,7 @@ test.describe('notebook models', () => {
       await app.setViewportSize({ width: 1280, height: 800 });
       await app.goto(`${state.surfaces.site}/transfers`);
       await app
-        .locator('.transfers-page')
+        .locator('.transfers-start')
         .getByRole('button', { name: common.newExport, exact: true })
         .click();
       const dialog = app.locator('.transfer-dialog');
