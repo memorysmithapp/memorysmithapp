@@ -35,6 +35,7 @@
   "GET /discovery/notebooks/:v/health",
   "GET /discovery/notebooks/:v/links/:target",
   "GET /discovery/notebooks/:v/names",
+  "GET /discovery/notebooks/:v/note-facets",
   "GET /discovery/notebooks/:v/notes/:n/backlinks",
   "GET /discovery/notebooks/:v/notes/:n/graph",
   "GET /discovery/notebooks/:v/notes/:n/links",
