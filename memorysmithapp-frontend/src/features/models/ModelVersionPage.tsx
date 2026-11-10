@@ -13,6 +13,7 @@ import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { CreateFromModelForm } from './CreateFromModel';
 import { ParameterList, SharedModelBar } from './ModelPage';
+import { PageSkeleton } from '../../shared/components/skeletons';
 
 /**
  * A version of a model, read whole (#353): what it froze — its changelog, its
@@ -82,7 +83,9 @@ function VersionView({
     return (
       <>
         <Bar crumbs={crumbs} />
-        <p className="hint">{t('common.loading')}</p>
+        <article className="content-pane model-version-page">
+          <PageSkeleton />
+        </article>
       </>
     );
   }

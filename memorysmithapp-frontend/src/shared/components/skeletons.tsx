@@ -10,25 +10,102 @@ import { SkeletonBar, SkeletonRegion, SkeletonText } from './Skeleton';
  * avoid, and so would six hand-rolled ones.
  */
 
-/** A notebook card in the catalogue. */
-export function NotebookCardSkeleton() {
+/**
+ * A card of a shelf (#418): the drawing, the name, what it is and its footer,
+ * in the frame of the card itself, so a grid of them is the grid that comes.
+ */
+export function ShelfCardSkeleton() {
   return (
     <div className="notebook-card notebook-card-skeleton" aria-hidden="true">
-      <SkeletonBar width="70%" height="1.4rem" />
-      <SkeletonText lines={2} />
-      <SkeletonBar width="55%" height="0.8rem" />
+      <SkeletonBar width="120px" height="40px" />
+      <div className="notebook-card-text">
+        <SkeletonBar width="70%" height="1.2rem" />
+        <SkeletonText lines={2} />
+      </div>
+      <footer>
+        <SkeletonBar width="45%" height="0.8rem" />
+        <SkeletonBar width="4rem" height="0.8rem" />
+      </footer>
     </div>
   );
 }
 
-/** The catalogue strip, which used to be simply empty while it loaded. */
-export function NotebookCatalogueSkeleton({ cards = 3 }: { cards?: number }) {
+/** A shelf while it reads (#421): the notebooks, the models, the community. */
+export function ShelfSkeleton({ cards = 6 }: { cards?: number }) {
   return (
     <SkeletonRegion>
-      <div className="card-row-skeleton">
+      <div className="shelf-grid">
         {Array.from({ length: cards }, (_, index) => (
-          <NotebookCardSkeleton key={index} />
+          <ShelfCardSkeleton key={index} />
         ))}
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+/** Rows of a list: transfers, the people of a share, what an export offers (#421). */
+export function RowsSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <SkeletonRegion>
+      <div className="rows-skeleton">
+        {Array.from({ length: rows }, (_, index) => (
+          <SkeletonBar key={index} width="100%" height="2.75rem" />
+        ))}
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+/** The fields of a form, a label over each (#421). */
+export function FieldsSkeleton({ fields = 1 }: { fields?: number }) {
+  return (
+    <SkeletonRegion>
+      <div className="fields-skeleton">
+        {Array.from({ length: fields }, (_, index) => (
+          <div className="fields-skeleton-field" key={index}>
+            <SkeletonBar width="8rem" height="0.8rem" />
+            <SkeletonBar width="100%" height="2.5rem" />
+          </div>
+        ))}
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+/**
+ * A page that reads one thing (#421): a model of the community, a version:
+ * its title, what it says of itself, and the list under a heading.
+ */
+export function PageSkeleton() {
+  return (
+    <SkeletonRegion>
+      <div className="page-skeleton">
+        <SkeletonBar width="55%" height="2rem" />
+        <SkeletonText lines={3} />
+        <SkeletonBar width="30%" height="1.3rem" />
+        <div className="rows-skeleton">
+          {Array.from({ length: 3 }, (_, index) => (
+            <SkeletonBar key={index} width="100%" height="2.75rem" />
+          ))}
+        </div>
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+/** A model (#421): its tabs, and the part of it the first tab holds. */
+export function ModelSkeleton() {
+  return (
+    <SkeletonRegion>
+      <div className="page-skeleton">
+        <div className="tabs-skeleton">
+          {['5rem', '6.5rem', '5.5rem'].map((width, index) => (
+            <SkeletonBar key={index} width={width} height="2rem" />
+          ))}
+        </div>
+        <SkeletonText lines={4} />
+        <SkeletonBar width="40%" height="1.2rem" />
+        <SkeletonText lines={2} />
       </div>
     </SkeletonRegion>
   );

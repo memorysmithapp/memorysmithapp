@@ -19,6 +19,7 @@ import { useOwnShares } from '../sharing/shares';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { ShelfHeading } from '../dashboard/ShelfHeading';
 import { ShelfCard, formatDay } from '../dashboard/NotebookCard';
+import { ShelfSkeleton } from '../../shared/components/skeletons';
 
 /**
  * The notebook models a person reads, in one place (#418, RN-PRT-058): theirs,
@@ -78,6 +79,7 @@ export function ModelsPage() {
       />
 
       {state === 'error' ? <p className="status">{t(messageKeyOf(query.error))}</p> : null}
+      {state === 'pending' ? <ShelfSkeleton /> : null}
       {models?.length === 0 ? <p className="hint">{t('models.empty')}</p> : null}
       {models && models.length > 0 ? (
         <div className="shelf-grid">

@@ -27,6 +27,7 @@ import {
   type Scope,
 } from './import-selection';
 import { queryKeys } from '../../shared/api/query-keys';
+import { RowsSkeleton } from '../../shared/components/skeletons';
 
 /**
  * What an export carries, asked in the dialog both sides share (#160).
@@ -264,7 +265,7 @@ export function ExportChoice({
             }}
           />
         ) : (
-          <p className="status">{t('common.loading')}</p>
+          <RowsSkeleton />
         ))}
     </TransferDialog>
   );

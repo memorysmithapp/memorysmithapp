@@ -9,6 +9,7 @@ import type { RefObject } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { Sheet } from '../../shared/components/Sheet';
 import { useSheetLayout } from '../../shared/components/Menu';
+import { RowsSkeleton } from '../../shared/components/skeletons';
 
 /** How often, and for how long, the trail is read while it has not caught up with the note. */
 const CATCH_UP_MS = 2_000;
@@ -65,7 +66,7 @@ export function NoteHistory({
     },
   });
 
-  if (isPending) return <p className="status">{t('history.loading')}</p>;
+  if (isPending) return <RowsSkeleton rows={4} />;
   if (isError || !data) return <p className="status">{t('history.failed')}</p>;
 
   // Newest first: what somebody opening a history wants is the last thing that

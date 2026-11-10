@@ -39,6 +39,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from '../../shared/components/icons';
+import { ModelSkeleton } from '../../shared/components/skeletons';
 
 /**
  * The model of a notebook (#353): what a notebook declared as a model says of
@@ -70,7 +71,7 @@ export function ModelPage() {
       <article className="content-pane model-page">
         <p className="page-intro">{t('model.intro')}</p>
         {model.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <ModelSkeleton />
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
         ) : model.data ? (
@@ -144,7 +145,7 @@ export function SharedModelPage() {
       <SharedModelBar crumbs={[{ label: t('model.title') }]} />
       <article className="content-pane model-page">
         {model.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <ModelSkeleton />
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
         ) : !model.data ? (

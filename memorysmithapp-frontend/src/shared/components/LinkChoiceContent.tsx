@@ -79,7 +79,7 @@ export function LinkChoiceContent({ target, by, options, state, onPick }: LinkCh
   if (state === 'loading') {
     return (
       <div className="link-choice-body" aria-busy="true">
-        <p className="link-choice-explanation">{t('common.loading')}</p>
+        <span className="visually-hidden">{t('common.loading')}</span>
         <Placeholders />
       </div>
     );

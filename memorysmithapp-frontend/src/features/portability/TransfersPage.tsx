@@ -46,6 +46,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from '../../shared/components/icons';
+import { RowsSkeleton } from '../../shared/components/skeletons';
 
 type Filter = 'all' | 'request' | 'export' | 'import' | 'agent';
 
@@ -149,7 +150,7 @@ export function TransfersPage() {
       {state === 'error' && !transfers.data && (
         <p className="status">{t(messageKeyOf(transfers.error))}</p>
       )}
-      {state === 'pending' && <p className="status">{t('common.loading')}</p>}
+      {state === 'pending' && <RowsSkeleton rows={4} />}
       {state === 'ready' && rows.length === 0 && <p className="status">{t('transfers.empty')}</p>}
 
       {rows.length > 0 && (

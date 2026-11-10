@@ -29,6 +29,8 @@ issues each entry cites.
 
 - **The community is read signed in.** Its pages, every published model as cards, a model and a version, are now pages of the application under its menu, and a person who is not signed in is asked to sign in first; they are no longer indexed by search engines. Publishing a model says it is shown to every person signed in. (#418)
 
+- **Pages draw what is coming while they read, instead of saying "Loading…".** Models and the community show their grid of cards, a model its tabs, a version of a model and a model of the community their page, and Transfers, the history of a note, the people of the Share dialog, the models of New notebook and what an export offers their rows or fields, the size and in the place of what replaces them, so nothing jumps when it arrives. A screen reader still hears that the page is loading. (#421)
+
 ## [0.17.0] - 2026-11-08
 
 ### Added

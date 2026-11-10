@@ -18,6 +18,7 @@ import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
 import { CreateFromModelForm } from './CreateFromModel';
 import { aboutOf, AboutFields, declarationOf, type AboutDraft } from './ModelParts';
+import { FieldsSkeleton } from '../../shared/components/skeletons';
 
 /**
  * A new notebook from Home (#359): blank, with a name and a line saying what it
@@ -210,7 +211,7 @@ function FromModel({ onClose }: { onClose: () => void }) {
     enabled: chosen !== null && latest !== undefined,
   });
 
-  if (models.isPending) return <p className="hint">{t('common.loading')}</p>;
+  if (models.isPending) return <FieldsSkeleton />;
   if (models.isError) return <p className="status">{t(messageKeyOf(models.error))}</p>;
   // Beside the models the person may use, the ones others published (#360).
   const community = (
@@ -262,7 +263,7 @@ function FromModel({ onClose }: { onClose: () => void }) {
               />
             </>
           ) : latest ? (
-            <p className="hint">{t('common.loading')}</p>
+            <FieldsSkeleton fields={2} />
           ) : (
             <p className="hint">{t('newNotebook.noVersion')}</p>
           )}

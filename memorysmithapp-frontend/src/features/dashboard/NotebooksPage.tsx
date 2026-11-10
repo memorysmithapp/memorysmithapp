@@ -7,7 +7,7 @@ import { listNotebooks } from '../../shared/api/source';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { PlusIcon } from '../../shared/components/icons';
-import { NotebookCatalogueSkeleton } from '../../shared/components/skeletons';
+import { ShelfSkeleton } from '../../shared/components/skeletons';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryState } from '../../shared/api/query-state';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -127,7 +127,7 @@ export function NotebooksPage() {
         })}
       </div>
       {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
-      {state === 'pending' && <NotebookCatalogueSkeleton />}
+      {state === 'pending' && <ShelfSkeleton />}
       {entries?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
       <NewNotebookDialog open={creating} onClose={() => setCreating(false)} />

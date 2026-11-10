@@ -3905,16 +3905,33 @@ button.attachment-thumb:focus-visible {
   display: block;
 }
 
-.card-row-skeleton {
-  display: flex;
-  gap: 1rem;
-}
-
 .notebook-card-skeleton {
+  cursor: default;
+}
+.notebook-card-skeleton .notebook-card-text {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  cursor: default;
+  gap: 0.6rem;
+}
+
+.rows-skeleton,
+.fields-skeleton,
+.page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.page-skeleton {
+  gap: 1rem;
+}
+.fields-skeleton-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.tabs-skeleton {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .tree-skeleton {

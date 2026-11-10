@@ -20,6 +20,7 @@ import {
   searchCatalog,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
+import { PageSkeleton, ShelfSkeleton } from '../../shared/components/skeletons';
 import { CreateFromModelForm } from '../models/CreateFromModel';
 import { ShelfCard } from '../dashboard/NotebookCard';
 import { ShelfCorner } from '../dashboard/ShelfCorner';
@@ -80,7 +81,7 @@ export function CommunityPage() {
           help={t('community.help')}
         />
         {found.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <ShelfSkeleton />
         ) : found.isError ? (
           <p className="status">{t(messageKeyOf(found.error))}</p>
         ) : found.data.length === 0 ? (
@@ -161,7 +162,7 @@ export function CommunityModelPage() {
     <>
       <article className="content-pane community-page">
         {model.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <PageSkeleton />
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
         ) : (
@@ -288,7 +289,7 @@ export function CommunityVersionPage() {
     <>
       <article className="content-pane model-version-page community-page">
         {version.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <PageSkeleton />
         ) : version.isError ? (
           <p className="status">{t(messageKeyOf(version.error))}</p>
         ) : (

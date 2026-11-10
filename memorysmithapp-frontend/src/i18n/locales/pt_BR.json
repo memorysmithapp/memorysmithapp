@@ -968,7 +968,6 @@
   "history": {
     "heading": "Histórico desta nota",
     "short": "Histórico",
-    "loading": "Lendo o histórico…",
     "failed": "Não foi possível ler o histórico.",
     "aPerson": "Pela interface",
     "noMessage": "Nenhuma linha foi deixada sobre esta mudança.",
