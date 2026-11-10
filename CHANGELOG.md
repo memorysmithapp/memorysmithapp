@@ -45,6 +45,8 @@ issues each entry cites.
 
 - **A notebook model is its notebook, with a history instead of versions.** A model no longer freezes copies of itself: whoever reads it — you, a person it is shared with as a model, or the community — reads its notebook as it stands now, and a notebook created from it is a copy of the notebook at that moment, its parameters filled in. What changed in it is its history, as a note has: when, through which connector or through the interface, what changed and the line its author left, an edit session as one change. A published model receives every change you make, within a minute, and its history there says when and what, never who. Nothing of a model counts in your storage beyond its notebook; to keep a state of it, export the notebook. The versions kept before are deleted. Through the connector, `get_model` and `read_community_model` answer what the model holds now and its history, `create_notebook_from_model` and `create_notebook_from_community_model` take no version, and `create_model_version`, `read_model_version`, `delete_model_version` and `read_community_version` are gone. An export is now of format `1.5`, which carries no versions; an older one is read as before, its versions left out. (#431)
 
+- **Transfers says Export and Import.** Its two buttons say only the action, *Export* and *Import*, and on a phone they share one row, each half of it. (#433)
+
 ### Fixed
 
 - **Every card and every row shows it is under the mouse, all of it.** A card of a notebook's overview darkened only the part of it its link filled; it, the Templates of a notebook and every card now darken their edge, all of it, and the rows of the attachments, of a model's parameters and of its versions take the shade a row of the folders takes. (#429)

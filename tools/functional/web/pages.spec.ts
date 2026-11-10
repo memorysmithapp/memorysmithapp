@@ -2751,7 +2751,11 @@ async function startExport(
 ): Promise<void> {
   // Transfers, in the menu, is where an export starts (#418).
   await app.goto(new URL('/transfers', app.url()).href);
-  await app.getByRole('button', { name: words.newExport }).click();
+  // Exact: the button says one word, which other names on the page start with (#433).
+  await app
+    .locator('.transfers-page')
+    .getByRole('button', { name: words.newExport, exact: true })
+    .click();
   // Scoped to the dialog and exact: `Notebook` is the start of several
   // accessible names on the page behind it.
   await app
@@ -2967,6 +2971,37 @@ test.describe('the transfers of a person', () => {
       return main.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom;
     });
     expect(gap, 'room between the last line and the foot of the window').toBeGreaterThanOrEqual(24);
+  });
+
+  test('says Export and Import side by side, on a computer and on a phone (#433)', async ({
+    app,
+    state,
+    words,
+  }, testInfo) => {
+    await app.goto(`${state.surfaces.site}/transfers`);
+    const start = app.locator('.transfers-start');
+    const sideBySide = async () => {
+      const [exporting, importing] = await Promise.all([
+        start.getByRole('button', { name: words.newExport, exact: true }).boundingBox(),
+        start.getByRole('button', { name: words.importNotebook, exact: true }).boundingBox(),
+      ]);
+      expect(exporting && importing).toBeTruthy();
+      // One row: the two buttons start at the same height, one after the other.
+      expect(Math.abs((exporting?.y ?? 0) - (importing?.y ?? -100))).toBeLessThan(2);
+      expect((exporting?.x ?? 0) + (exporting?.width ?? 0)).toBeLessThanOrEqual(importing?.x ?? 0);
+    };
+    await expect(start).toBeVisible();
+    await sideBySide();
+    await testInfo.attach('transfers-buttons.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await app.setViewportSize({ width: 390, height: 844 });
+    await sideBySide();
+    await testInfo.attach('transfers-buttons-phone.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
   });
 
   test('opens the bell inside a phone screen (#195, #418)', async ({ app, state }) => {

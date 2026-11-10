@@ -4715,9 +4715,10 @@ button.attachment-thumb:focus-visible {
   /* One above the other, each the width of the screen with its word (#325):
      side by side, a longer word in pt_BR ran past the edge. The panel keeps
      its own two columns, which wrap their words. */
+  /* Two short words, side by side, each half of the row (#433). */
   .transfers-start {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
   .transfers-rows {
     padding: 0 14px;

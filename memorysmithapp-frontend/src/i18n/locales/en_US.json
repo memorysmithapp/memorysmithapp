@@ -684,8 +684,8 @@
       "cancelled": "cancelled",
       "running": "running"
     },
-    "newExport": "New export",
-    "newImport": "Import a notebook",
+    "newExport": "Export",
+    "newImport": "Import",
     "noNotebooks": "There is no notebook to export yet.",
     "line": {
       "export": "Export · {{notebook}}",

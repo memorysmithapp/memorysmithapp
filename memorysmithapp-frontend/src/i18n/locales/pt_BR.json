@@ -687,8 +687,8 @@
       "cancelled": "cancelada",
       "running": "em andamento"
     },
-    "newExport": "Nova exportação",
-    "newImport": "Importar um caderno",
+    "newExport": "Exportar",
+    "newImport": "Importar",
     "noNotebooks": "Ainda não há caderno para exportar.",
     "line": {
       "export": "Exportação · {{notebook}}",
