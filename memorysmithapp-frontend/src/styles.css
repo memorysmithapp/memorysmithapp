@@ -6427,8 +6427,9 @@ button.attachment-thumb:focus-visible {
 .notifications-trigger:hover {
   color: var(--text);
 }
-.notifications-trigger[aria-expanded='true'] {
-  /* The ring the avatar wears while its menu is open (#422). */
+.icon-button.notifications-trigger[aria-expanded='true'] {
+  /* White, with the ring the avatar wears while its menu is open (#422). */
+  background: var(--surface);
   box-shadow:
     0 0 0 2px var(--surface),
     0 0 0 4px var(--accent);
@@ -7797,6 +7798,10 @@ button.attachment-thumb:focus-visible {
 .mobile-menu-trigger {
   margin-left: -6px;
 }
+/* Open, the ☰ is an ×, white as the header it sits in, never filled (#422). */
+.icon-button.mobile-menu-trigger:is([aria-expanded='true'], :hover) {
+  background: var(--surface);
+}
 .mobile-menu-scrim {
   position: fixed;
   z-index: 45;
@@ -7893,8 +7898,17 @@ button.attachment-thumb:focus-visible {
   border-bottom: 0;
   border-radius: 8px;
 }
+/* The entry open is told by weight alone, as everywhere else, never by a
+   fill (#228, #422): inside a notebook it and the page open in the notebook's
+   group are both bold, which is what the person is in. */
 .top-menu.is-list .top-menu-item.active {
-  background: var(--hover);
+  background: none;
+}
+/* A finger leaves no hover behind: a tapped entry keeps no fill (#422). */
+@media (hover: none) {
+  .top-menu.is-list .top-menu-item:hover {
+    background: none;
+  }
 }
 /* The notebook, under the menu of the product, set apart by a rule. */
 .mobile-menu-notebook:empty {
