@@ -145,8 +145,9 @@ export function UserMenu() {
         />
       </button>
       {/*
-        A menu of the Controles, and a sheet on a phone (#201): the same content
-        and the same routes as before, built only out of the common controls.
+        A menu of the Controles (#201), dropping from under the header on a
+        phone as the ☰ does (#422): the same content and the same routes as
+        before, built only out of the common controls.
       */}
       <Menu
         open={open}
@@ -155,6 +156,7 @@ export function UserMenu() {
         label={t('auth.menu')}
         className="user-menu-panel"
         closeLabel={t('common.close')}
+        fromHeader
       >
         <div className="user-menu-top" role="none">
           <div className="user-menu-identity">

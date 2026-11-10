@@ -83,9 +83,17 @@ export function AboutPage() {
     <article className="about">
       {/* A reading column, the sections set apart by a hairline (#216). */}
       <header className="about-hero">
-        <img className="about-symbol symbol-light" src="/symbol.svg" alt="" />
-        <img className="about-symbol symbol-dark" src="/symbol-dark.svg" alt="" />
-        <h1>{t('about.heading')}</h1>
+        {/* "About", and under it the symbol and the name as the header spells
+            it, its .app in Laranja sinal, centred (#422). */}
+        <h1>
+          <Trans
+            i18nKey="about.heading"
+            components={{
+              brand: <AboutBrand />,
+              suffix: <span className="brand-suffix" />,
+            }}
+          />
+        </h1>
         <p className="about-lead">{t('about.lead')}</p>
       </header>
 
@@ -220,5 +228,16 @@ export function AboutPage() {
         </Link>
       </footer>
     </article>
+  );
+}
+
+/** The symbol and the wordmark of the heading of About, on a line of their own (#422). */
+function AboutBrand({ children }: { children?: ReactNode }) {
+  return (
+    <span className="about-brand">
+      <img className="about-symbol symbol-light" src="/symbol.svg" alt="" />
+      <img className="about-symbol symbol-dark" src="/symbol-dark.svg" alt="" />
+      <span>{children}</span>
+    </span>
   );
 }

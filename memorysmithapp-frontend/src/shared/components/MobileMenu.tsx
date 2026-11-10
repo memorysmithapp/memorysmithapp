@@ -34,6 +34,15 @@ export function MobileMenuProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Closes the ☰ when another menu of the header opens over it (#422): the
+ * person's menu and the bell drop from the same place, and only one shows.
+ */
+export function useCloseMobileMenu(): () => void {
+  const menu = useContext(MenuContext);
+  return () => menu?.setOpen(false);
+}
+
 /** The ☰, before the brand. */
 export function MobileMenuButton() {
   const { t } = useTranslation();

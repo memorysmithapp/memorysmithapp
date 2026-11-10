@@ -70,9 +70,7 @@
     "heading": "Theme",
     "light": "Light",
     "dark": "Dark",
-    "system": "System",
-    "toDark": "Switch to the dark theme",
-    "toLight": "Switch to the light theme"
+    "system": "System"
   },
   "sidebar": {
     "collapse": "Collapse the sidebar",
@@ -754,7 +752,7 @@
   },
   "about": {
     "title": "About MemorySmith.app",
-    "heading": "Welcome to MemorySmith.app",
+    "heading": "About <brand>MemorySmith<suffix>.app</suffix></brand>",
     "lead": "Structured knowledge we build and keep side by side with our AI assistants, always readable by us and by them.",
     "what": {
       "heading": "What this is",

@@ -3,10 +3,14 @@ import { BrandMark } from './BrandMark';
 import { NotificationsMenu } from '../../features/sharing/NotificationsMenu';
 import { UserMenu } from './UserMenu';
 import { WriteStatus } from './WriteStatus';
-import { ThemeToggle } from './ThemeToggle';
 import { TopMenu } from './TopMenu';
 import { GlobalSearch } from './GlobalSearch';
-import { MobileMenuButton, MobileMenuPanel, MobileMenuProvider } from './MobileMenu';
+import {
+  MobileMenuButton,
+  MobileMenuPanel,
+  MobileMenuProvider,
+  useCloseMobileMenu,
+} from './MobileMenu';
 import { NARROW_NOTEBOOK, useMatchMedia } from '../lib/media';
 
 /**
@@ -36,17 +40,7 @@ export function AppShell() {
           {/* Search, in the middle of the first row: notebooks, models and
             community models by name, and Ctrl K from anywhere (#418). */}
           {narrow ? <span /> : <GlobalSearch />}
-          <div className="header-controls">
-            {/* What happened to the write, where it can be seen from any scroll
-              position and without covering a line of the note. */}
-            <WriteStatus />
-            <ThemeToggle />
-            {/* What changed in a share, told to the side that did not change it
-              (#256), and the status of the transfers, whose page is in the menu
-              (#418). */}
-            <NotificationsMenu />
-            <UserMenu />
-          </div>
+          <HeaderControls />
         </header>
         {narrow ? (
           <MobileMenuPanel />
@@ -60,5 +54,27 @@ export function AppShell() {
         </main>
       </div>
     </MobileMenuProvider>
+  );
+}
+
+/**
+ * The controls of the person, at the end of the first row. Their menus drop
+ * from under the header on a phone, where the ☰ does, so pressing one closes
+ * the ☰ first (#422).
+ */
+function HeaderControls() {
+  const closeMobileMenu = useCloseMobileMenu();
+  return (
+    <div className="header-controls" onPointerDownCapture={closeMobileMenu}>
+      {/* What happened to the write, where it can be seen from any scroll
+        position and without covering a line of the note. */}
+      <WriteStatus />
+      {/* Light or dark is chosen in the user menu, and only there (#422). */}
+      {/* What changed in a share, told to the side that did not change it
+        (#256), and the status of the transfers, whose page is in the menu
+        (#418). */}
+      <NotificationsMenu />
+      <UserMenu />
+    </div>
   );
 }

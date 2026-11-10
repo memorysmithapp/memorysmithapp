@@ -70,9 +70,7 @@
     "heading": "Tema",
     "light": "Claro",
     "dark": "Escuro",
-    "system": "Sistema",
-    "toDark": "Usar o tema escuro",
-    "toLight": "Usar o tema claro"
+    "system": "Sistema"
   },
   "sidebar": {
     "collapse": "Recolher a barra lateral",
@@ -757,7 +755,7 @@
   },
   "about": {
     "title": "Sobre o MemorySmith.app",
-    "heading": "Bem-vindo ao MemorySmith.app",
+    "heading": "Sobre o <brand>MemorySmith<suffix>.app</suffix></brand>",
     "lead": "Conhecimento estruturado, que construímos e mantemos lado a lado com nossos assistentes de IA, sempre legível por nós e por eles.",
     "what": {
       "heading": "O que é isto",

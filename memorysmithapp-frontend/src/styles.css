@@ -2897,23 +2897,6 @@ body:has(.markdown dialog[open]) .app-main {
   font-size: 0.72rem;
   color: var(--text-soft);
 }
-/* In the sheet the blocks run edge to edge, and the rows are a thumb high. */
-.sheet.user-menu-panel .user-menu-top,
-.sheet.user-menu-panel .user-menu-settings,
-.sheet.user-menu-panel .user-menu-items,
-.sheet.user-menu-panel .user-menu-foot {
-  padding: 0;
-}
-.sheet.user-menu-panel .menu-divider {
-  margin: 0 -16px;
-}
-/* In the sheet the foot comes after Fechar, as the last line of it. */
-.sheet.user-menu-panel .user-menu-foot {
-  order: 1;
-}
-.sheet.user-menu-panel .user-menu-foot-divider {
-  display: none;
-}
 /*
   How much of the plan is used, as the progress bar of the Controles: the
   numbers above a 6 px track, blue, orange from 80 % and red when full. It
@@ -5230,10 +5213,20 @@ button.attachment-thumb:focus-visible {
   gap: 12px;
   padding-bottom: 28px;
 }
+/* "About" on its line, and under it the symbol and the wordmark kept
+   together, the symbol as tall as the capitals beside it; the whole heading
+   centred (#422). */
+.about-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3em;
+  white-space: nowrap;
+}
 .about-symbol {
-  height: 48px;
+  flex: none;
+  height: 1.1em;
   width: auto;
-  align-self: flex-start;
 }
 .about-hero h1 {
   margin: 0;
@@ -5243,6 +5236,7 @@ button.attachment-thumb:focus-visible {
   line-height: 1.1;
   letter-spacing: -0.025em;
   text-wrap: balance;
+  text-align: center;
 }
 .about-lead {
   margin: 0;
@@ -5426,9 +5420,6 @@ button.attachment-thumb:focus-visible {
   }
   .about-hero {
     padding-bottom: 22px;
-  }
-  .about-symbol {
-    height: 40px;
   }
   .about-hero h1 {
     font-size: 26px;
@@ -7817,6 +7808,40 @@ button.attachment-thumb:focus-visible {
 }
 @media (prefers-reduced-motion: reduce) {
   .mobile-menu {
+    animation: none;
+  }
+}
+/* The menus of the header — the person's and the bell's — drop from the same
+   place on a phone, over the same dimmed page, instead of rising as a sheet
+   from the foot of the screen (#422). Each keeps the room of its own sections,
+   and its rows are tall enough for a thumb. */
+.menu-drop {
+  position: fixed;
+  z-index: 50;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  max-height: calc(100dvh - var(--header-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  padding: 4px max(4px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom))
+    max(4px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--menu-shadow);
+  text-align: start;
+  animation: mobile-menu-down 0.18s ease-out;
+}
+.menu-drop:focus {
+  outline: none;
+}
+.menu-drop .menu-item {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-drop {
     animation: none;
   }
 }

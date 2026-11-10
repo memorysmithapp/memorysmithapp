@@ -71,6 +71,7 @@ export function NotificationsMenu() {
         label={t('notifications.heading')}
         className="notifications-panel"
         closeLabel={t('common.close')}
+        fromHeader
       >
         <div className="transfers-panel-head">
           <h2>{t('notifications.heading')}</h2>
