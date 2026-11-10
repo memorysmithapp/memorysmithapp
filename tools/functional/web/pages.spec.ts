@@ -2818,15 +2818,18 @@ test.describe('the transfers of a person', () => {
 
     const panel = app.locator('.notifications-panel');
     await expect(panel).toBeVisible();
+    // It drops from under the header, as the ☰ does, and never rises as a sheet
+    // (#422). It drops in from 12px above, so its place is read once it landed.
+    const header = await app.locator('.app-header').boundingBox();
+    await expect
+      .poll(async () => (await panel.boundingBox())?.y ?? -1, {
+        message: 'the panel starts under the header',
+      })
+      .toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0) - 1);
     const box = await panel.boundingBox();
     expect(box, 'the panel has a box').not.toBeNull();
     expect(box!.x, 'the panel starts on the screen').toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width, 'and ends on it').toBeLessThanOrEqual(320);
-    // It drops from under the header, as the ☰ does, and never rises as a sheet (#422).
-    const header = await app.locator('.app-header').boundingBox();
-    expect(box!.y, 'the panel starts under the header').toBeGreaterThanOrEqual(
-      (header?.y ?? 0) + (header?.height ?? 0) - 1,
-    );
     await expect(app.locator('.sheet')).toHaveCount(0);
   });
 
