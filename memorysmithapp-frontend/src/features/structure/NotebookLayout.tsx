@@ -1,12 +1,11 @@
 import { useEffect } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Outlet, useBlocker } from 'react-router-dom';
+import { Outlet, useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNotebookFiles, getNotebookNames, getNotebookStructure } from '../../shared/api/source';
 import type { NotebookStructure } from '../../shared/types/api';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { ArrowLeftIcon } from '../../shared/components/icons';
 import { NARROW_NOTEBOOK, useMatchMedia } from '../../shared/lib/media';
 import { MobileMenuNotebook } from '../../shared/components/MobileMenu';
 import { NotebookNav } from './NotebookNav';
@@ -107,10 +106,6 @@ export function NotebookLayout() {
                 are searched from the search at the top of the menu (#418). */}
             <section className="mobile-menu-group" aria-label={data?.notebook.name}>
               <div className="sidebar-head">
-                <Link to="/notebooks" className="back-link">
-                  <ArrowLeftIcon width={14} height={14} />
-                  <span className="back-link-label">{t('structure.backToNotebooks')}</span>
-                </Link>
                 <h2 className="sidebar-notebook">
                   {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
                 </h2>
@@ -132,12 +127,10 @@ export function NotebookLayout() {
               id="notebook-sidebar"
             >
               <div className="sidebar-head">
-                <Link to="/notebooks" className="back-link" title={t('structure.backToNotebooks')}>
-                  <ArrowLeftIcon width={14} height={14} />
-                  <span className="back-link-label">{t('structure.backToNotebooks')}</span>
-                </Link>
                 {/* The way to the Context is its own entry below and the first
-                    crumb of the bar, so the name is only the name (#228). */}
+                    crumb of the bar, so the name is only the name (#228); the
+                    way back to Notebooks and Models is the menu of the product,
+                    above, and only it (#422). */}
                 <h2 className="sidebar-notebook">
                   {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
                 </h2>

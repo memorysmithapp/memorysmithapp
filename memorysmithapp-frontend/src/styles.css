@@ -507,7 +507,7 @@ a:hover {
 .is-collapsed
   :is(
     .nav-row-label,
-    .back-link-label,
+    .sidebar-head,
     .sidebar-caption,
     .sidebar-notebook,
     .sidebar-content,
@@ -527,10 +527,6 @@ a:hover {
   margin-left: 0;
   padding-left: 0;
   border-left: 0;
-}
-.is-collapsed .sidebar-head,
-.is-collapsed .back-link {
-  align-self: center;
 }
 
 .app-main {
@@ -1301,20 +1297,6 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.back-link {
-  align-self: flex-start;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  font-size: 12.5px;
-  color: var(--text-soft);
-}
-.back-link:hover {
-  color: var(--text);
-  text-decoration: none;
 }
 .sidebar-notebook {
   margin: 0;
@@ -7879,7 +7861,6 @@ button.attachment-thumb:focus-visible {
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
-.mobile-menu-group .nav-row,
-.mobile-menu-group .back-link {
+.mobile-menu-group .nav-row {
   min-height: 44px;
 }

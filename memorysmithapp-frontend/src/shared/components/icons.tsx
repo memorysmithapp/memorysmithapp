@@ -244,15 +244,6 @@ export function MoveIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** The way back, to every notebook. */
-export function ArrowLeftIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <path d="M19 12H5M12 19l-7-7 7-7" />
-    </svg>
-  );
-}
-
 /** The Notebook Context: the list an agent is handed. */
 export function ContextIcon(props: SVGProps<SVGSVGElement>) {
   return (

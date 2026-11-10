@@ -172,7 +172,6 @@
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
     "hasTemplate": "modelo de pasta",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
-    "backToNotebooks": "Todos os cadernos",
     "openNavigation": "Navegação do caderno",
     "heading": "Contexto do caderno",
     "contextParts": "Orientação, Modelos de pasta e Pastas",
