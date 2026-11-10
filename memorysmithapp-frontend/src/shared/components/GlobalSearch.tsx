@@ -166,7 +166,11 @@ export function GlobalSearch() {
         },
       ];
     });
+    // A notebook declared as a model is found among the models, and only
+    // there (#422, RN-PRT-060).
+    const modelIds = new Set((models.data ?? []).map((model) => model.notebookId.toLowerCase()));
     const ownNotebooks = byName(notebooks.data ?? [], locale)
+      .filter((notebook) => !modelIds.has(notebook.id.toLowerCase()))
       .filter((notebook) => matches(notebook.name))
       .slice(0, PER_GROUP)
       .map((notebook) => ({

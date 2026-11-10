@@ -3,7 +3,7 @@ import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
-import { listNotebooks } from '../../shared/api/source';
+import { listModels, listNotebooks } from '../../shared/api/source';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { PlusIcon } from '../../shared/components/icons';
@@ -28,7 +28,8 @@ type Entry =
 
 /**
  * The notebooks (#418): every notebook of the subscription and every one
- * shared with the person, as cards in a grid, by name, and a new one. A
+ * shared with the person, as cards in a grid, by name, and a new one; a
+ * notebook declared as a model is on the page of the models instead (#422). A
  * notebook shared with a person appears here and nowhere else of the product's
  * lists (RN-ACC-043). The space of the subscription is Home's.
  */
@@ -55,6 +56,16 @@ export function NotebooksPage() {
    * export chooses from (RN-ACC-043) — among mine, by the same order.
    */
   const incoming = useIncomingShares();
+  /**
+   * A notebook declared as a model is a model, and lives on the page of the
+   * models only (#422, RN-PRT-060): its card there opens it. An invitation still waiting
+   * for an answer stays here, where it is answered.
+   */
+  const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
+  const modelIds = useMemo(
+    () => new Set((models.data ?? []).map((model) => model.notebookId.toLowerCase())),
+    [models.data],
+  );
   const isOwner = (notebooks ?? []).some((notebook) => notebook.effectiveRole === 'OWNER');
   const ownShares = useOwnShares(isOwner);
   const sharedByMe = useMemo(
@@ -73,19 +84,25 @@ export function NotebooksPage() {
    * hold mine back.
    */
   const entries = useMemo((): Entry[] | undefined => {
-    if (!notebooks || incoming.isPending) return undefined;
+    if (!notebooks || incoming.isPending || models.isPending) return undefined;
     return byName<Entry>(
       [
-        ...notebooks.map((notebook) => ({ kind: 'own' as const, name: notebook.name, notebook })),
-        ...(incoming.data ?? []).map((share) => ({
-          kind: 'shared' as const,
-          name: share.name,
-          share,
-        })),
+        ...notebooks
+          .filter((notebook) => !modelIds.has(notebook.id.toLowerCase()))
+          .map((notebook) => ({ kind: 'own' as const, name: notebook.name, notebook })),
+        ...(incoming.data ?? [])
+          .filter(
+            (share) => share.state === 'pending' || !modelIds.has(share.notebookId.toLowerCase()),
+          )
+          .map((share) => ({
+            kind: 'shared' as const,
+            name: share.name,
+            share,
+          })),
       ],
       locale,
     );
-  }, [notebooks, incoming.isPending, incoming.data, locale]);
+  }, [notebooks, incoming.isPending, incoming.data, models.isPending, modelIds, locale]);
 
   return (
     <section className="page shelf-page">
@@ -133,7 +150,9 @@ export function NotebooksPage() {
         })}
       </div>
       {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
-      {state === 'pending' || (state === 'ready' && incoming.isPending) ? <ShelfSkeleton /> : null}
+      {state === 'pending' || (state === 'ready' && (incoming.isPending || models.isPending)) ? (
+        <ShelfSkeleton />
+      ) : null}
       {entries?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
       <NewNotebookDialog open={creating} onClose={() => setCreating(false)} />
