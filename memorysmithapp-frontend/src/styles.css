@@ -7354,6 +7354,113 @@ button.attachment-thumb:focus-visible {
   font-size: 0.76rem;
   font-weight: 400;
 }
+/* ---- The notes of a folder as a table (#416) -------------------------------
+ *
+ * The grid of the tables, with the name of each note as its way in, a property
+ * the notes declare as chips, when each changed and who changed it. On a phone
+ * each row stacks: the name, then the rest, each said with its column.
+ */
+.folder-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.folder-notes-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.folder-notes-controls:empty {
+  display: none;
+}
+.folder-notes-property {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+.folder-notes-property select {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.folder-notes-table td {
+  vertical-align: middle;
+}
+.folder-notes-table .folder-notes-name {
+  width: 100%;
+  white-space: normal;
+}
+.folder-notes-table .note-row {
+  padding: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.folder-notes-table .note-row:hover {
+  background: none;
+  text-decoration: underline;
+}
+.folder-notes-property-cell {
+  white-space: normal;
+}
+.property-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin: 1px 4px 1px 0;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--track);
+  color: var(--text);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.folder-notes-table .is-agent {
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .folder-notes-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .folder-notes-table,
+  .folder-notes-table tbody,
+  .folder-notes-table tr,
+  .folder-notes-table td {
+    display: block;
+  }
+  .folder-notes-table tr {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .folder-notes-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .folder-notes-table td {
+    padding: 2px 0;
+    border: 0;
+    white-space: normal;
+  }
+  .folder-notes-table td[data-label]::before {
+    content: attr(data-label) ': ';
+    color: var(--text-soft);
+    font-size: 0.78rem;
+  }
+  .folder-notes-table td[data-label]:empty {
+    display: none;
+  }
+}
+
 .tables-grid-pages {
   display: flex;
   justify-content: space-between;

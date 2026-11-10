@@ -1389,5 +1389,13 @@
     "you": "você",
     "person": "uma pessoa",
     "agent": "agente {{name}}"
+  },
+  "folderTable": {
+    "property": "Propriedade",
+    "noProperty": "Nenhuma",
+    "folderOrder": "Ordem da pasta",
+    "name": "Nome",
+    "updated": "Alterada em",
+    "author": "Por"
   }
 }

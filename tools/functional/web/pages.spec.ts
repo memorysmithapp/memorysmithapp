@@ -1272,6 +1272,56 @@ test.describe('the pages of an account', () => {
     await expect(rows).toHaveText(['Ata 10', 'Ata 2', 'Ata 1']);
   });
 
+  test('[page:/notebooks/:notebookId/folders/:folderId] shows the notes of a folder as a table: their status, when and by whom, sorted by any column and back (#416)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const { folderId } = await owner.ok<{ folderId: string }>('POST', `${path}/folders`, {
+      name: 'Proposals',
+      description: 'One note per proposal, with where it stands.',
+    });
+    // Written one after another, so the last written is the last changed.
+    for (const [name, status] of [
+      ['Gamma', 'open'],
+      ['Alpha', 'done'],
+      ['Beta', 'open'],
+    ]) {
+      await owner.ok('POST', `${path}/notes`, {
+        folderId,
+        content: `---\nname: ${name}\nstatus: ${status}\n---\n\nWhat is proposed.\n`,
+      });
+    }
+    await app.goto(notebook.page(`/folders/${folderId.toLowerCase()}`));
+    const table = app.locator('table.folder-notes-table');
+    const names = table.locator('a.note-row');
+    await expect(names).toHaveText(['Gamma', 'Alpha', 'Beta'], { timeout: 60_000 });
+
+    // The notebook declares `status`, so it is the column shown, as chips; the
+    // projection that reads it may be a moment behind the notes.
+    await expect(table.getByRole('columnheader', { name: 'status' })).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(
+      table.locator('tbody tr', { hasText: 'Alpha' }).locator('.property-chip'),
+    ).toHaveText('done', { timeout: 60_000 });
+    // Written by the person reading, through the API: "you".
+    await expect(table.locator('tbody tr', { hasText: 'Beta' })).toContainText(words.you);
+
+    // A column sorts up, then down, and the folder order is one press away.
+    const changed = table.getByRole('columnheader', { name: words.columnChanged });
+    await changed.getByRole('button').click();
+    await changed.getByRole('button').click();
+    await expect(changed).toHaveAttribute('aria-sort', 'descending');
+    await expect(names.first()).toHaveText('Beta');
+    await table.getByRole('columnheader', { name: words.columnName }).getByRole('button').click();
+    await expect(names).toHaveText(['Alpha', 'Beta', 'Gamma']);
+    await app.getByRole('button', { name: words.folderOrder }).click();
+    await expect(names).toHaveText(['Gamma', 'Alpha', 'Beta']);
+  });
+
   test('[page:/notebooks/:notebookId/folders/:folderId] renames a folder and changes its description from its bar, and refuses a name a sibling holds (#278)', async ({
     app,
     owner,

@@ -38,6 +38,11 @@ export interface Words {
   /** The root of a notebook, and its way back to the note last read (#417). */
   readonly overview: string;
   readonly resume: string;
+  /** The columns of the notes of a folder, and the way back to its order (#416). */
+  readonly columnName: string;
+  readonly columnChanged: string;
+  readonly folderOrder: string;
+  readonly you: string;
   /** The page of the folders, a part of the Context (#227). */
   readonly folders: string;
   readonly guidance: string;
@@ -172,6 +177,10 @@ export const WORDS: Record<AppLocale, Words> = {
     context: 'Notebook Context',
     overview: 'Overview',
     resume: 'Continue where you left off',
+    columnName: 'Name',
+    columnChanged: 'Changed',
+    folderOrder: 'Folder order',
+    you: 'you',
     folders: 'Folders',
     guidance: 'Guidance',
     templates: 'Templates',
@@ -272,6 +281,10 @@ export const WORDS: Record<AppLocale, Words> = {
     context: 'Contexto do caderno',
     overview: 'Visão geral',
     resume: 'Continuar de onde parei',
+    columnName: 'Nome',
+    columnChanged: 'Alterada em',
+    folderOrder: 'Ordem da pasta',
+    you: 'você',
     folders: 'Pastas',
     guidance: 'Orientação',
     templates: 'Modelos de pasta',

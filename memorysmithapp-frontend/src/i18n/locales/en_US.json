@@ -1386,5 +1386,13 @@
     "you": "you",
     "person": "a person",
     "agent": "agent {{name}}"
+  },
+  "folderTable": {
+    "property": "Property",
+    "noProperty": "None",
+    "folderOrder": "Folder order",
+    "name": "Name",
+    "updated": "Changed",
+    "author": "By"
   }
 }
