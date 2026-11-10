@@ -36,6 +36,7 @@ import {
   ListNotifications,
   ListSubscriptionShares,
   OpenSharedNotebook,
+  ownerGrantsOnce,
   RevokeShare,
   ShareNotebook,
   type ShareDependencies,
@@ -139,9 +140,12 @@ export class KnowledgeSharedNotebooks implements SharedNotebooks {
     context: SubscriptionContext,
     notebookId: NotebookId,
   ): Promise<SharedNotebookView | null> {
-    const notebook = await this.notebooksOf(context).findById(notebookId);
+    // The notebook and its licence at once (#420): neither answers the other.
+    const [notebook, licence] = await Promise.all([
+      this.notebooksOf(context).findById(notebookId),
+      this.licencesOf(context).licenceOf(notebookId.value),
+    ]);
     if (!notebook || notebook.isDeleted) return null;
-    const licence = await this.licencesOf(context).licenceOf(notebookId.value);
     return {
       name: notebook.name.value,
       description: notebook.description.value,
@@ -220,16 +224,18 @@ export async function openModelShareOf(
   return new OpenSharedNotebook(deps).execute({ user, notebookId });
 }
 
-/** Every share accepted by this person and open now, the notebook of each a candidate model. */
+/**
+ * Every share accepted by this person and open now, the notebook of each a
+ * candidate model. The owners are asked at once, each subscription once (#420).
+ */
 export async function openSharesOf(
   user: UserId,
   deps: { readonly shares: ShareRepository; readonly notebooks: SharedNotebooks },
 ): Promise<Share[]> {
-  const open: Share[] = [];
-  for (const share of await deps.shares.listIncoming(user)) {
-    if (share.isOpen && (await deps.notebooks.ownerGrantsAccess(share))) open.push(share);
-  }
-  return open;
+  const grants = ownerGrantsOnce(deps.notebooks);
+  const accepted = (await deps.shares.listIncoming(user)).filter((share) => share.isOpen);
+  const granted = await Promise.all(accepted.map((share) => grants(share)));
+  return accepted.filter((_, at) => granted[at]);
 }
 
 /**
@@ -348,15 +354,20 @@ export function modelSourcesOf(input: {
         sharedBy: share.ownerEmail.value,
       };
     },
+    // Every share at once, and of each its model and its notebook at once (#420).
     shared: async () => {
-      const found: Awaited<ReturnType<ModelSources['shared']>> = [];
-      for (const share of await openSharesOf(input.user, input.sharing)) {
-        const model = await input.depsOf(contextThrough(share)).models.get(share.notebookId.value);
-        if (!model) continue;
-        const view = await input.sharing.notebooks.through(share);
-        if (view) found.push({ model, name: view.name, sharedBy: share.ownerEmail.value });
-      }
-      return found;
+      const read = await Promise.all(
+        (await openSharesOf(input.user, input.sharing)).map(async (share) => {
+          const [model, view] = await Promise.all([
+            input.depsOf(contextThrough(share)).models.get(share.notebookId.value),
+            input.sharing.notebooks.through(share),
+          ]);
+          return model && view
+            ? { model, name: view.name, sharedBy: share.ownerEmail.value }
+            : null;
+        }),
+      );
+      return read.filter((found) => found !== null);
     },
   };
 }

@@ -29,6 +29,14 @@ import { documentToDto } from './http.js';
 /** How long the edge keeps a public answer (#356): short, so a new version shows soon. */
 export const PUBLIC_MAX_AGE_SECONDS = 60;
 
+/**
+ * How long past that the edge still answers what it holds while it asks for a
+ * fresh one (#420), so the person who arrives after the minute does not wait
+ * for a function nobody called in a while. Publishing and withdrawing empty
+ * the edge, so nothing withdrawn is answered from it.
+ */
+export const PUBLIC_STALE_SECONDS = 300;
+
 export interface PublicCatalogUseCases {
   readonly search: () => SearchCatalog;
   readonly readModel: () => ReadCatalogModel;
@@ -40,7 +48,10 @@ function fail(c: Context, error: DomainError): Response {
 }
 
 function cached(c: Context, body: object): Response {
-  c.header('cache-control', `public, max-age=${PUBLIC_MAX_AGE_SECONDS}`);
+  c.header(
+    'cache-control',
+    `public, max-age=${PUBLIC_MAX_AGE_SECONDS}, stale-while-revalidate=${PUBLIC_STALE_SECONDS}`,
+  );
   return c.json(body, 200);
 }
 

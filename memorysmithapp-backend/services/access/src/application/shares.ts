@@ -39,6 +39,25 @@ export interface ShareDependencies {
   readonly subscriptions: SubscriptionRepository | null;
 }
 
+/**
+ * Whether the owner's subscription of a share grants access (RN-SUB-007),
+ * asked once per subscription for one answer however many of the person's
+ * shares it owns (#420). It is built per execution and never kept: a status
+ * changes, and the next answer has to see it.
+ */
+export function ownerGrantsOnce(notebooks: SharedNotebooks): (share: Share) => Promise<boolean> {
+  const asked = new Map<string, Promise<boolean>>();
+  return (share) => {
+    const key = share.ownerSubscriptionId.value;
+    let answer = asked.get(key);
+    if (!answer) {
+      answer = notebooks.ownerGrantsAccess(share);
+      asked.set(key, answer);
+    }
+    return answer;
+  };
+}
+
 async function ownerOf(
   deps: ShareDependencies,
   context: SubscriptionContext,
@@ -309,19 +328,26 @@ export interface IncomingShare {
  * The notebooks shared with this person that they can see: pending ones and
  * accepted ones, whose owner's subscription grants access and which still
  * exist (RN-ACC-026, RN-ACC-028). A revocation is a notice, not a notebook.
+ *
+ * The shares are read at once, not one after another (#420): each depends on
+ * nothing but itself, and the answer keeps the order they were listed in.
  */
 export class ListIncomingShares {
   constructor(private readonly deps: ShareDependencies) {}
 
   async execute(input: { user: UserId }): Promise<Result<IncomingShare[], DomainError>> {
-    const found: IncomingShare[] = [];
-    for (const share of await this.deps.shares.listIncoming(input.user)) {
-      if (share.state !== 'pending' && share.state !== 'accepted') continue;
-      if (!(await this.deps.notebooks.ownerGrantsAccess(share))) continue;
-      const notebook = await this.deps.notebooks.through(share);
-      if (notebook) found.push({ share, notebook });
-    }
-    return ok(found);
+    const grants = ownerGrantsOnce(this.deps.notebooks);
+    const shares = (await this.deps.shares.listIncoming(input.user)).filter(
+      (share) => share.state === 'pending' || share.state === 'accepted',
+    );
+    const read = await Promise.all(
+      shares.map(async (share): Promise<IncomingShare | null> => {
+        if (!(await grants(share))) return null;
+        const notebook = await this.deps.notebooks.through(share);
+        return notebook ? { share, notebook } : null;
+      }),
+    );
+    return ok(read.filter((found): found is IncomingShare => found !== null));
   }
 }
 
@@ -410,39 +436,59 @@ export class ListNotifications {
     user: UserId;
     context: SubscriptionContext | null;
   }): Promise<Result<ShareNotice[], DomainError>> {
-    const notices: ShareNotice[] = [];
-
-    for (const share of await this.deps.shares.listIncoming(input.user)) {
-      if (share.state === 'revoked') {
-        const notebook = await this.deps.notebooks.through(share);
-        notices.push({ kind: 'revoked', share, notebookName: notebook?.name ?? null });
-        continue;
-      }
-      const waits = share.state === 'pending' ? 'shared' : share.pendingProfile ? 'increase' : null;
-      if (!waits) continue;
-      if (!(await this.deps.notebooks.ownerGrantsAccess(share))) continue;
-      const notebook = await this.deps.notebooks.through(share);
-      if (notebook) notices.push({ kind: waits, share, notebookName: notebook.name });
-    }
-
-    if (input.context && this.deps.subscriptions) {
-      const owned = await requireOwner(this.deps.subscriptions, input.context.userId);
-      if (owned.ok) {
-        for (const share of await this.deps.shares.listOutgoing(input.context, null)) {
-          if (!share.ownerHasNotice) continue;
-          const notebook = await this.deps.notebooks.own(input.context, share.notebookId);
-          notices.push({
-            kind: share.state as 'accepted' | 'rejected' | 'left',
-            share,
-            notebookName: notebook?.name ?? null,
-          });
-        }
-      }
-    }
+    // Both sides, and every share of each, are read at once (#420): the bell
+    // asks this on every page, and no notice depends on another.
+    const [incoming, outgoing] = await Promise.all([
+      this.incoming(input.user),
+      this.outgoing(input.context),
+    ]);
+    const notices = [...incoming, ...outgoing];
 
     // The newest first: what changed last is what the person came to see.
     notices.sort((a, b) => noticeAt(b).localeCompare(noticeAt(a)));
     return ok(notices);
+  }
+
+  /** The grantee's side: what waits for an answer, and the revocations. */
+  private async incoming(user: UserId): Promise<ShareNotice[]> {
+    const grants = ownerGrantsOnce(this.deps.notebooks);
+    const read = await Promise.all(
+      (await this.deps.shares.listIncoming(user)).map(
+        async (share): Promise<ShareNotice | null> => {
+          if (share.state === 'revoked') {
+            const notebook = await this.deps.notebooks.through(share);
+            return { kind: 'revoked', share, notebookName: notebook?.name ?? null };
+          }
+          const waits =
+            share.state === 'pending' ? 'shared' : share.pendingProfile ? 'increase' : null;
+          if (!waits) return null;
+          if (!(await grants(share))) return null;
+          const notebook = await this.deps.notebooks.through(share);
+          return notebook ? { kind: waits, share, notebookName: notebook.name } : null;
+        },
+      ),
+    );
+    return read.filter((notice): notice is ShareNotice => notice !== null);
+  }
+
+  /** The owner's side: the answers not yet dismissed. */
+  private async outgoing(context: SubscriptionContext | null): Promise<ShareNotice[]> {
+    if (!context || !this.deps.subscriptions) return [];
+    const owned = await requireOwner(this.deps.subscriptions, context.userId);
+    if (!owned.ok) return [];
+    const shares = (await this.deps.shares.listOutgoing(context, null)).filter(
+      (share) => share.ownerHasNotice,
+    );
+    return Promise.all(
+      shares.map(async (share): Promise<ShareNotice> => {
+        const notebook = await this.deps.notebooks.own(context, share.notebookId);
+        return {
+          kind: share.state as 'accepted' | 'rejected' | 'left',
+          share,
+          notebookName: notebook?.name ?? null,
+        };
+      }),
+    );
   }
 }
 

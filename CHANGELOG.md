@@ -31,6 +31,8 @@ issues each entry cites.
 
 - **Pages draw what is coming while they read, instead of saying "Loading…".** Models and the community show their grid of cards, a model its tabs, a version of a model and a model of the community their page, and Transfers, the history of a note, the people of the Share dialog, the models of New notebook and what an export offers their rows or fields, the size and in the place of what replaces them, so nothing jumps when it arrives. A screen reader still hears that the page is loading. (#421)
 
+- **The notebooks and models shared with you, and the community, open about as fast as your own notebooks.** They used to be read one after another, so the more you had shared with you the longer the list took; now they are read at once, and so are the notices of the bell. Notebooks shows its cards when both your notebooks and the ones shared with you are there, so no card moves to make room for another. The community answers at once from the edge while it fetches a fresh list, even after a while nobody opened it. (#420)
+
 ## [0.17.0] - 2026-11-08
 
 ### Added

@@ -261,19 +261,21 @@ async function visible(deps: CatalogReading, publicId: string): Promise<CatalogE
 export class SearchCatalog {
   constructor(private readonly deps: CatalogReading) {}
 
+  /**
+   * Each subscription of an author is asked once, and all of them at once
+   * (#420): the answer waits for the slowest of them, never for their sum.
+   */
   async execute(query: { text: string; language: string | null }): Promise<PublicModel[]> {
-    const granting = new Map<string, boolean>();
-    const found: PublicModel[] = [];
-    for (const entry of await this.deps.catalog.list()) {
-      if (entry.versions.length === 0 || !matches(entry, query)) continue;
-      let grants = granting.get(entry.subscriptionId);
-      if (grants === undefined) {
-        grants = await this.deps.access.grants(entry.subscriptionId);
-        granting.set(entry.subscriptionId, grants);
-      }
-      if (grants) found.push(publicViewOf(entry));
-    }
-    return found.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const candidates = (await this.deps.catalog.list()).filter(
+      (entry) => entry.versions.length > 0 && matches(entry, query),
+    );
+    const subscriptions = [...new Set(candidates.map((entry) => entry.subscriptionId))];
+    const answers = await Promise.all(subscriptions.map((id) => this.deps.access.grants(id)));
+    const granting = new Map(subscriptions.map((id, at) => [id, answers[at] === true]));
+    return candidates
+      .filter((entry) => granting.get(entry.subscriptionId))
+      .map(publicViewOf)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 }
 

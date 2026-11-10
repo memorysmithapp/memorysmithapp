@@ -204,16 +204,28 @@ export class ListModels {
     private readonly sources: ModelSources,
   ) {}
 
+  /**
+   * The models of the subscription and the ones shared are read at once, and
+   * of each model whether it may be read and its name at once too (#420): the
+   * list answers once, so it waits for the slowest of its reads, never for
+   * their sum.
+   */
   async execute(): Promise<Result<ListedModel[], DomainError>> {
-    const models = await this.deps.models.list();
-    const readable: ListedModel[] = [];
-    for (const model of models) {
-      if (!(await this.canRead(model.notebookId))) continue;
-      const notebook = await this.deps.notebooks.own(model.notebookId);
-      if (notebook) readable.push({ model, name: notebook.name, sharedBy: null });
-    }
-    for (const shared of await this.sources.shared()) readable.push(shared);
-    return ok(readable);
+    const [own, shared] = await Promise.all([this.own(), this.sources.shared()]);
+    return ok([...own, ...shared]);
+  }
+
+  private async own(): Promise<ListedModel[]> {
+    const read = await Promise.all(
+      (await this.deps.models.list()).map(async (model): Promise<ListedModel | null> => {
+        const [readable, notebook] = await Promise.all([
+          this.canRead(model.notebookId),
+          this.deps.notebooks.own(model.notebookId),
+        ]);
+        return readable && notebook ? { model, name: notebook.name, sharedBy: null } : null;
+      }),
+    );
+    return read.filter((listed) => listed !== null);
   }
 }
 

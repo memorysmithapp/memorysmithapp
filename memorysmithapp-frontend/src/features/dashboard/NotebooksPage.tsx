@@ -66,8 +66,14 @@ export function NotebooksPage() {
       ),
     [ownShares.data],
   );
+  /**
+   * The grid waits for both lists and draws them at once (#420): the shared
+   * ones take their place among mine by name, so arriving later they pushed
+   * the cards already on the screen. A list of shares that failed does not
+   * hold mine back.
+   */
   const entries = useMemo((): Entry[] | undefined => {
-    if (!notebooks) return undefined;
+    if (!notebooks || incoming.isPending) return undefined;
     return byName<Entry>(
       [
         ...notebooks.map((notebook) => ({ kind: 'own' as const, name: notebook.name, notebook })),
@@ -79,7 +85,7 @@ export function NotebooksPage() {
       ],
       locale,
     );
-  }, [notebooks, incoming.data, locale]);
+  }, [notebooks, incoming.isPending, incoming.data, locale]);
 
   return (
     <section className="page shelf-page">
@@ -127,7 +133,7 @@ export function NotebooksPage() {
         })}
       </div>
       {state === 'error' && <p className="status">{t(messageKeyOf(query.error))}</p>}
-      {state === 'pending' && <ShelfSkeleton />}
+      {state === 'pending' || (state === 'ready' && incoming.isPending) ? <ShelfSkeleton /> : null}
       {entries?.length === 0 && <p className="hint home-empty">{t('dashboard.noNotebooks')}</p>}
 
       <NewNotebookDialog open={creating} onClose={() => setCreating(false)} />

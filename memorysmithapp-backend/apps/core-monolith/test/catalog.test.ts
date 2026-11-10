@@ -174,6 +174,8 @@ describe('publishing a model to the community (#360)', () => {
     const read = await call(null, `/public/catalog/${publicId}`);
     expect(read.status).toBe(200);
     expect(read.headers.get('cache-control')).toContain('max-age=');
+    // The edge answers what it holds while it asks for a fresh one (#420).
+    expect(read.headers.get('cache-control')).toContain('stale-while-revalidate=');
     const version = await json<{ notes: Array<{ body: string }> }>(
       await call(null, `/public/catalog/${publicId}/versions/1`),
     );
