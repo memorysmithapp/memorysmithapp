@@ -648,6 +648,7 @@
     "disposable": "What is written in this environment is disposable."
   },
   "transfers": {
+    "columns": { "what": "Transfer", "state": "State", "actions": "Actions" },
     "heading": "Transfers",
     "seeAll": "See all",
     "filter": "What to show",
@@ -833,7 +834,6 @@
       "three": "“Write a note about what we just discussed, in the right folder.”",
       "skills": "The connector carries written methods for the tasks that go wrong most often — designing a notebook from scratch, writing a note this product can read — and a good assistant reads them before it starts. You will see it do so."
     },
-    "start": "Get started",
     "files": {
       "heading": "Files through your assistant",
       "body": "An assistant keeps a photo, a PDF or a recording whole, at the size it arrived, by sending the parts of the file straight to the address below. For that, the app it runs in has to allow it — and the settings that decide it do not say when they are in the way.",
@@ -1355,6 +1355,10 @@
   "community": {
     "title": "Community",
     "nothing": "No published model answers this search.",
+    "licenceName": "Licence",
+    "publishedAt": "Published",
+    "updatedAt": "Changed",
+    "size": "Size",
     "author": "Author",
     "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
     "by": "By {{author}}",

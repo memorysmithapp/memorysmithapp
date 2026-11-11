@@ -44,7 +44,14 @@ export type ModelContentsView = Omit<ModelContentsDto, 'notebookId'>;
  * frozen version, so this is read live. It is read where the notebook cannot
  * be opened, and a notebook is created from it in New notebook (#435).
  */
-export function ModelContents({ contents }: { contents: ModelContentsView }) {
+export function ModelContents({
+  contents,
+  withParameters = true,
+}: {
+  contents: ModelContentsView;
+  /** Whether its parameters head what it holds; the community says them in About (#449). */
+  withParameters?: boolean;
+}) {
   const { t } = useTranslation();
   const { undeclared, unused } = contents.references;
   const notesOf = (folderId: string) => contents.notes.filter((note) => note.folderId === folderId);
@@ -54,8 +61,12 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
       <p className="hint">{t('model.contentsHint')}</p>
       <ReferenceWarnings undeclared={undeclared} unused={unused} />
 
-      <h2>{t('model.parameters')}</h2>
-      <ParameterList parameters={contents.parameters} />
+      {withParameters ? (
+        <>
+          <h2>{t('model.parameters')}</h2>
+          <ParameterList parameters={contents.parameters} />
+        </>
+      ) : null}
 
       {/* Each part an accordion of its own, drawn as a note reads (#439). */}
       <h2 id="model-contents-heading">{t('model.contents')}</h2>

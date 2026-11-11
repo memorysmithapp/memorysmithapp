@@ -651,6 +651,7 @@
     "disposable": "O que é escrito neste ambiente é descartável."
   },
   "transfers": {
+    "columns": { "what": "Transferência", "state": "Situação", "actions": "Ações" },
     "heading": "Transferências",
     "seeAll": "Ver todas",
     "filter": "O que mostrar",
@@ -836,7 +837,6 @@
       "three": "“Escreva uma nota sobre o que acabamos de conversar, na pasta certa.”",
       "skills": "O conector carrega métodos escritos para as tarefas que mais dão errado — desenhar um caderno do zero, escrever uma nota que este produto consegue ler — e um bom assistente os lê antes de começar. Você vai vê-lo fazer isso."
     },
-    "start": "Começar",
     "files": {
       "heading": "Arquivos pelo assistente",
       "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
@@ -1358,6 +1358,10 @@
   "community": {
     "title": "Comunidade",
     "nothing": "Nenhum modelo publicado responde a esta busca.",
+    "licenceName": "Licença",
+    "publishedAt": "Publicado em",
+    "updatedAt": "Atualizado em",
+    "size": "Tamanho",
     "author": "Autor",
     "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
     "by": "Por {{author}}",

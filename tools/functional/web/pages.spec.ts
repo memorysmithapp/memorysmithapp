@@ -12,7 +12,7 @@ import { Api } from '../support/api.js';
 import { eventually } from '../support/eventually.js';
 import { signInOnManagedLogin } from '../support/managed-login.js';
 import { expect, speak, test } from './fixtures.js';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 test.describe('signing in', () => {
   test('[page:/login] [page:/auth/callback] hands a person to the managed login and back, signed in', async ({
@@ -2757,6 +2757,32 @@ A note to rename.
  * that follows is watched in Transfers like every other one.
  */
 /**
+ * Brings the row of a transfer into sight and answers it. Transfers pages ten
+ * rows at a time (#449), and the cases of a run share one subscription, so a
+ * row may be on a later page, or move to one while the list refreshes: this
+ * pages forward until it shows, and starts again from the first page.
+ */
+async function showTransferRow(app: Page, text: string, timeout = 120_000): Promise<Locator> {
+  const row = app.locator('.transfers-row', { hasText: text });
+  await expect
+    .poll(
+      async () => {
+        if ((await row.count()) > 0) return true;
+        const next = app.locator('.transfers-page .tables-grid-pages button').last();
+        if ((await next.count()) > 0 && (await next.isEnabled())) {
+          await next.click();
+        } else {
+          await app.reload();
+        }
+        return false;
+      },
+      { timeout, intervals: [500, 1000, 2000] },
+    )
+    .toBe(true);
+  return row;
+}
+
+/**
  * Starts an export of one notebook, from wherever the page is (#151).
  *
  * Transfers is on every screen and is where a transfer is followed: it is
@@ -2824,8 +2850,7 @@ async function saveTheExport(
   await app.goto(`${site}/transfers`);
   // The row of THIS notebook, because Transfers holds every transfer of the
   // subscription and the newest is as likely to be an import of another case.
-  const download = app
-    .locator('.transfers-row', { hasText: notebookName })
+  const download = (await showTransferRow(app, notebookName))
     .getByRole('button', { name: words.download, exact: true })
     .first();
   await expect(download).toBeVisible({ timeout: 120_000 });
@@ -2938,9 +2963,9 @@ test.describe('a notebook out and back in, through the browser', () => {
 
     // The row of THIS import: Transfers holds every transfer of the
     // subscription, and several of them ended in a notebook of their own.
-    const imported = app
-      .locator('.transfers-row', { hasText: free })
-      .getByRole('link', { name: words.openImported });
+    const imported = (await showTransferRow(app, free)).getByRole('link', {
+      name: words.openImported,
+    });
     await expect(imported).toBeVisible({ timeout: 120_000 });
     await imported.click();
 
@@ -2957,7 +2982,7 @@ test.describe('a notebook out and back in, through the browser', () => {
      * the notebook it created stays (#221, RN-PRT-026).
      */
     await app.goto(`${state.surfaces.site}/transfers`);
-    const row = app.locator('.transfers-row', { hasText: free });
+    const row = await showTransferRow(app, free);
     await row.getByRole('button', { name: words.deleteSlot, exact: true }).click();
     await row.getByRole('button', { name: words.deleteForGood, exact: true }).click();
     await expect(row).toHaveCount(0);
@@ -3108,7 +3133,7 @@ test.describe('the transfers of a person', () => {
 
     await app.goto(`${state.surfaces.site}/transfers`);
     await expect(app.getByRole('heading', { level: 1, name: words.transfers })).toBeVisible();
-    const row = app.locator('.transfers-row', { hasText: notebook.name });
+    const row = await showTransferRow(app, notebook.name);
     await expect(row).toBeVisible();
 
     /**
@@ -3125,10 +3150,11 @@ test.describe('the transfers of a person', () => {
      * export, so it survives that filter and would not survive the other.
      */
     await app.getByRole('tab', { name: new RegExp(`^${words.filterExports}`) }).click();
-    await expect(row).toBeVisible();
+    await showTransferRow(app, notebook.name);
     await app.getByRole('tab', { name: new RegExp(`^${words.filterImports}`) }).click();
     await expect(app.locator('.transfers-row', { hasText: notebook.name })).toHaveCount(0);
     await app.getByRole('tab', { name: new RegExp(`^${words.filterAll}`) }).click();
+    await showTransferRow(app, notebook.name);
 
     const download = row.getByRole('button', { name: words.download, exact: true });
     await expect(download).toBeVisible({ timeout: 120_000 });

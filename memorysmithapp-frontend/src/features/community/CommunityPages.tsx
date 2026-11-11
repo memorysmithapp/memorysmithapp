@@ -23,7 +23,7 @@ import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { PageHeading } from '../../shared/components/PageHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { SharedModelBar } from '../models/ModelPage';
-import { ModelContents } from '../models/ModelContents';
+import { ModelContents, ParameterList } from '../models/ModelContents';
 import { ModelHistoryList } from '../models/ModelHistory';
 
 /**
@@ -182,7 +182,7 @@ export function CommunityModelPage() {
           { label: model.data?.name ?? '' },
         ]}
       />
-      <article className="content-pane community-page">
+      <article className="content-pane is-wide community-page">
         {model.isPending ? (
           <PageSkeleton />
         ) : model.isError ? (
@@ -208,7 +208,7 @@ export function CommunityModelPage() {
               aria-labelledby={`model-tab-${tab}`}
               className="model-panel"
             >
-              {tab === 'about' ? <ModelFacts model={model.data} /> : null}
+              {tab === 'about' ? <ModelFacts model={model.data} publicId={publicId} /> : null}
               {tab === 'contents' ? <CommunityContents publicId={publicId} /> : null}
               {tab === 'history' ? <CommunityHistory publicId={publicId} /> : null}
             </div>
@@ -229,7 +229,7 @@ function CommunityContents({ publicId }: { publicId: string }) {
   });
   if (contents.isPending) return <PageSkeleton />;
   if (contents.isError) return <p className="status">{t(messageKeyOf(contents.error))}</p>;
-  return <ModelContents contents={contents.data} />;
+  return <ModelContents contents={contents.data} withParameters={false} />;
 }
 
 /** The history of a published model: when, what and the line left, never who (#431). */
@@ -252,32 +252,84 @@ function CommunityHistory({ publicId }: { publicId: string }) {
           changes={history.data.changes}
           truncated={history.data.truncated}
           withAuthor={false}
+          pageSize={10}
         />
       )}
     </section>
   );
 }
 
-function ModelFacts({ model }: { model: PublicModelDto }) {
-  const { t } = useTranslation();
+/**
+ * What a published model is (#449): its texts on the left, and on the right,
+ * where the page is wide, a card of the facts — who published it, in what
+ * language, under which licence, when, and how much it holds.
+ */
+function ModelFacts({ model, publicId }: { model: PublicModelDto; publicId: string }) {
+  const { t, i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
+  const contents = useQuery({
+    queryKey: queryKeys.catalogContents(publicId),
+    queryFn: () => getCatalogContents(publicId),
+    retry: false,
+  });
+  const day = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));
+  const language = i18n.exists(`community.languages.${model.language}`)
+    ? t(`community.languages.${model.language}`)
+    : model.language;
+  const size = contents.data
+    ? [
+        t('portability.countFolders', { count: contents.data.folders.length }),
+        t('portability.noteCount', { count: contents.data.notes.length }),
+        contents.data.tables.length > 0
+          ? t('portability.countTables', { count: contents.data.tables.length })
+          : null,
+        contents.data.dashboards.length > 0
+          ? t('portability.countDashboards', { count: contents.data.dashboards.length })
+          : null,
+      ]
+        .filter((part): part is string => part !== null)
+        .join(' · ')
+    : null;
   return (
-    <section className="model-summary">
-      <p className="page-intro">{model.objective}</p>
-      {model.description ? <p>{model.description}</p> : null}
-      <p>
-        <strong>{t('community.author')}:</strong> {model.author}
-      </p>
-      {model.audience ? (
-        <p>
-          <strong>{t('model.audience')}:</strong> {model.audience}
-        </p>
-      ) : null}
-      {model.basedOn ? (
-        <p>
-          <strong>{t('model.basedOn')}:</strong> {model.basedOn}
-        </p>
-      ) : null}
-      <p className="hint">{t('community.licence')}</p>
+    <section className="model-summary community-about">
+      <div className="community-about-text">
+        <p className="page-intro">{model.objective}</p>
+        {model.description ? <p>{model.description}</p> : null}
+        {model.audience ? (
+          <p>
+            <strong>{t('model.audience')}:</strong> {model.audience}
+          </p>
+        ) : null}
+        {/* What a notebook created from it asks, read with what it is (#449). */}
+        <h2>{t('model.parameters')}</h2>
+        <ParameterList parameters={model.parameters} />
+      </div>
+      <dl className="community-facts">
+        <dt>{t('community.author')}</dt>
+        <dd>{model.author}</dd>
+        <dt>{t('community.language')}</dt>
+        <dd>{language}</dd>
+        <dt>{t('community.licenceName')}</dt>
+        <dd>CC0 1.0</dd>
+        {model.basedOn ? (
+          <>
+            <dt>{t('model.basedOn')}</dt>
+            <dd>{model.basedOn}</dd>
+          </>
+        ) : null}
+        <dt>{t('community.publishedAt')}</dt>
+        <dd>{day(model.publishedAt)}</dd>
+        <dt>{t('community.updatedAt')}</dt>
+        <dd>{day(model.updatedAt)}</dd>
+        {size ? (
+          <>
+            <dt>{t('community.size')}</dt>
+            <dd>{size}</dd>
+          </>
+        ) : null}
+        <dd className="community-facts-note">{t('community.licence')}</dd>
+      </dl>
     </section>
   );
 }

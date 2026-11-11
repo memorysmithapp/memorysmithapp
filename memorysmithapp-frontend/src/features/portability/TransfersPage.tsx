@@ -48,6 +48,7 @@ import {
 } from '../../shared/components/icons';
 import { RowsSkeleton } from '../../shared/components/skeletons';
 import { PageHeading } from '../../shared/components/PageHeading';
+import { ListPager, useListPage } from '../../shared/components/ListPager';
 
 type Filter = 'all' | 'request' | 'export' | 'import' | 'agent';
 
@@ -94,6 +95,7 @@ export function TransfersPage() {
   const state = queryState(transfers);
   const all = transfers.data?.transfers ?? [];
   const rows = all.filter((transfer) => filter === 'all' || transfer.kind === filter);
+  const page = useListPage(rows, TRANSFERS_PAGE);
   const visible = notebooks.data ? new Set(notebooks.data.map((notebook) => notebook.id)) : null;
   const writable = (notebooks.data ?? []).filter((notebook) => canWrite(notebook.effectiveRole));
   const size = (bytes: number) => formatBytes(bytes, locale);
@@ -136,7 +138,10 @@ export function TransfersPage() {
           total: each === 'all' ? all.length : all.filter((row) => row.kind === each).length,
         }))}
         active={filter}
-        onSelect={setFilter}
+        onSelect={(next) => {
+          setFilter(next);
+          page.setPage(1);
+        }}
       />
 
       {/* A refetch that failed over a list already on the screen is not a
@@ -154,7 +159,14 @@ export function TransfersPage() {
           id="transfers-panel"
           aria-labelledby={`transfers-tab-${filter}`}
         >
-          {rows.map((transfer) => (
+          {/* The columns of the list, as the head of a folder's table (#449). */}
+          <li className="transfers-row transfers-head" aria-hidden="true">
+            <span />
+            <span>{t('transfers.columns.what')}</span>
+            <span>{t('transfers.columns.state')}</span>
+            <span className="transfers-head-actions">{t('transfers.columns.actions')}</span>
+          </li>
+          {page.rows.map((transfer) => (
             <TransferRow
               key={transfer.transferId}
               transfer={transfer}
@@ -169,9 +181,20 @@ export function TransfersPage() {
           ))}
         </ul>
       )}
+      {/* Ten a page, with the pager of a folder's list (#449). */}
+      <ListPager
+        page={page.page}
+        pages={page.pages}
+        total={rows.length}
+        size={TRANSFERS_PAGE}
+        onPage={page.setPage}
+      />
     </section>
   );
 }
+
+/** How many transfers a page of the list shows (#449). */
+const TRANSFERS_PAGE = 10;
 
 function TransferRow({
   transfer,

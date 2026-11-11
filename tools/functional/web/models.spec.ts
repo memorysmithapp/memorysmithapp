@@ -773,9 +773,13 @@ test.describe('notebook models', () => {
 
       await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
       await expect(app.getByText(words.licence, { exact: false })).toBeVisible();
-      // Nobody reports a model, and About lists no parameters (#439).
+      // Nobody reports a model (#439). About says what it is beside a card of
+      // its facts, and what it asks of a notebook created from it (#449).
       await expect(app.getByRole('button', { name: words.report })).toHaveCount(0);
-      await expect(app.locator('.parameter-list')).toHaveCount(0);
+      await expect(app.locator('.community-facts')).toBeVisible();
+      await expect(
+        app.locator('.community-about-text').getByRole('heading', { name: words.parameters }),
+      ).toBeVisible();
       await expect(app).toHaveTitle(new RegExp(notebook.name));
       await testInfo.attach('community-about.png', {
         body: await app.screenshot({ animations: 'disabled' }),
@@ -786,6 +790,7 @@ test.describe('notebook models', () => {
       const contents = app.locator('section.model-contents');
       await expect(contents).toBeVisible();
       await expect(contents.locator('form, .create-from-model')).toHaveCount(0);
+      await expect(contents.getByRole('heading', { name: words.parameters })).toHaveCount(0);
       // Each part an accordion, its Markdown drawn as a note reads (#439).
       const folder = contents.locator('details.model-part', {
         has: app.locator(':scope > summary', { hasText: 'Findings' }),
@@ -856,6 +861,7 @@ const COMMUNITY_WORDS: Record<
     readonly report: string;
     readonly tabContents: string;
     readonly tabHistory: string;
+    readonly parameters: string;
     readonly kindFolder: string;
     readonly kindNote: string;
   }
@@ -867,6 +873,7 @@ const COMMUNITY_WORDS: Record<
     report: 'Report this model',
     tabContents: 'Contents',
     tabHistory: 'History',
+    parameters: 'Parameters',
     kindFolder: 'Folder',
     kindNote: 'Note',
   },
@@ -877,6 +884,7 @@ const COMMUNITY_WORDS: Record<
     report: 'Denunciar este modelo',
     tabContents: 'Conteúdo',
     tabHistory: 'Histórico',
+    parameters: 'Parâmetros',
     kindFolder: 'Pasta',
     kindNote: 'Nota',
   },

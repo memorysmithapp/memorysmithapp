@@ -1979,6 +1979,49 @@ a:hover {
   padding: 2rem 2.5rem 4rem;
 }
 
+/* What a community model is (#449): its texts at a reading line, and the
+   card of its facts beside them where the page is wide, under them on a
+   phone. */
+.community-about {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 32px;
+  align-items: start;
+}
+.community-about-text {
+  max-width: 43.75rem;
+}
+.community-facts {
+  margin: 0;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.community-facts dt {
+  color: var(--text-soft);
+}
+.community-facts dd {
+  margin: 0;
+}
+.community-facts .community-facts-note {
+  grid-column: 1 / -1;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+@media (max-width: 860px) {
+  .community-about {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* The pages of a notebook take the width of the pages outside a notebook
    (#447), a note, its Guidance and a link with no note included; the reading
    line of 700px is kept by the pages of the community. */
@@ -4111,7 +4154,7 @@ button.attachment-thumb:focus-visible {
   padding: 0;
 }
 .trail-page > .notebook-bar > .notebook-breadcrumb {
-  max-width: 48.75rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding-inline: 2.5rem;
 }
@@ -4519,7 +4562,7 @@ button.attachment-thumb:focus-visible {
 
 /* ---- The page (#205) ---------------------------------------------------- */
 .transfers-page {
-  max-width: 64rem;
+  max-width: 72rem;
 }
 .transfers-kept {
   margin: 0;
@@ -4550,20 +4593,37 @@ button.attachment-thumb:focus-visible {
 .transfers-rows {
   list-style: none;
   margin: 0;
-  padding: 0 20px;
+  padding: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
+  overflow: hidden;
 }
 /* The same four tracks on every row, so the states and the actions of one row
-   line up with those of the next. */
+   line up with those of the next, under the head of the columns (#449). */
 .transfers-row {
   display: grid;
   /* Room for the three things a kept export offers: download, import, delete (#207). */
-  grid-template-columns: 32px minmax(0, 1fr) 13rem 16rem;
+  grid-template-columns: 32px minmax(0, 1fr) 16rem 20rem;
   align-items: center;
   gap: 8px 14px;
-  padding: 16px 0;
+  padding: 14px 20px;
+}
+.transfers-row:not(.transfers-head):hover {
+  background: var(--hover);
+}
+.transfers-head {
+  padding-block: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  background: var(--bg);
+}
+.transfers-head-actions {
+  text-align: right;
+}
+.transfers-rows + .tables-grid-pages {
+  margin-top: 12px;
 }
 .transfers-row + .transfers-row {
   border-top: 1px solid var(--track);
@@ -4744,11 +4804,13 @@ button.attachment-thumb:focus-visible {
     width: 100%;
     justify-content: center;
   }
-  .transfers-rows {
-    padding: 0 14px;
-  }
   .transfers-row {
     grid-template-columns: 32px minmax(0, 1fr);
+    padding-inline: 14px;
+  }
+  /* On a phone a row is a card of its own, and the head has no columns to name. */
+  .transfers-head {
+    display: none;
   }
   .transfers-row-state,
   .transfers-row-actions,
@@ -5497,7 +5559,8 @@ button.attachment-thumb:focus-visible {
 /* About, a reading column of 680 px with its sections set apart by a
    hairline (#216). */
 .about {
-  max-width: calc(680px + 56px);
+  /* The width of the other pages (#449); its paragraphs keep a reading line. */
+  max-width: calc(72rem + 56px);
   margin: 0 auto;
   padding: 40px 28px 56px;
 }
@@ -5593,6 +5656,63 @@ button.attachment-thumb:focus-visible {
 /* The address of the connector: the block of code of the reading surface,
    with the verb inside it. It scrolls like every block of code instead of
    wrapping (#194). */
+/* About uses the width of the screen (#449): the screens of the interface
+   are a grid of cards, and the steps of a client stand side by side, each a
+   card. */
+/* Its paragraphs run to the margin of the page, as the cards under them do;
+   the line under the name keeps a reading line, centred as the symbol and
+   the name above it. */
+.about-hero .about-lead {
+  max-width: 70ch;
+  margin-inline: auto;
+  text-align: center;
+}
+.about .about-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 12px;
+  border: 0;
+  background: none;
+  overflow: visible;
+}
+.about .about-list > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.about .about-list > div + div {
+  border-top: 1px solid var(--border);
+}
+.about .about-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 12px;
+}
+/* A card of About darkens its edge under the mouse, as every card does. */
+.about .about-list > div:hover,
+.about .about-steps li:hover {
+  border-color: var(--text-soft);
+}
+.about .about-steps li {
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+@media (max-width: 640px) {
+  .about .about-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .about .about-steps li {
+    flex-direction: row;
+  }
+}
 .about-connector,
 .about-uploads {
   display: flex;
@@ -5694,7 +5814,7 @@ button.attachment-thumb:focus-visible {
   line-height: 1.5;
   text-wrap: pretty;
 }
-/* The foot: which version this is, and the way into the product. */
+/* The foot: which version this is; the menu is the way into the product. */
 .about-footer {
   display: flex;
   align-items: center;
@@ -5751,12 +5871,7 @@ button.attachment-thumb:focus-visible {
     display: none;
   }
   .about-footer {
-    flex-direction: column-reverse;
-    align-items: stretch;
-    text-align: center;
-  }
-  .about-footer .button {
-    height: 44px;
+    justify-content: center;
   }
 }
 
@@ -7465,6 +7580,12 @@ button.attachment-thumb:focus-visible {
 .tables-grid tbody tr:last-child td {
   border-bottom: 0;
 }
+/* A row of every table — the rows of a Table, a folder's notes, a history,
+   the picker — is shaded across under the mouse, so the eye keeps it along
+   the row (#447, #449). */
+.tables-grid tbody tr:hover {
+  background: var(--hover);
+}
 .tables-grid thead th {
   background: var(--bg);
   font-weight: 600;
@@ -7552,11 +7673,7 @@ button.attachment-thumb:focus-visible {
   background: none;
   text-decoration: underline;
 }
-/* A row of a list drawn as a folder's — the notes of a folder, a history —
-   is shaded across under the mouse, so the eye keeps it along the row (#447). */
-.folder-notes-table tbody tr:hover {
-  background: var(--hover);
-}
+
 .folder-notes-property-cell {
   white-space: normal;
 }
@@ -8353,6 +8470,21 @@ button.attachment-thumb:focus-visible {
   max-height: min(46vh, 360px);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+/* In the dialog of an export the picker is all the body holds, so its list
+   takes the height of the dialog down to its foot (#449). */
+.transfer-dialog-body > .search-picker {
+  flex: 1;
+  min-height: 0;
+}
+.transfer-dialog-body > .search-picker > .search-picker-panel {
+  flex: 1;
+  min-height: 0;
+}
+.transfer-dialog-body > .search-picker .search-picker-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }
 .search-picker-row {
   cursor: pointer;

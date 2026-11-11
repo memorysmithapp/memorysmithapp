@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { CopyButton } from '../../shared/components/CopyButton';
 import { Tabs } from '../../shared/components/Tabs';
@@ -223,9 +223,6 @@ export function AboutPage() {
         <span className="about-version">
           {t('app.version', { version: config?.version ?? '' })}
         </span>
-        <Link className="button is-primary" to="/">
-          {t('about.start')}
-        </Link>
       </footer>
     </article>
   );
