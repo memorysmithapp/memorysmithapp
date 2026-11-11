@@ -2,8 +2,9 @@
  * The community catalog in the portability table (#360).
  *
  * Its items are the one place of the table a key does not start with a
- * subscription (INV-01): an entry is the platform's, `PK = CATALOG`, and the
- * reports waiting for the operator are `PK = CATALOG#REPORTS`. The public
+ * subscription (INV-01): an entry is the platform's, `PK = CATALOG`. The
+ * reports the operator once read lie in `PK = CATALOG#REPORTS`, read by
+ * nothing since #439. The public
  * handler is granted the first partition and nothing else of the table, so
  * what it can read is what an entry says, and the subscription an entry names
  * is reached only through it (INV-02).
@@ -16,18 +17,12 @@ import {
   QueryCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import type {
-  CatalogEntry,
-  CatalogReport,
-  CatalogReports,
-  CatalogStore,
-} from '../domain/CommunityCatalog.js';
+import type { CatalogEntry, CatalogStore } from '../domain/CommunityCatalog.js';
 import { parameterOf } from './dynamo.js';
 
 type Item = Record<string, unknown>;
 
 export const CATALOG_PARTITION = 'CATALOG';
-export const REPORTS_PARTITION = 'CATALOG#REPORTS';
 
 async function queryAll(
   db: DynamoDBDocumentClient,
@@ -126,47 +121,6 @@ function entryOf(item: Item): CatalogEntry {
   };
 }
 
-export class DynamoCatalogReports implements CatalogReports {
-  constructor(
-    private readonly db: DynamoDBDocumentClient,
-    private readonly tableName: string,
-  ) {}
-
-  async add(report: CatalogReport): Promise<void> {
-    await this.db.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: {
-          PK: REPORTS_PARTITION,
-          SK: `REPORT#${report.reportId}`,
-          entity: 'CATALOG_REPORT',
-          ...report,
-        },
-      }),
-    );
-  }
-
-  async list(): Promise<CatalogReport[]> {
-    return (await queryAll(this.db, this.tableName, REPORTS_PARTITION)).map((item) => ({
-      reportId: String(item['reportId']),
-      publicId: String(item['publicId']),
-      reason: String(item['reason'] ?? ''),
-      reporterUserId: String(item['reporterUserId'] ?? ''),
-      reportedAt: String(item['reportedAt'] ?? ''),
-    }));
-  }
-
-  async remove(reportId: string): Promise<void> {
-    await this.db.send(
-      new DeleteCommand({
-        TableName: this.tableName,
-        Key: { PK: REPORTS_PARTITION, SK: `REPORT#${reportId}` },
-      }),
-    );
-  }
-}
-
-/** The catalog in memory, for the harness of a test. */
 export class InMemoryCatalogStore implements CatalogStore {
   private readonly entries = new Map<string, CatalogEntry>();
   async get(publicId: string): Promise<CatalogEntry | null> {
@@ -180,18 +134,5 @@ export class InMemoryCatalogStore implements CatalogStore {
   }
   async remove(publicId: string): Promise<void> {
     this.entries.delete(publicId);
-  }
-}
-
-export class InMemoryCatalogReports implements CatalogReports {
-  private readonly reports = new Map<string, CatalogReport>();
-  async add(report: CatalogReport): Promise<void> {
-    this.reports.set(report.reportId, report);
-  }
-  async list(): Promise<CatalogReport[]> {
-    return [...this.reports.values()].sort((a, b) => a.reportId.localeCompare(b.reportId));
-  }
-  async remove(reportId: string): Promise<void> {
-    this.reports.delete(reportId);
   }
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ModelContentsDto, NotebookModelDto } from '@memorysmithapp/contracts';
@@ -5,6 +6,9 @@ import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getModelContents } from '../../shared/api/source';
 import { PageSkeleton } from '../../shared/components/skeletons';
+import { ChevronRightIcon } from '../../shared/components/icons';
+import { ReadOnlyMarkdown } from '../../shared/components/NoteContent';
+import { noteNameOf } from '../../shared/api/markdown';
 
 /** The parameters of a model, as a reader sees them. */
 export function ParameterList({ parameters }: { parameters: NotebookModelDto['parameters'] }) {
@@ -43,6 +47,7 @@ export type ModelContentsView = Omit<ModelContentsDto, 'notebookId'>;
 export function ModelContents({ contents }: { contents: ModelContentsView }) {
   const { t } = useTranslation();
   const { undeclared, unused } = contents.references;
+  const notesOf = (folderId: string) => contents.notes.filter((note) => note.folderId === folderId);
 
   return (
     <section className="model-contents" aria-labelledby="model-contents-heading">
@@ -52,30 +57,36 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
       <h2>{t('model.parameters')}</h2>
       <ParameterList parameters={contents.parameters} />
 
+      {/* Each part an accordion of its own, drawn as a note reads (#439). */}
       <h2 id="model-contents-heading">{t('model.contents')}</h2>
-      <details className="template-card">
-        <summary>{t('structure.guidance')}</summary>
-        <pre className="model-source">{contents.notebook.guidance ?? t('model.none')}</pre>
-      </details>
+      <Part title={t('structure.guidance')}>
+        {contents.notebook.guidance ? (
+          <ReadOnlyMarkdown markdown={contents.notebook.guidance} />
+        ) : (
+          <p className="hint">{t('model.none')}</p>
+        )}
+      </Part>
       {contents.folders.map((folder) => (
-        <details key={folder.folderId} className="template-card">
-          <summary>
-            {folder.name}
-            {folder.description ? <span className="hint"> — {folder.description}</span> : null}
-          </summary>
-          {folder.template ? <pre className="model-source">{folder.template}</pre> : null}
-          {contents.notes
-            .filter((note) => note.folderId === folder.folderId)
-            .map((note) => (
-              <pre key={note.noteId} className="model-source">
-                {note.body}
-              </pre>
-            ))}
-        </details>
+        <Part
+          key={folder.folderId}
+          title={folder.name}
+          hint={t('model.folderNotes', { count: notesOf(folder.folderId).length })}
+        >
+          {folder.description ? <p className="hint">{folder.description}</p> : null}
+          {folder.template ? (
+            <Part title={t('folder.template')}>
+              <ReadOnlyMarkdown markdown={folder.template} />
+            </Part>
+          ) : null}
+          {notesOf(folder.folderId).map((note) => (
+            <Part key={note.noteId} title={noteNameOf(note.body) ?? t('model.untitledNote')}>
+              <ReadOnlyMarkdown markdown={note.body} />
+            </Part>
+          ))}
+        </Part>
       ))}
       {contents.files.length > 0 ? (
-        <>
-          <h2>{t('attachments.navLabel')}</h2>
+        <Part title={t('attachments.navLabel')} hint={String(contents.files.length)}>
           <ul className="model-parts">
             {contents.files.map((file) => (
               <li key={file.name}>
@@ -83,11 +94,10 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
               </li>
             ))}
           </ul>
-        </>
+        </Part>
       ) : null}
       {contents.tables.length > 0 ? (
-        <>
-          <h2>{t('tables.navLabel')}</h2>
+        <Part title={t('tables.navLabel')} hint={String(contents.tables.length)}>
           <ul className="model-parts">
             {contents.tables.map((table) => (
               <li key={table.name}>
@@ -97,11 +107,10 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
               </li>
             ))}
           </ul>
-        </>
+        </Part>
       ) : null}
       {contents.dashboards.length > 0 ? (
-        <>
-          <h2>{t('dashboards.navLabel')}</h2>
+        <Part title={t('dashboards.navLabel')} hint={String(contents.dashboards.length)}>
           <ul className="model-parts">
             {contents.dashboards.map((dashboard) => (
               <li key={dashboard.name}>
@@ -112,9 +121,23 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
               </li>
             ))}
           </ul>
-        </>
+        </Part>
       ) : null}
     </section>
+  );
+}
+
+/** One part of a model, folded, as a card of the Templates of a notebook (#439). */
+function Part({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <details className="template-card model-part">
+      <summary>
+        <ChevronRightIcon className="template-card-chevron" />
+        <span className="template-card-title">{title}</span>
+        {hint ? <span className="template-card-hint">{hint}</span> : null}
+      </summary>
+      <div className="template-card-body">{children}</div>
+    </details>
   );
 }
 

@@ -1,8 +1,8 @@
 /**
  * The community catalog (#360), against the deployed environment: a model
  * published by the owner of the second subscription of the run, found and read
- * with no account, created from by the owner of the first, reported, and
- * withdrawn by the operator, who reaches nothing else of it.
+ * with no account, created from by the owner of the first, and withdrawn by its
+ * author, the one who withdraws a model (#439).
  */
 
 import { randomBytes } from 'node:crypto';
@@ -117,62 +117,6 @@ test.describe('the community catalog', () => {
       }
     } finally {
       if (created) await owner.call('DELETE', `/knowledge/notebooks/${created}`);
-      await other.call('DELETE', `/knowledge/notebooks/${notebookId}`);
-    }
-  });
-
-  test('[route:POST /portability/catalog/:p/reports] [route:GET /platform/catalog/reports] [route:POST /platform/catalog/models/:p/withdraw] [route:DELETE /platform/catalog/reports/:r] takes a report from a person signed in, which the operator reads and acts on', async ({
-    other,
-    owner,
-    admin,
-    anonymous,
-  }) => {
-    const marker = `report${randomBytes(4).toString('hex')}`;
-    await other.ok('PUT', '/access/profile', { name: 'Functional Author', avatar: 'initials' });
-    const notebookId = await modelOf(other, `Reported ${marker}`);
-    try {
-      const { publicId } = await other.ok<PublicModel>(
-        'PUT',
-        `/portability/models/${notebookId}/publication`,
-        { language: 'en', acceptLicence: true },
-      );
-
-      const reason = `A functional report ${marker}`;
-      expect(
-        (await anonymous.call('POST', `/portability/catalog/${publicId}/reports`, { reason }))
-          .status,
-      ).toBe(404);
-      expect(
-        (await owner.call('POST', `/portability/catalog/${publicId}/reports`, { reason })).status,
-      ).toBe(204);
-
-      expect((await owner.call('GET', '/platform/catalog/reports')).status).toBe(404);
-      const { reports } = await admin.ok<{
-        reports: Array<{ reportId: string; publicId: string; reason: string }>;
-      }>('GET', '/platform/catalog/reports');
-      const report = reports.find((each) => each.reason === reason);
-      expect(report?.publicId).toBe(publicId);
-
-      expect(
-        (
-          await admin.call('POST', `/platform/catalog/models/${publicId}/withdraw`, {
-            reason: 'Withdrawn by a functional case',
-          })
-        ).status,
-      ).toBe(204);
-      expect((await anonymous.call('GET', `/public/catalog/${publicId}`)).status).toBe(404);
-      // The model stays with the author.
-      const model = await other.ok<{ objective: string; publication: unknown }>(
-        'GET',
-        `/portability/models/${notebookId}`,
-      );
-      expect(model.objective).toBe('Keep the findings of one team');
-      expect(model.publication).toBeNull();
-
-      expect(
-        (await admin.call('DELETE', `/platform/catalog/reports/${report?.reportId ?? ''}`)).status,
-      ).toBe(204);
-    } finally {
       await other.call('DELETE', `/knowledge/notebooks/${notebookId}`);
     }
   });

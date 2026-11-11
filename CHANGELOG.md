@@ -53,6 +53,8 @@ issues each entry cites.
 
 - **New notebook from a model is one form, and the lists look as a folder does.** New notebook, from a model, opens on its whole form: the model first, with *Choose model*, then the name and the parameters of the model once there is one. *Choose model* opens the list of models, where you click one and *Select* it, or go *Back* with nothing changed. That list, and the one of an export, no longer light a row in blue or set names in bold: the row you are on is underlined, as a folder's. The history of a model starts with what changed, its kind said when you hover it, then when, in short, who and the line left. The Community tab of a model no longer links to its public page. (#437)
 
+- **A community model reads as a document, and nobody reports one.** About says what the model is for, who it is for, its author, language and licence, without the parameters. Contents opens each part — the Guidance, each folder with its Template and its notes, the attachments, the tables and the dashboards — as an accordion of its own, its Markdown drawn as a note is, and the page of a model shared with you reads the same. A community model can no longer be reported, and only its author withdraws it: the operator's reports and withdrawal are gone. (#439)
+
 ### Fixed
 
 - **Every card and every row shows it is under the mouse, all of it.** A card of a notebook's overview darkened only the part of it its link filled; it, the Templates of a notebook and every card now darken their edge, all of it, and the rows of the attachments, of a model's parameters and of its versions take the shade a row of the folders takes. (#429)

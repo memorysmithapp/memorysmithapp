@@ -1,7 +1,8 @@
 /**
  * Every message of an installation that sends through the organization's
- * relay (`MAIL=smtp`, #396): the pool's, as its custom email sender trigger,
- * and the product's, invoked by the core with `{ mail }`.
+ * relay (`MAIL=smtp`, #396): the pool's, as its custom email sender trigger.
+ * The product itself sends none since #439, which took away the notice of a
+ * withdrawal by the operator.
  *
  * The pool hands the code or the temporary password encrypted under a key of
  * the installation, and only this function decrypts it, just before it writes
@@ -23,10 +24,6 @@ export interface PoolSenderEvent {
     code?: string | null;
     userAttributes: Record<string, string>;
   };
-}
-
-export interface ProductMailEvent {
-  mail: { to: string; subject: string; text: string };
 }
 
 const setting = {
@@ -79,16 +76,11 @@ export function poolMail(
 }
 
 /** One line per message, named by what asked for it; never its address or its code. */
-export function handler(event: PoolSenderEvent | ProductMailEvent): Promise<void> {
-  const operation = 'mail' in event ? 'ProductMail' : event.triggerSource;
-  return observe({ operation }, () => deliver(event));
+export function handler(event: PoolSenderEvent): Promise<void> {
+  return observe({ operation: event.triggerSource }, () => deliver(event));
 }
 
-async function deliver(event: PoolSenderEvent | ProductMailEvent): Promise<void> {
-  if ('mail' in event) {
-    await mailer.send(event.mail);
-    return;
-  }
+async function deliver(event: PoolSenderEvent): Promise<void> {
   if (!event.request.code) return;
   const mail = poolMail(event, await decrypted(event.request.code), setting);
   if (mail) await mailer.send(mail);

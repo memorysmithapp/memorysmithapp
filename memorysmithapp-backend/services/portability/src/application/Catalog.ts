@@ -1,7 +1,7 @@
 /**
  * The community catalog (#360): publishing a model, withdrawing it, finding
- * and reading what is published, creating a notebook from it, and reporting
- * it to the operator of the platform, who may withdraw it.
+ * and reading what is published, and creating a notebook from it. Only its
+ * author withdraws a model (#439).
  *
  * A published model is read where it is, in its author's subscription,
  * through its catalog entry and nothing else (#356): the entry names the
@@ -25,8 +25,6 @@ import {
   matches,
   publicViewOf,
   type CatalogEntry,
-  type CatalogReport,
-  type CatalogReports,
   type CatalogStore,
   type PublicModel,
 } from '../domain/CommunityCatalog.js';
@@ -54,21 +52,10 @@ export interface CatalogCache {
   invalidate(publicId: string): Promise<void>;
 }
 
-/** Tells the author that the operator withdrew their model (#358). */
-export interface AuthorNotifier {
-  withdrawn(entry: CatalogEntry, reason: string): Promise<void>;
-}
-
 /** Who publishes: the name the catalog shows, and the e-mail it never shows (#357). */
 export interface Author {
   readonly name: string | null;
   readonly email: string;
-}
-
-/** The operator of the platform, who holds no subscription (INV-12). */
-export interface PlatformActor {
-  readonly userId: string;
-  readonly isPlatformAdmin: boolean;
 }
 
 export interface PublicationDependencies {
@@ -358,103 +345,5 @@ export class CreateFromCatalog {
       values: input.values,
       by: input.by,
     });
-  }
-}
-
-/** A person who signed in reports a published model to the operator (#358). */
-export class ReportModel {
-  constructor(
-    private readonly deps: CatalogReading & { readonly reports: CatalogReports },
-    private readonly reporterUserId: string,
-  ) {}
-
-  async execute(input: { publicId: string; reason: string }): Promise<Result<void, DomainError>> {
-    const reason = input.reason.trim();
-    if (reason.length === 0 || reason.length > 1000) {
-      return err(DomainError.validation('A report says why, in at most 1000 characters'));
-    }
-    if (!(await visible(this.deps, input.publicId))) {
-      return err(DomainError.notFound('Model not found'));
-    }
-    await this.deps.reports.add({
-      reportId: ulid(),
-      publicId: input.publicId,
-      reason,
-      reporterUserId: this.reporterUserId,
-      reportedAt: Instant.now().toISOString(),
-    });
-    return ok();
-  }
-}
-
-function operatorOnly(actor: PlatformActor): Result<void, DomainError> {
-  return actor.isPlatformAdmin
-    ? ok()
-    : err(DomainError.forbidden('Only the operator of the platform reads the reports'));
-}
-
-/** The reports waiting for the operator, each with the model it is about, if still published. */
-export class ListReports {
-  constructor(
-    private readonly deps: { readonly catalog: CatalogStore; readonly reports: CatalogReports },
-    private readonly actor: PlatformActor,
-  ) {}
-
-  async execute(): Promise<
-    Result<Array<{ report: CatalogReport; model: PublicModel | null }>, DomainError>
-  > {
-    const allowed = operatorOnly(this.actor);
-    if (!allowed.ok) return allowed;
-    const listed: Array<{ report: CatalogReport; model: PublicModel | null }> = [];
-    for (const report of await this.deps.reports.list()) {
-      const entry = await this.deps.catalog.get(report.publicId);
-      listed.push({ report, model: entry ? publicViewOf(entry) : null });
-    }
-    return ok(listed);
-  }
-}
-
-/**
- * The operator withdraws a model from the catalog (#358): its entry is deleted
- * and nothing else, because a platform session reaches no customer content
- * (INV-12), and the author is told by e-mail why.
- */
-export class WithdrawByOperator {
-  constructor(
-    private readonly deps: {
-      readonly catalog: CatalogStore;
-      readonly cache: CatalogCache;
-      readonly notifier: AuthorNotifier;
-    },
-    private readonly actor: PlatformActor,
-  ) {}
-
-  async execute(input: { publicId: string; reason: string }): Promise<Result<void, DomainError>> {
-    const allowed = operatorOnly(this.actor);
-    if (!allowed.ok) return allowed;
-    const reason = input.reason.trim();
-    if (reason.length === 0) {
-      return err(DomainError.validation('A withdrawal says why, which the author is told'));
-    }
-    const entry = await this.deps.catalog.get(input.publicId);
-    if (!entry) return err(DomainError.notFound('Model not found'));
-    await this.deps.catalog.remove(entry.publicId);
-    await this.deps.cache.invalidate(entry.publicId);
-    await this.deps.notifier.withdrawn(entry, reason);
-    return ok();
-  }
-}
-
-export class DismissReport {
-  constructor(
-    private readonly deps: { readonly reports: CatalogReports },
-    private readonly actor: PlatformActor,
-  ) {}
-
-  async execute(reportId: string): Promise<Result<void, DomainError>> {
-    const allowed = operatorOnly(this.actor);
-    if (!allowed.ok) return allowed;
-    await this.deps.reports.remove(reportId);
-    return ok();
   }
 }

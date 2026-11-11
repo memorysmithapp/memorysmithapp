@@ -1329,7 +1329,10 @@
       "NoteMoved": "Nota movida",
       "NoteDeleted": "Nota excluída",
       "NoteRestored": "Nota restaurada"
-    }
+    },
+    "folderNotes_one": "{{count}} nota",
+    "folderNotes_other": "{{count}} notas",
+    "untitledNote": "Uma nota sem nome"
   },
   "newNotebook": {
     "open": "Novo caderno",
@@ -1363,10 +1366,6 @@
     "nothing": "Nenhum modelo publicado responde a esta busca.",
     "author": "Autor",
     "licence": "Publicado sob CC0 1.0: qualquer pessoa pode reutilizá-lo, adaptá-lo e republicá-lo livremente, com crédito opcional.",
-    "report": "Denunciar este modelo",
-    "reportWhy": "O que há de errado com ele",
-    "sendReport": "Enviar a denúncia",
-    "reported": "Obrigado: a denúncia chegou ao operador da plataforma.",
     "by": "Por {{author}}",
     "cardMeta": "{{language}} · atualizado em {{date}}",
     "language": "Idioma",

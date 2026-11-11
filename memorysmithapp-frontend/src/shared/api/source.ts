@@ -518,7 +518,6 @@ export {
   getCatalogHistory,
   getCatalogModel,
   publishModel,
-  reportModel,
   searchCatalog,
   searchCatalogPage,
   withdrawModel,

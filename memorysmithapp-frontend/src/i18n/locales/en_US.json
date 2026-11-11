@@ -1326,7 +1326,10 @@
       "NoteMoved": "Note moved",
       "NoteDeleted": "Note deleted",
       "NoteRestored": "Note restored"
-    }
+    },
+    "folderNotes_one": "{{count}} note",
+    "folderNotes_other": "{{count}} notes",
+    "untitledNote": "A note with no name"
   },
   "newNotebook": {
     "open": "New notebook",
@@ -1360,10 +1363,6 @@
     "nothing": "No published model answers this search.",
     "author": "Author",
     "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
-    "report": "Report this model",
-    "reportWhy": "What is wrong with it",
-    "sendReport": "Send the report",
-    "reported": "Thank you: the report reached the operator of the platform.",
     "by": "By {{author}}",
     "cardMeta": "{{language}} · updated {{date}}",
     "language": "Language",

@@ -730,7 +730,9 @@ test.describe('notebook models', () => {
 
       await expect(app.getByRole('heading', { name: notebook.name, level: 1 })).toBeVisible();
       await expect(app.getByText(words.licence, { exact: false })).toBeVisible();
-      await expect(app.getByRole('button', { name: words.report })).toBeVisible();
+      // Nobody reports a model, and About lists no parameters (#439).
+      await expect(app.getByRole('button', { name: words.report })).toHaveCount(0);
+      await expect(app.locator('.parameter-list')).toHaveCount(0);
       await expect(app).toHaveTitle(new RegExp(notebook.name));
       const modelAddress = app.url();
       await app.getByRole('tab', { name: words.tabContents }).click();

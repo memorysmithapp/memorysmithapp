@@ -200,21 +200,6 @@ export const publicModelHistorySchema = z.object({
   truncated: z.boolean(),
 });
 
-/** A report of a published model, which only a person who signed in makes (#358). */
-export const reportModelRequestSchema = z.object({ reason: z.string().min(1).max(1000) });
-
-/** A report waiting for the operator, with the model it is about while it is published. */
-export const catalogReportSchema = z.object({
-  reportId: ulidSchema,
-  publicId: ulidSchema,
-  reason: z.string(),
-  reportedAt: instantSchema,
-  model: publicModelSchema.nullable(),
-});
-
-/** The operator withdraws a model, saying why: the author is told (#358). */
-export const withdrawModelRequestSchema = z.object({ reason: z.string().min(1).max(2000) });
-
 export type ParameterTypeDto = z.infer<typeof parameterTypeSchema>;
 export type ParameterValueDto = z.infer<typeof parameterValueSchema>;
 export type ParameterDeclarationDto = z.infer<typeof parameterDeclarationSchema>;
@@ -230,4 +215,3 @@ export type PublicModelDto = z.infer<typeof publicModelSchema>;
 export type CatalogSearchDto = z.infer<typeof catalogSearchSchema>;
 export type PublicModelContentsDto = z.infer<typeof publicModelContentsSchema>;
 export type PublicModelHistoryDto = z.infer<typeof publicModelHistorySchema>;
-export type CatalogReportDto = z.infer<typeof catalogReportSchema>;

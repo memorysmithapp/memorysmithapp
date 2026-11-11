@@ -7,24 +7,16 @@
  * starts from an entry, the one way a public request reaches a subscription
  * (INV-02). Their answers may be kept at the edge for a minute; a withdrawal
  * empties it.
- *
- * The operator's routes are for a platform session, which holds no
- * subscription and reaches no customer content (INV-12): they read the
- * reports and delete a catalog entry, and nothing else.
+
  */
 
 import { Hono, type Context } from 'hono';
 import { DomainError, httpStatusFor, type Result } from '@memorysmithapp/kernel';
-import { withdrawModelRequestSchema } from '@memorysmithapp/contracts';
 import type {
-  DismissReport,
-  ListReports,
-  PlatformActor,
   ReadCatalogContents,
   ReadCatalogHistory,
   ReadCatalogModel,
   SearchCatalog,
-  WithdrawByOperator,
 } from '../application/Catalog.js';
 import { documentToDto } from './http.js';
 
@@ -107,57 +99,6 @@ export function createPublicCatalogRoutes(useCases: PublicCatalogUseCases): Hono
     const read = await useCases.readHistory().execute(c.req.param('p'));
     return read.ok ? cached(c, read.value) : fail(c, read.error);
   });
-
-  return app;
-}
-
-export interface CatalogOperatorUseCases {
-  readonly listReports: (actor: PlatformActor) => ListReports;
-  readonly withdraw: (actor: PlatformActor) => WithdrawByOperator;
-  readonly dismissReport: (actor: PlatformActor) => DismissReport;
-}
-
-type OperatorVariables = { operator: PlatformActor };
-
-function answer<T>(c: Context, result: Result<T, DomainError>, status: 200 | 204): Response {
-  if (!result.ok) return fail(c, result.error);
-  return status === 204 ? c.body(null, 204) : c.json(result.value as object, 200);
-}
-
-export function createCatalogOperatorRoutes(
-  useCases: CatalogOperatorUseCases,
-): Hono<{ Variables: OperatorVariables }> {
-  const app = new Hono<{ Variables: OperatorVariables }>();
-
-  app.get('/reports', async (c) => {
-    const listed = await useCases.listReports(c.get('operator')).execute();
-    if (!listed.ok) return fail(c, listed.error);
-    return c.json({
-      reports: listed.value.map(({ report, model }) => ({
-        reportId: report.reportId,
-        publicId: report.publicId,
-        reason: report.reason,
-        reportedAt: report.reportedAt,
-        model,
-      })),
-    });
-  });
-
-  app.post('/models/:p/withdraw', async (c) => {
-    const body = withdrawModelRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!body.success) return fail(c, DomainError.validation('A withdrawal says why'));
-    return answer(
-      c,
-      await useCases
-        .withdraw(c.get('operator'))
-        .execute({ publicId: c.req.param('p'), reason: body.data.reason }),
-      204,
-    );
-  });
-
-  app.delete('/reports/:r', async (c) =>
-    answer(c, await useCases.dismissReport(c.get('operator')).execute(c.req.param('r')), 204),
-  );
 
   return app;
 }

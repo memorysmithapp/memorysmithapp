@@ -81,7 +81,6 @@ function templates(): { api: Template; projections: Template } {
     connectorClientId: identity.proxyClient.userPoolClientId,
     webClientId: identity.webClient.userPoolClientId,
     frontendOrigin: `https://${network.siteDomainName}`,
-    senderAddress: network.senderAddress,
   });
   const projections = new ProjectionsStack(app, stackId(environment, 'Projections'), {
     env,

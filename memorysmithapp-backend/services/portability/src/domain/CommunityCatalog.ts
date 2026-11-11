@@ -8,8 +8,9 @@
  * subscription, which maps a public identifier to the subscription and the
  * model notebook, and says what the catalog shows and is searched by (#358).
  * Whoever reads a published model reads its notebook as it stands, through the
- * entry, and every change its owner makes reaches them (#431). Withdrawing
- * deletes the entry, and the model answers as missing from then on.
+ * entry, and every change its owner makes reaches them (#431). Its author
+ * withdraws it, which deletes the entry, and the model answers as missing
+ * from then on.
  */
 
 import type { ParameterDeclaration } from './NotebookModel.js';
@@ -22,7 +23,7 @@ export interface CatalogEntry {
   readonly ownerUserId: string;
   /** The display name of the account that published it, never its e-mail (#357). */
   readonly authorName: string;
-  /** Where the author is told of a withdrawal by the operator; never shown (#358). */
+  /** The e-mail of the account that published it; never shown (#358). */
   readonly authorEmail: string;
   readonly name: string;
   readonly objective: string;
@@ -100,25 +101,10 @@ function fold(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
-/** A report of a published model, for the operator of the platform (#358). */
-export interface CatalogReport {
-  readonly reportId: string;
-  readonly publicId: string;
-  readonly reason: string;
-  readonly reporterUserId: string;
-  readonly reportedAt: string;
-}
-
 export interface CatalogStore {
   get(publicId: string): Promise<CatalogEntry | null>;
   /** Every published model. */
   list(): Promise<CatalogEntry[]>;
   put(entry: CatalogEntry): Promise<void>;
   remove(publicId: string): Promise<void>;
-}
-
-export interface CatalogReports {
-  add(report: CatalogReport): Promise<void>;
-  list(): Promise<CatalogReport[]>;
-  remove(reportId: string): Promise<void>;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,6 @@ import {
   getCatalogHistory,
   getCatalogModel,
   listModels,
-  reportModel,
   searchCatalog,
 } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -24,7 +23,7 @@ import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { PageHeading } from '../../shared/components/PageHeading';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { SharedModelBar } from '../models/ModelPage';
-import { ModelContents, ParameterList } from '../models/ModelContents';
+import { ModelContents } from '../models/ModelContents';
 import { ModelHistoryList } from '../models/ModelHistory';
 
 /**
@@ -209,12 +208,7 @@ export function CommunityModelPage() {
               aria-labelledby={`model-tab-${tab}`}
               className="model-panel"
             >
-              {tab === 'about' ? (
-                <>
-                  <ModelFacts model={model.data} />
-                  <Report publicId={publicId} />
-                </>
-              ) : null}
+              {tab === 'about' ? <ModelFacts model={model.data} /> : null}
               {tab === 'contents' ? <CommunityContents publicId={publicId} /> : null}
               {tab === 'history' ? <CommunityHistory publicId={publicId} /> : null}
             </div>
@@ -284,58 +278,6 @@ function ModelFacts({ model }: { model: PublicModelDto }) {
         </p>
       ) : null}
       <p className="hint">{t('community.licence')}</p>
-      <h2>{t('model.parameters')}</h2>
-      <ParameterList parameters={model.parameters} />
     </section>
-  );
-}
-
-/** A report to the operator, which only a person signed in makes (#358). */
-function Report({ publicId }: { publicId: string }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState('');
-  const [said, setSaid] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  if (!open) {
-    return (
-      <p className="community-report">
-        <button type="button" className="button is-quiet is-small" onClick={() => setOpen(true)}>
-          {t('community.report')}
-        </button>
-      </p>
-    );
-  }
-
-  async function send(event: FormEvent): Promise<void> {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      await reportModel(publicId, reason);
-      setSaid(t('community.reported'));
-      setReason('');
-    } catch (error) {
-      setSaid(t(messageKeyOf(error)));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form className="community-report" onSubmit={(event) => void send(event)}>
-      <label className="field">
-        <span className="field-label">{t('community.reportWhy')}</span>
-        <textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
-      </label>
-      <button type="submit" className="button is-danger" disabled={busy || !reason.trim()}>
-        {t('community.sendReport')}
-      </button>
-      {said ? (
-        <p className="hint" role="status">
-          {said}
-        </p>
-      ) : null}
-    </form>
   );
 }

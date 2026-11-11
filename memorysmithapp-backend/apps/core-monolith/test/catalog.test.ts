@@ -297,16 +297,8 @@ describe('publishing a model to the community (#360)', () => {
     );
   });
 
-  it('takes a report only from a person signed in, which the operator acts on', async () => {
+  it('takes no report and has no withdrawal of the operator (#439)', async () => {
     const { publicId } = await json<{ publicId: string }>(await publish(OWNER.token, notebookId));
-    expect(
-      (
-        await call(null, `/portability/catalog/${publicId}/reports`, {
-          method: 'POST',
-          body: { reason: 'Copied from somebody else' },
-        })
-      ).status,
-    ).toBe(404);
     expect(
       (
         await call(STRANGER.token, `/portability/catalog/${publicId}/reports`, {
@@ -314,43 +306,17 @@ describe('publishing a model to the community (#360)', () => {
           body: { reason: 'Copied from somebody else' },
         })
       ).status,
-    ).toBe(204);
-
-    // Nobody but the operator reads the reports.
-    expect((await call(OWNER.token, '/platform/catalog/reports')).status).toBe(404);
-    const { reports } = await json<{
-      reports: Array<{ reportId: string; publicId: string; reason: string }>;
-    }>(await call(OPERATOR, '/platform/catalog/reports'));
-    expect(reports).toEqual([
-      expect.objectContaining({ publicId, reason: 'Copied from somebody else' }),
-    ]);
-
-    const withdrawn = await call(OPERATOR, `/platform/catalog/models/${publicId}/withdraw`, {
-      method: 'POST',
-      body: { reason: 'It copies a model of another author' },
-    });
-    expect(withdrawn.status).toBe(204);
-    expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(404);
-    expect(harness.authorMail).toEqual([
-      expect.objectContaining({ to: OWNER.email, reason: 'It copies a model of another author' }),
-    ]);
-    // The model stays with the author, untouched (INV-12).
-    const model = await json<{ objective: string; publication: unknown }>(
-      await call(OWNER.token, `/portability/models/${notebookId}`),
-    );
-    expect(model.objective).toBe('Follow the public procurement of one public body');
-    expect(model.publication).toBeNull();
-
+    ).toBe(404);
+    expect((await call(OPERATOR, '/platform/catalog/reports')).status).toBe(404);
     expect(
       (
-        await call(OPERATOR, `/platform/catalog/reports/${reports[0]?.reportId ?? ''}`, {
-          method: 'DELETE',
+        await call(OPERATOR, `/platform/catalog/models/${publicId}/withdraw`, {
+          method: 'POST',
+          body: { reason: 'Moderation' },
         })
       ).status,
-    ).toBe(204);
-    expect(
-      (await json<{ reports: unknown[] }>(await call(OPERATOR, '/platform/catalog/reports')))
-        .reports,
-    ).toEqual([]);
+    ).toBe(404);
+    // Only its author withdraws it.
+    expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(200);
   });
 });

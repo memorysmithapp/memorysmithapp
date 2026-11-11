@@ -69,7 +69,6 @@ function template(): Template {
     connectorClientId: identity.proxyClient.userPoolClientId,
     webClientId: identity.webClient.userPoolClientId,
     frontendOrigin: `https://${network.siteDomainName}`,
-    senderAddress: network.senderAddress,
   });
   return Template.fromStack(api);
 }

@@ -78,8 +78,14 @@ describe('a model as it stands (#431)', () => {
     const html = draw(CONTENTS);
     expect(html).toContain('Write one note per assembly.');
     expect(html).toContain('Minutes');
-    expect(html).toContain('# Minutes of {{condominium}}');
-    expect(html).toContain('The first assembly of {{condominium}}');
+    // Each part is an accordion, its Markdown drawn as a note reads (#439).
+    expect(html).toContain('class="template-card model-part"');
+    expect(html).not.toContain('<pre class="model-source">');
+    // A parameter stays visible, drawn as one.
+    expect(html).toContain('<h1>Minutes of <span class="parameter" data-parameter="condominium"');
+    expect(html).toMatch(
+      /The first assembly of <span class="parameter" data-parameter="condominium"/,
+    );
     expect(html).toContain('bylaws.pdf · application/pdf');
     expect(html).toContain('<strong>Costs</strong> · item, value · 2 rows');
     expect(html).toContain('<strong>Budget</strong>');

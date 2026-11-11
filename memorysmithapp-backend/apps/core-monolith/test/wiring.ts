@@ -194,25 +194,16 @@ import {
   type ModelReading,
   type ModelSources,
 } from '@memorysmithapp/svc-portability/application/models';
-import {
-  InMemoryCatalogReports,
-  InMemoryCatalogStore,
-} from '@memorysmithapp/svc-portability/adapters/catalog';
+import { InMemoryCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
 import {
   CreateFromCatalog,
   PublicationOf,
   PublishModel,
-  ReportModel,
   WithdrawModel,
   refreshPublication,
   type CatalogReading,
 } from '@memorysmithapp/svc-portability/application/catalog';
-import {
-  catalogOperatorUseCasesOf,
-  forgetPublication,
-  NO_EDGE_CACHE,
-  publicCatalogUseCasesOf,
-} from '../src/catalog.js';
+import { forgetPublication, NO_EDGE_CACHE, publicCatalogUseCasesOf } from '../src/catalog.js';
 import {
   InMemoryPartStore,
   InMemoryPreviewQueue,
@@ -830,7 +821,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     });
   /** The community catalog (#360), at the level of the platform, in memory. */
   const catalog = new InMemoryCatalogStore();
-  const catalogReports = new InMemoryCatalogReports();
   const catalogReading: CatalogReading = {
     catalog,
     access: {
@@ -840,8 +830,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         ),
     },
   };
-  /** What the operator's withdrawals told their authors, for a test to read. */
-  const authorMail: Array<{ to: string; name: string; reason: string }> = [];
   const callerOf = (request: PortabilityRequest): ModelCaller => ({
     subscriptionId: request.subscription.subscriptionId.value,
     userId: request.subscription.userId.value,
@@ -1054,11 +1042,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       new PublicationOf({ models: modelStoreOf(request.subscription), catalog }),
     createFromCatalog: (request) =>
       new CreateFromCatalog(catalogReading, portabilityUseCases.startImport(request)),
-    reportModel: (request) =>
-      new ReportModel(
-        { ...catalogReading, reports: catalogReports },
-        request.subscription.userId.value,
-      ),
   };
 
   const app = createApp({
@@ -1122,16 +1105,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     discoveryUseCases,
     portabilityUseCases,
     publicCatalog: publicCatalogUseCasesOf(catalogReading, (entry) => readingOf(holderOf(entry))),
-    catalogOperator: catalogOperatorUseCasesOf({
-      catalog,
-      reports: catalogReports,
-      cache: NO_EDGE_CACHE,
-      notifier: {
-        withdrawn: async (entry, reason) => {
-          authorMail.push({ to: entry.authorEmail, name: entry.name, reason });
-        },
-      },
-    }),
     nameOf: async (email) => {
       const parsed = Email.create(email);
       return parsed.ok ? accountDirectory.nameOf(parsed.value) : null;
@@ -1211,10 +1184,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     relayed,
     /** The names of the accounts, which the catalog shows of an author (#357). */
     accountDirectory,
-    /** The catalog and its reports, and what the authors were told (#360). */
+    /** The catalog of the community (#360). */
     catalog,
-    catalogReports,
-    authorMail,
     /** Makes the discard of an upload fail, or stop failing when given null. */
     refuseDiscard: (error: Error | null): void => {
       refusals.discard = error;

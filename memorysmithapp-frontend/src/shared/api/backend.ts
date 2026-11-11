@@ -276,13 +276,6 @@ export async function createFromCatalog(
   });
 }
 
-export async function reportModel(publicId: string, reason: string): Promise<void> {
-  await request<void>(`/portability/catalog/${publicId}/reports`, {
-    method: 'POST',
-    body: { reason },
-  });
-}
-
 export async function listNotebooks(): Promise<NotebookSummary[]> {
   const notebooks = await request<NotebookSummaryDto[]>('/knowledge/notebooks');
   return notebooks.map(toSummary);

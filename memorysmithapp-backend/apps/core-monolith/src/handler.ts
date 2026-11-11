@@ -205,28 +205,21 @@ import {
   type FileKeeper,
 } from '@memorysmithapp/svc-portability/application/uploads';
 import { createApp } from './app.js';
-import {
-  DynamoCatalogReports,
-  DynamoCatalogStore,
-} from '@memorysmithapp/svc-portability/adapters/catalog';
+import { DynamoCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
 import {
   CreateFromCatalog,
   PublicationOf,
   PublishModel,
-  ReportModel,
   WithdrawModel,
   refreshPublication,
   type CatalogReading,
 } from '@memorysmithapp/svc-portability/application/catalog';
 import {
-  catalogOperatorUseCasesOf,
   CloudFrontCatalogCache,
   DynamoSubscriptionAccess,
   forgetPublication,
   NO_EDGE_CACHE,
   publicCatalogUseCasesOf,
-  RelayAuthorNotifier,
-  SesAuthorNotifier,
 } from './catalog.js';
 import {
   buildAccess,
@@ -327,7 +320,6 @@ const sharing = buildShares(infra);
  * platform, and the edge in front of its public route, emptied on a withdrawal.
  */
 const catalog = new DynamoCatalogStore(infra.db, infra.portabilityTable);
-const catalogReports = new DynamoCatalogReports(infra.db, infra.portabilityTable);
 const catalogCache = process.env['CATALOG_DISTRIBUTION_ID']
   ? new CloudFrontCatalogCache(process.env['CATALOG_DISTRIBUTION_ID'])
   : NO_EDGE_CACHE;
@@ -775,11 +767,6 @@ const portabilityUseCases: PortabilityUseCases = {
     new PublicationOf({ models: buildModels(infra, request.subscription), catalog }),
   createFromCatalog: (request) =>
     new CreateFromCatalog(catalogReading, portabilityUseCases.startImport(request)),
-  reportModel: (request) =>
-    new ReportModel(
-      { ...catalogReading, reports: catalogReports },
-      request.subscription.userId.value,
-    ),
 };
 
 /** What publishing a model is built from, for one request (#360). */
@@ -899,15 +886,6 @@ const app = createApp({
   discoveryUseCases,
   portabilityUseCases,
   publicCatalog: publicCatalogUseCasesOf(catalogReading, buildModelReadingOf(infra)),
-  catalogOperator: catalogOperatorUseCasesOf({
-    catalog,
-    reports: catalogReports,
-    cache: catalogCache,
-    // An installation with MAIL=smtp hands every message to its relay (#396).
-    notifier: process.env['MAIL_FUNCTION']
-      ? new RelayAuthorNotifier(process.env['MAIL_FUNCTION'])
-      : new SesAuthorNotifier(required('SENDER_ADDRESS')),
-  }),
   nameOf: async (email) => {
     const parsed = Email.create(email);
     return parsed.ok ? accountDirectory.nameOf(parsed.value) : null;

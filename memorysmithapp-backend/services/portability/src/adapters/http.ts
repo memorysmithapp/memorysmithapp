@@ -46,7 +46,6 @@ import {
   createFromModelRequestSchema,
   declareModelRequestSchema,
   publishModelRequestSchema,
-  reportModelRequestSchema,
   finishedUploadSchema,
   importFromExportRequestSchema,
   importUploadSchema,
@@ -93,7 +92,6 @@ import type {
   CreateFromCatalog,
   PublicationOf,
   PublishModel,
-  ReportModel,
   WithdrawModel,
 } from '../application/Catalog.js';
 import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
@@ -188,7 +186,6 @@ export interface PortabilityUseCases {
   readonly withdrawModel: (request: PortabilityRequest) => WithdrawModel;
   readonly publicationOf: (request: PortabilityRequest) => PublicationOf;
   readonly createFromCatalog: (request: PortabilityRequest) => CreateFromCatalog;
-  readonly reportModel: (request: PortabilityRequest) => ReportModel;
 }
 
 /** A model on the wire (#353): what it says of itself. */
@@ -478,18 +475,6 @@ export function createPortabilityRoutes(
       by: request.authorship.value,
     });
     return started.ok ? c.json(transferToDto(started.value), 202) : fail(c, started.error);
-  });
-
-  /** A report of a published model, which only a person who signed in makes (#358). */
-  app.post('/catalog/:p/reports', async (c) => {
-    const request = c.get('portability');
-    const body = reportModelRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!body.success) return fail(c, DomainError.validation('A report says why'));
-    const reported = await useCases.reportModel(request).execute({
-      publicId: c.req.param('p') ?? '',
-      reason: body.data.reason,
-    });
-    return reported.ok ? c.body(null, 204) : fail(c, reported.error);
   });
 
   app.post('/notebooks/:v/export', async (c) => {
