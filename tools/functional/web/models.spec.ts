@@ -736,11 +736,29 @@ test.describe('notebook models', () => {
       await expect(app.getByRole('button', { name: words.report })).toHaveCount(0);
       await expect(app.locator('.parameter-list')).toHaveCount(0);
       await expect(app).toHaveTitle(new RegExp(notebook.name));
+      await testInfo.attach('community-about.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
       const modelAddress = app.url();
       await app.getByRole('tab', { name: words.tabContents }).click();
       const contents = app.locator('section.model-contents');
       await expect(contents).toBeVisible();
       await expect(contents.locator('form, .create-from-model')).toHaveCount(0);
+      // Each part an accordion, its Markdown drawn as a note reads (#439).
+      const folder = contents.locator('details.model-part', {
+        has: app.locator(':scope > summary', { hasText: 'Findings' }),
+      });
+      await folder.locator(':scope > summary').click();
+      await folder
+        .locator(':scope > .template-card-body > details.model-part > summary')
+        .first()
+        .click();
+      await expect(folder.getByRole('heading', { name: 'Verification' })).toBeVisible();
+      await testInfo.attach('community-contents.png', {
+        body: await app.screenshot({ animations: 'disabled', fullPage: true }),
+        contentType: 'image/png',
+      });
       // Its history says when and what, never who, not even the column (#431, #435).
       await app.getByRole('tab', { name: words.tabHistory }).click();
       await expect(app.locator('.model-history-table tbody tr').first()).toBeVisible({

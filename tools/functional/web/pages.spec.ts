@@ -769,13 +769,28 @@ test.describe('the pages of an account', () => {
   test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, opens one and deletes it', async ({
     app,
     notebook,
+    owner,
     words,
-  }) => {
+  }, testInfo) => {
+    // A Template with boxes: they show their state and answer no click (#440).
+    const path = `/knowledge/notebooks/${notebook.notebookId}/folders/${notebook.folderId}/template`;
+    const { revision } = await owner.ok<{ revision: { versionId: string } }>('GET', path);
+    await owner.ok('PUT', path, {
+      content: '## Finding\n\n## Verification\n\n- [ ] Reproduced\n- [x] Reported\n',
+      baseRevision: revision.versionId,
+    });
     await app.goto(notebook.page('/templates'));
 
     const box = app.locator('details.template-card', { hasText: 'Findings' });
     await box.locator('summary').click();
     await expect(box.getByRole('heading', { name: 'Verification' })).toBeVisible();
+    const boxes = box.locator('input[type="checkbox"]');
+    await expect(boxes).toHaveCount(2);
+    for (const each of await boxes.all()) await expect(each).toBeDisabled();
+    await testInfo.attach('template-boxes.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
 
     // The Template is an object of its own and is deleted on its own: the
     // card goes and the folder stays (RN-KNW-045). It asks first, in the page,
