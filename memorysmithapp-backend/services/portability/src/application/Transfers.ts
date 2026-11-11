@@ -269,6 +269,30 @@ export class StartImport {
 }
 
 /**
+ * The person read the notice of a transfer that ended (#454): kept on the
+ * transfer, so it leaves the bell on every device. Only one that ended has a
+ * notice to read; a running one is refused.
+ */
+export class MarkTransferRead {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly userId: string,
+  ) {}
+
+  async execute(transferId: string): Promise<Result<void, DomainError>> {
+    const found = await this.transfers.get(this.userId, transferId);
+    if (!found) return err(DomainError.notFound('Transfer not found'));
+    if (found.status === 'running') {
+      return err(DomainError.conflict('A transfer still running has no notice to read'));
+    }
+    if (!found.noticeRead) {
+      await this.transfers.patch(this.userId, transferId, { noticeRead: true });
+    }
+    return ok(undefined);
+  }
+}
+
+/**
  * Cancelling a transfer (RN-PRT-018). It marks the record, and the worker is
  * what acts on it: an import takes its notebook back down whole at the next
  * note it was about to write, which frees the name (RN-PRT-014, RN-KNW-033).

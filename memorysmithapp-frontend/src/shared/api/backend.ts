@@ -687,6 +687,11 @@ export async function importFromExport(transferId: string): Promise<{ uploadKey:
 }
 
 /** Stops a running transfer; an import that stops is taken back down whole (RN-PRT-018). */
+/** The person read the notice of a transfer that ended, on every device (#454). */
+export async function markTransferRead(transferId: string): Promise<void> {
+  await request<void>(`/portability/transfers/${transferId}/read`, { method: 'POST' });
+}
+
 export async function cancelTransfer(transferId: string): Promise<void> {
   await request<void>(`/portability/transfers/${transferId}/cancel`, { method: 'POST' });
 }

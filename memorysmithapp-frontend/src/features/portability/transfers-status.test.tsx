@@ -35,6 +35,7 @@ function transfer(over: Partial<TransferDto>): TransferDto {
     total: 0,
     bytes: 0,
     failure: null,
+    noticeRead: false,
     fileName: null,
     ...over,
   };

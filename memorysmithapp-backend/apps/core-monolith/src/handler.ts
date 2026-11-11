@@ -163,6 +163,7 @@ import type { Transfer } from '@memorysmithapp/svc-portability/domain/transfer';
 import { Email } from '@memorysmithapp/svc-access/domain/values';
 import {
   CancelTransfer,
+  MarkTransferRead,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
@@ -647,6 +648,11 @@ const portabilityUseCases: PortabilityUseCases = {
     ),
   cancelTransfer: (request) =>
     new CancelTransfer(
+      buildTransfers(infra, request.subscription),
+      request.subscription.userId.value,
+    ),
+  markTransferRead: (request) =>
+    new MarkTransferRead(
       buildTransfers(infra, request.subscription),
       request.subscription.userId.value,
     ),

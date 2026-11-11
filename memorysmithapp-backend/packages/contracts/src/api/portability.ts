@@ -171,6 +171,8 @@ export const transferSchema = z.object({
   bytes: z.number().int().nonnegative(),
   /** A code the interface turns into words in the language of the person. */
   failure: z.string().nullable(),
+  /** Whether the person read the notice of its end, on any device (#454). */
+  noticeRead: z.boolean().default(false),
   /**
    * The file this transfer is about: the one an import came from, as the
    * person chose it, and the one an export saves as, named after its notebook.

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmithapp/contracts';
-import { isWorking, progressOf, useTransfers } from './transfers';
+import { isWorking, progressOf, useRefreshTransfers, useTransfers } from './transfers';
+import { markTransferRead } from '../../shared/api/source';
 import { KindMark, TransferState, TransferTitle, failureOf } from './TransferParts';
 import { CheckIcon } from '../../shared/components/icons';
 import { ActionWord } from '../../shared/components/ActionWord';
@@ -10,34 +11,10 @@ import { ActionWord } from '../../shared/components/ActionWord';
  * Transfers, on the bell of the header (#418, #450): the edge of the button
  * fills as far as the transfers under way got, and the panel shows each with
  * its bar while it runs; when one ends, that it finished or failed is news,
- * kept until the person marks it as read, here and after a reload (#451).
+ * kept until the person marks it as read, on the account, so on every
+ * device (#451, #454).
  * Everything else about transfers is on their page, in the menu.
  */
-// The transfers whose end the person read (#450); the key of #418 held the
-// running ones read, which means something else, so it is left behind.
-const NOTICED_KEY = 'memorysmith.transfersEndedRead';
-/** Enough to remember every transfer a person can have running at once. */
-const REMEMBERED = 50;
-
-function noticed(): string[] {
-  try {
-    const kept: unknown = JSON.parse(window.localStorage.getItem(NOTICED_KEY) ?? '[]');
-    return Array.isArray(kept) ? kept.filter((id): id is string => typeof id === 'string') : [];
-  } catch {
-    // A browser that refuses storage shows the notice once more, which is the
-    // harmless half of being wrong here.
-    return [];
-  }
-}
-
-function remember(ids: string[]): void {
-  try {
-    window.localStorage.setItem(NOTICED_KEY, JSON.stringify(ids.slice(-REMEMBERED)));
-  } catch {
-    /* nothing to do: the notice comes back once */
-  }
-}
-
 export interface TransfersStatus {
   /**
    * How far the transfers under way are, from 0 to 1 — the one furthest from
@@ -66,7 +43,9 @@ export function endedLately(transfer: TransferDto, now: number): boolean {
 }
 
 export function useTransfersStatus(): TransfersStatus {
-  const [read, setRead] = useState(noticed);
+  // What was marked a moment ago, until the list read again says so (#454).
+  const [read, setRead] = useState<readonly string[]>([]);
+  const refresh = useRefreshTransfers();
   const { data } = useTransfers();
   /**
    * The ring and the notice are for a job that ends by itself. An upload of
@@ -76,8 +55,11 @@ export function useTransfersStatus(): TransfersStatus {
   const transfers = data?.transfers ?? [];
   const running = transfers.filter(isWorking);
   const now = Date.now();
+  // Read is kept on the transfer, on the account, so a notice read on one
+  // device is gone on every other (#454).
   const ended = transfers.filter(
-    (transfer) => endedLately(transfer, now) && !read.includes(transfer.transferId),
+    (transfer) =>
+      endedLately(transfer, now) && !transfer.noticeRead && !read.includes(transfer.transferId),
   );
   const progress = running.map((transfer) => progressOf(transfer) ?? 0);
   return {
@@ -86,9 +68,8 @@ export function useTransfersStatus(): TransfersStatus {
     ended,
     read: (transferId) => {
       if (read.includes(transferId)) return;
-      const next = [...read, transferId];
-      remember(next);
-      setRead(next);
+      setRead([...read, transferId]);
+      void markTransferRead(transferId).finally(refresh);
     },
   };
 }

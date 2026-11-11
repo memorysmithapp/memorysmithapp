@@ -119,7 +119,8 @@ test.describe('the pages of an account', () => {
     await app.goto(`${state.surfaces.site}/notebooks`);
 
     // Its name with how many it holds, the action beside it, and what the
-    // page is for behind a `?` (#418).
+    // page is for behind a `?` (#418), which opens only when asked, even on a
+    // first visit: nothing was remembered of one (#454).
     const heading = app.getByRole('heading', { name: words.notebooks, level: 1 });
     await expect(heading).toBeVisible();
     await expect(heading.locator('.shelf-count')).toHaveText(/^\d+$/);
@@ -3132,6 +3133,7 @@ test.describe('the transfers of a person', () => {
   test('[page:/transfers] exports a notebook from its page, keeps it, downloads it again and deletes it', async ({
     app,
     notebook,
+    owner,
     state,
     words,
   }, testInfo) => {
@@ -3187,6 +3189,17 @@ test.describe('the transfers of a person', () => {
     await expect(ended).toBeVisible();
     await ended.getByRole('button', { name: words.markRead }).click();
     await expect(ended).toHaveCount(0);
+    // Read on the account, so gone on every device (#454).
+    await expect
+      .poll(async () => {
+        const answer = await owner.ok<{
+          transfers: Array<{ notebookName: string; kind: string; noticeRead: boolean }>;
+        }>('GET', '/portability/transfers');
+        return answer.transfers.find(
+          (each) => each.kind === 'export' && each.notebookName === notebook.name,
+        )?.noticeRead;
+      })
+      .toBe(true);
     await bell.click();
     const downloading = app.waitForEvent('download');
     await download.click();

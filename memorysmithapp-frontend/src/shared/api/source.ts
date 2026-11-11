@@ -345,6 +345,10 @@ export function importFromExport(transferId: string): Promise<{ uploadKey: strin
   return backend.importFromExport(transferId);
 }
 
+export function markTransferRead(transferId: string): Promise<void> {
+  return backend.markTransferRead(transferId);
+}
+
 export function cancelTransfer(transferId: string): Promise<void> {
   return backend.cancelTransfer(transferId);
 }

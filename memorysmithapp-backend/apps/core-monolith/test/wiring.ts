@@ -166,6 +166,7 @@ import type {
 } from '@memorysmithapp/svc-portability/adapters/http';
 import {
   CancelTransfer,
+  MarkTransferRead,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
@@ -879,6 +880,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         discardUpload(parts, request.subscription.subscriptionId.value, transfer),
       ),
     cancelTransfer: (request) => new CancelTransfer(transfers, request.subscription.userId.value),
+    markTransferRead: (request) =>
+      new MarkTransferRead(transfers, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
     importFromExport: (request) =>

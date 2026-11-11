@@ -1,27 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HelpIcon } from './icons';
 import { InfoPopover } from './InfoPopover';
-
-const SEEN_PREFIX = 'memorysmith.shelfHelpSeen.';
-
-function seen(page: string): boolean {
-  try {
-    return window.localStorage.getItem(SEEN_PREFIX + page) !== null;
-  } catch {
-    // A browser that refuses storage opens the help each time, which is the
-    // harmless half of being wrong here.
-    return false;
-  }
-}
-
-function markSeen(page: string): void {
-  try {
-    window.localStorage.setItem(SEEN_PREFIX + page, '1');
-  } catch {
-    /* nothing to do: it opens once more */
-  }
-}
 
 /**
  * The head of every page outside a notebook (#415): its name, with how many
@@ -31,9 +11,10 @@ function markSeen(page: string): void {
  * head of every page, and no heading repeats it (#225).
  *
  * The `?` helps on a first visit and is in the way on every visit after, so
- * its words wait behind it, and it opens by itself the first time this
- * browser shows the page (#418). Its classes keep the names of the shelves,
- * where it was born.
+ * its words wait behind it, and it opens only when the person asks (#454):
+ * it used to open by itself on the first visit of each browser (#418), which
+ * came back on every device and interrupted the person entering a page. Its
+ * classes keep the names of the shelves, where it was born.
  */
 export function PageHeading({
   title,
@@ -67,18 +48,14 @@ export function PageHeading({
   );
 }
 
-function PageHelp({ page, children }: { page: string; children: ReactNode }) {
+function PageHelp({ children }: { page: string; children: ReactNode }) {
   const { t } = useTranslation();
-  // Read once: whether this browser showed the page before.
-  const [first] = useState(() => !seen(page));
   return (
     <InfoPopover
       icon={<HelpIcon />}
       label={t('shelf.help')}
       className="shelf-help"
       boxClassName="shelf-help-box"
-      initiallyOpen={first}
-      onOpen={() => markSeen(page)}
     >
       {children}
     </InfoPopover>

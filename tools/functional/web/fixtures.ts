@@ -452,11 +452,6 @@ export async function speak(page: Page, state: RunState, locale: AppLocale): Pro
         const key = scope.localStorage.key(index);
         if (key?.startsWith('memorysmith.lastNote')) scope.localStorage.removeItem(key);
       }
-      // The help of a page opens by itself on a first visit (#418, #435), over
-      // what a case clicks; a case that reads it opens it with its `?`.
-      for (const shelf of ['notebooks', 'models', 'community', 'transfers']) {
-        scope.localStorage.setItem(`memorysmith.shelfHelpSeen.${shelf}`, '1');
-      }
     },
     { site: state.surfaces.site, locale },
   );

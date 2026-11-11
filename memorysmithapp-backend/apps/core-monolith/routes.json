@@ -118,6 +118,7 @@
   "POST /portability/requests",
   "POST /portability/transfers/:t/cancel",
   "POST /portability/transfers/:t/download",
+  "POST /portability/transfers/:t/read",
   "POST /portability/uploads",
   "POST /portability/uploads/:t/finish",
   "POST /portability/uploads/:t/link",

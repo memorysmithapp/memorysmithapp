@@ -67,6 +67,11 @@ export interface Transfer {
   readonly versionId: string | null;
   /** A code the interface turns into words in the language of the person. */
   readonly failure: string | null;
+  /**
+   * The person marked the notice of its end as read (#454): kept on the
+   * transfer, so the bell leaves it out on every device.
+   */
+  readonly noticeRead?: boolean | undefined;
   /** What an upload of an agent is and where its parts are (RN-PRT-027); only on that kind. */
   readonly upload?: TransferUpload | undefined;
   /** The file an agent asked the person for (RN-PRT-030); only on a request. */

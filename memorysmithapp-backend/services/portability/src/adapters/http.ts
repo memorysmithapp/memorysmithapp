@@ -66,6 +66,7 @@ import {
 } from '@memorysmithapp/kernel';
 import type {
   CancelTransfer,
+  MarkTransferRead,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
@@ -161,6 +162,7 @@ export interface PortabilityUseCases {
   readonly downloadTransfer: (request: PortabilityRequest) => DownloadTransfer;
   readonly deleteTransfer: (request: PortabilityRequest) => DeleteTransfer;
   readonly cancelTransfer: (request: PortabilityRequest) => CancelTransfer;
+  readonly markTransferRead: (request: PortabilityRequest) => MarkTransferRead;
   readonly prepareImport: (request: PortabilityRequest) => PrepareImport;
   readonly importFromExport: (request: PortabilityRequest) => ImportFromExport;
   readonly startImport: (request: PortabilityRequest) => StartImport;
@@ -274,6 +276,8 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
     total: transfer.total,
     bytes: transfer.bytes,
     failure: transfer.failure,
+    /** Whether the notice of its end was read (#454). */
+    noticeRead: transfer.noticeRead === true,
     /**
      * The file this transfer is about (#155). An import carries the one the
      * person chose; an export is named after its notebook, by the same
@@ -613,6 +617,13 @@ export function createPortabilityRoutes(
    * Cancelling asks the worker to stop, and an import that stops takes its
    * notebook back down whole, which frees its name (RN-PRT-018).
    */
+  /** The notice of its end was read, on every device of the person (#454). */
+  app.post('/transfers/:t/read', async (c) => {
+    const request = c.get('portability');
+    const read = await useCases.markTransferRead(request).execute(c.req.param('t') ?? '');
+    return read.ok ? c.body(null, 204) : fail(c, read.error);
+  });
+
   app.post('/transfers/:t/cancel', async (c) => {
     const request = c.get('portability');
     const cancelled = await useCases.cancelTransfer(request).execute(c.req.param('t') ?? '');

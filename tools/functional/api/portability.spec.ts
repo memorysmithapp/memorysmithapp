@@ -522,6 +522,27 @@ test.describe('the transfers of a person', () => {
     expect((await owner.call('GET', `/portability/transfers/${unknownId()}`)).status).toBe(404);
   });
 
+  test('[route:POST /portability/transfers/:t/read] keeps the notice of an export that ended read, on the account (#454)', async ({
+    owner,
+    other,
+    notebook,
+  }) => {
+    const transfer = await exported(owner, notebook.notebookId);
+    expect(
+      (await owner.call('POST', `/portability/transfers/${transfer.transferId}/read`)).status,
+    ).toBe(204);
+    const listed = await owner.ok<{
+      transfers: Array<{ transferId: string; noticeRead: boolean }>;
+    }>('GET', '/portability/transfers');
+    expect(
+      listed.transfers.find((each) => each.transferId === transfer.transferId)?.noticeRead,
+    ).toBe(true);
+    // Nobody else's transfer is theirs to read (INV-09).
+    expect(
+      (await other.call('POST', `/portability/transfers/${transfer.transferId}/read`)).status,
+    ).toBe(404);
+  });
+
   /**
    * Cancelling an import takes the notebook it had started back down whole,
    * which frees its name (RN-PRT-018, RN-PRT-014). An import of this size ends
