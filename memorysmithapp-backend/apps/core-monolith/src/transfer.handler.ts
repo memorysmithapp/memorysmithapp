@@ -64,6 +64,7 @@ import {
   correlationIdOfRecord,
   errorFieldsOf,
   observe,
+  outcomeOfCode,
   type OperationStart,
 } from '@memorysmithapp/observability';
 import {
@@ -272,8 +273,26 @@ function unexpected(error: unknown): void {
 export async function handler(event: QueueEvent): Promise<void> {
   for (const record of event.Records ?? []) {
     const work = JSON.parse(record.body ?? '{}') as TransferWork;
-    await observe(startOf(work, correlationIdOfRecord(record)), () => run(work));
+    await observe(startOf(work, correlationIdOfRecord(record)), async () => {
+      await run(work);
+      await tellFailure(work);
+    });
   }
+}
+
+/**
+ * A transfer the run ended as failed is said by the line of its job (#453):
+ * the run keeps its reason on the record, which the person may delete, and a
+ * line that said `ok` left nothing of why. A reason that is a code of the
+ * taxonomy is logged as it is; anything else was unforeseen, and `unexpected`
+ * already told it.
+ */
+async function tellFailure(work: TransferWork): Promise<void> {
+  const transfers = new DynamoTransferStore(infra.db, infra.portabilityTable, work.subscriptionId);
+  const ended = await transfers.get(work.userId, work.transferId).catch(() => null);
+  if (ended?.status !== 'failed') return;
+  const code = ended.failure ?? '';
+  if (/^[A-Z][A-Z_]*$/.test(code)) annotate({ outcome: outcomeOfCode(code), errorCode: code });
 }
 
 async function run(work: TransferWork): Promise<void> {

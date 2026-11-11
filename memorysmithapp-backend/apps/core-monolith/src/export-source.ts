@@ -71,7 +71,7 @@ export class KnowledgeExportSource implements ExportSource {
 
   async load(
     notebookId: string,
-    _report?: (readNotes: number, totalNotes: number) => void,
+    report?: (readNotes: number, totalNotes: number) => void,
     options?: { readonly fileBytes?: boolean },
   ): Promise<ExportInput | null> {
     const parsed = NotebookId.create(notebookId);
@@ -107,15 +107,21 @@ export class KnowledgeExportSource implements ExportSource {
       this.knowledge.tables.rows(table),
     );
 
+    let read = 0;
     const [guidance, templates, bodies, fileBytes] = await Promise.all([
       guidanceSlot ? this.knowledge.content.read(guidanceSlot.ref) : Promise.resolve(null),
       mapWithConcurrency(folders, READ_CONCURRENCY, async (folder) => {
         const ref = templateOf.get(folder.id.value);
         return ref ? this.knowledge.content.read(ref) : null;
       }),
-      mapWithConcurrency(notes, READ_CONCURRENCY, (note) =>
-        this.knowledge.content.read(note.bodyRef),
-      ),
+      // Each body read is told, so an export moves its bar as it reads, as
+      // RN-PRT-019 says it has a progress (#453).
+      mapWithConcurrency(notes, READ_CONCURRENCY, async (note) => {
+        const body = await this.knowledge.content.read(note.bodyRef);
+        read += 1;
+        report?.(read, notes.length);
+        return body;
+      }),
       // The bytes themselves, because an archive whose pictures live somewhere
       // else is not an archive (RN-PRT-025); a model read whole says what each
       // file is and reads none of them (#431).
