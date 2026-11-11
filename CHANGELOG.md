@@ -59,6 +59,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **A task's box sits inside the note.** In a note or a folder Template, a task list drew its boxes left of the text, out of a narrow card, and a plain item beside a task lost its bullet the same way. Every item now starts its text in one column, a wrapped line included, with the renderer 0.10.2. (#441)
+
 - **The boxes of a folder Template can no longer be ticked.** A Template is the shape a note starts from, so on the Templates page and on its folder's page its boxes show their state and answer no click; the editor still changes them, as text. (#440)
 
 - **Every card and every row shows it is under the mouse, all of it.** A card of a notebook's overview darkened only the part of it its link filled; it, the Templates of a notebook and every card now darken their edge, all of it, and the rows of the attachments, of a model's parameters and of its versions take the shade a row of the folders takes. (#429)
