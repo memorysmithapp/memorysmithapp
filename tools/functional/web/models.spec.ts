@@ -763,6 +763,13 @@ test.describe('notebook models', () => {
         ':scope > .template-card-body > details.model-part > summary .model-part-kind',
       );
       await expect(noteKinds.first()).toHaveText(words.kindNote);
+      // A note still folded points its chevron right, inside a folder that is open.
+      await expect(
+        folder
+          .locator(':scope > .template-card-body > details.model-part:not([open]) > summary')
+          .first()
+          .locator('.template-card-chevron'),
+      ).toHaveCSS('transform', 'none');
       await noteKinds.first().scrollIntoViewIfNeeded();
       await testInfo.attach('community-contents.png', {
         body: await app.screenshot({ animations: 'disabled' }),

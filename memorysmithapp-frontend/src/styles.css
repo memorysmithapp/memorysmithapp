@@ -1932,7 +1932,8 @@ a:hover {
   color: var(--text-soft);
   transition: transform 120ms ease;
 }
-.template-card[open] .template-card-chevron {
+/* Only the chevron of the part that is open: a model's parts nest (#439). */
+.template-card[open] > summary .template-card-chevron {
   transform: rotate(90deg);
 }
 .template-card-title {
