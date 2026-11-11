@@ -10,11 +10,11 @@
     "test:adapters": "vitest run --config vitest.adapters.config.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1117.0",
-    "@aws-sdk/client-eventbridge": "^3.1117.0",
-    "@aws-sdk/client-s3": "^3.1117.0",
-    "@aws-sdk/lib-dynamodb": "^3.1117.0",
-    "@aws-sdk/s3-request-presigner": "^3.1117.0",
+    "@aws-sdk/client-dynamodb": "^3.1165.0",
+    "@aws-sdk/client-eventbridge": "^3.1165.0",
+    "@aws-sdk/client-s3": "^3.1165.0",
+    "@aws-sdk/lib-dynamodb": "^3.1165.0",
+    "@aws-sdk/s3-request-presigner": "^3.1165.0",
     "@memorysmithapp/contracts": "workspace:*",
     "@memorysmithapp/kernel": "workspace:*",
     "@memorysmithapp/observability": "workspace:*",

@@ -59,6 +59,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **The AWS SDK no longer carries the logger redaction bug.** Its `@smithy/core` was in the versions AWS deprecated because a logger handed to a client received sensitive values nested in lists and maps unredacted (aws/aws-sdk-js-v3#8393). No client here is handed a logger, so nothing was written; the SDK, Lambda Powertools and the CDK are now at their latest, and the only change the CDK makes to the stacks is that the role of the link reprojection accepts its state machine only from this account and the copy of the site runs on arm64. (#442)
+
 - **A task's box sits inside the note.** In a note or a folder Template, a task list drew its boxes left of the text, out of a narrow card, and a plain item beside a task lost its bullet the same way. Every item now starts its text in one column, a wrapped line included, with the renderer 0.10.2. (#441)
 
 - **The boxes of a folder Template can no longer be ticked.** A Template is the shape a note starts from, so on the Templates page and on its folder's page its boxes show their state and answer no click; the editor still changes them, as text. (#440)
