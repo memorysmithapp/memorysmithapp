@@ -77,6 +77,7 @@ export function SearchPicker<K extends string>({
   sources,
   onPick,
   initial,
+  chosen,
 }: {
   /** What the picker as a whole asks, for whoever hears it read out. */
   label: string;
@@ -85,6 +86,11 @@ export function SearchPicker<K extends string>({
   onPick: (source: K, item: PickerItem) => void;
   /** The tab it opens on; the first one when absent. */
   initial?: K;
+  /**
+   * The row picked and waiting to be confirmed, where a dialog asks for that
+   * (#437): it stays marked while the keyboard and the mouse move on.
+   */
+  chosen?: string | null;
 }) {
   const { t } = useTranslation();
   const id = useId().replace(/:/g, '');
@@ -215,10 +221,14 @@ export function SearchPicker<K extends string>({
                     key={item.id}
                     id={optionId(at)}
                     role="option"
-                    aria-selected={at === highlighted}
-                    className={
-                      at === highlighted ? 'search-picker-row is-lit' : 'search-picker-row'
-                    }
+                    aria-selected={chosen === undefined ? at === highlighted : item.id === chosen}
+                    className={[
+                      'search-picker-row',
+                      at === highlighted ? 'is-lit' : '',
+                      item.id === chosen ? 'is-chosen' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                     onMouseEnter={() => setHighlighted(at)}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => choose(at)}

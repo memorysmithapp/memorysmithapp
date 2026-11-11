@@ -31,8 +31,9 @@ export function ModelHistoryList({
   const { t, i18n } = useTranslation();
   if (changes.length === 0) return <p className="hint">{t('model.historyEmpty')}</p>;
   // `intlLocale`: `Intl` takes a BCP 47 tag, never the `pt_BR` of the interface.
+  // Short, as the date of a note in a folder, with its time (#437).
   const when = new Intl.DateTimeFormat(intlLocale(i18n.language), {
-    dateStyle: 'medium',
+    dateStyle: 'short',
     timeStyle: 'short',
   });
 
@@ -42,51 +43,53 @@ export function ModelHistoryList({
         <table className="tables-grid folder-notes-table model-history-table">
           <thead>
             <tr>
+              <th scope="col">{t('model.historyColumns.what')}</th>
               <th scope="col">{t('model.historyColumns.when')}</th>
               {withAuthor ? <th scope="col">{t('model.historyColumns.who')}</th> : null}
-              <th scope="col">{t('model.historyColumns.what')}</th>
               <th scope="col">{t('model.historyColumns.line')}</th>
             </tr>
           </thead>
           <tbody>
-            {changes.map((change, index) => (
-              <tr
-                key={`${change.occurredAt}-${change.subjectId}-${index}`}
-                className={change.saves > 1 ? 'is-session' : undefined}
-              >
-                <td className="model-history-when">
-                  <time dateTime={change.occurredAt}>
-                    {when.format(new Date(change.occurredAt))}
-                  </time>
-                  {change.saves > 1 ? (
-                    <span className="model-history-saves">
-                      {t('history.sessionSaves', {
-                        count: change.saves,
-                        from: when.format(new Date(change.since)),
-                      })}
-                    </span>
-                  ) : null}
-                </td>
-                {withAuthor ? (
-                  // The connector when an agent wrote it, and the person otherwise.
-                  <td
-                    data-label={t('model.historyColumns.who')}
-                    className={change.agent ? 'model-history-who is-agent' : 'model-history-who'}
-                  >
-                    {change.agent ?? t('history.aPerson')}
+            {changes.map((change, index) => {
+              // The kind of change is said on the name, as its tooltip, and is
+              // the text itself when the change names nothing (#437).
+              const kind = t(`model.change.${change.type}`, change.type);
+              return (
+                <tr
+                  key={`${change.occurredAt}-${change.subjectId}-${index}`}
+                  className={change.saves > 1 ? 'is-session' : undefined}
+                >
+                  <td className="folder-notes-name model-history-what" title={kind}>
+                    {change.name ?? kind}
                   </td>
-                ) : null}
-                <td data-label={t('model.historyColumns.what')} className="model-history-what">
-                  <span className="property-chip">
-                    {t(`model.change.${change.type}`, change.type)}
-                  </span>
-                  {change.name ? <span className="model-history-name">{change.name}</span> : null}
-                </td>
-                <td data-label={t('model.historyColumns.line')} className="model-history-line">
-                  {change.message ?? <span className="is-empty">{t('history.noMessage')}</span>}
-                </td>
-              </tr>
-            ))}
+                  <td data-label={t('model.historyColumns.when')} className="model-history-when">
+                    <time dateTime={change.occurredAt}>
+                      {when.format(new Date(change.occurredAt))}
+                    </time>
+                    {change.saves > 1 ? (
+                      <span className="model-history-saves">
+                        {t('history.sessionSaves', {
+                          count: change.saves,
+                          from: when.format(new Date(change.since)),
+                        })}
+                      </span>
+                    ) : null}
+                  </td>
+                  {withAuthor ? (
+                    // The connector when an agent wrote it, and the person otherwise.
+                    <td
+                      data-label={t('model.historyColumns.who')}
+                      className={change.agent ? 'model-history-who is-agent' : 'model-history-who'}
+                    >
+                      {change.agent ?? t('history.aPerson')}
+                    </td>
+                  ) : null}
+                  <td data-label={t('model.historyColumns.line')} className="model-history-line">
+                    {change.message ?? <span className="is-empty">{t('history.noMessage')}</span>}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

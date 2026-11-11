@@ -215,23 +215,27 @@ export type ModelOrigin = 'mine' | 'shared' | 'community';
 const COMMUNITY_PAGE = 20;
 
 /**
- * A notebook from a model (#359, #432, #435): the model is found in one
- * picker, the person's own models, the ones shared with them and the
- * community's, by typing part of what it is called or is for. Choosing one
- * folds the picker into the line of that model, with *Choose another*, and its
- * parameters under it. Cancel and Create are in the footer all along, as in a
- * blank notebook; Create waits for a model and every required parameter.
+ * A notebook from a model (#359, #432, #435, #437): one form from the start,
+ * its first field the model, chosen or not, with *Choose model*. The button
+ * opens the list of models in the dialog — the person's own, the ones shared
+ * with them and the community's, found by typing — where a click marks a row
+ * and *Select* takes it back to the form, or *Back* returns with nothing
+ * changed. The name of the new notebook and the parameters of the model follow
+ * the model; Cancel and Create stay in the footer of the form, Create waiting
+ * for a model and every required parameter.
  */
 export function FromModel({
   onClose,
   initial = null,
 }: {
   onClose: () => void;
-  /** A model already chosen when it opens; none, and it opens on the picker. */
+  /** A model already chosen when it opens; none, and the form says so. */
   initial?: { origin: ModelOrigin; item: PickerItem } | null;
 }) {
   const { t } = useTranslation();
   const [picked, setPicked] = useState(initial);
+  const [choosing, setChoosing] = useState(false);
+  const [pending, setPending] = useState<{ origin: ModelOrigin; item: PickerItem } | null>(null);
   const [draft, setDraft] = useState<CreateDraft>(EMPTY_DRAFT);
   const creation = useCreateFromModel();
   const community = picked?.origin === 'community';
@@ -250,10 +254,39 @@ export function FromModel({
   const model = picked ? (read.data ?? null) : null;
   const ready = model !== null && missingRequired(model.parameters, draft.typed).length === 0;
 
-  function choose(next: { origin: ModelOrigin; item: PickerItem } | null): void {
-    setPicked(next);
-    setDraft(EMPTY_DRAFT);
-    creation.reset();
+  function select(): void {
+    if (!pending) return;
+    // Another model asks other parameters: what was typed for the last one goes.
+    if (pending.item.id !== picked?.item.id) {
+      setPicked(pending);
+      setDraft((last) => ({ ...EMPTY_DRAFT, name: last.name }));
+      creation.reset();
+    }
+    setChoosing(false);
+  }
+
+  if (choosing) {
+    return (
+      <div className="new-notebook-form new-notebook-model">
+        <ModelPicker
+          chosen={pending?.item.id ?? null}
+          onPick={(origin, item) => setPending({ origin, item })}
+        />
+        <div className="ask-dialog-foot">
+          <button type="button" className="button is-quiet" onClick={() => setChoosing(false)}>
+            {t('newNotebook.back')}
+          </button>
+          <button
+            type="button"
+            className="button is-primary"
+            disabled={pending === null}
+            onClick={select}
+          >
+            {t('newNotebook.select')}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -270,34 +303,43 @@ export function FromModel({
         );
       }}
     >
-      {picked ? (
-        <>
-          <div className="new-notebook-chosen">
-            <strong>{picked.item.name}</strong>
-            {picked.item.by ? <span className="hint"> — {picked.item.by}</span> : null}
-            <button type="button" className="button is-quiet is-small" onClick={() => choose(null)}>
-              {t('newNotebook.chooseAnother')}
-            </button>
-          </div>
-          {read.isPending ? (
-            <FieldsSkeleton fields={2} />
-          ) : !model ? (
-            <p className="status">{t(messageKeyOf(read.error))}</p>
-          ) : (
+      <div className="field new-notebook-model-field">
+        <span className="field-label">{t('newNotebook.model')}</span>
+        <div className="new-notebook-chosen">
+          {picked ? (
             <>
-              <p className="hint">{model.objective}</p>
-              <CreateFromModelFields
-                key={`${picked.origin}-${picked.item.id}`}
-                parameters={model.parameters}
-                draft={draft}
-                onChange={setDraft}
-                missing={creation.missing}
-              />
+              <strong>{picked.item.name}</strong>
+              {picked.item.by ? <span className="hint"> — {picked.item.by}</span> : null}
             </>
+          ) : (
+            <span className="hint">{t('newNotebook.noModel')}</span>
           )}
-        </>
+          <button
+            type="button"
+            className="button is-quiet is-small"
+            onClick={() => {
+              setPending(picked);
+              setChoosing(true);
+            }}
+          >
+            {t('newNotebook.chooseModel')}
+          </button>
+        </div>
+        {model ? <span className="field-hint">{model.objective}</span> : null}
+      </div>
+      {picked && read.isPending ? (
+        <FieldsSkeleton fields={2} />
+      ) : picked && !model ? (
+        <p className="status">{t(messageKeyOf(read.error))}</p>
       ) : (
-        <ModelPicker onPick={(origin, item) => choose({ origin, item })} />
+        // The name is asked from the start; the parameters, once there is a model.
+        <CreateFromModelFields
+          key={picked ? `${picked.origin}-${picked.item.id}` : 'none'}
+          parameters={model?.parameters ?? []}
+          draft={draft}
+          onChange={setDraft}
+          missing={creation.missing}
+        />
       )}
       {creation.failure ? (
         <p className="share-failure" role="alert">
@@ -317,7 +359,14 @@ export function FromModel({
 }
 
 /** The picker of the model, among the person's own, the shared and the community's (#432). */
-function ModelPicker({ onPick }: { onPick: (origin: ModelOrigin, item: PickerItem) => void }) {
+function ModelPicker({
+  onPick,
+  chosen,
+}: {
+  onPick: (origin: ModelOrigin, item: PickerItem) => void;
+  /** The model marked, waiting for Select (#437). */
+  chosen: string | null;
+}) {
   const { t } = useTranslation();
   const models = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
   if (models.isPending) return <FieldsSkeleton />;
@@ -362,6 +411,7 @@ function ModelPicker({ onPick }: { onPick: (origin: ModelOrigin, item: PickerIte
       // A person with no model of their own starts where there are some.
       initial={mine.length > 0 ? 'mine' : shared.length > 0 ? 'shared' : 'community'}
       onPick={onPick}
+      chosen={chosen}
     />
   );
 }

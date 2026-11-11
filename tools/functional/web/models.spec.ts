@@ -88,7 +88,10 @@ const PICKER_WORDS: Record<
     readonly mine: string;
     readonly shared: string;
     readonly community: string;
-    readonly chooseAnother: string;
+    readonly chooseModel: string;
+    readonly noModel: string;
+    readonly select: string;
+    readonly back: string;
   }
 > = {
   en_US: {
@@ -97,7 +100,10 @@ const PICKER_WORDS: Record<
     mine: 'Mine',
     shared: 'Shared with me',
     community: 'Community',
-    chooseAnother: 'Choose another',
+    chooseModel: 'Choose model',
+    noModel: 'No model chosen yet',
+    select: 'Select',
+    back: 'Back',
   },
   pt_BR: {
     fromModel: 'De um Modelo de caderno',
@@ -105,29 +111,43 @@ const PICKER_WORDS: Record<
     mine: 'Meus',
     shared: 'Compartilhados comigo',
     community: 'Comunidade',
-    chooseAnother: 'Escolher outro',
+    chooseModel: 'Escolher modelo',
+    noModel: 'Nenhum modelo escolhido',
+    select: 'Selecionar',
+    back: 'Voltar',
   },
 };
 
-/** Opens New notebook on the notebooks, from a model, and answers its picker. */
-async function openModelPicker(app: Page, site: string, locale: AppLocale) {
+/**
+ * Opens New notebook on the notebooks, from a model: one form from the start,
+ * its first field the model, with Choose model (#437).
+ */
+async function openNewFromModel(app: Page, site: string, locale: AppLocale) {
   const words = MODEL_WORDS[locale];
   const picker = PICKER_WORDS[locale];
   await app.goto(`${site}/notebooks`);
   await app.getByRole('button', { name: words.newNotebook }).click();
   const box = app.locator('.new-notebook .ask-dialog-box');
   await box.getByRole('radio', { name: picker.fromModel }).click();
+  const foot = box.locator('.ask-dialog-foot');
   return {
     box,
+    chooseModel: box.getByRole('button', { name: picker.chooseModel, exact: true }),
+    // Cancel and Create are in the footer of the form, as in a blank notebook (#435).
+    cancel: foot.getByRole('button', { name: words.cancel, exact: true }),
+    create: foot.getByRole('button', { name: words.create, exact: true }),
+    // And the list, once Choose model opened it, has Back and Select (#437).
     field: box.getByRole('combobox', { name: picker.model, exact: true }),
-    // Cancel and Create are in the footer all along, as in a blank notebook (#435).
-    cancel: box
-      .locator('.ask-dialog-foot')
-      .getByRole('button', { name: words.cancel, exact: true }),
-    create: box
-      .locator('.ask-dialog-foot')
-      .getByRole('button', { name: words.create, exact: true }),
+    back: foot.getByRole('button', { name: picker.back, exact: true }),
+    select: foot.getByRole('button', { name: picker.select, exact: true }),
   };
+}
+
+/** Opens New notebook from a model, and its list of models. */
+async function openModelPicker(app: Page, site: string, locale: AppLocale) {
+  const opened = await openNewFromModel(app, site, locale);
+  await opened.chooseModel.click();
+  return opened;
 }
 
 /** The row of the picker whose name is exactly this one, never one that starts with it. */
@@ -296,7 +316,10 @@ test.describe('notebook models', () => {
     await app.getByRole('tab', { name: words.tabHistory }).click();
     const rows = app.locator('.model-history-table tbody tr');
     await expect(rows.first()).toBeVisible({ timeout: 90_000 });
-    await expect(rows.first().locator('.model-history-what .property-chip')).toBeVisible();
+    // What changed comes first, its kind its tooltip, as a note of a folder (#437).
+    await expect(rows.first().locator('td').first()).toHaveClass(/model-history-what/);
+    await expect(rows.first().locator('.model-history-what')).toHaveAttribute('title', /\S/);
+    await expect(rows.first().locator('.property-chip')).toHaveCount(0);
     await testInfo.attach('model-history.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
@@ -310,9 +333,14 @@ test.describe('notebook models', () => {
     await app.setViewportSize({ width: 1280, height: 800 });
 
     // A notebook is created from it in New notebook, the one way (#435).
-    const { box, create } = await pickOwnModel(app, state.surfaces.site, appLocale, modelName);
-    await expect(create).toBeDisabled();
+    const { box, create, select } = await pickOwnModel(
+      app,
+      state.surfaces.site,
+      appLocale,
+      modelName,
+    );
     await rowNamed(box, modelName).click();
+    await select.click();
     const fields = box.locator('.create-from-model');
     await expect(fields).toBeVisible();
     // Its one parameter is required, so Create waits for it.
@@ -364,16 +392,14 @@ test.describe('notebook models', () => {
     );
     await expect(app.getByRole('tab', { name: words.tabContents })).toHaveCount(0);
 
-    // New notebook from a model: Cancel and Create in the footer while the
-    // model is chosen, Create disabled (#435).
-    const { box, cancel, create } = await pickOwnModel(
+    // New notebook from a model is one form from the start: the model field,
+    // Choose model, the name, Cancel and a disabled Create (#435, #437).
+    const { box, chooseModel, cancel, create, field, back, select } = await openNewFromModel(
       app,
       state.surfaces.site,
       appLocale,
-      notebook.name,
     );
-    const row = rowNamed(box, notebook.name);
-    await expect(row).toBeVisible();
+    await expect(box.getByText(picker.noModel)).toBeVisible();
     await expect(cancel).toBeVisible();
     await expect(create).toBeDisabled();
     await testInfo.attach('new-notebook-from-model.png', {
@@ -381,13 +407,25 @@ test.describe('notebook models', () => {
       contentType: 'image/png',
     });
 
-    // Choosing folds the picker into the line of the model, with its
-    // parameters under it.
+    // Choose model opens the list; a click marks a row, Select takes it back.
+    await chooseModel.click();
+    await box.getByRole('tab', { name: new RegExp(`^${picker.mine}`) }).click();
+    await field.fill(notebook.name);
+    const row = rowNamed(box, notebook.name);
+    await expect(row).toBeVisible();
+    await expect(select).toBeDisabled();
     await row.click();
-    await expect(box.getByRole('combobox', { name: picker.model, exact: true })).toHaveCount(0);
-    await expect(
-      box.locator('.new-notebook-chosen').getByRole('button', { name: picker.chooseAnother }),
-    ).toBeVisible();
+    await expect(row).toHaveClass(/is-chosen/);
+    await expect(back).toBeVisible();
+    await testInfo.attach('new-notebook-model-list.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await select.click();
+
+    // Back in the form: the model in its field, its parameters under it.
+    await expect(field).toHaveCount(0);
+    await expect(box.locator('.new-notebook-chosen strong')).toHaveText(notebook.name);
     const fields = box.locator('.create-from-model');
     const tick = fields.locator('#value-withMinutes');
     await expect(tick).toBeChecked();
@@ -415,17 +453,24 @@ test.describe('notebook models', () => {
     await cancel.click();
     await expect(box).toHaveCount(0);
 
-    // On a phone, before and after choosing, the footer is the foot of the screen.
+    // On a phone, the form, the list and the form again, the footer the foot of the screen.
     await app.setViewportSize({ width: 390, height: 844 });
-    const phone = await pickOwnModel(app, state.surfaces.site, appLocale, notebook.name);
-    const phoneRow = rowNamed(phone.box, notebook.name);
-    await expect(phoneRow).toBeVisible();
+    const phone = await openNewFromModel(app, state.surfaces.site, appLocale);
     await expect(phone.create).toBeVisible();
     await testInfo.attach('new-notebook-from-model-phone.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
+    await phone.chooseModel.click();
+    await phone.box.getByRole('tab', { name: new RegExp(`^${picker.mine}`) }).click();
+    await phone.field.fill(notebook.name);
+    const phoneRow = rowNamed(phone.box, notebook.name);
     await phoneRow.click();
+    await testInfo.attach('new-notebook-model-list-phone.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await phone.select.click();
     await expect(phone.box.locator('.create-from-model #value-withMinutes')).toBeVisible();
     await expect(phone.create).toBeDisabled();
     await testInfo.attach('new-notebook-from-model-chosen-phone.png', {
@@ -477,8 +522,13 @@ test.describe('notebook models', () => {
         contentType: 'image/png',
       });
 
-      // From the keyboard: the field keeps the focus and Enter picks the lit row.
+      // From the keyboard: the field keeps the focus and Enter marks the lit
+      // row; Select takes it back to the form (#437).
       await field.press('Enter');
+      await box
+        .locator('.ask-dialog-foot')
+        .getByRole('button', { name: picker.select, exact: true })
+        .click();
       const fields = box.locator('.create-from-model');
       await expect(fields).toBeVisible();
       await fields.locator('input').first().fill(name);
@@ -589,6 +639,10 @@ test.describe('notebook models', () => {
       await box.getByRole('tab', { name: new RegExp(`^${picker.shared}`) }).click();
       await field.fill(notebook.name);
       await box.locator('.search-picker-row', { hasText: notebook.name }).click();
+      await box
+        .locator('.ask-dialog-foot')
+        .getByRole('button', { name: picker.select, exact: true })
+        .click();
       await expect(box.locator('.create-from-model')).toBeVisible();
       await page.keyboard.press('Escape');
 
@@ -608,7 +662,7 @@ test.describe('notebook models', () => {
     owner,
     state,
     appLocale,
-  }) => {
+  }, testInfo) => {
     const words = COMMUNITY_WORDS[appLocale];
     const model = `/portability/models/${notebook.notebookId}`;
     await owner.ok('PUT', model, { objective: `Keep the findings of ${notebook.name}` });
@@ -622,6 +676,16 @@ test.describe('notebook models', () => {
     });
 
     try {
+      // The Community tab of the model says it is published, and links nowhere (#437).
+      await app.goto(notebook.page('/model?tab=community'));
+      const publication = app.locator('section.model-publication');
+      await expect(publication).toBeVisible();
+      await expect(publication.locator('a[href^="/community/"]')).toHaveCount(0);
+      await testInfo.attach('model-community.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+
       // No session at all: the community asks to sign in first (RN-PRT-079).
       // A context of its own, because `app` is `page` already signed in.
       const visitor = await browser.newPage();

@@ -4,7 +4,6 @@ import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { NotebookModelDto } from '@memorysmithapp/contracts';
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
-import { communityModelAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getModel, getModelContents, publishModel, withdrawModel } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -226,8 +225,7 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
       {published ? (
         <>
           <p>
-            {t('model.publishedAs', { author: published.author, language: published.language })}{' '}
-            <Link to={communityModelAddress(published.publicId)}>{t('model.publicPage')}</Link>
+            {t('model.publishedAs', { author: published.author, language: published.language })}
           </p>
           <button
             type="button"

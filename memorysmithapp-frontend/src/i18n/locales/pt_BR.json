@@ -1272,7 +1272,6 @@
     "publish": "Publicar na comunidade",
     "publishNeedsName": "Escreva seu nome no perfil antes: o catálogo mostra o nome, nunca o e-mail.",
     "publishedAs": "Publicado por {{author}}, em {{language}}.",
-    "publicPage": "Abrir a página pública",
     "withdraw": "Retirar da comunidade",
     "tabs": {
       "about": "Sobre o modelo",
@@ -1353,7 +1352,11 @@
       "community": "Comunidade"
     },
     "searchModels": "Busque modelos pelo nome ou pelo que servem",
-    "chooseAnother": "Escolher outro"
+    "chooseAnother": "Escolher outro",
+    "chooseModel": "Escolher modelo",
+    "noModel": "Nenhum modelo escolhido",
+    "select": "Selecionar",
+    "back": "Voltar"
   },
   "community": {
     "title": "Comunidade",

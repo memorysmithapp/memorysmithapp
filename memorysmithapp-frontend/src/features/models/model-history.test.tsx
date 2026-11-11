@@ -75,12 +75,12 @@ beforeAll(async () => {
 }, 30_000);
 
 describe('the history of a model (#431, #435)', () => {
-  it('is the list of a folder: when, who, what changed and the line left', async () => {
+  it('is the list of a folder: what changed first, then when, who and the line left (#437)', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CHANGES);
     expect(html).toContain('class="tables-grid folder-notes-table model-history-table"');
     expect(html).toMatch(
-      /<thead><tr><th scope="col">When<\/th><th scope="col">Who<\/th><th scope="col">What changed<\/th><th scope="col">Line left<\/th><\/tr><\/thead>/,
+      /<thead><tr><th scope="col">What changed<\/th><th scope="col">When<\/th><th scope="col">Who<\/th><th scope="col">Line left<\/th><\/tr><\/thead>/,
     );
     expect(html.match(/<tr/g)).toHaveLength(CHANGES.length + 1);
   });
@@ -94,12 +94,14 @@ describe('the history of a model (#431, #435)', () => {
     );
   });
 
-  it('says what changed, by its kind and its name, and the line its author left', async () => {
+  it('says what changed by its name, its kind as the tooltip, and the line its author left (#437)', async () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CHANGES);
     expect(html).toContain(
-      '<span class="property-chip">Template written</span><span class="model-history-name">Assemblies</span>',
+      '<td class="folder-notes-name model-history-what" title="Template written">Assemblies</td>',
     );
+    // A change that names nothing says its kind.
+    expect(html).toMatch(/title="([^"]+)">\1<\/td>/);
     expect(html).toContain(
       '<td data-label="Line left" class="model-history-line">Ask for the quorum in every minute</td>',
     );
@@ -112,7 +114,7 @@ describe('the history of a model (#431, #435)', () => {
     await i18n.changeLanguage('en_US');
     const html = draw(CHANGES);
     expect(html.match(/class="is-session"/g)).toHaveLength(1);
-    expect(html).toMatch(/<span class="model-history-saves">3 saves, since Nov \d+, 2026/);
+    expect(html).toMatch(/<span class="model-history-saves">3 saves, since 11\/\d+\/26/);
     expect(html.match(/model-history-saves/g)).toHaveLength(1);
   });
 
@@ -141,7 +143,8 @@ describe('the history of a model (#431, #435)', () => {
     expect(html).toContain('O que mudou');
     expect(html).toContain('Modelo de pasta escrito');
     expect(html).toContain('3 salvamentos, desde');
-    expect(html).toContain('nov.');
+    // Day before month, as Brazil writes a date.
+    expect(html).toMatch(/\b\d{2}\/11\/2026/);
     await i18n.changeLanguage('en_US');
   });
 

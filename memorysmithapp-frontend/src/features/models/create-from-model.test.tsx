@@ -102,23 +102,27 @@ describe('a boolean parameter when a notebook is created from a model (#411)', (
   });
 });
 
-describe('New notebook from a model (#435)', () => {
+describe('New notebook from a model (#435, #437)', () => {
   const create = (html: string) => html.match(/<button type="submit"[^>]*>Create<\/button>/)?.[0];
 
-  it('has Cancel and a disabled Create in its footer while the model is being chosen', () => {
+  it('is one form from the start: the model field, Choose model, the name, Cancel and a disabled Create (#437)', () => {
     const html = dialog(null);
-    expect(html).toContain('role="combobox"');
+    // The list opens on Choose model, not in the form.
+    expect(html).not.toContain('role="combobox"');
+    expect(html).toContain('No model chosen yet');
+    expect(html).toContain('>Choose model</button>');
+    expect(html).toContain('Name of the new notebook');
     expect(html).toMatch(
       /<div class="ask-dialog-foot"><button type="button" class="button is-quiet">Cancel<\/button><button type="submit"/,
     );
     expect(create(html)).toContain('disabled=""');
   });
 
-  it('folds the picker into the model chosen, with its parameters under it', () => {
+  it('says the model chosen in its field, with its parameters under it', () => {
     const html = dialog([parameter({ name: 'city', type: 'text', required: true, default: null })]);
     expect(html).not.toContain('role="combobox"');
     expect(html).toMatch(/class="new-notebook-chosen"><strong>Assemblies<\/strong>/);
-    expect(html).toContain('Choose another');
+    expect(html).toContain('>Choose model</button>');
     expect(html).toContain('id="value-city"');
     expect(html).toContain('class="ask-dialog-foot"');
   });

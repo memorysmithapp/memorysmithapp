@@ -7574,9 +7574,10 @@ button.attachment-thumb:focus-visible {
   }
 }
 
-/* The history of a model, drawn as the list of a folder (#431, #435): when,
-   who, what changed with its name, and the line left. An edit session says its
-   saves under its time. On a phone each change stacks as a note of a folder. */
+/* The history of a model, drawn as the list of a folder (#431, #435, #437):
+   the name of what changed takes the width, its kind its tooltip, then when,
+   short, who and the line left. An edit session says its saves under its
+   time. On a phone each change stacks as a note of a folder. */
 .model-history-table .model-history-when time {
   display: block;
 }
@@ -7585,27 +7586,12 @@ button.attachment-thumb:focus-visible {
   color: var(--text-soft);
   font-size: 0.76rem;
 }
-.model-history-table .model-history-what {
+.model-history-table .model-history-line {
   white-space: normal;
   min-width: 12rem;
-}
-.model-history-table .model-history-what .property-chip {
-  margin-right: 6px;
-}
-.model-history-table .model-history-line {
-  width: 100%;
-  white-space: normal;
-  min-width: 14rem;
-}
-.model-history-line .is-empty {
   color: var(--text-soft);
-  font-style: italic;
 }
 @media (max-width: 640px) {
-  .model-history-table .model-history-when time {
-    font-weight: 600;
-  }
-  .model-history-table .model-history-what,
   .model-history-table .model-history-line {
     min-width: 0;
   }
@@ -8333,12 +8319,21 @@ button.attachment-thumb:focus-visible {
 .search-picker-row {
   cursor: pointer;
 }
-.search-picker-row.is-lit td {
-  background: var(--accent-soft);
+/* The row the keyboard is on reads as a row of a folder under the mouse:
+   its name underlined, and no colour of its own (#437). */
+.search-picker-row.is-lit .search-picker-name {
+  text-decoration: underline;
 }
 .search-picker-table .search-picker-name {
-  font-weight: 600;
   overflow-wrap: anywhere;
+}
+/* The row picked, waiting for Select (#437): the shade of a row under the
+   mouse in the lists of the product, never a colour of its own. */
+.search-picker-row.is-chosen td {
+  background: var(--hover);
+}
+.search-picker-row.is-chosen .search-picker-name {
+  font-weight: 600;
 }
 .search-picker-table .search-picker-line {
   white-space: normal;
@@ -8358,15 +8353,9 @@ button.attachment-thumb:focus-visible {
   }
 }
 @media (max-width: 640px) {
-  /* Each row stacks as a row of a folder does, and the whole row is lit. */
+  /* Each row stacks as a row of a folder does. */
   .search-picker-row {
     min-height: 44px;
-  }
-  .search-picker-row.is-lit {
-    background: var(--accent-soft);
-  }
-  .search-picker-row.is-lit td {
-    background: none;
   }
   .search-picker-table .search-picker-line {
     min-width: 0;
