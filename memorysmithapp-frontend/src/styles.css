@@ -8327,10 +8327,29 @@ button.attachment-thumb:focus-visible {
 .search-picker-table .search-picker-name {
   overflow-wrap: anywhere;
 }
-/* The row picked, waiting for Select (#437): the shade of a row under the
-   mouse in the lists of the product, never a colour of its own. */
-.search-picker-row.is-chosen td {
+/* The row picked, waiting for Select (#437, #438): its radio filled, and the
+   shade of a row under the mouse across the whole row, never a colour of its
+   own; the mouse itself only underlines a name, so pointing never looks like
+   choosing. */
+.search-picker-row.is-chosen {
   background: var(--hover);
+}
+.search-picker-radio-cell {
+  width: 1px;
+  padding-right: 0 !important;
+}
+.search-picker-radio {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-soft);
+  border-radius: 50%;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.search-picker-radio.is-chosen {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 3.5px, transparent 4px);
 }
 .search-picker-row.is-chosen .search-picker-name {
   font-weight: 600;
@@ -8356,6 +8375,12 @@ button.attachment-thumb:focus-visible {
   /* Each row stacks as a row of a folder does. */
   .search-picker-row {
     min-height: 44px;
+  }
+  /* The radio sits beside the name, not on a line of its own. */
+  .search-picker-table .search-picker-radio-cell {
+    float: left;
+    width: auto;
+    margin-right: 10px;
   }
   .search-picker-table .search-picker-line {
     min-width: 0;

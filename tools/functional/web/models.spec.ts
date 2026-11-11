@@ -416,6 +416,8 @@ test.describe('notebook models', () => {
     await expect(select).toBeDisabled();
     await row.click();
     await expect(row).toHaveClass(/is-chosen/);
+    // The row chosen says so with its radio, filled (#438).
+    await expect(row.locator('.search-picker-radio.is-chosen')).toBeVisible();
     await expect(back).toBeVisible();
     await testInfo.attach('new-notebook-model-list.png', {
       body: await app.screenshot({ animations: 'disabled' }),

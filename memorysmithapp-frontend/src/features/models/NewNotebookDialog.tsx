@@ -16,6 +16,7 @@ import {
   searchCatalogPage,
 } from '../../shared/api/source';
 import {
+  PICKER_PAGE,
   SearchPicker,
   type PickerItem,
   type PickerSource,
@@ -211,9 +212,6 @@ function BlankNotebook({ onClose }: { onClose: () => void }) {
 /** Where a model comes from, as the tabs of the picker say it (#432). */
 export type ModelOrigin = 'mine' | 'shared' | 'community';
 
-/** How many community models one page of the picker brings (#432). */
-const COMMUNITY_PAGE = 20;
-
 /**
  * A notebook from a model (#359, #432, #435, #437): one form from the start,
  * its first field the model, chosen or not, with *Choose model*. The button
@@ -389,7 +387,7 @@ function ModelPicker({
       kind: 'remote',
       queryKey: ['catalog-page'],
       search: async (text, cursor) => {
-        const page = await searchCatalogPage({ text, limit: COMMUNITY_PAGE, cursor });
+        const page = await searchCatalogPage({ text, limit: PICKER_PAGE, cursor });
         return {
           items: page.models.map((model) => ({
             id: model.publicId,
@@ -398,6 +396,7 @@ function ModelPicker({
             by: model.author,
           })),
           next: page.next,
+          total: page.total,
         };
       },
     },

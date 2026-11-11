@@ -228,7 +228,7 @@ export class SearchCatalog {
     language: string | null;
     limit?: number | undefined;
     cursor?: string | null | undefined;
-  }): Promise<{ models: PublicModel[]; next: string | null }> {
+  }): Promise<{ models: PublicModel[]; next: string | null; total: number }> {
     const candidates = (await this.deps.catalog.list()).filter((entry) => matches(entry, query));
     const subscriptions = [...new Set(candidates.map((entry) => entry.subscriptionId))];
     const answers = await Promise.all(subscriptions.map((id) => this.deps.access.grants(id)));
@@ -240,10 +240,15 @@ export class SearchCatalog {
         (a, b) =>
           b.publishedAt.localeCompare(a.publishedAt) || a.publicId.localeCompare(b.publicId),
       );
-    if (query.limit === undefined) return { models: found, next: null };
+    if (query.limit === undefined) return { models: found, next: null, total: found.length };
     const from = cursorOffset(query.cursor);
     const to = from + query.limit;
-    return { models: found.slice(from, to), next: to < found.length ? String(to) : null };
+    // How many it found, which a pager says as "page 2 of 5" (#438).
+    return {
+      models: found.slice(from, to),
+      next: to < found.length ? String(to) : null,
+      total: found.length,
+    };
   }
 }
 

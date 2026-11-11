@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchIcon } from './icons';
@@ -50,13 +50,16 @@ export interface RemoteSource<K extends string> {
   readonly search: (
     text: string,
     cursor: string | null,
-  ) => Promise<{ items: PickerItem[]; next: string | null }>;
+  ) => Promise<{ items: PickerItem[]; next: string | null; total: number }>;
 }
 
 export type PickerSource<K extends string> = LocalSource<K> | RemoteSource<K>;
 
 /** How long the field waits for the person to stop typing before the server is asked. */
 const SETTLE_MS = 250;
+
+/** How many rows a page of the picker shows, in every tab (#438). */
+export const PICKER_PAGE = 20;
 
 function fold(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -106,12 +109,23 @@ export function SearchPicker<K extends string>({
 
   const source = sources.find((each) => each.key === active) ?? sources[0];
   const remote = source?.kind === 'remote' ? source : null;
-  const pages = useInfiniteQuery({
-    queryKey: [...(remote?.queryKey ?? ['picker-none']), settled],
-    queryFn: ({ pageParam }) =>
-      remote ? remote.search(settled, pageParam) : Promise.resolve({ items: [], next: null }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.next,
+
+  // A page at a time, as the list of a folder (#438): the person's own and
+  // the shared ones are paged here, the community on the server, where the
+  // cursor of each page seen is kept so Previous returns to it.
+  const [page, setPage] = useState(1);
+  const [cursors, setCursors] = useState<ReadonlyArray<string | null>>([null]);
+  useEffect(() => {
+    setPage(1);
+    setCursors([null]);
+  }, [active, settled, text]);
+  const cursor = cursors[page - 1] ?? null;
+  const answer = useQuery({
+    queryKey: [...(remote?.queryKey ?? ['picker-none']), settled, cursor],
+    queryFn: () =>
+      remote
+        ? remote.search(settled, cursor)
+        : Promise.resolve({ items: [], next: null, total: 0 }),
     enabled: remote !== null,
   });
 
@@ -128,13 +142,25 @@ export function SearchPicker<K extends string>({
     return found;
   }, [sources, text]);
 
+  const local = source?.kind === 'local' ? filtered.get(source.key) : undefined;
+  const total = source?.kind === 'local' ? (local?.length ?? 0) : (answer.data?.total ?? 0);
+  const pages = Math.max(1, Math.ceil(total / PICKER_PAGE));
   const rows: readonly PickerItem[] | undefined =
     source?.kind === 'local'
-      ? filtered.get(source.key)
-      : pages.data?.pages.flatMap((page) => page.items);
+      ? local?.slice((page - 1) * PICKER_PAGE, page * PICKER_PAGE)
+      : answer.data?.items;
 
-  // What is lit follows what is shown: a new search or tab starts at the top.
-  useEffect(() => setHighlighted(0), [active, text, settled]);
+  function turn(to: number): void {
+    if (to < 1 || to > pages) return;
+    if (remote && to > page && answer.data?.next) {
+      const next = answer.data.next;
+      setCursors((seen) => (seen.length > page ? seen : [...seen, next]));
+    }
+    setPage(to);
+  }
+
+  // What is lit follows what is shown: a new search, tab or page starts at the top.
+  useEffect(() => setHighlighted(0), [active, text, settled, page]);
 
   function choose(at: number): void {
     const item = rows?.[at];
@@ -156,7 +182,9 @@ export function SearchPicker<K extends string>({
   }
 
   const optionId = (at: number) => `${id}-option-${at}`;
-  const waiting = source?.kind === 'local' ? rows === undefined : pages.isPending;
+  const waiting = source?.kind === 'local' ? rows === undefined : answer.isPending;
+  // The radio of the row chosen, where the picker waits for Select (#438).
+  const radio = chosen !== undefined;
 
   return (
     <div className="search-picker">
@@ -195,7 +223,7 @@ export function SearchPicker<K extends string>({
       <div id={`${id}-panel`} className="search-picker-panel">
         {waiting ? (
           <p className="status">{t('picker.loading')}</p>
-        ) : pages.isError && remote ? (
+        ) : answer.isError && remote ? (
           <p className="status">{t('picker.failed')}</p>
         ) : !rows?.length ? (
           <p className="search-empty">{text.trim() ? t('picker.noMatch') : t('picker.none')}</p>
@@ -210,6 +238,7 @@ export function SearchPicker<K extends string>({
             >
               <thead aria-hidden="true">
                 <tr>
+                  {radio ? <th className="search-picker-radio-cell" /> : null}
                   <th>{t('picker.columns.name')}</th>
                   <th>{t('picker.columns.line')}</th>
                   <th>{t('picker.columns.by')}</th>
@@ -233,6 +262,18 @@ export function SearchPicker<K extends string>({
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => choose(at)}
                   >
+                    {radio ? (
+                      <td className="search-picker-radio-cell">
+                        <span
+                          className={
+                            item.id === chosen
+                              ? 'search-picker-radio is-chosen'
+                              : 'search-picker-radio'
+                          }
+                          aria-hidden="true"
+                        />
+                      </td>
+                    ) : null}
                     <td className="folder-notes-name search-picker-name">{item.name}</td>
                     <td data-label={t('picker.columns.line')} className="search-picker-line">
                       {item.line ?? ''}
@@ -246,15 +287,35 @@ export function SearchPicker<K extends string>({
             </table>
           </div>
         )}
-        {remote && pages.hasNextPage ? (
-          <button
-            type="button"
-            className="button is-quiet search-picker-more"
-            disabled={pages.isFetchingNextPage}
-            onClick={() => void pages.fetchNextPage()}
-          >
-            {pages.isFetchingNextPage ? t('picker.loading') : t('picker.more')}
-          </button>
+        {pages > 1 ? (
+          // The pager of the list of a folder, word for word (#438).
+          <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
+            <span>
+              {t('tables.showing', {
+                first: (page - 1) * PICKER_PAGE + 1,
+                last: Math.min(page * PICKER_PAGE, total),
+                total,
+              })}
+            </span>
+            <span className="tables-grid-page-buttons">
+              <button
+                type="button"
+                className="button is-quiet is-small"
+                disabled={page <= 1}
+                onClick={() => turn(page - 1)}
+              >
+                {t('tables.previous')}
+              </button>
+              <button
+                type="button"
+                className="button is-quiet is-small"
+                disabled={page >= pages || (remote !== null && answer.isFetching)}
+                onClick={() => turn(page + 1)}
+              >
+                {t('tables.next')}
+              </button>
+            </span>
+          </nav>
         ) : null}
       </div>
     </div>

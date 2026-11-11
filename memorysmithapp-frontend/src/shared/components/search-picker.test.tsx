@@ -30,14 +30,17 @@ const MINE: PickerItem[] = [
 const SHARED: PickerItem[] = [{ id: 'c', name: 'Diário de obra', by: 'ana@example.com' }];
 
 let i18n: I18n;
-let render: (sources: ReadonlyArray<PickerSource<'mine' | 'shared' | 'community'>>) => string;
+let render: (
+  sources: ReadonlyArray<PickerSource<'mine' | 'shared' | 'community'>>,
+  chosen?: string | null,
+) => string;
 let matchesItem: (item: PickerItem, text: string) => boolean;
 
 beforeAll(async () => {
   i18n = (await import('../../i18n')).default;
   const module = await import('./SearchPicker');
   matchesItem = module.matchesItem;
-  render = (sources) =>
+  render = (sources, chosen) =>
     renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
         <module.SearchPicker
@@ -45,6 +48,7 @@ beforeAll(async () => {
           placeholder="Search"
           sources={sources}
           onPick={() => undefined}
+          {...(chosen === undefined ? {} : { chosen })}
         />
       </QueryClientProvider>,
     );
@@ -69,7 +73,7 @@ describe('the picker of a notebook or a model (#432)', () => {
         label: 'Community',
         kind: 'remote',
         queryKey: ['test-catalog'],
-        search: async () => ({ items: [], next: null }),
+        search: async () => ({ items: [], next: null, total: 0 }),
       },
     ]);
     expect(html).toContain('role="combobox"');
@@ -117,5 +121,37 @@ describe('the picker of a notebook or a model (#432)', () => {
     expect(render(empty)).toContain('Nada aqui ainda.');
     // One place is no choice of places: no tabs.
     expect(render(empty)).not.toContain('role="tablist"');
+  });
+
+  it('shows 20 rows a page, with the pager of a folder, and no pager for fewer (#438)', async () => {
+    await i18n.changeLanguage('en_US');
+    const many = Array.from({ length: 45 }, (_, at) => ({
+      id: `m${at}`,
+      name: `Model ${String(at).padStart(2, '0')}`,
+    }));
+    const html = render([{ key: 'mine', label: 'Mine', kind: 'local', items: many }]);
+    expect(html.match(/role="option"/g)).toHaveLength(20);
+    expect(html).toContain('Model 19');
+    expect(html).not.toContain('Model 20');
+    expect(html).toContain('class="tables-grid-pages"');
+    expect(html).toMatch(/1.20 of 45/);
+    expect(render([{ key: 'mine', label: 'Mine', kind: 'local', items: MINE }])).not.toContain(
+      'tables-grid-pages',
+    );
+  });
+
+  it('draws a radio where the picker waits for Select, filled on the row chosen (#438)', async () => {
+    await i18n.changeLanguage('en_US');
+    const sources: ReadonlyArray<PickerSource<'mine'>> = [
+      { key: 'mine', label: 'Mine', kind: 'local', items: MINE },
+    ];
+    const html = render(sources, 'b');
+    expect(html.match(/<span class="search-picker-radio[^"]*"/g)).toHaveLength(2);
+    expect(html.match(/search-picker-radio is-chosen/g)).toHaveLength(1);
+    expect(html).toMatch(
+      /class="search-picker-row is-chosen"|class="search-picker-row is-lit is-chosen"/,
+    );
+    // Where a click picks at once, as in the export, there is no radio.
+    expect(render(sources)).not.toContain('search-picker-radio');
   });
 });

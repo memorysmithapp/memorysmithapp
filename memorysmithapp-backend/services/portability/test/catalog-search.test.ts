@@ -78,5 +78,7 @@ describe('the search of the catalog', () => {
     const last = await search.execute({ text: '', language: null, limit: 2, cursor: second.next });
     expect(last.models.map((model) => model.publicId)).toEqual(['m0']);
     expect(last.next).toBeNull();
+    // Every page says how many there are in all (#438).
+    expect([first.total, second.total, last.total]).toEqual([5, 5, 5]);
   });
 });

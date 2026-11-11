@@ -55,6 +55,8 @@ issues each entry cites.
 
 - **A community model reads as a document, and nobody reports one.** About says what the model is for, who it is for, its author, language and licence, without the parameters. Contents opens each part — the Guidance, each folder with its Template and its notes, the attachments, the tables and the dashboards — as an accordion of its own, its Markdown drawn as a note is, and the page of a model shared with you reads the same. A community model can no longer be reported, and only its author withdraws it: the operator's reports and withdrawal are gone. (#439)
 
+- **The list of models says which one you chose, and pages as a folder does.** In New notebook, the model you click shows a filled radio and its whole row shaded, while the mouse only underlines a name. The list of models, and the one of an export, show twenty at a time with the pager of a folder's list, *1–20 of 57*, *Previous* and *Next*, in every tab; *Show more* is gone. A search of the catalog through the API also answers how many models it found. (#438)
+
 ### Fixed
 
 - **The boxes of a folder Template can no longer be ticked.** A Template is the shape a note starts from, so on the Templates page and on its folder's page its boxes show their state and answer no click; the editor still changes them, as text. (#440)

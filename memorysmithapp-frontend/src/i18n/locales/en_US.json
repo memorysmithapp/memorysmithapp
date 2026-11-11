@@ -1439,7 +1439,6 @@
     "failed": "Could not search. Try again.",
     "noMatch": "Nothing matches what you typed.",
     "none": "Nothing here yet.",
-    "more": "Show more",
     "columns": {
       "name": "Name",
       "line": "What it is for",

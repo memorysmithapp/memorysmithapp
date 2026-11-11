@@ -187,6 +187,8 @@ export const publicModelSchema = z.object({
 export const catalogSearchSchema = z.object({
   models: z.array(publicModelSchema),
   next: z.string().nullable(),
+  /** How many models the search found, across every page (#438). */
+  total: z.number().int().nonnegative(),
 });
 
 /** A published model, read whole as it stands now, and nothing else of its subscription (#431). */

@@ -242,11 +242,11 @@ export async function searchCatalogPage(query: {
   text: string;
   limit: number;
   cursor: string | null;
-}): Promise<{ models: PublicModelDto[]; next: string | null }> {
+}): Promise<{ models: PublicModelDto[]; next: string | null; total: number }> {
   const params = new URLSearchParams({ limit: String(query.limit) });
   if (query.text.trim()) params.set('q', query.text.trim());
   if (query.cursor) params.set('cursor', query.cursor);
-  return publicRequest<{ models: PublicModelDto[]; next: string | null }>(
+  return publicRequest<{ models: PublicModelDto[]; next: string | null; total: number }>(
     `/public/catalog?${params.toString()}`,
   );
 }

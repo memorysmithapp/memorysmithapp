@@ -224,10 +224,13 @@ describe('publishing a model to the community (#360)', () => {
     );
     expect(both.models.map((each) => each.author).sort()).toEqual(['Ana Pereira', 'Bruno Costa']);
     // A page at a time, the newest published first (#432).
-    const page = await json<{ models: Array<{ author: string }>; next: string | null }>(
-      await call(null, '/public/catalog?limit=1'),
-    );
+    const page = await json<{
+      models: Array<{ author: string }>;
+      next: string | null;
+      total: number;
+    }>(await call(null, '/public/catalog?limit=1'));
     expect(page.models.map((each) => each.author)).toEqual(['Bruno Costa']);
+    expect(page.total).toBe(2);
     const rest = await json<{ models: Array<{ author: string }>; next: string | null }>(
       await call(null, `/public/catalog?limit=1&cursor=${page.next ?? ''}`),
     );
