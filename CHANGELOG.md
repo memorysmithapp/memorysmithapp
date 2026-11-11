@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-11
+
 ### Added
 
 - **A notebook's overview tells its history.** The overview of every notebook has a *History* tab that lists what changed, when, who — you, another person or an agent by name — and the line left, the newest first. It starts with the creation of the notebook, and a notebook created from a model says so: *Created from the model* and the name the model had then; what the model's copy wrote is that one row, not a row for each note. The page of a model of your own no longer has a History tab: its history is the overview of its notebook. A model shared with you as a model keeps the tab, and the community's history is unchanged. (#446, #447)
@@ -1068,7 +1070,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.14.3...v0.15.0
