@@ -79,6 +79,10 @@ const HANDLERS: ReadonlyArray<{ entry: string; description: string }> = [
     entry: 'memorysmithapp-backend/apps/core-monolith/src/catalog.handler.ts',
     description: 'MemorySmith community catalog: the public, read-only route.',
   },
+  {
+    entry: 'memorysmithapp-backend/apps/core-monolith/src/forget-model-versions.handler.ts',
+    description: 'MemorySmith maintenance: deletes the versions models kept before #431.',
+  },
 ];
 
 /** The names a source insists on, as it insists on them. */
@@ -144,7 +148,6 @@ function deployed(): Map<string, Record<string, string>> {
     connectorClientId: identity.proxyClient.userPoolClientId,
     webClientId: identity.webClient.userPoolClientId,
     frontendOrigin: `https://${network.siteDomainName}`,
-    senderAddress: network.senderAddress,
   });
   const projections = new ProjectionsStack(app, stackId(environment, 'Projections'), {
     env,
