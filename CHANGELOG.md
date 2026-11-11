@@ -57,6 +57,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **The boxes of a folder Template can no longer be ticked.** A Template is the shape a note starts from, so on the Templates page and on its folder's page its boxes show their state and answer no click; the editor still changes them, as text. (#440)
+
 - **Every card and every row shows it is under the mouse, all of it.** A card of a notebook's overview darkened only the part of it its link filled; it, the Templates of a notebook and every card now darken their edge, all of it, and the rows of the attachments, of a model's parameters and of its versions take the shade a row of the folders takes. (#429)
 
 - **A printed note is laid on white paper.** Its body was drawn on the grey of the screen inside each white sheet; it now has no colour behind it, in the preview, on paper and in a PDF. (#425)

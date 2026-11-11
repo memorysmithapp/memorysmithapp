@@ -75,7 +75,10 @@ export function TemplateBody({
         raw={template?.body ?? ''}
         notebookId={notebookId}
         baseRevision={template?.revision ?? null}
-        writable={writable}
+        // A Template is the shape a note starts from, not a record: its boxes
+        // show their state and answer no click; the editor still changes them
+        // as text (#440).
+        writable={false}
         write={({ raw, baseRevision, keepalive }) =>
           putTemplate(notebookId, folder.id, raw, baseRevision, { keepalive: keepalive ?? false })
         }
