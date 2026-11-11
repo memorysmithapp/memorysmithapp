@@ -7265,6 +7265,12 @@ button.attachment-thumb:focus-visible {
   margin-top: 0.35rem;
 }
 /* The parts of a model as it stands (#431): its files, tables and dashboards. */
+/* What a part of a model is, beside its name: a folder or a note (#443). */
+.model-part-kind {
+  margin-left: 8px;
+  vertical-align: 1px;
+  font-weight: 500;
+}
 .model-parts {
   margin: 0;
   padding-left: 1.25rem;

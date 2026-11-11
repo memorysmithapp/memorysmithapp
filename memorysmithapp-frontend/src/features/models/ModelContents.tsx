@@ -70,6 +70,7 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
         <Part
           key={folder.folderId}
           title={folder.name}
+          kind={t('model.kindFolder')}
           hint={t('model.folderNotes', { count: notesOf(folder.folderId).length })}
         >
           {folder.description ? <p className="hint">{folder.description}</p> : null}
@@ -79,7 +80,11 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
             </Part>
           ) : null}
           {notesOf(folder.folderId).map((note) => (
-            <Part key={note.noteId} title={noteNameOf(note.body) ?? t('model.untitledNote')}>
+            <Part
+              key={note.noteId}
+              title={noteNameOf(note.body) ?? t('model.untitledNote')}
+              kind={t('model.kindNote')}
+            >
               <ReadOnlyMarkdown markdown={note.body} />
             </Part>
           ))}
@@ -128,12 +133,26 @@ export function ModelContents({ contents }: { contents: ModelContentsView }) {
 }
 
 /** One part of a model, folded, as a card of the Templates of a notebook (#439). */
-function Part({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function Part({
+  title,
+  kind,
+  hint,
+  children,
+}: {
+  title: string;
+  /** What the part is, a folder or a note, said beside its name (#443). */
+  kind?: string;
+  hint?: string;
+  children: ReactNode;
+}) {
   return (
     <details className="template-card model-part">
       <summary>
         <ChevronRightIcon className="template-card-chevron" />
-        <span className="template-card-title">{title}</span>
+        <span className="template-card-title">
+          {title}
+          {kind ? <span className="chip model-part-kind">{kind}</span> : null}
+        </span>
         {hint ? <span className="template-card-hint">{hint}</span> : null}
       </summary>
       <div className="template-card-body">{children}</div>

@@ -1332,7 +1332,9 @@
     },
     "folderNotes_one": "{{count}} nota",
     "folderNotes_other": "{{count}} notas",
-    "untitledNote": "Uma nota sem nome"
+    "untitledNote": "Uma nota sem nome",
+    "kindFolder": "Pasta",
+    "kindNote": "Nota"
   },
   "newNotebook": {
     "open": "Novo caderno",

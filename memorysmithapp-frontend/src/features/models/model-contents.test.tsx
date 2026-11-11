@@ -121,11 +121,21 @@ describe('a model as it stands (#431)', () => {
     expect(html).not.toContain('callout-warning');
   });
 
+  it('says beside its name which part is a folder and which a note, and only of those (#443)', async () => {
+    await i18n.changeLanguage('en_US');
+    const kinds = [
+      ...draw(CONTENTS).matchAll(/<span class="chip model-part-kind">([^<]*)<\/span>/g),
+    ];
+    expect(kinds.map((each) => each[1])).toEqual(['Folder', 'Note']);
+  });
+
   it('speaks pt_BR', async () => {
     await i18n.changeLanguage('pt_BR');
     const html = draw(CONTENTS);
     expect(html).toContain('O que ele guarda');
     expect(html).toContain('Orientação');
+    expect(html).toContain('<span class="chip model-part-kind">Pasta</span>');
+    expect(html).toContain('<span class="chip model-part-kind">Nota</span>');
     await i18n.changeLanguage('en_US');
   });
 });

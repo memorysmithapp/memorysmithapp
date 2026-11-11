@@ -755,10 +755,26 @@ test.describe('notebook models', () => {
         .first()
         .click();
       await expect(folder.getByRole('heading', { name: 'Verification' })).toBeVisible();
+      // Beside its name, a part says whether it is a folder or a note (#443).
+      await expect(folder.locator(':scope > summary .model-part-kind')).toHaveText(
+        words.kindFolder,
+      );
+      const noteKinds = folder.locator(
+        ':scope > .template-card-body > details.model-part > summary .model-part-kind',
+      );
+      await expect(noteKinds.first()).toHaveText(words.kindNote);
+      await noteKinds.first().scrollIntoViewIfNeeded();
       await testInfo.attach('community-contents.png', {
-        body: await app.screenshot({ animations: 'disabled', fullPage: true }),
+        body: await app.screenshot({ animations: 'disabled' }),
         contentType: 'image/png',
       });
+      await app.setViewportSize({ width: 390, height: 844 });
+      await folder.locator(':scope > summary').scrollIntoViewIfNeeded();
+      await testInfo.attach('community-contents-phone.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await app.setViewportSize({ width: 1280, height: 720 });
       // Its history says when and what, never who, not even the column (#431, #435).
       await app.getByRole('tab', { name: words.tabHistory }).click();
       await expect(app.locator('.model-history-table tbody tr').first()).toBeVisible({
@@ -792,6 +808,8 @@ const COMMUNITY_WORDS: Record<
     readonly report: string;
     readonly tabContents: string;
     readonly tabHistory: string;
+    readonly kindFolder: string;
+    readonly kindNote: string;
   }
 > = {
   en_US: {
@@ -801,6 +819,8 @@ const COMMUNITY_WORDS: Record<
     report: 'Report this model',
     tabContents: 'Contents',
     tabHistory: 'History',
+    kindFolder: 'Folder',
+    kindNote: 'Note',
   },
   pt_BR: {
     title: 'Comunidade',
@@ -809,5 +829,7 @@ const COMMUNITY_WORDS: Record<
     report: 'Denunciar este modelo',
     tabContents: 'Conteúdo',
     tabHistory: 'Histórico',
+    kindFolder: 'Pasta',
+    kindNote: 'Nota',
   },
 };
