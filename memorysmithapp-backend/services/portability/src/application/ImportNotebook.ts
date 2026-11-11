@@ -463,7 +463,7 @@ export class ImportNotebook {
       if (!document.ok) return document;
       let written = document.value;
       if (input.fill) {
-        // A notebook created from a model depends on no model (RN-PRT-065),
+        // A notebook created from a model depends on no model (RN-PRT-088),
         // and a snapshot carries none; this holds it even for one that did.
         written = withoutModel(written);
         // The values were checked when the creation was asked for, and are

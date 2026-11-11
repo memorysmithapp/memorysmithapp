@@ -337,6 +337,7 @@ export function FromModel({
           draft={draft}
           onChange={setDraft}
           missing={creation.missing}
+          modelName={picked?.item.name ?? ''}
         />
       )}
       {creation.failure ? (

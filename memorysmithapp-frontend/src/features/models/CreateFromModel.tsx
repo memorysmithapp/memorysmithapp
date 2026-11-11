@@ -12,7 +12,7 @@ import { notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getTransfer } from '../../shared/api/source';
 import { failureOf } from '../portability/TransferParts';
-import { valuesOf } from './model-form';
+import { fillName, valuesOf } from './model-form';
 
 /** What is typed for a notebook created from a model: its name, and a text per parameter. */
 export interface CreateDraft {
@@ -40,15 +40,23 @@ export function CreateFromModelFields({
   draft,
   onChange,
   missing = [],
+  modelName = '',
 }: {
   parameters: readonly ParameterDeclarationDto[];
   draft: CreateDraft;
   onChange: (next: CreateDraft) => void;
   /** The parameters the API answered were missing. */
   missing?: readonly string[];
+  /**
+   * The model's name, which the name of the notebook follows filled in with
+   * what is typed for its parameters until the person writes a name (#448).
+   */
+  modelName?: string;
 }) {
   const { t } = useTranslation();
   const typed = draft.typed;
+  // An empty name is the model's, filled in: the field shows it as it will be.
+  const following = fillName(modelName, parameters, typed);
   const type = (parameter: string, value: string) =>
     onChange({ ...draft, typed: { ...typed, [parameter]: value } });
 
@@ -58,8 +66,14 @@ export function CreateFromModelFields({
         <label>
           <span className="field-label">{t('model.newName')}</span>
           <input
-            value={draft.name}
-            onChange={(event) => onChange({ ...draft, name: event.target.value })}
+            value={draft.name === '' ? following : draft.name}
+            onChange={(event) =>
+              onChange({
+                ...draft,
+                // Writing the very name it follows keeps it following.
+                name: event.target.value === following ? '' : event.target.value,
+              })
+            }
           />
         </label>
         <span className="field-hint">{t('model.newNameHint')}</span>

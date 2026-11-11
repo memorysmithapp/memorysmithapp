@@ -352,7 +352,8 @@ export async function startFromModel(
       ownerUserId: input.ownerUserId,
       name: input.modelName,
     },
-    name: input.name.trim() || fillText(input.modelName, values.value),
+    // The name given, or the model's, filled in either way (#448).
+    name: fillText(input.name.trim() || input.modelName, values.value),
     selection: null,
     by: input.by,
     fill: {

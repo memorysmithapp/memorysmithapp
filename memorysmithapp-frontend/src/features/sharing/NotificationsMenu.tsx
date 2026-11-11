@@ -20,8 +20,9 @@ import { TransferNotice, useTransfersStatus } from '../portability/TransfersStat
  * every change of a share, told to the side that did not make it, and that a
  * transfer is under way (#418). A share waiting for an answer is answered here
  * as on its card; every other notice of a share is read and dismissed, and the
- * notice of a transfer leaves once the panel was opened on it. The count on
- * the button is every notice; a ring says a transfer runs, as far as it got.
+ * notice of a transfer shows it while it runs, and that it ended until the
+ * panel was opened on it (#450). The count on the button is every notice, and
+ * its edge fills in as far as the transfers under way got.
  */
 export function NotificationsMenu() {
   const { t } = useTranslation();
@@ -29,8 +30,9 @@ export function NotificationsMenu() {
   const trigger = useRef<HTMLButtonElement>(null);
   const notifications = useNotifications().data ?? [];
   const transfers = useTransfersStatus();
-  const count = notifications.length + transfers.notices.length;
-  // The notices of transfers stay while the panel shows them, and leave with it.
+  const count = notifications.length + transfers.running.length + transfers.ended.length;
+  // The end of a transfer stays while the panel shows it, and leaves with it;
+  // one still running stays until it ends (#450).
   const close = useCallback(() => {
     setOpen(false);
     transfers.read();
@@ -41,7 +43,13 @@ export function NotificationsMenu() {
       <button
         ref={trigger}
         type="button"
-        className="icon-button notifications-trigger"
+        className={`icon-button notifications-trigger${transfers.ring !== null ? ' is-working' : ''}`}
+        // Its edge fills in as far as the transfers under way got (#450).
+        style={
+          transfers.ring !== null
+            ? { ['--progress' as string]: `${Math.round(transfers.ring * 100)}%` }
+            : undefined
+        }
         onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -57,12 +65,6 @@ export function NotificationsMenu() {
             {count}
           </span>
         )}
-        {transfers.ring !== null && (
-          <span
-            className="transfers-ring"
-            style={{ ['--progress' as string]: `${Math.round(transfers.ring * 100)}%` }}
-          />
-        )}
       </button>
       <Menu
         open={open}
@@ -76,11 +78,11 @@ export function NotificationsMenu() {
         <div className="transfers-panel-head">
           <h2>{t('notifications.heading')}</h2>
         </div>
-        {notifications.length === 0 && transfers.notices.length === 0 ? (
+        {count === 0 ? (
           <p className="transfers-panel-empty">{t('notifications.empty')}</p>
         ) : (
           <ul className="notifications-list">
-            {transfers.notices.map((transfer) => (
+            {[...transfers.running, ...transfers.ended].map((transfer) => (
               <li key={transfer.transferId}>
                 <TransferNotice transfer={transfer} onClose={close} />
               </li>

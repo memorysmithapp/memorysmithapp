@@ -367,6 +367,19 @@ describe('a notebook model (#353, #431)', () => {
     }
   });
 
+  it('fills the parameters in a name the person typed, as in the name of the model (#448)', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    const started = await call(OWNER, `/portability/models/${notebookId}/notebooks`, {
+      method: 'POST',
+      body: { name: 'Atas de {{condomínio}}', values: { condomínio: 'Cirro' } },
+    });
+    expect(started.status).toBe(202);
+    const notebooks = await json<Array<{ name: string }>>(
+      await call(OWNER, '/knowledge/notebooks'),
+    );
+    expect(notebooks.map((each) => each.name)).toContain('Atas de Cirro');
+  });
+
   it('reports what its notebook writes and never declared', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, {
       method: 'PUT',

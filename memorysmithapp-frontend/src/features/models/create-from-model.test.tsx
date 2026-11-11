@@ -153,4 +153,30 @@ describe('the shape of a field that takes text (#411)', () => {
       /^\.field input:where\(:not\(\[type='checkbox'\], \[type='radio'\]\)\) \{\s*width: 100%;/m,
     );
   });
+
+  it('shows the name of the model filled in as the parameters are typed (#448)', async () => {
+    const { CreateFromModelFields } = await import('./CreateFromModel');
+    const parameters: ParameterDeclarationDto[] = [
+      {
+        name: 'obra',
+        description: 'A obra',
+        example: 'Aurora',
+        type: 'text',
+        required: true,
+        default: null,
+      },
+    ];
+    const draw = (name: string) =>
+      renderToStaticMarkup(
+        <CreateFromModelFields
+          parameters={parameters}
+          draft={{ name, typed: { obra: 'Residencial Aurora' } }}
+          onChange={() => {}}
+          modelName="Obra {{obra}}"
+        />,
+      );
+    expect(draw('')).toContain('value="Obra Residencial Aurora"');
+    // A name of the person's own is theirs.
+    expect(draw('Minha obra')).toContain('value="Minha obra"');
+  });
 });

@@ -135,3 +135,36 @@ export function missingRequired(
     )
     .map((parameter) => parameter.name);
 }
+
+/** A name a reference can carry, as the specification writes it (§5.1). */
+const REFERENCE = /\{\{([\p{L}_][\p{L}\p{M}\p{N}_-]*)\}\}/gu;
+
+/**
+ * A name with its `{{references}}` filled in as the API fills the name of a
+ * notebook created from a model (#448): a value typed, or the default of its
+ * parameter, a list joined by commas; a reference with no value yet, and one
+ * escaped by a backslash, stay as they are written.
+ */
+export function fillName(
+  text: string,
+  parameters: readonly ParameterDeclarationDto[],
+  typed: Readonly<Record<string, string>>,
+): string {
+  const values: Record<string, ParameterValueDto> = {};
+  for (const parameter of parameters) {
+    if (parameter.default !== null && parameter.default !== undefined) {
+      values[parameter.name.normalize('NFC')] = parameter.default;
+    }
+  }
+  for (const [name, value] of Object.entries(valuesOf(parameters, typed))) {
+    values[name.normalize('NFC')] = value;
+  }
+  return text.replace(REFERENCE, (whole, name: string, at: number) => {
+    let backslashes = 0;
+    for (let before = at - 1; before >= 0 && text[before] === '\\'; before -= 1) backslashes += 1;
+    if (backslashes % 2 === 1) return whole;
+    const value = values[name.normalize('NFC')];
+    if (value === undefined) return whole;
+    return (Array.isArray(value) ? value.join(', ') : String(value)).replace(/\r?\n/g, ' ');
+  });
+}

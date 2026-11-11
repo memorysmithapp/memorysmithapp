@@ -4396,17 +4396,20 @@ button.attachment-thumb:focus-visible {
  */
 /* A ring while something runs, filled as far as the first one got, with an
    outline of the surface so it separates from the button (#205). */
-.transfers-ring {
+/* The edge of the bell fills in orange, clockwise, as far as the transfers
+   under way got, until it closes the circle (#450). */
+.notifications-trigger.is-working::before {
+  content: '';
   position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 14px;
-  height: 14px;
+  inset: -3px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle, var(--surface) 0 3px, transparent 3.5px),
-    conic-gradient(var(--accent) var(--progress, 0%), var(--track) 0);
-  box-shadow: 0 0 0 2px var(--surface);
+  background: conic-gradient(var(--signal) var(--progress, 0%), var(--track) 0);
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2.5px)
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
   pointer-events: none;
 }
 

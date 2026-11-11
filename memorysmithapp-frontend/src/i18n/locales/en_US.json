@@ -648,6 +648,16 @@
     "disposable": "What is written in this environment is disposable."
   },
   "transfers": {
+    "endedNotice": {
+      "export": {
+        "ready": "The export of <b>{{notebook}}</b> finished.",
+        "failed": "The export of <b>{{notebook}}</b> failed."
+      },
+      "import": {
+        "ready": "The import of <b>{{notebook}}</b> finished.",
+        "failed": "The import of <b>{{notebook}}</b> failed."
+      }
+    },
     "columns": { "what": "Transfer", "state": "State", "actions": "Actions" },
     "heading": "Transfers",
     "seeAll": "See all",
@@ -1250,7 +1260,7 @@
     "contents": "What it holds",
     "none": "None.",
     "newName": "Name of the new notebook",
-    "newNameHint": "Left empty, it is the name of the model, filled in.",
+    "newNameHint": "It follows the model's name, filled in with the values below, until you write one of your own; a parameter you write in it is filled in too.",
     "stillCreating": "The notebook is still being written; it appears in Notebooks when it is.",
     "creationFailed": "The notebook was not created: {{reason}}",
     "referenceExample": "name",

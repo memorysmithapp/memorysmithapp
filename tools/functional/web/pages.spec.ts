@@ -3126,7 +3126,7 @@ test.describe('the transfers of a person', () => {
     notebook,
     state,
     words,
-  }) => {
+  }, testInfo) => {
     await app.goto(notebook.page());
 
     await startExport(app, words, notebook.name);
@@ -3158,6 +3158,22 @@ test.describe('the transfers of a person', () => {
 
     const download = row.getByRole('button', { name: words.download, exact: true });
     await expect(download).toBeVisible({ timeout: 120_000 });
+
+    // The bell says the export finished, and once read the notice leaves (#450).
+    const bell = app.locator('button.notifications-trigger');
+    const ended = app.locator('.notifications-panel .transfer-notice[data-state="ready"]', {
+      hasText: notebook.name,
+    });
+    await bell.click();
+    await expect(ended).toBeVisible({ timeout: 30_000 });
+    await testInfo.attach('bell-ended.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await bell.click();
+    await bell.click();
+    await expect(ended).toHaveCount(0);
+    await bell.click();
     const downloading = app.waitForEvent('download');
     await download.click();
     expect(await (await downloading).suggestedFilename()).toContain('.notebook');

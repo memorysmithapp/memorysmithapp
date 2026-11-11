@@ -8,6 +8,7 @@ import {
   declarationsOf,
   draftOf,
   emptyParameter,
+  fillName,
   missingRequired,
   parameterProblem,
   valueOf,
@@ -154,5 +155,38 @@ describe('the required parameters left empty (#435)', () => {
 
   it('names none once each holds a value, whatever the optional ones hold', () => {
     expect(missingRequired(parameters, { client: 'Aurora', items: 'a\nb' })).toEqual([]);
+  });
+});
+
+describe('the name of a notebook created from a model (#448)', () => {
+  const obra = {
+    name: 'obra',
+    description: 'A obra',
+    example: 'Residencial Aurora',
+    type: 'text' as const,
+    required: true,
+    default: null,
+  };
+  const fases = {
+    name: 'fases',
+    description: 'As fases',
+    example: 'a, b',
+    type: 'list' as const,
+    required: false,
+    default: ['Projeto', 'Execução'],
+  };
+
+  it('fills each reference with what is typed, or the default of its parameter', () => {
+    expect(fillName('Obra {{obra}}', [obra], { obra: 'Residencial Aurora' })).toBe(
+      'Obra Residencial Aurora',
+    );
+    expect(fillName('Obra {{obra}} ({{fases}})', [obra, fases], { obra: 'Cirro' })).toBe(
+      'Obra Cirro (Projeto, Execução)',
+    );
+  });
+
+  it('leaves a reference with no value yet, and an escaped one, as written', () => {
+    expect(fillName('Obra {{obra}}', [obra], {})).toBe('Obra {{obra}}');
+    expect(fillName('Obra \\{{obra}}', [obra], { obra: 'Cirro' })).toBe('Obra \\{{obra}}');
   });
 });

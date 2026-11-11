@@ -651,6 +651,16 @@
     "disposable": "O que é escrito neste ambiente é descartável."
   },
   "transfers": {
+    "endedNotice": {
+      "export": {
+        "ready": "A exportação de <b>{{notebook}}</b> terminou.",
+        "failed": "A exportação de <b>{{notebook}}</b> falhou."
+      },
+      "import": {
+        "ready": "A importação de <b>{{notebook}}</b> terminou.",
+        "failed": "A importação de <b>{{notebook}}</b> falhou."
+      }
+    },
     "columns": { "what": "Transferência", "state": "Situação", "actions": "Ações" },
     "heading": "Transferências",
     "seeAll": "Ver todas",
@@ -1253,7 +1263,7 @@
     "contents": "O que ele guarda",
     "none": "Nenhuma.",
     "newName": "Nome do caderno novo",
-    "newNameHint": "Vazio, é o nome do modelo, preenchido.",
+    "newNameHint": "Acompanha o nome do modelo, preenchido com os valores abaixo, até você escrever um seu; um parâmetro escrito nele também é preenchido.",
     "stillCreating": "O caderno ainda está sendo escrito; ele aparece em Cadernos quando estiver pronto.",
     "creationFailed": "O caderno não foi criado: {{reason}}",
     "referenceExample": "nome",
