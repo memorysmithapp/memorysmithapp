@@ -332,14 +332,33 @@ describe('a notebook model (#353, #431)', () => {
       }
     }
 
-    // Nothing of the creation is kept: the copy it read was an upload.
+    // Nothing of the creation is kept: the copy it read was an upload. And it
+    // is not a transfer of the person's: they created a notebook (#445).
     expect(
       (
         await json<{ transfers: Array<{ kind: string }> }>(
           await call(OWNER, '/portability/transfers'),
         )
-      ).transfers.filter((each) => each.kind === 'export'),
+      ).transfers,
     ).toEqual([]);
+
+    // Its history opens on its creation, from the model, and the import's
+    // writes are that creation, not rows of their own (#446).
+    await drainTrail();
+    const history = await json<{
+      changes: Array<{ type: string; fromModel: string | null; you: boolean }>;
+    }>(await call(OWNER, `/audit/notebooks/${created[0]!.notebookId}/history`));
+    expect(history.changes).toEqual([
+      expect.objectContaining({
+        type: 'NotebookCreated',
+        fromModel: 'Condomínio {{condomínio}}',
+        you: true,
+      }),
+    ]);
+    // A notebook the person does not read answers nothing (INV-09).
+    expect((await call(OWNER, '/audit/notebooks/01J00000000000000000000000/history')).status).toBe(
+      404,
+    );
 
     // Independent: the model goes, and they do not.
     await call(OWNER, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });

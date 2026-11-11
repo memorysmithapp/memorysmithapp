@@ -192,3 +192,4 @@ export function revisionAt(timeline: AuditEvent[], asOf: Instant): AuditEvent | 
     .sort((left, right) => left.occurredAt.epochMillis - right.occurredAt.epochMillis);
   return candidates[candidates.length - 1] ?? null;
 }
+export * from './NotebookHistory.js';

@@ -11,6 +11,7 @@ import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
 import { notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getTransfer } from '../../shared/api/source';
+import { failureOf } from '../portability/TransferParts';
 import { valuesOf } from './model-form';
 
 /** What is typed for a notebook created from a model: its name, and a text per parameter. */
@@ -131,8 +132,8 @@ export function CreateFromModelFields({
 
 /**
  * Creating the notebook out of what the fields hold (#359, #431, #435): the
- * notebook is written in the background, and this follows its transfer and
- * opens it. A required parameter the API found empty is named back, and the
+ * notebook is written in the background, and this follows that work to its
+ * end and opens it, or says why it failed (#445). A required parameter the API found empty is named back, and the
  * reason it gives is the message shown.
  */
 export function useCreateFromModel(): {
@@ -146,7 +147,7 @@ export function useCreateFromModel(): {
   ) => Promise<void>;
   reset: () => void;
 } {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -164,7 +165,10 @@ export function useCreateFromModel(): {
     try {
       const started = await start({ name: draft.name, values: valuesOf(parameters, draft.typed) });
       let transfer = started;
-      for (let waited = 0; transfer.status === 'running' && waited < 60_000; waited += 1000) {
+      // The work behind the creation is not a transfer of the person's, so
+      // the dialog is where it ends: it waits for it, and says why it failed
+      // (#445).
+      for (let waited = 0; transfer.status === 'running' && waited < 180_000; waited += 1000) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         transfer = await getTransfer(started.transferId);
       }
@@ -174,7 +178,13 @@ export function useCreateFromModel(): {
         return;
       }
       setFailure(
-        transfer.status === 'running' ? t('model.stillCreating') : t('model.creationFailed'),
+        transfer.status === 'running'
+          ? t('model.stillCreating')
+          : t('model.creationFailed', {
+              reason:
+                failureOf(transfer, t, (key) => i18n.exists(key)) ??
+                t('portability.refusal.INTERNAL'),
+            }),
       );
     } catch (error) {
       const details =

@@ -137,6 +137,8 @@ export interface NotebookWriter {
     name: string;
     description: string;
     by: Authorship;
+    /** The model the notebook is created from, by its name, which its creation records (#446). */
+    fromModel?: { name: string } | undefined;
   }): Promise<Result<{ notebookId: string }, DomainError>>;
   setGuidance(input: {
     notebookId: string;
@@ -442,6 +444,8 @@ export class ImportNotebook {
     selection?: ImportSelection | null | undefined;
     /** The parameters of a model, filled in before anything is written (#354). */
     fill?: ModelFill | undefined;
+    /** The name of the model the notebook is created from, which its creation records (#446). */
+    fromModel?: string | undefined;
     progress?: ImportProgress | undefined;
   }): Promise<Result<ImportJob, DomainError>> {
     // A key of another subscription is not readable and not addressable: the
@@ -468,7 +472,14 @@ export class ImportNotebook {
         if (!values.ok) return values;
         written = fillDocument(written, values.value);
       }
-      return await this.write(written, input.name, input.by, selection, input.progress);
+      return await this.write(
+        written,
+        input.name,
+        input.by,
+        selection,
+        input.progress,
+        input.fromModel,
+      );
     } finally {
       // The upload is discarded whichever way the import ended: it was the
       // means of getting the bytes here and it is not a copy of the notebook.
@@ -567,12 +578,14 @@ export class ImportNotebook {
     by: Authorship,
     selection: ImportSelection | null,
     progress: ImportProgress | undefined,
+    fromModel?: string | undefined,
   ): Promise<Result<ImportJob, DomainError>> {
     const chosen = plan(document, selection);
     const created = await this.writer.createNotebook({
       name: name ?? document.notebook.name,
       description: document.notebook.description,
       by,
+      ...(fromModel ? { fromModel: { name: fromModel } } : {}),
     });
     if (!created.ok) return created;
     const notebookId = created.value.notebookId;

@@ -9,6 +9,8 @@ import { DomainError, err, Instant, ok, type Result } from '@memorysmithapp/kern
 import {
   type AuditEvent,
   type ClosedTrails,
+  type NotebookChange,
+  notebookHistoryOf,
   notebookOf,
   revisionAt,
   survivesTheNotebook,
@@ -115,6 +117,41 @@ export class GetNotebookActivity {
         input.notebookId,
         from?.ok ? from.value : null,
         to?.ok ? to.value : null,
+      ),
+    );
+  }
+}
+
+/**
+ * The history of a notebook (#446): its trail summarized as a model's is, from
+ * its creation — and the model it came from — to its last change, saying which
+ * changes the person asking made. Only a notebook the person reads answers;
+ * any other is not found, never forbidden (INV-09).
+ */
+export class GetNotebookHistory {
+  constructor(
+    private readonly trail: AuditTrail,
+    private readonly asking: string,
+    private readonly canRead: (notebookId: string) => Promise<boolean>,
+  ) {}
+
+  async execute(
+    notebookId: string,
+  ): Promise<Result<{ changes: NotebookChange[]; truncated: boolean }, DomainError>> {
+    if (!(await this.canRead(notebookId))) return err(DomainError.notFound('Notebook not found'));
+    const events = await this.trail.activityOf(notebookId, null, null);
+    return ok(
+      notebookHistoryOf(
+        events.map((event) => ({
+          occurredAt: event.occurredAt.toISOString(),
+          type: event.type,
+          subject: event.subject,
+          subjectId: event.subjectId,
+          payload: event.payload,
+          agent: event.authorship.agent?.clientName ?? null,
+          at: event.authorship.at.toISOString(),
+          you: event.authorship.user.value === this.asking,
+        })),
       ),
     );
   }

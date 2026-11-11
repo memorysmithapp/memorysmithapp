@@ -123,6 +123,7 @@ import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   GetNoteHistory,
   GetNotebookActivity,
+  GetNotebookHistory,
   ReadRevision,
 } from '@memorysmithapp/svc-audit/application';
 import type { DiscoveryUseCases } from '@memorysmithapp/svc-discovery/adapters/http';
@@ -498,6 +499,12 @@ const auditUseCases: AuditUseCases = {
   noteHistory: (request) => new GetNoteHistory(buildAudit(infra, request.subscription).trail),
   notebookActivity: (request) =>
     new GetNotebookActivity(buildAudit(infra, request.subscription).trail),
+  notebookHistory: (request) =>
+    new GetNotebookHistory(
+      buildAudit(infra, request.subscription).trail,
+      request.subscription.userId.value,
+      request.canRead,
+    ),
   readRevision: (request) => {
     const built = buildAudit(infra, request.subscription);
     return new ReadRevision(built.trail, built.revisions);

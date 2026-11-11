@@ -31,8 +31,13 @@ import {
 export const MODEL_TABS = ['about', 'parameters', 'contents', 'history', 'community'] as const;
 export type ModelTab = (typeof MODEL_TABS)[number];
 
-/** The tabs of the page of one's own model, which has no Contents (#435). */
-export const OWN_MODEL_TABS: readonly ModelTab[] = MODEL_TABS.filter((tab) => tab !== 'contents');
+/**
+ * The tabs of the page of one's own model, which has neither Contents (#435)
+ * nor History (#446): its notebook is opened, and its overview shows both.
+ */
+export const OWN_MODEL_TABS: readonly ModelTab[] = MODEL_TABS.filter(
+  (tab) => tab !== 'contents' && tab !== 'history',
+);
 
 export function isModelTab(
   value: string | null,
@@ -51,7 +56,10 @@ export function ModelTabs({
 }: {
   model: NotebookModelDto;
   owner: boolean;
-  /** Whether what it holds is a tab: only where its notebook cannot be opened (#435). */
+  /**
+   * Whether it is read where its notebook cannot be opened, by a model reader:
+   * only there are what it holds and its history tabs (#435, #446).
+   */
   contents: boolean;
   active: ModelTab;
   onSelect: (tab: ModelTab) => void;
@@ -67,8 +75,12 @@ export function ModelTabs({
       tabs={[
         { key: 'about', label: t('model.tabs.about') },
         { key: 'parameters', label: t('model.tabs.parameters'), total: model.parameters.length },
-        ...(contents ? [{ key: 'contents' as const, label: t('model.tabs.contents') }] : []),
-        { key: 'history', label: t('model.tabs.history') },
+        ...(contents
+          ? [
+              { key: 'contents' as const, label: t('model.tabs.contents') },
+              { key: 'history' as const, label: t('model.tabs.history') },
+            ]
+          : []),
         { key: 'community', label: t('model.tabs.community'), disabled: !owner },
       ]}
     />

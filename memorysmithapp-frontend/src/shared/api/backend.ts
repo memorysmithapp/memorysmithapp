@@ -58,6 +58,7 @@ import type {
   ModelListDto,
   ModelContentsDto,
   ModelHistoryDto,
+  NotebookHistoryDto,
   CreateFromModelRequest,
   PublicModelDto,
   PublicModelContentsDto,
@@ -190,6 +191,11 @@ export async function getModelContents(notebookId: string): Promise<ModelContent
 }
 
 /** The history of a model: the changes of its notebook, the newest first (#431). */
+/** The history of a notebook as its overview shows it, from its creation (#446). */
+export async function getNotebookHistory(notebookId: string): Promise<NotebookHistoryDto> {
+  return request<NotebookHistoryDto>(`/audit/notebooks/${notebookId}/history`);
+}
+
 export async function getModelHistory(notebookId: string): Promise<ModelHistoryDto> {
   return request<ModelHistoryDto>(`/portability/models/${notebookId}/history`);
 }

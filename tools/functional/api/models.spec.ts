@@ -101,6 +101,12 @@ test.describe('a notebook model', () => {
       `/knowledge/notebooks/${imported.notebookId}`,
     );
     expect(copy.name).toBe(`${notebook.name} AE-01`);
+    // Creating a notebook is not a transfer of the person's (#445).
+    const ownTransfers = await owner.ok<{ transfers: Array<{ transferId: string }> }>(
+      'GET',
+      '/portability/transfers',
+    );
+    expect(ownTransfers.transfers.map((each) => each.transferId)).not.toContain(created.transferId);
     await owner.call('DELETE', `/knowledge/notebooks/${imported.notebookId}`);
     await owner.call('DELETE', `/portability/transfers/${created.transferId}`);
 

@@ -61,6 +61,7 @@ import { DynamoStorageMeter } from '@memorysmithapp/svc-knowledge/adapters/stora
 import type { StorageState } from '@memorysmithapp/svc-knowledge/domain';
 import { DynamoAuditTrail } from '@memorysmithapp/svc-audit/adapters/trail';
 import { S3RevisionReader } from '@memorysmithapp/svc-audit/adapters/content';
+import { notebookHistoryOf } from '@memorysmithapp/svc-audit/domain';
 import {
   DynamoContentIndex,
   DynamoFacetIndex,
@@ -152,9 +153,32 @@ export function parseNotebookDocument(json: string): NotebookDocument {
 }
 
 /**
+ * The history of a model notebook as Audit summarizes its trail (#446): who
+ * is never said here, only the connector, since the community reads it too.
+ */
+export function modelHistoryFrom(
+  trail: Pick<DynamoAuditTrail, 'activityOf'>,
+): ModelReading['history'] {
+  return async (notebookId) => {
+    const { changes, truncated } = notebookHistoryOf(
+      (await trail.activityOf(notebookId, null, null)).map((event) => ({
+        occurredAt: event.occurredAt.toISOString(),
+        type: event.type,
+        subject: event.subject,
+        subjectId: event.subjectId,
+        payload: event.payload,
+        agent: event.authorship.agent?.clientName ?? null,
+        at: event.authorship.at.toISOString(),
+      })),
+    );
+    return { changes, truncated };
+  };
+}
+
+/**
  * How a model notebook of this subscription is read where it is (#431): its
- * parts as an export reads them, and the entries the trail keeps of it, with
- * the connector of each and nothing else of who wrote it.
+ * parts as an export reads them, and its history, with the connector of each
+ * change and nothing else of who made it.
  */
 export function buildModelReading(
   infra: Infrastructure,
@@ -163,15 +187,7 @@ export function buildModelReading(
   const trail = new DynamoAuditTrail(infra.db, infra.auditTable, context.subscriptionId);
   return {
     source: new KnowledgeExportSource(buildKnowledge(infra, context)),
-    trail: async (notebookId) =>
-      (await trail.activityOf(notebookId, null, null)).map((event) => ({
-        occurredAt: event.occurredAt.toISOString(),
-        type: event.type,
-        subject: event.subject,
-        subjectId: event.subjectId,
-        payload: event.payload,
-        agent: event.authorship.agent?.clientName ?? null,
-      })),
+    history: modelHistoryFrom(trail),
   };
 }
 

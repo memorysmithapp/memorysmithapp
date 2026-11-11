@@ -94,6 +94,8 @@ export const queryKeys = {
   model: (notebookId: string) => ['model', notebookId] as const,
   modelContents: (notebookId: string) => ['model-contents', notebookId] as const,
   modelHistory: (notebookId: string) => ['model-history', notebookId] as const,
+  /** The history of a notebook, on its overview (#446). */
+  notebookHistory: (notebookId: string) => ['notebook-history', notebookId] as const,
   /** The community catalog (#360): a search, a published model, what it holds and its history. */
   catalog: (text: string, language: string | null) => ['catalog', text, language] as const,
   catalogModel: (publicId: string) => ['catalog-model', publicId] as const,

@@ -24,6 +24,7 @@
   "GET /access/shares",
   "GET /access/usage",
   "GET /audit/notebooks/:v/activity",
+  "GET /audit/notebooks/:v/history",
   "GET /audit/notebooks/:v/notes/:n/history",
   "GET /audit/notebooks/:v/notes/:n/revisions",
   "GET /audit/notebooks/:v/notes/:n/revisions/:versionId",

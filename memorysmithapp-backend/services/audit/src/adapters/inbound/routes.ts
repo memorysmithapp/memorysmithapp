@@ -24,7 +24,12 @@ import {
   type SubscriptionContext,
 } from '@memorysmithapp/kernel';
 import type { AuditEvent } from '../../domain/index.js';
-import type { GetNoteHistory, GetNotebookActivity, ReadRevision } from '../../application/index.js';
+import type {
+  GetNoteHistory,
+  GetNotebookActivity,
+  GetNotebookHistory,
+  ReadRevision,
+} from '../../application/index.js';
 
 /**
  * The verified context travels with the request. Passing the subscription as a
@@ -42,11 +47,14 @@ export interface AuditRequest {
    * serve its history and its content for a minute.
    */
   readonly holdsNote: (notebookId: string, noteId: string) => Promise<boolean>;
+  /** Whether the person asking reads that notebook, live (#446). */
+  readonly canRead: (notebookId: string) => Promise<boolean>;
 }
 
 export interface AuditUseCases {
   readonly noteHistory: (request: AuditRequest) => GetNoteHistory;
   readonly notebookActivity: (request: AuditRequest) => GetNotebookActivity;
+  readonly notebookHistory: (request: AuditRequest) => GetNotebookHistory;
   readonly readRevision: (request: AuditRequest) => ReadRevision;
 }
 
@@ -142,6 +150,15 @@ export function createAuditRoutes(useCases: AuditUseCases): Hono<{ Variables: Va
       contentRef: event.contentRef?.toJSON(),
       content,
     }));
+  });
+
+  /**
+   * The history of a notebook as its overview shows it (#446): from its
+   * creation, the model it came from included, to its last change.
+   */
+  app.get('/notebooks/:v/history', async (c) => {
+    const history = await useCases.notebookHistory(c.get('audit')).execute(c.req.param('v') ?? '');
+    return present(c, history, (value) => value);
   });
 
   app.get('/notebooks/:v/activity', async (c) => {

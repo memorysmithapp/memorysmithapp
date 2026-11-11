@@ -310,22 +310,25 @@ test.describe('notebook models', () => {
     await expect(app.getByRole('tab', { name: words.tabContents })).toHaveCount(0);
     await expect(app.locator('section.model-contents')).toHaveCount(0);
 
-    // Its history is the trail of its notebook, which follows a write within
-    // seconds, read by a person in the interface (#431), drawn as the list of
-    // a folder (#435).
-    await app.getByRole('tab', { name: words.tabHistory }).click();
-    const rows = app.locator('.model-history-table tbody tr');
+    // Nor History: its history is the overview of its notebook (#446), the
+    // trail of it, which follows a write within seconds (#431), drawn as the
+    // list of a folder (#435).
+    await expect(app.getByRole('tab', { name: words.tabHistory })).toHaveCount(0);
+    await app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row').first().click();
+    const rows = app.locator('#overview-history .model-history-table tbody tr');
     await expect(rows.first()).toBeVisible({ timeout: 90_000 });
     // What changed comes first, its kind its tooltip, as a note of a folder (#437).
     await expect(rows.first().locator('td').first()).toHaveClass(/model-history-what/);
     await expect(rows.first().locator('.model-history-what')).toHaveAttribute('title', /\S/);
     await expect(rows.first().locator('.property-chip')).toHaveCount(0);
+    await app.locator('#overview-history').scrollIntoViewIfNeeded();
     await testInfo.attach('model-history.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.setViewportSize({ width: 390, height: 844 });
     await expect(rows.first()).toBeVisible();
+    await app.locator('#overview-history').scrollIntoViewIfNeeded();
     await testInfo.attach('model-history-phone.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
@@ -351,6 +354,16 @@ test.describe('notebook models', () => {
     await expect(create).toBeEnabled();
     await create.click();
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 120_000 });
+    // It opens on its overview, whose history starts with its creation from
+    // the model, the copy that wrote it folded into that one row (#446).
+    const createdRows = app.locator('#overview-history .model-history-table tbody tr');
+    await expect(createdRows.last()).toContainText(modelName, { timeout: 90_000 });
+    await expect(createdRows).toHaveCount(1);
+    await app.locator('#overview-history').scrollIntoViewIfNeeded();
+    await testInfo.attach('overview-history.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
 
     const listed = await owner.ok<Array<{ notebookId: string; name: string }>>(
       'GET',
@@ -562,9 +575,29 @@ test.describe('notebook models', () => {
         .getByRole('button', { name: common.newExport, exact: true })
         .click();
       const dialog = app.locator('.transfer-dialog');
+      // It opens on its form, the notebook a field with Choose notebook (#444).
+      await expect(dialog.locator('.export-chosen')).toBeVisible();
+      await testInfo.attach('export-form.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await dialog.getByRole('button', { name: common.chooseNotebook, exact: true }).click();
       await dialog.getByRole('combobox', { name: common.notebookField, exact: true }).fill(name);
-      await expect(dialog.locator('.search-picker-row', { hasText: name }).first()).toBeVisible();
+      const row = dialog.locator('.search-picker-row', { hasText: name }).first();
+      await expect(row).toBeVisible();
+      // Under the mouse the whole row is shaded, and no name is underlined (#444).
+      await row.hover();
+      await expect(row).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      await expect(row.locator('.search-picker-name')).toHaveCSS('text-decoration-line', 'none');
       await testInfo.attach('export-picker.png', {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      // Back returns to the form with nothing chosen, on a phone as well.
+      await app.setViewportSize({ width: 390, height: 844 });
+      await dialog.getByRole('button', { name: common.backFromPicker, exact: true }).click();
+      await expect(dialog.locator('.export-chosen .hint')).toBeVisible();
+      await testInfo.attach('export-form-phone.png', {
         body: await app.screenshot({ animations: 'disabled' }),
         contentType: 'image/png',
       });

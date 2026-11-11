@@ -89,6 +89,11 @@ export class Notebook {
     name: NotebookName;
     description: ShortText;
     by: Authorship;
+    /**
+     * The model it is created from, by its name then: recorded in its
+     * creation as where it came from, and nothing depends on it (#446).
+     */
+    fromModel?: string | undefined;
   }): Result<Notebook, DomainError> {
     const slug = Slug.from(input.name.value);
     if (!slug.ok) return slug;
@@ -115,6 +120,7 @@ export class Notebook {
       name: input.name.value,
       slug: slug.value.value,
       description: input.description.value,
+      ...(input.fromModel ? { fromModel: { name: input.fromModel } } : {}),
     });
     return ok(notebook);
   }

@@ -86,8 +86,9 @@ describe('the picker of a notebook or a model (#432)', () => {
     expect(html).toContain('Diário de pesquisa');
     expect(html).toContain('Onboarding de cliente');
     expect(html).not.toContain('Diário de obra');
-    // The first row is the one Enter picks.
-    expect(html).toMatch(/aria-selected="true"[^>]*>.*Diário de pesquisa/);
+    // Nothing is lit until the keyboard or the mouse moves (#444).
+    expect(html).not.toContain('is-lit');
+    expect(html).not.toMatch(/role="option" aria-selected="true"/);
   });
 
   it('draws the rows as the list of a folder: the name, what it is for and whose it is (#435)', async () => {
@@ -103,7 +104,7 @@ describe('the picker of a notebook or a model (#432)', () => {
     // Each row is an option of the listbox, its cells the three columns.
     expect(html).toMatch(/<tbody role="listbox" aria-label="Model">/);
     expect(html).toMatch(
-      /<tr id="[^"]+-option-0" role="option" aria-selected="true" class="search-picker-row is-lit"><td class="folder-notes-name search-picker-name">Diário de pesquisa<\/td><td data-label="What it is for" class="search-picker-line">Hipóteses, achados e fontes<\/td><td data-label="Whose" class="search-picker-by">Yours<\/td><\/tr>/,
+      /<tr id="[^"]+-option-0" role="option" aria-selected="false" class="search-picker-row"><td class="folder-notes-name search-picker-name">Diário de pesquisa<\/td><td data-label="What it is for" class="search-picker-line">Hipóteses, achados e fontes<\/td><td data-label="Whose" class="search-picker-by">Yours<\/td><\/tr>/,
     );
     await i18n.changeLanguage('pt_BR');
     const pt = render([{ key: 'mine', label: 'Meus', kind: 'local', items: MINE }]);

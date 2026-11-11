@@ -11,6 +11,7 @@ import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmithapp/cont
 import {
   FILE_TYPE_CATALOGUE,
   PICTURE_CATALOGUE,
+  modelHistoryFrom,
   serializeNotebookDocument,
 } from '../src/composition-root.js';
 import {
@@ -240,6 +241,7 @@ import { ImportedTrailWriter } from '../src/trail-writer.js';
 import {
   GetNoteHistory,
   GetNotebookActivity,
+  GetNotebookHistory,
   ReadRevision,
   RecordEvents,
 } from '@memorysmithapp/svc-audit/application';
@@ -613,6 +615,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const auditUseCases: AuditUseCases = {
     noteHistory: () => new GetNoteHistory(auditTrail),
     notebookActivity: () => new GetNotebookActivity(auditTrail),
+    notebookHistory: (request) =>
+      new GetNotebookHistory(auditTrail, request.subscription.userId.value, request.canRead),
     readRevision: () => new ReadRevision(auditTrail, revisions),
   };
   const auditConsumer = new AuditEventConsumer(new RecordEvents(auditTrail, auditTrail));
@@ -761,19 +765,11 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   };
   /**
    * How a model notebook is read where it is (#431): as an export reads it,
-   * and the trail of it, as production builds both.
+   * and its history, as production builds both.
    */
   const readingOf = (context: SubscriptionContext): ModelReading => ({
     source: new KnowledgeExportSource(knowledgeRepos(context)),
-    trail: async (notebookId) =>
-      (await auditTrail.activityOf(notebookId, null, null)).map((event) => ({
-        occurredAt: event.occurredAt.toISOString(),
-        type: event.type,
-        subject: event.subject,
-        subjectId: event.subjectId,
-        payload: event.payload,
-        agent: event.authorship.agent?.clientName ?? null,
-      })),
+    history: modelHistoryFrom(auditTrail),
   });
   /** The context of a subscription a model is in, as its owner (#431). */
   const holderOf = (holder: { subscriptionId: string; ownerUserId: string }) => {

@@ -30,7 +30,7 @@ import {
   type DocumentModel,
   type NotebookDocument,
 } from '../domain/NotebookDocumentBuilder.js';
-import { modelHistoryOf, type ModelChange, type TrailEntry } from '../domain/ModelHistory.js';
+import type { ModelChange, ModelHistory } from '../domain/ModelHistory.js';
 import type { ExportSource } from './ExportNotebook.js';
 import type { Transfer, TransferStore } from '../domain/Transfer.js';
 import type { StartImport } from './Transfers.js';
@@ -55,7 +55,8 @@ export interface ModelCaller {
  */
 export interface ModelReading {
   readonly source: ExportSource;
-  trail(notebookId: string): Promise<TrailEntry[]>;
+  /** The history of the model notebook, summarized from its trail by Audit (#446). */
+  history(notebookId: string): Promise<ModelHistory>;
 }
 
 export interface ModelDependencies {
@@ -255,7 +256,7 @@ export class ReadModelHistory {
     if (!(await source.deps.models.get(notebookId))) {
       return err(DomainError.notFound('Model not found'));
     }
-    return ok(modelHistoryOf(await source.deps.reading.trail(notebookId)));
+    return ok(await source.deps.reading.history(notebookId));
   }
 }
 
@@ -349,6 +350,7 @@ export async function startFromModel(
       subscriptionId: input.subscriptionId,
       notebookId: input.notebookId,
       ownerUserId: input.ownerUserId,
+      name: input.modelName,
     },
     name: input.name.trim() || fillText(input.modelName, values.value),
     selection: null,

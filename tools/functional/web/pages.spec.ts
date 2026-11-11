@@ -428,7 +428,7 @@ test.describe('the pages of an account', () => {
     // Export lands in the dialog with this notebook already chosen.
     await more.click();
     await app.getByRole('menuitem', { name: words.exportNotebook }).click();
-    // Chosen already, so the picker waits behind *Choose another* (#432).
+    // Chosen already, so the picker waits behind *Choose notebook* (#432, #444).
     await expect(app.locator('.transfer-dialog .export-chosen strong')).toHaveText(name);
     await app.keyboard.press('Escape');
 
@@ -2760,7 +2760,14 @@ A note to rename.
  */
 async function startExport(
   app: Page,
-  words: { transfers: string; newExport: string; notebookField: string; startExport: string },
+  words: {
+    transfers: string;
+    newExport: string;
+    notebookField: string;
+    chooseNotebook: string;
+    selectChosen: string;
+    startExport: string;
+  },
   notebookName: string,
 ): Promise<void> {
   // Transfers, in the menu, is where an export starts (#418).
@@ -2770,12 +2777,15 @@ async function startExport(
     .locator('.transfers-start')
     .getByRole('button', { name: words.newExport, exact: true })
     .click();
-  // The notebook is found in the picker by typing its name, and picked from
-  // the rows under it (#432). Scoped to the dialog and exact: `Notebook` is
-  // the start of several accessible names on the page behind it.
+  // The notebook is a field, as the model of New notebook is: Choose notebook
+  // opens the picker, where it is found by typing its name, marked with a
+  // click and returned with Select (#432, #444). Scoped to the dialog and
+  // exact: `Notebook` is the start of several accessible names behind it.
   const dialog = app.locator('.transfer-dialog');
+  await dialog.getByRole('button', { name: words.chooseNotebook, exact: true }).click();
   await dialog.getByRole('combobox', { name: words.notebookField, exact: true }).fill(notebookName);
   await dialog.locator('.search-picker-row', { hasText: notebookName }).first().click();
+  await dialog.getByRole('button', { name: words.selectChosen, exact: true }).click();
   await expect(dialog.locator('.export-chosen strong')).toHaveText(notebookName);
   // Inside the dialog and exact: `Export` is also the start of the button that
   // opened it.

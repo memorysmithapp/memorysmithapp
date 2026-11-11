@@ -252,6 +252,7 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
         deps.canReadNotebook(request, notebookId);
       c.set('audit', {
         subscription: request.subscription,
+        canRead,
         // The whole chain in one question: the notebook the caller addressed,
         // and the note that notebook holds at this instant.
         holdsNote: async (notebookId: string, noteId: string) =>

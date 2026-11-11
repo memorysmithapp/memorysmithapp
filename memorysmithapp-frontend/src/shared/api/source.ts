@@ -502,6 +502,7 @@ export {
   getModel,
   getModelContents,
   getModelHistory,
+  getNotebookHistory,
   listModels,
   createNotebook,
 } from './backend';

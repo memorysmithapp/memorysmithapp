@@ -97,7 +97,6 @@ export function ModelPage() {
                   <ParameterList parameters={model.data.parameters} />
                 )
               ) : null}
-              {tab === 'history' ? <ModelHistoryPanel notebookId={notebookId} /> : null}
               {tab === 'community' && owner ? (
                 <Publication notebookId={notebookId} model={model.data} />
               ) : null}

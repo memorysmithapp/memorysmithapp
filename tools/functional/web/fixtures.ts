@@ -65,6 +65,10 @@ export interface Words {
   readonly deleteSlotForGood: string;
   /** The notebook a new export names, in the dialog that starts one. */
   readonly notebookField: string;
+  /** What opens the picker of that notebook, and what returns the row marked (#444). */
+  readonly chooseNotebook: string;
+  readonly selectChosen: string;
+  readonly backFromPicker: string;
   /** The action of the Transfers panel that opens the import dialog. */
   readonly importNotebook: string;
   readonly linkToSeveral: string;
@@ -201,6 +205,9 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteTemplate: 'Delete the Template',
     deleteSlotForGood: 'Delete for good',
     notebookField: 'Notebook',
+    chooseNotebook: 'Choose notebook',
+    selectChosen: 'Select',
+    backFromPicker: 'Back',
     importNotebook: 'Import',
     linkToSeveral: 'This link leads to more than one note',
     transfers: 'Transfers',
@@ -306,6 +313,9 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteTemplate: 'Apagar o Modelo de pasta',
     deleteSlotForGood: 'Apagar de vez',
     notebookField: 'Caderno',
+    chooseNotebook: 'Escolher caderno',
+    selectChosen: 'Selecionar',
+    backFromPicker: 'Voltar',
     importNotebook: 'Importar',
     linkToSeveral: 'Este link leva a mais de uma nota',
     transfers: 'Transferências',

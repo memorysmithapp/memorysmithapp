@@ -199,6 +199,13 @@ test('a regulated-domain model goes from its author to a named person and to the
     expect(itu).toContain('[[Glossário de Prefeitura de Itu]]');
     expect(itu).not.toContain('{{');
     expect(await notesOf(ownerAgent, fromOwn[1] ?? '')).toContain('Câmara de Sorocaba');
+    // The agent created two notebooks and transferred nothing (#445).
+    const afterCreation = await owner.ok<{
+      transfers: Array<{ notebookId: string | null }>;
+    }>('GET', '/portability/transfers');
+    expect(
+      afterCreation.transfers.filter((each) => fromOwn.includes(each.notebookId ?? '')),
+    ).toEqual([]);
     const ituDetail = await owner.ok<{
       name: string;
       folders: Array<{ folderId: string; description: string }>;

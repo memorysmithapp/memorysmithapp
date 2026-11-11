@@ -134,6 +134,8 @@ export const modelChangeSchema = z.object({
   /** The connector that wrote it, or null for a person in the interface. */
   agent: z.string().nullable(),
   message: z.string().nullable(),
+  /** The model the notebook was created from, by its name then; only on its creation (#446). */
+  fromModel: z.string().nullable().default(null),
 });
 
 /** The history of a model, the newest change first, and whether older ones were left out. */

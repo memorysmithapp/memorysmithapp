@@ -100,7 +100,8 @@ export function SearchPicker<K extends string>({
   const [active, setActive] = useState<K>(initial ?? (sources[0]?.key as K));
   const [text, setText] = useState('');
   const [settled, setSettled] = useState('');
-  const [highlighted, setHighlighted] = useState(0);
+  // The row the keyboard or the mouse is on; none until one of them moves (#444).
+  const [highlighted, setHighlighted] = useState(-1);
 
   useEffect(() => {
     const timer = setTimeout(() => setSettled(text.trim()), SETTLE_MS);
@@ -159,8 +160,8 @@ export function SearchPicker<K extends string>({
     setPage(to);
   }
 
-  // What is lit follows what is shown: a new search, tab or page starts at the top.
-  useEffect(() => setHighlighted(0), [active, text, settled, page]);
+  // What is lit follows what is shown: a new search, tab or page lights nothing.
+  useEffect(() => setHighlighted(-1), [active, text, settled, page]);
 
   function choose(at: number): void {
     const item = rows?.[at];
@@ -171,13 +172,14 @@ export function SearchPicker<K extends string>({
     const last = (rows?.length ?? 0) - 1;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setHighlighted((at) => Math.min(at + 1, Math.max(last, 0)));
+      setHighlighted((at) => Math.min(at + 1, last));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       setHighlighted((at) => Math.max(at - 1, 0));
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      choose(highlighted);
+      // Enter with nothing lit takes the first row, as typing and Enter always did.
+      choose(highlighted >= 0 ? highlighted : 0);
     }
   }
 
@@ -196,7 +198,9 @@ export function SearchPicker<K extends string>({
           aria-label={label}
           aria-expanded="true"
           aria-controls={`${id}-panel`}
-          aria-activedescendant={rows?.length ? optionId(highlighted) : undefined}
+          aria-activedescendant={
+            rows?.length && highlighted >= 0 ? optionId(highlighted) : undefined
+          }
           aria-autocomplete="list"
           placeholder={placeholder}
           value={text}
@@ -244,7 +248,7 @@ export function SearchPicker<K extends string>({
                   <th>{t('picker.columns.by')}</th>
                 </tr>
               </thead>
-              <tbody role="listbox" aria-label={label}>
+              <tbody role="listbox" aria-label={label} onMouseLeave={() => setHighlighted(-1)}>
                 {rows.map((item, at) => (
                   <tr
                     key={item.id}

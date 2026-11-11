@@ -30,7 +30,7 @@ import {
 } from '../domain/CommunityCatalog.js';
 import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
 import type { ModelStore } from '../domain/NotebookModel.js';
-import { modelHistoryOf, type ModelChange } from '../domain/ModelHistory.js';
+import type { ModelChange } from '../domain/ModelHistory.js';
 import { referenceReport } from '../domain/ParameterFilling.js';
 import type { Transfer } from '../domain/Transfer.js';
 import {
@@ -313,7 +313,7 @@ export class ReadCatalogHistory {
   > {
     const entry = await visible(this.deps, publicId);
     if (!entry) return err(DomainError.notFound('Model not found'));
-    const history = modelHistoryOf(await this.deps.readingOf(entry).trail(entry.notebookId));
+    const history = await this.deps.readingOf(entry).history(entry.notebookId);
     return ok({
       changes: history.changes.map(({ agent: _never, ...change }) => change),
       truncated: history.truncated,

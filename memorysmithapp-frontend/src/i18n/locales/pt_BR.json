@@ -435,6 +435,8 @@
     "historyEntries_one": "{{count}} registro",
     "historyEntries_other": "{{count}} registros",
     "noHistory": "Este arquivo não traz história.",
+    "chooseNotebook": "Escolher caderno",
+    "noNotebook": "Nenhum caderno escolhido",
     "exportNotebook": "Caderno",
     "tab": {
       "context": "Contexto",
@@ -1262,8 +1264,8 @@
     "none": "Nenhuma.",
     "newName": "Nome do caderno novo",
     "newNameHint": "Vazio, é o nome do modelo, preenchido.",
-    "stillCreating": "O caderno ainda está sendo escrito; ele aparece na Home quando estiver pronto.",
-    "creationFailed": "O caderno não foi criado. Transferências diz por quê.",
+    "stillCreating": "O caderno ainda está sendo escrito; ele aparece em Cadernos quando estiver pronto.",
+    "creationFailed": "O caderno não foi criado: {{reason}}",
     "referenceExample": "nome",
     "sharedBy": "Compartilhado com você por {{owner}}. Você lê este modelo como está, e o histórico dele, e cria cadernos a partir dele; o caderno que ele é fica com o dono.",
     "community": "Comunidade",
@@ -1290,6 +1292,7 @@
     "defaultsToNothing": "padrão vazio",
     "contentsHint": "O modelo como está agora: um caderno criado a partir dele começa assim. Para guardar um estado dele, exporte o caderno.",
     "historyHint": "Cada mudança do caderno que este modelo é, da mais recente para a mais antiga: quem fez, por qual conector, e a linha que deixou.",
+    "createdFromModel": "Criado a partir do modelo “{{name}}”",
     "historyEmpty": "Nenhuma mudança foi registrada ainda.",
     "historyTruncated": "As mudanças mais antigas ficaram de fora.",
     "historyColumns": {
@@ -1357,7 +1360,6 @@
       "community": "Comunidade"
     },
     "searchModels": "Busque modelos pelo nome ou pelo que servem",
-    "chooseAnother": "Escolher outro",
     "chooseModel": "Escolher modelo",
     "noModel": "Nenhum modelo escolhido",
     "select": "Selecionar",
@@ -1424,6 +1426,7 @@
     "pendingHint": "Links para uma nota que ninguém escreveu ainda. Cada um vira link no momento em que uma nota recebe esse nome.",
     "pendingFrom": "em {{note}}",
     "orphansTitle": "Notas órfãs",
+    "historyTitle": "Histórico",
     "orphansHint": "Notas para as quais nenhuma outra nota aponta."
   },
   "noteAuthor": {

@@ -99,6 +99,8 @@ export class CreateNotebook {
     description: string;
     subscriptionId: Parameters<typeof Notebook.create>[0]['subscriptionId'];
     by: Authorship;
+    /** The model it is created from, by its name, which its creation records (#446). */
+    fromModel?: string | undefined;
   }): Promise<Result<Notebook, DomainError>> {
     // Creating a notebook is a subscription-level decision: OWNER or EDITOR.
     const role = input.ctx.isOwner ? Role.OWNER : input.ctx.role;
@@ -138,6 +140,7 @@ export class CreateNotebook {
       name: name.value,
       description: description.value,
       by: input.by,
+      ...(input.fromModel ? { fromModel: input.fromModel } : {}),
     });
     if (!notebook.ok) return notebook;
 

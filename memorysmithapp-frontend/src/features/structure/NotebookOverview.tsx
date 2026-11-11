@@ -21,12 +21,15 @@ import {
   getNotebookFiles,
   getNotebookGraph,
   getNotebookHealth,
+  getNotebookHistory,
   listDashboards,
   listTables,
 } from '../../shared/api/source';
 import { useLiveInterval } from '../../shared/api/live';
 import { useLiveSession } from '../../shared/auth/session';
 import { useDocumentTitle } from '../../shared/components/document-title';
+import { RowsSkeleton } from '../../shared/components/skeletons';
+import { ModelHistoryList } from '../models/ModelHistory';
 import {
   CopyIcon,
   DashboardIcon,
@@ -309,8 +312,44 @@ export function NotebookOverview() {
             </ul>
           </section>
         ) : null}
+
+        <NotebookHistory notebookId={notebookId} />
       </article>
     </>
+  );
+}
+
+/**
+ * The history of the notebook, at the end of its overview (#446): from its
+ * creation, saying the model it came from, to its last change, as a model's
+ * history is drawn, with who made each one.
+ */
+function NotebookHistory({ notebookId }: { notebookId: string }) {
+  const { t } = useTranslation();
+  const history = useQuery({
+    queryKey: queryKeys.notebookHistory(notebookId),
+    queryFn: () => getNotebookHistory(notebookId),
+    refetchInterval: useLiveInterval(),
+  });
+  return (
+    <section
+      id="overview-history"
+      className="overview-section"
+      aria-labelledby="overview-history-title"
+    >
+      <h2 id="overview-history-title">{t('overview.historyTitle')}</h2>
+      {history.isPending ? (
+        <RowsSkeleton />
+      ) : history.isError ? (
+        <p className="status">{t('history.failed')}</p>
+      ) : (
+        <ModelHistoryList
+          changes={history.data.changes}
+          truncated={history.data.truncated}
+          withAuthor
+        />
+      )}
+    </section>
   );
 }
 

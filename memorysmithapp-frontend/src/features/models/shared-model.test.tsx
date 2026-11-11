@@ -58,6 +58,7 @@ const HISTORY = {
       name: null,
       agent: 'Claude',
       message: 'Say who signs the minutes',
+      fromModel: null,
     },
   ],
   truncated: false,
@@ -173,10 +174,10 @@ describe("the page of one's own model (#435)", () => {
     );
   };
 
-  it('has no Contents tab, and no button to create a notebook', () => {
+  it('has no Contents nor History tab, and no button to create a notebook (#435, #446)', () => {
     const html = render(`/notebooks/${NOTEBOOK.toLowerCase()}/model`);
     expect(html).toContain('role="tablist"');
-    expect(html).toContain('id="model-tab-history"');
+    expect(html).not.toContain('model-tab-history');
     expect(html).not.toContain('model-tab-contents');
     expect(html).not.toContain('Create a notebook');
   });
@@ -187,9 +188,9 @@ describe("the page of one's own model (#435)", () => {
     expect(html).not.toContain('One note per assembly.');
   });
 
-  it('reads its history as the list of a folder, with who made each change', () => {
+  it('opens its first tab when the address asks for its history, which its overview shows (#446)', () => {
     const html = render(`/notebooks/${NOTEBOOK.toLowerCase()}/model?tab=history`);
-    expect(html).toContain('model-history-table');
-    expect(html).toContain('Claude');
+    expect(html).toMatch(/id="model-tab-about"[^>]*aria-selected="true"/);
+    expect(html).not.toContain('model-history-table');
   });
 });

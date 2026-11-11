@@ -434,6 +434,8 @@
     "historyEntries_one": "{{count}} entry",
     "historyEntries_other": "{{count}} entries",
     "noHistory": "This archive carries no history.",
+    "chooseNotebook": "Choose notebook",
+    "noNotebook": "No notebook chosen",
     "exportNotebook": "Notebook",
     "tab": {
       "context": "Context",
@@ -1259,8 +1261,8 @@
     "none": "None.",
     "newName": "Name of the new notebook",
     "newNameHint": "Left empty, it is the name of the model, filled in.",
-    "stillCreating": "The notebook is still being written; it appears on Home when it is.",
-    "creationFailed": "The notebook was not created. Transfers says why.",
+    "stillCreating": "The notebook is still being written; it appears in Notebooks when it is.",
+    "creationFailed": "The notebook was not created: {{reason}}",
     "referenceExample": "name",
     "sharedBy": "Shared with you by {{owner}}. You read this model as it stands, and its history, and create notebooks from it; the notebook it is stays with its owner.",
     "community": "Community",
@@ -1287,6 +1289,7 @@
     "defaultsToNothing": "empty by default",
     "contentsHint": "The model as it stands now: a notebook created from it starts as this. To keep a state of it, export the notebook.",
     "historyHint": "Every change of the notebook this model is, the newest first: who made it, through which connector, and the line they left.",
+    "createdFromModel": "Created from the model “{{name}}”",
     "historyEmpty": "No change was recorded yet.",
     "historyTruncated": "Older changes are left out.",
     "historyColumns": {
@@ -1354,7 +1357,6 @@
       "community": "Community"
     },
     "searchModels": "Search models by name or what they are for",
-    "chooseAnother": "Choose another",
     "chooseModel": "Choose model",
     "noModel": "No model chosen yet",
     "select": "Select",
@@ -1421,6 +1423,7 @@
     "pendingHint": "Links to a note nobody has written yet. Each becomes a link the moment a note takes that name.",
     "pendingFrom": "from {{note}}",
     "orphansTitle": "Orphans",
+    "historyTitle": "History",
     "orphansHint": "Notes no other note links to."
   },
   "noteAuthor": {

@@ -8326,18 +8326,19 @@ button.attachment-thumb:focus-visible {
 .search-picker-row {
   cursor: pointer;
 }
-/* The row the keyboard is on reads as a row of a folder under the mouse:
-   its name underlined, and no colour of its own (#437). */
-.search-picker-row.is-lit .search-picker-name {
-  text-decoration: underline;
+/* The row under the mouse, or under the keyboard, is shaded across the whole
+   row, as a row that is clicked whole (#444); no name is underlined, since it
+   is not a link to anywhere. */
+.search-picker-row:hover,
+.search-picker-row.is-lit {
+  background: var(--hover);
 }
 .search-picker-table .search-picker-name {
   overflow-wrap: anywhere;
 }
-/* The row picked, waiting for Select (#437, #438): its radio filled, and the
-   shade of a row under the mouse across the whole row, never a colour of its
-   own; the mouse itself only underlines a name, so pointing never looks like
-   choosing. */
+/* The row picked, waiting for Select (#437, #438): its radio filled, which
+   is what tells it from a row under the mouse, and the same shade across the
+   whole row, never a colour of its own (#444). */
 .search-picker-row.is-chosen {
   background: var(--hover);
 }

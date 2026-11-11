@@ -152,4 +152,34 @@ describe('the history of a model (#431, #435)', () => {
     await i18n.changeLanguage('en_US');
     expect(draw([])).toContain('No change was recorded yet.');
   });
+
+  it('opens a notebook on its creation, from the model it came from, and says whose each change was (#446)', async () => {
+    await i18n.changeLanguage('pt_BR');
+    const html = draw([
+      { ...CHANGES[0]!, you: false },
+      {
+        ...CHANGES[2]!,
+        type: 'NotebookCreated',
+        name: 'Atas de Aurora',
+        fromModel: 'Atas de {{condomínio}}',
+        you: true,
+      },
+    ]);
+    expect(html).toContain(
+      'title="Caderno criado">Criado a partir do modelo “Atas de {{condomínio}}”</td>',
+    );
+    expect(html).toContain('<td data-label="Quem" class="model-history-who">você</td>');
+    expect(html).toContain('<td data-label="Quem" class="model-history-who">uma pessoa</td>');
+    await i18n.changeLanguage('en_US');
+  });
+
+  it('pages twenty changes at a time with the pager of a folder (#446)', async () => {
+    await i18n.changeLanguage('en_US');
+    const many = Array.from({ length: 45 }, (_, at) => ({ ...CHANGES[1]!, subjectId: `s${at}` }));
+    const html = draw(many);
+    expect(html.match(/<tr/g)).toHaveLength(21);
+    expect(html).toContain('<nav class="tables-grid-pages" aria-label="Pages of the table">');
+    expect(html).toContain('1–20 of 45');
+    expect(draw(CHANGES)).not.toContain('tables-grid-pages');
+  });
 });

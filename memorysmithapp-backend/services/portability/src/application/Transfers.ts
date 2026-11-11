@@ -48,6 +48,11 @@ export interface ModelSourceRef {
   readonly notebookId: string;
   /** The owner of the model, as whom its notebook is read. */
   readonly ownerUserId: string;
+  /**
+   * The name of the model then, which the notebook's creation records as
+   * where it came from (#446); a message queued before it carries none.
+   */
+  readonly name?: string | undefined;
 }
 
 export interface TransferWork {
@@ -323,9 +328,13 @@ export class ListTransfers {
     ]);
     return ok({
       // A version a model kept before #431 is not among the person's
-      // transfers, though it counts in the storage as any kept export (#353).
+      // transfers, though it counts in the storage as any kept export (#353);
+      // nor is the import behind a notebook created from a model, which the
+      // person did not transfer: they created a notebook (#445).
       transfers: await Promise.all(
-        transfers.filter((transfer) => !transfer.model).map((transfer) => this.observe(transfer)),
+        transfers
+          .filter((transfer) => !transfer.model && !transfer.origin)
+          .map((transfer) => this.observe(transfer)),
       ),
       keptBytes,
       transitBytes: transit.bytes,
@@ -570,6 +579,8 @@ export interface ImportRunner {
     by: Authorship;
     selection?: ImportSelection | null | undefined;
     fill?: ModelFill | undefined;
+    /** The name of the model the notebook is created from, which its creation records (#446). */
+    fromModel?: string | undefined;
     progress?:
       | {
           wrote(written: number, total: number): Promise<void>;
@@ -648,6 +659,7 @@ export class RunImport {
         by: this.by,
         selection: work.selection ?? null,
         ...(work.fill ? { fill: work.fill } : {}),
+        ...(work.modelSource?.name ? { fromModel: work.modelSource.name } : {}),
         progress,
       });
 
