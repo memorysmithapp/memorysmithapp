@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 /**
  * The tab strip of the product (#161).
  *
@@ -33,6 +34,8 @@ export interface TabOf<K extends string> {
   readonly hint?: string;
   /** A shorter name for a phone, where the strip has room for less (#447). */
   readonly shortLabel?: string;
+  /** An icon, which a strip that has no room for words on a phone shows instead (#452). */
+  readonly icon?: ReactNode;
 }
 
 export function Tabs<K extends string>({
@@ -84,6 +87,11 @@ export function Tabs<K extends string>({
             .join(' ')}
           onClick={() => onSelect(tab.key)}
         >
+          {tab.icon ? (
+            <span className="tab-icon" aria-hidden="true">
+              {tab.icon}
+            </span>
+          ) : null}
           {tab.shortLabel ? (
             // Read out whole on every screen, whichever name is drawn.
             <>

@@ -392,6 +392,16 @@ export function InfoIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Something to look at before going on: the conflicts of an import (#452). */
+export function AlertIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
+}
+
 /* The actions of Transfers, notifications, file choosing and sign-in (#325),
    which show their icon alone from 860 px down. */
 

@@ -61,7 +61,7 @@ issues each entry cites.
 
 - **The bell shows a transfer as it goes, and says when it ended.** While an export or an import runs, the edge of the bell fills in orange as far as it got, in place of the small ring in its corner, and the panel shows it with its bar. When it ends, the bell says the export or the import finished, or that it failed and why, until you mark it as read, after a reload too; the notice only tells, and what to do with the transfer is on the page of Transfers. (#450, #451)
 
-- **Every tab of Export and Import is in sight.** The seven tabs of what an export or an import carries say short names — *Context · Folders · Templates · Notes · Files · Tables · Problems* — and their full names when you rest the mouse on them, where the last ones used to be out of the dialog. (#452)
+- **Every tab of Export and Import is in sight.** The seven tabs of what an export or an import carries say short names — *Context · Folders · Templates · Notes · Files · Tables · Problems* — and their full names when you rest the mouse on them, where the last ones used to be out of the dialog; on a phone each tab is its icon, the one open named under them. (#452)
 
 - **Creating a notebook from a model is no longer a transfer.** Transfers lists what you exported and imported, and no longer the work behind a notebook you created from a model, by the interface or by an agent. New notebook follows that work to its end and opens the notebook; when it fails, it says why there, instead of sending you to Transfers. (#445)
 

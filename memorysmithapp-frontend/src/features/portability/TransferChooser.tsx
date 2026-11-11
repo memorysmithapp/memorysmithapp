@@ -32,7 +32,17 @@ import {
   type TablesChoice,
 } from './tables-choice';
 import { ActionWord } from '../../shared/components/ActionWord';
-import { PencilIcon, SearchIcon } from '../../shared/components/icons';
+import {
+  AlertIcon,
+  ContextIcon,
+  FileIcon,
+  FolderIcon,
+  PaperclipIcon,
+  PencilIcon,
+  SearchIcon,
+  TableIcon,
+  TemplateIcon,
+} from '../../shared/components/icons';
 
 /**
  * What a transfer carries, chosen the same way on both sides (#156, #161).
@@ -73,6 +83,17 @@ export type ChooserTab = 'context' | Species | 'tables' | 'conflicts';
 
 /** The whole notebook, or part of it (RN-PRT-017, RN-PRT-024). */
 export type Preset = 'everything' | 'choose';
+
+/** The icon of each tab, drawn alone on a phone, the sidebar's where it has one (#452). */
+const TAB_ICONS: Record<ChooserTab, ReactNode> = {
+  context: <ContextIcon />,
+  folders: <FolderIcon />,
+  templates: <TemplateIcon />,
+  notes: <FileIcon />,
+  files: <PaperclipIcon />,
+  tables: <TableIcon />,
+  conflicts: <AlertIcon />,
+};
 
 const TABS: ReadonlyArray<ChooserTab> = [
   'context',
@@ -218,12 +239,15 @@ export function TransferChooser({
           label: t(`portability.tab.${each}`),
           shortLabel: t(`portability.tabShort.${each}`),
           hint: t(`portability.tab.${each}`),
+          icon: TAB_ICONS[each],
           disabled: !opens(each),
           ...(each === 'conflicts' && refusals > 0 ? { count: refusals } : {}),
           ...(each === 'tables' && broken > 0 ? { count: broken } : {}),
         }))}
       />
 
+      {/* On a phone the tabs are their icons, and the open one is named here. */}
+      <p className="chooser-tab-name">{t(`portability.tab.${active}`)}</p>
       <div
         className="chooser-panel"
         role="tabpanel"

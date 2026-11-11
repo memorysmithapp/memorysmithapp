@@ -5249,6 +5249,40 @@ button.attachment-thumb:focus-visible {
 .chooser-tabs .tab-label-short {
   display: inline;
 }
+/* An icon of a tab is for a phone; the open one is named under the strip
+   there, and only there. */
+.tab-icon,
+.chooser-tab-name {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tabs.chooser-tabs {
+    gap: 0;
+    justify-content: space-between;
+  }
+  .chooser-tabs .tab {
+    min-width: 44px;
+    justify-content: center;
+    padding: 0 8px;
+  }
+  .chooser-tabs .tab-label-short {
+    display: none;
+  }
+  .chooser-tabs .tab-icon {
+    display: inline-flex;
+  }
+  .chooser-tabs .tab-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .chooser-tab-name {
+    display: block;
+    margin: 10px 0 0;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+  }
+}
 .chooser-panel {
   display: flex;
   flex-direction: column;
