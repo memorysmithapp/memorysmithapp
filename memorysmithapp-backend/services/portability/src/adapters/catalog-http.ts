@@ -11,7 +11,7 @@
  */
 
 import { Hono, type Context } from 'hono';
-import { DomainError, httpStatusFor, type Result } from '@memorysmithapp/kernel';
+import { DomainError, httpStatusFor } from '@memorysmithapp/kernel';
 import type {
   ReadCatalogContents,
   ReadCatalogHistory,
