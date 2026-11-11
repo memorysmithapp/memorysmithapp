@@ -63,7 +63,7 @@ export function TemplatesPage() {
   return (
     <>
       <NotebookBar crumbs={contextCrumbs(notebookId, t, t('structure.templates'))} />
-      <article className="content-pane">
+      <article className="content-pane is-wide">
         {templated.length === 0 ? (
           <p>{t('structure.noTemplates')}</p>
         ) : (

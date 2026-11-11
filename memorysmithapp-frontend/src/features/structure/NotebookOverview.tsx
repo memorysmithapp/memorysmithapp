@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
 import {
@@ -29,6 +29,8 @@ import { useLiveInterval } from '../../shared/api/live';
 import { useLiveSession } from '../../shared/auth/session';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { RowsSkeleton } from '../../shared/components/skeletons';
+import { Tabs } from '../../shared/components/Tabs';
+import { ListPager, useListPage } from '../../shared/components/ListPager';
 import { ModelHistoryList } from '../models/ModelHistory';
 import {
   CopyIcon,
@@ -54,8 +56,8 @@ import { authorLabel, byAgent } from './note-author';
 import { useNotebookId } from './route-ids';
 
 /** How many notes "Changed lately" lists, and how many of each kind of loose end. */
-const LATELY = 8;
-const LOOSE_ENDS = 10;
+/** The notes changed last that the overview lists, scrolled in its tab (#447). */
+const LATELY = 100;
 /** A number that could not be read: said as unknown, never as zero. */
 const UNREAD = '–';
 
@@ -84,12 +86,34 @@ function countTemplates(folders: FolderNode[]): number {
  * and tables it holds and how many of its links wait for a note or lead
  * nowhere, then what changed last. The Notebook Context is a page of its own.
  */
+/** The lists of the overview, one tab each, ten rows a page (#447). */
+const OVERVIEW_PAGE = 10;
+const OVERVIEW_TABS = ['lately', 'pending', 'orphans', 'history'] as const;
+type OverviewTab = (typeof OVERVIEW_TABS)[number];
+
+/**
+ * The tab open, kept in the address as `#overview-{tab}`, which is where the
+ * numbers of the strip already point: a click on *pending links* opens their
+ * tab (#447).
+ */
+function useOverviewTab(): [OverviewTab, (tab: OverviewTab) => void] {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const asked = location.hash.replace(/^#overview-/, '');
+  const tab = OVERVIEW_TABS.find((each) => each === asked) ?? 'lately';
+  return [
+    tab,
+    (next) => navigate({ hash: `overview-${next}` }, { replace: true, preventScrollReset: true }),
+  ];
+}
+
 export function NotebookOverview() {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const notebookId = useNotebookId();
   const me = useLiveSession((s) => s.session?.userId ?? '');
   const { structure } = useOutletContext<NotebookOutletContext>();
+  const [tab, selectTab] = useOverviewTab();
   useDocumentTitle(structure.notebook.name);
   const live = useLiveInterval();
 
@@ -148,7 +172,7 @@ export function NotebookOverview() {
   return (
     <>
       <NotebookBar crumbs={[{ label: t('overview.title') }]} />
-      <article className="content-pane overview-page">
+      <article className="content-pane is-wide overview-page">
         {last ? (
           <Link to={noteAddress(notebookId, last.note.id)} className="overview-resume">
             <span className="overview-resume-icon">
@@ -244,83 +268,149 @@ export function NotebookOverview() {
           />
         </ul>
 
-        <section className="overview-section" aria-labelledby="overview-lately">
-          <h2 id="overview-lately">{t('overview.lately')}</h2>
-          {lately.length === 0 ? (
-            <p className="hint">{t('overview.noNotes')}</p>
-          ) : (
-            <ul className="row-card">
-              {lately.map(({ note, folder }) => (
-                <li key={note.id}>
-                  <Link to={noteAddress(notebookId, note.id)} className="overview-row">
-                    <span className="overview-row-name">{note.name ?? t('note.unnamed')}</span>
-                    <span className="overview-row-meta">
-                      {folder} · {formatDay(note.updatedAt, locale)} ·{' '}
-                      <span className={byAgent(note.updatedBy) ? 'is-agent' : undefined}>
-                        {authorLabel(note.updatedBy, me, t)}
+        {/* What changed last, what is left loose and the history, one tab
+            each, ten rows a page in a panel at least that tall (#447). */}
+        <section className="overview-section" aria-label={t('overview.lists')}>
+          <Tabs
+            id="overview"
+            label={t('overview.lists')}
+            className="overview-tabs"
+            active={tab}
+            onSelect={selectTab}
+            // What each tab holds is its tooltip, in place of a `?` (#447).
+            tabs={[
+              {
+                key: 'lately',
+                label: t('overview.lately'),
+                shortLabel: t('overview.latelyShort'),
+                hint: t('overview.latelyHint'),
+              },
+              {
+                key: 'pending',
+                label: t('overview.pendingTitle'),
+                shortLabel: t('overview.pendingShort'),
+                hint: t('overview.pendingHint'),
+              },
+              {
+                key: 'orphans',
+                label: t('overview.orphansTitle'),
+                shortLabel: t('overview.orphansShort'),
+                hint: t('overview.orphansHint'),
+              },
+              {
+                key: 'history',
+                label: t('overview.historyTitle'),
+                shortLabel: t('overview.historyShort'),
+                hint: t('overview.historyHint'),
+              },
+            ]}
+          />
+          <div
+            id="overview-panel"
+            role="tabpanel"
+            aria-labelledby={`overview-tab-${tab}`}
+            className="overview-tab-panel"
+          >
+            {tab === 'lately' ? (
+              lately.length === 0 ? (
+                <p className="hint">{t('overview.noNotes')}</p>
+              ) : (
+                <PagedRows
+                  items={lately}
+                  keyOf={({ note }) => note.id}
+                  render={({ note, folder }) => (
+                    <Link to={noteAddress(notebookId, note.id)} className="overview-row">
+                      <span className="overview-row-name">{note.name ?? t('note.unnamed')}</span>
+                      <span className="overview-row-meta">
+                        {folder} · {formatDay(note.updatedAt, locale)} ·{' '}
+                        <span className={byAgent(note.updatedBy) ? 'is-agent' : undefined}>
+                          {authorLabel(note.updatedBy, me, t)}
+                        </span>
                       </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+                    </Link>
+                  )}
+                />
+              )
+            ) : null}
+            {tab === 'pending' ? (
+              pending.length === 0 ? (
+                <p className="hint">{t('overview.noPending')}</p>
+              ) : (
+                <PagedRows
+                  items={pending}
+                  keyOf={(link) => `${link.fromNote.noteId}-${link.targetName}`}
+                  render={(link) => (
+                    <Link
+                      to={linkTargetAddress(notebookId, link.targetName)}
+                      className="overview-row"
+                    >
+                      <span className="overview-row-name">[[{link.targetName}]]</span>
+                      <span className="overview-row-meta">
+                        {t('overview.pendingFrom', { note: link.fromNote.name })}
+                      </span>
+                    </Link>
+                  )}
+                />
+              )
+            ) : null}
+            {tab === 'orphans' ? (
+              orphans.length === 0 ? (
+                <p className="hint">{t('overview.noOrphans')}</p>
+              ) : (
+                <PagedRows
+                  items={orphans}
+                  keyOf={(note) => note.noteId}
+                  render={(note) => (
+                    <Link to={noteAddress(notebookId, note.noteId)} className="overview-row">
+                      <span className="overview-row-name">{note.name}</span>
+                    </Link>
+                  )}
+                />
+              )
+            ) : null}
+            {tab === 'history' ? <NotebookHistory notebookId={notebookId} /> : null}
+          </div>
         </section>
-
-        {pending.length > 0 ? (
-          <section
-            id="overview-pending"
-            className="overview-section"
-            aria-labelledby="overview-pending-title"
-          >
-            <h2 id="overview-pending-title">{t('overview.pendingTitle')}</h2>
-            <p className="hint">{t('overview.pendingHint')}</p>
-            <ul className="row-card">
-              {pending.slice(0, LOOSE_ENDS).map((link) => (
-                <li key={`${link.fromNote.noteId}-${link.targetName}`}>
-                  <Link
-                    to={linkTargetAddress(notebookId, link.targetName)}
-                    className="overview-row"
-                  >
-                    <span className="overview-row-name">[[{link.targetName}]]</span>
-                    <span className="overview-row-meta">
-                      {t('overview.pendingFrom', { note: link.fromNote.name })}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {orphans.length > 0 ? (
-          <section
-            id="overview-orphans"
-            className="overview-section"
-            aria-labelledby="overview-orphans-title"
-          >
-            <h2 id="overview-orphans-title">{t('overview.orphansTitle')}</h2>
-            <p className="hint">{t('overview.orphansHint')}</p>
-            <ul className="row-card">
-              {orphans.slice(0, LOOSE_ENDS).map((note) => (
-                <li key={note.noteId}>
-                  <Link to={noteAddress(notebookId, note.noteId)} className="overview-row">
-                    <span className="overview-row-name">{note.name}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <NotebookHistory notebookId={notebookId} />
       </article>
     </>
   );
 }
 
 /**
- * The history of the notebook, at the end of its overview (#446): from its
+ * A list of a tab of the overview, ten rows a page with the pager of a
+ * folder's list (#447); the tab is drawn anew when it opens, so a list opens
+ * on its first page.
+ */
+function PagedRows<T>({
+  items,
+  keyOf,
+  render,
+}: {
+  items: readonly T[];
+  keyOf: (item: T) => string;
+  render: (item: T) => ReactNode;
+}) {
+  const { rows, page, pages, setPage } = useListPage(items, OVERVIEW_PAGE);
+  return (
+    <>
+      <ul className="row-card">
+        {rows.map((item) => (
+          <li key={keyOf(item)}>{render(item)}</li>
+        ))}
+      </ul>
+      <ListPager
+        page={page}
+        pages={pages}
+        total={items.length}
+        size={OVERVIEW_PAGE}
+        onPage={setPage}
+      />
+    </>
+  );
+}
+
+/**
+ * The history of the notebook, a tab of its overview (#446, #447): from its
  * creation, saying the model it came from, to its last change, as a model's
  * history is drawn, with who made each one.
  */
@@ -331,25 +421,16 @@ function NotebookHistory({ notebookId }: { notebookId: string }) {
     queryFn: () => getNotebookHistory(notebookId),
     refetchInterval: useLiveInterval(),
   });
+  if (history.isPending) return <RowsSkeleton />;
+  if (history.isError) return <p className="status">{t('history.failed')}</p>;
+  // Paged ten at a time, as the other lists of its tabs (#447).
   return (
-    <section
-      id="overview-history"
-      className="overview-section"
-      aria-labelledby="overview-history-title"
-    >
-      <h2 id="overview-history-title">{t('overview.historyTitle')}</h2>
-      {history.isPending ? (
-        <RowsSkeleton />
-      ) : history.isError ? (
-        <p className="status">{t('history.failed')}</p>
-      ) : (
-        <ModelHistoryList
-          changes={history.data.changes}
-          truncated={history.data.truncated}
-          withAuthor
-        />
-      )}
-    </section>
+    <ModelHistoryList
+      changes={history.data.changes}
+      truncated={history.data.truncated}
+      withAuthor
+      pageSize={OVERVIEW_PAGE}
+    />
   );
 }
 

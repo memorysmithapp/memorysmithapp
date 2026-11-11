@@ -105,7 +105,7 @@ export function FolderPage() {
           />
         ) : null}
       </NotebookBar>
-      <article className="content-pane folder-page">
+      <article className="content-pane is-wide folder-page">
         <p className="folder-description">{folder.description}</p>
 
         {(folder.hasTemplate || writable) && (

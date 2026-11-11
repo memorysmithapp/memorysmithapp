@@ -1,10 +1,4 @@
 {
-  "slot": {
-    "delete": "Delete",
-    "confirm": "Delete for good",
-    "deleting": "Deleting…",
-    "cancel": "Keep it"
-  },
   "write": {
     "unsaved": "Unsaved changes",
     "saving": "Saving…",
@@ -178,9 +172,7 @@
     "contextParts": "Guidance, Templates and Folders",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
-    "deleteGuidance": "Delete the Guidance",
     "noGuidanceWrite": "This notebook has no Guidance yet. Use the pencil to write one: it directs every agent that writes here.",
-    "deleteGuidanceConfirm": "Delete the guidance of this notebook? Its folders, its templates and every note stay; the notebook simply stops saying how it wants to be written. This cannot be undone.",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
@@ -197,9 +189,7 @@
     "notesHeading": "Notes in this folder",
     "template": "Template",
     "templateCardHint": "The suggested layout for the notes of this folder",
-    "deleteTemplate": "Delete the Template",
     "noTemplateWrite": "This folder has no Template yet. Use the pencil to write one, the layout suggested to the notes written here.",
-    "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet.",
     "noteOrder": "Order of the notes",
     "noteOrderManual": "Manual",
@@ -1423,6 +1413,15 @@
     "pendingHint": "Links to a note nobody has written yet. Each becomes a link the moment a note takes that name.",
     "pendingFrom": "from {{note}}",
     "orphansTitle": "Orphans",
+    "lists": "The lists of this notebook",
+    "noPending": "No link is waiting for a note.",
+    "noOrphans": "Every note is linked from another one.",
+    "latelyHint": "The notes changed last, the most recent first.",
+    "historyHint": "Every change of this notebook since it was created: what, when, who and the line left.",
+    "latelyShort": "Recent",
+    "pendingShort": "Pending",
+    "orphansShort": "Orphans",
+    "historyShort": "History",
     "historyTitle": "History",
     "orphansHint": "Notes no other note links to."
   },

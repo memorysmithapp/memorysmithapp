@@ -68,7 +68,7 @@ export function LinkTargetPage() {
   return (
     <>
       <NotebookBar crumbs={[]} />
-      <article className="content-pane link-target">
+      <article className="content-pane is-wide link-target">
         <h1>{decoded}</h1>
         <LinkChoiceContent
           target={decoded}

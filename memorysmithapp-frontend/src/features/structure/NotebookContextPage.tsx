@@ -45,7 +45,7 @@ export function NotebookContextPage() {
   return (
     <>
       <NotebookBar crumbs={[{ label: t('structure.heading') }]} />
-      <article className="content-pane context-page">
+      <article className="content-pane is-wide context-page">
         <p className="page-intro">{t('structure.intro')}</p>
         <nav className="context-cards" aria-label={t('structure.heading')}>
           {isModel ? (

@@ -64,7 +64,6 @@ describe('an action button that carries an icon', () => {
 
   it('is not taken by a confirmation or a cancel, which keeps its word', () => {
     for (const path of [
-      './DeleteContentSlot.tsx',
       './Menu.tsx',
       './Sheet.tsx',
       '../../features/dashboard/NotebookActions.tsx',

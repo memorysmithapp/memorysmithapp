@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { NotebookModelDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
@@ -210,10 +211,17 @@ export function ModelAbout({
   notebookId,
   model,
   onSaved,
+  barSlot,
 }: {
   notebookId: string;
   model: NotebookModelDto;
   onSaved: () => void;
+  /**
+   * Where the bar of the page takes the actions of what it shows: Save is
+   * drawn there, a white button at the right of the trail, as every action of
+   * a page of the notebook is (#447). Absent, it stays under the form.
+   */
+  barSlot?: HTMLElement | null;
 }) {
   const { t } = useTranslation();
   const [about, setAbout] = useState<AboutDraft>(() => aboutOf(model));
@@ -234,8 +242,29 @@ export function ModelAbout({
     }
   }
 
+  const saveButton = barSlot ? (
+    // In the bar, outside the form: it submits it by its id.
+    <button
+      type="submit"
+      form="model-about"
+      className="bar-button"
+      disabled={busy || about.objective.trim().length === 0}
+    >
+      <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} />
+    </button>
+  ) : (
+    <button
+      type="submit"
+      className="button is-primary"
+      disabled={busy || about.objective.trim().length === 0}
+    >
+      <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} wide />
+    </button>
+  );
+
   return (
     <form
+      id="model-about"
       className="model-form"
       onSubmit={(event) => {
         event.preventDefault();
@@ -250,19 +279,14 @@ export function ModelAbout({
         }}
       />
       <div className="model-form-actions">
-        <button
-          type="submit"
-          className="button is-primary"
-          disabled={busy || about.objective.trim().length === 0}
-        >
-          <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} wide />
-        </button>
+        {barSlot ? null : saveButton}
         {said ? (
           <span className="hint" role="status">
             {said}
           </span>
         ) : null}
       </div>
+      {barSlot ? createPortal(saveButton, barSlot) : null}
     </form>
   );
 }

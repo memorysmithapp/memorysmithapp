@@ -1542,7 +1542,7 @@ a:hover {
   height: var(--bar-h);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   padding: 0 20px 0 32px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -1651,8 +1651,7 @@ a:hover {
 .bar-button svg {
   flex: none;
 }
-/* On a phone: 48 px, and the actions become 44 px icons whose label stays as
-   the accessible name. Below the drawer breakpoint the main row is what
+/* Below the drawer breakpoint the bar is 48 px and the main row is what
    scrolls, so that is where the room for the bar is kept. */
 @media (max-width: 860px) {
   :root {
@@ -1661,24 +1660,40 @@ a:hover {
   .app-main:has(.notebook-layout) {
     scroll-padding-top: var(--bar-h);
   }
+  /* The trail stops short of the buttons, framed now, and they keep a
+     margin from the edge (#447). */
   .notebook-bar {
-    gap: 0;
-    padding: 0 2px 0 16px;
+    gap: 12px;
+    padding: 0 12px 0 16px;
   }
   /* Without actions the trail ends on the margin, not against the edge. */
   .notebook-bar:not(:has(.notebook-bar-actions)) {
     padding-right: 16px;
   }
   .notebook-bar-actions {
-    gap: 0;
+    gap: 6px;
   }
+}
+/* A button of the bar keeps its frame, its icon and its word down to a
+   phone (#447): a narrow window or a tablet has room for them. */
+@media (max-width: 860px) and (min-width: 561px) {
+  .bar-button .action-word:not(.is-kept) {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+/* On a phone it is its icon in its frame, a 40 px target whose word stays as
+   the accessible name. */
+@media (max-width: 560px) {
   .bar-button {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     justify-content: center;
     padding: 0;
-    border-color: transparent;
-    background: none;
   }
   .bar-button svg {
     width: 18px;
@@ -1855,45 +1870,6 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* Deleting a Guidance or a Template (#230). It is quiet until it is asked
-   for — the surface is a reading tool before it is an editing one — and then
-   it asks in place, as the card of Home asks before deleting a notebook. */
-.slot-delete {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-/* A quiet button whose words are red: the edge stays neutral. */
-.button.slot-delete-button {
-  color: var(--danger);
-  font-size: 12.5px;
-}
-.slot-delete.is-confirming {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.slot-delete.is-confirming p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--text);
-}
-.slot-delete.is-confirming strong {
-  font-weight: 600;
-}
-.slot-delete-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-@media (max-width: 860px) {
-  .slot-delete-actions .button {
-    flex: 1;
-    min-height: 44px;
-  }
-}
-
 /* The Templates of a notebook, one card per folder that declares one. */
 .template-card {
   border: 1px solid var(--border);
@@ -1960,6 +1936,12 @@ a:hover {
   padding: 20px 22px;
   border-top: 1px solid var(--border);
 }
+/* What a card holds is read as a note is (#447): on the paper, the body of
+   the card the same paper as the note, so there is one surface under the
+   white head, and across the width of the card, as a note takes the page. */
+.template-card-body {
+  background: var(--bg);
+}
 @media (max-width: 860px) {
   .template-card > summary {
     min-height: 52px;
@@ -1995,6 +1977,13 @@ a:hover {
   max-width: 48.75rem;
   margin: 0 auto;
   padding: 2rem 2.5rem 4rem;
+}
+
+/* The pages of a notebook take the width of the pages outside a notebook
+   (#447), a note, its Guidance and a link with no note included; the reading
+   line of 700px is kept by the pages of the community. */
+.content-pane.is-wide {
+  max-width: 72rem;
 }
 
 .content-pane {
@@ -3670,6 +3659,35 @@ a.continue-card:focus-visible {
 .overview-stat-label {
   font-size: 0.8rem;
   color: var(--text-soft);
+}
+/* The lists of the overview, one tab each (#447), what each holds its
+   tooltip, and a panel at least ten rows tall, so the page
+   does not jump between short lists; a page of rows taller than a line, as
+   the history's, makes it taller, and nothing scrolls inside it but the page. */
+/* A tab with a shorter name says it on a phone, so a strip of four fits on
+   one line there (#447). */
+.tab-label-short {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tab:has(.tab-label-short) .tab-label-long {
+    display: none;
+  }
+  .tab-label-short {
+    display: inline;
+  }
+}
+.overview-tab-panel {
+  --overview-row: 2.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: calc(10 * var(--overview-row) + 3.5rem);
+}
+@media (max-width: 640px) {
+  .overview-tab-panel {
+    min-height: 0;
+  }
 }
 .overview-section {
   display: flex;
@@ -7066,12 +7084,20 @@ button.attachment-thumb:focus-visible {
   padding: 24px 30px 32px;
 }
 
+/* Where a form of the page draws its action in the bar (#447): it adds no
+   box of its own, so the button is one more button of the bar. */
+.bar-slot {
+  display: contents;
+}
+
 /* The corner of a note — Show and Copy Markdown, and Edit for whoever writes
    (#300) — floats at the top right of the body, where the renderer puts it.
    Floating there it squeezed the name of the note, which the page hands the
    renderer to draw under it, and on a phone the first paragraph to a column
-   of a few words: it takes a row of its own, above the name. */
-.content-pane > .markdown > .note-corner {
+   of a few words: it takes a row of its own, above the name. A Template in a
+   card is read the same way (#447). */
+.content-pane > .markdown > .note-corner,
+.template-card-body .markdown > .note-corner {
   float: none;
   display: flex;
   justify-content: flex-end;
@@ -7525,6 +7551,11 @@ button.attachment-thumb:focus-visible {
 .folder-notes-table .note-row:hover {
   background: none;
   text-decoration: underline;
+}
+/* A row of a list drawn as a folder's — the notes of a folder, a history —
+   is shaded across under the mouse, so the eye keeps it along the row (#447). */
+.folder-notes-table tbody tr:hover {
+  background: var(--hover);
 }
 .folder-notes-property-cell {
   white-space: normal;

@@ -70,7 +70,7 @@ export function AttachmentsPage() {
   return (
     <>
       <NotebookBar crumbs={[{ label: t('attachments.heading') }]} />
-      <article className="content-pane attachments-page">
+      <article className="content-pane is-wide attachments-page">
         <p className="page-intro">{t('attachments.intro')}</p>
         {files.isError ? (
           <p className="status">{t(messageKeyOf(files.error))}</p>

@@ -549,7 +549,7 @@ test.describe('the pages of an account', () => {
     notebook,
     state,
     words,
-  }) => {
+  }, testInfo) => {
     await app.goto(notebook.page());
 
     // The trail names the page and no heading repeats it (#225).
@@ -575,11 +575,20 @@ test.describe('the pages of an account', () => {
       cards.map((card) => Math.round((card as unknown as { offsetWidth: number }).offsetWidth)),
     );
     expect(new Set(widths).size).toBe(1);
+    // Its lists are tabs, Lately open first, each panel twenty rows tall (#447).
+    await expect(app.locator('.overview-tabs [role="tab"]')).toHaveCount(4);
+    await expect(app.locator('#overview-tab-lately')).toHaveAttribute('aria-selected', 'true');
     await expect(
-      app
-        .locator('.overview-section', { has: app.locator('#overview-lately') })
-        .locator('a.overview-row', { hasText: 'Checklist' }),
+      app.locator('#overview-panel').locator('a.overview-row', { hasText: 'Checklist' }),
     ).toBeVisible();
+    const tall = await app.locator('#overview-panel').evaluate((panel) => panel.clientHeight);
+    await app.locator('#overview-tab-orphans').click();
+    await expect(app).toHaveURL(/#overview-orphans$/);
+    expect(await app.locator('#overview-panel').evaluate((panel) => panel.clientHeight)).toBe(tall);
+    await testInfo.attach('overview-tabs.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
     // Never read here before, so there is nothing to continue.
     await expect(app.locator('a.overview-resume')).toHaveCount(0);
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
@@ -711,6 +720,8 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveTitle(
       `[${state.environment}] ${words.guidance} · ${notebook.name} · MemorySmith`,
     );
+    // Rewritten in place and never deleted on its page (#447).
+    await expect(app.locator('.slot-delete')).toHaveCount(0);
   });
 
   test('writes the Guidance in place, and a Template a folder did not have (#301)', async ({
@@ -766,7 +777,7 @@ test.describe('the pages of an account', () => {
     await expect(card.locator('.markdown-editor .cm-content')).toBeVisible();
   });
 
-  test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder, opens one and deletes it', async ({
+  test('[page:/notebooks/:notebookId/templates] lists the Templates of a notebook by folder and opens one, which it never deletes (#447)', async ({
     app,
     notebook,
     owner,
@@ -792,16 +803,11 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
 
-    // The Template is an object of its own and is deleted on its own: the
-    // card goes and the folder stays (RN-KNW-045). It asks first, in the page,
-    // because what a person needs in order to answer is what survives; and
-    // its button says what it deletes (#230).
-    await box.getByRole('button', { name: words.deleteTemplate, exact: true }).click();
-    await box.getByRole('button', { name: words.deleteSlotForGood }).click();
-    await expect(app.locator('details.template-card', { hasText: 'Findings' })).toHaveCount(0);
-
-    await app.goto(notebook.page(`/folders/${notebook.folderId.toLowerCase()}`));
-    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    // A Template is rewritten in place and never deleted on the page: an agent
+    // or the API deletes one (RN-KNW-045, #447).
+    await expect(box.getByRole('button', { name: words.deleteTemplate, exact: true })).toHaveCount(
+      0,
+    );
   });
 
   test('[page:/notebooks/:notebookId/graph] draws the graph of a notebook from its projection', async ({

@@ -439,10 +439,6 @@ export function putTemplate(
  * The two Content Slots that are not notes are deleted on their own, and their
  * parent stays (RN-KNW-045).
  */
-export function deleteGuidance(notebookId: string): Promise<void> {
-  return backend.deleteGuidance(notebookId);
-}
-
 export function setNoteOrder(
   notebookId: string,
   folderId: string,
@@ -457,10 +453,6 @@ export function updateFolder(
   change: { name?: string; description?: string },
 ): Promise<void> {
   return backend.updateFolder(notebookId, folderId, change);
-}
-
-export function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
-  return backend.deleteTemplate(notebookId, folderId);
 }
 
 export function deleteFolder(notebookId: string, folderId: string): Promise<void> {

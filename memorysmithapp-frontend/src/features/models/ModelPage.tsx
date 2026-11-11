@@ -44,6 +44,8 @@ export function ModelPage() {
   const client = useQueryClient();
   useDocumentTitle(t('model.title'), structure.notebook.name);
   const [tab, selectTab] = useModelTab(OWN_MODEL_TABS);
+  // Where the bar takes the Save of the form open (#447).
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
 
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
@@ -57,8 +59,10 @@ export function ModelPage() {
 
   return (
     <>
-      <NotebookBar crumbs={contextCrumbs(notebookId, t, t('model.title'))} />
-      <article className="content-pane model-page">
+      <NotebookBar crumbs={contextCrumbs(notebookId, t, t('model.title'))}>
+        {owner && tab === 'about' ? <span ref={setBarSlot} className="bar-slot" /> : null}
+      </NotebookBar>
+      <article className="content-pane is-wide model-page">
         <p className="page-intro">{t('model.intro')}</p>
         {model.isPending ? (
           <ModelSkeleton />
@@ -82,7 +86,12 @@ export function ModelPage() {
             >
               {tab === 'about' ? (
                 owner ? (
-                  <ModelAbout notebookId={notebookId} model={model.data} onSaved={saved} />
+                  <ModelAbout
+                    notebookId={notebookId}
+                    model={model.data}
+                    onSaved={saved}
+                    barSlot={barSlot}
+                  />
                 ) : (
                   <ModelAboutSummary model={model.data} />
                 )
@@ -137,7 +146,7 @@ export function SharedModelPage() {
       <SharedModelBar
         crumbs={[{ label: t('nav.models'), to: '/models' }, { label: t('model.title') }]}
       />
-      <article className="content-pane model-page">
+      <article className="content-pane is-wide model-page">
         {model.isPending ? (
           <ModelSkeleton />
         ) : model.isError ? (

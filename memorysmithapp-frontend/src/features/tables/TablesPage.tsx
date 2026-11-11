@@ -85,7 +85,7 @@ export function TablesPage() {
             : [{ label: t('tables.heading') }]
         }
       />
-      <article className="content-pane tables-page">
+      <article className="content-pane is-wide tables-page">
         {tables.isError ? (
           <p className="status">{t(messageKeyOf(tables.error))}</p>
         ) : !tables.data ? (

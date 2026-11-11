@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ModelChangeDto } from '@memorysmithapp/contracts';
@@ -7,6 +6,7 @@ import { useLiveInterval } from '../../shared/api/live';
 import { queryKeys } from '../../shared/api/query-keys';
 import { getModelHistory } from '../../shared/api/source';
 import { RowsSkeleton } from '../../shared/components/skeletons';
+import { LIST_PAGE, ListPager, useListPage } from '../../shared/components/ListPager';
 
 /**
  * A change as a history draws it: the community reads it with no author
@@ -20,7 +20,7 @@ export type ModelHistoryChange = Omit<ModelChangeDto, 'agent' | 'fromModel'> & {
 };
 
 /** How many changes a page of a history shows, as a folder's list does (#446). */
-export const HISTORY_PAGE = 20;
+export const HISTORY_PAGE = LIST_PAGE;
 
 /**
  * The history of a model (#431): the changes of the notebook it is, the newest
@@ -37,17 +37,17 @@ export function ModelHistoryList({
   changes,
   truncated,
   withAuthor,
+  pageSize = HISTORY_PAGE,
 }: {
   changes: readonly ModelHistoryChange[];
   truncated: boolean;
   withAuthor: boolean;
+  /** How many changes a page shows; the overview shows ten (#447). */
+  pageSize?: number;
 }) {
   const { t, i18n } = useTranslation();
-  const [page, setPage] = useState(1);
+  const { rows, page, pages, setPage } = useListPage(changes, pageSize);
   if (changes.length === 0) return <p className="hint">{t('model.historyEmpty')}</p>;
-  const pages = Math.ceil(changes.length / HISTORY_PAGE);
-  const shown = Math.min(page, pages);
-  const rows = changes.slice((shown - 1) * HISTORY_PAGE, shown * HISTORY_PAGE);
   // `intlLocale`: `Intl` takes a BCP 47 tag, never the `pt_BR` of the interface.
   // Short, as the date of a note in a folder, with its time (#437).
   const when = new Intl.DateTimeFormat(intlLocale(i18n.language), {
@@ -118,36 +118,13 @@ export function ModelHistoryList({
           </tbody>
         </table>
       </div>
-      {pages > 1 ? (
-        // The pager of the list of a folder, word for word (#446).
-        <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
-          <span>
-            {t('tables.showing', {
-              first: (shown - 1) * HISTORY_PAGE + 1,
-              last: Math.min(shown * HISTORY_PAGE, changes.length),
-              total: changes.length,
-            })}
-          </span>
-          <span className="tables-grid-page-buttons">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={shown <= 1}
-              onClick={() => setPage(shown - 1)}
-            >
-              {t('tables.previous')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={shown >= pages}
-              onClick={() => setPage(shown + 1)}
-            >
-              {t('tables.next')}
-            </button>
-          </span>
-        </nav>
-      ) : null}
+      <ListPager
+        page={page}
+        pages={pages}
+        total={changes.length}
+        size={pageSize}
+        onPage={setPage}
+      />
       {truncated ? <p className="hint">{t('model.historyTruncated')}</p> : null}
     </div>
   );

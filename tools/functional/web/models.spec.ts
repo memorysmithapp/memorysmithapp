@@ -304,6 +304,12 @@ test.describe('notebook models', () => {
     await expect(app.locator('.model-form textarea').first()).toHaveValue(
       'Keep the findings of one review',
     );
+    // Its Save is a button of the bar, at the right of the trail, and the form
+    // keeps none of its own (#447).
+    await expect(
+      app.locator('.notebook-bar .notebook-bar-actions button[form="model-about"]'),
+    ).toBeVisible();
+    await expect(app.locator('.model-form .button.is-primary')).toHaveCount(0);
 
     // Its owner reads the notebook by navigating it, so its page has no
     // Contents, and no button creates a notebook from it there (#435).
@@ -315,20 +321,21 @@ test.describe('notebook models', () => {
     // list of a folder (#435).
     await expect(app.getByRole('tab', { name: words.tabHistory })).toHaveCount(0);
     await app.locator('aside#notebook-sidebar nav.notebook-nav > a.nav-row').first().click();
-    const rows = app.locator('#overview-history .model-history-table tbody tr');
+    await app.locator('#overview-tab-history').click();
+    const rows = app.locator('#overview-panel .model-history-table tbody tr');
     await expect(rows.first()).toBeVisible({ timeout: 90_000 });
     // What changed comes first, its kind its tooltip, as a note of a folder (#437).
     await expect(rows.first().locator('td').first()).toHaveClass(/model-history-what/);
     await expect(rows.first().locator('.model-history-what')).toHaveAttribute('title', /\S/);
     await expect(rows.first().locator('.property-chip')).toHaveCount(0);
-    await app.locator('#overview-history').scrollIntoViewIfNeeded();
+    await app.locator('#overview-panel').scrollIntoViewIfNeeded();
     await testInfo.attach('model-history.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
     await app.setViewportSize({ width: 390, height: 844 });
     await expect(rows.first()).toBeVisible();
-    await app.locator('#overview-history').scrollIntoViewIfNeeded();
+    await app.locator('#overview-panel').scrollIntoViewIfNeeded();
     await testInfo.attach('model-history-phone.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
@@ -356,10 +363,11 @@ test.describe('notebook models', () => {
     await app.waitForURL(/\/notebooks\/[0-9a-z]{26}$/, { timeout: 120_000 });
     // It opens on its overview, whose history starts with its creation from
     // the model, the copy that wrote it folded into that one row (#446).
-    const createdRows = app.locator('#overview-history .model-history-table tbody tr');
+    await app.locator('#overview-tab-history').click();
+    const createdRows = app.locator('#overview-panel .model-history-table tbody tr');
     await expect(createdRows.last()).toContainText(modelName, { timeout: 90_000 });
     await expect(createdRows).toHaveCount(1);
-    await app.locator('#overview-history').scrollIntoViewIfNeeded();
+    await app.locator('#overview-panel').scrollIntoViewIfNeeded();
     await testInfo.attach('overview-history.png', {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',

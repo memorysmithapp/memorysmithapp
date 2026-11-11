@@ -801,10 +801,6 @@ export async function putGuidance(
   );
   return written.revision.versionId;
 }
-export async function deleteGuidance(notebookId: string): Promise<void> {
-  await request<void>(`/knowledge/notebooks/${notebookId}/guidance`, { method: 'DELETE' });
-}
-
 export async function putTemplate(
   notebookId: string,
   folderId: string,
@@ -817,12 +813,6 @@ export async function putTemplate(
     { method: 'PUT', body: { content, baseRevision }, ...options },
   );
   return written.revision.versionId;
-}
-
-export async function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
-  await request<void>(`/knowledge/notebooks/${notebookId}/folders/${folderId}/template`, {
-    method: 'DELETE',
-  });
 }
 
 export async function createNote(

@@ -1,10 +1,4 @@
 {
-  "slot": {
-    "delete": "Apagar",
-    "confirm": "Apagar de vez",
-    "deleting": "Apagando…",
-    "cancel": "Manter"
-  },
   "write": {
     "unsaved": "Alterações não salvas",
     "saving": "Salvando…",
@@ -178,9 +172,7 @@
     "contextParts": "Orientação, Modelos de pasta e Pastas",
     "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo de pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
-    "deleteGuidance": "Apagar a Orientação",
     "noGuidanceWrite": "Este caderno ainda não tem Orientação. Use o lápis para escrever uma: ela orienta todo agente que escreve aqui.",
-    "deleteGuidanceConfirm": "Apagar a Orientação deste caderno? As pastas, os Modelos de pasta e todas as notas continuam; o caderno apenas deixa de dizer como quer ser escrito. Não há como desfazer.",
     "templates": "Modelos de pasta",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
@@ -197,9 +189,7 @@
     "notesHeading": "Notas nesta pasta",
     "template": "Modelo de pasta",
     "templateCardHint": "Leiaute sugerido para as notas desta pasta",
-    "deleteTemplate": "Apagar o Modelo de pasta",
     "noTemplateWrite": "Esta pasta ainda não tem Modelo de pasta. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
-    "deleteTemplateConfirm": "Apagar o Modelo de pasta? A pasta, a descrição dela e as notas continuam, e as notas já escritas mantêm a forma que têm. Não há como desfazer.",
     "empty": "Ainda não há notas nesta pasta.",
     "noteOrder": "Ordem das notas",
     "noteOrderManual": "Manual",
@@ -1426,6 +1416,15 @@
     "pendingHint": "Links para uma nota que ninguém escreveu ainda. Cada um vira link no momento em que uma nota recebe esse nome.",
     "pendingFrom": "em {{note}}",
     "orphansTitle": "Notas órfãs",
+    "lists": "As listas deste caderno",
+    "noPending": "Nenhum link espera por uma nota.",
+    "noOrphans": "Toda nota é citada por outra.",
+    "latelyHint": "As notas alteradas por último, a mais recente primeiro.",
+    "historyHint": "Cada mudança deste caderno desde a criação: o quê, quando, quem e a linha deixada.",
+    "latelyShort": "Recentes",
+    "pendingShort": "Pendentes",
+    "orphansShort": "Órfãs",
+    "historyShort": "Histórico",
     "historyTitle": "Histórico",
     "orphansHint": "Notas para as quais nenhuma outra nota aponta."
   },
