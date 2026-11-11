@@ -77,6 +77,8 @@ issues each entry cites.
 
 ### Fixed
 
+- **On a phone the header shows MemorySmith.app beside its symbol.** The name was left out on a narrow screen; it is there again, and the brand leads Home, never underlined. (#426)
+
 - **An export moves its bar, and a transfer that fails says why to whoever runs the product.** An export used to say *0 of N* until it was ready, on Transfers and on the bell, because what it reads never told how far it got; it now moves as it reads, as an import does. When an export or an import fails, the log of the worker now says so with its reason, which stayed only on the transfer and went with it when the person deleted it. (#453)
 
 - **The AWS SDK no longer carries the logger redaction bug.** Its `@smithy/core` was in the versions AWS deprecated because a logger handed to a client received sensitive values nested in lists and maps unredacted (aws/aws-sdk-js-v3#8393). No client here is handed a logger, so nothing was written; the SDK, Lambda Powertools and the CDK are now at their latest, and the only change the CDK makes to the stacks is that the role of the link reprojection accepts its state machine only from this account and the copy of the site runs on arm64. (#442)
