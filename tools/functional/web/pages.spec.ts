@@ -3159,7 +3159,8 @@ test.describe('the transfers of a person', () => {
     const download = row.getByRole('button', { name: words.download, exact: true });
     await expect(download).toBeVisible({ timeout: 120_000 });
 
-    // The bell says the export finished, and once read the notice leaves (#450).
+    // The bell says the export finished, and once marked as read the notice
+    // leaves (#450, #451).
     const bell = app.locator('button.notifications-trigger');
     const ended = app.locator('.notifications-panel .transfer-notice[data-state="ready"]', {
       hasText: notebook.name,
@@ -3170,8 +3171,13 @@ test.describe('the transfers of a person', () => {
       body: await app.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
+    // It only tells (#451): no action of its own, and it stays across closing
+    // the panel until it is marked as read.
+    await expect(ended.getByRole('link')).toHaveCount(0);
     await bell.click();
     await bell.click();
+    await expect(ended).toBeVisible();
+    await ended.getByRole('button', { name: words.markRead }).click();
     await expect(ended).toHaveCount(0);
     await bell.click();
     const downloading = app.waitForEvent('download');

@@ -1,19 +1,17 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TransferDto } from '@memorysmithapp/contracts';
-import { isWorking, progressOf, saveArchive, useTransfers } from './transfers';
+import { isWorking, progressOf, useTransfers } from './transfers';
 import { KindMark, TransferState, TransferTitle, failureOf } from './TransferParts';
-import { ChevronRightIcon, DownloadIcon } from '../../shared/components/icons';
+import { CheckIcon } from '../../shared/components/icons';
 import { ActionWord } from '../../shared/components/ActionWord';
-import { notebookAddress } from '../../shared/api/note-address';
 
 /**
  * Transfers, on the bell of the header (#418, #450): the edge of the button
  * fills as far as the transfers under way got, and the panel shows each with
  * its bar while it runs; when one ends, that it finished or failed is news,
- * kept until the person reads it, here and after a reload. Everything else
- * about transfers is on their page, in the menu.
+ * kept until the person marks it as read, here and after a reload (#451).
+ * Everything else about transfers is on their page, in the menu.
  */
 // The transfers whose end the person read (#450); the key of #418 held the
 // running ones read, which means something else, so it is left behind.
@@ -50,8 +48,8 @@ export interface TransfersStatus {
   running: TransferDto[];
   /** The ones that ended and the person has not read about yet (#450). */
   ended: TransferDto[];
-  /** The person read the notices of the ended ones: they leave the bell. */
-  read: () => void;
+  /** The person marked the notice of one that ended as read: it leaves the bell (#451). */
+  read: (transferId: string) => void;
 }
 
 /** How long an export or an import that ended stays news, unread (#450). */
@@ -86,9 +84,9 @@ export function useTransfersStatus(): TransfersStatus {
     ring: running.length > 0 ? Math.min(...progress) : null,
     running,
     ended,
-    read: () => {
-      if (ended.length === 0) return;
-      const next = [...read, ...ended.map((transfer) => transfer.transferId)];
+    read: (transferId) => {
+      if (read.includes(transferId)) return;
+      const next = [...read, transferId];
       remember(next);
       setRead(next);
     },
@@ -96,16 +94,17 @@ export function useTransfersStatus(): TransfersStatus {
 }
 
 /**
- * One transfer as a notice of the bell (#450): while it runs, what it is and
- * its bar; once it ended, that it finished or failed and why, with the way to
- * what it made — the archive to download, the notebook to open.
+ * One transfer as a notice of the bell (#450, #451): while it runs, what it is
+ * and its bar; once it ended, that it finished, or failed and why, and *Mark
+ * as read*. It only tells: acting on a transfer is on the page of Transfers.
  */
 export function TransferNotice({
   transfer,
-  onClose,
+  onRead,
 }: {
   transfer: TransferDto;
-  onClose: () => void;
+  /** Marks the notice of one that ended as read. */
+  onRead: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const running = transfer.status === 'running';
@@ -138,30 +137,13 @@ export function TransferNotice({
           )}
         </div>
       </div>
-      <div className="notification-actions">
-        {transfer.status === 'ready' && transfer.kind === 'export' ? (
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            onClick={() => void saveArchive(transfer.transferId)}
-          >
-            <ActionWord icon={<DownloadIcon />} word={t('transfers.download')} />
+      {running ? null : (
+        <div className="notification-actions">
+          <button type="button" className="button is-quiet is-small" onClick={onRead}>
+            <ActionWord icon={<CheckIcon />} word={t('notifications.markRead')} />
           </button>
-        ) : null}
-        {transfer.status === 'ready' && transfer.kind === 'import' && transfer.notebookId ? (
-          <Link
-            className="button is-quiet is-small"
-            to={notebookAddress(transfer.notebookId)}
-            onClick={onClose}
-          >
-            {t('portability.openNotebook')}
-          </Link>
-        ) : null}
-        <Link className="button is-quiet is-small" to="/transfers" onClick={onClose}>
-          {t('transfers.seeAll')}
-          <ChevronRightIcon width={12} height={12} />
-        </Link>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

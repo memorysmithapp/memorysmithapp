@@ -69,6 +69,8 @@ export interface Words {
   readonly chooseNotebook: string;
   readonly selectChosen: string;
   readonly backFromPicker: string;
+  /** What takes the notice of a transfer that ended off the bell (#451). */
+  readonly markRead: string;
   /** The action of the Transfers panel that opens the import dialog. */
   readonly importNotebook: string;
   readonly linkToSeveral: string;
@@ -208,6 +210,7 @@ export const WORDS: Record<AppLocale, Words> = {
     chooseNotebook: 'Choose notebook',
     selectChosen: 'Select',
     backFromPicker: 'Back',
+    markRead: 'Mark as read',
     importNotebook: 'Import',
     linkToSeveral: 'This link leads to more than one note',
     transfers: 'Transfers',
@@ -316,6 +319,7 @@ export const WORDS: Record<AppLocale, Words> = {
     chooseNotebook: 'Escolher caderno',
     selectChosen: 'Selecionar',
     backFromPicker: 'Voltar',
+    markRead: 'Marcar como lida',
     importNotebook: 'Importar',
     linkToSeveral: 'Este link leva a mais de uma nota',
     transfers: 'Transferências',

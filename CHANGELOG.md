@@ -59,7 +59,7 @@ issues each entry cites.
 
 - **The name of a notebook created from a model shows as it will be.** New notebook, from a model, fills the name of the notebook with the model's, its parameters filled in as you type them — *Obra {{obra}}* becomes *Obra Residencial Aurora* — until you write a name of your own; a parameter you write in your own name is filled in too, through the interface, the API and the connector. (#448)
 
-- **The bell shows a transfer as it goes, and says when it ended.** While an export or an import runs, the edge of the bell fills in orange as far as it got, in place of the small ring in its corner, and the panel shows it with its bar. When it ends, the bell says the export or the import finished — with *Download* or *Open the notebook* — or that it failed and why, until you open the panel, and after a reload too. (#450)
+- **The bell shows a transfer as it goes, and says when it ended.** While an export or an import runs, the edge of the bell fills in orange as far as it got, in place of the small ring in its corner, and the panel shows it with its bar. When it ends, the bell says the export or the import finished, or that it failed and why, until you mark it as read, after a reload too; the notice only tells, and what to do with the transfer is on the page of Transfers. (#450, #451)
 
 - **Creating a notebook from a model is no longer a transfer.** Transfers lists what you exported and imported, and no longer the work behind a notebook you created from a model, by the interface or by an agent. New notebook follows that work to its end and opens the notebook; when it fails, it says why there, instead of sending you to Transfers. (#445)
 

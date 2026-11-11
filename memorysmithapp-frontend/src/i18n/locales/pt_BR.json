@@ -1091,6 +1091,7 @@
     }
   },
   "notifications": {
+    "markRead": "Marcar como lida",
     "heading": "Notificações",
     "count_one": "{{count}} notificação",
     "count_other": "{{count}} notificações",

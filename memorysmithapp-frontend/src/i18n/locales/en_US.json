@@ -1088,6 +1088,7 @@
     }
   },
   "notifications": {
+    "markRead": "Mark as read",
     "heading": "Notifications",
     "count_one": "{{count}} notification",
     "count_other": "{{count}} notifications",

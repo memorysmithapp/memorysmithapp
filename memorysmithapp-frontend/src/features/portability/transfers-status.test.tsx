@@ -44,7 +44,7 @@ let module: typeof TransfersStatus;
 const draw = (each: TransferDto) =>
   renderToStaticMarkup(
     <MemoryRouter>
-      <module.TransferNotice transfer={each} onClose={() => {}} />
+      <module.TransferNotice transfer={each} onRead={() => {}} />
     </MemoryRouter>,
   );
 
@@ -65,22 +65,25 @@ describe('the transfers on the bell (#450)', () => {
     expect(module.endedLately(transfer({ kind: 'agent' }), now)).toBe(false);
   });
 
-  it('says an export finished and offers its archive', () => {
+  it('says an export finished, and offers only to mark it as read (#451)', () => {
     const html = draw(transfer({}));
     expect(html).toContain('A exportação de <strong>Obras</strong> terminou.');
-    expect(html).toContain('Baixar');
+    expect(html).toContain('Marcar como lida');
+    expect(html).not.toContain('Baixar');
+    expect(html).not.toContain('href=');
   });
 
-  it('says an import failed and why, and leads to the notebook of one that finished', () => {
-    expect(
-      draw(transfer({ kind: 'import', status: 'failed', failure: 'QUOTA_EXCEEDED' })),
-    ).toContain('A importação de <strong>Obras</strong> falhou.');
-    expect(draw(transfer({ kind: 'import' }))).toContain('Abrir o caderno');
+  it('says an import failed and why', () => {
+    const html = draw(transfer({ kind: 'import', status: 'failed', failure: 'QUOTA_EXCEEDED' }));
+    expect(html).toContain('A importação de <strong>Obras</strong> falhou.');
+    expect(html).toContain('notification-failure');
+    expect(html).not.toContain('Abrir o caderno');
   });
 
   it('shows one under way with its bar', () => {
     const html = draw(transfer({ status: 'running', finishedAt: null, done: 3, total: 10 }));
     expect(html).toContain('transfer-bar');
     expect(html).toContain('width:30%');
+    expect(html).not.toContain('Marcar como lida');
   });
 });

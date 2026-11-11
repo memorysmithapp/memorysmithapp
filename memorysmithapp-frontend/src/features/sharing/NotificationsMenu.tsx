@@ -20,8 +20,8 @@ import { TransferNotice, useTransfersStatus } from '../portability/TransfersStat
  * every change of a share, told to the side that did not make it, and that a
  * transfer is under way (#418). A share waiting for an answer is answered here
  * as on its card; every other notice of a share is read and dismissed, and the
- * notice of a transfer shows it while it runs, and that it ended until the
- * panel was opened on it (#450). The count on the button is every notice, and
+ * notice of a transfer shows it while it runs, and that it ended until it is
+ * marked as read (#450, #451). The count on the button is every notice, and
  * its edge fills in as far as the transfers under way got.
  */
 export function NotificationsMenu() {
@@ -31,12 +31,8 @@ export function NotificationsMenu() {
   const notifications = useNotifications().data ?? [];
   const transfers = useTransfersStatus();
   const count = notifications.length + transfers.running.length + transfers.ended.length;
-  // The end of a transfer stays while the panel shows it, and leaves with it;
-  // one still running stays until it ends (#450).
-  const close = useCallback(() => {
-    setOpen(false);
-    transfers.read();
-  }, [transfers]);
+  // The end of a transfer stays until it is marked as read (#451).
+  const close = useCallback(() => setOpen(false), []);
 
   return (
     <div className="notifications-menu">
@@ -84,7 +80,10 @@ export function NotificationsMenu() {
           <ul className="notifications-list">
             {[...transfers.running, ...transfers.ended].map((transfer) => (
               <li key={transfer.transferId}>
-                <TransferNotice transfer={transfer} onClose={close} />
+                <TransferNotice
+                  transfer={transfer}
+                  onRead={() => transfers.read(transfer.transferId)}
+                />
               </li>
             ))}
             {notifications.map((notice) => (
