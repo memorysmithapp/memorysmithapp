@@ -428,6 +428,15 @@
     "chooseNotebook": "Escolher caderno",
     "noNotebook": "Nenhum caderno escolhido",
     "exportNotebook": "Caderno",
+    "tabShort": {
+      "context": "Contexto",
+      "folders": "Pastas",
+      "templates": "Modelos",
+      "notes": "Notas",
+      "conflicts": "Problemas",
+      "files": "Arquivos",
+      "tables": "Tabelas"
+    },
     "tab": {
       "context": "Contexto",
       "folders": "Pastas",

@@ -2819,6 +2819,14 @@ async function startExport(
   await dialog.locator('.search-picker-row', { hasText: notebookName }).first().click();
   await dialog.getByRole('button', { name: words.selectChosen, exact: true }).click();
   await expect(dialog.locator('.export-chosen strong')).toHaveText(notebookName);
+  // Every tab of the chooser is in sight inside the dialog, by its short name (#452).
+  const tabs = dialog.locator('.chooser-tabs [role="tab"]');
+  await expect(tabs.last()).toBeVisible();
+  const strip = await dialog.locator('.chooser-tabs').boundingBox();
+  const last = await tabs.last().boundingBox();
+  expect((last?.x ?? 0) + (last?.width ?? 0)).toBeLessThanOrEqual(
+    (strip?.x ?? 0) + (strip?.width ?? 0) + 1,
+  );
   // Inside the dialog and exact: `Export` is also the start of the button that
   // opened it.
   await app

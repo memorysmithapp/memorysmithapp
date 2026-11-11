@@ -211,9 +211,13 @@ export function TransferChooser({
         className="chooser-tabs"
         active={active}
         onSelect={setTab}
+        // Seven tabs in a dialog of 40rem: each says a short name, its full
+        // name its tooltip and what it is read out by (#452).
         tabs={TABS.map((each) => ({
           key: each,
           label: t(`portability.tab.${each}`),
+          shortLabel: t(`portability.tabShort.${each}`),
+          hint: t(`portability.tab.${each}`),
           disabled: !opens(each),
           ...(each === 'conflicts' && refusals > 0 ? { count: refusals } : {}),
           ...(each === 'tables' && broken > 0 ? { count: broken } : {}),

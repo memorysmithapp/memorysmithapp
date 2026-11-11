@@ -5242,6 +5242,13 @@ button.attachment-thumb:focus-visible {
 .chooser-tabs {
   flex-shrink: 0;
 }
+/* Its tabs say their short names at every width, so the seven fit (#452). */
+.chooser-tabs .tab-label-long {
+  display: none;
+}
+.chooser-tabs .tab-label-short {
+  display: inline;
+}
 .chooser-panel {
   display: flex;
   flex-direction: column;

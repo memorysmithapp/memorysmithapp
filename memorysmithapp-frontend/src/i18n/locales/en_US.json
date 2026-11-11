@@ -427,6 +427,15 @@
     "chooseNotebook": "Choose notebook",
     "noNotebook": "No notebook chosen",
     "exportNotebook": "Notebook",
+    "tabShort": {
+      "context": "Context",
+      "folders": "Folders",
+      "templates": "Templates",
+      "notes": "Notes",
+      "conflicts": "Problems",
+      "files": "Files",
+      "tables": "Tables"
+    },
     "tab": {
       "context": "Context",
       "folders": "Folders",
