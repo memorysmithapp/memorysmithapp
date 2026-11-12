@@ -1,7 +1,7 @@
 /**
- * Notebook models (#344, #353): a notebook of its author's subscription,
- * declared as a model so that other notebooks are created from it, and the
- * frozen versions a notebook is created from.
+ * Notebook models (#344, #431): a notebook of its author's subscription,
+ * declared as a model so that other notebooks are created from it, read as it
+ * stands whenever one is, with the history of its changes.
  *
  * The model is the notebook itself; what is declared here is what the
  * notebook cannot say about itself — what it is for, who it is for, the
@@ -41,16 +41,6 @@ export const declareModelRequestSchema = z.object({
   basedOn: z.string().max(200).nullable().default(null),
 });
 
-/** One version, as its model lists it. */
-export const modelVersionSchema = z.object({
-  number: z.number().int().positive(),
-  changelog: z.string(),
-  createdAt: instantSchema,
-  /** `running` while the snapshot is built, `ready` once it can be used. */
-  status: z.enum(['running', 'ready', 'failed', 'cancelled']),
-  bytes: z.number().int().nonnegative(),
-});
-
 export const notebookModelSchema = z.object({
   notebookId: ulidSchema,
   objective: z.string(),
@@ -72,28 +62,19 @@ export const notebookModelSchema = z.object({
     .lazy(() => publicModelSchema)
     .nullable()
     .optional(),
-  versions: z.array(modelVersionSchema),
 });
 
 export const modelListSchema = z.object({
-  models: z.array(notebookModelSchema.omit({ versions: true }).extend({ name: z.string() })),
-});
-
-/** Creating a version freezes the model notebook as it is, with what changed since the last. */
-export const createModelVersionRequestSchema = z.object({
-  changelog: z.string().max(2000).default(''),
-  // No choice of tables: a version carries every table of the model with its
-  // rows, and every dashboard (#405, RN-PRT-056).
+  models: z.array(notebookModelSchema.extend({ name: z.string() })),
 });
 
 /**
- * A version, read whole (#353): what it froze of its model and every part of
- * the notebook it holds, which is what the owner reviews before distributing
- * it and what a notebook created from it starts as.
+ * What a model notebook holds, read as it stands now (#431): every part a
+ * notebook created from it starts as, which is what its owner, a model reader
+ * and the community read of it.
  */
-export const modelVersionViewSchema = z.object({
+export const modelContentsSchema = z.object({
   notebookId: ulidSchema,
-  version: modelVersionSchema,
   objective: z.string(),
   description: z.string(),
   audience: z.string(),
@@ -114,27 +95,22 @@ export const modelVersionViewSchema = z.object({
     }),
   ),
   notes: z.array(z.object({ noteId: z.string(), folderId: z.string(), body: z.string() })),
-  files: z.array(
-    z.object({ name: z.string(), mimeType: z.string(), bytes: z.number().int().nonnegative() }),
-  ),
-  /**
-   * The tables the version froze, each with its columns and how many rows it
-   * carries, `null` when it carries the schema alone (#366).
-   */
+  files: z.array(z.object({ name: z.string(), mimeType: z.string() })),
+  /** The tables of the model, each with its columns and how many rows it holds (#366). */
   tables: z
     .array(
       z.object({
         name: z.string(),
         description: z.string(),
         columns: z.array(z.string()),
-        rows: z.number().int().nonnegative().nullable(),
+        rows: z.number().int().nonnegative(),
       }),
     )
     .default([]),
-  /** The dashboards the version froze (#368). */
+  /** The dashboards of the model (#368). */
   dashboards: z.array(z.object({ name: z.string(), description: z.string() })).default([]),
   /**
-   * What the version writes against what it declares (#354): a reference no
+   * What the model writes against what it declares (#354): a reference no
    * parameter answers, which a notebook created from it would keep, and a
    * parameter no text uses.
    */
@@ -142,11 +118,39 @@ export const modelVersionViewSchema = z.object({
 });
 
 /**
- * Creating an independent notebook from a version (#359): its name, the name
- * of the model filled in when empty, and a value for each parameter, keyed by
- * its name; one not given takes its default, and a required one is refused.
+ * One change of a model notebook, as its history lists it (#431): when, who
+ * through which connector, what it was about and the line its author left. An
+ * edit session is one change, with how many saves it held and since when.
  */
-export const createFromVersionRequestSchema = z.object({
+export const modelChangeSchema = z.object({
+  occurredAt: instantSchema,
+  since: instantSchema,
+  saves: z.number().int().positive(),
+  type: z.string(),
+  subject: z.string(),
+  subjectId: z.string(),
+  /** The name of what changed, when the change says it. */
+  name: z.string().nullable(),
+  /** The connector that wrote it, or null for a person in the interface. */
+  agent: z.string().nullable(),
+  message: z.string().nullable(),
+  /** The model the notebook was created from, by its name then; only on its creation (#446). */
+  fromModel: z.string().nullable().default(null),
+});
+
+/** The history of a model, the newest change first, and whether older ones were left out. */
+export const modelHistorySchema = z.object({
+  changes: z.array(modelChangeSchema),
+  truncated: z.boolean(),
+});
+
+/**
+ * Creating an independent notebook from a model (#359, #431): its name, the
+ * name of the model filled in when empty, and a value for each parameter,
+ * keyed by its name; one not given takes its default, and a required one is
+ * refused.
+ */
+export const createFromModelRequestSchema = z.object({
   name: z.string().max(120).default(''),
   values: z.record(z.string(), parameterValueSchema).default({}),
 });
@@ -173,55 +177,45 @@ export const publicModelSchema = z.object({
   basedOn: z.string().nullable(),
   licence: z.literal('CC0-1.0'),
   publishedAt: instantSchema,
+  /** When what the catalog says of it was last said again. */
   updatedAt: instantSchema,
   parameters: z.array(parameterDeclarationSchema),
-  versions: z.array(
-    z.object({
-      number: z.number().int().positive(),
-      changelog: z.string(),
-      createdAt: instantSchema,
-      bytes: z.number().int().nonnegative(),
-    }),
-  ),
 });
 
-export const catalogSearchSchema = z.object({ models: z.array(publicModelSchema) });
-
-/** A published version, read whole: the snapshot and nothing else of its subscription. */
-export const publicVersionViewSchema = modelVersionViewSchema
-  .omit({ notebookId: true, version: true })
-  .extend({
-    model: publicModelSchema,
-    version: publicModelSchema.shape.versions.element,
-  });
-
-/** A report of a published model, which only a person who signed in makes (#358). */
-export const reportModelRequestSchema = z.object({ reason: z.string().min(1).max(1000) });
-
-/** A report waiting for the operator, with the model it is about while it is published. */
-export const catalogReportSchema = z.object({
-  reportId: ulidSchema,
-  publicId: ulidSchema,
-  reason: z.string(),
-  reportedAt: instantSchema,
-  model: publicModelSchema.nullable(),
+/**
+ * What a search of the catalog finds, the newest published first (#432): one
+ * page when a limit was asked, and where the next one starts, null on the last.
+ */
+export const catalogSearchSchema = z.object({
+  models: z.array(publicModelSchema),
+  next: z.string().nullable(),
+  /** How many models the search found, across every page (#438). */
+  total: z.number().int().nonnegative(),
 });
 
-/** The operator withdraws a model, saying why: the author is told (#358). */
-export const withdrawModelRequestSchema = z.object({ reason: z.string().min(1).max(2000) });
+/** A published model, read whole as it stands now, and nothing else of its subscription (#431). */
+export const publicModelContentsSchema = modelContentsSchema
+  .omit({ notebookId: true })
+  .extend({ model: publicModelSchema });
+
+/** The history of a published model: when and what, never who (#431). */
+export const publicModelHistorySchema = z.object({
+  changes: z.array(modelChangeSchema.omit({ agent: true })),
+  truncated: z.boolean(),
+});
 
 export type ParameterTypeDto = z.infer<typeof parameterTypeSchema>;
 export type ParameterValueDto = z.infer<typeof parameterValueSchema>;
 export type ParameterDeclarationDto = z.infer<typeof parameterDeclarationSchema>;
 export type DeclareModelRequest = z.input<typeof declareModelRequestSchema>;
-export type ModelVersionDto = z.infer<typeof modelVersionSchema>;
 export type NotebookModelDto = z.infer<typeof notebookModelSchema>;
 export type ModelListDto = z.infer<typeof modelListSchema>;
-export type CreateModelVersionRequest = z.input<typeof createModelVersionRequestSchema>;
-export type ModelVersionViewDto = z.infer<typeof modelVersionViewSchema>;
-export type CreateFromVersionRequest = z.input<typeof createFromVersionRequestSchema>;
+export type ModelContentsDto = z.infer<typeof modelContentsSchema>;
+export type ModelChangeDto = z.infer<typeof modelChangeSchema>;
+export type ModelHistoryDto = z.infer<typeof modelHistorySchema>;
+export type CreateFromModelRequest = z.input<typeof createFromModelRequestSchema>;
 export type PublishModelRequest = z.input<typeof publishModelRequestSchema>;
 export type PublicModelDto = z.infer<typeof publicModelSchema>;
 export type CatalogSearchDto = z.infer<typeof catalogSearchSchema>;
-export type PublicVersionViewDto = z.infer<typeof publicVersionViewSchema>;
-export type CatalogReportDto = z.infer<typeof catalogReportSchema>;
+export type PublicModelContentsDto = z.infer<typeof publicModelContentsSchema>;
+export type PublicModelHistoryDto = z.infer<typeof publicModelHistorySchema>;

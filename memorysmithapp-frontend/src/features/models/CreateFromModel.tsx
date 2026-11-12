@@ -10,88 +10,71 @@ import type {
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
 import { notebookAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
-import { createFromVersion, getTransfer } from '../../shared/api/source';
-import { valuesOf } from './model-form';
+import { getTransfer } from '../../shared/api/source';
+import { failureOf } from '../portability/TransferParts';
+import { fillName, valuesOf } from './model-form';
+
+/** What is typed for a notebook created from a model: its name, and a text per parameter. */
+export interface CreateDraft {
+  readonly name: string;
+  readonly typed: Readonly<Record<string, string>>;
+}
+
+export const EMPTY_DRAFT: CreateDraft = { name: '', typed: {} };
+
+/** How the notebook is created: from a model the person reads, or from the community (#360). */
+export type StartCreation = (input: {
+  name: string;
+  values: Record<string, ParameterValueDto>;
+}) => Promise<TransferDto>;
 
 /**
- * Creating an independent notebook from a version of a model (#359): a name,
- * the model's own filled in when it is left empty, and a field for each
- * parameter by its type, with what it is and an example. A required one left
- * empty, or a value of the wrong type, is refused before anything is written,
- * and the form says which. The notebook is written in the background, and the
- * form follows it and opens it.
+ * The fields of a notebook created from a model as it stands (#359, #431): a
+ * name, the model's own filled in when it is left empty, and a field for each
+ * parameter by its type, with what it is and an example. They are drawn in
+ * New notebook, whose footer submits them (#435); a required one the API found
+ * empty, or a value of the wrong type, is marked.
  */
-export function CreateFromModelForm({
-  notebookId,
-  version,
+export function CreateFromModelFields({
   parameters,
-  onCancel,
-  create: start = (input) => createFromVersion(notebookId, version, input),
+  draft,
+  onChange,
+  missing = [],
+  modelName = '',
 }: {
-  notebookId: string;
-  version: number;
   parameters: readonly ParameterDeclarationDto[];
-  onCancel?: () => void;
-  /** How the notebook is created: from a model of the person's, or from the community (#360). */
-  create?: (input: {
-    name: string;
-    values: Record<string, ParameterValueDto>;
-  }) => Promise<TransferDto>;
+  draft: CreateDraft;
+  onChange: (next: CreateDraft) => void;
+  /** The parameters the API answered were missing. */
+  missing?: readonly string[];
+  /**
+   * The model's name, which the name of the notebook follows filled in with
+   * what is typed for its parameters until the person writes a name (#448).
+   */
+  modelName?: string;
 }) {
   const { t } = useTranslation();
-  const client = useQueryClient();
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [typed, setTyped] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [missing, setMissing] = useState<readonly string[]>([]);
+  const typed = draft.typed;
+  // An empty name is the model's, filled in: the field shows it as it will be.
+  const following = fillName(modelName, parameters, typed);
   const type = (parameter: string, value: string) =>
-    setTyped((current) => ({ ...current, [parameter]: value }));
-
-  async function create(): Promise<void> {
-    setBusy(true);
-    setFailure(null);
-    setMissing([]);
-    try {
-      const started = await start({ name, values: valuesOf(parameters, typed) });
-      let transfer = started;
-      for (let waited = 0; transfer.status === 'running' && waited < 60_000; waited += 1000) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        transfer = await getTransfer(started.transferId);
-      }
-      await client.invalidateQueries({ queryKey: queryKeys.notebooks() });
-      if (transfer.status === 'ready' && transfer.notebookId) {
-        navigate(notebookAddress(transfer.notebookId));
-        return;
-      }
-      setFailure(
-        transfer.status === 'running' ? t('model.stillCreating') : t('model.creationFailed'),
-      );
-    } catch (error) {
-      const details =
-        error instanceof ApiError
-          ? (error.details as { missing?: string[] } | undefined)
-          : undefined;
-      setMissing(details?.missing ?? []);
-      setFailure(error instanceof ApiError && details ? error.message : t(messageKeyOf(error)));
-    } finally {
-      setBusy(false);
-    }
-  }
+    onChange({ ...draft, typed: { ...typed, [parameter]: value } });
 
   return (
-    <form
-      className="create-from-model"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void create();
-      }}
-    >
+    <div className="create-from-model">
       <div className="field">
         <label>
           <span className="field-label">{t('model.newName')}</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} />
+          <input
+            value={draft.name === '' ? following : draft.name}
+            onChange={(event) =>
+              onChange({
+                ...draft,
+                // Writing the very name it follows keeps it following.
+                name: event.target.value === following ? '' : event.target.value,
+              })
+            }
+          />
         </label>
         <span className="field-hint">{t('model.newNameHint')}</span>
       </div>
@@ -157,21 +140,86 @@ export function CreateFromModelForm({
           </div>
         );
       })}
-      {failure ? (
-        <p className="share-failure" role="alert">
-          {failure}
-        </p>
-      ) : null}
-      <div className="ask-dialog-foot">
-        {onCancel ? (
-          <button type="button" className="button is-quiet" onClick={onCancel}>
-            {t('common.cancel')}
-          </button>
-        ) : null}
-        <button type="submit" className="button is-primary" disabled={busy}>
-          {busy ? t('model.creating') : t('model.create')}
-        </button>
-      </div>
-    </form>
+    </div>
   );
+}
+
+/**
+ * Creating the notebook out of what the fields hold (#359, #431, #435): the
+ * notebook is written in the background, and this follows that work to its
+ * end and opens it, or says why it failed (#445). A required parameter the API found empty is named back, and the
+ * reason it gives is the message shown.
+ */
+export function useCreateFromModel(): {
+  busy: boolean;
+  failure: string | null;
+  missing: readonly string[];
+  create: (
+    start: StartCreation,
+    parameters: readonly ParameterDeclarationDto[],
+    draft: CreateDraft,
+  ) => Promise<void>;
+  reset: () => void;
+} {
+  const { t, i18n } = useTranslation();
+  const client = useQueryClient();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [missing, setMissing] = useState<readonly string[]>([]);
+
+  async function create(
+    start: StartCreation,
+    parameters: readonly ParameterDeclarationDto[],
+    draft: CreateDraft,
+  ): Promise<void> {
+    setBusy(true);
+    setFailure(null);
+    setMissing([]);
+    try {
+      const started = await start({ name: draft.name, values: valuesOf(parameters, draft.typed) });
+      let transfer = started;
+      // The work behind the creation is not a transfer of the person's, so
+      // the dialog is where it ends: it waits for it, and says why it failed
+      // (#445).
+      for (let waited = 0; transfer.status === 'running' && waited < 180_000; waited += 1000) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        transfer = await getTransfer(started.transferId);
+      }
+      await client.invalidateQueries({ queryKey: queryKeys.notebooks() });
+      if (transfer.status === 'ready' && transfer.notebookId) {
+        navigate(notebookAddress(transfer.notebookId));
+        return;
+      }
+      setFailure(
+        transfer.status === 'running'
+          ? t('model.stillCreating')
+          : t('model.creationFailed', {
+              reason:
+                failureOf(transfer, t, (key) => i18n.exists(key)) ??
+                t('portability.refusal.INTERNAL'),
+            }),
+      );
+    } catch (error) {
+      const details =
+        error instanceof ApiError
+          ? (error.details as { missing?: string[] } | undefined)
+          : undefined;
+      setMissing(details?.missing ?? []);
+      setFailure(error instanceof ApiError && details ? error.message : t(messageKeyOf(error)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return {
+    busy,
+    failure,
+    missing,
+    create,
+    reset: () => {
+      setFailure(null);
+      setMissing([]);
+    },
+  };
 }

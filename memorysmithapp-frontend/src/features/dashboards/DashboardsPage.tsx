@@ -100,7 +100,7 @@ export function DashboardsPage() {
             : [{ label: t('dashboards.heading') }]
         }
       />
-      <article className={`content-pane dashboards-page${chosen ? ' is-open' : ''}`}>
+      <article className={`content-pane is-wide dashboards-page${chosen ? ' is-open' : ''}`}>
         {dashboards.isError ? (
           <p className="status">{t(messageKeyOf(dashboards.error))}</p>
         ) : !dashboards.data ? (

@@ -1,25 +1,24 @@
 import { useEffect } from 'react';
 import { useLiveInterval } from '../../shared/api/live';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Outlet, useBlocker } from 'react-router-dom';
+import { Outlet, useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getNotebookFiles, getNotebookNames, getNotebookStructure } from '../../shared/api/source';
 import type { NotebookStructure } from '../../shared/types/api';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { ArrowLeftIcon } from '../../shared/components/icons';
 import { NARROW_NOTEBOOK, useMatchMedia } from '../../shared/lib/media';
-import { NotebookSheet } from './NotebookSheet';
+import { MobileMenuNotebook } from '../../shared/components/MobileMenu';
 import { NotebookNav } from './NotebookNav';
-import { SearchBox } from '../search/SearchBox';
 import { FolderTree } from './FolderTree';
 import { FolderTreeSkeleton, NoteSkeleton } from '../../shared/components/skeletons';
 import { SkeletonBar } from '../../shared/components/Skeleton';
 import { queryState } from '../../shared/api/query-state';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { useNotebookId } from './route-ids';
-import { leaveNotebook } from './arrival';
 import { queryKeys } from '../../shared/api/query-keys';
 import { flushEverySession, useEditSessions } from '../../shared/store/edit-sessions';
+import { usePreferences } from '../../shared/store/preferences';
+import { SidebarFold } from '../../shared/components/SidebarFold';
 
 export interface NotebookOutletContext {
   structure: NotebookStructure;
@@ -32,15 +31,13 @@ export function NotebookLayout() {
   // request (RN-DSC-045).
   const notebookId = useNotebookId();
   /**
-   * A permanent column on a wide screen, and the sheet at the foot of the
-   * screen on a narrow one (#229). Only one of them is ever mounted, so the
-   * tree and the search box are never in the page twice.
+   * A permanent column on a wide screen, and a part of the menu of the ☰ on a
+   * narrow one (#419). Only one of them is ever mounted, so the tree and the
+   * search box are never in the page twice.
    */
   const narrow = useMatchMedia(NARROW_NOTEBOOK);
-
-  // Leaving a notebook — for Home, for another notebook — makes coming back an
-  // arrival again, which resumes where the reading stopped (ResumeReading).
-  useEffect(() => () => leaveNotebook(notebookId), [notebookId]);
+  // Folded to its icons, by the same choice as the shell's sidebar (#414).
+  const collapsed = usePreferences((s) => s.sidebarCollapsed);
 
   const query = useQuery({
     queryKey: queryKeys.notebookStructure(notebookId),
@@ -98,34 +95,54 @@ export function NotebookLayout() {
       <LeaveGuard />
       <div className="notebook-layout">
         {narrow ? (
-          <NotebookSheet notebookId={notebookId} structure={data} />
+          <MobileMenuNotebook>
+            {/* The notebook in the menu of the ☰ (#419), in groups: its name, its
+                Context and its pages, and its content as the tree. Its notes
+                are searched from the search at the top of the menu (#418). */}
+            <section className="mobile-menu-group" aria-label={data?.notebook.name}>
+              <div className="sidebar-head">
+                <h2 className="sidebar-notebook">
+                  {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
+                </h2>
+              </div>
+              <NotebookNav notebookId={notebookId} />
+              <hr className="sidebar-rule" />
+              <p className="sidebar-caption">{t('structure.content')}</p>
+              {data ? (
+                <FolderTree notebookId={notebookId} folders={data.folders} />
+              ) : (
+                <FolderTreeSkeleton />
+              )}
+            </section>
+          </MobileMenuNotebook>
         ) : (
-          <aside className="notebook-sidebar" id="notebook-sidebar">
-            <div className="sidebar-head">
-              <Link to="/" className="back-link">
-                <ArrowLeftIcon width={14} height={14} />
-                {t('structure.backToNotebooks')}
-              </Link>
-              {/* The way to the Context is its own entry below and the first
-                  crumb of the bar, so the name is only the name (#228). */}
-              <h2 className="sidebar-notebook">
-                {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
-              </h2>
-            </div>
-            {data ? (
-              <SearchBox notebookId={notebookId} structure={data} />
-            ) : (
-              <SkeletonBar height="2.2rem" />
-            )}
-            <NotebookNav notebookId={notebookId} />
-            <hr className="sidebar-rule" />
-            <p className="sidebar-caption">{t('structure.content')}</p>
-            {data ? (
-              <FolderTree notebookId={notebookId} folders={data.folders} />
-            ) : (
-              <FolderTreeSkeleton />
-            )}
-          </aside>
+          <>
+            <aside
+              className={`notebook-sidebar${collapsed ? ' is-collapsed' : ''}`}
+              id="notebook-sidebar"
+            >
+              <div className="sidebar-head">
+                {/* The way to the Context is its own entry below and the first
+                    crumb of the bar, so the name is only the name (#228); the
+                    way back to Notebooks and Models is the menu of the product,
+                    above, and only it (#422). */}
+                <h2 className="sidebar-notebook">
+                  {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
+                </h2>
+              </div>
+              <NotebookNav notebookId={notebookId} />
+              <div className="sidebar-content">
+                <hr className="sidebar-rule" />
+                <p className="sidebar-caption">{t('structure.content')}</p>
+                {data ? (
+                  <FolderTree notebookId={notebookId} folders={data.folders} />
+                ) : (
+                  <FolderTreeSkeleton />
+                )}
+              </div>
+              <SidebarFold />
+            </aside>
+          </>
         )}
         <section className="notebook-content">
           {data ? (

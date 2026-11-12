@@ -28,9 +28,13 @@ import type { ParameterDeclaration } from './NotebookModel.js';
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.4';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.5';
 
-/** One version of a model, as a document carries it (#397): its meta and its snapshot. */
+/**
+ * One version of a model, as a `1.4` document carried it (#397): its meta and
+ * its snapshot. A model has no versions since #431, so one is read and left
+ * out, and never written.
+ */
 export interface DocumentModelVersion {
   readonly number: number;
   readonly changelog: string;
@@ -44,15 +48,15 @@ export interface DocumentModelVersion {
   readonly document: NotebookSnapshot;
 }
 
-/** The model a notebook is declared as, as a document carries it (#397, RN-PRT-054). */
+/** The model a notebook is declared as, as a document carries it (#397, RN-PRT-073). */
 export interface DocumentModel {
   readonly objective: string;
   readonly description: string;
   readonly audience: string;
   readonly parameters: readonly ParameterDeclaration[];
   readonly basedOn: string | null;
-  /** Every version its owner keeps, the oldest first. */
-  readonly versions: readonly DocumentModelVersion[];
+  /** What a `1.4` document carried, read and left out (#431). */
+  readonly versions?: readonly DocumentModelVersion[] | undefined;
 }
 
 /**
@@ -137,7 +141,7 @@ export function tablesOfDashboard(dashboard: DocumentDashboard): string[] {
 }
 
 /**
- * The dashboards that can go (RN-PRT-053): those whose every table goes, with
+ * The dashboards that can go (RN-PRT-072): those whose every table goes, with
  * its rows or with its schema alone. One that lost a table cannot be read
  * where it lands, so it stays behind.
  */
@@ -202,7 +206,7 @@ export interface NotebookDocument {
   readonly model?: DocumentModel;
 }
 
-/** A notebook as a version of a model freezes it: a document with no model of its own. */
+/** A notebook as a `1.4` version of a model froze it: a document with no model of its own. */
 export type NotebookSnapshot = Omit<NotebookDocument, 'model'>;
 
 /** What the Knowledge context hands over, with nothing computed. */
@@ -439,7 +443,7 @@ export function carriesEntry(
 export function buildNotebookDocument(
   input: ExportInput,
   now: string,
-  /** The model the notebook is declared as, when it is one and the export is not a version of it (#397). */
+  /** The model the notebook is declared as, when it is one and the export carries it (#397). */
   model: DocumentModel | null = null,
 ): NotebookDocument {
   return {

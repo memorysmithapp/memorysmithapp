@@ -63,6 +63,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
     name: string;
     description: string;
     by: Authorship;
+    fromModel?: { name: string } | undefined;
   }): Promise<Result<{ notebookId: string }, DomainError>> {
     const created = await this.useCases.createNotebook.execute({
       ctx: this.ctx,
@@ -70,6 +71,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       description: input.description,
       subscriptionId: this.subscriptionId,
       by: input.by,
+      ...(input.fromModel ? { fromModel: input.fromModel.name } : {}),
     });
     return created.ok ? ok({ notebookId: created.value.id.value }) : created;
   }

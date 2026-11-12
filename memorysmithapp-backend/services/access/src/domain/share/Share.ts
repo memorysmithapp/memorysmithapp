@@ -38,9 +38,9 @@ import type { Email } from '../values.js';
  * What a share lets its grantee do, as its owner chose it (#347). A reader
  * reads and exports; a content editor also writes the notes and the files; a
  * notebook editor also maintains the folders, the Guidance and the Templates.
- * A model reader reaches only the model of a notebook declared as one, its
- * versions and the notebooks created from them, and never the notebook
- * itself (#355). Sharing, the profiles and deleting stay with the owner.
+ * A model reader reaches only the model of a notebook declared as one — what
+ * its notebook holds now and its history — and the notebooks created from it,
+ * and never the notebook itself (#355, #431). Sharing, the profiles and deleting stay with the owner.
  */
 export type ShareProfile = 'model-reader' | 'reader' | 'content-editor' | 'notebook-editor';
 

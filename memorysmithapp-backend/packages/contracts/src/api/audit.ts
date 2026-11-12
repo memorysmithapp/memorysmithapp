@@ -11,6 +11,7 @@
 import { z } from 'zod';
 import { authorshipSchema, contentRefSchema, instantSchema, ulidSchema } from '../common.js';
 import { domainEventTypeSchema, eventSubjectSchema } from '../events.js';
+import { modelChangeSchema } from './models.js';
 
 export const auditEntrySchema = z.object({
   eventId: ulidSchema,
@@ -59,8 +60,19 @@ export const activitySchema = z.object({
   entries: z.array(auditEntrySchema),
 });
 
+/**
+ * The history of a notebook as its overview shows it (#446): the changes the
+ * history of a model lists, from its creation, each saying whether the person
+ * asking made it.
+ */
+export const notebookHistorySchema = z.object({
+  changes: z.array(modelChangeSchema.extend({ you: z.boolean() })),
+  truncated: z.boolean(),
+});
+
 export type AuditEntryDto = z.infer<typeof auditEntrySchema>;
 export type NoteHistoryDto = z.infer<typeof noteHistorySchema>;
 export type RevisionDto = z.infer<typeof revisionSchema>;
 export type ActivityDto = z.infer<typeof activitySchema>;
 export type ActivityQuery = z.infer<typeof activityQuerySchema>;
+export type NotebookHistoryDto = z.infer<typeof notebookHistorySchema>;

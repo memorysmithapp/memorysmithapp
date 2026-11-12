@@ -54,9 +54,9 @@ describe('an action button that carries an icon', () => {
     }
   });
 
-  it('is the one the bar and Home use too', () => {
+  it('is the one the bar and the notebooks use too', () => {
     expect(read('../../features/structure/NotebookBreadcrumb.tsx')).toContain('<ActionWord');
-    expect(read('../../features/dashboard/DashboardPage.tsx')).toContain(
+    expect(read('../../features/dashboard/NotebooksPage.tsx')).toContain(
       "<ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />",
     );
     expect(read('../../styles.css')).not.toContain('.bar-button-label');
@@ -64,7 +64,6 @@ describe('an action button that carries an icon', () => {
 
   it('is not taken by a confirmation or a cancel, which keeps its word', () => {
     for (const path of [
-      './DeleteContentSlot.tsx',
       './Menu.tsx',
       './Sheet.tsx',
       '../../features/dashboard/NotebookActions.tsx',

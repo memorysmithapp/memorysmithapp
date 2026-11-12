@@ -67,28 +67,35 @@ export interface Transfer {
   readonly versionId: string | null;
   /** A code the interface turns into words in the language of the person. */
   readonly failure: string | null;
+  /**
+   * The person marked the notice of its end as read (#454): kept on the
+   * transfer, so the bell leaves it out on every device.
+   */
+  readonly noticeRead?: boolean | undefined;
   /** What an upload of an agent is and where its parts are (RN-PRT-027); only on that kind. */
   readonly upload?: TransferUpload | undefined;
   /** The file an agent asked the person for (RN-PRT-030); only on a request. */
   readonly request?: TransferRequest | undefined;
   /**
-   * A version of a notebook model (#353): an export of the model notebook,
-   * without history, kept apart from the person's other exports and shown
-   * with its model instead of in Transfers.
+   * A version of a notebook model, as one created before #431 is recorded: an
+   * export of the model notebook kept apart from the person's other exports.
+   * A model has no versions since, and the job that deletes them finds them
+   * by this; nothing writes it any more.
    */
   readonly model?: ModelVersionMeta | undefined;
   /**
-   * The version of a model a notebook was created from (#359), on the import
-   * that created it: information only, which nothing depends on.
+   * The model a notebook was created from (#359), on the import that created
+   * it: information only, which nothing depends on.
    */
   readonly origin?: TransferOrigin | undefined;
 }
 
-/** Which version of which model an import created its notebook from. */
+/** Which model an import created its notebook from. */
 export interface TransferOrigin {
   readonly subscriptionId: string;
   readonly notebookId: string;
-  readonly version: number;
+  /** The version it was created from, on a record written before #431. */
+  readonly version?: number | undefined;
 }
 
 /**

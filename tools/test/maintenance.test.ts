@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest';
 import {
   accountRefusal,
   environmentRefusal,
+  forgetExitCode,
+  forgetLines,
   jobVariables,
   MAINTENANCE_JOBS,
   progressLine,
@@ -45,6 +47,40 @@ describe('a maintenance job', () => {
       'utf8',
     );
     expect(stack).toContain(`physicalName(props.environment, '${job.stateMachine}')`);
+  });
+
+  it('that runs as a function names the one the API stack creates, and that the delivery roles invoke (#434)', () => {
+    const job = MAINTENANCE_JOBS['forget-model-versions'];
+    expect('entry' in job).toBe(false);
+    const read = (path: string) => readFileSync(join(REPOSITORY_ROOT, path), 'utf8');
+    expect(read('memorysmithapp-infra/stacks/api.stack.ts')).toContain(
+      `physicalName(props.environment, '${job.function}')`,
+    );
+    expect(read('memorysmithapp-infra/stacks/github-delivery.stack.ts')).toContain(
+      `physicalName(environment, '${job.function}')`,
+    );
+  });
+
+  it('says what the deletion of old versions found, and fails an apply that left one (#434)', () => {
+    const found = {
+      versions: 16,
+      subscriptions: 14,
+      bytes: 53333,
+      catalogEntries: 1,
+      deleted: 0,
+      failures: [],
+    };
+    const report = { ...found, mode: 'report' as const };
+    expect(forgetLines(report)).toEqual([
+      '16 versions of models, in 14 subscriptions, hold 53333 bytes.',
+      '1 catalog entries.',
+      'Nothing was deleted: this was a report.',
+    ]);
+    expect(forgetExitCode(report)).toBe(0);
+    const applied = { ...found, mode: 'apply' as const, deleted: 15, failures: ['01X: gone'] };
+    expect(forgetLines(applied).at(-1)).toBe('Not deleted: 01X: gone');
+    expect(forgetExitCode(applied)).toBe(1);
+    expect(forgetExitCode({ ...applied, deleted: 16, failures: [] })).toBe(0);
   });
 
   it('names the tables the data stack creates for the environment', () => {

@@ -15,7 +15,9 @@ import {
   groupHistory,
   ulidSchema,
   type Deployment,
+  type ModelContentsDto,
   type PreviewDto,
+  type PublicModelContentsDto,
   type TransferDto,
   type UploadStatusDto,
   type NoteOrder,
@@ -732,8 +734,19 @@ function valuesOf(args: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Waits for a notebook created from a version to be written (#359): most are
- * written in seconds, and one that takes longer answers the transfer to follow.
+ * What a model notebook holds as it stands now (#431), without what the model
+ * already says of itself beside it: its objective, audience and parameters are
+ * answered once, with the model.
+ */
+function contentsOf(contents: ModelContentsDto | PublicModelContentsDto) {
+  const { notebook, folders, notes, files, tables, dashboards, references } = contents;
+  return { notebook, folders, notes, files, tables, dashboards, references };
+}
+
+/**
+ * Waits for a notebook created from a model to be written (#359, RN-AGT-067):
+ * most are written in seconds, and one that takes longer answers the transfer
+ * to follow.
  */
 async function createdFrom(
   started: TransferDto,
@@ -1725,7 +1738,7 @@ export class McpToolAdapter {
           ),
         );
 
-      // ---- Notebook models (#353, #354, #359) -----------------------------
+      // ---- Notebook models (#353, #354, #359, #431) -----------------------
       case 'declare_model': {
         const parameters = Array.isArray(args['parameters']) ? args['parameters'] : [];
         return json(
@@ -1739,48 +1752,22 @@ export class McpToolAdapter {
         );
       }
 
-      case 'get_model':
-        return json(await knowledge.model(caller, requireString(args, 'notebook', 'get_model')));
+      case 'get_model': {
+        const notebook = requireString(args, 'notebook', 'get_model');
+        const [model, contents, history] = await Promise.all([
+          knowledge.model(caller, notebook),
+          knowledge.modelContents(caller, notebook),
+          knowledge.modelHistory(caller, notebook),
+        ]);
+        return json({ ...model, contents: contentsOf(contents), history });
+      }
 
       case 'list_models':
         return json({ models: await knowledge.listModels(caller) });
 
-      case 'create_model_version': {
-        const notebook = requireString(args, 'notebook', 'create_model_version');
-        const version = await knowledge.createModelVersion(
-          caller,
-          notebook,
-          optionalString(args, 'changelog') ?? '',
-        );
-        return json({
-          ...version,
-          next:
-            `The version is being built. Call get_model with this notebook until version ` +
-            `${version.number} is ready, then read_model_version to review it with the person.`,
-        });
-      }
-
-      case 'read_model_version':
-        return json(
-          await knowledge.modelVersion(
-            caller,
-            requireString(args, 'notebook', 'read_model_version'),
-            requireInteger(args, 'version', 'read_model_version'),
-          ),
-        );
-
-      case 'delete_model_version':
-        await knowledge.deleteModelVersion(
-          caller,
-          requireString(args, 'notebook', 'delete_model_version'),
-          requireInteger(args, 'version', 'delete_model_version'),
-        );
-        return json({ deleted: true });
-
       case 'create_notebook_from_model': {
         const started = await knowledge.createFromModel(caller, {
           notebookId: requireString(args, 'notebook', 'create_notebook_from_model'),
-          version: requireInteger(args, 'version', 'create_notebook_from_model'),
           name: optionalString(args, 'name') ?? '',
           values: valuesOf(args),
         });
@@ -1808,27 +1795,18 @@ export class McpToolAdapter {
           }),
         });
 
-      case 'read_community_model':
-        return json(
-          await knowledge.communityModel(
-            caller,
-            requireString(args, 'model', 'read_community_model'),
-          ),
-        );
-
-      case 'read_community_version':
-        return json(
-          await knowledge.communityVersion(
-            caller,
-            requireString(args, 'model', 'read_community_version'),
-            requireInteger(args, 'version', 'read_community_version'),
-          ),
-        );
+      case 'read_community_model': {
+        const publicId = requireString(args, 'model', 'read_community_model');
+        const [contents, history] = await Promise.all([
+          knowledge.communityContents(caller, publicId),
+          knowledge.communityHistory(caller, publicId),
+        ]);
+        return json({ ...contents.model, contents: contentsOf(contents), history });
+      }
 
       case 'create_notebook_from_community_model': {
         const started = await knowledge.createFromCommunity(caller, {
           publicId: requireString(args, 'model', 'create_notebook_from_community_model'),
-          version: requireInteger(args, 'version', 'create_notebook_from_community_model'),
           name: optionalString(args, 'name') ?? '',
           values: valuesOf(args),
         });

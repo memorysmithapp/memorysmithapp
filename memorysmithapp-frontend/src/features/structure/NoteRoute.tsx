@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { NotePage } from '../note/NotePage';
 import { identifierOf } from '../../shared/api/note-address';
 import { rememberNote } from '../../shared/store/last-note';
+import { rememberRecent } from '../../shared/store/recent-notes';
 import { useLiveSession } from '../../shared/auth/session';
 import { folderTrailForNote } from './trail';
 import { useNotebookId } from './route-ids';
@@ -28,11 +29,18 @@ export function NoteRoute() {
   const personId = useLiveSession((s) => s.session?.userId ?? '');
   const { structure } = useOutletContext<NotebookOutletContext>();
   const noteId = identifierOf(segment);
-  const inTree = noteId !== null && folderTrailForNote(structure.folders, noteId).length > 0;
+  const trail = noteId === null ? [] : folderTrailForNote(structure.folders, noteId);
+  const inTree = trail.length > 0;
+  // Its name as the tree has it, which Home shows to come back to it (#424).
+  const name = inTree
+    ? (trail[trail.length - 1]?.notes.find((note) => note.id === noteId)?.name ?? null)
+    : null;
 
   useEffect(() => {
-    if (noteId && inTree) rememberNote(personId, notebookId, noteId);
-  }, [personId, notebookId, noteId, inTree]);
+    if (!noteId || !inTree) return;
+    rememberNote(personId, notebookId, noteId);
+    rememberRecent(personId, notebookId, noteId, name);
+  }, [personId, notebookId, noteId, inTree, name]);
 
   if (!noteId) return <p className="status">{t('common.notFound')}</p>;
   return <NotePage noteId={noteId} />;

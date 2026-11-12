@@ -14,14 +14,29 @@
  * It deletes by the use case the API runs, as the owner of the subscription,
  * never by deleting items: the deletion is definitive and the purge takes the
  * content, the items, the projections and the files, as it does for a person
- * (INV-08). The subscriptions stay, because nothing in the product deletes one.
+ * (INV-08).
+ *
+ * A run cut short — cancelled, or stopped on a workstation — never reaches its
+ * own teardown, so its accounts stay with their notebooks (#436). An account
+ * of the suite older than a day is such a run's: its notebooks are deleted as
+ * above, then the account itself, as the teardown would have.
+ *
+ * And, in staging alone, a subscription the suite made goes once its owner is
+ * gone and it holds no notebook, the purge having taken what it held (#436):
+ * its items leave every table but the trail, which nothing alters (INV-06).
+ * Nothing else in the product removes a subscription (INV-11), and this job
+ * refuses every environment but staging.
  *
  * It refuses production by name, whatever credentials it runs under, and it
  * reports before it deletes, deleting only with `--apply`.
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import {
+  AdminDeleteUserCommand,
+  CognitoIdentityProviderClient,
+} from '@aws-sdk/client-cognito-identity-provider';
+import { BatchWriteCommand, DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import {
   Authorship,
@@ -58,16 +73,76 @@ export function environmentRefusal(environment: string): string | null {
     : `The cleanup deletes notebooks, and runs on staging only; this is ${environment}. Nothing ran.`;
 }
 
+/** How old an account of the suite is before it is a run cut short (#436). A run takes minutes. */
+export const STALE_AFTER_HOURS = 24;
+
 /**
- * Whether a subscription is a leftover of the suite: its owner was made by the
- * suite and is gone. An owner that still exists is a run in progress, or a
- * person, and either way not this job's to touch.
+ * What a subscription is to this job: a person's, never touched; a run in
+ * progress, whose owner exists and is younger than a day; a run cut short,
+ * whose owner exists and is older; or a leftover, whose owner is gone.
  */
-export function isLeftover(subscription: {
+export function kindOf(subscription: {
   readonly ownerEmail: string;
   readonly ownerExists: boolean;
-}): boolean {
-  return subscription.ownerEmail.toLowerCase().endsWith(SUITE_DOMAIN) && !subscription.ownerExists;
+  readonly requestedAt: Date;
+  readonly now: Date;
+}): 'person' | 'running' | 'stale' | 'leftover' {
+  if (!subscription.ownerEmail.toLowerCase().endsWith(SUITE_DOMAIN)) return 'person';
+  if (!subscription.ownerExists) return 'leftover';
+  const hours = (subscription.now.getTime() - subscription.requestedAt.getTime()) / 3_600_000;
+  return hours >= STALE_AFTER_HOURS ? 'stale' : 'running';
+}
+
+/**
+ * Whether an item belongs to one of the subscriptions removed (#436): its
+ * partition is the subscription, or starts with it, or it is the link of a
+ * person to it. Read off the keys alone, as INV-01 lays them out.
+ */
+export function belongsTo(key: { PK: string; SK: string }, removed: ReadonlySet<string>): boolean {
+  const own = /^S#([^#|]+)(?:[#|]|$)/.exec(key.PK);
+  if (own) return removed.has(own[1] ?? '');
+  if (key.PK.startsWith('USER#') && key.SK.startsWith('SUB#')) {
+    return removed.has(key.SK.slice('SUB#'.length));
+  }
+  return false;
+}
+
+/** Deletes, in one scan of each table, every item of the subscriptions removed. */
+async function removeSubscriptions(
+  db: DynamoDBDocumentClient,
+  tables: readonly string[],
+  removed: ReadonlySet<string>,
+): Promise<number> {
+  let items = 0;
+  for (const table of tables) {
+    const keys: Array<{ PK: string; SK: string }> = [];
+    let startKey: Record<string, unknown> | undefined;
+    do {
+      const page = await db.send(
+        new ScanCommand({
+          TableName: table,
+          ProjectionExpression: 'PK, SK',
+          ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+        }),
+      );
+      for (const item of page.Items ?? []) {
+        const key = { PK: String(item['PK'] ?? ''), SK: String(item['SK'] ?? '') };
+        if (belongsTo(key, removed)) keys.push(key);
+      }
+      startKey = page.LastEvaluatedKey;
+    } while (startKey);
+    for (let at = 0; at < keys.length; at += 25) {
+      let pending: Array<{ DeleteRequest: { Key: Record<string, unknown> } }> = keys
+        .slice(at, at + 25)
+        .map((key) => ({ DeleteRequest: { Key: key } }));
+      while (pending.length > 0) {
+        const answer = await db.send(new BatchWriteCommand({ RequestItems: { [table]: pending } }));
+        pending = (answer.UnprocessedItems?.[table] ?? []) as typeof pending;
+      }
+    }
+    items += keys.length;
+  }
+  return items;
 }
 
 /** Bytes as a person reads them, for the report only. */
@@ -104,6 +179,8 @@ interface Leftover {
   readonly notebooks: number;
   readonly notes: number;
   readonly bytes: number;
+  /** A run cut short, whose account goes after its notebooks (#436). */
+  readonly stale: boolean;
 }
 
 export async function main(argv: readonly string[]): Promise<number> {
@@ -123,9 +200,11 @@ export async function main(argv: readonly string[]): Promise<number> {
     accessTable: required('ACCESS_TABLE'),
     // A deletion writes the notebook and its outbox, and nothing else: the
     // purge and the projections follow from the event, in the environment.
+    // The other tables are read only to remove a subscription (#436), and
+    // the trail is never one of them (INV-06).
     auditTable: '',
-    discoveryTable: '',
-    portabilityTable: '',
+    discoveryTable: required('DISCOVERY_TABLE'),
+    portabilityTable: required('PORTABILITY_TABLE'),
     contentBucket: required('CONTENT_BUCKET'),
   };
   const accounts = new CognitoAccountDirectory(required('USER_POOL_ID'), '');
@@ -146,7 +225,9 @@ export async function main(argv: readonly string[]): Promise<number> {
   const suite = listed.filter((each) => each.ownerEmail.toLowerCase().endsWith(SUITE_DOMAIN));
 
   const leftovers: Leftover[] = [];
+  const empty = new Set<string>();
   let alive = 0;
+  const now = new Date();
   await inParallel(suite, 8, async (view) => {
     const id = SubscriptionId.fromClaim(view.subscriptionId);
     if (!id.ok) return;
@@ -156,7 +237,13 @@ export async function main(argv: readonly string[]): Promise<number> {
     const email = Email.create(view.ownerEmail);
     const holder = email.ok ? await accounts.userIdOf(email.value) : null;
     const ownerExists = holder?.equals(subscription.ownerId) ?? false;
-    if (!isLeftover({ ownerEmail: view.ownerEmail, ownerExists })) {
+    const kind = kindOf({
+      ownerEmail: view.ownerEmail,
+      ownerExists,
+      requestedAt: new Date(subscription.requestedAt.toISOString()),
+      now,
+    });
+    if (kind === 'person' || kind === 'running') {
       alive += 1;
       return;
     }
@@ -173,7 +260,11 @@ export async function main(argv: readonly string[]): Promise<number> {
       infra.knowledgeTable,
     ).read();
     const notebooks = await buildKnowledge(infra, context.value).notebooks.listAll();
-    if (notebooks.length === 0) return;
+    // A leftover holding nothing, the purge done, is a subscription to remove.
+    if (notebooks.length === 0 && kind === 'leftover') {
+      empty.add(view.subscriptionId);
+      return;
+    }
     leftovers.push({
       subscriptionId: view.subscriptionId,
       ownerEmail: view.ownerEmail,
@@ -183,8 +274,10 @@ export async function main(argv: readonly string[]): Promise<number> {
       notes: usage.subscription.noteCount,
       bytes:
         usage.subscription.noteBytes + usage.subscription.fileBytes + usage.subscription.otherBytes,
+      stale: kind === 'stale',
     });
   });
+  const stale = leftovers.filter((each) => each.stale);
 
   const total = leftovers.reduce(
     (sum, each) => ({
@@ -196,15 +289,22 @@ export async function main(argv: readonly string[]): Promise<number> {
   );
   console.log(
     `${listed.length} subscription(s) in all, ${suite.length} made by the suite, ` +
-      `${alive} of them with an owner who still exists (left alone).`,
+      `${alive} of them runs younger than ${STALE_AFTER_HOURS} hours (left alone).`,
   );
   console.log(
-    `${leftovers.length} subscription(s) whose owner is gone hold ${total.notebooks} notebook(s), ` +
-      `${total.notes} note(s) and ${human(total.bytes)}.`,
+    `${stale.length} account(s) of runs cut short, older than ${STALE_AFTER_HOURS} hours, ` +
+      'go with their notebooks.',
+  );
+  console.log(
+    `${leftovers.length} subscription(s) hold ${total.notebooks} notebook(s), ` +
+      `${total.notes} note(s) and ${human(total.bytes)} to delete.`,
+  );
+  console.log(
+    `${empty.size} empty subscription(s) whose owner is gone are removed, in staging only.`,
   );
 
   if (!write) {
-    console.log('\nDry run: nothing was deleted. Pass --apply to delete these notebooks.');
+    console.log('\nDry run: nothing was deleted. Pass --apply to delete them.');
     return 0;
   }
 
@@ -234,11 +334,41 @@ export async function main(argv: readonly string[]): Promise<number> {
     }
   });
 
+  // The accounts of runs cut short go after their notebooks, as the
+  // teardown would have taken them (#436); their subscriptions are removed
+  // by a later run, once the purge has taken what they held.
+  const cognito = new CognitoIdentityProviderClient({});
+  let accountsGone = 0;
+  for (const each of stale) {
+    try {
+      await cognito.send(
+        new AdminDeleteUserCommand({
+          UserPoolId: required('USER_POOL_ID'),
+          Username: each.ownerEmail,
+        }),
+      );
+      accountsGone += 1;
+    } catch (error) {
+      if ((error as { name?: string }).name === 'UserNotFoundException') continue;
+      failures.push(
+        `${each.ownerEmail}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  const items = await removeSubscriptions(
+    infra.db,
+    [infra.accessTable, infra.knowledgeTable, infra.portabilityTable, infra.discoveryTable],
+    empty,
+  );
+
   for (const failure of failures) console.error(`  not deleted: ${failure}`);
   console.log(
     `\nDeleted ${deleted} notebook(s) of ${leftovers.length} subscription(s); ` +
       'the purge destroys what they held in the background.',
   );
+  console.log(`Deleted ${accountsGone} account(s) of runs cut short.`);
+  console.log(`Removed ${empty.size} empty subscription(s), ${items} item(s).`);
   return failures.length > 0 ? 2 : 0;
 }
 

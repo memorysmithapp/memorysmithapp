@@ -22,7 +22,7 @@ export function FoldersPage() {
   return (
     <>
       <NotebookBar crumbs={contextCrumbs(notebookId, t, t('structure.folders'))} />
-      <article className="content-pane folders-page">
+      <article className="content-pane is-wide folders-page">
         <p className="page-intro">{t('structure.outlineHint')}</p>
         {structure.folders.length === 0 ? (
           <p>{t('structure.noFolders')}</p>

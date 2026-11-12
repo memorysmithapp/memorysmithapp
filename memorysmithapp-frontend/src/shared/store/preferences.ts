@@ -13,6 +13,13 @@ interface PreferencesState {
    */
   paper: boolean;
   setPaper: (paper: boolean) => void;
+  /**
+   * Whether the sidebar of the shell is folded to its icons (#414): the
+   * reading takes the width, and the choice is the person's, so the browser
+   * remembers it as it remembers the theme.
+   */
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export const usePreferences = create<PreferencesState>()(
@@ -22,8 +29,13 @@ export const usePreferences = create<PreferencesState>()(
       setTheme: (theme) => set({ theme }),
       paper: false,
       setPaper: (paper) => set({ paper }),
+      sidebarCollapsed: false,
+      setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
     }),
-    { name: 'memorysmith.preferences', partialize: ({ theme }) => ({ theme }) },
+    {
+      name: 'memorysmith.preferences',
+      partialize: ({ theme, sidebarCollapsed }) => ({ theme, sidebarCollapsed }),
+    },
   ),
 );
 

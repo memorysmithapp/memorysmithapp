@@ -11,6 +11,7 @@ import { InMemoryTransferStore } from '../src/adapters/dynamo.js';
 import {
   DeleteTransfer,
   ListTransfers,
+  MarkTransferRead,
   RunExport,
   RunImport,
   StartExport,
@@ -210,6 +211,62 @@ describe('deleting a transfer', () => {
     expect(kept.byNotebook.get(NOTEBOOK)).toEqual({ count: 0, bytes: 0 });
     expect((await new ListTransfers(transfers, USER).execute()).ok).toBe(true);
     expect(await transfers.get(USER, started.value.transferId)).toBeNull();
+  });
+
+  it('lists what the person transferred, never the import behind a notebook created from a model (#445)', async () => {
+    const transfers = new InMemoryTransferStore();
+    const user = UserId.create(USER);
+    if (!user.ok) throw new Error('the test seeded an unusable author');
+    const start = new StartImport(transfers, { send: async () => undefined }, SUBSCRIPTION, USER);
+    const by = Authorship.byHuman(user.value, Clock.now());
+    const imported = await start.execute({
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000D.notebook`,
+      name: 'Imported',
+      selection: null,
+      by,
+    });
+    const created = await start.execute({
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000E.notebook`,
+      name: 'From a model',
+      selection: null,
+      by,
+      origin: { subscriptionId: SUBSCRIPTION, notebookId: NOTEBOOK },
+    });
+    if (!imported.ok || !created.ok) throw new Error('an import did not start');
+
+    const listed = await new ListTransfers(transfers, USER).execute();
+    if (!listed.ok) throw new Error('the list failed');
+    expect(listed.value.transfers.map((each) => each.transferId)).toEqual([
+      imported.value.transferId,
+    ]);
+    // Its status is still read, by the dialog and by the agent.
+    expect(await transfers.get(USER, created.value.transferId)).not.toBeNull();
+  });
+
+  it('keeps the notice of an ended transfer read on the transfer, and refuses one running (#454)', async () => {
+    const transfers = new InMemoryTransferStore();
+    const user = UserId.create(USER);
+    if (!user.ok) throw new Error('the test seeded an unusable author');
+    const started = await new StartImport(
+      transfers,
+      { send: async () => undefined },
+      SUBSCRIPTION,
+      USER,
+    ).execute({
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000F.notebook`,
+      name: 'Lidas',
+      selection: null,
+      by: Authorship.byHuman(user.value, Clock.now()),
+    });
+    if (!started.ok) throw new Error('the import did not start');
+    const id = started.value.transferId;
+    const mark = new MarkTransferRead(transfers, USER);
+
+    expect((await mark.execute(id)).ok).toBe(false);
+    await transfers.patch(USER, id, { status: 'ready', finishedAt: '2026-11-11T10:00:00.000Z' });
+    expect((await mark.execute(id)).ok).toBe(true);
+    expect((await transfers.get(USER, id))?.noticeRead).toBe(true);
+    expect((await mark.execute('01JBQ2X000000000000000000Z')).ok).toBe(false);
   });
 
   it('deletes an import that ended with its record alone, and refuses one still running (#221)', async () => {

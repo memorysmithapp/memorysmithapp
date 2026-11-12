@@ -257,6 +257,8 @@ export const notebookCreatedPayload = z.object({
   name: z.string().min(1),
   slug: slugSchema,
   description: z.string(),
+  /** The model it was created from, by its name then (#446); absent on any other creation. */
+  fromModel: z.object({ name: z.string().min(1) }).optional(),
 });
 
 export const notebookRenamedPayload = z.object({

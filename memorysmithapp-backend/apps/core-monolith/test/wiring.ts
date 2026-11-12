@@ -11,14 +11,16 @@ import { RESERVED_FRONTMATTER_KEYS, type Deployment } from '@memorysmithapp/cont
 import {
   FILE_TYPE_CATALOGUE,
   PICTURE_CATALOGUE,
+  modelHistoryFrom,
   serializeNotebookDocument,
 } from '../src/composition-root.js';
 import {
   DomainError,
+  Instant,
   NotebookId,
   Role,
   ok,
-  type SubscriptionContext,
+  SubscriptionContext,
   type EventPublisher,
   type DomainEvent,
 } from '@memorysmithapp/kernel';
@@ -164,6 +166,7 @@ import type {
 } from '@memorysmithapp/svc-portability/adapters/http';
 import {
   CancelTransfer,
+  MarkTransferRead,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
@@ -181,37 +184,28 @@ import {
 import {
   CarriedModel,
   RestoreModel,
-  CreateFromVersion,
-  CreateModelVersion,
+  CreateFromModel,
   DeclareModel,
-  DeleteModelVersion,
   ForgetModel,
   GetModel,
   ListModels,
-  ViewModelVersion,
+  ReadModelHistory,
+  ViewModel,
   type ModelCaller,
   type ModelDependencies,
+  type ModelReading,
   type ModelSources,
 } from '@memorysmithapp/svc-portability/application/models';
-import {
-  InMemoryCatalogReports,
-  InMemoryCatalogStore,
-} from '@memorysmithapp/svc-portability/adapters/catalog';
+import { InMemoryCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
 import {
   CreateFromCatalog,
   PublicationOf,
   PublishModel,
-  ReportModel,
   WithdrawModel,
   refreshPublication,
   type CatalogReading,
 } from '@memorysmithapp/svc-portability/application/catalog';
-import {
-  catalogOperatorUseCasesOf,
-  forgetPublication,
-  NO_EDGE_CACHE,
-  publicCatalogUseCasesOf,
-} from '../src/catalog.js';
+import { forgetPublication, NO_EDGE_CACHE, publicCatalogUseCasesOf } from '../src/catalog.js';
 import {
   InMemoryPartStore,
   InMemoryPreviewQueue,
@@ -241,13 +235,14 @@ import {
   PrepareImport,
 } from '@memorysmithapp/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from '../src/import-writer.js';
-import { parseNotebookDocument, readVersionDocument } from '../src/composition-root.js';
+import { parseNotebookDocument } from '../src/composition-root.js';
 import { KnowledgeExportSource } from '../src/export-source.js';
 import { AuditHistorySource } from '../src/history-source.js';
 import { ImportedTrailWriter } from '../src/trail-writer.js';
 import {
   GetNoteHistory,
   GetNotebookActivity,
+  GetNotebookHistory,
   ReadRevision,
   RecordEvents,
 } from '@memorysmithapp/svc-audit/application';
@@ -269,6 +264,7 @@ import {
   TableUses,
   ResolveLinkTarget,
   GetFacetStats,
+  GetNoteFacets,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -620,6 +616,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const auditUseCases: AuditUseCases = {
     noteHistory: () => new GetNoteHistory(auditTrail),
     notebookActivity: () => new GetNotebookActivity(auditTrail),
+    notebookHistory: (request) =>
+      new GetNotebookHistory(auditTrail, request.subscription.userId.value, request.canRead),
     readRevision: () => new ReadRevision(auditTrail, revisions),
   };
   const auditConsumer = new AuditEventConsumer(new RecordEvents(auditTrail, auditTrail));
@@ -674,6 +672,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     graph: () => new NotebookGraphQuery(discoveryDeps),
     search: () => new SearchNotes(discoveryDeps),
     facets: () => new GetFacetStats(discoveryDeps),
+    noteFacets: () => new GetNoteFacets(discoveryDeps),
   };
 
   /**
@@ -762,14 +761,26 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       // The history an export may be asked to carry (RN-PRT-022).
       new AuditHistorySource(auditTrail, revisions),
       // And the model the notebook is declared as (#397).
-      new CarriedModel({
-        models: modelStoreOf(source),
-        transfers,
-        versions: {
-          read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
-        },
-      }),
+      new CarriedModel({ models: modelStoreOf(source) }),
     );
+  };
+  /**
+   * How a model notebook is read where it is (#431): as an export reads it,
+   * and its history, as production builds both.
+   */
+  const readingOf = (context: SubscriptionContext): ModelReading => ({
+    source: new KnowledgeExportSource(knowledgeRepos(context)),
+    history: modelHistoryFrom(auditTrail),
+  });
+  /** The context of a subscription a model is in, as its owner (#431). */
+  const holderOf = (holder: { subscriptionId: string; ownerUserId: string }) => {
+    const context = SubscriptionContext.fromClaims({
+      sub: holder.ownerUserId,
+      subscription_id: holder.subscriptionId,
+      subscription_status: 'active',
+    });
+    if (!context.ok) throw new Error(context.error.message);
+    return context.value;
   };
   const modelStores = new Map<string, InMemoryModelStore>();
   const modelStoreOf = (context: SubscriptionContext): InMemoryModelStore => {
@@ -781,7 +792,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   };
   const modelsOf = (request: PortabilityRequest): ModelDependencies => ({
     models: modelStoreOf(request.subscription),
-    transfers,
     notebooks: {
       own: async (notebookId) => {
         const parsed = NotebookId.create(notebookId);
@@ -793,46 +803,21 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         return { name: notebook.name.value, noteCount: notebook.noteCount };
       },
     },
-    queue: {
-      send: async (work) => {
-        await new RunExport(transfers, await exporterFor(request, work)).execute(work);
-        // As the worker does: a version made ready joins a published model (#360).
-        if (work.modelVersion && work.notebookId) {
-          await refreshPublication(
-            {
-              models: modelStoreOf(request.subscription),
-              transfers,
-              catalog,
-              cache: NO_EDGE_CACHE,
-            },
-            work.notebookId,
-          );
-        }
-      },
-    },
-    budget: { current: async () => ({ usedBytes: 0, limitBytes: Number.MAX_SAFE_INTEGER }) },
-    versions: {
-      read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
-    },
   });
   /** Where a request reads a model from, by the same module production uses (#355). */
   const sourcesOf = (request: PortabilityRequest): ModelSources =>
     modelSourcesOf({
       user: request.subscription.userId,
       own: request.subscription,
-      holds: async (notebookId) => (await modelsOf(request).notebooks.own(notebookId)) !== null,
+      holds: async (notebookId) =>
+        (await modelsOf(request).notebooks.own(notebookId))?.name ?? null,
       canRead: request.canRead,
-      depsOf: (context) => ({
-        models: modelStoreOf(context),
-        transfers,
-        versions: modelsOf(request).versions,
-      }),
+      depsOf: (context) => ({ models: modelStoreOf(context), reading: readingOf(context) }),
       sharing,
       parse: notebookIdOf,
     });
   /** The community catalog (#360), at the level of the platform, in memory. */
   const catalog = new InMemoryCatalogStore();
-  const catalogReports = new InMemoryCatalogReports();
   const catalogReading: CatalogReading = {
     catalog,
     access: {
@@ -842,8 +827,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         ),
     },
   };
-  /** What the operator's withdrawals told their authors, for a test to read. */
-  const authorMail: Array<{ to: string; name: string; reason: string }> = [];
   const callerOf = (request: PortabilityRequest): ModelCaller => ({
     subscriptionId: request.subscription.subscriptionId.value,
     userId: request.subscription.userId.value,
@@ -897,6 +880,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         discardUpload(parts, request.subscription.subscriptionId.value, transfer),
       ),
     cancelTransfer: (request) => new CancelTransfer(transfers, request.subscription.userId.value),
+    markTransferRead: (request) =>
+      new MarkTransferRead(transfers, request.subscription.userId.value),
     prepareImport: (request) =>
       new PrepareImport(uploadStore, request.subscription.subscriptionId.value),
     importFromExport: (request) =>
@@ -929,18 +914,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
                 work.transferId,
                 // The model the document carries, declared again (#397).
                 new RestoreModel(
-                  {
-                    models: modelStoreOf(request.subscription),
-                    transfers,
-                    archives: archiveStore,
-                    pack: (snapshot) => {
-                      const written = serializeNotebookDocument(snapshot);
-                      return createZip(
-                        [{ path: written.entry, content: written.content }],
-                        new Date(),
-                      );
-                    },
-                  },
+                  { models: modelStoreOf(request.subscription) },
                   {
                     subscriptionId: request.subscription.subscriptionId.value,
                     userId: request.subscription.userId.value,
@@ -949,6 +923,33 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
                 ),
               ),
               author.value,
+              undefined,
+              // A notebook created from a model copies its notebook as it
+              // stands, read where it is, as the worker does (#431).
+              {
+                copy: async (source, uploadKey) => {
+                  const copied = await new ExportNotebook(
+                    new KnowledgeExportSource(knowledgeRepos(holderOf(source))),
+                    // One bucket in production: what the copy writes at an
+                    // upload key is the upload the import reads.
+                    {
+                      ...archiveStore,
+                      put: async (key: string, archive: Buffer) => {
+                        uploads.set(key, archive);
+                        return { versionId: `v-${key}` };
+                      },
+                    },
+                    createZip,
+                    request.subscription.subscriptionId.value,
+                    serializeNotebookDocument,
+                  ).execute({
+                    notebookId: source.notebookId,
+                    now: Instant.now(),
+                    modelCopyAt: uploadKey,
+                  });
+                  return copied.ok ? ok() : copied;
+                },
+              },
             ).execute(work);
           },
         },
@@ -1019,30 +1020,18 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       new StartPreview(previews.queue, previews.store, request.subscription.subscriptionId.value),
     getPreview: (request) =>
       new GetPreview(previews.store, request.subscription.subscriptionId.value),
-    // The models of a subscription and their versions (#353), over the same
-    // use cases production builds, with the worker inline.
-    declareModel: (request) => new DeclareModel(modelsOf(request), callerOf(request)),
+    // The models of a subscription (#353, #431), over the same use cases
+    // production builds, with the worker inline.
+    declareModel: (request) =>
+      new DeclareModel(modelsOf(request), callerOf(request), (notebookId) =>
+        refreshPublication({ ...modelsOf(request), catalog }, notebookId),
+      ),
     getModel: (request) => new GetModel(sourcesOf(request)),
     listModels: (request) => new ListModels(modelsOf(request), request.canRead, sourcesOf(request)),
-    createModelVersion: (request) => new CreateModelVersion(modelsOf(request), callerOf(request)),
-    viewModelVersion: (request) => new ViewModelVersion(sourcesOf(request)),
-    deleteModelVersion: (request) =>
-      new DeleteModelVersion(modelsOf(request), callerOf(request), async (transfer) => {
-        await new DeleteTransfer(transfers, archiveStore, transfer.userId).execute(
-          transfer.transferId,
-        );
-        await refreshPublication(
-          { ...modelsOf(request), catalog, cache: NO_EDGE_CACHE },
-          transfer.notebookId ?? '',
-        );
-      }),
-    createFromVersion: (request) =>
-      new CreateFromVersion(
-        sourcesOf(request),
-        callerOf(request),
-        uploadStore,
-        portabilityUseCases.startImport(request),
-      ),
+    viewModel: (request) => new ViewModel(sourcesOf(request)),
+    modelHistory: (request) => new ReadModelHistory(sourcesOf(request)),
+    createFromModel: (request) =>
+      new CreateFromModel(sourcesOf(request), portabilityUseCases.startImport(request)),
     // The community catalog (#360), over the same use cases production builds.
     publishModel: (request) =>
       new PublishModel({ ...modelsOf(request), catalog, cache: NO_EDGE_CACHE }, callerOf(request)),
@@ -1051,17 +1040,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     publicationOf: (request) =>
       new PublicationOf({ models: modelStoreOf(request.subscription), catalog }),
     createFromCatalog: (request) =>
-      new CreateFromCatalog(
-        catalogReading,
-        callerOf(request),
-        uploadStore,
-        portabilityUseCases.startImport(request),
-      ),
-    reportModel: (request) =>
-      new ReportModel(
-        { ...catalogReading, reports: catalogReports },
-        request.subscription.userId.value,
-      ),
+      new CreateFromCatalog(catalogReading, portabilityUseCases.startImport(request)),
   };
 
   const app = createApp({
@@ -1124,19 +1103,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     auditUseCases,
     discoveryUseCases,
     portabilityUseCases,
-    publicCatalog: publicCatalogUseCasesOf(catalogReading, {
-      read: (key) => readVersionDocument(async (at) => archives.get(at) ?? null, readZip, key),
-    }),
-    catalogOperator: catalogOperatorUseCasesOf({
-      catalog,
-      reports: catalogReports,
-      cache: NO_EDGE_CACHE,
-      notifier: {
-        withdrawn: async (entry, reason) => {
-          authorMail.push({ to: entry.authorEmail, name: entry.name, reason });
-        },
-      },
-    }),
+    publicCatalog: publicCatalogUseCasesOf(catalogReading, (entry) => readingOf(holderOf(entry))),
     nameOf: async (email) => {
       const parsed = Email.create(email);
       return parsed.ok ? accountDirectory.nameOf(parsed.value) : null;
@@ -1216,10 +1183,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     relayed,
     /** The names of the accounts, which the catalog shows of an author (#357). */
     accountDirectory,
-    /** The catalog and its reports, and what the authors were told (#360). */
+    /** The catalog of the community (#360). */
     catalog,
-    catalogReports,
-    authorMail,
     /** Makes the discard of an upload fail, or stop failing when given null. */
     refuseDiscard: (error: Error | null): void => {
       refusals.discard = error;

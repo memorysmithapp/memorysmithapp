@@ -1,7 +1,6 @@
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { deleteGuidance, getNotebookStructure, putGuidance } from '../../shared/api/source';
-import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
+import { getNotebookStructure, putGuidance } from '../../shared/api/source';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBar, contextCrumbs } from '../structure/NotebookBreadcrumb';
@@ -21,7 +20,8 @@ export function GuidancePanel() {
   /**
    * The Guidance is written in place by whoever may write in the notebook
    * (#301), with the editor of a note; one that does not exist yet is written
-   * from an empty page, and its first save creates it.
+   * from an empty page, and its first save creates it. The page deletes no
+   * Guidance (#447): it is rewritten in place, and an agent still deletes one.
    */
   const editing = useSlotEditing({
     notebookId,
@@ -43,7 +43,7 @@ export function GuidancePanel() {
   return (
     <>
       <NotebookBar crumbs={contextCrumbs(notebookId, t, t('structure.guidance'))} />
-      <article className="content-pane">
+      <article className="content-pane is-wide">
         {structure.guidance || writable ? (
           <>
             {!structure.guidance && !editingNow ? (
@@ -60,14 +60,6 @@ export function GuidancePanel() {
               invalidates={queryKeys.notebookStructure(notebookId)}
               {...(editing ? { editing } : {})}
             />
-            {writable && structure.guidance && !editingNow ? (
-              <DeleteContentSlot
-                label={t('structure.deleteGuidance')}
-                confirmation={t('structure.deleteGuidanceConfirm')}
-                remove={() => deleteGuidance(notebookId)}
-                invalidates={queryKeys.notebookStructure(notebookId)}
-              />
-            ) : null}
           </>
         ) : (
           <p className="status">{t('common.notFound')}</p>

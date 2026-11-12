@@ -409,10 +409,9 @@ test.describe('the transfers of a person', () => {
     expect(after.transfers.map((each) => each.transferId)).not.toContain(transfer.transferId);
     // Measured against what each listing holds, because another case of this
     // account may keep an export between the two: what the listed exports do
-    // not account for stays the same, and this one left with its bytes. A
-    // version of a model counts and is not listed (RN-PRT-036), so a case that
-    // makes or deletes one in between crosses the measure, which is taken again
-    // with an export of its own.
+    // not account for stays the same, and this one left with its bytes. An
+    // export another case makes or deletes in between crosses the measure,
+    // which is taken again with an export of its own.
     const beyond = (list: { transfers: TransferDto[]; keptBytes: number }) =>
       list.keptBytes -
       list.transfers
@@ -521,6 +520,27 @@ test.describe('the transfers of a person', () => {
 
   test('answers not found for a transfer that never existed', async ({ owner }) => {
     expect((await owner.call('GET', `/portability/transfers/${unknownId()}`)).status).toBe(404);
+  });
+
+  test('[route:POST /portability/transfers/:t/read] keeps the notice of an export that ended read, on the account (#454)', async ({
+    owner,
+    other,
+    notebook,
+  }) => {
+    const transfer = await exported(owner, notebook.notebookId);
+    expect(
+      (await owner.call('POST', `/portability/transfers/${transfer.transferId}/read`)).status,
+    ).toBe(204);
+    const listed = await owner.ok<{
+      transfers: Array<{ transferId: string; noticeRead: boolean }>;
+    }>('GET', '/portability/transfers');
+    expect(
+      listed.transfers.find((each) => each.transferId === transfer.transferId)?.noticeRead,
+    ).toBe(true);
+    // Nobody else's transfer is theirs to read (INV-09).
+    expect(
+      (await other.call('POST', `/portability/transfers/${transfer.transferId}/read`)).status,
+    ).toBe(404);
   });
 
   /**

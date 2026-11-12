@@ -112,6 +112,15 @@ export class InstallationDeliveryStack extends Stack {
         resources: [arn('states', `stateMachine:${reprojection}`)],
       }),
     );
+    // And the deletion of the versions models kept before #431, run in AWS (#434).
+    this.role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: [
+          arn('lambda', `function:${physicalName(environment, 'mv-forget-model-versions')}`),
+        ],
+      }),
+    );
     // The secrets `deliver` carries from the variables of the pipeline into
     // Secrets Manager (#395, #396), and no other: only names of this
     // installation and environment, which Secrets Manager suffixes.
@@ -209,11 +218,31 @@ export class GithubDeliveryStack extends Stack {
       );
     };
 
+    /**
+     * Invoke the function that deletes the versions models kept before #431,
+     * and nothing else: it deletes under a role of its own (#434), so a role
+     * that invokes it reaches no table and no bucket for it.
+     */
+    const forgetVersions = (role: iam.Role, environment: EnvironmentConfig): void => {
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['lambda:InvokeFunction'],
+          resources: [
+            arn('lambda', `function:${physicalName(environment, 'mv-forget-model-versions')}`),
+          ],
+        }),
+      );
+    };
+
     // ---- What production runs besides a delivery ---------------------------
 
-    // The rebuild of its link graph, which a person starts by hand from the
-    // workflow of production maintenance, a report unless they ask to apply.
+    // The rebuild of its link graph, and the deletion of the versions models
+    // kept before #431, which a person starts by hand from the workflow of
+    // production maintenance, a report unless they ask to apply.
     followReprojection(production, props.production);
+    forgetVersions(production, props.production);
+    // Staging runs the same function, so it validates what production runs.
+    forgetVersions(staging, props.staging);
 
     // ---- What only staging runs after its deploy ---------------------------
 

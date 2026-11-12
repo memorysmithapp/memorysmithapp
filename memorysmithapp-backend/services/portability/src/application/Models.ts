@@ -1,13 +1,14 @@
 /**
- * Notebook models (#344, #353): declaring a notebook of the subscription as a
- * model, and freezing it into versions.
+ * Notebook models (#344, #431): declaring a notebook of the subscription as a
+ * model, reading it as it stands with the history of its changes, and creating
+ * independent notebooks from it.
  *
- * Only the owner of the subscription declares a model, edits what it says of
- * itself and creates its versions, because a model and its versions occupy the
- * storage of the subscription; editing the model notebook itself follows the
- * permissions of any notebook. A version is an export of the model notebook
- * without history, kept under the prefix of its model and counted once, as a
- * kept export is (RN-PRT-020); it never changes after it is created.
+ * Only the owner of the subscription declares a model and edits what it says
+ * of itself; editing the model notebook itself follows the permissions of any
+ * notebook. A model keeps no copy of its notebook (#431): whoever reads it,
+ * its owner, a model reader or the community, reads the notebook where it is,
+ * and a notebook created from it is a copy of the notebook at that moment,
+ * built by the worker as an export is and written as an import is.
  */
 
 import {
@@ -15,28 +16,24 @@ import {
   err,
   Instant,
   ok,
-  ulid,
   type Authorship,
   type Result,
 } from '@memorysmithapp/kernel';
 import {
-  checkedChangelog,
   checkedDeclaration,
-  modelVersionPrefixOf,
   type ModelDeclaration,
   type ModelStore,
   type NotebookModel,
 } from '../domain/NotebookModel.js';
-import type {
-  DocumentModel,
-  DocumentModelVersion,
-  NotebookDocument,
-  NotebookSnapshot,
+import {
+  buildNotebookDocument,
+  type DocumentModel,
+  type NotebookDocument,
 } from '../domain/NotebookDocumentBuilder.js';
-import type { ArchiveStore } from './ExportNotebook.js';
-import { startedTransfer, type Transfer, type TransferStore } from '../domain/Transfer.js';
-import type { StartImport, StorageBudget, TransferQueue } from './Transfers.js';
-import { freshUploadKey } from './ImportNotebook.js';
+import type { ModelChange, ModelHistory } from '../domain/ModelHistory.js';
+import type { ExportSource } from './ExportNotebook.js';
+import type { Transfer, TransferStore } from '../domain/Transfer.js';
+import type { StartImport } from './Transfers.js';
 import { fillText, referenceReport, resolveValues } from '../domain/ParameterFilling.js';
 
 /** A notebook of THIS subscription, never one reached through a share. */
@@ -44,26 +41,27 @@ export interface OwnNotebooks {
   own(notebookId: string): Promise<{ name: string; noteCount: number } | null>;
 }
 
-/** Reads the snapshot a version froze, as the export document it is. */
-export interface VersionReader {
-  read(key: string, versionId: string | null): Promise<NotebookDocument | null>;
-}
-
 /** Who asks, as the model needs to know it. */
 export interface ModelCaller {
   readonly subscriptionId: string;
   readonly userId: string;
-  /** Whether they own the subscription, which declaring and versioning ask (#353). */
+  /** Whether they own the subscription, which declaring a model asks (#353). */
   readonly isOwner: boolean;
+}
+
+/**
+ * How a model notebook is read where it is (#431): its parts as they stand,
+ * through the reader an export uses, and the entries the trail keeps of it.
+ */
+export interface ModelReading {
+  readonly source: ExportSource;
+  /** The history of the model notebook, summarized from its trail by Audit (#446). */
+  history(notebookId: string): Promise<ModelHistory>;
 }
 
 export interface ModelDependencies {
   readonly models: ModelStore;
-  readonly transfers: TransferStore;
   readonly notebooks: OwnNotebooks;
-  readonly queue: TransferQueue;
-  readonly budget: StorageBudget;
-  readonly versions: VersionReader;
 }
 
 /**
@@ -74,7 +72,9 @@ export interface ModelDependencies {
  */
 export interface ModelSource {
   readonly subscriptionId: string;
-  readonly deps: Pick<ModelDependencies, 'models' | 'transfers' | 'versions'>;
+  /** The name of the model notebook, which a notebook created from it is named after. */
+  readonly name: string;
+  readonly deps: { readonly models: ModelStore; readonly reading: ModelReading };
   /** The e-mail of the owner who shared it, or null for a model of one's own. */
   readonly sharedBy: string | null;
 }
@@ -93,44 +93,37 @@ export interface ListedModel {
   readonly sharedBy: string | null;
 }
 
-/** A version, as its model shows it: the frozen meta and the export that holds it. */
-export interface ModelVersion {
-  readonly number: number;
-  readonly changelog: string;
-  readonly createdAt: string;
-  readonly status: Transfer['status'];
-  readonly bytes: number;
-  readonly transferId: string;
-  readonly transfer: Transfer;
-}
-
 const ownerOnly = (): DomainError =>
-  DomainError.forbiddenVisible('Only the owner of the subscription declares and versions a model');
+  DomainError.forbiddenVisible('Only the owner of the subscription declares a model');
 
-function versionOf(transfer: Transfer): ModelVersion | null {
-  if (!transfer.model) return null;
-  return {
-    number: transfer.model.number,
-    changelog: transfer.model.changelog,
-    createdAt: transfer.requestedAt,
-    status: transfer.status,
-    bytes: transfer.bytes,
-    transferId: transfer.transferId,
-    transfer,
-  };
+/**
+ * The versions a model had before #431, kept as exports of its owner: what
+ * deleting its notebook still destroys, and what the job that deletes every
+ * one of them finds.
+ */
+export async function legacyVersionsOf(
+  transfers: TransferStore,
+  model: Pick<NotebookModel, 'notebookId' | 'ownerUserId'>,
+): Promise<Transfer[]> {
+  return (await transfers.list(model.ownerUserId)).filter(
+    (transfer) =>
+      transfer.kind === 'export' &&
+      transfer.notebookId === model.notebookId &&
+      transfer.model !== undefined,
+  );
 }
 
-/** The versions of a model, the newest first, from the exports of its owner. */
-export async function versionsOf(
-  transfers: TransferStore,
-  model: NotebookModel,
-): Promise<ModelVersion[]> {
-  const listed = await transfers.list(model.ownerUserId);
-  return listed
-    .filter((transfer) => transfer.kind === 'export' && transfer.notebookId === model.notebookId)
-    .map(versionOf)
-    .filter((version): version is ModelVersion => version !== null)
-    .sort((a, b) => b.number - a.number);
+/**
+ * What a model notebook holds now (#431), read through the reader an export
+ * uses, without its history and without the bytes of its files: the document
+ * a notebook created from it would start as, at this moment.
+ */
+export async function contentsOf(
+  reading: ModelReading,
+  notebookId: string,
+): Promise<NotebookDocument | null> {
+  const input = await reading.source.load(notebookId, undefined, { fileBytes: false });
+  return input ? buildNotebookDocument(input, Instant.now().toISOString(), null) : null;
 }
 
 /** Declares a notebook of the subscription as a model, or says again what it is. */
@@ -138,6 +131,11 @@ export class DeclareModel {
   constructor(
     private readonly deps: ModelDependencies,
     private readonly caller: ModelCaller,
+    /**
+     * What else says the model again once it is declared: the entry of a
+     * published model, which the community reads (#431).
+     */
+    private readonly declared: (notebookId: string) => Promise<void> = async () => undefined,
   ) {}
 
   async execute(input: {
@@ -158,38 +156,32 @@ export class DeclareModel {
       ownerUserId: held?.ownerUserId ?? this.caller.userId,
       declaredAt: held?.declaredAt ?? now,
       updatedAt: now,
-      nextVersion: held?.nextVersion ?? 1,
       licenceAcceptedAt: held?.licenceAcceptedAt ?? null,
       publicId: held?.publicId ?? null,
     };
     await this.deps.models.put(model);
+    await this.declared(model.notebookId);
     return ok(model);
   }
 }
 
 /**
  * A model, for whoever may read its notebook or holds a share of it (#355),
- * and from whom when it was shared.
+ * with the name of its notebook and from whom when it was shared.
  */
 export class GetModel {
   constructor(private readonly sources: ModelSources) {}
 
   async execute(
     notebookId: string,
-  ): Promise<
-    Result<{ model: NotebookModel; versions: ModelVersion[]; sharedBy: string | null }, DomainError>
-  > {
+  ): Promise<Result<{ model: NotebookModel; name: string; sharedBy: string | null }, DomainError>> {
     // A notebook the caller may not read is answered as one with no model,
     // whether it has one or not (INV-09).
     const source = await this.sources.of(notebookId);
     if (!source) return err(DomainError.notFound('Model not found'));
     const model = await source.deps.models.get(notebookId);
     if (!model) return err(DomainError.notFound('Model not found'));
-    return ok({
-      model,
-      versions: await versionsOf(source.deps.transfers, model),
-      sharedBy: source.sharedBy,
-    });
+    return ok({ model, name: source.name, sharedBy: source.sharedBy });
   }
 }
 
@@ -204,297 +196,191 @@ export class ListModels {
     private readonly sources: ModelSources,
   ) {}
 
+  /**
+   * The models of the subscription and the ones shared are read at once, and
+   * of each model whether it may be read and its name at once too (#420): the
+   * list answers once, so it waits for the slowest of its reads, never for
+   * their sum.
+   */
   async execute(): Promise<Result<ListedModel[], DomainError>> {
-    const models = await this.deps.models.list();
-    const readable: ListedModel[] = [];
-    for (const model of models) {
-      if (!(await this.canRead(model.notebookId))) continue;
-      const notebook = await this.deps.notebooks.own(model.notebookId);
-      if (notebook) readable.push({ model, name: notebook.name, sharedBy: null });
-    }
-    for (const shared of await this.sources.shared()) readable.push(shared);
-    return ok(readable);
+    const [own, shared] = await Promise.all([this.own(), this.sources.shared()]);
+    return ok([...own, ...shared]);
   }
-}
 
-/**
- * Freezes the model notebook into its next version (#353): a number taken
- * once, the changelog the author wrote, what the model says of itself as it is
- * now, and an export of the notebook without history, built by the worker.
- */
-export class CreateModelVersion {
-  constructor(
-    private readonly deps: ModelDependencies,
-    private readonly caller: ModelCaller,
-  ) {}
-
-  async execute(input: {
-    notebookId: string;
-    changelog: string;
-    by: Authorship;
-  }): Promise<Result<ModelVersion, DomainError>> {
-    if (!this.caller.isOwner) return err(ownerOnly());
-    const model = await this.deps.models.get(input.notebookId);
-    if (!model) return err(DomainError.notFound('Model not found'));
-    const notebook = await this.deps.notebooks.own(input.notebookId);
-    if (!notebook) return err(DomainError.notFound('Notebook not found'));
-    const changelog = checkedChangelog(input.changelog);
-    if (!changelog.ok) return changelog;
-
-    // A version counts in the storage of the plan like any kept export, so a
-    // plan with no room refuses it before the work (RN-SUB-021).
-    const budget = await this.deps.budget.current();
-    if (budget.usedBytes >= budget.limitBytes) {
-      return err(
-        DomainError.limitExceeded('The storage of this plan is full: delete something first'),
-      );
-    }
-
-    const number = await this.deps.models.takeVersionNumber(input.notebookId);
-    if (number === null) return err(DomainError.notFound('Model not found'));
-
-    const transfer: Transfer = {
-      ...startedTransfer({
-        transferId: ulid(),
-        kind: 'export',
-        // The versions of a model are its owner's exports, wherever the
-        // person creating one sits, so they are listed in one place.
-        userId: model.ownerUserId,
-        notebookId: input.notebookId,
-        notebookName: notebook.name,
-        requestedAt: Instant.now().toISOString(),
-        total: notebook.noteCount,
+  private async own(): Promise<ListedModel[]> {
+    const read = await Promise.all(
+      (await this.deps.models.list()).map(async (model): Promise<ListedModel | null> => {
+        const [readable, notebook] = await Promise.all([
+          this.canRead(model.notebookId),
+          this.deps.notebooks.own(model.notebookId),
+        ]);
+        return readable && notebook ? { model, name: notebook.name, sharedBy: null } : null;
       }),
-      model: {
-        number,
-        changelog: changelog.value,
-        objective: model.objective,
-        description: model.description,
-        audience: model.audience,
-        parameters: model.parameters,
-        basedOn: model.basedOn,
-      },
-    };
-    await this.deps.transfers.put(transfer);
-    await this.deps.queue.send({
-      subscriptionId: this.caller.subscriptionId,
-      userId: model.ownerUserId,
-      transferId: transfer.transferId,
-      kind: 'export',
-      notebookId: input.notebookId,
-      selection: null,
-      modelVersion: true,
-    });
-    return ok(versionOf(transfer) as ModelVersion);
+    );
+    return read.filter((listed) => listed !== null);
   }
 }
 
-/** What a version holds, read from its snapshot (#353): what is reviewed before it is distributed. */
-export interface VersionView {
+/** What a model holds now, read whole (#431): what is reviewed before it is shared. */
+export interface ModelContents {
   readonly model: NotebookModel;
-  readonly version: ModelVersion;
   readonly document: NotebookDocument;
-  /** What the version writes and the model declares, compared (RN-PRT-039). */
+  /** What the notebook writes and the model declares, compared (RN-PRT-064). */
   readonly references: { undeclared: string[]; unused: string[] };
 }
 
-export class ViewModelVersion {
+/** The model notebook as it stands, for whoever reads the model (#431). */
+export class ViewModel {
   constructor(private readonly sources: ModelSources) {}
 
-  async execute(input: {
-    notebookId: string;
-    number: number;
-  }): Promise<Result<VersionView, DomainError>> {
-    const source = await this.sources.of(input.notebookId);
-    if (!source) return err(DomainError.notFound('Version not found'));
-    const model = await source.deps.models.get(input.notebookId);
-    if (!model) return err(DomainError.notFound('Version not found'));
-    const version = (await versionsOf(source.deps.transfers, model)).find(
-      (each) => each.number === input.number,
-    );
-    if (!version) return err(DomainError.notFound('Version not found'));
-    if (version.status !== 'ready' || !version.transfer.key) {
-      return err(DomainError.conflict('This version is still being created, or it failed'));
+  async execute(notebookId: string): Promise<Result<ModelContents, DomainError>> {
+    const source = await this.sources.of(notebookId);
+    if (!source) return err(DomainError.notFound('Model not found'));
+    const model = await source.deps.models.get(notebookId);
+    if (!model) return err(DomainError.notFound('Model not found'));
+    const document = await contentsOf(source.deps.reading, notebookId);
+    if (!document) return err(DomainError.notFound('Model not found'));
+    return ok({ model, document, references: referenceReport(document, model.parameters) });
+  }
+}
+
+/** The history of a model, for whoever reads it (#431): the changes of its notebook. */
+export class ReadModelHistory {
+  constructor(private readonly sources: ModelSources) {}
+
+  async execute(
+    notebookId: string,
+  ): Promise<Result<{ changes: ModelChange[]; truncated: boolean }, DomainError>> {
+    const source = await this.sources.of(notebookId);
+    if (!source) return err(DomainError.notFound('Model not found'));
+    if (!(await source.deps.models.get(notebookId))) {
+      return err(DomainError.notFound('Model not found'));
     }
-    const document = await source.deps.versions.read(
-      version.transfer.key,
-      version.transfer.versionId,
-    );
-    if (!document) return err(DomainError.notFound('Version not found'));
-    const declared = version.transfer.model?.parameters ?? model.parameters;
-    return ok({ model, version, document, references: referenceReport(document, declared) });
+    return ok(await source.deps.reading.history(notebookId));
   }
 }
 
 /**
- * Deletes one version (#353): its bytes are destroyed and stop being counted,
- * and the notebooks created from it are not touched, because each one is a
- * completed copy.
- */
-export class DeleteModelVersion {
-  constructor(
-    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers'>,
-    private readonly caller: ModelCaller,
-    private readonly destroy: (transfer: Transfer) => Promise<void>,
-  ) {}
-
-  async execute(input: { notebookId: string; number: number }): Promise<Result<void, DomainError>> {
-    if (!this.caller.isOwner) return err(ownerOnly());
-    const model = await this.deps.models.get(input.notebookId);
-    if (!model) return err(DomainError.notFound('Version not found'));
-    const version = (await versionsOf(this.deps.transfers, model)).find(
-      (each) => each.number === input.number,
-    );
-    if (!version) return err(DomainError.notFound('Version not found'));
-    if (version.status === 'running') {
-      return err(
-        DomainError.conflict('This version is still being created: delete it once it ends'),
-      );
-    }
-    await this.destroy(version.transfer);
-    return ok();
-  }
-}
-
-/**
- * The notebook of a model was deleted (#353): its model and every version go
- * with it, definitively (INV-08), and nothing created from it is touched.
+ * The notebook of a model was deleted (#353): its model goes with it,
+ * definitively (INV-08), with any version kept from before #431, and nothing
+ * created from it is touched.
  */
 export class ForgetModel {
   constructor(
-    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers'>,
+    private readonly deps: Pick<ModelDependencies, 'models'> & {
+      readonly transfers: TransferStore;
+    },
     private readonly destroy: (transfer: Transfer) => Promise<void>,
   ) {}
 
   async execute(notebookId: string): Promise<void> {
     const model = await this.deps.models.get(notebookId);
     if (!model) return;
-    for (const version of await versionsOf(this.deps.transfers, model)) {
-      await this.destroy(version.transfer);
+    for (const version of await legacyVersionsOf(this.deps.transfers, model)) {
+      await this.destroy(version);
     }
     await this.deps.models.remove(notebookId);
   }
 }
 
-/** Where the snapshot of a version is copied to become the upload an import reads. */
-export interface VersionCopier {
-  copyFrom(sourceKey: string, uploadKey: string): Promise<boolean>;
-}
-
 /**
- * Creates an independent notebook from a version (#359): the parameters the
- * version declared are filled in with what the person supplied, or refused
+ * Creates an independent notebook from a model (#359, #431): the parameters
+ * the model declares are filled in with what the person supplied, or refused
  * before anything is written when one is required and missing or not of its
- * type (#354); the snapshot is copied to an upload and imported as any kept
- * export is, every identifier minted anew and no history carried. The import
- * records which version it came from, as information only: nothing of the
- * model is read again once the notebook exists.
+ * type (#354). The worker copies the model notebook as it stands when it runs,
+ * without its history, into the caller's uploads and imports it there as any
+ * kept export is, every identifier minted anew. The import records which model
+ * it came from, as information only: nothing of the model is read again once
+ * the notebook exists.
  *
  * A model shared with the caller is read in its owner's subscription and the
- * notebook is written in the caller's own (#355): the snapshot is copied once,
- * into the caller's uploads, and the import counts there, never in the owner's.
+ * notebook is written in the caller's own (#355), and counts there.
  */
-export class CreateFromVersion {
+export class CreateFromModel {
   constructor(
     private readonly sources: ModelSources,
-    private readonly caller: ModelCaller,
-    private readonly copier: VersionCopier,
     private readonly startImport: StartImport,
   ) {}
 
   async execute(input: {
     notebookId: string;
-    number: number;
     /** The name of the new notebook; the name of the model, filled in, when empty. */
     name: string;
     values: Readonly<Record<string, unknown>>;
     by: Authorship;
   }): Promise<Result<Transfer, DomainError>> {
     const source = await this.sources.of(input.notebookId);
-    if (!source) return err(DomainError.notFound('Version not found'));
+    if (!source) return err(DomainError.notFound('Model not found'));
     const model = await source.deps.models.get(input.notebookId);
-    if (!model) return err(DomainError.notFound('Version not found'));
-    const version = (await versionsOf(source.deps.transfers, model)).find(
-      (each) => each.number === input.number,
-    );
-    if (!version?.transfer.key || !version.transfer.model) {
-      return err(DomainError.notFound('Version not found'));
-    }
-    if (version.status !== 'ready') {
-      return err(DomainError.conflict('This version is still being created, or it failed'));
-    }
-
-    const declarations = version.transfer.model.parameters;
-    const values = resolveValues(declarations, input.values);
-    if (!values.ok) return values;
-
-    const uploadKey = freshUploadKey(this.caller.subscriptionId);
-    if (!(await this.copier.copyFrom(version.transfer.key, uploadKey))) {
-      return err(DomainError.notFound('Version not found'));
-    }
-    const name = input.name.trim() || fillText(version.transfer.notebookName, values.value);
-    return this.startImport.execute({
-      uploadKey,
-      name,
-      selection: null,
+    if (!model) return err(DomainError.notFound('Model not found'));
+    return startFromModel(this.startImport, {
+      subscriptionId: source.subscriptionId,
+      notebookId: input.notebookId,
+      ownerUserId: model.ownerUserId,
+      modelName: source.name,
+      parameters: model.parameters,
+      name: input.name,
+      values: input.values,
       by: input.by,
-      fill: {
-        declarations,
-        values: Object.fromEntries([...values.value].map(([key, each]) => [key, each.value])),
-      },
-      origin: {
-        subscriptionId: source.subscriptionId,
-        notebookId: input.notebookId,
-        version: input.number,
-      },
     });
   }
 }
 
 /**
- * The model an export of its notebook carries (#397, RN-PRT-054): what it says
- * of itself and every version its owner keeps that is ready, the oldest first,
- * each with the snapshot it froze. A version is never carried inside another:
- * its own export is the notebook alone.
+ * Starts the import of a copy of a model notebook, wherever the model was
+ * reached from: one's own, a share, or the community catalog (#431).
+ */
+export async function startFromModel(
+  startImport: StartImport,
+  input: {
+    subscriptionId: string;
+    notebookId: string;
+    ownerUserId: string;
+    modelName: string;
+    parameters: NotebookModel['parameters'];
+    name: string;
+    values: Readonly<Record<string, unknown>>;
+    by: Authorship;
+  },
+): Promise<Result<Transfer, DomainError>> {
+  const values = resolveValues(input.parameters, input.values);
+  if (!values.ok) return values;
+  return startImport.execute({
+    fromModel: {
+      subscriptionId: input.subscriptionId,
+      notebookId: input.notebookId,
+      ownerUserId: input.ownerUserId,
+      name: input.modelName,
+    },
+    // The name given, or the model's, filled in either way (#448).
+    name: fillText(input.name.trim() || input.modelName, values.value),
+    selection: null,
+    by: input.by,
+    fill: {
+      declarations: input.parameters,
+      values: Object.fromEntries([...values.value].map(([key, each]) => [key, each.value])),
+    },
+    origin: { subscriptionId: input.subscriptionId, notebookId: input.notebookId },
+  });
+}
+
+/**
+ * The model an export of its notebook carries (#397, RN-PRT-073): what it says
+ * of itself. Its history is the history of the notebook, which the export
+ * carries when it carries the history (#431).
  */
 export class CarriedModel {
-  constructor(
-    private readonly deps: Pick<ModelDependencies, 'models' | 'transfers' | 'versions'>,
-  ) {}
+  constructor(private readonly deps: Pick<ModelDependencies, 'models'>) {}
 
   async of(notebookId: string): Promise<DocumentModel | null> {
     const model = await this.deps.models.get(notebookId);
     if (!model) return null;
-    const versions: DocumentModelVersion[] = [];
-    const kept = (await versionsOf(this.deps.transfers, model)).reverse();
-    for (const version of kept) {
-      const meta = version.transfer.model;
-      if (version.status !== 'ready' || !version.transfer.key || !meta) continue;
-      const document = await this.deps.versions.read(
-        version.transfer.key,
-        version.transfer.versionId,
-      );
-      if (!document) continue;
-      const { model: _none, history: _never, ...snapshot } = document;
-      versions.push({
-        number: meta.number,
-        changelog: meta.changelog,
-        createdAt: version.createdAt,
-        objective: meta.objective,
-        description: meta.description,
-        audience: meta.audience,
-        parameters: meta.parameters,
-        basedOn: meta.basedOn,
-        document: snapshot,
-      });
-    }
     return {
       objective: model.objective,
       description: model.description,
       audience: model.audience,
       parameters: model.parameters,
       basedOn: model.basedOn,
-      versions,
     };
   }
 }
@@ -503,30 +389,20 @@ export class CarriedModel {
 export interface RestoredModel {
   /** False when the person importing does not own the subscription, who alone declares one. */
   readonly declared: boolean;
-  readonly versions: number;
 }
 
 /**
  * Declares again, in the subscription an import writes in, the model the
- * document carried (#397, RN-PRT-054), its owner the person importing, and
- * keeps each of its versions again as a kept export of theirs, counted in that
- * subscription's storage as it was in the first (RN-PRT-036). Only the owner
- * of the subscription declares a model (RN-PRT-033): anybody else imports the
- * notebook alone. A publication in the community catalog is never carried, so
- * the model arrives unpublished and with no licence accepted.
- *
- * The model is written before its versions, so an import undone halfway takes
- * them down with its notebook, as deleting any model notebook does.
+ * document carried (#397, RN-PRT-073), its owner the person importing. Only
+ * the owner of the subscription declares a model (RN-PRT-033): anybody else
+ * imports the notebook alone. A publication in the community catalog is never
+ * carried, so the model arrives unpublished and with no licence accepted, and
+ * the versions a `1.4` document carries are left out, since a model has none
+ * (#431).
  */
 export class RestoreModel {
   constructor(
-    private readonly deps: {
-      readonly models: ModelStore;
-      readonly transfers: TransferStore;
-      readonly archives: ArchiveStore;
-      /** The archive of one snapshot, written as an export writes one. */
-      readonly pack: (snapshot: NotebookSnapshot) => Buffer;
-    },
+    private readonly deps: { readonly models: ModelStore },
     private readonly caller: ModelCaller,
   ) {}
 
@@ -535,57 +411,20 @@ export class RestoreModel {
     notebookName: string;
     model: DocumentModel;
   }): Promise<Result<RestoredModel, DomainError>> {
-    if (!this.caller.isOwner) return ok({ declared: false, versions: 0 });
+    if (!this.caller.isOwner) return ok({ declared: false });
     const declared = checkedDeclaration(input.model);
     if (!declared.ok) return declared;
 
     const now = Instant.now().toISOString();
-    const numbers = input.model.versions.map((version) => version.number);
     await this.deps.models.put({
       notebookId: input.notebookId,
       ...declared.value,
       ownerUserId: this.caller.userId,
       declaredAt: now,
       updatedAt: now,
-      nextVersion: Math.max(0, ...numbers) + 1,
       licenceAcceptedAt: null,
       publicId: null,
     });
-
-    for (const version of input.model.versions) {
-      const archive = this.deps.pack(version.document);
-      const key = `${modelVersionPrefixOf(this.caller.subscriptionId)}${ulid()}.notebook`;
-      const { versionId } = await this.deps.archives.put(key, archive);
-      const notes = version.document.notes.length;
-      await this.deps.transfers.put({
-        ...startedTransfer({
-          transferId: ulid(),
-          kind: 'export',
-          userId: this.caller.userId,
-          notebookId: input.notebookId,
-          notebookName: input.notebookName,
-          // When the version was made, which is what its model lists it by.
-          requestedAt: version.createdAt,
-          total: notes,
-        }),
-        status: 'ready',
-        finishedAt: now,
-        done: notes,
-        bytes: archive.length,
-        key,
-        versionId,
-        model: {
-          number: version.number,
-          changelog: version.changelog,
-          objective: version.objective,
-          description: version.description,
-          audience: version.audience,
-          parameters: version.parameters,
-          basedOn: version.basedOn,
-        },
-      });
-      await this.deps.transfers.addKeptBytes(archive.length, input.notebookId);
-    }
-    return ok({ declared: true, versions: input.model.versions.length });
+    return ok({ declared: true });
   }
 }

@@ -252,7 +252,7 @@ describe('sharing a notebook with a person of another subscription', () => {
     ]);
 
     // And the grantee's own list stays their own: a shared notebook appears on
-    // Home only, from /access/shared (RN-ACC-030).
+    // The page of notebooks only, from /access/shared (RN-ACC-045).
     const own = await json<unknown[]>(await call(GRANTEE.token, '/knowledge/notebooks'));
     expect(own).toEqual([]);
 

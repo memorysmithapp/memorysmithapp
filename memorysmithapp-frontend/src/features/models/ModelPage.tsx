@@ -1,51 +1,40 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { ModelVersionDto, NotebookModelDto } from '@memorysmithapp/contracts';
-import { intlLocale } from '../../i18n/intl-locale';
+import type { NotebookModelDto } from '@memorysmithapp/contracts';
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
-import {
-  communityModelAddress,
-  modelVersionAddress,
-  sharedModelVersionAddress,
-} from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
-import {
-  createModelVersion,
-  getModelVersion,
-  deleteModelVersion,
-  getModel,
-  publishModel,
-  withdrawModel,
-} from '../../shared/api/source';
+import { getModel, getModelContents, publishModel, withdrawModel } from '../../shared/api/source';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { NotebookBar, contextCrumbs, type Crumb } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import {
   isModelTab,
+  MODEL_TABS,
   ModelAbout,
   ModelAboutSummary,
   ModelParameters,
   ModelTabs,
+  OWN_MODEL_TABS,
   type ModelTab,
 } from './ModelParts';
+import { ModelContentsPanel, ModelReferences, ParameterList } from './ModelContents';
+import { ModelHistoryPanel } from './ModelHistory';
 import { ActionWord } from '../../shared/components/ActionWord';
-import {
-  ChevronRightIcon,
-  CloseIcon,
-  PlusIcon,
-  TrashIcon,
-  UploadIcon,
-} from '../../shared/components/icons';
+import { CloseIcon, UploadIcon } from '../../shared/components/icons';
+import { ModelSkeleton } from '../../shared/components/skeletons';
 
 /**
  * The model of a notebook (#353): what a notebook declared as a model says of
  * itself — what it is for, who it is for, its parameters, an optional credit —
- * and its versions. The owner of the subscription declares it, says it again
- * and creates and deletes its versions; whoever reads the notebook reads its
- * model. A version is a frozen snapshot, read whole before it is shared.
+ * and its history (#431). The owner of the subscription declares it and says
+ * it again; whoever reads the notebook reads its model, and reads what it
+ * holds by navigating the notebook, so this page has no Contents (#435). A
+ * model keeps no frozen version: a notebook created from it starts as it
+ * stands, and keeping a state of it is exporting the notebook. A notebook is
+ * created from it in New notebook, the one way to create one (#435).
  */
 export function ModelPage() {
   const { t } = useTranslation();
@@ -54,29 +43,41 @@ export function ModelPage() {
   const owner = structure.permissions.administer;
   const client = useQueryClient();
   useDocumentTitle(t('model.title'), structure.notebook.name);
-  const [tab, selectTab] = useModelTab();
+  const [tab, selectTab] = useModelTab(OWN_MODEL_TABS);
+  // Where the bar takes the Save of the form open (#447).
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
 
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
     queryFn: () => getModel(notebookId),
-    refetchInterval: (query) =>
-      query.state.data?.versions.some((each) => each.status === 'running') ? 2000 : false,
   });
-  const saved = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
+  // What it declares changed, and with it which references it answers (#435).
+  const saved = () => {
+    void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
+    void client.invalidateQueries({ queryKey: queryKeys.modelContents(notebookId) });
+  };
 
   return (
     <>
-      <NotebookBar crumbs={contextCrumbs(notebookId, t, t('model.title'))} />
-      <article className="content-pane model-page">
+      <NotebookBar crumbs={contextCrumbs(notebookId, t, t('model.title'))}>
+        {owner && tab === 'about' ? <span ref={setBarSlot} className="bar-slot" /> : null}
+      </NotebookBar>
+      <article className="content-pane is-wide model-page">
         <p className="page-intro">{t('model.intro')}</p>
         {model.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <ModelSkeleton />
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
         ) : model.data ? (
           <>
             {/* One part of the model at a time (#400). */}
-            <ModelTabs model={model.data} owner={owner} active={tab} onSelect={selectTab} />
+            <ModelTabs
+              model={model.data}
+              owner={owner}
+              contents={false}
+              active={tab}
+              onSelect={selectTab}
+            />
             <div
               id="model-panel"
               role="tabpanel"
@@ -85,25 +86,25 @@ export function ModelPage() {
             >
               {tab === 'about' ? (
                 owner ? (
-                  <ModelAbout notebookId={notebookId} model={model.data} onSaved={saved} />
+                  <ModelAbout
+                    notebookId={notebookId}
+                    model={model.data}
+                    onSaved={saved}
+                    barSlot={barSlot}
+                  />
                 ) : (
                   <ModelAboutSummary model={model.data} />
                 )
               ) : null}
               {tab === 'parameters' ? (
                 owner ? (
-                  <ModelParameters notebookId={notebookId} model={model.data} onSaved={saved} />
+                  <>
+                    <ModelReferences notebookId={notebookId} />
+                    <ModelParameters notebookId={notebookId} model={model.data} onSaved={saved} />
+                  </>
                 ) : (
                   <ParameterList parameters={model.data.parameters} />
                 )
-              ) : null}
-              {tab === 'versions' ? (
-                <Versions
-                  notebookId={notebookId}
-                  model={model.data}
-                  owner={owner}
-                  versionAddress={(number) => modelVersionAddress(notebookId, number)}
-                />
               ) : null}
               {tab === 'community' && owner ? (
                 <Publication notebookId={notebookId} model={model.data} />
@@ -120,12 +121,13 @@ export function ModelPage() {
 
 /**
  * The tab of the model that is open, kept in the address (`?tab=`), so a
- * reload, a link and the dialog of a new model open the one meant (#400).
+ * reload, a link and the dialog of a new model open the one meant (#400). A
+ * tab the page does not have opens its first one.
  */
-function useModelTab(): [ModelTab, (tab: ModelTab) => void] {
+function useModelTab(tabs: readonly ModelTab[]): [ModelTab, (tab: ModelTab) => void] {
   const [params, setParams] = useSearchParams();
   const asked = params.get('tab');
-  const tab: ModelTab = isModelTab(asked) ? asked : 'about';
+  const tab: ModelTab = isModelTab(asked, tabs) ? asked : 'about';
   return [tab, (next) => setParams(next === 'about' ? {} : { tab: next }, { replace: true })];
 }
 
@@ -133,18 +135,20 @@ export function SharedModelPage() {
   const { t } = useTranslation();
   const notebookId = useNotebookId();
   useDocumentTitle(t('model.title'));
-  const [tab, selectTab] = useModelTab();
+  const [tab, selectTab] = useModelTab(MODEL_TABS);
   const model = useQuery({
     queryKey: queryKeys.model(notebookId),
     queryFn: () => getModel(notebookId),
   });
 
   return (
-    <>
-      <SharedModelBar crumbs={[{ label: t('model.title') }]} />
-      <article className="content-pane model-page">
+    <div className="trail-page">
+      <SharedModelBar
+        crumbs={[{ label: t('nav.models'), to: '/models' }, { label: t('model.title') }]}
+      />
+      <article className="content-pane is-wide model-page">
         {model.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <ModelSkeleton />
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
         ) : !model.data ? (
@@ -154,7 +158,14 @@ export function SharedModelPage() {
             {model.data.sharedBy ? (
               <p className="page-intro">{t('model.sharedBy', { owner: model.data.sharedBy })}</p>
             ) : null}
-            <ModelTabs model={model.data} owner={false} active={tab} onSelect={selectTab} />
+            {/* What it holds is read here, where its notebook cannot be opened (#435). */}
+            <ModelTabs
+              model={model.data}
+              owner={false}
+              contents
+              active={tab}
+              onSelect={selectTab}
+            />
             <div
               id="model-panel"
               role="tabpanel"
@@ -163,206 +174,20 @@ export function SharedModelPage() {
             >
               {tab === 'about' ? <ModelAboutSummary model={model.data} /> : null}
               {tab === 'parameters' ? <ParameterList parameters={model.data.parameters} /> : null}
-              {tab === 'versions' ? (
-                <Versions
-                  notebookId={notebookId}
-                  model={model.data}
-                  owner={false}
-                  versionAddress={(number) => sharedModelVersionAddress(notebookId, number)}
-                />
-              ) : null}
+              {tab === 'contents' ? <ModelContentsPanel notebookId={notebookId} /> : null}
+              {tab === 'history' ? <ModelHistoryPanel notebookId={notebookId} /> : null}
             </div>
           </>
         )}
       </article>
-    </>
+    </div>
   );
-}
-
-/** The parameters of a model or a version, as a reader sees them. */
-export function ParameterList({ parameters }: { parameters: NotebookModelDto['parameters'] }) {
-  const { t } = useTranslation();
-  if (parameters.length === 0) return <p className="hint">{t('model.noParameters')}</p>;
-  return (
-    <ul className="parameter-list">
-      {parameters.map((parameter) => (
-        <li key={parameter.name}>
-          <code>{`{{${parameter.name}}}`}</code> · {t(`model.type.${parameter.type}`)} ·{' '}
-          {parameter.required
-            ? t('model.parameterRequired')
-            : t('model.defaultsTo', {
-                value: Array.isArray(parameter.default)
-                  ? parameter.default.join(', ')
-                  : String(parameter.default ?? ''),
-              })}
-          {parameter.description ? <span className="hint"> — {parameter.description}</span> : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** The versions of a model, the newest first, and creating the next one. */
-function Versions({
-  notebookId,
-  model,
-  owner,
-  versionAddress,
-}: {
-  notebookId: string;
-  model: NotebookModelDto;
-  owner: boolean;
-  versionAddress: (number: number) => string;
-}) {
-  const { t, i18n } = useTranslation();
-  const client = useQueryClient();
-  const [changelog, setChangelog] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<number | null>(null);
-  const again = () => void client.invalidateQueries({ queryKey: queryKeys.model(notebookId) });
-
-  async function create(): Promise<void> {
-    setBusy(true);
-    setFailure(null);
-    try {
-      // Every table of the model goes with its rows, and every dashboard (#405, RN-PRT-056).
-      await createModelVersion(notebookId, changelog);
-      setChangelog('');
-      again();
-    } catch (error) {
-      setFailure(t(messageKeyOf(error)));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove(version: ModelVersionDto): Promise<void> {
-    setFailure(null);
-    try {
-      await deleteModelVersion(notebookId, version.number);
-      setDeleting(null);
-      again();
-    } catch (error) {
-      setFailure(t(messageKeyOf(error)));
-    }
-  }
-
-  const when = (instant: string) =>
-    new Intl.DateTimeFormat(intlLocale(i18n.language), {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(instant));
-
-  return (
-    <section className="model-versions" aria-labelledby="model-versions-heading">
-      <h2 id="model-versions-heading">{t('model.versions')}</h2>
-      {owner ? (
-        <form
-          className="model-version-new"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void create();
-          }}
-        >
-          <div className="field">
-            <label>
-              <span className="field-label">{t('model.changelog')}</span>
-              <textarea
-                rows={2}
-                value={changelog}
-                onChange={(event) => setChangelog(event.target.value)}
-              />
-            </label>
-            <span className="field-hint">{t('model.versionHint')}</span>
-          </div>
-          <button type="submit" className="button is-primary" disabled={busy}>
-            <ActionWord
-              icon={<PlusIcon />}
-              word={busy ? t('model.creatingVersion') : t('model.createVersion')}
-              wide
-            />
-          </button>
-        </form>
-      ) : null}
-      {failure ? (
-        <p className="share-failure" role="alert">
-          {failure}
-        </p>
-      ) : null}
-      {model.versions.length === 0 ? (
-        <p className="hint">{t('model.noVersions')}</p>
-      ) : (
-        <ul className="row-card model-version-list">
-          {model.versions.map((version) => (
-            <li key={version.number} className="model-version">
-              <span className="model-version-number">v{version.number}</span>
-              <span className="state-chip" data-state={stateOf(version.status)}>
-                {t(`model.status.${version.status}`)}
-              </span>
-              <span className="model-version-when">{when(version.createdAt)}</span>
-              <span className="model-version-changelog">{version.changelog}</span>
-              {version.status === 'ready' ? (
-                <Link to={versionAddress(version.number)} className="button is-quiet is-small">
-                  <ActionWord icon={<ChevronRightIcon />} word={t('model.openVersion')} />
-                </Link>
-              ) : null}
-              {owner && version.status !== 'running' ? (
-                deleting === version.number ? (
-                  <span className="model-version-confirm">
-                    <button
-                      type="button"
-                      className="button is-quiet is-small"
-                      onClick={() => setDeleting(null)}
-                    >
-                      <ActionWord icon={<CloseIcon />} word={t('common.cancel')} />
-                    </button>
-                    <button
-                      type="button"
-                      className="button is-danger is-filled is-small"
-                      onClick={() => void remove(version)}
-                    >
-                      <ActionWord
-                        icon={<TrashIcon />}
-                        word={t('model.deleteVersionForGood', { number: version.number })}
-                      />
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className="button is-quiet is-small"
-                    onClick={() => setDeleting(version.number)}
-                  >
-                    <ActionWord icon={<TrashIcon />} word={t('model.deleteVersion')} />
-                  </button>
-                )
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function stateOf(status: ModelVersionDto['status']): string {
-  switch (status) {
-    case 'ready':
-      return 'ready';
-    case 'running':
-      return 'waiting';
-    case 'failed':
-      return 'failed';
-    case 'cancelled':
-      return 'cancelled';
-  }
 }
 
 /**
  * Publishing the model to the community (#360): what anybody will see of it,
  * the licence every distribution is under, accepted once, and withdrawing it.
- * Only the owner publishes, with a ready version.
+ * Only the owner publishes; the community reads the model as it stands (#431).
  */
 function Publication({ notebookId, model }: { notebookId: string; model: NotebookModelDto }) {
   const { t, i18n } = useTranslation();
@@ -372,24 +197,17 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const published = model.publication ?? null;
-  const ready = model.versions.some((each) => each.status === 'ready');
   /**
-   * What anybody will read of the tables, said where it is published (#366,
-   * RN-PRT-048): the newest ready version is what the catalog shows first, and
-   * the rows it carries become public with it.
+   * What every person signed in will read of the tables, said where it is
+   * published (#366, RN-PRT-079): the community reads the model as it stands
+   * (#431), and every table goes with its rows.
    */
-  const newest = model.versions
-    .filter((each) => each.status === 'ready')
-    .reduce<number | null>(
-      (top, each) => (top === null || each.number > top ? each.number : top),
-      null,
-    );
-  const version = useQuery({
-    queryKey: queryKeys.modelVersion(notebookId, newest ?? 0),
-    queryFn: () => getModelVersion(notebookId, newest ?? 0),
-    enabled: newest !== null && !published,
+  const contents = useQuery({
+    queryKey: queryKeys.modelContents(notebookId),
+    queryFn: () => getModelContents(notebookId),
+    enabled: !published,
   });
-  const publicRows = (version.data?.tables ?? []).filter((table) => table.rows !== null);
+  const publicRows = (contents.data?.tables ?? []).filter((table) => table.rows > 0);
   const needsLicence = model.licence === null;
 
   async function act(what: () => Promise<unknown>): Promise<void> {
@@ -415,8 +233,7 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
       {published ? (
         <>
           <p>
-            {t('model.publishedAs', { author: published.author, language: published.language })}{' '}
-            <Link to={communityModelAddress(published.publicId)}>{t('model.publicPage')}</Link>
+            {t('model.publishedAs', { author: published.author, language: published.language })}
           </p>
           <button
             type="button"
@@ -435,7 +252,7 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
             <p className="callout-warning">
               {t('tables.carry.published', {
                 tables: publicRows
-                  .map((table) => `${table.name} (${t('tables.rows', { count: table.rows ?? 0 })})`)
+                  .map((table) => `${table.name} (${t('tables.rows', { count: table.rows })})`)
                   .join(', '),
               })}
             </p>
@@ -461,14 +278,13 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
           <button
             type="button"
             className="button is-primary"
-            disabled={busy || !ready || (needsLicence && !accepted)}
+            disabled={busy || (needsLicence && !accepted)}
             onClick={() =>
               void act(() => publishModel(notebookId, { language, acceptLicence: accepted }))
             }
           >
             <ActionWord icon={<UploadIcon />} word={t('model.publish')} wide />
           </button>
-          {!ready ? <p className="hint">{t('model.publishNeedsVersion')}</p> : null}
         </>
       )}
       {failure ? (
@@ -481,19 +297,43 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
 }
 
 /**
- * The trail of a model shared as a model reader (#355): no notebook is open, so
- * it is not the notebook's trail, which reads the notebook it starts from.
+ * The trail of a page outside a notebook (#355, #422): a model shared as a
+ * model reader, and the community. No notebook is open, so it is not the
+ * notebook's trail, which starts at the notebook; it starts at the page of the
+ * menu the person came from, and is drawn as that trail is. The page wraps
+ * the bar and its article in one block, `.trail-page`, so the row of
+ * `.app-main` lays them one under the other and never side by side, and the
+ * trail starts where the text of the article does.
  */
 export function SharedModelBar({ crumbs }: { crumbs: Crumb[] }) {
   const { t } = useTranslation();
+  // A crumb whose name is still being read waits for it.
+  const shown = crumbs.filter((crumb) => crumb.label !== '');
+  const last = shown.length - 1;
   return (
     <div className="notebook-bar">
-      <nav className="shared-model-trail" aria-label={t('model.title')}>
-        {crumbs.map((crumb, index) => (
-          <span key={`${crumb.label}-${index}`}>
-            {index > 0 ? ' / ' : null}
-            {crumb.to ? <Link to={crumb.to}>{crumb.label}</Link> : crumb.label}
-          </span>
+      <nav className="notebook-breadcrumb" aria-label={t('structure.breadcrumb')}>
+        {shown.map((crumb, index) => (
+          <Fragment key={`${index}-${crumb.label}`}>
+            {index > 0 ? (
+              <span className="crumb-separator" aria-hidden="true">
+                /
+              </span>
+            ) : null}
+            {crumb.to ? (
+              <Link to={crumb.to} className="crumb" title={crumb.label}>
+                {crumb.label}
+              </Link>
+            ) : (
+              <span
+                className={`crumb${index === last ? ' is-last' : ''}`}
+                aria-current="page"
+                title={crumb.label}
+              >
+                {crumb.label}
+              </span>
+            )}
+          </Fragment>
         ))}
       </nav>
     </div>

@@ -8,6 +8,8 @@ import {
   declarationsOf,
   draftOf,
   emptyParameter,
+  fillName,
+  missingRequired,
   parameterProblem,
   valueOf,
   valuesOf,
@@ -127,5 +129,64 @@ describe('a date that is not required (#363)', () => {
     };
     expect(parameterProblem(draft, [])).toBeNull();
     expect(declarationsOf([draft])?.[0]?.default).toBe('');
+  });
+});
+
+describe('the required parameters left empty (#435)', () => {
+  const of = (name: string, type: 'text' | 'list' | 'boolean' | 'date', required: boolean) => ({
+    name,
+    description: '',
+    example: '',
+    type,
+    required,
+    default: required ? null : type === 'boolean' ? false : '',
+  });
+  const parameters = [
+    of('client', 'text', true),
+    of('items', 'list', true),
+    of('signed', 'boolean', true),
+    of('note', 'text', false),
+  ];
+
+  it('names every required one with nothing but spaces typed, never a box', () => {
+    expect(missingRequired(parameters, {})).toEqual(['client', 'items']);
+    expect(missingRequired(parameters, { client: '  ', items: 'a' })).toEqual(['client']);
+  });
+
+  it('names none once each holds a value, whatever the optional ones hold', () => {
+    expect(missingRequired(parameters, { client: 'Aurora', items: 'a\nb' })).toEqual([]);
+  });
+});
+
+describe('the name of a notebook created from a model (#448)', () => {
+  const obra = {
+    name: 'obra',
+    description: 'A obra',
+    example: 'Residencial Aurora',
+    type: 'text' as const,
+    required: true,
+    default: null,
+  };
+  const fases = {
+    name: 'fases',
+    description: 'As fases',
+    example: 'a, b',
+    type: 'list' as const,
+    required: false,
+    default: ['Projeto', 'Execução'],
+  };
+
+  it('fills each reference with what is typed, or the default of its parameter', () => {
+    expect(fillName('Obra {{obra}}', [obra], { obra: 'Residencial Aurora' })).toBe(
+      'Obra Residencial Aurora',
+    );
+    expect(fillName('Obra {{obra}} ({{fases}})', [obra, fases], { obra: 'Cirro' })).toBe(
+      'Obra Cirro (Projeto, Execução)',
+    );
+  });
+
+  it('leaves a reference with no value yet, and an escaped one, as written', () => {
+    expect(fillName('Obra {{obra}}', [obra], {})).toBe('Obra {{obra}}');
+    expect(fillName('Obra \\{{obra}}', [obra], { obra: 'Cirro' })).toBe('Obra \\{{obra}}');
   });
 });

@@ -8,6 +8,7 @@
 import {
   backlinksSchema,
   graphNodeSchema,
+  modelHistorySchema,
   noteLinksSchema,
   notebookFileSchema,
   notebookHealthSchema,
@@ -450,5 +451,57 @@ describe('the bytes behind the link of a file (#394)', () => {
       vi.fn(async () => new Response('', { status: 403 })),
     );
     await expect(gateway.downloadLinked('https://files.example/f', 10)).rejects.toThrow('403');
+  });
+});
+
+describe('the connector reads a model as its notebook stands (#431)', () => {
+  const MODEL = '01JBQ2X000000000000000M001';
+  const PUBLIC = '01JBQ2X000000000000000P001';
+
+  it('reads the history of a model and of a published one on their own routes', async () => {
+    const history = modelHistorySchema.parse({
+      changes: [
+        {
+          occurredAt: '2026-11-09T10:00:00.000Z',
+          since: '2026-11-09T09:40:00.000Z',
+          saves: 3,
+          type: 'EditSession',
+          subject: 'note',
+          subjectId: FINDING,
+          name: 'Achado 12',
+          agent: null,
+          message: null,
+        },
+      ],
+      truncated: false,
+    });
+    apiAnswering(history);
+    const gateway = new HttpKnowledgeGateway('https://api.example.com');
+    expect(await gateway.modelHistory(caller, MODEL)).toEqual(history);
+    await gateway.modelContents(caller, MODEL);
+    await gateway.communityHistory(caller, PUBLIC);
+    await gateway.communityContents(caller, PUBLIC);
+    expect(vi.mocked(fetch).mock.calls.map(([address]) => address)).toEqual([
+      `https://api.example.com/portability/models/${MODEL}/history`,
+      `https://api.example.com/portability/models/${MODEL}/contents`,
+      `https://api.example.com/public/catalog/${PUBLIC}/history`,
+      `https://api.example.com/public/catalog/${PUBLIC}/contents`,
+    ]);
+  });
+
+  it('creates a notebook from a model and from a community one with no version', async () => {
+    apiAnswering({ transferId: '01JBQ2X000000000000000T001', status: 'running' });
+    const gateway = new HttpKnowledgeGateway('https://api.example.com');
+    await gateway.createFromModel(caller, { notebookId: MODEL, name: '', values: { a: 'b' } });
+    await gateway.createFromCommunity(caller, { publicId: PUBLIC, name: 'X', values: {} });
+    const calls = vi.mocked(fetch).mock.calls;
+    expect(calls.map(([address]) => address)).toEqual([
+      `https://api.example.com/portability/models/${MODEL}/notebooks`,
+      `https://api.example.com/portability/catalog/${PUBLIC}/notebooks`,
+    ]);
+    expect(calls.map(([, init]) => JSON.parse(String(init?.body)))).toEqual([
+      { name: '', values: { a: 'b' } },
+      { name: 'X', values: {} },
+    ]);
   });
 });

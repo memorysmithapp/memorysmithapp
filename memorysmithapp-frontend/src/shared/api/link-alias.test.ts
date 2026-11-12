@@ -36,7 +36,12 @@ function folder(id: string, notes: Array<{ id: string; name: string | null }>): 
     noteOrder: 'manual',
     hasTemplate: false,
     noteCount: notes.length,
-    notes: notes.map((note) => ({ ...note, folderId: id })),
+    notes: notes.map((note) => ({
+      ...note,
+      folderId: id,
+      updatedAt: '2026-11-10T00:00:00.000Z',
+      updatedBy: { userId: 'user-a', agent: null },
+    })),
     children: [],
   };
 }

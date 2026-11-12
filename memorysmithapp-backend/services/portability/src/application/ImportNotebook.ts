@@ -62,7 +62,7 @@ import { fillDocument, resolveValues } from '../domain/ParameterFilling.js';
  * history an export may carry and changed nothing else, so a `1.0` document is
  * read exactly as it always was (RN-PRT-022).
  */
-/** The parameters a creation from a version fills in, and the values supplied (#354). */
+/** The parameters a creation from a model fills in, and the values supplied (#354). */
 export interface ModelFill {
   readonly declarations: readonly ParameterDeclaration[];
   readonly values: Readonly<Record<string, ParameterValue>>;
@@ -74,10 +74,17 @@ export interface ModelRestorer {
     notebookId: string;
     notebookName: string;
     model: DocumentModel;
-  }): Promise<Result<{ declared: boolean; versions: number }, DomainError>>;
+  }): Promise<Result<{ declared: boolean }, DomainError>>;
 }
 
-export const READABLE_DOCUMENT_VERSIONS: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4'];
+export const READABLE_DOCUMENT_VERSIONS: readonly string[] = [
+  '1.0',
+  '1.1',
+  '1.2',
+  '1.3',
+  '1.4',
+  '1.5',
+];
 
 /**
  * Why an import was refused, as a CODE and not as a sentence (RN-PRT-018).
@@ -130,6 +137,8 @@ export interface NotebookWriter {
     name: string;
     description: string;
     by: Authorship;
+    /** The model the notebook is created from, by its name, which its creation records (#446). */
+    fromModel?: { name: string } | undefined;
   }): Promise<Result<{ notebookId: string }, DomainError>>;
   setGuidance(input: {
     notebookId: string;
@@ -435,6 +444,8 @@ export class ImportNotebook {
     selection?: ImportSelection | null | undefined;
     /** The parameters of a model, filled in before anything is written (#354). */
     fill?: ModelFill | undefined;
+    /** The name of the model the notebook is created from, which its creation records (#446). */
+    fromModel?: string | undefined;
     progress?: ImportProgress | undefined;
   }): Promise<Result<ImportJob, DomainError>> {
     // A key of another subscription is not readable and not addressable: the
@@ -452,7 +463,7 @@ export class ImportNotebook {
       if (!document.ok) return document;
       let written = document.value;
       if (input.fill) {
-        // A notebook created from a version depends on no model (RN-PRT-040),
+        // A notebook created from a model depends on no model (RN-PRT-088),
         // and a snapshot carries none; this holds it even for one that did.
         written = withoutModel(written);
         // The values were checked when the creation was asked for, and are
@@ -461,7 +472,14 @@ export class ImportNotebook {
         if (!values.ok) return values;
         written = fillDocument(written, values.value);
       }
-      return await this.write(written, input.name, input.by, selection, input.progress);
+      return await this.write(
+        written,
+        input.name,
+        input.by,
+        selection,
+        input.progress,
+        input.fromModel,
+      );
     } finally {
       // The upload is discarded whichever way the import ended: it was the
       // means of getting the bytes here and it is not a copy of the notebook.
@@ -560,12 +578,14 @@ export class ImportNotebook {
     by: Authorship,
     selection: ImportSelection | null,
     progress: ImportProgress | undefined,
+    fromModel?: string | undefined,
   ): Promise<Result<ImportJob, DomainError>> {
     const chosen = plan(document, selection);
     const created = await this.writer.createNotebook({
       name: name ?? document.notebook.name,
       description: document.notebook.description,
       by,
+      ...(fromModel ? { fromModel: { name: fromModel } } : {}),
     });
     if (!created.ok) return created;
     const notebookId = created.value.notebookId;
@@ -741,7 +761,7 @@ export class ImportNotebook {
     }
 
     // The dashboards last: each one is checked against the tables it draws
-    // from, and goes only when all of them came (#368, RN-PRT-053).
+    // from, and goes only when all of them came (#368, RN-PRT-072).
     const offered = selection?.dashboards
       ? dashboardsNamed(document.dashboards ?? [], selection.dashboards)
       : (document.dashboards ?? []);

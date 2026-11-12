@@ -1,122 +1,37 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { PublicModelDto } from '@memorysmithapp/contracts';
 import { intlLocale } from '../../i18n/intl-locale';
 import { messageKeyOf } from '../../shared/api/error-mapper';
-import {
-  communityAddress,
-  communityModelAddress,
-  communityVersionAddress,
-  identifierOf,
-} from '../../shared/api/note-address';
+import { communityModelAddress, identifierOf } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import {
-  createFromCatalog,
+  getCatalogContents,
+  getCatalogHistory,
   getCatalogModel,
-  getCatalogVersion,
-  reportModel,
+  listModels,
   searchCatalog,
 } from '../../shared/api/source';
-import { readTokens } from '../../shared/auth/oauth';
-import { ActionWord } from '../../shared/components/ActionWord';
-import { BrandMark } from '../../shared/components/BrandMark';
-import { ArrowLeftIcon, BookIcon, SignInIcon } from '../../shared/components/icons';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { CreateFromModelForm } from '../models/CreateFromModel';
-import { ParameterList } from '../models/ModelPage';
-import { VersionContents } from '../models/ModelVersionPage';
+import { useLiveInterval } from '../../shared/api/live';
+import { PageSkeleton, RowsSkeleton, ShelfSkeleton } from '../../shared/components/skeletons';
+import { Tabs } from '../../shared/components/Tabs';
+import { ShelfCard } from '../dashboard/NotebookCard';
+import { ShelfCorner } from '../dashboard/ShelfCorner';
+import { PageHeading } from '../../shared/components/PageHeading';
+import { OwnershipMark } from '../sharing/OwnershipMark';
+import { SharedModelBar } from '../models/ModelPage';
+import { ModelContents, ParameterList } from '../models/ModelContents';
+import { ModelHistoryList } from '../models/ModelHistory';
 
 /**
- * The community catalog (#360): the models their owners published, which
- * anybody reads, signed in or not, and creates notebooks from once signed in.
- * These pages sit outside the frame of the application, because a visitor
- * with no account reaches them, and they may be indexed by search engines
- * (#358): each one says what it is in its title and its description.
+ * The community catalog (#360): the models their owners published, read and
+ * created from by a person signed in, inside the frame of the application and
+ * its menu (#418, RN-PRT-079). The list is the shelf of cards the notebooks
+ * and the models use.
  */
-
-/** Whether this browser holds a session, which creating and reporting need. */
-function signedIn(): boolean {
-  return readTokens() !== null;
-}
-
-/** The description a search engine reads of the page, for as long as it is open. */
-function useDescription(text: string | null | undefined): void {
-  useEffect(() => {
-    if (!text) return;
-    let tag = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const created = !tag;
-    if (!tag) {
-      tag = document.createElement('meta');
-      tag.name = 'description';
-      document.head.append(tag);
-    }
-    const before = tag.content;
-    tag.content = text;
-    return () => {
-      if (created) tag?.remove();
-      else if (tag) tag.content = before;
-    };
-  }, [text]);
-}
-
-/**
- * Where Back goes (#385): the previous page when the router pushed one, and,
- * from a page opened directly, home for a person signed in and the list for a
- * visitor.
- */
-export function backTarget(historyIndex: number, isSignedIn: boolean): -1 | string {
-  if (historyIndex > 0) return -1;
-  return isSignedIn ? '/' : communityAddress();
-}
-
-/**
- * The header of the community pages (#385): the mark and the tagline, as the
- * header of the application shows them, and buttons that say where they lead.
- * Back returns to the page the person came from; arrived from outside, it
- * goes to their home when signed in, and to the list when not.
- */
-function CommunityFrame({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const inside = signedIn();
-  function back(): void {
-    // The router numbers the entries it pushed; 0 is the page opened first.
-    const index = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-    const target = backTarget(index, inside);
-    if (target === -1) void navigate(-1);
-    else void navigate(target);
-  }
-  return (
-    <div className="community-frame">
-      {/* The header of the application, by its own classes, so the mark stands
-          exactly where it stands on every other page (#385). */}
-      <header className="app-header">
-        <Link to="/" className="brand" aria-label={t('community.home')}>
-          <BrandMark />
-        </Link>
-        <span className="header-divider" aria-hidden="true" />
-        <span className="tagline">{t('app.tagline')}</span>
-        <span className="header-spacer" />
-        <nav className="community-nav" aria-label={t('community.title')}>
-          <Link to={communityAddress()} className="button is-quiet is-small">
-            <ActionWord icon={<BookIcon />} word={t('community.title')} />
-          </Link>
-          <button type="button" className="button is-quiet is-small" onClick={back}>
-            <ActionWord icon={<ArrowLeftIcon />} word={t('community.back')} />
-          </button>
-          {inside ? null : (
-            <Link to="/login" className="button is-primary is-small">
-              <ActionWord icon={<SignInIcon />} word={t('community.signIn')} />
-            </Link>
-          )}
-        </nav>
-      </header>
-      <main className="community-main">{children}</main>
-    </div>
-  );
-}
 
 function useDay(): (instant: string) => string {
   const { i18n } = useTranslation();
@@ -126,84 +41,104 @@ function useDay(): (instant: string) => string {
     );
 }
 
-const LANGUAGES = ['', 'pt', 'en', 'es'] as const;
-
-/** Finds published models by words and language. */
+/**
+ * Every published model, as cards (#418): what to look for is typed in the
+ * search of the header, which finds community models with the notebooks and
+ * the models of the person.
+ */
 export function CommunityPage() {
   const { t } = useTranslation();
   const day = useDay();
-  const [typed, setTyped] = useState('');
-  const [text, setText] = useState('');
-  const [language, setLanguage] = useState<string>('');
   useDocumentTitle(t('community.title'));
-  useDescription(t('community.intro'));
+  // What I published myself, which its mark says (#418).
+  const mine = useQuery({ queryKey: queryKeys.models(), queryFn: listModels });
+  const published = useMemo(
+    () =>
+      new Set(
+        (mine.data ?? []).flatMap((model) =>
+          model.publication ? [model.publication.publicId] : [],
+        ),
+      ),
+    [mine.data],
+  );
   const found = useQuery({
-    queryKey: queryKeys.catalog(text, language || null),
-    queryFn: () => searchCatalog({ text, language: language || null }),
+    queryKey: queryKeys.catalog('', null),
+    queryFn: () => searchCatalog({ text: '', language: null }),
+    // Read again like every list on the screen (#206): the edge answers what
+    // it holds while it fetches a fresh list (#420), so a model published or
+    // withdrawn a moment ago reaches the page on a later reading.
+    refetchInterval: useLiveInterval(),
   });
-
-  function submit(event: FormEvent): void {
-    event.preventDefault();
-    setText(typed.trim());
-  }
+  /**
+   * What the person published is on the page at once, whatever the edge still
+   * holds (#420): their own models answer it from the API, which no edge keeps.
+   */
+  const models = useMemo(() => {
+    if (!found.data) return undefined;
+    const listed = new Set(found.data.map((model) => model.publicId));
+    const missing = (mine.data ?? []).flatMap((model) =>
+      model.publication && !listed.has(model.publication.publicId) ? [model.publication] : [],
+    );
+    if (missing.length === 0) return found.data;
+    return [...found.data, ...missing].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [found.data, mine.data]);
 
   return (
-    <CommunityFrame>
-      <article className="content-pane community-page">
-        <h1>{t('community.title')}</h1>
-        <p className="page-intro">{t('community.intro')}</p>
-        <form className="community-search" role="search" onSubmit={submit}>
-          <label className="field">
-            <span className="field-label">{t('community.search')}</span>
-            <input
-              type="search"
-              value={typed}
-              placeholder={t('community.searchHint')}
-              onChange={(event) => setTyped(event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">{t('community.language')}</span>
-            <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-              {LANGUAGES.map((each) => (
-                <option key={each} value={each}>
-                  {t(`community.languages.${each || 'any'}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" className="button is-primary">
-            {t('community.find')}
-          </button>
-        </form>
+    <>
+      <section className="page shelf-page community-page">
+        <PageHeading
+          title={t('community.title')}
+          count={models?.length}
+          help={{ page: 'community', text: t('community.help') }}
+        />
         {found.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <ShelfSkeleton />
         ) : found.isError ? (
           <p className="status">{t(messageKeyOf(found.error))}</p>
-        ) : found.data.length === 0 ? (
+        ) : !models || models.length === 0 ? (
           <p className="hint">{t('community.nothing')}</p>
         ) : (
-          <ul className="community-results">
-            {found.data.map((model) => (
-              <li key={model.publicId} className="community-card">
-                <h2>
-                  <Link to={communityModelAddress(model.publicId)}>{model.name}</Link>
-                </h2>
-                <p>{model.objective}</p>
-                <p className="hint">
-                  {t('community.byline', {
-                    author: model.author,
+          <div className="shelf-grid">
+            {models.map((model, index) => {
+              const own = published.has(model.publicId);
+              const to = communityModelAddress(model.publicId);
+              return (
+                <ShelfCard
+                  key={model.publicId}
+                  seed={model.publicId}
+                  strip={index % 2 === 0 ? 'blue' : 'orange'}
+                  name={model.name}
+                  description={model.objective}
+                  byline={t('community.by', { author: model.author })}
+                  meta={t('community.cardMeta', {
                     language: model.language,
                     date: day(model.updatedAt),
-                    count: model.versions.length,
                   })}
-                </p>
-              </li>
-            ))}
-          </ul>
+                  to={to}
+                  openLabel={t('models.open')}
+                  openShort={t('notebooks.openShort')}
+                  corner={
+                    <ShelfCorner
+                      title={model.name}
+                      mark={
+                        <OwnershipMark
+                          ownership={own ? 'own' : 'community'}
+                          owner={model.author}
+                          kind="community"
+                        />
+                      }
+                    >
+                      {/* A notebook is created from it in New notebook, the one way (#435). */}
+                      {null}
+                    </ShelfCorner>
+                  }
+                />
+              );
+            })}
+          </div>
         )}
-      </article>
-    </CommunityFrame>
+      </section>
+    </>
   );
 }
 
@@ -211,198 +146,190 @@ function usePublicId(): string {
   return identifierOf(useParams().publicId) ?? '';
 }
 
-/** A published model: what it is for, its author, its parameters and its versions. */
+/** The parts of a published model, one tab each, as a model of one's own shows them (#400, #431). */
+const COMMUNITY_TABS = ['about', 'contents', 'history'] as const;
+type CommunityTab = (typeof COMMUNITY_TABS)[number];
+
+function useCommunityTab(): [CommunityTab, (tab: CommunityTab) => void] {
+  const [params, setParams] = useSearchParams();
+  const asked = params.get('tab');
+  const tab: CommunityTab = COMMUNITY_TABS.find((each) => each === asked) ?? 'about';
+  return [tab, (next) => setParams(next === 'about' ? {} : { tab: next }, { replace: true })];
+}
+
+/**
+ * A published model: what it is for, its author and its parameters, what it
+ * holds as it stands, and its history, when and what but never who (#431). A
+ * notebook is created from it in New notebook (#435).
+ */
 export function CommunityModelPage() {
   const { t } = useTranslation();
-  const day = useDay();
   const publicId = usePublicId();
+  const [tab, selectTab] = useCommunityTab();
   const model = useQuery({
     queryKey: queryKeys.catalogModel(publicId),
     queryFn: () => getCatalogModel(publicId),
     retry: false,
   });
   useDocumentTitle(model.data?.name, t('community.title'));
-  useDescription(model.data?.objective);
 
   return (
-    <CommunityFrame>
-      <article className="content-pane community-page">
+    <div className="trail-page">
+      {/* The way back to every model of the community (#422). */}
+      <SharedModelBar
+        crumbs={[
+          { label: t('nav.community'), to: '/community' },
+          { label: model.data?.name ?? '' },
+        ]}
+      />
+      <article className="content-pane is-wide community-page">
         {model.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <PageSkeleton />
         ) : model.isError ? (
           <p className="status">{t(messageKeyOf(model.error))}</p>
         ) : (
           <>
             <h1>{model.data.name}</h1>
-            <ModelFacts model={model.data} />
-            <h2>{t('model.versions')}</h2>
-            <ul className="row-card model-version-list">
-              {model.data.versions.map((version) => (
-                <li key={version.number} className="model-version is-public">
-                  <span className="model-version-number">v{version.number}</span>
-                  <span className="model-version-when">{day(version.createdAt)}</span>
-                  <span className="model-version-changelog">{version.changelog}</span>
-                  <Link
-                    to={communityVersionAddress(publicId, version.number)}
-                    className="button is-quiet is-small"
-                  >
-                    {t('model.openVersion')}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Report publicId={publicId} />
+            <Tabs
+              id="model"
+              label={model.data.name}
+              className="model-tabs"
+              active={tab}
+              onSelect={selectTab}
+              tabs={[
+                { key: 'about', label: t('model.tabs.about') },
+                { key: 'contents', label: t('model.tabs.contents') },
+                { key: 'history', label: t('model.tabs.history') },
+              ]}
+            />
+            <div
+              id="model-panel"
+              role="tabpanel"
+              aria-labelledby={`model-tab-${tab}`}
+              className="model-panel"
+            >
+              {tab === 'about' ? <ModelFacts model={model.data} publicId={publicId} /> : null}
+              {tab === 'contents' ? <CommunityContents publicId={publicId} /> : null}
+              {tab === 'history' ? <CommunityHistory publicId={publicId} /> : null}
+            </div>
           </>
         )}
       </article>
-    </CommunityFrame>
+    </div>
   );
 }
 
-function ModelFacts({ model }: { model: PublicModelDto }) {
+/** A published model as it stands (#431). */
+function CommunityContents({ publicId }: { publicId: string }) {
   const { t } = useTranslation();
+  const contents = useQuery({
+    queryKey: queryKeys.catalogContents(publicId),
+    queryFn: () => getCatalogContents(publicId),
+    retry: false,
+  });
+  if (contents.isPending) return <PageSkeleton />;
+  if (contents.isError) return <p className="status">{t(messageKeyOf(contents.error))}</p>;
+  return <ModelContents contents={contents.data} withParameters={false} />;
+}
+
+/** The history of a published model: when, what and the line left, never who (#431). */
+function CommunityHistory({ publicId }: { publicId: string }) {
+  const { t } = useTranslation();
+  const history = useQuery({
+    queryKey: queryKeys.catalogHistory(publicId),
+    queryFn: () => getCatalogHistory(publicId),
+    retry: false,
+  });
   return (
-    <section className="model-summary">
-      <p className="page-intro">{model.objective}</p>
-      {model.description ? <p>{model.description}</p> : null}
-      <p>
-        <strong>{t('community.author')}:</strong> {model.author}
-      </p>
-      {model.audience ? (
-        <p>
-          <strong>{t('model.audience')}:</strong> {model.audience}
-        </p>
-      ) : null}
-      {model.basedOn ? (
-        <p>
-          <strong>{t('model.basedOn')}:</strong> {model.basedOn}
-        </p>
-      ) : null}
-      <p className="hint">{t('community.licence')}</p>
-      <h2>{t('model.parameters')}</h2>
-      <ParameterList parameters={model.parameters} />
+    <section className="model-history-panel" aria-label={t('model.tabs.history')}>
+      <p className="hint">{t('community.historyHint')}</p>
+      {history.isPending ? (
+        <RowsSkeleton rows={4} />
+      ) : history.isError ? (
+        <p className="status">{t('history.failed')}</p>
+      ) : (
+        <ModelHistoryList
+          changes={history.data.changes}
+          truncated={history.data.truncated}
+          withAuthor={false}
+          pageSize={10}
+        />
+      )}
     </section>
   );
 }
 
-/** A report to the operator, which only a person signed in makes (#358). */
-function Report({ publicId }: { publicId: string }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState('');
-  const [said, setSaid] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  if (!signedIn()) {
-    return (
-      <p className="hint community-report">
-        <Link to="/login">{t('community.signInToReport')}</Link>
-      </p>
-    );
-  }
-  if (!open) {
-    return (
-      <p className="community-report">
-        <button type="button" className="button is-quiet is-small" onClick={() => setOpen(true)}>
-          {t('community.report')}
-        </button>
-      </p>
-    );
-  }
-
-  async function send(event: FormEvent): Promise<void> {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      await reportModel(publicId, reason);
-      setSaid(t('community.reported'));
-      setReason('');
-    } catch (error) {
-      setSaid(t(messageKeyOf(error)));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form className="community-report" onSubmit={(event) => void send(event)}>
-      <label className="field">
-        <span className="field-label">{t('community.reportWhy')}</span>
-        <textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
-      </label>
-      <button type="submit" className="button is-danger" disabled={busy || !reason.trim()}>
-        {t('community.sendReport')}
-      </button>
-      {said ? (
-        <p className="hint" role="status">
-          {said}
-        </p>
-      ) : null}
-    </form>
-  );
-}
-
-/** A published version, read whole, and a notebook created from it once signed in. */
-export function CommunityVersionPage() {
-  const { t } = useTranslation();
-  const publicId = usePublicId();
-  const number = Number(useParams().version);
-  const [creating, setCreating] = useState(false);
-  const version = useQuery({
-    queryKey: queryKeys.catalogVersion(publicId, number),
-    queryFn: () => getCatalogVersion(publicId, number),
+/**
+ * What a published model is (#449): its texts on the left, and on the right,
+ * where the page is wide, a card of the facts — who published it, in what
+ * language, under which licence, when, and how much it holds.
+ */
+function ModelFacts({ model, publicId }: { model: PublicModelDto; publicId: string }) {
+  const { t, i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
+  const contents = useQuery({
+    queryKey: queryKeys.catalogContents(publicId),
+    queryFn: () => getCatalogContents(publicId),
     retry: false,
   });
-  useDocumentTitle(
-    version.data ? `${version.data.model.name} v${number}` : null,
-    t('community.title'),
-  );
-  useDescription(version.data?.objective);
-
+  const day = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));
+  const language = i18n.exists(`community.languages.${model.language}`)
+    ? t(`community.languages.${model.language}`)
+    : model.language;
+  const size = contents.data
+    ? [
+        t('portability.countFolders', { count: contents.data.folders.length }),
+        t('portability.noteCount', { count: contents.data.notes.length }),
+        contents.data.tables.length > 0
+          ? t('portability.countTables', { count: contents.data.tables.length })
+          : null,
+        contents.data.dashboards.length > 0
+          ? t('portability.countDashboards', { count: contents.data.dashboards.length })
+          : null,
+      ]
+        .filter((part): part is string => part !== null)
+        .join(' · ')
+    : null;
   return (
-    <CommunityFrame>
-      <article className="content-pane model-version-page community-page">
-        {version.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
-        ) : version.isError ? (
-          <p className="status">{t(messageKeyOf(version.error))}</p>
-        ) : (
+    <section className="model-summary community-about">
+      <div className="community-about-text">
+        <p className="page-intro">{model.objective}</p>
+        {model.description ? <p>{model.description}</p> : null}
+        {model.audience ? (
+          <p>
+            <strong>{t('model.audience')}:</strong> {model.audience}
+          </p>
+        ) : null}
+        {/* What a notebook created from it asks, read with what it is (#449). */}
+        <h2>{t('model.parameters')}</h2>
+        <ParameterList parameters={model.parameters} />
+      </div>
+      <dl className="community-facts">
+        <dt>{t('community.author')}</dt>
+        <dd>{model.author}</dd>
+        <dt>{t('community.language')}</dt>
+        <dd>{language}</dd>
+        <dt>{t('community.licenceName')}</dt>
+        <dd>CC0 1.0</dd>
+        {model.basedOn ? (
           <>
-            <p className="hint">
-              <Link to={communityModelAddress(publicId)}>{version.data.model.name}</Link>
-            </p>
-            <h1>{t('model.versionTitle', { number })}</h1>
-            {version.data.version.changelog ? (
-              <p className="page-intro">{version.data.version.changelog}</p>
-            ) : null}
-            <h2>{t('model.parameters')}</h2>
-            <ParameterList parameters={version.data.parameters} />
-            {!signedIn() ? (
-              <p>
-                <Link to="/login" className="button is-primary">
-                  {t('community.signInToCreate')}
-                </Link>
-              </p>
-            ) : creating ? (
-              <section className="model-create" aria-label={t('model.create')}>
-                <h2>{t('model.create')}</h2>
-                <CreateFromModelForm
-                  notebookId={publicId}
-                  version={number}
-                  parameters={version.data.parameters}
-                  onCancel={() => setCreating(false)}
-                  create={(input) => createFromCatalog(publicId, number, input)}
-                />
-              </section>
-            ) : (
-              <button type="button" className="button is-primary" onClick={() => setCreating(true)}>
-                {t('model.create')}
-              </button>
-            )}
-            <VersionContents view={version.data} />
+            <dt>{t('model.basedOn')}</dt>
+            <dd>{model.basedOn}</dd>
           </>
-        )}
-      </article>
-    </CommunityFrame>
+        ) : null}
+        <dt>{t('community.publishedAt')}</dt>
+        <dd>{day(model.publishedAt)}</dd>
+        <dt>{t('community.updatedAt')}</dt>
+        <dd>{day(model.updatedAt)}</dd>
+        {size ? (
+          <>
+            <dt>{t('community.size')}</dt>
+            <dd>{size}</dd>
+          </>
+        ) : null}
+        <dd className="community-facts-note">{t('community.licence')}</dd>
+      </dl>
+    </section>
   );
 }

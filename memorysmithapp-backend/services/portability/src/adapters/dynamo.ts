@@ -66,6 +66,8 @@ const PATCHABLE = [
   // An upload whose notebook became unavailable is pointed at another one,
   // and its failure keeps what it was (RN-PRT-029).
   'upload',
+  // The notice of its end, read by the person (#454).
+  'noticeRead',
 ] as const;
 
 export class DynamoTransferStore implements TransferStore {
@@ -499,6 +501,7 @@ function transferOf(item: Item): Transfer {
     versionId: item['versionId'] ? String(item['versionId']) : null,
     failure: item['failure'] ? String(item['failure']) : null,
     fileName: item['fileName'] ? String(item['fileName']) : null,
+    ...(item['noticeRead'] === true ? { noticeRead: true } : {}),
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
     ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
     ...(item['model'] ? { model: modelVersionOf(item['model'] as Item) } : {}),
@@ -514,7 +517,7 @@ function transferOf(item: Item): Transfer {
   };
 }
 
-/** What a version froze of its model (#353), as the item holds it. */
+/** What a version froze of its model (#353), as the record of one kept before #431 holds it. */
 function modelVersionOf(item: Item): ModelVersionMeta {
   const parameters = Array.isArray(item['parameters']) ? (item['parameters'] as Item[]) : [];
   return {
@@ -737,25 +740,6 @@ export class DynamoModelStore implements ModelStore {
     );
   }
 
-  async takeVersionNumber(notebookId: string): Promise<number | null> {
-    try {
-      const updated = await this.db.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: this.key(notebookId),
-          UpdateExpression: 'SET nextVersion = nextVersion + :one',
-          ConditionExpression: 'attribute_exists(SK)',
-          ExpressionAttributeValues: { ':one': 1 },
-          ReturnValues: 'UPDATED_OLD',
-        }),
-      );
-      return Number(updated.Attributes?.['nextVersion'] ?? 1);
-    } catch (error) {
-      if ((error as { name?: string }).name === 'ConditionalCheckFailedException') return null;
-      throw error;
-    }
-  }
-
   async remove(notebookId: string): Promise<void> {
     await this.db.send(new DeleteCommand({ TableName: this.tableName, Key: this.key(notebookId) }));
   }
@@ -773,7 +757,6 @@ function modelOf(item: Item): NotebookModel {
     ownerUserId: String(item['ownerUserId'] ?? ''),
     declaredAt: String(item['declaredAt'] ?? ''),
     updatedAt: String(item['updatedAt'] ?? ''),
-    nextVersion: Number(item['nextVersion'] ?? 1),
     licenceAcceptedAt: item['licenceAcceptedAt'] ? String(item['licenceAcceptedAt']) : null,
     publicId: item['publicId'] ? String(item['publicId']) : null,
   };
@@ -791,12 +774,6 @@ export class InMemoryModelStore implements ModelStore {
   }
   async put(model: NotebookModel): Promise<void> {
     this.models.set(model.notebookId, model);
-  }
-  async takeVersionNumber(notebookId: string): Promise<number | null> {
-    const held = this.models.get(notebookId);
-    if (!held) return null;
-    this.models.set(notebookId, { ...held, nextVersion: held.nextVersion + 1 });
-    return held.nextVersion;
   }
   async remove(notebookId: string): Promise<void> {
     this.models.delete(notebookId);

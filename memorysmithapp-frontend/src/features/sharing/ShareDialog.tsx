@@ -14,6 +14,7 @@ import {
 import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
 import { profileKey, profilesFor, sharesChanged } from './shares';
+import { RowsSkeleton } from '../../shared/components/skeletons';
 
 /**
  * Sharing a notebook with a person who holds another subscription (#256,
@@ -180,7 +181,7 @@ export function ShareDialog({
         <h3 id="share-people-heading">{t('sharing.dialog.people')}</h3>
         <p className="hint">{t('sharing.dialog.changeExplained')}</p>
         {shares.isPending ? (
-          <p className="hint">{t('common.loading')}</p>
+          <RowsSkeleton rows={2} />
         ) : listed.length === 0 ? (
           <p className="hint">{t('sharing.dialog.nobody')}</p>
         ) : (

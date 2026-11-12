@@ -12,7 +12,8 @@ import { useTranslation } from 'react-i18next';
  * The menu of the Controles (#201): opened from a `⋯` or from the avatar,
  * items of one line, the destructive one last under a divider. On a phone it
  * is a SHEET that rises from the bottom, over a dimmed page, with rows a thumb
- * can hit and a quiet button that closes it.
+ * can hit and a quiet button that closes it; a menu of the header drops from
+ * under it instead, as the ☰ does (#422).
  *
  * It closes on Esc, on a click outside, and when an item is chosen. Arrows
  * move between the items, which is what `role="menu"` promises whoever
@@ -86,6 +87,7 @@ export function Menu({
   title,
   className = '',
   closeLabel,
+  fromHeader = false,
   children,
 }: {
   open: boolean;
@@ -98,6 +100,12 @@ export function Menu({
   className?: string;
   /** What the quiet button of the sheet says: Cancelar, or Fechar. */
   closeLabel?: string;
+  /**
+   * A menu of the header — the person's, the bell's — which on a phone drops
+   * from under the header the way the ☰ does, instead of rising as a sheet
+   * from the foot of the screen (#422).
+   */
+  fromHeader?: boolean;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -137,6 +145,24 @@ export function Menu({
   }, [open, sheet]);
 
   if (!open) return null;
+
+  if (sheet && fromHeader) {
+    return (
+      <>
+        <div className="mobile-menu-scrim" onClick={onClose} aria-hidden="true" />
+        <div
+          ref={box}
+          className={`menu-drop ${className}`.trim()}
+          role="menu"
+          aria-label={label}
+          tabIndex={-1}
+          onKeyDown={moveWithArrows}
+        >
+          {children}
+        </div>
+      </>
+    );
+  }
 
   if (sheet) {
     return (

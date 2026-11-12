@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 /**
  * The tab strip of the product (#161).
  *
@@ -29,6 +30,12 @@ export interface TabOf<K extends string> {
    * *Todas 7 · Exportações 3* (#205). `count` is the lit one, for what blocks.
    */
   readonly total?: number;
+  /** What the tab holds, said when the mouse rests on it (#447). */
+  readonly hint?: string;
+  /** A shorter name for a phone, where the strip has room for less (#447). */
+  readonly shortLabel?: string;
+  /** An icon, which a strip that has no room for words on a phone shows instead (#452). */
+  readonly icon?: ReactNode;
 }
 
 export function Tabs<K extends string>({
@@ -64,12 +71,40 @@ export function Tabs<K extends string>({
           aria-selected={active === tab.key}
           aria-controls={`${id}-panel`}
           disabled={tab.disabled ?? false}
+          {...(tab.hint ? { title: tab.hint } : {})}
+          {...(tab.shortLabel
+            ? {
+                'aria-label':
+                  tab.total !== undefined && !tab.count
+                    ? `${tab.label} ${tab.total}`
+                    : tab.count
+                      ? `${tab.label} ${tab.count}`
+                      : tab.label,
+              }
+            : {})}
           className={['tab', active === tab.key ? 'is-selected' : '', tab.count ? 'is-marked' : '']
             .filter(Boolean)
             .join(' ')}
           onClick={() => onSelect(tab.key)}
         >
-          {tab.label}
+          {tab.icon ? (
+            <span className="tab-icon" aria-hidden="true">
+              {tab.icon}
+            </span>
+          ) : null}
+          {tab.shortLabel ? (
+            // Read out whole on every screen, whichever name is drawn.
+            <>
+              <span className="tab-label-long" aria-hidden="true">
+                {tab.label}
+              </span>
+              <span className="tab-label-short" aria-hidden="true">
+                {tab.shortLabel}
+              </span>
+            </>
+          ) : (
+            tab.label
+          )}
           {tab.count ? <span className="tab-count">{tab.count}</span> : null}
           {tab.total !== undefined && !tab.count ? (
             <span className="tab-total">{tab.total}</span>

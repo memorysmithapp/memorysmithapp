@@ -1,14 +1,15 @@
 /**
  * The community catalog (#360): publishing a model, withdrawing it, finding
- * and reading what is published, creating a notebook from it, and reporting
- * it to the operator of the platform, who may withdraw it.
+ * and reading what is published, and creating a notebook from it. Only its
+ * author withdraws a model (#439).
  *
  * A published model is read where it is, in its author's subscription,
  * through its catalog entry and nothing else (#356): the entry names the
- * subscription and the retained versions, and every public read starts from
- * it. Nothing is copied by publishing, so publishing and withdrawing change
- * no storage, and a notebook created from a published model is written and
- * counted in the subscription of whoever creates it.
+ * subscription and the model notebook, and every public read starts from it.
+ * The notebook is read as it stands, so a change its owner makes reaches the
+ * catalog (#431). Nothing is copied by publishing, so publishing and
+ * withdrawing change no storage, and a notebook created from a published model
+ * is written and counted in the subscription of whoever creates it.
  */
 
 import {
@@ -24,23 +25,20 @@ import {
   matches,
   publicViewOf,
   type CatalogEntry,
-  type CatalogReport,
-  type CatalogReports,
   type CatalogStore,
-  type CatalogVersion,
   type PublicModel,
 } from '../domain/CommunityCatalog.js';
 import type { NotebookDocument } from '../domain/NotebookDocumentBuilder.js';
-import type { ModelStore, NotebookModel } from '../domain/NotebookModel.js';
-import { referenceReport, resolveValues, fillText } from '../domain/ParameterFilling.js';
-import type { Transfer, TransferStore } from '../domain/Transfer.js';
-import { freshUploadKey } from './ImportNotebook.js';
+import type { ModelStore } from '../domain/NotebookModel.js';
+import type { ModelChange } from '../domain/ModelHistory.js';
+import { referenceReport } from '../domain/ParameterFilling.js';
+import type { Transfer } from '../domain/Transfer.js';
 import {
-  versionsOf,
+  contentsOf,
+  startFromModel,
   type ModelCaller,
+  type ModelReading,
   type OwnNotebooks,
-  type VersionCopier,
-  type VersionReader,
 } from './Models.js';
 import type { StartImport } from './Transfers.js';
 
@@ -54,26 +52,14 @@ export interface CatalogCache {
   invalidate(publicId: string): Promise<void>;
 }
 
-/** Tells the author that the operator withdrew their model (#358). */
-export interface AuthorNotifier {
-  withdrawn(entry: CatalogEntry, reason: string): Promise<void>;
-}
-
 /** Who publishes: the name the catalog shows, and the e-mail it never shows (#357). */
 export interface Author {
   readonly name: string | null;
   readonly email: string;
 }
 
-/** The operator of the platform, who holds no subscription (INV-12). */
-export interface PlatformActor {
-  readonly userId: string;
-  readonly isPlatformAdmin: boolean;
-}
-
 export interface PublicationDependencies {
   readonly models: ModelStore;
-  readonly transfers: TransferStore;
   readonly notebooks: OwnNotebooks;
   readonly catalog: CatalogStore;
   readonly cache: CatalogCache;
@@ -83,65 +69,37 @@ const LANGUAGE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const ownerOnly = (): DomainError =>
   DomainError.forbiddenVisible('Only the owner of the subscription publishes a model');
 
-/** The versions of a model a catalog entry retains: every ready one, the newest first. */
-async function retainedVersions(
-  transfers: TransferStore,
-  model: NotebookModel,
-): Promise<{ versions: CatalogVersion[]; name: string | null }> {
-  const ready = (await versionsOf(transfers, model)).filter(
-    (version) => version.status === 'ready' && version.transfer.key,
-  );
-  return {
-    versions: ready.map((version) => ({
-      number: version.number,
-      changelog: version.changelog,
-      createdAt: version.createdAt,
-      bytes: version.bytes,
-      key: version.transfer.key ?? '',
-      versionId: version.transfer.versionId ?? null,
-      parameters: version.transfer.model?.parameters ?? model.parameters,
-    })),
-    name: ready[0]?.transfer.notebookName ?? null,
-  };
-}
-
 /**
- * Says the entry of a published model again from its versions (#360): a
- * version made ready joins it, a deleted one leaves it, and a model with no
- * version left is withdrawn. A model not published, or withdrawn by the
- * operator, is left as it is.
+ * Says the entry of a published model again (#431): what the model declares
+ * and the name of its notebook, as they are now. A model not published, or
+ * withdrawn by the operator, is left as it is.
  */
 export async function refreshPublication(
-  deps: Pick<PublicationDependencies, 'models' | 'transfers' | 'catalog' | 'cache'>,
+  deps: Pick<PublicationDependencies, 'models' | 'notebooks' | 'catalog'>,
   notebookId: string,
 ): Promise<void> {
   const model = await deps.models.get(notebookId);
   if (!model?.publicId) return;
   const entry = await deps.catalog.get(model.publicId);
   if (!entry) return;
-  const { versions, name } = await retainedVersions(deps.transfers, model);
-  if (versions.length === 0) {
-    await deps.catalog.remove(model.publicId);
-    await deps.models.put({ ...model, publicId: null });
-    await deps.cache.invalidate(model.publicId);
-    return;
-  }
+  const notebook = await deps.notebooks.own(notebookId);
   await deps.catalog.put({
     ...entry,
-    name: name ?? entry.name,
+    name: notebook?.name ?? entry.name,
     objective: model.objective,
     description: model.description,
     audience: model.audience,
     basedOn: model.basedOn,
-    versions,
+    parameters: model.parameters,
+    updatedAt: Instant.now().toISOString(),
   });
 }
 
 /**
- * Publishes a model to the community (#360): only its owner, with at least one
- * ready version, a language, a name of their own to be shown by, and CC0 1.0,
- * which every distribution of a model is under and which is accepted once
- * (#357). Publishing again says the entry again.
+ * Publishes a model to the community (#360): only its owner, with a language,
+ * a name of their own to be shown by, and CC0 1.0, which every distribution of
+ * a model is under and which is accepted once (#357). Publishing again says
+ * the entry again.
  */
 export class PublishModel {
   constructor(
@@ -157,9 +115,8 @@ export class PublishModel {
   }): Promise<Result<PublicModel, DomainError>> {
     if (!this.caller.isOwner) return err(ownerOnly());
     const model = await this.deps.models.get(input.notebookId);
-    if (!model || !(await this.deps.notebooks.own(input.notebookId))) {
-      return err(DomainError.notFound('Model not found'));
-    }
+    const notebook = await this.deps.notebooks.own(input.notebookId);
+    if (!model || !notebook) return err(DomainError.notFound('Model not found'));
     const language = input.language.trim();
     if (!LANGUAGE.test(language)) {
       return err(DomainError.validation('A model is published in a language, such as pt-BR or en'));
@@ -172,10 +129,6 @@ export class PublishModel {
           { reason: 'AUTHOR_NAME' },
         ),
       );
-    }
-    const { versions, name } = await retainedVersions(this.deps.transfers, model);
-    if (versions.length === 0) {
-      return err(DomainError.conflict('A model is published with at least one ready version'));
     }
     if (!model.licenceAcceptedAt && !input.acceptLicence) {
       return err(
@@ -195,14 +148,15 @@ export class PublishModel {
       ownerUserId: model.ownerUserId,
       authorName,
       authorEmail: input.author.email,
-      name: name ?? '',
+      name: notebook.name,
       objective: model.objective,
       description: model.description,
       audience: model.audience,
       language,
       basedOn: model.basedOn,
       publishedAt: held?.publishedAt ?? now,
-      versions,
+      updatedAt: now,
+      parameters: model.parameters,
     };
     await this.deps.catalog.put(entry);
     await this.deps.models.put({
@@ -253,7 +207,7 @@ export interface CatalogReading {
 
 async function visible(deps: CatalogReading, publicId: string): Promise<CatalogEntry | null> {
   const entry = await deps.catalog.get(publicId);
-  if (!entry || entry.versions.length === 0) return null;
+  if (!entry) return null;
   return (await deps.access.grants(entry.subscriptionId)) ? entry : null;
 }
 
@@ -261,20 +215,47 @@ async function visible(deps: CatalogReading, publicId: string): Promise<CatalogE
 export class SearchCatalog {
   constructor(private readonly deps: CatalogReading) {}
 
-  async execute(query: { text: string; language: string | null }): Promise<PublicModel[]> {
-    const granting = new Map<string, boolean>();
-    const found: PublicModel[] = [];
-    for (const entry of await this.deps.catalog.list()) {
-      if (entry.versions.length === 0 || !matches(entry, query)) continue;
-      let grants = granting.get(entry.subscriptionId);
-      if (grants === undefined) {
-        grants = await this.deps.access.grants(entry.subscriptionId);
-        granting.set(entry.subscriptionId, grants);
-      }
-      if (grants) found.push(publicViewOf(entry));
-    }
-    return found.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  /**
+   * Each subscription of an author is asked once, and all of them at once
+   * (#420): the answer waits for the slowest of them, never for their sum.
+   *
+   * The newest published first, and a page at a time when a limit is asked
+   * (#432): the cursor is where the next page starts, null on the last one. A
+   * search that asks no limit answers every model it finds.
+   */
+  async execute(query: {
+    text: string;
+    language: string | null;
+    limit?: number | undefined;
+    cursor?: string | null | undefined;
+  }): Promise<{ models: PublicModel[]; next: string | null; total: number }> {
+    const candidates = (await this.deps.catalog.list()).filter((entry) => matches(entry, query));
+    const subscriptions = [...new Set(candidates.map((entry) => entry.subscriptionId))];
+    const answers = await Promise.all(subscriptions.map((id) => this.deps.access.grants(id)));
+    const granting = new Map(subscriptions.map((id, at) => [id, answers[at] === true]));
+    const found = candidates
+      .filter((entry) => granting.get(entry.subscriptionId))
+      .map(publicViewOf)
+      .sort(
+        (a, b) =>
+          b.publishedAt.localeCompare(a.publishedAt) || a.publicId.localeCompare(b.publicId),
+      );
+    if (query.limit === undefined) return { models: found, next: null, total: found.length };
+    const from = cursorOffset(query.cursor);
+    const to = from + query.limit;
+    // How many it found, which a pager says as "page 2 of 5" (#438).
+    return {
+      models: found.slice(from, to),
+      next: to < found.length ? String(to) : null,
+      total: found.length,
+    };
   }
+}
+
+/** Where a page of the search starts: the cursor the last page answered, or the start. */
+function cursorOffset(cursor: string | null | undefined): number {
+  const offset = Number(cursor ?? 0);
+  return Number.isInteger(offset) && offset > 0 ? offset : 0;
 }
 
 export class ReadCatalogModel {
@@ -286,177 +267,88 @@ export class ReadCatalogModel {
   }
 }
 
-/** A published version, read whole: its snapshot and nothing else of the subscription. */
-export class ReadCatalogVersion {
-  constructor(private readonly deps: CatalogReading & { readonly versions: VersionReader }) {}
+/**
+ * Where a published model notebook is read, for the public route (#431): the
+ * subscription and the owner an entry names, and nothing a request says
+ * (INV-02).
+ */
+export type ReadingOf = (
+  entry: Pick<CatalogEntry, 'subscriptionId' | 'ownerUserId'>,
+) => ModelReading;
 
-  async execute(input: { publicId: string; number: number }): Promise<
+/** A published model, read whole as it stands, and nothing else of its subscription (#431). */
+export class ReadCatalogContents {
+  constructor(private readonly deps: CatalogReading & { readonly readingOf: ReadingOf }) {}
+
+  async execute(publicId: string): Promise<
     Result<
       {
         model: PublicModel;
-        version: CatalogVersion;
         document: NotebookDocument;
         references: { undeclared: string[]; unused: string[] };
       },
       DomainError
     >
   > {
-    const entry = await visible(this.deps, input.publicId);
-    const version = entry?.versions.find((each) => each.number === input.number);
-    if (!entry || !version) return err(DomainError.notFound('Version not found'));
-    const document = await this.deps.versions.read(version.key, version.versionId);
-    if (!document) return err(DomainError.notFound('Version not found'));
+    const entry = await visible(this.deps, publicId);
+    if (!entry) return err(DomainError.notFound('Model not found'));
+    const document = await contentsOf(this.deps.readingOf(entry), entry.notebookId);
+    if (!document) return err(DomainError.notFound('Model not found'));
     return ok({
-      model: publicViewOf(entry),
-      version,
+      model: { ...publicViewOf(entry), name: document.notebook.name },
       document,
-      references: referenceReport(document, version.parameters),
+      references: referenceReport(document, entry.parameters),
+    });
+  }
+}
+
+/** The history of a published model: when and what, never who (#431). */
+export class ReadCatalogHistory {
+  constructor(private readonly deps: CatalogReading & { readonly readingOf: ReadingOf }) {}
+
+  async execute(
+    publicId: string,
+  ): Promise<
+    Result<{ changes: Array<Omit<ModelChange, 'agent'>>; truncated: boolean }, DomainError>
+  > {
+    const entry = await visible(this.deps, publicId);
+    if (!entry) return err(DomainError.notFound('Model not found'));
+    const history = await this.deps.readingOf(entry).history(entry.notebookId);
+    return ok({
+      changes: history.changes.map(({ agent: _never, ...change }) => change),
+      truncated: history.truncated,
     });
   }
 }
 
 /**
- * Creates a notebook from a published version (#360), for whoever signs in: the
- * snapshot is copied into their own uploads and imported there with its
- * parameters filled in, as from a model of their own (#359).
+ * Creates a notebook from a published model (#360, #431), for whoever signs
+ * in: the model notebook, as it stands, is copied into their own uploads and
+ * imported there with its parameters filled in, as from a model of their own.
  */
 export class CreateFromCatalog {
   constructor(
     private readonly deps: CatalogReading,
-    private readonly caller: ModelCaller,
-    private readonly copier: VersionCopier,
     private readonly startImport: StartImport,
   ) {}
 
   async execute(input: {
     publicId: string;
-    number: number;
     name: string;
     values: Readonly<Record<string, unknown>>;
     by: Authorship;
   }): Promise<Result<Transfer, DomainError>> {
     const entry = await visible(this.deps, input.publicId);
-    const version = entry?.versions.find((each) => each.number === input.number);
-    if (!entry || !version) return err(DomainError.notFound('Version not found'));
-    const values = resolveValues(version.parameters, input.values);
-    if (!values.ok) return values;
-
-    const uploadKey = freshUploadKey(this.caller.subscriptionId);
-    if (!(await this.copier.copyFrom(version.key, uploadKey))) {
-      return err(DomainError.notFound('Version not found'));
-    }
-    return this.startImport.execute({
-      uploadKey,
-      name: input.name.trim() || fillText(entry.name, values.value),
-      selection: null,
-      by: input.by,
-      fill: {
-        declarations: version.parameters,
-        values: Object.fromEntries([...values.value].map(([key, each]) => [key, each.value])),
-      },
-      origin: {
-        subscriptionId: entry.subscriptionId,
-        notebookId: entry.notebookId,
-        version: version.number,
-      },
-    });
-  }
-}
-
-/** A person who signed in reports a published model to the operator (#358). */
-export class ReportModel {
-  constructor(
-    private readonly deps: CatalogReading & { readonly reports: CatalogReports },
-    private readonly reporterUserId: string,
-  ) {}
-
-  async execute(input: { publicId: string; reason: string }): Promise<Result<void, DomainError>> {
-    const reason = input.reason.trim();
-    if (reason.length === 0 || reason.length > 1000) {
-      return err(DomainError.validation('A report says why, in at most 1000 characters'));
-    }
-    if (!(await visible(this.deps, input.publicId))) {
-      return err(DomainError.notFound('Model not found'));
-    }
-    await this.deps.reports.add({
-      reportId: ulid(),
-      publicId: input.publicId,
-      reason,
-      reporterUserId: this.reporterUserId,
-      reportedAt: Instant.now().toISOString(),
-    });
-    return ok();
-  }
-}
-
-function operatorOnly(actor: PlatformActor): Result<void, DomainError> {
-  return actor.isPlatformAdmin
-    ? ok()
-    : err(DomainError.forbidden('Only the operator of the platform reads the reports'));
-}
-
-/** The reports waiting for the operator, each with the model it is about, if still published. */
-export class ListReports {
-  constructor(
-    private readonly deps: { readonly catalog: CatalogStore; readonly reports: CatalogReports },
-    private readonly actor: PlatformActor,
-  ) {}
-
-  async execute(): Promise<
-    Result<Array<{ report: CatalogReport; model: PublicModel | null }>, DomainError>
-  > {
-    const allowed = operatorOnly(this.actor);
-    if (!allowed.ok) return allowed;
-    const listed: Array<{ report: CatalogReport; model: PublicModel | null }> = [];
-    for (const report of await this.deps.reports.list()) {
-      const entry = await this.deps.catalog.get(report.publicId);
-      listed.push({ report, model: entry ? publicViewOf(entry) : null });
-    }
-    return ok(listed);
-  }
-}
-
-/**
- * The operator withdraws a model from the catalog (#358): its entry is deleted
- * and nothing else, because a platform session reaches no customer content
- * (INV-12), and the author is told by e-mail why.
- */
-export class WithdrawByOperator {
-  constructor(
-    private readonly deps: {
-      readonly catalog: CatalogStore;
-      readonly cache: CatalogCache;
-      readonly notifier: AuthorNotifier;
-    },
-    private readonly actor: PlatformActor,
-  ) {}
-
-  async execute(input: { publicId: string; reason: string }): Promise<Result<void, DomainError>> {
-    const allowed = operatorOnly(this.actor);
-    if (!allowed.ok) return allowed;
-    const reason = input.reason.trim();
-    if (reason.length === 0) {
-      return err(DomainError.validation('A withdrawal says why, which the author is told'));
-    }
-    const entry = await this.deps.catalog.get(input.publicId);
     if (!entry) return err(DomainError.notFound('Model not found'));
-    await this.deps.catalog.remove(entry.publicId);
-    await this.deps.cache.invalidate(entry.publicId);
-    await this.deps.notifier.withdrawn(entry, reason);
-    return ok();
-  }
-}
-
-export class DismissReport {
-  constructor(
-    private readonly deps: { readonly reports: CatalogReports },
-    private readonly actor: PlatformActor,
-  ) {}
-
-  async execute(reportId: string): Promise<Result<void, DomainError>> {
-    const allowed = operatorOnly(this.actor);
-    if (!allowed.ok) return allowed;
-    await this.deps.reports.remove(reportId);
-    return ok();
+    return startFromModel(this.startImport, {
+      subscriptionId: entry.subscriptionId,
+      notebookId: entry.notebookId,
+      ownerUserId: entry.ownerUserId,
+      modelName: entry.name,
+      parameters: entry.parameters,
+      name: input.name,
+      values: input.values,
+      by: input.by,
+    });
   }
 }

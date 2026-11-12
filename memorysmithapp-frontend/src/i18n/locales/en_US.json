@@ -1,10 +1,4 @@
 {
-  "slot": {
-    "delete": "Delete",
-    "confirm": "Delete for good",
-    "deleting": "Deleting…",
-    "cancel": "Keep it"
-  },
   "write": {
     "unsaved": "Unsaved changes",
     "saving": "Saving…",
@@ -72,19 +66,87 @@
     "dark": "Dark",
     "system": "System"
   },
+  "sidebar": {
+    "collapse": "Collapse the sidebar",
+    "expand": "Expand the sidebar"
+  },
+  "nav": {
+    "label": "Menu of the product",
+    "home": "Home",
+    "notebooks": "Notebooks",
+    "models": "Models",
+    "community": "Community",
+    "transfers": "Transfers",
+    "about": "About",
+    "search": "Search",
+    "openMenu": "Open the menu",
+    "closeMenu": "Close the menu"
+  },
+  "shelf": {
+    "help": "What this page is for"
+  },
+  "ownership": {
+    "notebook": {
+      "own": {
+        "label": "Your notebook",
+        "explain": "This notebook is of your subscription. Its ⋯ exports it, shares it with a person or deletes it."
+      },
+      "sharedByMe": {
+        "label": "Your notebook, shared by you",
+        "explain": "This notebook is yours, and you shared it with other people, who find it on their Notebooks. Its ⋯ shares it again, exports it or deletes it."
+      },
+      "sharedWithMe": {
+        "label": "Shared with you by {{owner}}",
+        "explain": "{{owner}} shared this notebook with you. It stays theirs; what you may do in it is the profile of the share, written on the card."
+      }
+    },
+    "model": {
+      "own": {
+        "label": "Your model",
+        "explain": "This model is a notebook of your subscription, declared as a model. Its ⋯ exports it, shares it with a person or deletes it."
+      },
+      "sharedByMe": {
+        "label": "Your model, shared by you",
+        "explain": "This model is yours, and you shared it with other people. Its ⋯ shares it again, exports it or deletes it."
+      },
+      "sharedWithMe": {
+        "label": "A model shared with you by {{owner}}",
+        "explain": "{{owner}} shared this model with you. You read it as it stands, and its history, and create notebooks from it; its notebook stays with them."
+      }
+    },
+    "community": {
+      "own": {
+        "label": "Your model, published by you",
+        "explain": "You published this model in the community: every person signed in to MemorySmith.app reads it and creates notebooks from it."
+      },
+      "community": {
+        "label": "Published in the community by {{owner}}",
+        "explain": "{{owner}} published this model in the community, free to use (CC0). Its ⋯ creates a notebook of your own from it."
+      }
+    }
+  },
+  "models": {
+    "title": "Models",
+    "new": "New model",
+    "empty": "No notebook you read is a model yet. Create one here, or ask an agent to declare a notebook as one.",
+    "sharedBy": "Shared by {{owner}}",
+    "published": "In the community",
+    "parameters_one": "{{count}} parameter",
+    "parameters_other": "{{count}} parameters",
+    "updated": "updated {{date}}",
+    "open": "Open the model",
+    "help": "A model is a notebook that serves as a mould: it creates new notebooks as it stands, with its parameters filled in, and keeps the history of its changes. Here are yours and the ones shared with you as a model. The ⋯ of one of yours exports, shares or deletes it."
+  },
   "language": {
     "heading": "Language",
     "en_US": "English",
     "pt_BR": "Português"
   },
   "search": {
-    "placeholder": "Search the whole notebook…",
     "searching": "Searching…",
-    "empty": "No notes match.",
     "invalid": "Invalid query. Check the quotes, parentheses and operators.",
     "failed": "The search failed. Try again.",
-    "syntaxHint": "Searches the whole text. Accepts <c>\"exact phrase\"</c>, <c>-exclude</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> and frontmatter attributes, such as <c>maturity:evergreen</c>.",
-    "open": "Search"
+    "syntaxHint": "Searches the whole text. Accepts <c>\"exact phrase\"</c>, <c>-exclude</c>, <c>OR</c>, <c>name:</c>, <c>folder:</c>, <c>section:</c>, <c>content:</c> and frontmatter attributes, such as <c>maturity:evergreen</c>."
   },
   "notebooks": {
     "heading": "Notebooks",
@@ -92,26 +154,25 @@
     "noteCount_other": "{{count}} notes",
     "updatedAt": "updated {{date}}",
     "open": "Open notebook",
-    "openShort": "Open"
+    "openShort": "Open",
+    "help": "Your notebooks and the ones shared with you, by name. The icon in a corner says whose each one is; ⋯ exports, shares or deletes it. A new notebook starts blank or from a model."
   },
   "structure": {
     "morePages": "Tables, dashboards and more",
     "guidance": "Guidance",
     "folders": "Folders",
     "foldersHint": "The tree, with the description of each folder",
+    "modelHint": "What it declares as a model: its objective, its parameters, what it holds and its history",
     "noFolders": "This notebook has no folders yet.",
     "noteCountSplit": "{{here}} here, {{below}} in subfolders",
     "hasTemplate": "template",
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
-    "backToNotebooks": "All notebooks",
     "openNavigation": "Notebook navigation",
     "heading": "Notebook Context",
     "contextParts": "Guidance, Templates and Folders",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
-    "deleteGuidance": "Delete the Guidance",
     "noGuidanceWrite": "This notebook has no Guidance yet. Use the pencil to write one: it directs every agent that writes here.",
-    "deleteGuidanceConfirm": "Delete the guidance of this notebook? Its folders, its templates and every note stay; the notebook simply stops saying how it wants to be written. This cannot be undone.",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
@@ -128,9 +189,7 @@
     "notesHeading": "Notes in this folder",
     "template": "Template",
     "templateCardHint": "The suggested layout for the notes of this folder",
-    "deleteTemplate": "Delete the Template",
     "noTemplateWrite": "This folder has no Template yet. Use the pencil to write one, the layout suggested to the notes written here.",
-    "deleteTemplateConfirm": "Delete the template of this folder? The folder, its description and its notes stay, and the notes already written keep the shape they have. This cannot be undone.",
     "empty": "No notes in this folder yet.",
     "noteOrder": "Order of the notes",
     "noteOrderManual": "Manual",
@@ -252,12 +311,6 @@
     "close": "Close"
   },
   "dashboard": {
-    "selectNotebook": "Open a notebook",
-    "prevNotebooks": "Previous notebooks",
-    "nextNotebooks": "Next notebooks",
-    "expandNotebooks": "Show all notebooks",
-    "collapseNotebooks": "Back to one row",
-    "goToNotebook": "Go to notebook {{number}}",
     "noNotebooks": "No notebook yet. Create one here, an agent creates one through the connector, and an export comes back in through Transfers.",
     "space": "Subscription space",
     "planChip": "{{plan}} · {{quota}}",
@@ -371,7 +424,18 @@
     "historyEntries_one": "{{count}} entry",
     "historyEntries_other": "{{count}} entries",
     "noHistory": "This archive carries no history.",
+    "chooseNotebook": "Choose notebook",
+    "noNotebook": "No notebook chosen",
     "exportNotebook": "Notebook",
+    "tabShort": {
+      "context": "Context",
+      "folders": "Folders",
+      "templates": "Templates",
+      "notes": "Notes",
+      "conflicts": "Problems",
+      "files": "Files",
+      "tables": "Tables"
+    },
     "tab": {
       "context": "Context",
       "folders": "Folders",
@@ -458,7 +522,8 @@
       "carried": "{{tables}} of {{heldTables}} tables · {{dashboards}} of {{heldDashboards}} dashboards",
       "blocked_one": "{{count}} dashboard draws from a table that stays out",
       "blocked_other": "{{count}} dashboards draw from a table that stays out"
-    }
+    },
+    "searchNotebooks": "Search notebooks by name"
   },
   "attachments": {
     "heading": "Attachments",
@@ -525,7 +590,7 @@
     "deleteConfirm": "Delete for good",
     "deleting": "Deleting…",
     "carry": {
-      "published": "These tables go with their rows, which anybody will read: {{tables}}."
+      "published": "These tables go with their rows, which every person signed in will read: {{tables}}."
     },
     "shownBy_one": "Shown in {{count}} note",
     "shownBy_other": "Shown in {{count}} notes",
@@ -592,6 +657,17 @@
     "disposable": "What is written in this environment is disposable."
   },
   "transfers": {
+    "endedNotice": {
+      "export": {
+        "ready": "The export of <b>{{notebook}}</b> finished.",
+        "failed": "The export of <b>{{notebook}}</b> failed."
+      },
+      "import": {
+        "ready": "The import of <b>{{notebook}}</b> finished.",
+        "failed": "The import of <b>{{notebook}}</b> failed."
+      }
+    },
+    "columns": { "what": "Transfer", "state": "State", "actions": "Actions" },
     "heading": "Transfers",
     "seeAll": "See all",
     "filter": "What to show",
@@ -603,6 +679,8 @@
       "request": "Waiting for you"
     },
     "empty": "Nothing has been transferred yet.",
+    "help": "Every export and import of your account. An export is kept here until you delete it, counts towards your plan, and outlives the notebook it came from, so it is the way back from a deletion by mistake. An import creates a new notebook from an exported file. The uploads an agent sends in parts reserve space of your plan until they finish, and the files an agent asked you for wait here for you.",
+    "keptOfPlan": "<b>{{size}}</b> of your plan",
     "keptBytes": "Space used: {{size}}",
     "download": "Download",
     "delete": "Delete",
@@ -621,8 +699,8 @@
       "cancelled": "cancelled",
       "running": "running"
     },
-    "newExport": "New export",
-    "newImport": "Import a notebook",
+    "newExport": "Export",
+    "newImport": "Import",
     "noNotebooks": "There is no notebook to export yet.",
     "line": {
       "export": "Export · {{notebook}}",
@@ -647,7 +725,6 @@
       "running": "Running",
       "stalled": "Stopped"
     },
-    "keptSentence": "Exports are kept until you delete them, and take <b>{{size}}</b> of your plan.",
     "keptShort": "Space used: <b>{{size}}</b>",
     "deleteAsk": "Delete this export?",
     "deleteFrees": "This is for good and frees {{size}} of your plan. The notebook, if it still exists, is not touched.",
@@ -662,7 +739,6 @@
     "platform": "through {{platform}}",
     "lastPart": "last part {{when}}",
     "noPartYet": "no part yet",
-    "transitSentence": "The agent's open uploads reserve <b>{{size}}</b>.",
     "importUnavailable": "Notebook unavailable.",
     "uploadUnavailable": "No notebook: this upload's notebook is not available. Link it to a notebook to finish it.",
     "link": "Link to a notebook",
@@ -688,9 +764,8 @@
     "waitingCount_other": "{{count}} files waiting for you"
   },
   "about": {
-    "menu": "About MemorySmith.app",
     "title": "About MemorySmith.app",
-    "heading": "Welcome to MemorySmith.app",
+    "heading": "About <brand>MemorySmith<suffix>.app</suffix></brand>",
     "lead": "Structured knowledge we build and keep side by side with our AI assistants, always readable by us and by them.",
     "what": {
       "heading": "What this is",
@@ -702,7 +777,7 @@
       "body": "This interface is a reading tool before it is an editing one. These are the surfaces it gives you:",
       "notebooks": {
         "term": "Notebooks",
-        "definition": "The first screen lists them, with how many notes each one holds and when it last changed. Opening one takes you back to where you stopped reading."
+        "definition": "Notebooks, in the menu at the top, lists them as cards, with how many notes each one holds and when it last changed. Opening one takes you back to where you stopped reading."
       },
       "folders": {
         "term": "Folders and notes",
@@ -726,7 +801,7 @@
       },
       "model": {
         "term": "Notebook model",
-        "definition": "A notebook declared as a model creates others from it, with its parameters filled in. Its versions are frozen, and each can be published to the community."
+        "definition": "A notebook declared as a model creates others from it, as it stands, with its parameters filled in. Its history lists every change, and it can be published to the community; to keep a state of it, export the notebook. Models, in the menu at the top, lists them and creates a new one."
       },
       "graph": {
         "term": "Graph",
@@ -734,7 +809,7 @@
       },
       "search": {
         "term": "Search",
-        "definition": "Across the notes of a notebook, by what they say and by the properties they declare."
+        "definition": "The search at the top of every page, or Ctrl K, finds notebooks, models and community models by name; inside a notebook it searches its notes too, first, by what they say and by the properties they declare."
       },
       "sharing": {
         "term": "Sharing",
@@ -742,11 +817,11 @@
       },
       "community": {
         "term": "Community models",
-        "definition": "The notebook models other people published, to read and to create a notebook from. It is in the menu of your picture."
+        "definition": "The notebook models other people published, to read and to create a notebook from. It is Community, in the menu at the top of every page."
       },
       "transfers": {
         "term": "Transfers",
-        "definition": "Exporting a notebook, or importing one, from the icon beside your picture. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
+        "definition": "Exporting a notebook, or importing one, from Transfers in the menu; the bell at the top says when one is under way. What comes out is a .notebook file holding the notebook — the notes in Markdown, the folders, the Guidance, the Templates, the tables, the dashboards and the notebook model, and the history and the files when you choose them — and that file is what an import reads."
       }
     },
     "connector": {
@@ -778,7 +853,6 @@
       "three": "“Write a note about what we just discussed, in the right folder.”",
       "skills": "The connector carries written methods for the tasks that go wrong most often — designing a notebook from scratch, writing a note this product can read — and a good assistant reads them before it starts. You will see it do so."
     },
-    "start": "Get started",
     "files": {
       "heading": "Files through your assistant",
       "body": "An assistant keeps a photo, a PDF or a recording whole, at the size it arrived, by sending the parts of the file straight to the address below. For that, the app it runs in has to allow it — and the settings that decide it do not say when they are in the way.",
@@ -901,7 +975,6 @@
   "history": {
     "heading": "History of this note",
     "short": "History",
-    "loading": "Reading the history…",
     "failed": "The history could not be read.",
     "aPerson": "From the interface",
     "noMessage": "No line was left about this change.",
@@ -969,11 +1042,6 @@
     "choose": "Choose a file"
   },
   "sharing": {
-    "ownership": {
-      "own": "Your notebook",
-      "sharedByMe": "Your notebook, shared by you",
-      "sharedWithMe": "Shared with you by {{owner}}"
-    },
     "accept": "Accept",
     "reject": "Decline",
     "dialog": {
@@ -1025,10 +1093,11 @@
       "reader": "Reads and exports the whole notebook, and writes nothing.",
       "contentEditor": "Also writes, moves and deletes notes and keeps files. The folders, the Guidance and the Templates stay yours to change.",
       "notebookEditor": "Also creates, edits and deletes folders, the Guidance and the Templates. Sharing and deleting the notebook stay with you.",
-      "modelReader": "Reads this model and its versions and creates notebooks from them, and never opens the notebook itself."
+      "modelReader": "Reads this model as it stands, and its history, and creates notebooks from it, and never opens the notebook itself."
     }
   },
   "notifications": {
+    "markRead": "Mark as read",
     "heading": "Notifications",
     "count_one": "{{count}} notification",
     "count_other": "{{count}} notifications",
@@ -1196,47 +1265,28 @@
     "save": "Save",
     "saving": "Saving…",
     "saved": "Saved.",
-    "versions": "Versions",
-    "changelog": "What changed since the last version",
-    "versionHint": "A version freezes the notebook as it is now. It never changes afterwards, and it counts once in the storage.",
-    "createVersion": "Create a version",
-    "creatingVersion": "Creating…",
-    "noVersions": "No version yet.",
-    "status": {
-      "running": "Being created",
-      "ready": "Ready",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
-    "openVersion": "Open",
-    "deleteVersion": "Delete…",
-    "deleteVersionForGood": "Delete v{{number}}",
-    "versionTitle": "Version {{number}}",
-    "undeclared": "This version writes {{names}}, which no parameter declares: a notebook created from it would keep them as written.",
+    "undeclared": "This model writes {{names}}, which no parameter declares: a notebook created from it would keep them as written.",
     "unused": "Declared and not written anywhere: {{names}}.",
     "contents": "What it holds",
     "none": "None.",
-    "create": "Create a notebook from this version",
-    "creating": "Creating…",
     "newName": "Name of the new notebook",
-    "newNameHint": "Left empty, it is the name of the model, filled in.",
-    "stillCreating": "The notebook is still being written; it appears on Home when it is.",
-    "creationFailed": "The notebook was not created. Transfers says why.",
+    "newNameHint": "It follows the model's name, filled in with the values below, until you write one of your own; a parameter you write in it is filled in too.",
+    "stillCreating": "The notebook is still being written; it appears in Notebooks when it is.",
+    "creationFailed": "The notebook was not created: {{reason}}",
     "referenceExample": "name",
-    "sharedBy": "Shared with you by {{owner}}. You read this model and its versions and create notebooks from them; the notebook it is stays with its owner.",
+    "sharedBy": "Shared with you by {{owner}}. You read this model as it stands, and its history, and create notebooks from it; the notebook it is stays with its owner.",
     "community": "Community",
-    "publishHint": "Publishing shows the model and every version you keep to anybody, signed in or not, by the name of your account and never your e-mail; whoever signs in creates notebooks from it. You withdraw it at any time.",
+    "publishHint": "Publishing shows the model as it stands, and the history of its changes without who made them, to every person signed in to MemorySmith.app, by the name of your account and never your e-mail; whoever reads it creates notebooks from it. You withdraw it at any time.",
     "publishLicence": "Every distribution of a model is under CC0 1.0: anybody may reuse and republish it freely, the community included.",
     "publish": "Publish to the community",
-    "publishNeedsVersion": "Create a version first: the community reads versions, never the notebook.",
     "publishNeedsName": "Write your name in your profile first: the catalog shows it, never your e-mail.",
     "publishedAs": "Published by {{author}}, in {{language}}.",
-    "publicPage": "Open its public page",
     "withdraw": "Withdraw from the community",
     "tabs": {
       "about": "About the model",
       "parameters": "Parameters",
-      "versions": "Versions",
+      "contents": "Contents",
+      "history": "History",
       "community": "Community"
     },
     "editParameter": "Edit",
@@ -1245,8 +1295,56 @@
     "addParameterTitle": "New parameter",
     "editParameterTitle": "Edit parameter",
     "removeParameterTitle": "Remove the parameter {{name}}?",
-    "removeParameterBody": "Notebooks created from the next versions will no longer fill in {{reference}}. Where {{reference}} is already written in the notes, it stays as written.",
-    "defaultsToNothing": "empty by default"
+    "removeParameterBody": "Notebooks created from the model from now on will no longer fill in {{reference}}. Where {{reference}} is already written in the notes, it stays as written.",
+    "defaultsToNothing": "empty by default",
+    "contentsHint": "The model as it stands now: a notebook created from it starts as this. To keep a state of it, export the notebook.",
+    "historyHint": "Every change of the notebook this model is, the newest first: who made it, through which connector, and the line they left.",
+    "createdFromModel": "Created from the model “{{name}}”",
+    "historyEmpty": "No change was recorded yet.",
+    "historyTruncated": "Older changes are left out.",
+    "historyColumns": {
+      "when": "When",
+      "who": "Who",
+      "what": "What changed",
+      "line": "Line left"
+    },
+    "change": {
+      "NotebookCreated": "Notebook created",
+      "NotebookRenamed": "Notebook renamed",
+      "GuidanceUpdated": "Guidance written",
+      "GuidanceDeleted": "Guidance deleted",
+      "FolderAdded": "Folder added",
+      "FolderRenamed": "Folder renamed",
+      "FolderDescribed": "Folder described",
+      "FolderNotesOrdered": "Notes of a folder ordered",
+      "FolderMoved": "Folder moved",
+      "FolderReordered": "Folder reordered",
+      "FolderRemoved": "Folder removed",
+      "TemplateUpdated": "Template written",
+      "TemplateDeleted": "Template deleted",
+      "FileKept": "File kept",
+      "FileDeleted": "File deleted",
+      "TableCreated": "Table created",
+      "TableAltered": "Table altered",
+      "TableDeleted": "Table deleted",
+      "RowsInserted": "Rows inserted",
+      "RowsUpdated": "Rows updated",
+      "RowsDeleted": "Rows deleted",
+      "DashboardCreated": "Dashboard created",
+      "DashboardChanged": "Dashboard changed",
+      "DashboardDeleted": "Dashboard deleted",
+      "NoteCreated": "Note created",
+      "NoteUpdated": "Note written",
+      "NoteReordered": "Note reordered",
+      "NoteMoved": "Note moved",
+      "NoteDeleted": "Note deleted",
+      "NoteRestored": "Note restored"
+    },
+    "folderNotes_one": "{{count}} note",
+    "folderNotes_other": "{{count}} notes",
+    "untitledNote": "A note with no name",
+    "kindFolder": "Folder",
+    "kindNote": "Note"
   },
   "newNotebook": {
     "open": "New notebook",
@@ -1262,22 +1360,29 @@
     "create": "Create",
     "creating": "Creating…",
     "model": "Model",
-    "noModels": "No notebook of this subscription is declared as a model yet.",
-    "noVersion": "This model has no ready version yet.",
-    "fromVersion": "From version {{number}}: {{changelog}}",
-    "community": "Or find a model in the community",
-    "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created."
+    "parametersAfter": "You declare the parameters afterwards, in the Parameters tab, which opens as soon as the model is created.",
+    "origins": {
+      "mine": "Mine",
+      "shared": "Shared with me",
+      "community": "Community"
+    },
+    "searchModels": "Search models by name or what they are for",
+    "chooseModel": "Choose model",
+    "noModel": "No model chosen yet",
+    "select": "Select",
+    "back": "Back"
   },
   "community": {
-    "title": "Community models",
-    "menu": "Community models",
-    "home": "Home",
-    "back": "Back",
-    "signIn": "Sign in",
-    "intro": "Notebook models other people published, each a whole notebook with its folders, Templates and examples, to create a notebook of your own from. Anybody may read them; creating a notebook from one asks you to sign in.",
-    "search": "Find",
-    "searchHint": "Words of the name, the objective, the author…",
-    "find": "Find",
+    "title": "Community",
+    "nothing": "No published model answers this search.",
+    "licenceName": "Licence",
+    "publishedAt": "Published",
+    "updatedAt": "Changed",
+    "size": "Size",
+    "author": "Author",
+    "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
+    "by": "By {{author}}",
+    "cardMeta": "{{language}} · updated {{date}}",
     "language": "Language",
     "languages": {
       "any": "Any language",
@@ -1285,16 +1390,88 @@
       "en": "English",
       "es": "Spanish"
     },
-    "nothing": "No published model answers this search.",
-    "byline_one": "By {{author}} · {{language}} · updated {{date}} · {{count}} version",
-    "byline_other": "By {{author}} · {{language}} · updated {{date}} · {{count}} versions",
-    "author": "Author",
-    "licence": "Published under CC0 1.0: anybody may reuse, adapt and republish it freely, with credit optional.",
-    "report": "Report this model",
-    "reportWhy": "What is wrong with it",
-    "sendReport": "Send the report",
-    "reported": "Thank you: the report reached the operator of the platform.",
-    "signInToReport": "Sign in to report this model",
-    "signInToCreate": "Sign in to create a notebook from this version"
+    "help": "Models other people published, free to use (CC0). Open one to read it as it stands, and its history, and create a notebook of your own from it. To find one by name, use the search at the top.",
+    "historyHint": "Every change of this model, the newest first, and the line its author left."
+  },
+  "globalSearch": {
+    "placeholder": "Find notebooks, models and community models…",
+    "groups": {
+      "notes": "In {{notebook}}",
+      "notebooks": "Notebooks",
+      "models": "Models",
+      "community": "Community"
+    },
+    "nothing": "Nothing has that name.",
+    "typeMore": "Type to find a notebook, a model or a community model.",
+    "placeholderNotebook": "Search this notebook, notebooks, models and the community…"
+  },
+  "overview": {
+    "title": "Overview",
+    "resume": "Continue where you left off",
+    "stats": "This notebook in numbers",
+    "notes_one": "note",
+    "notes_other": "notes",
+    "attachments_one": "attachment",
+    "attachments_other": "attachments",
+    "modelParameters_one": "parameter of this notebook model",
+    "modelParameters_other": "parameters of this notebook model",
+    "guidance": "Guidance written",
+    "noGuidance": "no Guidance yet",
+    "templates_one": "Template",
+    "templates_other": "Templates",
+    "folders_one": "folder",
+    "folders_other": "folders",
+    "tables_one": "table",
+    "tables_other": "tables",
+    "dashboards_one": "dashboard",
+    "dashboards_other": "dashboards",
+    "links_one": "link between notes",
+    "links_other": "links between notes",
+    "pending_one": "pending link",
+    "pending_other": "pending links",
+    "orphans_one": "orphan",
+    "orphans_other": "orphans",
+    "lately": "Changed lately",
+    "noNotes": "This notebook has no notes yet.",
+    "pendingTitle": "Pending links",
+    "pendingHint": "Links to a note nobody has written yet. Each becomes a link the moment a note takes that name.",
+    "pendingFrom": "from {{note}}",
+    "orphansTitle": "Orphans",
+    "lists": "The lists of this notebook",
+    "noPending": "No link is waiting for a note.",
+    "noOrphans": "Every note is linked from another one.",
+    "latelyHint": "The notes changed last, the most recent first.",
+    "historyHint": "Every change of this notebook since it was created: what, when, who and the line left.",
+    "latelyShort": "Recent",
+    "pendingShort": "Pending",
+    "orphansShort": "Orphans",
+    "historyShort": "History",
+    "historyTitle": "History",
+    "orphansHint": "Notes no other note links to."
+  },
+  "noteAuthor": {
+    "you": "you",
+    "person": "a person",
+    "agent": "agent {{name}}"
+  },
+  "folderTable": {
+    "property": "Property",
+    "noProperty": "None",
+    "folderOrder": "Folder order",
+    "name": "Name",
+    "updated": "Changed",
+    "author": "By"
+  },
+  "picker": {
+    "loading": "Loading…",
+    "failed": "Could not search. Try again.",
+    "noMatch": "Nothing matches what you typed.",
+    "none": "Nothing here yet.",
+    "columns": {
+      "name": "Name",
+      "line": "What it is for",
+      "by": "Whose"
+    },
+    "yours": "Yours"
   }
 }

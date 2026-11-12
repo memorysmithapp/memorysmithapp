@@ -13,29 +13,40 @@ import { Menu } from '../../shared/components/Menu';
 import { BellIcon, CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { sharesChanged, useNotifications } from './shares';
 import { ActionWord } from '../../shared/components/ActionWord';
+import { TransferNotice, useTransfersStatus } from '../portability/TransfersStatus';
 
 /**
- * The notifications of the person, beside Transfers and the user menu (#256,
- * RN-ACC-029): every change of a share, told to the side that did not make
- * it. A share waiting for an answer is answered here as on its card; every
- * other notice is read and dismissed. The count on the button is everything
- * listed, because each item is something still to see or to do.
+ * The notifications of the person, beside the user menu (#256, RN-ACC-029):
+ * every change of a share, told to the side that did not make it, and that a
+ * transfer is under way (#418). A share waiting for an answer is answered here
+ * as on its card; every other notice of a share is read and dismissed, and the
+ * notice of a transfer shows it while it runs, and that it ended until it is
+ * marked as read (#450, #451). The count on the button is every notice, and
+ * its edge fills in as far as the transfers under way got.
  */
 export function NotificationsMenu() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
-  const close = useCallback(() => setOpen(false), []);
   const notifications = useNotifications().data ?? [];
-  const count = notifications.length;
+  const transfers = useTransfersStatus();
+  const count = notifications.length + transfers.running.length + transfers.ended.length;
+  // The end of a transfer stays until it is marked as read (#451).
+  const close = useCallback(() => setOpen(false), []);
 
   return (
     <div className="notifications-menu">
       <button
         ref={trigger}
         type="button"
-        className="icon-button notifications-trigger"
-        onClick={() => setOpen((current) => !current)}
+        className={`icon-button notifications-trigger${transfers.ring !== null ? ' is-working' : ''}`}
+        // Its edge fills in as far as the transfers under way got (#450).
+        style={
+          transfers.ring !== null
+            ? { ['--progress' as string]: `${Math.round(transfers.ring * 100)}%` }
+            : undefined
+        }
+        onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={
@@ -58,14 +69,23 @@ export function NotificationsMenu() {
         label={t('notifications.heading')}
         className="notifications-panel"
         closeLabel={t('common.close')}
+        fromHeader
       >
         <div className="transfers-panel-head">
           <h2>{t('notifications.heading')}</h2>
         </div>
-        {notifications.length === 0 ? (
+        {count === 0 ? (
           <p className="transfers-panel-empty">{t('notifications.empty')}</p>
         ) : (
           <ul className="notifications-list">
+            {[...transfers.running, ...transfers.ended].map((transfer) => (
+              <li key={transfer.transferId}>
+                <TransferNotice
+                  transfer={transfer}
+                  onRead={() => transfers.read(transfer.transferId)}
+                />
+              </li>
+            ))}
             {notifications.map((notice) => (
               <li key={`${notice.kind}-${notice.notebookId}-${notice.granteeUserId ?? ''}`}>
                 <Notice notice={notice} />

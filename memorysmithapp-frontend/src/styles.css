@@ -133,11 +133,18 @@ a:hover {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
+  /* One column the width of the window, never wider: a row of Home that
+     scrolls sideways is as wide as all its cards, and an automatic column
+     grew to it and pushed the header past the window (#414). */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .app-header {
-  display: flex;
+  /* Three columns, the outer two of equal width, so the search sits in the
+     middle of the window whatever the brand and the controls measure (#418). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px) minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   height: var(--header-h);
@@ -184,6 +191,15 @@ a:hover {
   gap: 10px;
   color: var(--text);
 }
+/* A way Home that reads as the brand: never underlined (#426). */
+.brand:hover {
+  text-decoration: none;
+}
+.brand:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: var(--focus-ring);
+}
 .brand-symbol {
   height: 28px;
   width: auto;
@@ -214,6 +230,323 @@ a:hover {
 }
 .header-spacer {
   flex: 1;
+}
+
+/* The menu of the product (#418): the second row of the header, only for it.
+   Each entry is its icon and its word; the open one is in Tinta at 600 with a
+   rule of Tinta under it, and the fill is only the cursor. It never folds
+   away: where the window is narrow the row scrolls sideways. */
+.app-menu-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.top-menu {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+  /* Centred in its row; where it is wider than the row, the margins give way
+     and it scrolls from its first entry. */
+  margin-inline: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.top-menu::-webkit-scrollbar {
+  display: none;
+}
+.top-menu-item {
+  flex: none;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-soft);
+  font: 500 13.5px var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.top-menu-item svg {
+  flex: none;
+}
+.top-menu-item:hover {
+  background: var(--hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.top-menu-item.active {
+  color: var(--chosen);
+  font-weight: 600;
+  border-bottom-color: var(--chosen);
+}
+.top-menu-item.active svg {
+  stroke-width: 2.4;
+}
+.top-menu-item:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+@media (max-width: 860px) {
+  .app-menu-row {
+    padding: 0 8px;
+  }
+}
+
+/* Search, in the middle of the first row of the header (#418): the field,
+   the key that reaches it from anywhere, and what it found in groups under
+   it, over the page. */
+.global-search {
+  position: relative;
+  min-width: 0;
+}
+.header-controls {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.header-start {
+  justify-self: start;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.global-search .search-box {
+  margin: 0;
+}
+.global-search .search-box input {
+  /* White, as everything else in the header, and round at both ends, as the
+     avatar and the bell beside it are (#422). */
+  background: var(--surface);
+  border-radius: 999px;
+  padding-left: 38px;
+  padding-right: 64px;
+}
+.global-search .search-box-icon {
+  left: 14px;
+}
+.global-search .search-box input:focus {
+  /* The field keeps its edge with the focus: the caret in it says so, with
+     no ring and no darker edge (#418, #422). */
+  border-color: var(--border);
+  box-shadow: none;
+}
+.search-box-key {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-soft);
+  background: var(--surface);
+  pointer-events: none;
+}
+/* The key inside the round field is round too (#422). */
+.global-search .search-box-key {
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+.global-search-results {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(28rem, 62vh);
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--menu-shadow);
+}
+@media (max-width: 860px) {
+  .search-box-key {
+    display: none;
+  }
+  .global-search .search-box input {
+    padding-right: 12px;
+  }
+  /* On a narrow window the list takes the width of the window, under the
+     header, rather than the width of a short field. */
+  .global-search-results {
+    position: fixed;
+    top: calc(var(--header-h) + 6px);
+    left: 1rem;
+    right: 1rem;
+  }
+}
+.global-search-group + .global-search-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.global-search-title {
+  margin: 6px 8px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font: 500 10.5px var(--display);
+  color: var(--text-soft);
+}
+.global-search-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.global-search-group a {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: var(--text);
+}
+.global-search-group a:hover,
+.global-search-group a:focus-visible {
+  background: var(--hover);
+  text-decoration: none;
+  outline: none;
+}
+.global-search-group a svg {
+  color: var(--text-soft);
+}
+.global-search-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.global-search-excerpt {
+  grid-column: 2;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.global-search-excerpt mark {
+  background: var(--accent-soft);
+  color: inherit;
+}
+.global-search-detail {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The content of a notebook's sidebar: the rule, its caption and the tree. */
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The last row of a notebook's sidebar folds it to its icons, or opens it
+   again (#414). The foot of the column holds it, across the whole width and over what
+   scrolls under it. It is also the room #196 kept at the foot: the address a
+   desktop browser draws in the bottom-left corner covers the foot, never the
+   last row of the tree. */
+.sidebar-foot {
+  position: sticky;
+  bottom: 0;
+  margin: auto -20px 0;
+  padding: 8px 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.sidebar-fold {
+  width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font: 13px var(--sans);
+  line-height: 1;
+  cursor: pointer;
+}
+.sidebar-fold:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.sidebar-fold:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.sidebar-fold svg {
+  flex: none;
+}
+
+/* Folded (#414): the column keeps its icons and gives the page the rest. What
+   needs words to be read — the name of the notebook, the captions, the tree —
+   waits until it opens again. */
+/* Its icons are centred in the whole column, with no padding at the sides: a
+   36 px row inside 64 px less the border and a 14 px padding on each side
+   overflowed by half a pixel, and that half pixel drew a scroll bar beside
+   the icons (#422). A short window still scrolls the column, with no bar. */
+.notebook-sidebar.is-collapsed {
+  width: 64px;
+  padding-inline: 0;
+  align-items: center;
+  scrollbar-width: none;
+}
+.notebook-sidebar.is-collapsed::-webkit-scrollbar {
+  display: none;
+}
+.is-collapsed .sidebar-foot {
+  align-self: stretch;
+  margin-inline: 0;
+  padding-inline: 0;
+  display: flex;
+  justify-content: center;
+}
+.is-collapsed
+  :is(
+    .nav-row-label,
+    .sidebar-head,
+    .sidebar-caption,
+    .sidebar-notebook,
+    .sidebar-content,
+    .nav-fold
+  ) {
+  display: none;
+}
+.is-collapsed .nav-row,
+.is-collapsed .nav-row-wrap .nav-row,
+.is-collapsed .sidebar-fold {
+  width: 36px;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+.is-collapsed .nav-children {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
 }
 
 .app-main {
@@ -272,13 +605,6 @@ a:hover {
 }
 .carousel-head {
   margin-bottom: 16px;
-}
-.home-heading {
-  margin: 0;
-  font-size: 1.5rem;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--text);
 }
 .carousel-rule {
   flex: 1;
@@ -406,7 +732,8 @@ a:hover {
   color: var(--text-soft);
 }
 .ownership-mark[data-ownership='sharedWithMe'],
-.ownership-mark[data-ownership='sharedByMe'] {
+.ownership-mark[data-ownership='sharedByMe'],
+.ownership-mark[data-ownership='community'] {
   color: var(--text);
 }
 .notebook-card-text .notebook-card-byline {
@@ -959,12 +1286,14 @@ a:hover {
   gap: 14px;
   border-right: 1px solid var(--border);
   background: var(--surface);
-  /* The foot is deeper than the other sides (#196): a desktop browser draws
-     the address of the link under the pointer in the bottom-left corner,
-     which is where the last folder of a scrolled tree sits, so the tree has to
-     be able to scroll its last row clear of that bubble. */
-  padding: 20px 20px 3rem;
+  /* No padding at the foot: the foot of the column is the row that folds it
+     (#414), and that row is the room #196 asked for, so the address a desktop
+     browser draws in the bottom-left corner covers it and never the last
+     folder of the tree. */
+  padding: 20px 20px 0;
+  /* The column scrolls down a long tree, and never sideways (#422). */
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 100%;
   position: sticky;
   top: 0;
@@ -977,27 +1306,10 @@ a:hover {
 .notebook-sidebar > * {
   flex-shrink: 0;
 }
-.notebook-sidebar .search-box {
-  margin-bottom: 0;
-}
 .sidebar-head {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.back-link {
-  align-self: flex-start;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  font-size: 12.5px;
-  color: var(--text-soft);
-}
-.back-link:hover {
-  color: var(--text);
-  text-decoration: none;
 }
 .sidebar-notebook {
   margin: 0;
@@ -1230,7 +1542,7 @@ a:hover {
   height: var(--bar-h);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   padding: 0 20px 0 32px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -1339,8 +1651,7 @@ a:hover {
 .bar-button svg {
   flex: none;
 }
-/* On a phone: 48 px, and the actions become 44 px icons whose label stays as
-   the accessible name. Below the drawer breakpoint the main row is what
+/* Below the drawer breakpoint the bar is 48 px and the main row is what
    scrolls, so that is where the room for the bar is kept. */
 @media (max-width: 860px) {
   :root {
@@ -1349,24 +1660,40 @@ a:hover {
   .app-main:has(.notebook-layout) {
     scroll-padding-top: var(--bar-h);
   }
+  /* The trail stops short of the buttons, framed now, and they keep a
+     margin from the edge (#447). */
   .notebook-bar {
-    gap: 0;
-    padding: 0 2px 0 16px;
+    gap: 12px;
+    padding: 0 12px 0 16px;
   }
   /* Without actions the trail ends on the margin, not against the edge. */
   .notebook-bar:not(:has(.notebook-bar-actions)) {
     padding-right: 16px;
   }
   .notebook-bar-actions {
-    gap: 0;
+    gap: 6px;
   }
+}
+/* A button of the bar keeps its frame, its icon and its word down to a
+   phone (#447): a narrow window or a tablet has room for them. */
+@media (max-width: 860px) and (min-width: 561px) {
+  .bar-button .action-word:not(.is-kept) {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+/* On a phone it is its icon in its frame, a 40 px target whose word stays as
+   the accessible name. */
+@media (max-width: 560px) {
   .bar-button {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     justify-content: center;
     padding: 0;
-    border-color: transparent;
-    background: none;
   }
   .bar-button svg {
     width: 18px;
@@ -1543,45 +1870,6 @@ a:hover {
   color: var(--text-soft);
 }
 
-/* Deleting a Guidance or a Template (#230). It is quiet until it is asked
-   for — the surface is a reading tool before it is an editing one — and then
-   it asks in place, as the card of Home asks before deleting a notebook. */
-.slot-delete {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-/* A quiet button whose words are red: the edge stays neutral. */
-.button.slot-delete-button {
-  color: var(--danger);
-  font-size: 12.5px;
-}
-.slot-delete.is-confirming {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.slot-delete.is-confirming p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--text);
-}
-.slot-delete.is-confirming strong {
-  font-weight: 600;
-}
-.slot-delete-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-@media (max-width: 860px) {
-  .slot-delete-actions .button {
-    flex: 1;
-    min-height: 44px;
-  }
-}
-
 /* The Templates of a notebook, one card per folder that declares one. */
 .template-card {
   border: 1px solid var(--border);
@@ -1604,17 +1892,24 @@ a:hover {
 .template-card > summary::-webkit-details-marker {
   display: none;
 }
+/* As every card: a resting mouse darkens its edge, and the ring of the
+   keyboard goes round the whole card, never half of it (#429). */
+.template-card:has(> summary:hover) {
+  border-color: var(--text-soft);
+}
 .template-card > summary:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px var(--accent);
-  border-radius: 14px;
+}
+.template-card:has(> summary:focus-visible) {
+  box-shadow: var(--focus-ring);
 }
 .template-card-chevron {
   flex: none;
   color: var(--text-soft);
   transition: transform 120ms ease;
 }
-.template-card[open] .template-card-chevron {
+/* Only the chevron of the part that is open: a model's parts nest (#439). */
+.template-card[open] > summary .template-card-chevron {
   transform: rotate(90deg);
 }
 .template-card-title {
@@ -1640,6 +1935,12 @@ a:hover {
 .template-card-body {
   padding: 20px 22px;
   border-top: 1px solid var(--border);
+}
+/* What a card holds is read as a note is (#447): on the paper, the body of
+   the card the same paper as the note, so there is one surface under the
+   white head, and across the width of the card, as a note takes the page. */
+.template-card-body {
+  background: var(--bg);
 }
 @media (max-width: 860px) {
   .template-card > summary {
@@ -1676,6 +1977,56 @@ a:hover {
   max-width: 48.75rem;
   margin: 0 auto;
   padding: 2rem 2.5rem 4rem;
+}
+
+/* What a community model is (#449): its texts at a reading line, and the
+   card of its facts beside them where the page is wide, under them on a
+   phone. */
+.community-about {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 32px;
+  align-items: start;
+}
+.community-about-text {
+  max-width: 43.75rem;
+}
+.community-facts {
+  margin: 0;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.community-facts dt {
+  color: var(--text-soft);
+}
+.community-facts dd {
+  margin: 0;
+}
+.community-facts .community-facts-note {
+  grid-column: 1 / -1;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+@media (max-width: 860px) {
+  .community-about {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The pages of a notebook take the width of the pages outside a notebook
+   (#447), a note, its Guidance and a link with no note included; the reading
+   line of 700px is kept by the pages of the community. */
+.content-pane.is-wide {
+  max-width: 72rem;
 }
 
 .content-pane {
@@ -2470,12 +2821,6 @@ body:has(.markdown dialog[open]) .app-main {
   cursor: pointer;
   display: flex;
 }
-/* The avatar carries the focus ring while its menu is open. */
-.user-menu-trigger[aria-expanded='true'] {
-  box-shadow:
-    0 0 0 2px var(--surface),
-    0 0 0 4px var(--accent);
-}
 .avatar {
   border-radius: 50%;
   display: block;
@@ -2580,23 +2925,6 @@ body:has(.markdown dialog[open]) .app-main {
   font-size: 0.72rem;
   color: var(--text-soft);
 }
-/* In the sheet the blocks run edge to edge, and the rows are a thumb high. */
-.sheet.user-menu-panel .user-menu-top,
-.sheet.user-menu-panel .user-menu-settings,
-.sheet.user-menu-panel .user-menu-items,
-.sheet.user-menu-panel .user-menu-foot {
-  padding: 0;
-}
-.sheet.user-menu-panel .menu-divider {
-  margin: 0 -16px;
-}
-/* In the sheet the foot comes after Fechar, as the last line of it. */
-.sheet.user-menu-panel .user-menu-foot {
-  order: 1;
-}
-.sheet.user-menu-panel .user-menu-foot-divider {
-  display: none;
-}
 /*
   How much of the plan is used, as the progress bar of the Controles: the
   numbers above a 6 px track, blue, orange from 80 % and red when full. It
@@ -2674,74 +3002,6 @@ body:has(.markdown dialog[open]) .app-main {
   outline: none;
   border-color: var(--accent);
   box-shadow: var(--focus-ring);
-}
-/* The results (#232): a menu of the Controles, 460 px, passing over the
-   reading rather than squeezed into the sidebar. */
-.search-results {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 40;
-  max-height: 26rem;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 5px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--menu-shadow);
-}
-.search-results.is-floating {
-  position: fixed;
-  right: auto;
-  width: min(460px, calc(100vw - 32px));
-}
-.search-results ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-.search-results li a {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 9px 12px;
-  border-radius: 6px;
-  color: var(--text);
-}
-.search-results li a:hover,
-.search-results li a:focus-visible {
-  outline: none;
-  background: var(--hover);
-  text-decoration: none;
-}
-.search-name {
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.search-path {
-  font-size: 11.5px;
-  line-height: 1.35;
-  color: var(--text-soft);
-}
-.search-excerpt {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--text);
-}
-/* The term in light orange with the text in Tinta: blue is spent on actions
-   and links, and a result is neither. */
-.search-excerpt mark {
-  background: rgb(255 138 43 / 0.26);
-  color: var(--text);
-  padding: 0 1px;
-  border-radius: 2px;
 }
 .search-empty {
   font-size: 13px;
@@ -3238,6 +3498,288 @@ input[type='radio'] {
   flex-direction: column;
   gap: 10px;
 }
+/* ---- The overview of a notebook (#417) ------------------------------------
+ *
+ * Its root: the way back to the note last read, the notebook in numbers, what
+ * changed last, and the links that wait for a note or the notes nothing links
+ * to. Cards and rows of the same weight as the Context's.
+ */
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.overview-resume {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+.overview-resume:hover {
+  border-color: var(--text-soft);
+  text-decoration: none;
+}
+.overview-resume:focus-visible,
+.overview-stat-link:focus-visible,
+.overview-row:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.overview-resume-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+.overview-resume-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.overview-resume-label {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.overview-resume-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.overview-resume-folder {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+/* Home's way back to the notebooks read in last (#424): the card of the
+   overview's Continue, four of them side by side. */
+.continue-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.continue-reading h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+/* Five across the width, each the notebook, the folder and the title (#428). */
+.continue-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.continue-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+a.continue-card:hover {
+  border-color: var(--text-soft);
+  text-decoration: none;
+}
+a.continue-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.continue-card-notebook {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.continue-card-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.continue-card-folder svg {
+  flex-shrink: 0;
+}
+.continue-card-title {
+  margin-top: 2px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 860px) {
+  .continue-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .continue-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Ten cards of one size: two rows of five, five rows of two on a phone
+   (#423, #427, #429). */
+.overview-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* The card is the whole cell, the link too, so a resting mouse marks all of
+   it: its edge darkens, as every card's does, and its colour stays (#429). */
+.overview-stat {
+  display: flex;
+}
+.overview-stat:not(:has(.overview-stat-link)),
+.overview-stat-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+.overview-stat-link:hover {
+  border-color: var(--text-soft);
+  text-decoration: none;
+}
+.overview-stat-value {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1;
+  min-height: 1.6rem;
+}
+.overview-stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+/* The icon the sidebar draws beside what the card counts, blue and 20px as
+   the icons of the tables and the dashboards are (#429). */
+.overview-stat-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+.overview-stat-icon svg,
+.overview-resume-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.overview-stat.is-attention .overview-stat-icon {
+  color: var(--signal);
+}
+.overview-stat.is-wide {
+  grid-column: 1 / -1;
+}
+.overview-stat.is-attention .overview-stat-value {
+  color: var(--signal);
+}
+.overview-stat-label {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+/* The lists of the overview, one tab each (#447), what each holds its
+   tooltip, and a panel at least ten rows tall, so the page
+   does not jump between short lists; a page of rows taller than a line, as
+   the history's, makes it taller, and nothing scrolls inside it but the page. */
+/* A tab with a shorter name says it on a phone, so a strip of four fits on
+   one line there (#447). */
+.tab-label-short {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tab:has(.tab-label-short) .tab-label-long {
+    display: none;
+  }
+  .tab-label-short {
+    display: inline;
+  }
+}
+.overview-tab-panel {
+  --overview-row: 2.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: calc(10 * var(--overview-row) + 3.5rem);
+}
+@media (max-width: 640px) {
+  .overview-tab-panel {
+    min-height: 0;
+  }
+}
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.overview-section h2 {
+  margin: 0;
+}
+.overview-section .hint {
+  margin: 0;
+}
+.overview-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  color: var(--text);
+}
+.overview-row:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+.overview-row-name {
+  font-weight: 500;
+  font-size: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.overview-row-meta {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.overview-row-meta .is-agent {
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .overview-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .overview-row-meta {
+    white-space: normal;
+  }
+}
+
 .context-card {
   display: flex;
   align-items: center;
@@ -3366,6 +3908,10 @@ input[type='radio'] {
   gap: 14px;
   padding: 14px 18px;
 }
+/* The row under a resting mouse, as a row of the folders shows it (#429). */
+.attachment-row:hover {
+  background: var(--hover);
+}
 .attachment-thumb {
   flex: none;
   width: 56px;
@@ -3472,167 +4018,14 @@ button.attachment-thumb:focus-visible {
   color: #b42318;
   font-size: 0.85rem;
 }
-/* ── The navigation sheet of a phone (#229) ──────────────────────────────────
-   Below the breakpoint the sidebar is not mounted: its navigation is a sheet
-   whose start is always showing at the foot of the screen. */
-.sheet-peek {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  /* A 28 px strip drawn, and a target a thumb reaches above it. */
-  height: calc(44px + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  touch-action: none;
-}
-.sheet-peek::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(28px + env(safe-area-inset-bottom));
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom: 0;
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -4px 16px rgb(14 21 38 / 0.08);
-}
-.sheet-peek .sheet-handle {
-  position: absolute;
-  bottom: calc(15px + env(safe-area-inset-bottom));
-}
-.sheet-peek:focus-visible {
-  outline: none;
-}
-.sheet-peek:focus-visible::before {
-  box-shadow: var(--focus-ring);
-}
-.notebook-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 61;
-  height: 88dvh;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  border-radius: 16px 16px 0 0;
-  overflow: hidden;
-}
-.notebook-sheet:focus {
-  outline: none;
-}
-.notebook-sheet .sheet-grip {
-  margin: 0;
-  height: 18px;
-}
-/* The bar of icons that stays while the rest scrolls. */
-.sheet-tabs {
-  flex: none;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 12px 8px;
-  border-bottom: 1px solid var(--border);
-}
-.sheet-tab {
-  /* Eight icons in a model, which give way on the narrowest phone. */
-  flex: 0 1 44px;
-  min-width: 0;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--text);
-  cursor: pointer;
-}
-.sheet-tab svg {
-  width: 18px;
-  height: 18px;
-}
-.sheet-tab:hover {
-  background: var(--hover);
-}
-/* The open page, and the search while it is open: filled in Tinta. */
-.sheet-tab.active,
-.sheet-tab[aria-pressed='true'] {
-  background: var(--chosen);
-  color: var(--on-chosen);
-}
-.sheet-pages {
-  flex: none;
-  display: grid;
-  padding: 4px 12px 8px;
-  border-bottom: 1px solid var(--border);
-}
-.sheet-page {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-inline: 8px;
-  border-radius: 8px;
-  color: var(--text);
-  text-decoration: none;
-}
-.sheet-page svg {
-  width: 18px;
-  height: 18px;
-}
-.sheet-page.active {
-  font-weight: 600;
-}
-.notebook-sheet-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
-}
-.notebook-sheet-body > * {
-  flex-shrink: 0;
-}
-.notebook-sheet-body .search-box {
-  margin: 0;
-}
-/* In the sheet the results open under the field at its full width, and push
-   the tree down instead of floating over it. */
-.notebook-sheet-body .search-results {
-  position: static;
-  margin-top: 6px;
-  max-height: none;
-  box-shadow: none;
-}
-.notebook-sheet-body .back-link {
-  height: 44px;
-}
-body.has-sheet .app-main {
-  overflow: hidden;
-}
-
 /* ── Responsive ─────────────────────────────────────────────────────────────
    Two breakpoints, each with a reason that can be checked with a ruler.
 
    1180px  the sidebar and a comfortable reading column stop fitting side by
            side with room to breathe, so the sidebar gives up width first.
-   860px   they stop fitting at all. The sidebar becomes a drawer over the
-           content instead of a column beside it, and the content takes the
-           whole width. Every phone, and every tablet held in portrait, is
+   860px   they stop fitting at all. The sidebar and the second row of the
+           header go into the menu of the ☰, which opens from the top, and
+           the content takes the whole width (#419). Every phone, and every tablet held in portrait, is
            below this line; a tablet in landscape is above it and keeps the
            column, which is the layout that screen has room for. */
 
@@ -3659,6 +4052,12 @@ body.has-sheet .app-main {
   .app-header {
     padding: 0 1rem;
     gap: 0.75rem;
+    /* No room for equal sides: the search takes what the brand and the
+       controls leave. */
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .header-controls {
+    gap: 8px;
   }
   .brand {
     gap: 8px;
@@ -3684,11 +4083,10 @@ body.has-sheet .app-main {
     padding: 1.25rem 1rem 3rem;
   }
 
-  /* There is no column: the content takes the width, and keeps room at its
-     foot for the start of the navigation sheet (#229). */
+  /* There is no column: the content takes the width, and the navigation of
+     the notebook is in the menu of the ☰ (#419). */
   .notebook-layout {
     display: block;
-    padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
 
   /* With the sidebar gone from the flow, the document scrolls, not a box
@@ -3745,6 +4143,34 @@ body.has-sheet .app-main {
   }
   .page {
     padding: 0.75rem;
+  }
+}
+
+/* The trail of a page outside a notebook — the community, a model shared as a
+   model reader — starts where the text of the page under it starts (#422):
+   the bar keeps the whole width, and the trail takes the column of
+   `.content-pane` and its side padding, at every width that padding changes. */
+.trail-page > .notebook-bar {
+  padding: 0;
+}
+.trail-page > .notebook-bar > .notebook-breadcrumb {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-inline: 2.5rem;
+}
+@media (max-width: 1180px) {
+  .trail-page > .notebook-bar > .notebook-breadcrumb {
+    padding-inline: 1.75rem;
+  }
+}
+@media (max-width: 860px) {
+  .trail-page > .notebook-bar > .notebook-breadcrumb {
+    padding-inline: 1rem;
+  }
+}
+@media (max-width: 380px) {
+  .trail-page > .notebook-bar > .notebook-breadcrumb {
+    padding-inline: 0.75rem;
   }
 }
 
@@ -3814,16 +4240,33 @@ body.has-sheet .app-main {
   display: block;
 }
 
-.card-row-skeleton {
-  display: flex;
-  gap: 1rem;
-}
-
 .notebook-card-skeleton {
+  cursor: default;
+}
+.notebook-card-skeleton .notebook-card-text {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  cursor: default;
+  gap: 0.6rem;
+}
+
+.rows-skeleton,
+.fields-skeleton,
+.page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.page-skeleton {
+  gap: 1rem;
+}
+.fields-skeleton-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.tabs-skeleton {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .tree-skeleton {
@@ -3948,74 +4391,28 @@ body.has-sheet .app-main {
 }
 
 /*
- * Transfers: files on their way in and out, in the place a browser puts its
- * downloads — beside the identity, and never as a notification bell
- * (RN-PRT-019, RN-PRT-020).
+ * Transfers, on the bell of the header (#418): a ring in the top corner of the
+ * button while one runs, and a notice in the panel until it is read.
  */
-.transfers-menu {
-  position: relative;
-}
-/* The icon button of the Controles (#198, #205), with the glyph in the soft
-   text, and the ring and the dot in its top corner. */
-.transfers-trigger {
-  position: relative;
-  color: var(--text-soft);
-  font-size: 0.875rem;
-  line-height: 1;
-}
-.transfers-trigger:hover {
-  color: var(--text);
-}
-.transfers-trigger[aria-expanded='true'] {
-  box-shadow: var(--focus-ring);
-}
 /* A ring while something runs, filled as far as the first one got, with an
    outline of the surface so it separates from the button (#205). */
-.transfers-ring {
+/* The edge of the bell fills in orange, clockwise, as far as the transfers
+   under way got, until it closes the circle (#450). */
+.notifications-trigger.is-working::before {
+  content: '';
   position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 14px;
-  height: 14px;
+  inset: -3px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle, var(--surface) 0 3px, transparent 3.5px),
-    conic-gradient(var(--accent) var(--progress, 0%), var(--track) 0);
-  box-shadow: 0 0 0 2px var(--surface);
+  background: conic-gradient(var(--signal) var(--progress, 0%), var(--track) 0);
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2.5px)
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
   pointer-events: none;
 }
-/* A dot while something has finished that the person has not seen. */
-.transfers-dot {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--signal);
-  box-shadow: 0 0 0 2px var(--surface);
-}
 
-/* The panel: a menu of 380 px, and a sheet on a phone (#205). */
-.menu.transfers-panel {
-  top: calc(100% + 8px);
-  right: 0;
-  width: 380px;
-  padding: 0;
-}
-/* Between a phone and a desktop the menu is placed against the window, not
-   against its trigger (#195): anchored to the trigger it assumed its right
-   edge sat at the gutter of the header, where the avatar sits, and one avatar
-   further left it began off the screen. */
-@media (max-width: 860px) {
-  .menu.transfers-panel {
-    position: fixed;
-    top: calc(var(--header-h) + 0.4rem);
-    left: auto;
-    right: 1rem;
-    width: min(380px, calc(100vw - 2rem));
-  }
-}
 .transfers-panel-head {
   display: flex;
   align-items: baseline;
@@ -4028,43 +4425,11 @@ body.has-sheet .app-main {
   font-family: var(--display);
   font-size: 0.94rem;
 }
-.transfers-panel-kept {
-  font-size: 0.75rem;
-  color: var(--text-soft);
-}
-.transfers-panel-kept strong {
-  font-family: var(--display);
-  font-weight: 700;
-  color: var(--text);
-}
-.transfers-panel .transfers-start {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 12px 14px 14px;
-  border-bottom: 1px solid var(--border);
-}
-.transfers-panel .transfers-start .button {
-  min-width: 0;
-  padding: 0 8px;
-  font-size: 0.8125rem;
-  white-space: normal;
-  text-align: center;
-  line-height: 1.2;
-}
 .transfers-panel-empty {
   margin: 0;
   padding: 16px 14px;
   color: var(--text-soft);
   font-size: 0.84rem;
-}
-.transfers-recent {
-  list-style: none;
-  margin: 0;
-  padding: 0 14px;
-}
-.transfers-recent li + li {
-  border-top: 1px solid var(--track);
 }
 .transfers-line {
   display: flex;
@@ -4084,29 +4449,9 @@ body.has-sheet .app-main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.transfers-panel-foot {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--border);
-}
-.transfers-see-all {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.8125rem;
-  color: var(--accent);
-  text-decoration: none;
-}
-/* In the sheet the blocks run edge to edge, and every target is a thumb high. */
-.sheet.transfers-panel .transfers-panel-head,
-.sheet.transfers-panel .transfers-start,
-.sheet.transfers-panel .transfers-recent,
-.sheet.transfers-panel .transfers-panel-foot {
-  padding-inline: 0;
-}
-.sheet.transfers-panel .transfers-start .button,
-.sheet.transfers-panel .transfers-line .button {
-  min-height: 44px;
+/* A transfer under way, as a notice of the bell (#418). */
+.transfer-notice .transfers-line {
+  padding: 0;
 }
 
 /* ---- The pieces of a transfer (#205) ------------------------------------ */
@@ -4220,18 +4565,7 @@ body.has-sheet .app-main {
 
 /* ---- The page (#205) ---------------------------------------------------- */
 .transfers-page {
-  max-width: 64rem;
-}
-.transfers-page-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-.transfers-page-heading h1 {
-  margin: 0 0 6px;
+  max-width: 72rem;
 }
 .transfers-kept {
   margin: 0;
@@ -4262,20 +4596,37 @@ body.has-sheet .app-main {
 .transfers-rows {
   list-style: none;
   margin: 0;
-  padding: 0 20px;
+  padding: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
+  overflow: hidden;
 }
 /* The same four tracks on every row, so the states and the actions of one row
-   line up with those of the next. */
+   line up with those of the next, under the head of the columns (#449). */
 .transfers-row {
   display: grid;
   /* Room for the three things a kept export offers: download, import, delete (#207). */
-  grid-template-columns: 32px minmax(0, 1fr) 13rem 16rem;
+  grid-template-columns: 32px minmax(0, 1fr) 16rem 20rem;
   align-items: center;
   gap: 8px 14px;
-  padding: 16px 0;
+  padding: 14px 20px;
+}
+.transfers-row:not(.transfers-head):hover {
+  background: var(--hover);
+}
+.transfers-head {
+  padding-block: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  background: var(--bg);
+}
+.transfers-head-actions {
+  text-align: right;
+}
+.transfers-rows + .tables-grid-pages {
+  margin-top: 12px;
 }
 .transfers-row + .transfers-row {
   border-top: 1px solid var(--track);
@@ -4446,15 +4797,23 @@ body.has-sheet .app-main {
   /* One above the other, each the width of the screen with its word (#325):
      side by side, a longer word in pt_BR ran past the edge. The panel keeps
      its own two columns, which wrap their words. */
+  /* Two short words, side by side, each half of the row (#433). */
   .transfers-start {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
   }
-  .transfers-rows {
-    padding: 0 14px;
+  .transfers-start > .button {
+    width: 100%;
+    justify-content: center;
   }
   .transfers-row {
     grid-template-columns: 32px minmax(0, 1fr);
+    padding-inline: 14px;
+  }
+  /* On a phone a row is a card of its own, and the head has no columns to name. */
+  .transfers-head {
+    display: none;
   }
   .transfers-row-state,
   .transfers-row-actions,
@@ -4883,6 +5242,47 @@ body.has-sheet .app-main {
 .chooser-tabs {
   flex-shrink: 0;
 }
+/* Its tabs say their short names at every width, so the seven fit (#452). */
+.chooser-tabs .tab-label-long {
+  display: none;
+}
+.chooser-tabs .tab-label-short {
+  display: inline;
+}
+/* An icon of a tab is for a phone; the open one is named under the strip
+   there, and only there. */
+.tab-icon,
+.chooser-tab-name {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tabs.chooser-tabs {
+    gap: 0;
+    justify-content: space-between;
+  }
+  .chooser-tabs .tab {
+    min-width: 44px;
+    justify-content: center;
+    padding: 0 8px;
+  }
+  .chooser-tabs .tab-label-short {
+    display: none;
+  }
+  .chooser-tabs .tab-icon {
+    display: inline-flex;
+  }
+  .chooser-tabs .tab-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .chooser-tab-name {
+    display: block;
+    margin: 10px 0 0;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+  }
+}
 .chooser-panel {
   display: flex;
   flex-direction: column;
@@ -5203,7 +5603,8 @@ body.has-sheet .app-main {
 /* About, a reading column of 680 px with its sections set apart by a
    hairline (#216). */
 .about {
-  max-width: calc(680px + 56px);
+  /* The width of the other pages (#449); its paragraphs keep a reading line. */
+  max-width: calc(72rem + 56px);
   margin: 0 auto;
   padding: 40px 28px 56px;
 }
@@ -5213,10 +5614,20 @@ body.has-sheet .app-main {
   gap: 12px;
   padding-bottom: 28px;
 }
+/* "About" on its line, and under it the symbol and the wordmark kept
+   together, the symbol as tall as the capitals beside it; the whole heading
+   centred (#422). */
+.about-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3em;
+  white-space: nowrap;
+}
 .about-symbol {
-  height: 48px;
+  flex: none;
+  height: 1.1em;
   width: auto;
-  align-self: flex-start;
 }
 .about-hero h1 {
   margin: 0;
@@ -5226,6 +5637,7 @@ body.has-sheet .app-main {
   line-height: 1.1;
   letter-spacing: -0.025em;
   text-wrap: balance;
+  text-align: center;
 }
 .about-lead {
   margin: 0;
@@ -5288,6 +5700,63 @@ body.has-sheet .app-main {
 /* The address of the connector: the block of code of the reading surface,
    with the verb inside it. It scrolls like every block of code instead of
    wrapping (#194). */
+/* About uses the width of the screen (#449): the screens of the interface
+   are a grid of cards, and the steps of a client stand side by side, each a
+   card. */
+/* Its paragraphs run to the margin of the page, as the cards under them do;
+   the line under the name keeps a reading line, centred as the symbol and
+   the name above it. */
+.about-hero .about-lead {
+  max-width: 70ch;
+  margin-inline: auto;
+  text-align: center;
+}
+.about .about-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 12px;
+  border: 0;
+  background: none;
+  overflow: visible;
+}
+.about .about-list > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.about .about-list > div + div {
+  border-top: 1px solid var(--border);
+}
+.about .about-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 12px;
+}
+/* A card of About darkens its edge under the mouse, as every card does. */
+.about .about-list > div:hover,
+.about .about-steps li:hover {
+  border-color: var(--text-soft);
+}
+.about .about-steps li {
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+@media (max-width: 640px) {
+  .about .about-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .about .about-steps li {
+    flex-direction: row;
+  }
+}
 .about-connector,
 .about-uploads {
   display: flex;
@@ -5389,7 +5858,7 @@ body.has-sheet .app-main {
   line-height: 1.5;
   text-wrap: pretty;
 }
-/* The foot: which version this is, and the way into the product. */
+/* The foot: which version this is; the menu is the way into the product. */
 .about-footer {
   display: flex;
   align-items: center;
@@ -5409,9 +5878,6 @@ body.has-sheet .app-main {
   }
   .about-hero {
     padding-bottom: 22px;
-  }
-  .about-symbol {
-    height: 40px;
   }
   .about-hero h1 {
     font-size: 26px;
@@ -5449,12 +5915,7 @@ body.has-sheet .app-main {
     display: none;
   }
   .about-footer {
-    flex-direction: column-reverse;
-    align-items: stretch;
-    text-align: center;
-  }
-  .about-footer .button {
-    height: 44px;
+    justify-content: center;
   }
 }
 
@@ -5464,14 +5925,6 @@ body.has-sheet .app-main {
   max-width: calc(560px + 56px);
   margin: 0 auto;
   padding: 40px 28px 56px;
-}
-.profile h1 {
-  margin: 0 0 20px;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 26px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
 }
 /* The profile in one card (#215): the picture above, the fields below. */
 .profile-card {
@@ -5763,6 +6216,21 @@ body.has-sheet .app-main {
 .history-message.is-empty {
   color: var(--text-soft);
   font-style: italic;
+}
+/* What a change of a model was about, and how long its session lasted (#431). */
+.history-subject {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.history-span {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
 }
 /* An edit session (#300): one entry, opening into its saves. */
 .history-saves > summary {
@@ -6389,19 +6857,26 @@ body.has-sheet .app-main {
 }
 .notifications-trigger {
   position: relative;
+  /* A circle the size of the avatar beside it (#422). */
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   color: var(--text-soft);
 }
 .notifications-trigger:hover {
   color: var(--text);
 }
-.notifications-trigger[aria-expanded='true'] {
-  box-shadow: var(--focus-ring);
+.icon-button.notifications-trigger[aria-expanded='true'] {
+  /* White, and with no ring, as the avatar while its menu is open (#422). */
+  background: var(--surface);
 }
 .menu.notifications-panel {
   top: calc(100% + 8px);
   right: 0;
   width: 380px;
-  padding: 0 0 6px;
+  max-height: min(36rem, calc(100vh - var(--header-h) - 2rem));
+  overflow-y: auto;
+  padding: 0;
 }
 @media (max-width: 860px) {
   .menu.notifications-panel {
@@ -6609,6 +7084,11 @@ body.has-sheet .app-main {
   --token-comment: var(--text-soft);
   --token-punctuation: var(--text);
 }
+/* The note is drawn on the paper: the reading theme paints its container
+   with the colour of the screen, which a white sheet has no use for (#425). */
+.print-part .markdown {
+  background: none;
+}
 .print-part a {
   color: inherit;
   text-decoration: underline;
@@ -6763,12 +7243,20 @@ body.has-sheet .app-main {
   padding: 24px 30px 32px;
 }
 
+/* Where a form of the page draws its action in the bar (#447): it adds no
+   box of its own, so the button is one more button of the bar. */
+.bar-slot {
+  display: contents;
+}
+
 /* The corner of a note — Show and Copy Markdown, and Edit for whoever writes
    (#300) — floats at the top right of the body, where the renderer puts it.
    Floating there it squeezed the name of the note, which the page hands the
    renderer to draw under it, and on a phone the first paragraph to a column
-   of a few words: it takes a row of its own, above the name. */
-.content-pane > .markdown > .note-corner {
+   of a few words: it takes a row of its own, above the name. A Template in a
+   card is read the same way (#447). */
+.content-pane > .markdown > .note-corner,
+.template-card-body .markdown > .note-corner {
   float: none;
   display: flex;
   justify-content: flex-end;
@@ -6810,14 +7298,11 @@ body.has-sheet .app-main {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
-.model-page,
-.model-version-page {
+.model-page {
   max-width: 48rem;
 }
 .model-form,
-.model-versions,
-.model-summary,
-.model-create {
+.model-summary {
   margin-top: 1.5rem;
 }
 .model-form-actions {
@@ -6834,7 +7319,8 @@ body.has-sheet .app-main {
   margin-top: 1rem;
 }
 .model-panel > .model-form,
-.model-panel > .model-versions,
+.model-panel > .model-contents,
+.model-panel > .model-history-panel,
 .model-panel > .model-publication {
   margin-top: 0;
 }
@@ -6896,6 +7382,20 @@ body.has-sheet .app-main {
 .parameter-line + .parameter-line {
   border-top: 1px solid var(--border);
 }
+/* The row under a resting mouse, as a row of the folders shows it, kept
+   inside the round corners of the list (#429). */
+.parameter-line:hover {
+  background: var(--hover);
+}
+.parameter-line:first-child {
+  border-radius: 8px 8px 0 0;
+}
+.parameter-line:last-child {
+  border-radius: 0 0 8px 8px;
+}
+.parameter-line:only-child {
+  border-radius: 8px;
+}
 .parameter-line-name {
   display: flex;
   flex-direction: column;
@@ -6950,57 +7450,20 @@ body.has-sheet .app-main {
 .parameter-list li + li {
   margin-top: 0.35rem;
 }
-.model-version-new {
-  margin-bottom: 1rem;
+/* The parts of a model as it stands (#431): its files, tables and dashboards. */
+/* What a part of a model is, beside its name: a folder or a note (#443). */
+.model-part-kind {
+  margin-left: 8px;
+  vertical-align: 1px;
+  font-weight: 500;
 }
-.model-version-list {
-  list-style: none;
+.model-parts {
   margin: 0;
-  padding: 0;
-}
-.model-version {
-  display: grid;
-  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-}
-.model-version:last-child {
-  border-bottom: 0;
-}
-.model-version-number {
-  font-family: var(--display);
-  font-weight: 700;
-}
-.model-version-when {
-  color: var(--text-soft);
-  font-size: 0.8125rem;
-}
-.model-version-changelog {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-left: 1.25rem;
   font-size: 0.875rem;
 }
-/* The public row has no status chip, so one column fewer, and the button
-   keeps its width while the changelog is cut (#384). */
-.model-version.is-public {
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-}
-.model-version-confirm {
-  display: inline-flex;
-  gap: 0.5rem;
-}
-@media (max-width: 40rem) {
-  .model-version,
-  .model-version.is-public {
-    grid-template-columns: auto auto minmax(0, 1fr);
-  }
-  .model-version-changelog {
-    grid-column: 1 / -1;
-    white-space: normal;
-  }
+.model-parts li + li {
+  margin-top: 0.35rem;
 }
 .model-source {
   overflow-x: auto;
@@ -7057,76 +7520,8 @@ body.has-sheet .app-main {
 }
 
 /* ── The community catalog (#360) ────────────────────────────────────────────
-   Pages a visitor with no account reaches, so they carry a head of their own
-   instead of the frame of the application. */
-/* The first row of the root, scrolled inside it as the shell is (#410): a
-   frame a viewport tall pushed the banner of the environment out of the window,
-   and on a phone, where 100vh outgrows the visible window, overshot the end of
-   the page even with no banner. */
-.community-frame {
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--bg);
-}
-.community-nav {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-/* On the narrowest phones the three buttons sit closer, so they fit beside
-   the mark, which stays whole (#385). */
-@media (max-width: 380px) {
-  .community-nav {
-    gap: 2px;
-  }
-  .community-nav .button:has(> .action-word:not(.is-kept)) {
-    min-width: 36px;
-  }
-}
-.community-main {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
-}
-.community-search {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 12rem auto;
-  align-items: end;
-  gap: 0.75rem;
-  margin: 1rem 0 1.5rem;
-}
-.community-search .field {
-  margin-bottom: 0;
-}
-@media (max-width: 40rem) {
-  .community-search {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.community-results {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.community-card {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-}
-.community-card h2 {
-  margin: 0 0 0.35rem;
-  font-family: var(--display);
-  font-size: 1rem;
-}
-.community-card p {
-  margin: 0.25rem 0 0;
-}
+   Pages of the application since #418, under its menu: the search, then the
+   shelf of cards the notebooks and the models use. */
 .community-report,
 .model-publication {
   margin-top: 1.5rem;
@@ -7229,6 +7624,12 @@ body.has-sheet .app-main {
 .tables-grid tbody tr:last-child td {
   border-bottom: 0;
 }
+/* A row of every table — the rows of a Table, a folder's notes, a history,
+   the picker — is shaded across under the mouse, so the eye keeps it along
+   the row (#447, #449). */
+.tables-grid tbody tr:hover {
+  background: var(--hover);
+}
 .tables-grid thead th {
   background: var(--bg);
   font-weight: 600;
@@ -7264,6 +7665,137 @@ body.has-sheet .app-main {
   font-size: 0.76rem;
   font-weight: 400;
 }
+/* ---- The notes of a folder as a table (#416) -------------------------------
+ *
+ * The grid of the tables, with the name of each note as its way in, a property
+ * the notes declare as chips, when each changed and who changed it. On a phone
+ * each row stacks: the name, then the rest, each said with its column.
+ */
+.folder-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.folder-notes-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.folder-notes-controls:empty {
+  display: none;
+}
+.folder-notes-property {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+.folder-notes-property select {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.folder-notes-table td {
+  vertical-align: middle;
+}
+.folder-notes-table .folder-notes-name {
+  width: 100%;
+  white-space: normal;
+}
+.folder-notes-table .note-row {
+  padding: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.folder-notes-table .note-row:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.folder-notes-property-cell {
+  white-space: normal;
+}
+.property-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin: 1px 4px 1px 0;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--track);
+  color: var(--text);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.folder-notes-table .is-agent {
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .folder-notes-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .folder-notes-table,
+  .folder-notes-table tbody,
+  .folder-notes-table tr,
+  .folder-notes-table td {
+    display: block;
+  }
+  .folder-notes-table tr {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .folder-notes-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .folder-notes-table td {
+    padding: 2px 0;
+    border: 0;
+    white-space: normal;
+  }
+  .folder-notes-table td[data-label]::before {
+    content: attr(data-label) ': ';
+    color: var(--text-soft);
+    font-size: 0.78rem;
+  }
+  .folder-notes-table td[data-label]:empty {
+    display: none;
+  }
+}
+
+/* The history of a model, drawn as the list of a folder (#431, #435, #437):
+   the name of what changed takes the width, its kind its tooltip, then when,
+   short, who and the line left. An edit session says its saves under its
+   time. On a phone each change stacks as a note of a folder. */
+.model-history-table .model-history-when time {
+  display: block;
+}
+.model-history-saves {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+}
+.model-history-table .model-history-line {
+  white-space: normal;
+  min-width: 12rem;
+  color: var(--text-soft);
+}
+@media (max-width: 640px) {
+  .model-history-table .model-history-line {
+    min-width: 0;
+  }
+}
+
 .tables-grid-pages {
   display: flex;
   justify-content: space-between;
@@ -7715,4 +8247,365 @@ body.has-sheet .app-main {
   margin: 0 auto;
   padding: 24px;
   background: var(--bg);
+}
+
+/* ---- The shelves (#418) ----------------------------------------------------
+ *
+ * Notebooks, models and community models: a heading with the action that
+ * adds one, and the same card in a grid that fills the width.
+ */
+.shelf-page {
+  max-width: none;
+}
+/* The head of every page outside a notebook (#415), born on the shelves. */
+.page-heading {
+  margin-bottom: 20px;
+}
+.page-heading-line {
+  margin-top: 6px;
+}
+.shelf-heading {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.shelf-heading h1 {
+  margin: 0;
+}
+.shelf-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9em;
+  height: 1.6em;
+  margin-left: 10px;
+  padding: 0 0.55em;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--text-soft);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 0.35em;
+}
+/* An icon that opens a few words about what it stands for (#418): the `?`
+   of a page and the mark of whose a card is. The box opens under it, over
+   what follows, until a click elsewhere or Esc puts it away. */
+.info-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.info-trigger {
+  color: var(--text-soft);
+}
+.info-trigger[aria-expanded='true'] {
+  color: var(--text);
+}
+.info-box {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(340px, calc(100vw - 2rem));
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--menu-shadow);
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text);
+  text-align: start;
+  white-space: normal;
+}
+.shelf-help-box {
+  width: min(380px, calc(100vw - 2rem));
+}
+/* On a card the mark sits in the top-right corner, so its box opens towards
+   the card, and the corner rises over the cards after it while it is open. */
+.ownership-box {
+  left: auto;
+  right: 0;
+}
+.notebook-card-corner:has(.info-anchor.is-open) {
+  z-index: 40;
+}
+/* On a phone the box of the page takes the width of the heading, under it. */
+@media (max-width: 40rem) {
+  .shelf-heading .info-anchor {
+    position: static;
+  }
+  .shelf-help-box {
+    right: 0;
+    width: auto;
+  }
+}
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  grid-auto-rows: max-content;
+  gap: 18px;
+}
+
+/* ---- The menu of a phone (#419) --------------------------------------------
+ *
+ * Below 860 px the header is one row, and its ☰ opens this from the top,
+ * under the header: the search, the menu of the product as a list, and inside
+ * a notebook the notebook in groups, ending in its tree. It scrolls on its
+ * own, over a dimmed page.
+ */
+.mobile-menu-trigger {
+  margin-left: -6px;
+}
+/* Open, the ☰ is an ×, white as the header it sits in, never filled (#422). */
+.icon-button.mobile-menu-trigger:is([aria-expanded='true'], :hover) {
+  background: var(--surface);
+}
+.mobile-menu-scrim {
+  position: fixed;
+  z-index: 45;
+  inset: var(--header-h) 0 0;
+  background: var(--scrim);
+}
+.mobile-menu {
+  position: fixed;
+  z-index: 50;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  max-height: calc(100dvh - var(--header-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--menu-shadow);
+  animation: mobile-menu-down 0.18s ease-out;
+}
+.mobile-menu[hidden] {
+  display: none;
+}
+.mobile-menu:focus {
+  outline: none;
+}
+@keyframes mobile-menu-down {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu {
+    animation: none;
+  }
+}
+/* The menus of the header — the person's and the bell's — drop from the same
+   place on a phone, over the same dimmed page, instead of rising as a sheet
+   from the foot of the screen (#422). Each keeps the room of its own sections,
+   and its rows are tall enough for a thumb. */
+.menu-drop {
+  position: fixed;
+  z-index: 50;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  max-height: calc(100dvh - var(--header-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  padding: 4px max(4px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom))
+    max(4px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--menu-shadow);
+  text-align: start;
+  animation: mobile-menu-down 0.18s ease-out;
+}
+.menu-drop:focus {
+  outline: none;
+}
+.menu-drop .menu-item {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-drop {
+    animation: none;
+  }
+}
+/* The search, its results in the flow of the menu rather than over it. */
+.mobile-menu .global-search-results {
+  position: static;
+  margin-top: 8px;
+  max-height: none;
+  box-shadow: none;
+}
+/* The menu of the product, one entry a row a thumb can hit. */
+.top-menu.is-list {
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+  overflow: visible;
+}
+.top-menu.is-list .top-menu-item {
+  height: 44px;
+  padding: 0 10px;
+  border-bottom: 0;
+  border-radius: 8px;
+}
+/* The entry open is told by weight alone, as everywhere else, never by a
+   fill (#228, #422): inside a notebook it and the page open in the notebook's
+   group are both bold, which is what the person is in. */
+.top-menu.is-list .top-menu-item.active {
+  background: none;
+}
+/* A finger leaves no hover behind: a tapped entry keeps no fill (#422). */
+@media (hover: none) {
+  .top-menu.is-list .top-menu-item:hover {
+    background: none;
+  }
+}
+/* The notebook, under the menu of the product, set apart by a rule. */
+.mobile-menu-notebook:empty {
+  display: none;
+}
+.mobile-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.mobile-menu-group .nav-row {
+  min-height: 44px;
+}
+
+/* The picker of a notebook or a model (#432): the field, the places as tabs,
+   and the rows under them, drawn inside the dialog that asks. The rows are the
+   list of a folder (#416, #435), the name, what it is for and whose it is; the
+   list keeps its own height and scrolls, so the dialog does not grow with the
+   catalog, and its head stays on top while it does. */
+.search-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.search-picker .search-box {
+  margin-bottom: 0;
+}
+.search-picker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.search-picker-list {
+  max-height: min(46vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* In the dialog of an export the picker is all the body holds, so its list
+   takes the height of the dialog down to its foot (#449). */
+.transfer-dialog-body > .search-picker {
+  flex: 1;
+  min-height: 0;
+}
+.transfer-dialog-body > .search-picker > .search-picker-panel {
+  flex: 1;
+  min-height: 0;
+}
+.transfer-dialog-body > .search-picker .search-picker-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+.search-picker-row {
+  cursor: pointer;
+}
+/* The row under the mouse, or under the keyboard, is shaded across the whole
+   row, as a row that is clicked whole (#444); no name is underlined, since it
+   is not a link to anywhere. */
+.search-picker-row:hover,
+.search-picker-row.is-lit {
+  background: var(--hover);
+}
+.search-picker-table .search-picker-name {
+  overflow-wrap: anywhere;
+}
+/* The row picked, waiting for Select (#437, #438): its radio filled, which
+   is what tells it from a row under the mouse, and the same shade across the
+   whole row, never a colour of its own (#444). */
+.search-picker-row.is-chosen {
+  background: var(--hover);
+}
+.search-picker-radio-cell {
+  width: 1px;
+  padding-right: 0 !important;
+}
+.search-picker-radio {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-soft);
+  border-radius: 50%;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.search-picker-radio.is-chosen {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 3.5px, transparent 4px);
+}
+.search-picker-row.is-chosen .search-picker-name {
+  font-weight: 600;
+}
+.search-picker-table .search-picker-line {
+  white-space: normal;
+  min-width: 12rem;
+  color: var(--text-soft);
+}
+.search-picker-table .search-picker-by {
+  color: var(--text-soft);
+}
+.search-picker-more {
+  align-self: center;
+}
+@media (max-width: 40rem) {
+  /* On a phone the dialog is the screen, and the list takes what is left of it. */
+  .search-picker-list {
+    max-height: none;
+  }
+}
+@media (max-width: 640px) {
+  /* Each row stacks as a row of a folder does. */
+  .search-picker-row {
+    min-height: 44px;
+  }
+  /* The radio sits beside the name, not on a line of its own. */
+  .search-picker-table .search-picker-radio-cell {
+    float: left;
+    width: auto;
+    margin-right: 10px;
+  }
+  .search-picker-table .search-picker-line {
+    min-width: 0;
+  }
+}
+/* The model or the notebook picked, and the way back to the picker (#432). */
+.new-notebook-chosen,
+.export-chosen {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
 }

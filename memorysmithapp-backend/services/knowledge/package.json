@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/svc-knowledge",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
@@ -10,11 +10,11 @@
     "test:adapters": "vitest run --config vitest.adapters.config.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1117.0",
-    "@aws-sdk/client-eventbridge": "^3.1117.0",
-    "@aws-sdk/client-s3": "^3.1117.0",
-    "@aws-sdk/lib-dynamodb": "^3.1117.0",
-    "@aws-sdk/s3-request-presigner": "^3.1117.0",
+    "@aws-sdk/client-dynamodb": "^3.1165.0",
+    "@aws-sdk/client-eventbridge": "^3.1165.0",
+    "@aws-sdk/client-s3": "^3.1165.0",
+    "@aws-sdk/lib-dynamodb": "^3.1165.0",
+    "@aws-sdk/s3-request-presigner": "^3.1165.0",
     "@memorysmithapp/contracts": "workspace:*",
     "@memorysmithapp/kernel": "workspace:*",
     "@memorysmithapp/observability": "workspace:*",

@@ -1,7 +1,7 @@
 /**
  * A notebook model shared with a person of another subscription (#355): as a
- * model reader, who reads the model and its versions and creates notebooks
- * from them without ever reaching the notebook, or through a share of the
+ * model reader, who reads the model as it stands and its history and creates
+ * notebooks from it without ever reaching the notebook, or through a share of the
  * notebook itself, whose profile decides what they may edit. Every
  * distribution of a model is under CC0 1.0, which its owner accepts once
  * (#357), and nothing of it moves storage.
@@ -75,7 +75,7 @@ async function accept(): Promise<void> {
   ).toBe(204);
 }
 
-async function declareWithVersion(): Promise<void> {
+async function declare(): Promise<void> {
   expect(
     (
       await call(OWNER.token, `/portability/models/${notebookId}`, {
@@ -95,22 +95,12 @@ async function declareWithVersion(): Promise<void> {
       })
     ).status,
   ).toBe(200);
-  expect(
-    (
-      await call(OWNER.token, `/portability/models/${notebookId}/versions`, {
-        method: 'POST',
-        body: { changelog: 'The first version' },
-      })
-    ).status,
-  ).toBe(202);
 }
 
-/** The versions the owner keeps, as the count of their storage sees them. */
-async function ownerVersions(): Promise<number> {
-  const model = await json<{ versions: unknown[] }>(
-    await call(OWNER.token, `/portability/models/${notebookId}`),
-  );
-  return model.versions.length;
+/** What the owner keeps besides their notebooks, as the count of their storage sees it. */
+async function ownerTransfers(): Promise<number> {
+  return (await json<{ transfers: unknown[] }>(await call(OWNER.token, '/portability/transfers')))
+    .transfers.length;
 }
 
 beforeEach(async () => {
@@ -146,7 +136,7 @@ describe('sharing a notebook model (#355)', () => {
   });
 
   it('distributes a model under CC0 1.0, which its owner accepts once', async () => {
-    await declareWithVersion();
+    await declare();
 
     const unaccepted = await share('model-reader');
     expect(unaccepted.status).toBe(409);
@@ -173,8 +163,8 @@ describe('sharing a notebook model (#355)', () => {
     expect(changed.status).toBe(204);
   });
 
-  it('lets a model reader read the model and its versions, and never the notebook', async () => {
-    await declareWithVersion();
+  it('lets a model reader read the model as it stands and its history, and never the notebook', async () => {
+    await declare();
     await share('model-reader', true);
     await accept();
 
@@ -193,49 +183,43 @@ describe('sharing a notebook model (#355)', () => {
 
     const model = await call(GRANTEE.token, `/portability/models/${notebookId}`);
     expect(model.status).toBe(200);
-    const read = await json<{ sharedBy: string | null; versions: Array<{ number: number }> }>(
-      model,
-    );
+    const read = await json<{ sharedBy: string | null; name: string }>(model);
     expect(read.sharedBy).toBe(OWNER.email);
-    expect(read.versions.map((each) => each.number)).toEqual([1]);
+    expect(read.name).toBe('Condomínio {{condominio}}');
 
-    const version = await call(GRANTEE.token, `/portability/models/${notebookId}/versions/1`);
-    expect(version.status).toBe(200);
+    const contents = await call(GRANTEE.token, `/portability/models/${notebookId}/contents`);
+    expect(contents.status).toBe(200);
+    expect((await json<{ notes: unknown[] }>(contents)).notes).toHaveLength(1);
+    expect((await call(GRANTEE.token, `/portability/models/${notebookId}/history`)).status).toBe(
+      200,
+    );
 
     const listed = await json<{ models: Array<{ notebookId: string; sharedBy: string | null }> }>(
       await call(GRANTEE.token, '/portability/models'),
     );
     expect(listed.models).toEqual([expect.objectContaining({ notebookId, sharedBy: OWNER.email })]);
 
-    // Versioning and declaring stay with the owner, in the owner's subscription.
+    // Declaring stays with the owner, in the owner's subscription.
     expect(
       (
-        await call(GRANTEE.token, `/portability/models/${notebookId}/versions`, {
-          method: 'POST',
-          body: { changelog: 'Mine' },
-        })
-      ).status,
-    ).toBe(404);
-    expect(
-      (
-        await call(GRANTEE.token, `/portability/models/${notebookId}/versions/1`, {
-          method: 'DELETE',
+        await call(GRANTEE.token, `/portability/models/${notebookId}`, {
+          method: 'PUT',
+          body: { objective: 'Mine' },
         })
       ).status,
     ).toBe(404);
   });
 
   it('creates the notebook in the subscription of the model reader, and moves nothing of the owner', async () => {
-    await declareWithVersion();
+    await declare();
     await share('model-reader', true);
     await accept();
-    const versions = await ownerVersions();
+    const kept = await ownerTransfers();
 
-    const created = await call(
-      GRANTEE.token,
-      `/portability/models/${notebookId}/versions/1/notebooks`,
-      { method: 'POST', body: { values: { condominio: 'Aurora' } } },
-    );
+    const created = await call(GRANTEE.token, `/portability/models/${notebookId}/notebooks`, {
+      method: 'POST',
+      body: { values: { condominio: 'Aurora' } },
+    });
     expect(created.status).toBe(202);
 
     const mine = await json<Array<{ notebookId: string; name: string }>>(
@@ -246,11 +230,11 @@ describe('sharing a notebook model (#355)', () => {
       await call(OWNER.token, '/knowledge/notebooks'),
     );
     expect(theirs.map((each) => each.notebookId)).toEqual([notebookId]);
-    expect(await ownerVersions()).toBe(versions);
+    expect(await ownerTransfers()).toBe(kept);
   });
 
-  it('lets a notebook editor edit the model notebook, and leaves versions to the owner', async () => {
-    await declareWithVersion();
+  it('lets a notebook editor edit the model notebook, and leaves declaring it to the owner', async () => {
+    await declare();
     await share('notebook-editor', true);
     await accept();
 
@@ -262,16 +246,16 @@ describe('sharing a notebook model (#355)', () => {
     expect((await call(GRANTEE.token, `/portability/models/${notebookId}`)).status).toBe(200);
     expect(
       (
-        await call(GRANTEE.token, `/portability/models/${notebookId}/versions`, {
-          method: 'POST',
-          body: { changelog: 'Mine' },
+        await call(GRANTEE.token, `/portability/models/${notebookId}`, {
+          method: 'PUT',
+          body: { objective: 'Mine' },
         })
       ).status,
     ).toBe(404);
   });
 
   it('closes the model with the share', async () => {
-    await declareWithVersion();
+    await declare();
     await share('model-reader', true);
     await accept();
     expect(

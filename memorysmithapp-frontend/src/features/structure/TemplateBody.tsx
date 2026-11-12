@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { deleteTemplate, getTemplate, putTemplate } from '../../shared/api/source';
-import { DeleteContentSlot } from '../../shared/components/DeleteContentSlot';
+import { getTemplate, putTemplate } from '../../shared/api/source';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { queryKeys } from '../../shared/api/query-keys';
 import type { TemplateDetail } from '../../shared/types/api';
@@ -75,23 +74,16 @@ export function TemplateBody({
         raw={template?.body ?? ''}
         notebookId={notebookId}
         baseRevision={template?.revision ?? null}
-        writable={writable}
+        // A Template is the shape a note starts from, not a record: its boxes
+        // show their state and answer no click; the editor still changes them
+        // as text (#440).
+        writable={false}
         write={({ raw, baseRevision, keepalive }) =>
           putTemplate(notebookId, folder.id, raw, baseRevision, { keepalive: keepalive ?? false })
         }
         invalidates={queryKeys.template(notebookId, folder.id)}
         {...(editing ? { editing } : {})}
       />
-      {writable && template && !editingNow ? (
-        <DeleteContentSlot
-          label={t('folder.deleteTemplate')}
-          confirmation={t('folder.deleteTemplateConfirm')}
-          remove={() => deleteTemplate(notebookId, folder.id)}
-          // The tree carries which folders have a Template, so the structure
-          // is read again and not only this Template.
-          invalidates={queryKeys.notebookStructure(notebookId)}
-        />
-      ) : null}
     </>
   );
 }

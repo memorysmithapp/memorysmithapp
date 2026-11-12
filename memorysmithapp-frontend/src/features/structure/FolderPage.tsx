@@ -1,19 +1,15 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLiveInterval } from '../../shared/api/live';
-import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getTemplate, setNoteOrder } from '../../shared/api/source';
 import { Segmented } from '../../shared/components/Segmented';
 import { Hint } from '../../shared/components/Hint';
-import {
-  folderAddress,
-  identifierOf,
-  notebookAddress,
-  noteAddress,
-} from '../../shared/api/note-address';
+import { folderAddress, identifierOf, notebookAddress } from '../../shared/api/note-address';
 import { ChevronRightIcon, PencilIcon, TrashIcon } from '../../shared/components/icons';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
+import { FolderNotesTable } from './FolderNotesTable';
 import { FolderRows } from './FolderRows';
 import { TemplateBody } from './TemplateBody';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -109,7 +105,7 @@ export function FolderPage() {
           />
         ) : null}
       </NotebookBar>
-      <article className="content-pane folder-page">
+      <article className="content-pane is-wide folder-page">
         <p className="folder-description">{folder.description}</p>
 
         {(folder.hasTemplate || writable) && (
@@ -189,30 +185,27 @@ export function FolderPage() {
                 {t('folder.noteOrderFailed')}
               </p>
             )}
-            <ul className="row-card">
-              {folder.notes.map((note) => (
-                <li key={note.id}>
-                  <Link to={noteAddress(notebookId, note.id)} className="note-row">
-                    {note.name ?? t('note.unnamed')}
-                    {/* Written against a context that had already changed
-                        (RN-KNW-062): a mark to review it, never a lock. */}
-                    {note.staleContext && note.staleContext.length > 0 ? (
-                      <span
-                        className="state-chip note-row-stale"
-                        data-state="waiting"
-                        title={t('folder.staleContextHint', {
-                          parts: note.staleContext
-                            .map((part) => t(`editor.contextPart.${part}`))
-                            .join(', '),
-                        })}
-                      >
-                        {t('folder.staleContext')}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <FolderNotesTable
+              notebookId={notebookId}
+              notes={folder.notes}
+              staleChip={(note) =>
+                // Written against a context that had already changed
+                // (RN-KNW-062): a mark to review it, never a lock.
+                note.staleContext && note.staleContext.length > 0 ? (
+                  <span
+                    className="state-chip note-row-stale"
+                    data-state="waiting"
+                    title={t('folder.staleContextHint', {
+                      parts: note.staleContext
+                        .map((part) => t(`editor.contextPart.${part}`))
+                        .join(', '),
+                    })}
+                  >
+                    {t('folder.staleContext')}
+                  </span>
+                ) : null
+              }
+            />
           </section>
         )}
       </article>

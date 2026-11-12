@@ -87,7 +87,11 @@ export function AcceptedShareCard({
       corner={
         leaving ? null : (
           <div className="notebook-card-corner">
-            <OwnershipMark ownership="sharedWithMe" owner={share.ownerEmail} />
+            <OwnershipMark
+              ownership="sharedWithMe"
+              owner={share.ownerEmail}
+              kind={modelOnly ? 'model' : 'notebook'}
+            />
             <button
               ref={trigger}
               type="button"

@@ -65,7 +65,7 @@ async function named(email: string, name: string): Promise<void> {
   if (account.ok && person.ok) await harness.accountDirectory.setName(account.value, person.value);
 }
 
-/** A model with a parameter and one ready version, in the subscription of a token. */
+/** A model with a parameter, in the subscription of a token. */
 async function modelOf(token: string, name: string): Promise<string> {
   const { notebookId: id } = await json<{ notebookId: string }>(
     await call(token, '/knowledge/notebooks', {
@@ -91,10 +91,6 @@ async function modelOf(token: string, name: string): Promise<string> {
       audience: 'Procurement analysts',
       parameters: [{ name: 'orgao', description: 'The public body', type: 'text', required: true }],
     },
-  });
-  await call(token, `/portability/models/${id}/versions`, {
-    method: 'POST',
-    body: { changelog: 'The first version' },
   });
   return id;
 }
@@ -143,27 +139,32 @@ describe('publishing a model to the community (#360)', () => {
     // What anybody sees names no subscription, no owner and no e-mail.
     expect(JSON.stringify(model)).not.toContain(OWNER.email);
     expect(JSON.stringify(model)).not.toContain(ownerSubscription);
+
+    // The list of the owner's models says it is published, and as which
+    // entry, which is how its cards know it for the owner's own (#418).
+    const listed = await json<{
+      models: Array<{ notebookId: string; publication: { publicId: string } | null }>;
+    }>(await call(OWNER.token, '/portability/models'));
+    expect(listed.models.find((each) => each.notebookId === notebookId)?.publication).toMatchObject(
+      { publicId: model['publicId'] },
+    );
   });
 
-  it('refuses a member and a model with no ready version', async () => {
+  it('refuses a stranger, and a notebook that is no model', async () => {
     const bare = await json<{ notebookId: string }>(
       await call(OWNER.token, '/knowledge/notebooks', {
         method: 'POST',
-        body: { name: 'Sem versão', description: '' },
+        body: { name: 'Sem modelo', description: '' },
       }),
     );
-    await call(OWNER.token, `/portability/models/${bare.notebookId}`, {
-      method: 'PUT',
-      body: { objective: 'Nothing yet' },
-    });
-    expect((await publish(OWNER.token, bare.notebookId)).status).toBe(409);
+    expect((await publish(OWNER.token, bare.notebookId)).status).toBe(404);
     expect((await publish(STRANGER.token, notebookId)).status).toBe(404);
   });
 
   it('is found, read and created from by a stranger, and stays the author’s', async () => {
     const { publicId } = await json<{ publicId: string }>(await publish(OWNER.token, notebookId));
 
-    // No account: the search, the model and its versions, and nothing else.
+    // No account: the search, the model as it stands and its history, and nothing else.
     const found = await json<{ models: Array<{ publicId: string }> }>(
       await call(null, '/public/catalog?q=procurement&language=pt'),
     );
@@ -174,10 +175,17 @@ describe('publishing a model to the community (#360)', () => {
     const read = await call(null, `/public/catalog/${publicId}`);
     expect(read.status).toBe(200);
     expect(read.headers.get('cache-control')).toContain('max-age=');
-    const version = await json<{ notes: Array<{ body: string }> }>(
-      await call(null, `/public/catalog/${publicId}/versions/1`),
+    // The edge answers what it holds while it asks for a fresh one (#420).
+    expect(read.headers.get('cache-control')).toContain('stale-while-revalidate=');
+    const contents = await json<{ notes: Array<{ body: string }> }>(
+      await call(null, `/public/catalog/${publicId}/contents`),
     );
-    expect(version.notes[0]?.body).toContain('{{orgao}}');
+    expect(contents.notes[0]?.body).toContain('{{orgao}}');
+    const history = await json<{ changes: Array<Record<string, unknown>> }>(
+      await call(null, `/public/catalog/${publicId}/history`),
+    );
+    // When and what, never who: no connector, no person (#431).
+    for (const change of history.changes) expect(change).not.toHaveProperty('agent');
     expect((await call(null, `/knowledge/notebooks/${notebookId}`)).status).toBe(404);
     expect((await call(STRANGER.token, `/knowledge/notebooks/${notebookId}`)).status).toBe(404);
     expect((await call(STRANGER.token, `/portability/models/${notebookId}`)).status).toBe(404);
@@ -185,18 +193,17 @@ describe('publishing a model to the community (#360)', () => {
     // Signed in, a notebook of their own, filled in, in their own subscription.
     expect(
       (
-        await call(null, `/portability/catalog/${publicId}/versions/1/notebooks`, {
+        await call(null, `/portability/catalog/${publicId}/notebooks`, {
           method: 'POST',
           body: { values: { orgao: 'Prefeitura' } },
         })
       ).status,
       // Without a session nothing is written, and the answer is the one of a refusal.
     ).toBe(404);
-    const created = await call(
-      STRANGER.token,
-      `/portability/catalog/${publicId}/versions/1/notebooks`,
-      { method: 'POST', body: { values: { orgao: 'Prefeitura' } } },
-    );
+    const created = await call(STRANGER.token, `/portability/catalog/${publicId}/notebooks`, {
+      method: 'POST',
+      body: { values: { orgao: 'Prefeitura' } },
+    });
     expect(created.status).toBe(202);
     const mine = await json<Array<{ notebookId: string; name: string }>>(
       await call(STRANGER.token, '/knowledge/notebooks'),
@@ -211,15 +218,25 @@ describe('publishing a model to the community (#360)', () => {
       method: 'PUT',
       body: { objective: 'Follow the procurement of a city hall', basedOn: null },
     });
-    await call(STRANGER.token, `/portability/models/${derivedId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'Derived' },
-    });
     expect((await publish(STRANGER.token, derivedId)).status).toBe(200);
     const both = await json<{ models: Array<{ author: string }> }>(
       await call(null, '/public/catalog'),
     );
     expect(both.models.map((each) => each.author).sort()).toEqual(['Ana Pereira', 'Bruno Costa']);
+    // A page at a time, the newest published first (#432).
+    const page = await json<{
+      models: Array<{ author: string }>;
+      next: string | null;
+      total: number;
+    }>(await call(null, '/public/catalog?limit=1'));
+    expect(page.models.map((each) => each.author)).toEqual(['Bruno Costa']);
+    expect(page.total).toBe(2);
+    const rest = await json<{ models: Array<{ author: string }>; next: string | null }>(
+      await call(null, `/public/catalog?limit=1&cursor=${page.next ?? ''}`),
+    );
+    expect(rest.models.map((each) => each.author)).toEqual(['Ana Pereira']);
+    expect(rest.next).toBeNull();
+    expect((await call(null, '/public/catalog?limit=500')).status).toBe(400);
     expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(200);
 
     // Withdrawn by its owner: gone from the catalog, the stranger's notebook untouched.
@@ -231,37 +248,44 @@ describe('publishing a model to the community (#360)', () => {
       ).status,
     ).toBe(204);
     expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(404);
-    expect((await call(null, `/public/catalog/${publicId}/versions/1`)).status).toBe(404);
+    expect((await call(null, `/public/catalog/${publicId}/contents`)).status).toBe(404);
+    expect((await call(null, `/public/catalog/${publicId}/history`)).status).toBe(404);
     const still = await json<Array<{ name: string }>>(
       await call(STRANGER.token, '/knowledge/notebooks'),
     );
     expect(still.map((each) => each.name)).toContain('Licitações Prefeitura');
   });
 
-  it('follows the versions the author retains, and withdraws a model left with none', async () => {
+  it('reaches the catalog with every change its owner makes, with nothing published again (#431)', async () => {
     const { publicId } = await json<{ publicId: string }>(await publish(OWNER.token, notebookId));
-    await call(OWNER.token, `/portability/models/${notebookId}/versions`, {
+    const { folderId } = (
+      await json<{ folders: Array<{ folderId: string }> }>(
+        await call(null, `/public/catalog/${publicId}/contents`),
+      )
+    ).folders[0]!;
+    await call(OWNER.token, `/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',
-      body: { changelog: 'Contracts' },
+      body: { folderId, content: '---\nname: Contrato de exemplo\n---\n\nAssinado.\n' },
     });
-    // A version made ready joins the entry, with nothing published again.
-    const two = await json<{ versions: Array<{ number: number }> }>(
+    await call(OWNER.token, `/portability/models/${notebookId}`, {
+      method: 'PUT',
+      body: {
+        objective: 'Follow the procurement and the contracts of one public body',
+        parameters: [
+          { name: 'orgao', description: 'The public body', type: 'text', required: true },
+        ],
+      },
+    });
+
+    const contents = await json<{ notes: unknown[]; objective: string }>(
+      await call(null, `/public/catalog/${publicId}/contents`),
+    );
+    expect(contents.notes).toHaveLength(2);
+    expect(contents.objective).toBe('Follow the procurement and the contracts of one public body');
+    const model = await json<{ objective: string }>(
       await call(null, `/public/catalog/${publicId}`),
     );
-    expect(two.versions.map((each) => each.number)).toEqual([2, 1]);
-
-    await call(OWNER.token, `/portability/models/${notebookId}/versions/2`, { method: 'DELETE' });
-    const one = await json<{ versions: Array<{ number: number }> }>(
-      await call(null, `/public/catalog/${publicId}`),
-    );
-    expect(one.versions.map((each) => each.number)).toEqual([1]);
-
-    await call(OWNER.token, `/portability/models/${notebookId}/versions/1`, { method: 'DELETE' });
-    expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(404);
-    const model = await json<{ publication: unknown }>(
-      await call(OWNER.token, `/portability/models/${notebookId}`),
-    );
-    expect(model.publication).toBeNull();
+    expect(model.objective).toBe('Follow the procurement and the contracts of one public body');
   });
 
   it('hides the models of a subscription that grants no access', async () => {
@@ -276,16 +300,8 @@ describe('publishing a model to the community (#360)', () => {
     );
   });
 
-  it('takes a report only from a person signed in, which the operator acts on', async () => {
+  it('takes no report and has no withdrawal of the operator (#439)', async () => {
     const { publicId } = await json<{ publicId: string }>(await publish(OWNER.token, notebookId));
-    expect(
-      (
-        await call(null, `/portability/catalog/${publicId}/reports`, {
-          method: 'POST',
-          body: { reason: 'Copied from somebody else' },
-        })
-      ).status,
-    ).toBe(404);
     expect(
       (
         await call(STRANGER.token, `/portability/catalog/${publicId}/reports`, {
@@ -293,43 +309,17 @@ describe('publishing a model to the community (#360)', () => {
           body: { reason: 'Copied from somebody else' },
         })
       ).status,
-    ).toBe(204);
-
-    // Nobody but the operator reads the reports.
-    expect((await call(OWNER.token, '/platform/catalog/reports')).status).toBe(404);
-    const { reports } = await json<{
-      reports: Array<{ reportId: string; publicId: string; reason: string }>;
-    }>(await call(OPERATOR, '/platform/catalog/reports'));
-    expect(reports).toEqual([
-      expect.objectContaining({ publicId, reason: 'Copied from somebody else' }),
-    ]);
-
-    const withdrawn = await call(OPERATOR, `/platform/catalog/models/${publicId}/withdraw`, {
-      method: 'POST',
-      body: { reason: 'It copies a model of another author' },
-    });
-    expect(withdrawn.status).toBe(204);
-    expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(404);
-    expect(harness.authorMail).toEqual([
-      expect.objectContaining({ to: OWNER.email, reason: 'It copies a model of another author' }),
-    ]);
-    // The model and its versions stay with the author, untouched (INV-12).
-    const model = await json<{ versions: unknown[]; publication: unknown }>(
-      await call(OWNER.token, `/portability/models/${notebookId}`),
-    );
-    expect(model.versions).toHaveLength(1);
-    expect(model.publication).toBeNull();
-
+    ).toBe(404);
+    expect((await call(OPERATOR, '/platform/catalog/reports')).status).toBe(404);
     expect(
       (
-        await call(OPERATOR, `/platform/catalog/reports/${reports[0]?.reportId ?? ''}`, {
-          method: 'DELETE',
+        await call(OPERATOR, `/platform/catalog/models/${publicId}/withdraw`, {
+          method: 'POST',
+          body: { reason: 'Moderation' },
         })
       ).status,
-    ).toBe(204);
-    expect(
-      (await json<{ reports: unknown[] }>(await call(OPERATOR, '/platform/catalog/reports')))
-        .reports,
-    ).toEqual([]);
+    ).toBe(404);
+    // Only its author withdraws it.
+    expect((await call(null, `/public/catalog/${publicId}`)).status).toBe(200);
   });
 });

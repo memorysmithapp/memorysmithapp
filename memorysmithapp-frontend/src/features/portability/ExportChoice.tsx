@@ -27,6 +27,8 @@ import {
   type Scope,
 } from './import-selection';
 import { queryKeys } from '../../shared/api/query-keys';
+import { RowsSkeleton } from '../../shared/components/skeletons';
+import { SearchPicker } from '../../shared/components/SearchPicker';
 
 /**
  * What an export carries, asked in the dialog both sides share (#160).
@@ -78,8 +80,17 @@ export function ExportChoice({
   onClose,
 }: {
   open: boolean;
-  /** The notebooks this person can see, which is what may be exported. */
-  notebooks: ReadonlyArray<{ id: string; name: string }>;
+  /**
+   * The notebooks this person can see, which is what may be exported: their
+   * own, and the ones shared with them, with whom (#432).
+   */
+  notebooks: ReadonlyArray<{
+    id: string;
+    name: string;
+    line?: string | null;
+    sharedBy?: string | null;
+  }>;
+  /** The notebook chosen, or empty while the picker asks for one. */
   notebookId: string;
   onChooseNotebook: (notebookId: string) => void;
   /**
@@ -91,6 +102,11 @@ export function ExportChoice({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  // Which notebook is chosen as New notebook chooses a model (#444): a field
+  // and Choose notebook, which opens the picker; Select returns the row marked
+  // to the form, and Back returns with nothing changed.
+  const [choosing, setChoosing] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   const [preset, setPreset] = useState<Preset>('everything');
   const [scope, setScope] = useState<Scope>(wholeScope);
   const [picked, setPicked] = useState<Picked>(pickedNothing);
@@ -178,63 +194,112 @@ export function ExportChoice({
       title={t('portability.exportHeading')}
       onClose={onClose}
       actions={
-        <>
-          {counts && (
-            <p className="transfer-summary">
-              {t('portability.carries')}{' '}
-              {/* What goes, in numbers, and nothing that is zero (#205). The
+        choosing ? (
+          <>
+            <button type="button" className="button is-quiet" onClick={() => setChoosing(false)}>
+              {t('newNotebook.back')}
+            </button>
+            <button
+              type="button"
+              className="button is-primary"
+              disabled={pending === null}
+              onClick={() => {
+                if (pending !== null && pending !== notebookId) onChooseNotebook(pending);
+                setChoosing(false);
+              }}
+            >
+              {t('newNotebook.select')}
+            </button>
+          </>
+        ) : (
+          <>
+            {counts && (
+              <p className="transfer-summary">
+                {t('portability.carries')}{' '}
+                {/* What goes, in numbers, and nothing that is zero (#205). The
                   files are named because they are most of what an archive
                   weighs: the summary that never named them is the whole of #176. */}
-              <strong>{carriedParts(counts, t).join(' · ')}</strong>
-            </p>
-          )}
-          {broken.length > 0 ? (
-            <p className="transfer-summary is-wrong" role="alert">
-              {t('portability.tables.blocked', { count: broken.length })}
-            </p>
-          ) : null}
-          <button type="button" className="button is-quiet" onClick={onClose}>
-            {t('portability.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button is-primary"
-            disabled={notebooks.length === 0 || broken.length > 0}
-            onClick={() =>
-              onConfirm(
-                whole ? null : chosen,
-                transferTablesOf(whole, tablesChoice, offeredTables, offeredDashboards),
-              )
-            }
-          >
-            {t('portability.startExport')}
-          </button>
-        </>
+                <strong>{carriedParts(counts, t).join(' · ')}</strong>
+              </p>
+            )}
+            {broken.length > 0 ? (
+              <p className="transfer-summary is-wrong" role="alert">
+                {t('portability.tables.blocked', { count: broken.length })}
+              </p>
+            ) : null}
+            <button type="button" className="button is-quiet" onClick={onClose}>
+              {t('portability.cancel')}
+            </button>
+            <button
+              type="button"
+              className="button is-primary"
+              disabled={notebooks.length === 0 || notebookId === '' || broken.length > 0}
+              onClick={() =>
+                onConfirm(
+                  whole ? null : chosen,
+                  transferTablesOf(whole, tablesChoice, offeredTables, offeredDashboards),
+                )
+              }
+            >
+              {t('portability.startExport')}
+            </button>
+          </>
+        )
       }
     >
       {notebooks.length === 0 ? (
         <p className="status">{t('transfers.noNotebooks')}</p>
+      ) : choosing ? (
+        // Which notebook, found by typing part of its name, among the person's
+        // own and the ones shared with them (#432); a click marks it (#444).
+        <SearchPicker
+          label={t('portability.exportNotebook')}
+          placeholder={t('portability.searchNotebooks')}
+          chosen={pending}
+          sources={[
+            {
+              key: 'mine',
+              label: t('newNotebook.origins.mine'),
+              kind: 'local',
+              items: notebooks.filter((notebook) => !notebook.sharedBy),
+            },
+            {
+              key: 'shared',
+              label: t('newNotebook.origins.shared'),
+              kind: 'local',
+              items: notebooks
+                .filter((notebook) => notebook.sharedBy)
+                .map((notebook) => ({ ...notebook, by: notebook.sharedBy ?? null })),
+            },
+          ]}
+          onPick={(_origin, item) => setPending(item.id)}
+        />
       ) : (
-        <div className="transfer-field">
-          {/* The label is beside the control and not around it: a label that
-              wraps a select takes the text of the chosen option into the name
-              of the field, which is what a screen reader announces. */}
-          <label htmlFor="export-choice-notebook">{t('portability.exportNotebook')}</label>
-          <select
-            id="export-choice-notebook"
-            value={notebookId}
-            onChange={(event) => onChooseNotebook(event.target.value)}
-          >
-            {notebooks.map((notebook) => (
-              <option key={notebook.id} value={notebook.id}>
-                {notebook.name}
-              </option>
-            ))}
-          </select>
+        <div className="field transfer-field">
+          <span className="field-label">{t('portability.exportNotebook')}</span>
+          <div className="export-chosen">
+            {notebookId !== '' ? (
+              <strong>{notebooks.find((notebook) => notebook.id === notebookId)?.name}</strong>
+            ) : (
+              <span className="hint">{t('portability.noNotebook')}</span>
+            )}
+            <button
+              type="button"
+              className="button is-quiet is-small"
+              onClick={() => {
+                setPending(notebookId === '' ? null : notebookId);
+                setChoosing(true);
+              }}
+            >
+              {t('portability.chooseNotebook')}
+            </button>
+          </div>
         </div>
       )}
 
       {notebooks.length > 0 &&
+        !choosing &&
+        notebookId !== '' &&
         (tree && chosen ? (
           <TransferChooser
             tree={tree}
@@ -264,7 +329,7 @@ export function ExportChoice({
             }}
           />
         ) : (
-          <p className="status">{t('common.loading')}</p>
+          <RowsSkeleton />
         ))}
     </TransferDialog>
   );

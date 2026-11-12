@@ -35,7 +35,6 @@ import {
   tablesChosen,
 } from '../domain/NotebookDocumentBuilder.js';
 import type { ImportSelection } from './ImportNotebook.js';
-import { modelVersionPrefixOf } from '../domain/NotebookModel.js';
 
 /** What the Knowledge context hands over for an export. */
 export interface ExportSource {
@@ -47,6 +46,12 @@ export interface ExportSource {
   load(
     notebookId: string,
     report?: (readNotes: number, totalNotes: number) => void,
+    /**
+     * `fileBytes: false` reads what a file is and not its bytes, for a reader
+     * that shows the notebook rather than carries it: a model read whole
+     * (#431). Absent, the bytes are read, which an archive needs (RN-PRT-025).
+     */
+    options?: { readonly fileBytes?: boolean },
   ): Promise<ExportInput | null>;
 }
 
@@ -68,7 +73,7 @@ export interface HistorySource {
   of(notebookId: string, carried: CarriedSubjects | null): Promise<DocumentHistory>;
 }
 
-/** The model a notebook is declared as, which its export carries (#397, RN-PRT-054). */
+/** The model a notebook is declared as, which its export carries (#397, RN-PRT-073). */
 export interface ModelCarrier {
   of(notebookId: string): Promise<DocumentModel | null>;
 }
@@ -138,11 +143,13 @@ export class ExportNotebook {
     tables?: readonly TableChoice[] | undefined;
     report?: ((readNotes: number, totalNotes: number) => void) | undefined;
     /**
-     * A version of a notebook model (#353): the whole notebook WITHOUT its
-     * history, which a notebook created from the model never carries, kept
-     * under the prefix of the versions of that model (#356).
+     * A copy of a notebook model for a notebook created from it (#431): the
+     * whole notebook WITHOUT its history and without its model, which a
+     * notebook created from a model never carries, written at this key — an
+     * upload of the subscription the notebook is created in, which its import
+     * discards once it ends.
      */
-    modelVersion?: boolean | undefined;
+    modelCopyAt?: string | undefined;
   }): Promise<Result<StoredArchive, DomainError>> {
     const source = await this.source.load(input.notebookId, input.report);
     if (!source) return err(DomainError.notFound('Notebook not found'));
@@ -158,7 +165,7 @@ export class ExportNotebook {
      * whole notebook, and the whole notebook is the context, the notes and the
      * history (RN-PRT-024). A selection says so item by item.
      */
-    const wantsHistory = input.modelVersion
+    const wantsHistory = input.modelCopyAt
       ? false
       : input.selection
         ? (input.selection.history ?? false)
@@ -180,10 +187,9 @@ export class ExportNotebook {
     // writes nothing the schema does not describe, which is what makes the
     // format a specification rather than whatever this function happened to
     // produce (RN-PRT-011).
-    // A model travels with its notebook (#397), and a version, which is the
-    // notebook alone, never carries one.
-    const model =
-      !input.modelVersion && this.models ? await this.models.of(input.notebookId) : null;
+    // A model travels with its notebook (#397), and a copy made to create a
+    // notebook from it, which is the notebook alone, never carries one.
+    const model = !input.modelCopyAt && this.models ? await this.models.of(input.notebookId) : null;
     const document = buildNotebookDocument({ ...wanted, history }, input.now.toISOString(), model);
     const written = this.serialize(document);
     const archive = this.zip(
@@ -192,9 +198,7 @@ export class ExportNotebook {
     );
 
     // The archive lives under the same subscription prefix as everything else.
-    const key = input.modelVersion
-      ? `${modelVersionPrefixOf(this.subscriptionId)}${ulid()}.notebook`
-      : `s/${this.subscriptionId}/exports/${ulid()}.notebook`;
+    const key = input.modelCopyAt ?? `s/${this.subscriptionId}/exports/${ulid()}.notebook`;
     const { versionId } = await this.archives.put(key, archive);
 
     return ok({

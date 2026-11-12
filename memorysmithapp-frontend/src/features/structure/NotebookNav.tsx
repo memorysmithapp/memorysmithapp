@@ -9,6 +9,7 @@ import {
   foldersAddress,
   graphAddress,
   guidanceAddress,
+  contextAddress,
   modelAddress,
   notebookAddress,
   templatesAddress,
@@ -16,6 +17,7 @@ import {
 import { queryKeys } from '../../shared/api/query-keys';
 import { getModel } from '../../shared/api/source';
 import {
+  BookIcon,
   ChevronRightIcon,
   ContextIcon,
   CopyIcon,
@@ -112,8 +114,12 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
 
   return (
     <nav className="notebook-nav" aria-label={t('structure.openNavigation')}>
+      {/* What the notebook is, on one screen: its root (#417). */}
+      <NavItem to={notebookAddress(notebookId)} end icon={<BookIcon />}>
+        {t('overview.title')}
+      </NavItem>
       <div className="nav-row-wrap">
-        <NavItem to={notebookAddress(notebookId)} end icon={<ContextIcon />}>
+        <NavItem to={contextAddress(notebookId)} icon={<ContextIcon />}>
           {t('structure.heading')}
         </NavItem>
         <button

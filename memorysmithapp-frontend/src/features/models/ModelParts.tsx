@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { NotebookModelDto } from '@memorysmithapp/contracts';
 import { messageKeyOf } from '../../shared/api/error-mapper';
@@ -22,23 +23,45 @@ import {
   TrashIcon,
 } from '../../shared/components/icons';
 
-/** The parts of a model, one tab each (#400). */
-export const MODEL_TABS = ['about', 'parameters', 'versions', 'community'] as const;
+/**
+ * The parts of a model, one tab each (#400): what it holds as it stands, and
+ * its history (#431). What it holds is read where its notebook cannot be
+ * opened, by a model reader; the page of one's own model leaves it out, since
+ * whoever reads the notebook reads it by navigating it (#435).
+ */
+export const MODEL_TABS = ['about', 'parameters', 'contents', 'history', 'community'] as const;
 export type ModelTab = (typeof MODEL_TABS)[number];
 
-export function isModelTab(value: string | null): value is ModelTab {
-  return value !== null && (MODEL_TABS as readonly string[]).includes(value);
+/**
+ * The tabs of the page of one's own model, which has neither Contents (#435)
+ * nor History (#446): its notebook is opened, and its overview shows both.
+ */
+export const OWN_MODEL_TABS: readonly ModelTab[] = MODEL_TABS.filter(
+  (tab) => tab !== 'contents' && tab !== 'history',
+);
+
+export function isModelTab(
+  value: string | null,
+  tabs: readonly ModelTab[] = MODEL_TABS,
+): value is ModelTab {
+  return value !== null && (tabs as readonly string[]).includes(value);
 }
 
 /** The strip of the tabs of a model; the community is the owner's, and a reader sees it closed. */
 export function ModelTabs({
   model,
   owner,
+  contents,
   active,
   onSelect,
 }: {
   model: NotebookModelDto;
   owner: boolean;
+  /**
+   * Whether it is read where its notebook cannot be opened, by a model reader:
+   * only there are what it holds and its history tabs (#435, #446).
+   */
+  contents: boolean;
   active: ModelTab;
   onSelect: (tab: ModelTab) => void;
 }) {
@@ -53,7 +76,12 @@ export function ModelTabs({
       tabs={[
         { key: 'about', label: t('model.tabs.about') },
         { key: 'parameters', label: t('model.tabs.parameters'), total: model.parameters.length },
-        { key: 'versions', label: t('model.tabs.versions'), total: model.versions.length },
+        ...(contents
+          ? [
+              { key: 'contents' as const, label: t('model.tabs.contents') },
+              { key: 'history' as const, label: t('model.tabs.history') },
+            ]
+          : []),
         { key: 'community', label: t('model.tabs.community'), disabled: !owner },
       ]}
     />
@@ -183,10 +211,17 @@ export function ModelAbout({
   notebookId,
   model,
   onSaved,
+  barSlot,
 }: {
   notebookId: string;
   model: NotebookModelDto;
   onSaved: () => void;
+  /**
+   * Where the bar of the page takes the actions of what it shows: Save is
+   * drawn there, a white button at the right of the trail, as every action of
+   * a page of the notebook is (#447). Absent, it stays under the form.
+   */
+  barSlot?: HTMLElement | null;
 }) {
   const { t } = useTranslation();
   const [about, setAbout] = useState<AboutDraft>(() => aboutOf(model));
@@ -207,8 +242,29 @@ export function ModelAbout({
     }
   }
 
+  const saveButton = barSlot ? (
+    // In the bar, outside the form: it submits it by its id.
+    <button
+      type="submit"
+      form="model-about"
+      className="bar-button"
+      disabled={busy || about.objective.trim().length === 0}
+    >
+      <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} />
+    </button>
+  ) : (
+    <button
+      type="submit"
+      className="button is-primary"
+      disabled={busy || about.objective.trim().length === 0}
+    >
+      <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} wide />
+    </button>
+  );
+
   return (
     <form
+      id="model-about"
       className="model-form"
       onSubmit={(event) => {
         event.preventDefault();
@@ -223,19 +279,14 @@ export function ModelAbout({
         }}
       />
       <div className="model-form-actions">
-        <button
-          type="submit"
-          className="button is-primary"
-          disabled={busy || about.objective.trim().length === 0}
-        >
-          <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} wide />
-        </button>
+        {barSlot ? null : saveButton}
         {said ? (
           <span className="hint" role="status">
             {said}
           </span>
         ) : null}
       </div>
+      {barSlot ? createPortal(saveButton, barSlot) : null}
     </form>
   );
 }

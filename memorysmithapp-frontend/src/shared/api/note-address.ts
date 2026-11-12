@@ -48,6 +48,14 @@ export function notebookAddress(notebookId: string): string {
 }
 
 /**
+ * The Notebook Context: its Guidance, its Templates and its folders (#227). It
+ * was the root of the notebook until the root became its overview (#417).
+ */
+export function contextAddress(notebookId: string): string {
+  return `${notebookAddress(notebookId)}/context`;
+}
+
+/**
  * A folder is addressed under `folders/` (RN-DSC-045). `folders` alone is the
  * page of the folders, a part of the Notebook Context (#227): it answered
  * not-found while the Context itself listed them (#196).
@@ -97,14 +105,9 @@ export function graphAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/graph`;
 }
 
-/** What a notebook declared as a model says of itself, and its versions (#353). */
+/** What a notebook declared as a model says of itself, holds and went through (#353, #431). */
 export function modelAddress(notebookId: string): string {
   return `${notebookAddress(notebookId)}/model`;
-}
-
-/** One version of a model, read whole (#353). */
-export function modelVersionAddress(notebookId: string, version: number): string {
-  return `${modelAddress(notebookId)}/versions/${version}`;
 }
 
 /**
@@ -113,10 +116,6 @@ export function modelVersionAddress(notebookId: string, version: number): string
  */
 export function sharedModelAddress(notebookId: string): string {
   return `/models/${written(notebookId)}`;
-}
-
-export function sharedModelVersionAddress(notebookId: string, version: number): string {
-  return `${sharedModelAddress(notebookId)}/versions/${version}`;
 }
 
 /**
@@ -134,10 +133,6 @@ export function communityAddress(): string {
 
 export function communityModelAddress(publicId: string): string {
   return `/community/${publicId.toLowerCase()}`;
-}
-
-export function communityVersionAddress(publicId: string, version: number): string {
-  return `${communityModelAddress(publicId)}/versions/${version}`;
 }
 
 /** The Dashboards of a notebook, one of them open when it is named (#368). */

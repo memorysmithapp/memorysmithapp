@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { deleteNotebook } from '../../shared/api/source';
@@ -16,7 +16,8 @@ type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
 
 /**
  * A notebook card with what can be done to the notebook from it (#199): export
- * it, and — for its owner — delete it. Both sit behind a `⋯` in the corner, so
+ * it, and — for its owner — share and delete it; the card of a model is the
+ * card of a notebook too, and carries the same (#418). Both sit behind a `⋯` in the corner, so
  * the card still says only "Abrir caderno".
  *
  * Deleting is definitive (RN-KNW-033), and it asks on the card itself, in the
@@ -30,12 +31,18 @@ export function NotebookActions({
   strip,
   onExport,
   sharedByMe = false,
+  kind = 'notebook',
+  renderCard,
 }: {
   notebook: NotebookSummary;
   strip: 'blue' | 'orange';
   onExport: (notebookId: string) => void;
   /** Whether its owner shared it with somebody, which its mark says (#256). */
   sharedByMe?: boolean;
+  /** What the card is, which its mark explains: a notebook, or a model (#418). */
+  kind?: 'notebook' | 'model';
+  /** The card it is drawn on, where it is not the notebook's: a model's (#418). */
+  renderCard?: (parts: CardParts) => ReactNode;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -73,6 +80,8 @@ export function NotebookActions({
       // The card leaves the row, and the space says what is still held until
       // the purge ends: both read again.
       await client.invalidateQueries({ queryKey: queryKeys.notebooks() });
+      // A model is a notebook, and its card leaves the models too (#418).
+      void client.invalidateQueries({ queryKey: queryKeys.models() });
       void client.invalidateQueries({ queryKey: queryKeys.subscriptionUsage() });
     } catch (error) {
       setMessageKey(messageKeyOf(error));
@@ -83,13 +92,14 @@ export function NotebookActions({
   const asking = phase !== 'idle';
 
   return (
-    <NotebookCard
+    <CardFrame
+      render={renderCard}
       notebook={notebook}
       strip={asking ? 'danger' : strip}
       corner={
         asking ? null : (
           <div className="notebook-card-corner">
-            <OwnershipMark ownership={sharedByMe ? 'sharedByMe' : 'own'} />
+            <OwnershipMark ownership={sharedByMe ? 'sharedByMe' : 'own'} kind={kind} />
             <button
               ref={trigger}
               type="button"
@@ -197,6 +207,29 @@ export function NotebookActions({
           </div>
         </div>
       ) : undefined}
+    </CardFrame>
+  );
+}
+
+/** What a card is drawn with: its strip, its corner, and what replaces its body. */
+export interface CardParts {
+  strip: 'blue' | 'orange' | 'danger';
+  corner: ReactNode;
+  children: ReactNode;
+}
+
+/** The notebook's card, or the one the caller draws (#418). */
+function CardFrame({
+  render,
+  notebook,
+  strip,
+  corner,
+  children,
+}: CardParts & { render?: (parts: CardParts) => ReactNode; notebook: NotebookSummary }) {
+  if (render) return <>{render({ strip, corner, children })}</>;
+  return (
+    <NotebookCard notebook={notebook} strip={strip} corner={corner}>
+      {children}
     </NotebookCard>
   );
 }

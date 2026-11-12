@@ -42,10 +42,6 @@ describe('the pages of the interface', () => {
     expect(pagesOf(readText('memorysmithapp-frontend/src/app/router.tsx'))).toEqual([
       '/login',
       '/auth/callback',
-      // Read by anybody, signed in or not (#360).
-      '/community',
-      '/community/:publicId',
-      '/community/:publicId/versions/:version',
       // Outside the frame of the application, drawn as the sign-in (#214).
       '/profile/password',
       '/notebooks/:notebookId/notes/:noteId/print',
@@ -54,13 +50,22 @@ describe('the pages of the interface', () => {
       // A dashboard drawn whole for its image, by the same renderer (#368).
       '/notebooks/:notebookId/dashboards/print',
       '/',
+      // Every notebook, as cards (#418).
+      '/notebooks',
       '/about',
+      // Read signed in, under the menu of the application (#360, #418).
+      '/community',
+      '/community/:publicId',
+      '/community/:publicId/versions/:version',
       '/profile',
       '/transfers',
+      // The models a person reads, and where a new one starts (#418).
+      '/models',
       // A model shared as a model reader opens no notebook (#355).
       '/models/:notebookId',
       '/models/:notebookId/versions/:version',
       '/notebooks/:notebookId',
+      '/notebooks/:notebookId/context',
       '/notebooks/:notebookId/guidance',
       '/notebooks/:notebookId/templates',
       '/notebooks/:notebookId/attachments',

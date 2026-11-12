@@ -191,6 +191,13 @@ export const facetStatsSchema = z.object({
   updatedAt: instantSchema,
 });
 
+/** What each note of a notebook declares in its frontmatter (#416). */
+export const noteFacetsSchema = z.object({
+  notes: z.array(
+    z.object({ noteId: ulidSchema, facets: z.record(z.string(), z.array(z.string())) }),
+  ),
+});
+
 export type NoteRefDto = z.infer<typeof noteRefSchema>;
 export type NotebookNamesDto = z.infer<typeof notebookNamesSchema>;
 export type NotebookAttachmentsDto = z.infer<typeof notebookAttachmentsSchema>;
@@ -206,3 +213,4 @@ export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchHitDto = z.infer<typeof searchHitSchema>;
 export type SearchResultDto = z.infer<typeof searchResultSchema>;
 export type FacetStatsDto = z.infer<typeof facetStatsSchema>;
+export type NoteFacetsDto = z.infer<typeof noteFacetsSchema>;

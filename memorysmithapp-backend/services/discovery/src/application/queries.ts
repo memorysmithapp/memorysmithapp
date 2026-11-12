@@ -400,3 +400,19 @@ export class GetFacetStats {
     return ok(await this.deps.facets.notebookFacetStats(input.notebookId));
   }
 }
+
+/**
+ * What each note of a notebook declares in its frontmatter, the same portraits
+ * the graph is colored by, without the graph (#416): a folder shows a property
+ * of its notes as a column. One prefix query; no note is read (INV-05).
+ */
+export class GetNoteFacets {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: {
+    notebookId: string;
+  }): Promise<Result<Array<{ noteId: string; facets: Record<string, string[]> }>, DomainError>> {
+    const portraits = await this.deps.facets.notebookNoteFacets(input.notebookId);
+    return ok([...portraits].map(([noteId, facets]) => ({ noteId, facets })));
+  }
+}

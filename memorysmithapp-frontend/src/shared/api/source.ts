@@ -345,6 +345,10 @@ export function importFromExport(transferId: string): Promise<{ uploadKey: strin
   return backend.importFromExport(transferId);
 }
 
+export function markTransferRead(transferId: string): Promise<void> {
+  return backend.markTransferRead(transferId);
+}
+
 export function cancelTransfer(transferId: string): Promise<void> {
   return backend.cancelTransfer(transferId);
 }
@@ -439,10 +443,6 @@ export function putTemplate(
  * The two Content Slots that are not notes are deleted on their own, and their
  * parent stays (RN-KNW-045).
  */
-export function deleteGuidance(notebookId: string): Promise<void> {
-  return backend.deleteGuidance(notebookId);
-}
-
 export function setNoteOrder(
   notebookId: string,
   folderId: string,
@@ -457,10 +457,6 @@ export function updateFolder(
   change: { name?: string; description?: string },
 ): Promise<void> {
   return backend.updateFolder(notebookId, folderId, change);
-}
-
-export function deleteTemplate(notebookId: string, folderId: string): Promise<void> {
-  return backend.deleteTemplate(notebookId, folderId);
 }
 
 export function deleteFolder(notebookId: string, folderId: string): Promise<void> {
@@ -497,24 +493,29 @@ export {
 // Notebook models (#353, #354, #359), and a blank notebook beside them: straight
 // to the API, as sharing is.
 export {
-  createFromVersion,
-  createModelVersion,
+  createFromModel,
   declareModel,
-  deleteModelVersion,
   getModel,
-  getModelVersion,
+  getModelContents,
+  getModelHistory,
+  getNotebookHistory,
   listModels,
   createNotebook,
 } from './backend';
+
+// What Discovery says of a notebook as a whole: its orphans and pending links
+// for its overview (#417), and what each note declares for a folder (#416).
+export { getFacetsById, getNoteFacets, getNotebookGraph, getNotebookHealth } from './backend';
 
 // The community catalog (#360): what anybody reads, and what a person signed
 // in does with it.
 export {
   createFromCatalog,
+  getCatalogContents,
+  getCatalogHistory,
   getCatalogModel,
-  getCatalogVersion,
   publishModel,
-  reportModel,
   searchCatalog,
+  searchCatalogPage,
   withdrawModel,
 } from './backend';

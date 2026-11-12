@@ -522,6 +522,34 @@ function RouterFreeLink({
 const SUGGESTIONS = 12;
 
 /**
+ * Markdown drawn as a note reads, and nothing else (#439): where the notebook
+ * it was written in cannot be opened — a community model, a model read as a
+ * model reader — so a `[[link]]` or an `![[embed]]` that points inside it is
+ * drawn as its text, a table block finds no table, and no box can be ticked.
+ * `{{parameters}}` stay as written.
+ */
+export function ReadOnlyMarkdown({ markdown }: { markdown: string }) {
+  const { t, i18n } = useTranslation();
+  const theme = usePreferences((state) => state.theme);
+  const paper = usePreferences((state) => state.paper);
+  const strings = useMemo(() => noteStrings(t, intlLocale(i18n.language)), [t, i18n.language]);
+  return (
+    <NoteBody
+      markdown={markdown}
+      resolve={() => null}
+      reaches={() => 0}
+      loadNote={async () => null}
+      renderLink={(link) => <span className={link.className}>{link.children}</span>}
+      writable={false}
+      actions={false}
+      strings={strings}
+      theme={READING_THEME}
+      scheme={effectiveTheme(theme, paper)}
+    />
+  );
+}
+
+/**
  * The names of notes that start with what was typed, then those that hold it,
  * each group in the order of the notebook; compared after NFC and without
  * regard to case, so *ata* finds *Ata 12*.

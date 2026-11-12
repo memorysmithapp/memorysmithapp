@@ -99,4 +99,36 @@ test.describe('the audit trail', () => {
     const instants = activity.entries.map((entry) => entry.occurredAt);
     expect(instants).toEqual([...instants].sort().reverse());
   });
+
+  test('[route:GET /audit/notebooks/:v/history] tells the history of a notebook from its creation, whose each change was, to nobody else (#446)', async ({
+    owner,
+    other,
+    notebook,
+  }) => {
+    await writeTwice(owner, notebook);
+
+    const history = await eventually(
+      'the writes of the note in the history of the notebook',
+      () =>
+        owner.ok<{
+          changes: Array<{
+            type: string;
+            subjectId: string;
+            fromModel: string | null;
+            you: boolean;
+          }>;
+          truncated: boolean;
+        }>('GET', `/audit/notebooks/${notebook.notebookId}/history`),
+      (answer) => answer.changes.some((change) => change.subjectId === notebook.noteId),
+    );
+    // The oldest change is the creation, of a notebook created blank.
+    expect(history.changes.at(-1)).toEqual(
+      expect.objectContaining({ type: 'NotebookCreated', fromModel: null, you: true }),
+    );
+    expect(history.changes.every((change) => change.you)).toBe(true);
+    // Somebody it is not shared with reads nothing of it (INV-09).
+    expect(
+      (await other.call('GET', `/audit/notebooks/${notebook.notebookId}/history`)).status,
+    ).toBe(404);
+  });
 });

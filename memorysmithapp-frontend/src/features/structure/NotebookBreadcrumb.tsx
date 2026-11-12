@@ -12,9 +12,10 @@ import { fitTrail, type TrailFit } from './trail-fit';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { FolderNode } from '../../shared/types/api';
-import { folderAddress, notebookAddress } from '../../shared/api/note-address';
+import { contextAddress, folderAddress, notebookAddress } from '../../shared/api/note-address';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
+import { useIsModel } from '../../shared/api/is-model';
 import { ActionWord } from '../../shared/components/ActionWord';
 
 export interface Crumb {
@@ -35,8 +36,8 @@ const GAP_PX = 6;
 /** Room kept against the rounding of one engine or another. */
 const SLACK_PX = 2;
 
-// Every page inside a notebook starts its trail at the notebook name, which
-// links to the Notebook Context. The trail ends at the page that is open and no
+// Every page inside a notebook starts its trail at the shelf the notebook is on
+// (#422), then the notebook name, which links to the Notebook Context. The trail ends at the page that is open and no
 // heading repeats it (#225); the note is the exception, whose trail stops at
 // the folder that holds it, because its name is the title of the page. The
 // trail of folders is read here, from the structure already loaded, and never
@@ -52,6 +53,19 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
   const { t } = useTranslation();
   const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
+  /**
+   * The trail starts on the shelf the notebook is on, the page of the menu it
+   * is reached from: Models for a notebook declared as a model, Notebooks for
+   * any other (#422). It is the way back the sidebar no longer offers, and it
+   * waits until the notebook is known to be one or the other.
+   */
+  const isModel = useIsModel(notebookId);
+  const shelf: { label: string; to: string } | null =
+    isModel === undefined
+      ? null
+      : isModel
+        ? { label: t('nav.models'), to: '/models' }
+        : { label: t('nav.notebooks'), to: '/notebooks' };
   const trail: Crumb[] = [
     { label: structure.notebook.name, to: notebookAddress(notebookId) },
     ...items,
@@ -94,6 +108,9 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
       );
     const [notebook = 0] = width('notebook');
     const [separator = 0] = width('separator');
+    // The shelf is never shortened: the rest of the trail fits after it.
+    const [shelfWidth = null] = width('shelf');
+    const beforeNotebook = shelfWidth === null ? 0 : shelfWidth + separator + 2 * GAP_PX;
     const [more = 0] = width('more');
     const [last = null] = width('last');
     const next = fitTrail({
@@ -103,7 +120,7 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
       separator,
       gap: GAP_PX,
       more,
-      available: node.clientWidth - SLACK_PX,
+      available: node.clientWidth - SLACK_PX - beforeNotebook,
       notebookMin: NOTEBOOK_MIN_PX,
     });
     setFit((current) =>
@@ -140,6 +157,14 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
 
   return (
     <nav ref={nav} className="notebook-breadcrumb" aria-label={t('structure.breadcrumb')}>
+      {shelf ? (
+        <>
+          <Link to={shelf.to} className="crumb is-shelf" title={shelf.label}>
+            {shelf.label}
+          </Link>
+          {separator}
+        </>
+      ) : null}
       {shown.map((crumb, index) => {
         if (crumb === 'more') {
           return (
@@ -183,6 +208,7 @@ export function NotebookBreadcrumb({ items }: NotebookBreadcrumbProps) {
       {/* The trail as it would be drawn whole, where nobody sees it: what each
           part measures is read here, never off parts already shortened. */}
       <div ref={ruler} className="notebook-breadcrumb-ruler" aria-hidden="true">
+        {shelf ? <span data-part="shelf">{shelf.label}</span> : null}
         <span data-part="notebook">{trail[0]!.label}</span>
         <span data-part="separator">/</span>
         <span data-part="more">…</span>
@@ -209,7 +235,7 @@ export function folderCrumbs(notebookId: string, chain: FolderNode[]): Crumb[] {
  * Context, and their trail says so: *Caderno / Contexto do caderno / Orientação*.
  */
 export function contextCrumbs(notebookId: string, t: TFunction, page: string): Crumb[] {
-  return [{ label: t('structure.heading'), to: notebookAddress(notebookId) }, { label: page }];
+  return [{ label: t('structure.heading'), to: contextAddress(notebookId) }, { label: page }];
 }
 
 /**

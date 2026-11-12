@@ -249,7 +249,7 @@ export function NotePage({ noteId }: { noteId: string }) {
           />
         ) : null}
       </NotebookBar>
-      <article className="content-pane">
+      <article className="content-pane is-wide">
         <NoteContent
           raw={data.raw}
           notebookId={notebookId}

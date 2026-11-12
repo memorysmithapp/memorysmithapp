@@ -34,6 +34,11 @@ export const LAMBDA_BANNER =
 export interface ServiceLambdaProps {
   readonly entry: string;
   readonly description: string;
+  /**
+   * The name of the function, when something outside the stack calls it by
+   * name: a role of delivery that may invoke it and nothing else (#434).
+   */
+  readonly functionName?: string;
   readonly environment?: Record<string, string>;
   readonly timeout?: Duration;
   readonly memorySize?: number;
@@ -78,6 +83,7 @@ export class ServiceLambda extends Construct {
     this.function = new NodejsFunction(this, 'Function', {
       entry: props.entry,
       handler: 'handler',
+      ...(props.functionName ? { functionName: props.functionName } : {}),
       runtime: Runtime.NODEJS_22_X,
       architecture: props.architecture ?? Architecture.ARM_64,
       ...(props.layers ? { layers: props.layers } : {}),

@@ -19,8 +19,9 @@ import { webSession } from '../support/web-session.js';
 export type AppLocale = 'en_US' | 'pt_BR';
 
 export interface Words {
-  /** The heading over the notebooks of the dashboard. */
-  readonly openNotebook: string;
+  /** The heading of Home, and of the page of the notebooks (#418). */
+  readonly home: string;
+  readonly notebooks: string;
   /** The BCP 47 tag the case compares names in. */
   readonly locale: string;
   /** The heading of the space of the subscription on Home (#198). */
@@ -34,6 +35,14 @@ export interface Words {
   /** The link the row of a finished import carries, which is another text. */
   readonly openImported: string;
   readonly context: string;
+  /** The root of a notebook, and its way back to the note last read (#417). */
+  readonly overview: string;
+  readonly resume: string;
+  /** The columns of the notes of a folder, and the way back to its order (#416). */
+  readonly columnName: string;
+  readonly columnChanged: string;
+  readonly folderOrder: string;
+  readonly you: string;
   /** The page of the folders, a part of the Context (#227). */
   readonly folders: string;
   readonly guidance: string;
@@ -56,6 +65,12 @@ export interface Words {
   readonly deleteSlotForGood: string;
   /** The notebook a new export names, in the dialog that starts one. */
   readonly notebookField: string;
+  /** What opens the picker of that notebook, and what returns the row marked (#444). */
+  readonly chooseNotebook: string;
+  readonly selectChosen: string;
+  readonly backFromPicker: string;
+  /** What takes the notice of a transfer that ended off the bell (#451). */
+  readonly markRead: string;
   /** The action of the Transfers panel that opens the import dialog. */
   readonly importNotebook: string;
   readonly linkToSeveral: string;
@@ -80,6 +95,8 @@ export interface Words {
   readonly inconsistency: string;
   /** The space the kept exports take, as the page says it (#205). */
   readonly ofYourPlan: string;
+  /** What Transfers is for, behind the `?` of its heading (#435): its first words. */
+  readonly transfersHelp: string;
   /** What the import dialog commits with, which is the verb alone (#160). */
   readonly importAction: string;
   /** The whole notebook, or part of it: the head of the first tab (#161). */
@@ -155,7 +172,8 @@ export interface Words {
 
 export const WORDS: Record<AppLocale, Words> = {
   en_US: {
-    openNotebook: 'Open a notebook',
+    home: 'Home',
+    notebooks: 'Notebooks',
     locale: 'en-US',
     space: 'Subscription space',
     moreActions: 'More actions',
@@ -165,6 +183,12 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteForGood: 'Delete for good',
     openImported: 'Open notebook',
     context: 'Notebook Context',
+    overview: 'Overview',
+    resume: 'Continue where you left off',
+    columnName: 'Name',
+    columnChanged: 'Changed',
+    folderOrder: 'Folder order',
+    you: 'you',
     folders: 'Folders',
     guidance: 'Guidance',
     templates: 'Templates',
@@ -183,7 +207,11 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteTemplate: 'Delete the Template',
     deleteSlotForGood: 'Delete for good',
     notebookField: 'Notebook',
-    importNotebook: 'Import a notebook',
+    chooseNotebook: 'Choose notebook',
+    selectChosen: 'Select',
+    backFromPicker: 'Back',
+    markRead: 'Mark as read',
+    importNotebook: 'Import',
     linkToSeveral: 'This link leads to more than one note',
     transfers: 'Transfers',
     filterAll: 'All',
@@ -199,21 +227,22 @@ export const WORDS: Record<AppLocale, Words> = {
     tabConflicts: 'Conflicts',
     inconsistency: 'inconsistenc',
     ofYourPlan: 'of your plan',
+    transfersHelp: 'Every export and import of your account.',
     importAction: 'Import',
     partOfIt: 'Part of it',
     tabNotes: 'Notes',
-    newExport: 'New export',
+    newExport: 'Export',
     startExport: 'Export',
     willCreateFolders: 'folders',
     openGraphControls: 'Open controls',
     closeGraphControls: 'Close controls',
     willCreateNotes: /\bnotes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
-    aboutMenu: 'About MemorySmith.app',
+    aboutMenu: 'About',
     accountMenu: 'Account menu',
     themeDark: 'Dark',
     themeLight: 'Light',
-    aboutHeading: 'Welcome to MemorySmith.app',
+    aboutHeading: 'About MemorySmith.app',
     aboutConnector: 'Connecting your AI assistant',
     profileMenu: 'Your profile',
     passwordMenu: 'Change your password',
@@ -252,7 +281,8 @@ export const WORDS: Record<AppLocale, Words> = {
     historyMoved: 'Moved',
   },
   pt_BR: {
-    openNotebook: 'Abrir um caderno',
+    home: 'Início',
+    notebooks: 'Cadernos',
     locale: 'pt-BR',
     space: 'Espaço da assinatura',
     moreActions: 'Mais ações',
@@ -262,6 +292,12 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteForGood: 'Apagar de vez',
     openImported: 'Abrir o caderno',
     context: 'Contexto do caderno',
+    overview: 'Visão geral',
+    resume: 'Continuar de onde parei',
+    columnName: 'Nome',
+    columnChanged: 'Alterada em',
+    folderOrder: 'Ordem da pasta',
+    you: 'você',
     folders: 'Pastas',
     guidance: 'Orientação',
     templates: 'Modelos de pasta',
@@ -280,7 +316,11 @@ export const WORDS: Record<AppLocale, Words> = {
     deleteTemplate: 'Apagar o Modelo de pasta',
     deleteSlotForGood: 'Apagar de vez',
     notebookField: 'Caderno',
-    importNotebook: 'Importar um caderno',
+    chooseNotebook: 'Escolher caderno',
+    selectChosen: 'Selecionar',
+    backFromPicker: 'Voltar',
+    markRead: 'Marcar como lida',
+    importNotebook: 'Importar',
     linkToSeveral: 'Este link leva a mais de uma nota',
     transfers: 'Transferências',
     filterAll: 'Todas',
@@ -296,21 +336,22 @@ export const WORDS: Record<AppLocale, Words> = {
     tabConflicts: 'Inconsistências',
     inconsistency: 'inconsistência',
     ofYourPlan: 'do seu plano',
+    transfersHelp: 'Cada exportação e importação da sua conta.',
     importAction: 'Importar',
     partOfIt: 'Parte dele',
     tabNotes: 'Notas',
-    newExport: 'Nova exportação',
+    newExport: 'Exportar',
     startExport: 'Exportar',
     willCreateFolders: 'pastas',
     openGraphControls: 'Abrir controles',
     closeGraphControls: 'Fechar controles',
     willCreateNotes: /\bnotas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
-    aboutMenu: 'Sobre o MemorySmith.app',
+    aboutMenu: 'Sobre',
     accountMenu: 'Menu da conta',
     themeDark: 'Escuro',
     themeLight: 'Claro',
-    aboutHeading: 'Bem-vindo ao MemorySmith.app',
+    aboutHeading: 'Sobre o MemorySmith.app',
     aboutConnector: 'Conectando seu assistente de IA',
     profileMenu: 'Seu perfil',
     passwordMenu: 'Trocar a senha',

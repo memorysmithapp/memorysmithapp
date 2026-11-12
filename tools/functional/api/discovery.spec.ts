@@ -333,6 +333,27 @@ test.describe('facets and search', () => {
     );
   });
 
+  test('[route:GET /discovery/notebooks/:v/note-facets] answers what each note declares, the column of a folder (#416)', async ({
+    owner,
+    notebook,
+  }) => {
+    const { alpha, beta } = await writeLinkedNotes(owner, notebook);
+
+    await eventually(
+      'each note with the kind it declares',
+      () =>
+        owner.ok<{ notes: Array<{ noteId: string; facets: Record<string, string[]> }> }>(
+          'GET',
+          `${discovery(notebook)}/note-facets`,
+        ),
+      (answer) => {
+        const kind = (noteId: string) =>
+          answer.notes.find((note) => note.noteId === noteId)?.facets['kind'];
+        return kind(alpha)?.[0] === 'claim' && kind(beta)?.[0] === 'evidence';
+      },
+    );
+  });
+
   test('[route:POST /discovery/notebooks/:v/search] finds a note by a word of its body, and filters by an attribute', async ({
     owner,
     notebook,

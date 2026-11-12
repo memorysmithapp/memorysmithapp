@@ -19,7 +19,13 @@ const LEI = '01J8X2K9QZ3M4N5P6R7S8T9V0W';
 const ART = '01J8X2K9QZ3M4N5P6R7S8T9V0X';
 
 function note(id: string, name: string, folderId: string): NoteSummary {
-  return { id, name, folderId };
+  return {
+    id,
+    name,
+    folderId,
+    updatedAt: '2026-11-10T00:00:00.000Z',
+    updatedBy: { userId: 'user-a', agent: null },
+  };
 }
 
 function folder(

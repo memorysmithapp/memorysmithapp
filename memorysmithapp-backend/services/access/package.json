@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/svc-access",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "description": "Access bounded context: subscriptions and their lifecycle, members, roles, notebook ceilings, links and authorization.",
@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.2",
-    "@aws-sdk/client-cognito-identity-provider": "^3.1131.0",
-    "@aws-sdk/client-dynamodb": "^3.1117.0",
-    "@aws-sdk/client-secrets-manager": "^3.1117.0",
-    "@aws-sdk/lib-dynamodb": "^3.1117.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1165.0",
+    "@aws-sdk/client-dynamodb": "^3.1165.0",
+    "@aws-sdk/client-secrets-manager": "^3.1165.0",
+    "@aws-sdk/lib-dynamodb": "^3.1165.0",
     "@memorysmithapp/contracts": "workspace:*",
     "@memorysmithapp/kernel": "workspace:*",
     "@memorysmithapp/observability": "workspace:*",

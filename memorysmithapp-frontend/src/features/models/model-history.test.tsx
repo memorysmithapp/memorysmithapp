@@ -1,0 +1,185 @@
+/**
+ * The history of a notebook model (#431), which replaced its frozen versions:
+ * each change with its date, who made it — the connector, or the person in
+ * the interface — what changed, the line its author left, and an edit session
+ * as one change with how many saves it held. The community reads it without
+ * who. Rendered to static markup in both locales.
+ */
+
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import type { i18n as I18n } from 'i18next';
+import type { ModelHistoryChange } from './ModelHistory';
+
+const stored = new Map<string, string>();
+vi.stubGlobal('localStorage', {
+  get length() {
+    return stored.size;
+  },
+  clear: () => stored.clear(),
+  getItem: (key: string) => stored.get(key) ?? null,
+  key: (index: number) => [...stored.keys()][index] ?? null,
+  removeItem: (key: string) => void stored.delete(key),
+  setItem: (key: string, value: string) => void stored.set(key, value),
+} as Storage);
+
+const CHANGES: ModelHistoryChange[] = [
+  {
+    occurredAt: '2026-11-09T15:20:00.000Z',
+    since: '2026-11-09T15:02:00.000Z',
+    saves: 3,
+    type: 'NoteUpdated',
+    subject: 'Note',
+    subjectId: '01J8X2K9QZ3M4N5P6R7S8T9VN1',
+    name: 'Minutes of the assembly',
+    agent: null,
+    message: null,
+  },
+  {
+    occurredAt: '2026-11-08T10:00:00.000Z',
+    since: '2026-11-08T10:00:00.000Z',
+    saves: 1,
+    type: 'TemplateUpdated',
+    subject: 'Folder',
+    subjectId: '01J8X2K9QZ3M4N5P6R7S8T9VF1',
+    name: 'Assemblies',
+    agent: 'Claude',
+    message: 'Ask for the quorum in every minute',
+  },
+  {
+    occurredAt: '2026-11-07T09:00:00.000Z',
+    since: '2026-11-07T09:00:00.000Z',
+    saves: 1,
+    type: 'SomethingNew',
+    subject: 'Notebook',
+    subjectId: '01J8X2K9QZ3M4N5P6R7S8T9V0A',
+    name: null,
+    agent: null,
+    message: null,
+  },
+];
+
+let i18n: I18n;
+let draw: (
+  changes: readonly ModelHistoryChange[],
+  options?: { truncated?: boolean; withAuthor?: boolean },
+) => string;
+
+beforeAll(async () => {
+  i18n = (await import('../../i18n')).default;
+  const { ModelHistoryList } = await import('./ModelHistory');
+  draw = (changes, { truncated = false, withAuthor = true } = {}) =>
+    renderToStaticMarkup(
+      <ModelHistoryList changes={changes} truncated={truncated} withAuthor={withAuthor} />,
+    );
+}, 30_000);
+
+describe('the history of a model (#431, #435)', () => {
+  it('is the list of a folder: what changed first, then when, who and the line left (#437)', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = draw(CHANGES);
+    expect(html).toContain('class="tables-grid folder-notes-table model-history-table"');
+    expect(html).toMatch(
+      /<thead><tr><th scope="col">What changed<\/th><th scope="col">When<\/th><th scope="col">Who<\/th><th scope="col">Line left<\/th><\/tr><\/thead>/,
+    );
+    expect(html.match(/<tr/g)).toHaveLength(CHANGES.length + 1);
+  });
+
+  it('says who made each change: the connector, or the person in the interface', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = draw(CHANGES);
+    expect(html).toContain('<td data-label="Who" class="model-history-who is-agent">Claude</td>');
+    expect(html).toContain(
+      '<td data-label="Who" class="model-history-who">From the interface</td>',
+    );
+  });
+
+  it('says what changed by its name, its kind as the tooltip, and the line its author left (#437)', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = draw(CHANGES);
+    expect(html).toContain(
+      '<td class="folder-notes-name model-history-what" title="Template written">Assemblies</td>',
+    );
+    // A change that names nothing says its kind.
+    expect(html).toMatch(/title="([^"]+)">\1<\/td>/);
+    expect(html).toContain(
+      '<td data-label="Line left" class="model-history-line">Ask for the quorum in every minute</td>',
+    );
+    expect(html).toContain('<span class="is-empty">No line was left about this change.</span>');
+    // A kind the interface does not know yet reads as the type it is.
+    expect(html).toContain('SomethingNew');
+  });
+
+  it('shows an edit session as one row, with its saves and since when', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = draw(CHANGES);
+    expect(html.match(/class="is-session"/g)).toHaveLength(1);
+    expect(html).toMatch(/<span class="model-history-saves">3 saves, since 11\/\d+\/26/);
+    expect(html.match(/model-history-saves/g)).toHaveLength(1);
+  });
+
+  it('says when older changes were left out, and only then', async () => {
+    await i18n.changeLanguage('en_US');
+    expect(draw(CHANGES, { truncated: true })).toContain('Older changes are left out.');
+    expect(draw(CHANGES)).not.toContain('Older changes are left out.');
+  });
+
+  it('never says who in the community, not even its column', async () => {
+    await i18n.changeLanguage('en_US');
+    const html = draw(
+      CHANGES.map(({ agent: _agent, ...change }) => change),
+      { withAuthor: false },
+    );
+    expect(html).not.toContain('model-history-who');
+    expect(html).not.toContain('>Who<');
+    expect(html).not.toContain('From the interface');
+    expect(html).toContain('Note written');
+  });
+
+  it('renders in pt_BR, whose locale tag is not the one Intl takes', async () => {
+    await i18n.changeLanguage('pt_BR');
+    const html = draw(CHANGES);
+    expect(html).toContain('Pela interface');
+    expect(html).toContain('O que mudou');
+    expect(html).toContain('Modelo de pasta escrito');
+    expect(html).toContain('3 salvamentos, desde');
+    // Day before month, as Brazil writes a date.
+    expect(html).toMatch(/\b\d{2}\/11\/2026/);
+    await i18n.changeLanguage('en_US');
+  });
+
+  it('says so when nothing was recorded yet', async () => {
+    await i18n.changeLanguage('en_US');
+    expect(draw([])).toContain('No change was recorded yet.');
+  });
+
+  it('opens a notebook on its creation, from the model it came from, and says whose each change was (#446)', async () => {
+    await i18n.changeLanguage('pt_BR');
+    const html = draw([
+      { ...CHANGES[0]!, you: false },
+      {
+        ...CHANGES[2]!,
+        type: 'NotebookCreated',
+        name: 'Atas de Aurora',
+        fromModel: 'Atas de {{condomínio}}',
+        you: true,
+      },
+    ]);
+    expect(html).toContain(
+      'title="Caderno criado">Criado a partir do modelo “Atas de {{condomínio}}”</td>',
+    );
+    expect(html).toContain('<td data-label="Quem" class="model-history-who">você</td>');
+    expect(html).toContain('<td data-label="Quem" class="model-history-who">uma pessoa</td>');
+    await i18n.changeLanguage('en_US');
+  });
+
+  it('pages twenty changes at a time with the pager of a folder (#446)', async () => {
+    await i18n.changeLanguage('en_US');
+    const many = Array.from({ length: 45 }, (_, at) => ({ ...CHANGES[1]!, subjectId: `s${at}` }));
+    const html = draw(many);
+    expect(html.match(/<tr/g)).toHaveLength(21);
+    expect(html).toContain('<nav class="tables-grid-pages" aria-label="Pages of the table">');
+    expect(html).toContain('1–20 of 45');
+    expect(draw(CHANGES)).not.toContain('tables-grid-pages');
+  });
+});

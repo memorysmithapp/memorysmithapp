@@ -123,6 +123,7 @@ import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   GetNoteHistory,
   GetNotebookActivity,
+  GetNotebookHistory,
   ReadRevision,
 } from '@memorysmithapp/svc-audit/application';
 import type { DiscoveryUseCases } from '@memorysmithapp/svc-discovery/adapters/http';
@@ -135,6 +136,7 @@ import {
   TableUses,
   ResolveLinkTarget,
   GetFacetStats,
+  GetNoteFacets,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -145,24 +147,23 @@ import type {
   PortabilityUseCases,
 } from '@memorysmithapp/svc-portability/adapters/http';
 import {
-  CreateFromVersion,
-  CreateModelVersion,
+  CreateFromModel,
   DeclareModel,
-  DeleteModelVersion,
   ForgetModel,
   GetModel,
   ListModels,
-  ViewModelVersion,
+  ReadModelHistory,
+  ViewModel,
   type ModelCaller,
   type ModelDependencies,
   type ModelSources,
   type OwnNotebooks,
 } from '@memorysmithapp/svc-portability/application/models';
 import type { Transfer } from '@memorysmithapp/svc-portability/domain/transfer';
-import { readZip } from '@memorysmithapp/svc-portability/adapters/zip';
 import { Email } from '@memorysmithapp/svc-access/domain/values';
 import {
   CancelTransfer,
+  MarkTransferRead,
   DeleteTransfer,
   DownloadTransfer,
   GetTransfer,
@@ -206,28 +207,21 @@ import {
   type FileKeeper,
 } from '@memorysmithapp/svc-portability/application/uploads';
 import { createApp } from './app.js';
-import {
-  DynamoCatalogReports,
-  DynamoCatalogStore,
-} from '@memorysmithapp/svc-portability/adapters/catalog';
+import { DynamoCatalogStore } from '@memorysmithapp/svc-portability/adapters/catalog';
 import {
   CreateFromCatalog,
   PublicationOf,
   PublishModel,
-  ReportModel,
   WithdrawModel,
   refreshPublication,
   type CatalogReading,
 } from '@memorysmithapp/svc-portability/application/catalog';
 import {
-  catalogOperatorUseCasesOf,
   CloudFrontCatalogCache,
   DynamoSubscriptionAccess,
   forgetPublication,
   NO_EDGE_CACHE,
   publicCatalogUseCasesOf,
-  RelayAuthorNotifier,
-  SesAuthorNotifier,
 } from './catalog.js';
 import {
   buildAccess,
@@ -236,7 +230,8 @@ import {
   buildDiscovery,
   buildKnowledge,
   buildModels,
-  readVersionDocument,
+  buildModelReading,
+  buildModelReadingOf,
   buildShares,
   buildSubscriptionUsage,
   buildTransfers,
@@ -327,22 +322,12 @@ const sharing = buildShares(infra);
  * platform, and the edge in front of its public route, emptied on a withdrawal.
  */
 const catalog = new DynamoCatalogStore(infra.db, infra.portabilityTable);
-const catalogReports = new DynamoCatalogReports(infra.db, infra.portabilityTable);
 const catalogCache = process.env['CATALOG_DISTRIBUTION_ID']
   ? new CloudFrontCatalogCache(process.env['CATALOG_DISTRIBUTION_ID'])
   : NO_EDGE_CACHE;
 const catalogReading: CatalogReading = {
   catalog,
   access: new DynamoSubscriptionAccess(infra.db, infra.accessTable),
-};
-/** Where a version is read from, wherever its subscription is: the key names it. */
-const versionDocuments = {
-  read: (key: string) =>
-    readVersionDocument(
-      (at) => new S3UploadStore(infra.s3, infra.contentBucket).read(at),
-      readZip,
-      key,
-    ),
 };
 
 function notebookIdOf(raw: string): NotebookId | null {
@@ -454,8 +439,8 @@ const knowledgeUseCases: KnowledgeUseCases = {
       buildKnowledge(infra, request.subscription),
       request.subscription,
       sharing.shares,
-      // Its model and every version go with it (#353).
-      // Its catalog entry goes first (#360), then the model and every version (#353).
+      // Its catalog entry goes first (#360), then the model (#353) and any
+      // version kept from before #431.
       async (notebookId) => {
         const models = buildModels(infra, request.subscription);
         await forgetPublication({ models, catalog, cache: catalogCache }, notebookId.value);
@@ -515,6 +500,12 @@ const auditUseCases: AuditUseCases = {
   noteHistory: (request) => new GetNoteHistory(buildAudit(infra, request.subscription).trail),
   notebookActivity: (request) =>
     new GetNotebookActivity(buildAudit(infra, request.subscription).trail),
+  notebookHistory: (request) =>
+    new GetNotebookHistory(
+      buildAudit(infra, request.subscription).trail,
+      request.subscription.userId.value,
+      request.canRead,
+    ),
   readRevision: (request) => {
     const built = buildAudit(infra, request.subscription);
     return new ReadRevision(built.trail, built.revisions);
@@ -533,6 +524,7 @@ const discoveryUseCases: DiscoveryUseCases = {
   graph: (request) => new NotebookGraphQuery(discoveryFor(request.subscription)),
   search: (request) => new SearchNotes(discoveryFor(request.subscription)),
   facets: (request) => new GetFacetStats(discoveryFor(request.subscription)),
+  noteFacets: (request) => new GetNoteFacets(discoveryFor(request.subscription)),
 };
 
 /**
@@ -659,6 +651,11 @@ const portabilityUseCases: PortabilityUseCases = {
       buildTransfers(infra, request.subscription),
       request.subscription.userId.value,
     ),
+  markTransferRead: (request) =>
+    new MarkTransferRead(
+      buildTransfers(infra, request.subscription),
+      request.subscription.userId.value,
+    ),
   prepareImport: (request) =>
     new PrepareImport(
       new S3UploadStore(infra.s3, infra.contentBucket),
@@ -759,31 +756,21 @@ const portabilityUseCases: PortabilityUseCases = {
       request.subscription.subscriptionId.value,
     ),
   // ---- Notebook models (#353) -------------------------------------------
-  declareModel: (request) => new DeclareModel(modelDependencies(request), modelCaller(request)),
+  // A model declared again says its entry in the community again, which
+  // reads what it declares from there (#431).
+  declareModel: (request) =>
+    new DeclareModel(modelDependencies(request), modelCaller(request), (notebookId) =>
+      refreshPublication({ ...modelDependencies(request), catalog }, notebookId),
+    ),
   getModel: (request) => new GetModel(modelSources(request)),
   listModels: (request) =>
     new ListModels(modelDependencies(request), request.canRead, modelSources(request)),
-  createModelVersion: (request) =>
-    new CreateModelVersion(modelDependencies(request), modelCaller(request)),
-  viewModelVersion: (request) => new ViewModelVersion(modelSources(request)),
-  deleteModelVersion: (request) =>
-    new DeleteModelVersion(modelDependencies(request), modelCaller(request), async (transfer) => {
-      await destroyExport(request.subscription, transfer);
-      // A published model lists the versions it retains (#360).
-      await refreshPublication(
-        { ...modelDependencies(request), catalog, cache: catalogCache },
-        transfer.notebookId ?? '',
-      );
-    }),
-  // A notebook created from a version, its parameters filled in by the
-  // worker, as any import is written (#359).
-  createFromVersion: (request) =>
-    new CreateFromVersion(
-      modelSources(request),
-      modelCaller(request),
-      new S3UploadStore(infra.s3, infra.contentBucket),
-      portabilityUseCases.startImport(request),
-    ),
+  viewModel: (request) => new ViewModel(modelSources(request)),
+  modelHistory: (request) => new ReadModelHistory(modelSources(request)),
+  // A notebook created from a model, a copy of its notebook as it stands with
+  // its parameters filled in by the worker, as any import is written (#359, #431).
+  createFromModel: (request) =>
+    new CreateFromModel(modelSources(request), portabilityUseCases.startImport(request)),
   // ---- The community catalog (#360) ---------------------------------------
   publishModel: (request) =>
     new PublishModel(publicationDependencies(request), modelCaller(request)),
@@ -792,17 +779,7 @@ const portabilityUseCases: PortabilityUseCases = {
   publicationOf: (request) =>
     new PublicationOf({ models: buildModels(infra, request.subscription), catalog }),
   createFromCatalog: (request) =>
-    new CreateFromCatalog(
-      catalogReading,
-      modelCaller(request),
-      new S3UploadStore(infra.s3, infra.contentBucket),
-      portabilityUseCases.startImport(request),
-    ),
-  reportModel: (request) =>
-    new ReportModel(
-      { ...catalogReading, reports: catalogReports },
-      request.subscription.userId.value,
-    ),
+    new CreateFromCatalog(catalogReading, portabilityUseCases.startImport(request)),
 };
 
 /** What publishing a model is built from, for one request (#360). */
@@ -813,23 +790,14 @@ function publicationDependencies(request: PortabilityRequest) {
 /** What every use case of a model is built from, for one request (#353). */
 function modelDependencies(request: PortabilityRequest): ModelDependencies {
   return {
-    ...modelReadsOf(request.subscription),
+    models: buildModels(infra, request.subscription),
     notebooks: ownNotebooks(request.subscription),
-    queue: new SqsTransferQueue(sqs, transferQueueUrl),
-    budget: { current: () => readStorageBudget(infra, request.subscription) },
   };
 }
 
-/** What reads the models of one subscription and their versions. */
+/** What reads the models of one subscription, and their notebooks where they are (#431). */
 function modelReadsOf(context: SubscriptionContext) {
-  const uploads = new S3UploadStore(infra.s3, infra.contentBucket);
-  return {
-    models: buildModels(infra, context),
-    transfers: buildTransfers(infra, context),
-    versions: {
-      read: (key: string) => readVersionDocument((at) => uploads.read(at), readZip, key),
-    },
-  };
+  return { models: buildModels(infra, context), reading: buildModelReading(infra, context) };
 }
 
 /** Where this request reads a model from: its own subscription, or a share (#355). */
@@ -838,7 +806,7 @@ function modelSources(request: PortabilityRequest): ModelSources {
     user: request.subscription.userId,
     own: request.subscription,
     holds: async (notebookId) =>
-      (await ownNotebooks(request.subscription).own(notebookId)) !== null,
+      (await ownNotebooks(request.subscription).own(notebookId))?.name ?? null,
     canRead: request.canRead,
     depsOf: modelReadsOf,
     sharing,
@@ -930,16 +898,7 @@ const app = createApp({
   auditUseCases,
   discoveryUseCases,
   portabilityUseCases,
-  publicCatalog: publicCatalogUseCasesOf(catalogReading, versionDocuments),
-  catalogOperator: catalogOperatorUseCasesOf({
-    catalog,
-    reports: catalogReports,
-    cache: catalogCache,
-    // An installation with MAIL=smtp hands every message to its relay (#396).
-    notifier: process.env['MAIL_FUNCTION']
-      ? new RelayAuthorNotifier(process.env['MAIL_FUNCTION'])
-      : new SesAuthorNotifier(required('SENDER_ADDRESS')),
-  }),
+  publicCatalog: publicCatalogUseCasesOf(catalogReading, buildModelReadingOf(infra)),
   nameOf: async (email) => {
     const parsed = Email.create(email);
     return parsed.ok ? accountDirectory.nameOf(parsed.value) : null;

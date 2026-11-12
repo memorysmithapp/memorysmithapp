@@ -3,6 +3,7 @@ import {
   CATALOG_VERSION,
   READING_PATH,
   TOOL_CATALOG,
+  argumentsOf,
   catalogIsWellFormed,
   toolSignature,
 } from '../src/mcp/catalog.js';
@@ -274,21 +275,17 @@ describe('The tool catalog is the public contract', () => {
       // How a note is drawn, before or after it is written (#260).
       'preview_note',
       'get_preview',
-      // A notebook declared as a model, its versions, and a notebook created
-      // from one (#353, #354, #359).
+      // A notebook declared as a model, read whole with its history, and a
+      // notebook created from one (#353, #354, #359, #431).
       'declare_model',
       'get_model',
       'list_models',
-      'create_model_version',
-      'read_model_version',
-      'delete_model_version',
       'create_notebook_from_model',
       // The community catalog (#360).
       'publish_model',
       'withdraw_model',
       'search_community_models',
       'read_community_model',
-      'read_community_version',
       'create_notebook_from_community_model',
       'note_history',
     ]);
@@ -352,8 +349,6 @@ describe('The tool catalog is the public contract', () => {
       'move_note',
       'delete_note',
       'declare_model',
-      'create_model_version',
-      'delete_model_version',
       'create_notebook_from_model',
       'publish_model',
       'withdraw_model',
@@ -2991,14 +2986,14 @@ describe('a notebook shared for editing (#349)', () => {
   });
 });
 
-describe('notebook models through the connector (#353, #354, #359)', () => {
+describe('notebook models through the connector (#353, #354, #359, #431)', () => {
   it('declares a model with its parameters and answers it', async () => {
     const declared: unknown[] = [];
     const answer = await gateways({
       knowledge: {
         declareModel: async (_caller: unknown, notebookId: string, declaration: unknown) => {
           declared.push([notebookId, declaration]);
-          return { notebookId, objective: 'x', versions: [] };
+          return { notebookId, objective: 'x' };
         },
       },
     }).call(
@@ -3023,16 +3018,140 @@ describe('notebook models through the connector (#353, #354, #359)', () => {
     ]);
   });
 
-  it('waits for the notebook created from a model, and answers it', async () => {
-    let reads = 0;
+  const contents = {
+    notebookId: '01JBQ2X00000000000000000V1',
+    objective: 'Run one condominium',
+    description: '',
+    audience: 'Its manager',
+    parameters: [{ name: 'condominio', type: 'text', required: true }],
+    basedOn: null,
+    notebook: { name: 'Condomínio {{condominio}}', description: '', guidance: '# Guia' },
+    folders: [
+      {
+        folderId: 'F1',
+        parentFolderId: null,
+        name: 'Atas',
+        description: 'As atas.',
+        template: null,
+      },
+    ],
+    notes: [{ noteId: 'N1', folderId: 'F1', body: '# Ata de {{condominio}}' }],
+    files: [],
+    tables: [],
+    dashboards: [],
+    references: { undeclared: [], unused: [] },
+  };
+  const change = {
+    occurredAt: '2026-11-09T10:00:00.000Z',
+    since: '2026-11-09T09:40:00.000Z',
+    saves: 12,
+    type: 'EditSession',
+    subject: 'note',
+    subjectId: 'N1',
+    name: 'Ata de {{condominio}}',
+  };
+
+  it('reads a model with its notebook as it stands and the history of its changes', async () => {
+    const read: string[] = [];
     const answer = await gateways({
       knowledge: {
-        createFromModel: async () => ({
-          transferId: '01JBQ2X00000000000000000T1',
-          status: 'running',
-          notebookId: null,
-          notebookName: 'Condomínio Aurora',
+        model: async (_caller: unknown, notebookId: string) => {
+          read.push(`model ${notebookId}`);
+          return { notebookId, name: 'Condomínio', objective: 'Run one condominium' };
+        },
+        modelContents: async (_caller: unknown, notebookId: string) => {
+          read.push(`contents ${notebookId}`);
+          return contents;
+        },
+        modelHistory: async (_caller: unknown, notebookId: string) => {
+          read.push(`history ${notebookId}`);
+          return { changes: [{ ...change, agent: 'Claude', message: null }], truncated: false };
+        },
+      },
+    }).call('get_model', { notebook: '01JBQ2X00000000000000000V1' }, caller);
+    expect(answer.isError).toBe(false);
+    expect(read.sort()).toEqual([
+      'contents 01JBQ2X00000000000000000V1',
+      'history 01JBQ2X00000000000000000V1',
+      'model 01JBQ2X00000000000000000V1',
+    ]);
+    const body = JSON.parse(answer.content[0]?.text ?? '{}');
+    expect(body).toMatchObject({
+      notebookId: '01JBQ2X00000000000000000V1',
+      objective: 'Run one condominium',
+      contents: {
+        notebook: contents.notebook,
+        notes: contents.notes,
+        references: { undeclared: [], unused: [] },
+      },
+      history: { changes: [{ saves: 12, agent: 'Claude' }], truncated: false },
+    });
+    // What the model says of itself is answered once, beside its contents.
+    expect(body.contents).not.toHaveProperty('parameters');
+    expect(body).not.toHaveProperty('versions');
+  });
+
+  it('reads a community model whole, with when and what changed, never who', async () => {
+    const answer = await gateways({
+      knowledge: {
+        communityContents: async (_caller: unknown, publicId: string) => {
+          const { notebookId: _own, ...published } = contents;
+          return {
+            ...published,
+            model: { publicId, name: 'Condomínio', author: 'Ana', licence: 'CC0-1.0' },
+          };
+        },
+        communityHistory: async () => ({
+          changes: [{ ...change, message: 'Atas por reunião' }],
+          truncated: true,
         }),
+      },
+    }).call('read_community_model', { model: '01JBQ2X00000000000000000P1' }, caller);
+    const body = JSON.parse(answer.content[0]?.text ?? '{}');
+    expect(body).toMatchObject({
+      publicId: '01JBQ2X00000000000000000P1',
+      author: 'Ana',
+      licence: 'CC0-1.0',
+      contents: { folders: contents.folders, notes: contents.notes },
+      history: { changes: [{ message: 'Atas por reunião' }], truncated: true },
+    });
+    expect(body.history.changes[0]).not.toHaveProperty('agent');
+    expect(body.contents).not.toHaveProperty('model');
+  });
+
+  it('no longer serves the frozen versions of a model', async () => {
+    const names = TOOL_CATALOG.map((tool) => tool.name);
+    for (const gone of [
+      'create_model_version',
+      'read_model_version',
+      'delete_model_version',
+      'read_community_version',
+    ]) {
+      expect(names).not.toContain(gone);
+    }
+    for (const tool of TOOL_CATALOG.filter((each) => /model/.test(each.name))) {
+      expect(argumentsOf(tool).names).not.toContain('version');
+      expect(tool.description).not.toMatch(/\bversions?\b/);
+    }
+    for (const skill of ['derive-model', 'design-notebook']) {
+      expect(skillNamed(skill)?.body).not.toMatch(/_version\b|a version\b|its versions/);
+    }
+  });
+
+  it('waits for the notebook created from a model, and answers it', async () => {
+    let reads = 0;
+    const started: unknown[] = [];
+    const answer = await gateways({
+      knowledge: {
+        createFromModel: async (_caller: unknown, input: unknown) => {
+          started.push(input);
+          return {
+            transferId: '01JBQ2X00000000000000000T1',
+            status: 'running',
+            notebookId: null,
+            notebookName: 'Condomínio Aurora',
+          };
+        },
         transfer: async () => {
           reads += 1;
           return {
@@ -3045,9 +3164,12 @@ describe('notebook models through the connector (#353, #354, #359)', () => {
       },
     }).call(
       'create_notebook_from_model',
-      { notebook: '01JBQ2X00000000000000000V1', version: 1, values: { condominio: 'Aurora' } },
+      { notebook: '01JBQ2X00000000000000000V1', values: { condominio: 'Aurora' } },
       caller,
     );
+    expect(started).toEqual([
+      { notebookId: '01JBQ2X00000000000000000V1', name: '', values: { condominio: 'Aurora' } },
+    ]);
     expect(reads).toBe(1);
     expect(JSON.parse(answer.content[0]?.text ?? '{}')).toEqual({
       notebook: '01JBQ2X00000000000000000V9',
@@ -3089,7 +3211,6 @@ describe('notebook models through the connector (#353, #354, #359)', () => {
         createFromCommunity: async (_caller: unknown, input: unknown) => {
           expect(input).toEqual({
             publicId: '01JBQ2X00000000000000000P1',
-            version: 2,
             name: '',
             values: { condominio: 'Aurora' },
           });
@@ -3103,7 +3224,7 @@ describe('notebook models through the connector (#353, #354, #359)', () => {
       },
     }).call(
       'create_notebook_from_community_model',
-      { model: '01JBQ2X00000000000000000P1', version: 2, values: { condominio: 'Aurora' } },
+      { model: '01JBQ2X00000000000000000P1', values: { condominio: 'Aurora' } },
       caller,
     );
     expect(JSON.parse(answer.content[0]?.text ?? '{}')).toMatchObject({ status: 'ready' });

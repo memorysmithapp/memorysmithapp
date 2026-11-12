@@ -1,6 +1,7 @@
 /**
- * Notebook models (#353): a notebook of the run declared as a model by its
- * owner, frozen into a version the worker builds, read whole, and deleted.
+ * Notebook models (#353, #431): a notebook of the run declared as a model by
+ * its owner, read whole as it stands with the history of its changes, and
+ * used to create a notebook, a copy the worker makes of it at that moment.
  */
 
 import { eventually } from '../support/eventually.js';
@@ -10,11 +11,10 @@ interface ModelDto {
   notebookId: string;
   objective: string;
   parameters: Array<{ name: string; required: boolean; default: unknown }>;
-  versions: Array<{ number: number; status: string; changelog: string }>;
 }
 
 test.describe('a notebook model', () => {
-  test('[route:PUT /portability/models/:v] [route:GET /portability/models/:v] [route:GET /portability/models] [route:POST /portability/models/:v/versions] [route:GET /portability/models/:v/versions/:n] [route:DELETE /portability/models/:v/versions/:n] [route:POST /portability/models/:v/versions/:n/notebooks] is declared, versioned, read whole, used to create a notebook, and its version deleted', async ({
+  test('[route:PUT /portability/models/:v] [route:GET /portability/models/:v] [route:GET /portability/models] [route:GET /portability/models/:v/contents] [route:GET /portability/models/:v/history] [route:POST /portability/models/:v/notebooks] is declared, read whole as it stands with its history, and used to create a notebook', async ({
     owner,
     notebook,
   }) => {
@@ -37,23 +37,12 @@ test.describe('a notebook model', () => {
     });
     expect(declared.status).toBe(200);
 
-    const started = await owner.ok<{ number: number; status: string }>(
-      'POST',
-      `/portability/models/${notebook.notebookId}/versions`,
-      { changelog: 'The first version' },
+    const model = await owner.ok<ModelDto & Record<string, unknown>>(
+      'GET',
+      `/portability/models/${notebook.notebookId}`,
     );
-    expect(started.number).toBe(1);
-
-    // The worker builds the snapshot, as it builds an export.
-    const model = await eventually(
-      'the version to be built',
-      () => owner.ok<ModelDto>('GET', `/portability/models/${notebook.notebookId}`),
-      (each) => each.versions[0]?.status !== 'running',
-    );
-    expect(model.versions).toEqual([
-      expect.objectContaining({ number: 1, status: 'ready', changelog: 'The first version' }),
-    ]);
     expect(model.parameters.map((each) => each.name)).toEqual(['case', 'due']);
+    expect(model).not.toHaveProperty('versions');
 
     const listed = await owner.ok<{ models: Array<{ notebookId: string; name: string }> }>(
       'GET',
@@ -63,28 +52,38 @@ test.describe('a notebook model', () => {
       expect.objectContaining({ notebookId: notebook.notebookId, name: notebook.name }),
     );
 
-    const view = await owner.ok<{
-      version: { number: number };
+    const contents = await owner.ok<{
       notebook: { name: string };
       folders: Array<{ folderId: string }>;
       notes: Array<{ noteId: string }>;
-    }>('GET', `/portability/models/${notebook.notebookId}/versions/1`);
-    expect(view.version.number).toBe(1);
-    expect(view.notebook.name).toBe(notebook.name);
-    expect(view.folders.map((each) => each.folderId)).toEqual([notebook.folderId]);
-    expect(view.notes.map((each) => each.noteId)).toEqual([notebook.noteId]);
+    }>('GET', `/portability/models/${notebook.notebookId}/contents`);
+    expect(contents.notebook.name).toBe(notebook.name);
+    expect(contents.folders.map((each) => each.folderId)).toEqual([notebook.folderId]);
+    expect(contents.notes.map((each) => each.noteId)).toEqual([notebook.noteId]);
 
-    // A notebook created from the version, its parameters filled in (#359).
+    // The history is the trail of the notebook, which follows a write within seconds.
+    const history = await eventually(
+      'the note of the notebook to reach the history of the model',
+      () =>
+        owner.ok<{
+          changes: Array<{ type: string; subjectId: string; agent: string | null }>;
+          truncated: boolean;
+        }>('GET', `/portability/models/${notebook.notebookId}/history`),
+      (each) => each.changes.some((change) => change.subjectId === notebook.noteId),
+    );
+    expect(history.truncated).toBe(false);
+
+    // A notebook created from the model, its parameters filled in (#359).
     const refused = await owner.call<{ details?: { missing?: string[] } }>(
       'POST',
-      `/portability/models/${notebook.notebookId}/versions/1/notebooks`,
+      `/portability/models/${notebook.notebookId}/notebooks`,
       { name: '', values: {} },
     );
     expect(refused.status).toBe(400);
     expect(refused.body.details?.missing).toEqual(['case']);
     const created = await owner.ok<{ transferId: string }>(
       'POST',
-      `/portability/models/${notebook.notebookId}/versions/1/notebooks`,
+      `/portability/models/${notebook.notebookId}/notebooks`,
       { name: `${notebook.name} AE-01`, values: { case: 'AE-01' } },
     );
     const imported = await eventually(
@@ -102,24 +101,27 @@ test.describe('a notebook model', () => {
       `/knowledge/notebooks/${imported.notebookId}`,
     );
     expect(copy.name).toBe(`${notebook.name} AE-01`);
-    await owner.call('DELETE', `/knowledge/notebooks/${imported.notebookId}`);
-    await owner.call('DELETE', `/portability/transfers/${created.transferId}`);
-
-    // A version is not one of the person's transfers to look after.
-    const transfers = await owner.ok<{ transfers: Array<{ notebookId: string | null }> }>(
+    // Creating a notebook is not a transfer of the person's (#445).
+    const ownTransfers = await owner.ok<{ transfers: Array<{ transferId: string }> }>(
       'GET',
       '/portability/transfers',
     );
-    expect(transfers.transfers.some((each) => each.notebookId === notebook.notebookId)).toBe(false);
+    expect(ownTransfers.transfers.map((each) => each.transferId)).not.toContain(created.transferId);
+    await owner.call('DELETE', `/knowledge/notebooks/${imported.notebookId}`);
+    await owner.call('DELETE', `/portability/transfers/${created.transferId}`);
 
+    // Nothing of the model is kept besides its notebook: no export of it.
+    const transfers = await owner.ok<{
+      transfers: Array<{ kind: string; notebookId: string | null }>;
+    }>('GET', '/portability/transfers');
     expect(
-      (await owner.call('DELETE', `/portability/models/${notebook.notebookId}/versions/1`)).status,
-    ).toBe(204);
-    const after = await owner.ok<ModelDto>('GET', `/portability/models/${notebook.notebookId}`);
-    expect(after.versions).toEqual([]);
+      transfers.transfers.some(
+        (each) => each.kind === 'export' && each.notebookId === notebook.notebookId,
+      ),
+    ).toBe(false);
   });
 
-  test('travels with its export: imported back, it is a model with its version (#397)', async ({
+  test('travels with its export: imported back, it is a model (#397)', async ({
     owner,
     notebook,
   }) => {
@@ -132,14 +134,6 @@ test.describe('a notebook model', () => {
       ],
       basedOn: null,
     });
-    await owner.ok('POST', `/portability/models/${notebook.notebookId}/versions`, {
-      changelog: 'The first version',
-    });
-    await eventually(
-      'the version to be built',
-      () => owner.ok<ModelDto>('GET', `/portability/models/${notebook.notebookId}`),
-      (each) => each.versions[0]?.status !== 'running',
-    );
 
     const started = await owner.ok<{ transferId: string }>(
       'POST',
@@ -175,9 +169,6 @@ test.describe('a notebook model', () => {
       const model = await owner.ok<ModelDto>('GET', `/portability/models/${imported.notebookId}`);
       expect(model.objective).toBe('Keep what a functional case finds');
       expect(model.parameters.map((each) => each.name)).toEqual(['case']);
-      expect(model.versions).toEqual([
-        expect.objectContaining({ number: 1, status: 'ready', changelog: 'The first version' }),
-      ]);
     } finally {
       await owner.call('DELETE', `/knowledge/notebooks/${imported.notebookId}`);
       await owner.call('DELETE', `/portability/transfers/${started.transferId}`);

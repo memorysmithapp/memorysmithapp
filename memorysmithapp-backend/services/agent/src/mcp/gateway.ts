@@ -22,11 +22,12 @@ import type {
 } from '@memorysmithapp/contracts';
 import type {
   DeclareModelRequest,
+  ModelContentsDto,
+  ModelHistoryDto,
   ModelListDto,
-  ModelVersionDto,
-  ModelVersionViewDto,
+  PublicModelContentsDto,
   PublicModelDto,
-  PublicVersionViewDto,
+  PublicModelHistoryDto,
   NotebookModelDto,
 } from '@memorysmithapp/contracts';
 import type {
@@ -609,36 +610,28 @@ export interface KnowledgeGateway {
     },
   ): Promise<MovedNote>;
   searchNotes(caller: AgentCaller, notebookId: string, query: string): Promise<SearchHit[]>;
-  // ---- Notebook models (#353, #354, #359) ---------------------------------
+  // ---- Notebook models (#353, #354, #359, #431) ---------------------------
   declareModel(
     caller: AgentCaller,
     notebookId: string,
     declaration: DeclareModelRequest,
   ): Promise<NotebookModelDto>;
   model(caller: AgentCaller, notebookId: string): Promise<NotebookModelDto>;
+  /** The model notebook as it stands now, every part a notebook created from it starts as (#431). */
+  modelContents(caller: AgentCaller, notebookId: string): Promise<ModelContentsDto>;
+  /** The changes of the model notebook, the newest first (#431). */
+  modelHistory(caller: AgentCaller, notebookId: string): Promise<ModelHistoryDto>;
   listModels(caller: AgentCaller): Promise<ModelListDto['models']>;
-  createModelVersion(
-    caller: AgentCaller,
-    notebookId: string,
-    changelog: string,
-  ): Promise<ModelVersionDto>;
-  modelVersion(
-    caller: AgentCaller,
-    notebookId: string,
-    number: number,
-  ): Promise<ModelVersionViewDto>;
-  deleteModelVersion(caller: AgentCaller, notebookId: string, number: number): Promise<void>;
   createFromModel(
     caller: AgentCaller,
     input: {
       notebookId: string;
-      version: number;
       name: string;
       values: Record<string, unknown>;
     },
   ): Promise<TransferDto>;
   transfer(caller: AgentCaller, transferId: string): Promise<TransferDto>;
-  // ---- The community catalog (#360) ---------------------------------------
+  // ---- The community catalog (#360, #431) ---------------------------------
   publishModel(
     caller: AgentCaller,
     notebookId: string,
@@ -649,15 +642,13 @@ export interface KnowledgeGateway {
     caller: AgentCaller,
     query: { text: string; language: string | null },
   ): Promise<PublicModelDto[]>;
-  communityModel(caller: AgentCaller, publicId: string): Promise<PublicModelDto>;
-  communityVersion(
-    caller: AgentCaller,
-    publicId: string,
-    number: number,
-  ): Promise<PublicVersionViewDto>;
+  /** A published model, as the catalog shows it, read whole as it stands now (#431). */
+  communityContents(caller: AgentCaller, publicId: string): Promise<PublicModelContentsDto>;
+  /** When and what changed in a published model, never who (#431). */
+  communityHistory(caller: AgentCaller, publicId: string): Promise<PublicModelHistoryDto>;
   createFromCommunity(
     caller: AgentCaller,
-    input: { publicId: string; version: number; name: string; values: Record<string, unknown> },
+    input: { publicId: string; name: string; values: Record<string, unknown> },
   ): Promise<TransferDto>;
 }
 

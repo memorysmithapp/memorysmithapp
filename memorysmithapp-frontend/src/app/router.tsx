@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
@@ -8,7 +8,8 @@ import { GuidancePanel } from '../features/guidance/GuidancePanel';
 import { FolderPage } from '../features/structure/FolderPage';
 import { FoldersPage } from '../features/structure/FoldersPage';
 import { NoteRoute } from '../features/structure/NoteRoute';
-import { ResumeReading } from '../features/structure/ResumeReading';
+import { NotebookOverview } from '../features/structure/NotebookOverview';
+import { NotebookContextPage } from '../features/structure/NotebookContextPage';
 import { TemplatesPage } from '../features/structure/TemplatesPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AboutPage, WelcomeGate } from '../features/about/AboutPage';
@@ -34,12 +35,15 @@ import { PrintNotePage } from '../features/note/PrintNotePage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
+import { ModelsPage } from '../features/models/ModelsPage';
+import { NotebooksPage } from '../features/dashboard/NotebooksPage';
+import { CommunityModelPage, CommunityPage } from '../features/community/CommunityPages';
 import {
-  CommunityModelPage,
-  CommunityPage,
-  CommunityVersionPage,
-} from '../features/community/CommunityPages';
-import { ModelVersionPage, SharedModelVersionPage } from '../features/models/ModelVersionPage';
+  communityModelAddress,
+  identifierOf,
+  modelAddress,
+  sharedModelAddress,
+} from '../shared/api/note-address';
 import { RequireSession, RootLayout } from './RootLayout';
 
 /**
@@ -53,6 +57,26 @@ function NotFound() {
 }
 
 /**
+ * The address of a version of a model, kept by a bookmark from before #431: a
+ * model has no versions any more, so it opens the model as it stands rather
+ * than answering not-found. A model shared as a model reader and a community
+ * model open on what they hold; one's own has no Contents, since its notebook
+ * is read by navigating it, and opens on its first tab (#435).
+ */
+function OldModelVersion({ kind }: { kind: 'own' | 'shared' | 'community' }) {
+  const { notebookId, publicId } = useParams();
+  const id = identifierOf(kind === 'community' ? publicId : notebookId);
+  if (!id) return <NotFound />;
+  const address =
+    kind === 'community'
+      ? communityModelAddress(id)
+      : kind === 'shared'
+        ? sharedModelAddress(id)
+        : modelAddress(id);
+  return <Navigate to={kind === 'own' ? address : `${address}?tab=contents`} replace />;
+}
+
+/**
  * Every address inside a notebook is an identifier, and the note is not nested
  * under its folder (RN-DSC-045). The breadcrumb, built from the structure
  * already loaded, is where the folder trail is read.
@@ -63,10 +87,6 @@ export const router = createBrowserRouter([
     children: [
       { path: '/login', element: <LoginPage /> },
       { path: '/auth/callback', element: <AuthCallbackPage /> },
-      // The community catalog, which anybody reads, signed in or not (#360).
-      { path: '/community', element: <CommunityPage /> },
-      { path: '/community/:publicId', element: <CommunityModelPage /> },
-      { path: '/community/:publicId/versions/:version', element: <CommunityVersionPage /> },
       {
         element: <RequireSession />,
         children: [
@@ -100,24 +120,39 @@ export const router = createBrowserRouter([
                   </WelcomeGate>
                 ),
               },
-              // What the product is, opened once by itself and from the user
-              // menu from then on (#167).
+              // Every notebook, as cards (#418).
+              { path: '/notebooks', element: <NotebooksPage /> },
+              // What the product is, opened once by itself and from the menu
+              // of the header from then on (#167, #418).
               { path: '/about', element: <AboutPage /> },
+              // The community catalog, read by a person signed in, inside the
+              // frame and its menu (#360, #418, RN-PRT-079).
+              { path: '/community', element: <CommunityPage /> },
+              { path: '/community/:publicId', element: <CommunityModelPage /> },
+              {
+                path: '/community/:publicId/versions/:version',
+                element: <OldModelVersion kind="community" />,
+              },
               // What a person is called, the face beside it, and the password
               // they sign in with (#168).
               { path: '/profile', element: <ProfilePage /> },
               { path: '/transfers', element: <TransfersPage /> },
+              // The models a person reads, and where a new one starts (#418).
+              { path: '/models', element: <ModelsPage /> },
               // A model shared as a model reader opens no notebook (#355).
               { path: '/models/:notebookId', element: <SharedModelPage /> },
               {
                 path: '/models/:notebookId/versions/:version',
-                element: <SharedModelVersionPage />,
+                element: <OldModelVersion kind="shared" />,
               },
               {
                 path: '/notebooks/:notebookId',
                 element: <NotebookLayout />,
                 children: [
-                  { index: true, element: <ResumeReading /> },
+                  // What the notebook is, on one screen (#417); its Context is
+                  // a page of its own.
+                  { index: true, element: <NotebookOverview /> },
+                  { path: 'context', element: <NotebookContextPage /> },
                   { path: 'guidance', element: <GuidancePanel /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },
@@ -132,7 +167,7 @@ export const router = createBrowserRouter([
                   },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'model', element: <ModelPage /> },
-                  { path: 'model/versions/:version', element: <ModelVersionPage /> },
+                  { path: 'model/versions/:version', element: <OldModelVersion kind="own" /> },
                   { path: 'folders', element: <FoldersPage /> },
                   { path: 'folders/:folderId', element: <FolderPage /> },
                   { path: 'notes/:noteId', element: <NoteRoute /> },

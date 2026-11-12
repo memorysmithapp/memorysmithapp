@@ -11,6 +11,7 @@
  *   GET  /notebooks/:v/table-uses         the tables named by notes, with those notes
  *   GET  /notebooks/:v/health
  *   GET  /notebooks/:v/facets
+ *   GET  /notebooks/:v/note-facets       what each note declares in its frontmatter
  *   POST /notebooks/:v/search   { query }   lexical, over names and folders
  *
  * Every route reads a projection. None of them touches a note, and none of
@@ -30,6 +31,7 @@ import type {
   TableUses,
   Backlinks,
   GetFacetStats,
+  GetNoteFacets,
   NoteLinks,
   RelatedNotes,
   NotebookNames,
@@ -61,6 +63,7 @@ export interface DiscoveryUseCases {
   readonly graph: (request: DiscoveryRequest) => NotebookGraphQuery;
   readonly search: (request: DiscoveryRequest) => SearchNotes;
   readonly facets: (request: DiscoveryRequest) => GetFacetStats;
+  readonly noteFacets: (request: DiscoveryRequest) => GetNoteFacets;
 }
 
 type Variables = { discovery: DiscoveryRequest };
@@ -230,6 +233,16 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
     const stats = await useCases.facets(request).execute({ notebookId });
     return present(c, stats, (value) => value);
+  });
+
+  app.get('/notebooks/:v/note-facets', async (c) => {
+    const request = c.get('discovery');
+    const notebookId = idParam(c, 'v');
+    const denied = await guard(request, notebookId);
+    if (denied) return fail(c, denied);
+
+    const found = await useCases.noteFacets(request).execute({ notebookId });
+    return present(c, found, (notes) => ({ notes }));
   });
 
   app.post('/notebooks/:v/search', async (c) => {

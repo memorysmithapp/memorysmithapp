@@ -38,9 +38,19 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
     expect(html).toContain('skeleton');
   });
 
-  it('draws a row of notebook cards where the catalogue was simply empty', () => {
-    const html = render(<parts.NotebookCatalogueSkeleton cards={3} />);
+  it('draws a shelf of cards in the grid the cards will fill (#421)', () => {
+    const html = render(<parts.ShelfSkeleton cards={3} />);
+    expect(html).toContain('shelf-grid');
     expect((html.match(/notebook-card-skeleton/g) ?? []).length).toBe(3);
+  });
+
+  it('draws rows, fields, a page and a model instead of a line saying Loading (#421)', () => {
+    expect((render(<parts.RowsSkeleton rows={4} />).match(/class="skeleton"/g) ?? []).length).toBe(
+      4,
+    );
+    expect(render(<parts.FieldsSkeleton fields={2} />)).toContain('fields-skeleton-field');
+    expect(render(<parts.PageSkeleton />)).toContain('page-skeleton');
+    expect(render(<parts.ModelSkeleton />)).toContain('tabs-skeleton');
   });
 
   it('draws the space of the subscription in the card it will fill (#198)', () => {
@@ -67,7 +77,11 @@ describe('a placeholder occupies the frame of what it stands in for', () => {
 describe('a placeholder never talks over the screen reader', () => {
   const all = () => [
     'AppSkeleton',
-    'NotebookCatalogueSkeleton',
+    'ShelfSkeleton',
+    'RowsSkeleton',
+    'FieldsSkeleton',
+    'PageSkeleton',
+    'ModelSkeleton',
     'SpaceSkeleton',
     'NoteSkeleton',
     'TemplateSkeleton',

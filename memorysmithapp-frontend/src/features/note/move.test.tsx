@@ -46,7 +46,13 @@ function folder(
     noteOrder: 'manual',
     hasTemplate: false,
     noteCount: notes.length,
-    notes: notes.map(([noteId, noteName]) => ({ id: noteId, name: noteName, folderId: id })),
+    notes: notes.map(([noteId, noteName]) => ({
+      id: noteId,
+      name: noteName,
+      folderId: id,
+      updatedAt: '2026-11-10T00:00:00.000Z',
+      updatedBy: { userId: 'user-a', agent: null },
+    })),
     children: [],
     ...extra,
   };

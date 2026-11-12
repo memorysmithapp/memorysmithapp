@@ -139,9 +139,10 @@ describe('what a role may do', () => {
     }
   });
 
-  it('lets production deliver and start its reprojection, and nothing more: no table, bucket or pool', () => {
+  it('lets production deliver, start its reprojection and invoke the deletion of old versions, and nothing more: no table, bucket or pool', () => {
     const actions = actionsOf(policiesOf(synth(), 'ProductionRole'));
     expect([...new Set(actions)].sort()).toEqual([
+      'lambda:InvokeFunction',
       'ses:GetEmailIdentity',
       'states:DescribeExecution',
       'states:DescribeMapRun',
@@ -160,6 +161,22 @@ describe('what a role may do', () => {
     expect(reach).toContain('execution:mv-reproject-links-production:*');
     expect(reach).toContain('mapRun:mv-reproject-links-production/*');
     expect(reach).not.toMatch(/staging/);
+  });
+
+  it('invokes the one function that deletes the versions models kept before #431, of its own environment (#434)', () => {
+    for (const [prefix, own, other] of [
+      ['ProductionRole', 'production', 'staging'],
+      ['StagingRole', 'staging', 'production'],
+    ] as const) {
+      const statements = policiesOf(synth(), prefix).filter((statement) =>
+        actionsOf([statement]).includes('lambda:InvokeFunction'),
+      );
+      expect(statements).toHaveLength(1);
+      expect(actionsOf(statements)).toEqual(['lambda:InvokeFunction']);
+      const reach = JSON.stringify(statements[0]?.Resource);
+      expect(reach).toContain(`function:mv-forget-model-versions-${own}`);
+      expect(reach).not.toContain(other);
+    }
   });
 
   it('names staging in every table, bucket and stack its suites reach', () => {

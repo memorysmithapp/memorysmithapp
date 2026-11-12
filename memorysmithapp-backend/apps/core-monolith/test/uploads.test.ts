@@ -331,7 +331,7 @@ describe('an upload whose parts travel by URL', () => {
 });
 
 describe('a file above 4 MB, sent in parts (#381)', () => {
-  it('comes back whole in a notebook created from a model version that holds it', async () => {
+  it('comes back whole in a notebook created from a model that holds it', async () => {
     const notebookId = await notebook('Modelo com foto grande');
     const whole = picture(10 * 1024 * 1024);
     const status = uploadStatusSchema.parse(
@@ -360,8 +360,7 @@ describe('a file above 4 MB, sent in parts (#381)', () => {
       method: 'PUT',
       body: { objective: 'Um caderno com uma foto grande', parameters: [], basedOn: null },
     });
-    await call(`/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
-    const started = await call(`/portability/models/${notebookId}/versions/1/notebooks`, {
+    const started = await call(`/portability/models/${notebookId}/notebooks`, {
       method: 'POST',
       body: { name: 'Cópia com foto grande', values: {} },
     });

@@ -1,33 +1,55 @@
 import { useTranslation } from 'react-i18next';
-import { BookIcon, SharedByMeIcon, SharedWithMeIcon } from '../../shared/components/icons';
+import {
+  BookIcon,
+  GlobeIcon,
+  SharedByMeIcon,
+  SharedWithMeIcon,
+} from '../../shared/components/icons';
+import { InfoPopover } from '../../shared/components/InfoPopover';
 
-export type Ownership = 'own' | 'sharedByMe' | 'sharedWithMe';
+export type Ownership = 'own' | 'sharedByMe' | 'sharedWithMe' | 'community';
+
+/** What the card shows: a notebook, a model, or a model of the community (#418). */
+export type Owned = 'notebook' | 'model' | 'community';
 
 /**
- * Whose a notebook is, on its card (#256): mine, mine and shared with
- * somebody, or somebody's shared with me. The icon says it at a glance, and
- * the same words go to a screen reader and to the tooltip, because a shape
- * alone is a meaning only some people get.
+ * Whose a card is (#256, #418): mine, mine and shared with somebody,
+ * somebody's shared with me, or somebody's published in the community. The
+ * icon says it at a glance, and a click on it opens the words of what that
+ * means for this card, as the `?` of a page does: a tooltip is never seen on
+ * a phone, and a shape alone is a meaning only some people get.
  */
-export function OwnershipMark({ ownership, owner }: { ownership: Ownership; owner?: string }) {
+export function OwnershipMark({
+  ownership,
+  owner,
+  kind = 'notebook',
+}: {
+  ownership: Ownership;
+  owner?: string;
+  kind?: Owned;
+}) {
   const { t } = useTranslation();
-  const label =
-    ownership === 'own'
-      ? t('sharing.ownership.own')
-      : ownership === 'sharedByMe'
-        ? t('sharing.ownership.sharedByMe')
-        : t('sharing.ownership.sharedWithMe', { owner: owner ?? '' });
+  const values = { owner: owner ?? '' };
 
   return (
-    <span className="ownership-mark" data-ownership={ownership} title={label}>
-      {ownership === 'own' ? (
-        <BookIcon />
-      ) : ownership === 'sharedByMe' ? (
-        <SharedByMeIcon />
-      ) : (
-        <SharedWithMeIcon />
-      )}
-      <span className="visually-hidden">{label}</span>
-    </span>
+    <InfoPopover
+      icon={
+        ownership === 'own' ? (
+          <BookIcon />
+        ) : ownership === 'sharedByMe' ? (
+          <SharedByMeIcon />
+        ) : ownership === 'community' ? (
+          <GlobeIcon />
+        ) : (
+          <SharedWithMeIcon />
+        )
+      }
+      label={t(`ownership.${kind}.${ownership}.label`, values)}
+      className="ownership-mark"
+      boxClassName="ownership-box"
+      data={{ 'data-ownership': ownership }}
+    >
+      {t(`ownership.${kind}.${ownership}.explain`, values)}
+    </InfoPopover>
   );
 }

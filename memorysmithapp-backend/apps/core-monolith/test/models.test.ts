@@ -1,7 +1,7 @@
 /**
- * Notebook models (#353): a notebook declared as a model by the owner of its
- * subscription, frozen into numbered versions that never change, read whole
- * before they are distributed, and gone with the notebook they came from.
+ * Notebook models (#353, #431): a notebook declared as a model by the owner of
+ * its subscription, read whole as it stands, with the history of its changes,
+ * created from as a copy of the notebook at that moment, and gone with it.
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -28,6 +28,24 @@ async function call(token: string, path: string, init: { method?: string; body?:
 
 async function json<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
+}
+
+/** Hands what the writes published to the trail, as the bus would. */
+async function drainTrail(): Promise<void> {
+  await harness.auditConsumer.consume(
+    harness.events.published.map((event) => ({
+      eventId: event.eventId,
+      type: event.type,
+      occurredAt: event.occurredAt.toISOString(),
+      subscriptionId: event.subscriptionId.value,
+      subject: event.subject,
+      subjectId: event.subjectId,
+      authorship: event.authorship.toJSON(),
+      contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+      payload: event.payload,
+    })),
+  );
+  harness.events.published.length = 0;
 }
 
 const declaration = {
@@ -99,46 +117,43 @@ beforeEach(async () => {
   });
 });
 
-describe('a notebook model (#353)', () => {
-  it('is declared by the owner, with its parameters, and creates numbered versions', async () => {
+describe('a notebook model (#353, #431)', () => {
+  it('is declared by the owner, with its parameters, and keeps no copy of its notebook', async () => {
     const declared = await call(OWNER, `/portability/models/${notebookId}`, {
       method: 'PUT',
       body: declaration,
     });
     expect(declared.status).toBe(200);
 
-    const first = await call(OWNER, `/portability/models/${notebookId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'The first version' },
-    });
-    expect(first.status).toBe(202);
-    expect((await json<{ number: number }>(first)).number).toBe(1);
-    const second = await call(OWNER, `/portability/models/${notebookId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'Suppliers' },
-    });
-    expect((await json<{ number: number }>(second)).number).toBe(2);
-
-    const model = await json<{
-      objective: string;
-      parameters: Array<{ name: string; required: boolean; default: unknown }>;
-      versions: Array<{ number: number; status: string; changelog: string }>;
-    }>(await call(OWNER, `/portability/models/${notebookId}`));
+    const model = await json<
+      Record<string, unknown> & {
+        objective: string;
+        name: string;
+        parameters: Array<{ name: string; required: boolean; default: unknown }>;
+      }
+    >(await call(OWNER, `/portability/models/${notebookId}`));
     expect(model.objective).toBe(declaration.objective);
+    expect(model.name).toBe('Condomínio modelo');
     expect(model.parameters.map((each) => [each.name, each.required, each.default])).toEqual([
       ['condomínio', true, null],
       ['síndico', false, 'a definir'],
     ]);
-    expect(model.versions.map((each) => [each.number, each.status, each.changelog])).toEqual([
-      [2, 'ready', 'Suppliers'],
-      [1, 'ready', 'The first version'],
-    ]);
+    expect(model).not.toHaveProperty('versions');
 
-    // A version is the owner's, but not a transfer of theirs to look after.
+    // Nothing is kept for it: no transfer, no archive.
     const transfers = await json<{ transfers: unknown[] }>(
       await call(OWNER, '/portability/transfers'),
     );
     expect(transfers.transfers).toEqual([]);
+    // The route that froze a version is gone.
+    expect(
+      (
+        await call(OWNER, `/portability/models/${notebookId}/versions`, {
+          method: 'POST',
+          body: {},
+        })
+      ).status,
+    ).toBe(404);
 
     const listed = await json<{ models: Array<{ notebookId: string; name: string }> }>(
       await call(OWNER, '/portability/models'),
@@ -148,27 +163,51 @@ describe('a notebook model (#353)', () => {
     ]);
   });
 
-  it('keeps a version as it was, whatever the notebook becomes afterwards', async () => {
+  it('is read whole as its notebook stands now', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
+    const before = await json<{ notes: Array<{ body: string }> }>(
+      await call(OWNER, `/portability/models/${notebookId}/contents`),
+    );
+    expect(before.notes).toHaveLength(1);
+
     await call(OWNER, `/knowledge/notebooks/${notebookId}/notes`, {
       method: 'POST',
       body: { folderId, content: '---\nname: Ata nova\n---\n\nEscrita depois.\n' },
     });
 
     const view = await json<{
-      version: { number: number };
       parameters: Array<{ name: string }>;
       notebook: { name: string };
       folders: Array<{ name: string }>;
       notes: Array<{ body: string }>;
-    }>(await call(OWNER, `/portability/models/${notebookId}/versions/1`));
-    expect(view.version.number).toBe(1);
+    }>(await call(OWNER, `/portability/models/${notebookId}/contents`));
     expect(view.notebook.name).toBe('Condomínio modelo');
     expect(view.folders.map((each) => each.name)).toEqual(['Assembleias']);
-    expect(view.notes).toHaveLength(1);
-    expect(view.notes[0]?.body).toContain('{{síndico}}');
+    expect(view.notes).toHaveLength(2);
+    expect(view.notes.some((each) => each.body.includes('{{síndico}}'))).toBe(true);
     expect(view.parameters.map((each) => each.name)).toEqual(['condomínio', 'síndico']);
+  });
+
+  it('keeps the history of its notebook: when, through what, and the line left (#431)', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    await call(OWNER, `/knowledge/notebooks/${notebookId}/notes`, {
+      method: 'POST',
+      body: { folderId, content: '---\nname: Ata nova\n---\n\nEscrita depois.\n' },
+    });
+    await drainTrail();
+
+    const history = await json<{
+      changes: Array<{ type: string; name: string | null; agent: string | null; saves: number }>;
+      truncated: boolean;
+    }>(await call(OWNER, `/portability/models/${notebookId}/history`));
+    expect(history.truncated).toBe(false);
+    // The newest first: the note written last, by a person in the interface.
+    expect(history.changes[0]).toEqual(
+      expect.objectContaining({ type: 'NoteCreated', name: 'Ata nova', agent: null, saves: 1 }),
+    );
+    expect(history.changes.map((each) => each.type)).toEqual(
+      expect.arrayContaining(['NotebookCreated', 'FolderAdded', 'NoteCreated']),
+    );
   });
 
   it('refuses a declaration whose parameters are not ones', async () => {
@@ -187,29 +226,19 @@ describe('a notebook model (#353)', () => {
     expect(await refused([{ ...declaration.parameters[1], default: null }])).toBe(400);
   });
 
-  it('deletes a version, and the model and all of them with the notebook', async () => {
+  it('goes with its notebook', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
-    expect(
-      (await call(OWNER, `/portability/models/${notebookId}/versions/1`, { method: 'DELETE' }))
-        .status,
-    ).toBe(204);
-    const model = await json<{ versions: Array<{ number: number }> }>(
-      await call(OWNER, `/portability/models/${notebookId}`),
-    );
-    expect(model.versions.map((each) => each.number)).toEqual([2]);
-
     expect(
       (await call(OWNER, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' })).status,
     ).toBe(204);
     expect((await call(OWNER, `/portability/models/${notebookId}`)).status).toBe(404);
+    expect((await call(OWNER, `/portability/models/${notebookId}/contents`)).status).toBe(404);
     expect(
       (await json<{ models: unknown[] }>(await call(OWNER, '/portability/models'))).models,
     ).toEqual([]);
   });
 
-  it('is the owner’s to declare and version, and a member reads it', async () => {
+  it('is the owner’s to declare, and a member reads it', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
     // A member of the subscription, the way the only door that makes one
     // leaves it: an EDITOR (RN-ACC-002).
@@ -232,6 +261,8 @@ describe('a notebook model (#353)', () => {
     );
 
     expect((await call(MEMBER, `/portability/models/${notebookId}`)).status).toBe(200);
+    expect((await call(MEMBER, `/portability/models/${notebookId}/contents`)).status).toBe(200);
+    expect((await call(MEMBER, `/portability/models/${notebookId}/history`)).status).toBe(200);
     expect(
       (
         await call(MEMBER, `/portability/models/${notebookId}`, {
@@ -240,26 +271,17 @@ describe('a notebook model (#353)', () => {
         })
       ).status,
     ).toBe(403);
-    expect(
-      (
-        await call(MEMBER, `/portability/models/${notebookId}/versions`, {
-          method: 'POST',
-          body: {},
-        })
-      ).status,
-    ).toBe(403);
   });
 
-  it('creates several independent notebooks from one private version, each with its values (#359)', async () => {
+  it('creates several independent notebooks from the notebook as it stands, each with its values (#359)', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
     await call(OWNER, `/knowledge/notebooks/${notebookId}`, {
       method: 'PATCH',
       body: { name: 'Condomínio {{condomínio}}' },
     });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
 
     const create = (values: Record<string, unknown>, name = '') =>
-      call(OWNER, `/portability/models/${notebookId}/versions/1/notebooks`, {
+      call(OWNER, `/portability/models/${notebookId}/notebooks`, {
         method: 'POST',
         body: { name, values },
       });
@@ -310,28 +332,67 @@ describe('a notebook model (#353)', () => {
       }
     }
 
-    // Independent: the model changes and loses its version, and they do not.
-    await call(OWNER, `/portability/models/${notebookId}/versions/1`, { method: 'DELETE' });
+    // Nothing of the creation is kept: the copy it read was an upload. And it
+    // is not a transfer of the person's: they created a notebook (#445).
+    expect(
+      (
+        await json<{ transfers: Array<{ kind: string }> }>(
+          await call(OWNER, '/portability/transfers'),
+        )
+      ).transfers,
+    ).toEqual([]);
+
+    // Its history opens on its creation, from the model, and the import's
+    // writes are that creation, not rows of their own (#446).
+    await drainTrail();
+    const history = await json<{
+      changes: Array<{ type: string; fromModel: string | null; you: boolean }>;
+    }>(await call(OWNER, `/audit/notebooks/${created[0]!.notebookId}/history`));
+    expect(history.changes).toEqual([
+      expect.objectContaining({
+        type: 'NotebookCreated',
+        fromModel: 'Condomínio {{condomínio}}',
+        you: true,
+      }),
+    ]);
+    // A notebook the person does not read answers nothing (INV-09).
+    expect((await call(OWNER, '/audit/notebooks/01J00000000000000000000000/history')).status).toBe(
+      404,
+    );
+
+    // Independent: the model goes, and they do not.
     await call(OWNER, `/knowledge/notebooks/${notebookId}`, { method: 'DELETE' });
     for (const each of created) {
       expect((await call(OWNER, `/knowledge/notebooks/${each.notebookId}`)).status).toBe(200);
     }
   });
 
-  it('reports what a version writes and never declared', async () => {
+  it('fills the parameters in a name the person typed, as in the name of the model (#448)', async () => {
+    await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
+    const started = await call(OWNER, `/portability/models/${notebookId}/notebooks`, {
+      method: 'POST',
+      body: { name: 'Atas de {{condomínio}}', values: { condomínio: 'Cirro' } },
+    });
+    expect(started.status).toBe(202);
+    const notebooks = await json<Array<{ name: string }>>(
+      await call(OWNER, '/knowledge/notebooks'),
+    );
+    expect(notebooks.map((each) => each.name)).toContain('Atas de Cirro');
+  });
+
+  it('reports what its notebook writes and never declared', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, {
       method: 'PUT',
       body: { ...declaration, parameters: [declaration.parameters[0]] },
     });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
     const view = await json<{ references: { undeclared: string[]; unused: string[] } }>(
-      await call(OWNER, `/portability/models/${notebookId}/versions/1`),
+      await call(OWNER, `/portability/models/${notebookId}/contents`),
     );
     expect(view.references).toEqual({ undeclared: ['síndico'], unused: [] });
   });
 });
 
-describe('a model travels with its export (#397, RN-PRT-054)', () => {
+describe('a model travels with its export (#397, RN-PRT-073)', () => {
   /** Exports the notebook whole and imports the archive in place, under a name of its own. */
   async function exportAndImport(token: string, name: string) {
     const started = await call(token, `/portability/notebooks/${notebookId}/export`, {
@@ -353,46 +414,23 @@ describe('a model travels with its export (#397, RN-PRT-054)', () => {
     );
   }
 
-  it('arrives as a model, with what it declares and every version, each still usable', async () => {
+  it('arrives as a model, with what it declares, and creates notebooks as the first one did', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'The first version' },
-    });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'Suppliers' },
-    });
 
     const imported = await exportAndImport(OWNER, 'Condomínio modelo, trazido');
     expect(imported.status).toBe('ready');
 
-    const model = await json<{
-      objective: string;
-      parameters: Array<{ name: string }>;
-      versions: Array<{ number: number; status: string; changelog: string }>;
-    }>(await call(OWNER, `/portability/models/${imported.notebookId}`));
+    const model = await json<{ objective: string; parameters: Array<{ name: string }> }>(
+      await call(OWNER, `/portability/models/${imported.notebookId}`),
+    );
     expect(model.objective).toBe(declaration.objective);
     expect(model.parameters.map((each) => each.name)).toEqual(['condomínio', 'síndico']);
-    expect(model.versions.map((each) => [each.number, each.status, each.changelog])).toEqual([
-      [2, 'ready', 'Suppliers'],
-      [1, 'ready', 'The first version'],
-    ]);
 
-    // A version brought back creates notebooks as the first one did.
-    const created = await call(
-      OWNER,
-      `/portability/models/${imported.notebookId}/versions/1/notebooks`,
-      { method: 'POST', body: { name: 'Residencial Aurora', values: { condomínio: 'Aurora' } } },
-    );
-    expect(created.status).toBe(202);
-
-    // And the next version takes the number after the last one carried.
-    const third = await call(OWNER, `/portability/models/${imported.notebookId}/versions`, {
+    const created = await call(OWNER, `/portability/models/${imported.notebookId}/notebooks`, {
       method: 'POST',
-      body: { changelog: 'After the trip' },
+      body: { name: 'Residencial Aurora', values: { condomínio: 'Aurora' } },
     });
-    expect((await json<{ number: number }>(third)).number).toBe(3);
+    expect(created.status).toBe(202);
   });
 
   it('leaves a notebook that is not a model exactly as it was', async () => {
@@ -403,10 +441,6 @@ describe('a model travels with its export (#397, RN-PRT-054)', () => {
 
   it('is declared only by the owner: a member imports the notebook alone (RN-PRT-033)', async () => {
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'The first version' },
-    });
     harness.verifier.issue(MEMBER, {
       sub: 'user-member',
       email: 'member@example.com',
@@ -431,8 +465,8 @@ describe('a model travels with its export (#397, RN-PRT-054)', () => {
   });
 });
 
-describe('the tables of a model (#366, RN-PRT-050)', () => {
-  it('go into every version whole, with their rows, whatever the request names (#405, RN-PRT-056)', async () => {
+describe('the tables of a model (#366, RN-PRT-071)', () => {
+  it('are read whole, with their rows (#405, RN-PRT-074)', async () => {
     await call(OWNER, `/knowledge/notebooks/${notebookId}/tables`, {
       method: 'POST',
       body: {
@@ -445,18 +479,13 @@ describe('the tables of a model (#366, RN-PRT-050)', () => {
       body: { rows: [{ valor: 10 }, { valor: 20 }] },
     });
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
-    // A request that still names no table, as the version's choice once did, carries them all.
-    await call(OWNER, `/portability/models/${notebookId}/versions`, {
-      method: 'POST',
-      body: { changelog: 'Whole', tables: [] },
-    });
-    const version = await json<{ tables: Array<{ name: string; rows: number | null }> }>(
-      await call(OWNER, `/portability/models/${notebookId}/versions/1`),
+    const contents = await json<{ tables: Array<{ name: string; rows: number }> }>(
+      await call(OWNER, `/portability/models/${notebookId}/contents`),
     );
-    expect(version.tables).toEqual([expect.objectContaining({ name: 'gastos', rows: 2 })]);
+    expect(contents.tables).toEqual([expect.objectContaining({ name: 'gastos', rows: 2 })]);
   });
 
-  it('go into a version with their rows, the parameters filled in their names and descriptions only', async () => {
+  it('go into a notebook created from it with their rows, the parameters filled in their names and descriptions only', async () => {
     await call(OWNER, `/knowledge/notebooks/${notebookId}/tables`, {
       method: 'POST',
       body: {
@@ -480,16 +509,8 @@ describe('the tables of a model (#366, RN-PRT-050)', () => {
       },
     );
     await call(OWNER, `/portability/models/${notebookId}`, { method: 'PUT', body: declaration });
-    await call(OWNER, `/portability/models/${notebookId}/versions`, { method: 'POST', body: {} });
 
-    const version = await json<{ tables: Array<{ name: string; rows: number | null }> }>(
-      await call(OWNER, `/portability/models/${notebookId}/versions/1`),
-    );
-    expect(version.tables).toEqual([
-      expect.objectContaining({ name: 'fornecedores de {{condomínio}}', rows: 1 }),
-    ]);
-
-    await call(OWNER, `/portability/models/${notebookId}/versions/1/notebooks`, {
+    await call(OWNER, `/portability/models/${notebookId}/notebooks`, {
       method: 'POST',
       body: { name: 'Aurora', values: { condomínio: 'Aurora' } },
     });

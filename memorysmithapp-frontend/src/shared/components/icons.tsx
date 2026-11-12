@@ -244,15 +244,6 @@ export function MoveIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** The way back, to every notebook. */
-export function ArrowLeftIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <path d="M19 12H5M12 19l-7-7 7-7" />
-    </svg>
-  );
-}
-
 /** The Notebook Context: the list an agent is handed. */
 export function ContextIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -401,6 +392,16 @@ export function InfoIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Something to look at before going on: the conflicts of an import (#452). */
+export function AlertIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
+}
+
 /* The actions of Transfers, notifications, file choosing and sign-in (#325),
    which show their icon alone from 860 px down. */
 
@@ -419,6 +420,17 @@ export function TrashIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M3 6h18" />
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
       <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+/** A link cut: nothing leads here, the mark of an orphan note (#429). */
+export function UnlinkedIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      <path d="m3 3 18 18" />
     </svg>
   );
 }
@@ -446,6 +458,76 @@ export function PlusIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/** Folds the sidebar to its icons (#414). */
+export function SidebarFoldIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16M16 10l-2 2 2 2" />
+    </svg>
+  );
+}
+
+/** Opens the folded sidebar again (#414). */
+export function SidebarOpenIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16M14 10l2 2-2 2" />
+    </svg>
+  );
+}
+
+/** Home, in the menu of the product (#418). */
+export function HomeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9v11h14V9" />
+      <path d="M10 20v-6h4v6" />
+    </svg>
+  );
+}
+
+/** The community of published models (#418). */
+export function GlobeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+/** Files on their way in and out, the arrows of the transfers (#418). */
+export function TransfersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 4v16M3.5 7.5 7 4l3.5 3.5M17 20V4M13.5 16.5 17 20l3.5-3.5" />
+    </svg>
+  );
+}
+
+/** What a page is for, behind a question mark beside its title (#418). */
+export function HelpIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
+
+/** The ☰ that opens the menu of a phone (#419). */
+export function MenuLinesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   );
 }

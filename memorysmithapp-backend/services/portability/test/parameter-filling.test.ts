@@ -95,7 +95,7 @@ describe('a note filled in', () => {
   });
 });
 
-describe('what a version writes against what its model declares', () => {
+describe('what a model notebook writes against what its model declares', () => {
   it('names the references nobody declared and the declarations nothing uses', () => {
     const document = {
       documentVersion: '1.2',

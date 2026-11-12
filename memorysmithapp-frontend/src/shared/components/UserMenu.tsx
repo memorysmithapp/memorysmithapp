@@ -145,8 +145,9 @@ export function UserMenu() {
         />
       </button>
       {/*
-        A menu of the Controles, and a sheet on a phone (#201): the same content
-        and the same routes as before, built only out of the common controls.
+        A menu of the Controles (#201), dropping from under the header on a
+        phone as the ☰ does (#422): the same content and the same routes as
+        before, built only out of the common controls.
       */}
       <Menu
         open={open}
@@ -155,6 +156,7 @@ export function UserMenu() {
         label={t('auth.menu')}
         className="user-menu-panel"
         closeLabel={t('common.close')}
+        fromHeader
       >
         <div className="user-menu-top" role="none">
           <div className="user-menu-identity">
@@ -294,22 +296,8 @@ export function UserMenu() {
               {t('password.menu')}
             </MenuItem>
           )}
-          {/* Where the connector of this environment is published, which is
-              what an agent is pointed at: an item like the others, and not a
-              footnote beside the version (#210). */}
-          {/* The models others published, which anybody reads (#360). */}
-          <MenuItem
-            onSelect={() => go('/community')}
-            trailing={<ChevronRightIcon width={12} height={12} />}
-          >
-            {t('community.menu')}
-          </MenuItem>
-          <MenuItem
-            onSelect={() => go('/about')}
-            trailing={<ChevronRightIcon width={12} height={12} />}
-          >
-            {t('about.menu')}
-          </MenuItem>
+          {/* The community and About are in the menu of the product, in the
+              header, and only there (#418). */}
           <MenuDivider />
           <MenuItem onSelect={handleSignOut} icon={<SignOutIcon width={14} height={14} />}>
             {t('auth.signOut')}
