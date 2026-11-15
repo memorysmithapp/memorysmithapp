@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-11-15
+
 ### Fixed
 
 - **ChatGPT reads notes, guidances and templates again.** In ChatGPT, reading a note, the guidance of a notebook or the template of a folder answered an empty object, and writing a note answered one too: the note was saved, but the agent never got its identifier nor the revision its next edit needs. Every answer that is an object now also reaches the agent as an object, beside the text Claude already read, so ChatGPT gets the whole note, its revision, its folder and its links. Claude reads the same answers as before. (#458)
@@ -1078,7 +1080,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...HEAD
+[0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.15.0...v0.16.0
