@@ -733,6 +733,7 @@
     "deleteFrees": "Isto é definitivo e libera {{size}} do seu plano. O caderno, se ainda existir, não é tocado.",
     "keep": "Manter",
     "cancelImport": "Cancelar",
+    "cancelling": "cancelando · desfazendo o que foi escrito",
     "open": "Abrir",
     "importKept": "Importar",
     "deleteImportAsk": "Apagar esta importação?",

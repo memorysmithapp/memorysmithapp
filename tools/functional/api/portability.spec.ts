@@ -545,7 +545,8 @@ test.describe('the transfers of a person', () => {
 
   /**
    * Cancelling an import takes the notebook it had started back down whole,
-   * which frees its name (RN-PRT-018, RN-PRT-014). An import of this size ends
+   * which frees its name (RN-PRT-018, RN-PRT-014), and the transfer reads
+   * cancelled only once it has (#455). An import of this size ends
    * in a moment, so the case asserts the invariant of whichever branch it
    * lands in: cancelled in time leaves no notebook at all, and already ended
    * leaves the notebook the import wrote.
@@ -575,11 +576,15 @@ test.describe('the transfers of a person', () => {
       uploadKey: upload.uploadKey,
       name,
     });
-    const cancelled = await owner.call(
+    const cancelled = await owner.call<{ status: string; cancelling: boolean }>(
       'POST',
       `/portability/transfers/${started.transferId}/cancel`,
     );
     expect([200, 409]).toContain(cancelled.status);
+    // A cancel asks; the import reads cancelled once its notebook is down (#455).
+    if (cancelled.status === 200) {
+      expect(cancelled.body).toMatchObject({ status: 'running', cancelling: true });
+    }
 
     const ended = await eventually(
       'the import to end',

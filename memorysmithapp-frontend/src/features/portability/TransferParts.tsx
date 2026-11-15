@@ -144,6 +144,14 @@ export function TransferState({ transfer }: { transfer: TransferDto }) {
         </span>
       );
     }
+    // A cancelled import reads cancelled once its notebook is down (#455).
+    if (transfer.cancelling) {
+      return (
+        <span className="transfer-state is-running">
+          <span className="transfer-state-text">{t('transfers.cancelling')}</span>
+        </span>
+      );
+    }
     // An upload that stopped says so, and still shows how far it got.
     const stalled = isStalled(transfer, Date.now());
     return (

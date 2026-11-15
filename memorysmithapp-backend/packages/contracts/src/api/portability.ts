@@ -174,6 +174,11 @@ export const transferSchema = z.object({
   /** Whether the person read the notice of its end, on any device (#454). */
   noticeRead: z.boolean().default(false),
   /**
+   * A cancel was asked and the import is taking its notebook down (#455): it
+   * still reads `running`, and reads `cancelled` once nothing of it stands.
+   */
+  cancelling: z.boolean().default(false),
+  /**
    * The file this transfer is about: the one an import came from, as the
    * person chose it, and the one an export saves as, named after its notebook.
    * `null` on an import recorded before a file name was kept (#155).

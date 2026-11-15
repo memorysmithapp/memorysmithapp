@@ -278,6 +278,8 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
     failure: transfer.failure,
     /** Whether the notice of its end was read (#454). */
     noticeRead: transfer.noticeRead === true,
+    /** Asked to cancel, and not ended yet (#455). */
+    cancelling: transfer.status === 'running' && transfer.cancelRequested === true,
     /**
      * The file this transfer is about (#155). An import carries the one the
      * person chose; an export is named after its notebook, by the same

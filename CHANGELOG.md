@@ -15,6 +15,8 @@ issues each entry cites.
 
 - **ChatGPT reads notes, guidances and templates again.** In ChatGPT, reading a note, the guidance of a notebook or the template of a folder answered an empty object, and writing a note answered one too: the note was saved, but the agent never got its identifier nor the revision its next edit needs. Every answer that is an object now also reaches the agent as an object, beside the text Claude already read, so ChatGPT gets the whole note, its revision, its folder and its links. Claude reads the same answers as before. (#458)
 
+- **A cancelled import says cancelled only when its name is free.** Cancelling an import used to mark it cancelled at once, while the notebook it had started was still being taken down, so for a moment its name could not be used again. Now the import shows *cancelling* while it undoes what it wrote, on its row of Transfers and on the bell, and reads *cancelled* once nothing of it stands: from then on its name is free. An import that had already finished when the cancel arrived stays imported. (#455)
+
 ## [0.18.0] - 2026-11-11
 
 ### Added

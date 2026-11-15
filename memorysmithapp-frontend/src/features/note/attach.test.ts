@@ -26,6 +26,7 @@ function transfer(parts: number, over: Partial<TransferDto> = {}): TransferDto {
     bytes: ATTACH_PART_BYTES + 10,
     failure: null,
     noticeRead: false,
+    cancelling: false,
     fileName: 'quadro.jpg',
     upload: {
       mimeType: 'image/jpeg',

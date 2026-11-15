@@ -730,6 +730,7 @@
     "deleteFrees": "This is for good and frees {{size}} of your plan. The notebook, if it still exists, is not touched.",
     "keep": "Keep",
     "cancelImport": "Cancel",
+    "cancelling": "cancelling · taking down what was written",
     "open": "Open",
     "importKept": "Import",
     "deleteImportAsk": "Delete this import?",

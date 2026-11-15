@@ -317,7 +317,7 @@ function TransferRow({
       <div className="transfers-row-actions">
         {/* An import that runs can be stopped, and stopping takes it back down
             whole (RN-PRT-018). An export cannot: it writes nothing but its file. */}
-        {transfer.status === 'running' && transfer.kind === 'import' && (
+        {transfer.status === 'running' && transfer.kind === 'import' && !transfer.cancelling && (
           <button
             type="button"
             className="button is-quiet is-small"
