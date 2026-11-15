@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **ChatGPT reads notes, guidances and templates again.** In ChatGPT, reading a note, the guidance of a notebook or the template of a folder answered an empty object, and writing a note answered one too: the note was saved, but the agent never got its identifier nor the revision its next edit needs. Every answer that is an object now also reaches the agent as an object, beside the text Claude already read, so ChatGPT gets the whole note, its revision, its folder and its links. Claude reads the same answers as before. (#458)
+
 ## [0.18.0] - 2026-11-11
 
 ### Added
