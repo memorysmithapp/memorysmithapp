@@ -390,14 +390,6 @@ export async function queryTable(
   );
 }
 
-/** Deletes a table and its rows, for good (#366, RN-KNW-071). */
-export async function deleteTable(notebookId: string, table: string): Promise<{ rows: number }> {
-  return request<{ rows: number }>(
-    `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`,
-    { method: 'DELETE' },
-  );
-}
-
 /** The Dashboards of a notebook, each with its definition (#368). */
 export async function listDashboards(notebookId: string): Promise<NotebookDashboardDto[]> {
   const answer = await request<DashboardListDto>(`/knowledge/notebooks/${notebookId}/dashboards`);

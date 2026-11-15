@@ -584,22 +584,13 @@
       "yes": "Sim",
       "no": "Não"
     },
-    "delete": "Apagar tabela",
-    "deleteTitle": "Apagar esta tabela?",
-    "deleteHolds_one": "Ela tem {{count}} linha.",
-    "deleteHolds_other": "Ela tem {{count}} linhas.",
-    "deleteConsequences": "A tabela e suas linhas saem de uma vez e para sempre, e toda nota que a mostra vai dizer que ela não existe. Nada a traz de volta.",
-    "deleteUnderstood": "Entendo que as linhas são apagadas de vez",
-    "deleteConfirm": "Apagar de vez",
     "deleting": "Apagando…",
     "carry": {
       "published": "Estas tabelas vão com as linhas, que toda pessoa que entra no MemorySmith.app vai ler: {{tables}}."
     },
     "shownBy_one": "Aparece em {{count}} nota",
     "shownBy_other": "Aparece em {{count}} notas",
-    "shownByNone": "Nenhuma nota mostra esta tabela.",
-    "deleteShownBy_one": "{{count}} nota a mostra, e vai dizer que a tabela não existe.",
-    "deleteShownBy_other": "{{count}} notas a mostram, e vão dizer que a tabela não existe."
+    "shownByNone": "Nenhuma nota mostra esta tabela."
   },
   "dashboards": {
     "heading": "Painéis",

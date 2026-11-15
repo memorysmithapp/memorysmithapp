@@ -80,13 +80,6 @@ export function queryTable(
   return backend.queryTable(...args);
 }
 
-export function deleteTable(
-  notebookId: string,
-  table: string,
-): ReturnType<typeof backend.deleteTable> {
-  return backend.deleteTable(notebookId, table);
-}
-
 /** The Dashboards of a notebook, what one shows now, and its deletion (#368). */
 export function listDashboards(notebookId: string): ReturnType<typeof backend.listDashboards> {
   return backend.listDashboards(notebookId);

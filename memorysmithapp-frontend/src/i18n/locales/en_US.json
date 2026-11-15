@@ -581,22 +581,13 @@
       "yes": "Yes",
       "no": "No"
     },
-    "delete": "Delete table",
-    "deleteTitle": "Delete this table?",
-    "deleteHolds_one": "It holds {{count}} row.",
-    "deleteHolds_other": "It holds {{count}} rows.",
-    "deleteConsequences": "The table and its rows go at once and for good, and every note that shows it will say it is missing. Nothing brings it back.",
-    "deleteUnderstood": "I understand the rows are deleted for good",
-    "deleteConfirm": "Delete for good",
     "deleting": "Deleting…",
     "carry": {
       "published": "These tables go with their rows, which every person signed in will read: {{tables}}."
     },
     "shownBy_one": "Shown in {{count}} note",
     "shownBy_other": "Shown in {{count}} notes",
-    "shownByNone": "No note shows this table.",
-    "deleteShownBy_one": "{{count}} note shows it, and will say the table is missing.",
-    "deleteShownBy_other": "{{count}} notes show it, and will say the table is missing."
+    "shownByNone": "No note shows this table."
   },
   "dashboards": {
     "heading": "Dashboards",

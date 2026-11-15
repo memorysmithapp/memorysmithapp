@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { NotebookTableDto, NoteRefDto } from '@memorysmithapp/contracts';
 import { NotebookBar } from '../structure/NotebookBreadcrumb';
@@ -8,16 +8,14 @@ import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { getTableUses } from '../../shared/api/backend';
-import { deleteTable, listTables, queryTable } from '../../shared/api/source';
+import { listTables, queryTable } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import { noteAddress, tablesAddress } from '../../shared/api/note-address';
 import { useLiveInterval } from '../../shared/api/live';
 import { formatBytes } from '../../shared/components/StorageBar';
-import { Modal } from '../../shared/components/Modal';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
-import { TableIcon, TrashIcon } from '../../shared/components/icons';
-import { ActionWord } from '../../shared/components/ActionWord';
+import { TableIcon } from '../../shared/components/icons';
 import { intlLocale } from '../../i18n/intl-locale';
 import { columnsOf, formatCell, type ColumnView } from './cells';
 
@@ -28,10 +26,9 @@ const PAGE_SIZE = 25;
  * columns and how many rows it holds, and, open, its rows page by page and its
  * schema, column by column.
  *
- * Nothing is written here but a deletion: tables are created and their rows
- * written by an agent, through the connector. The page is how a person — the
- * Reader of a share too — sees what the agent kept. Deleting is for whoever
- * maintains the notebook, after saying how many rows go.
+ * Nothing is written here (#462): tables are created, their rows written and
+ * the tables deleted by an agent, through the connector. The page is how a
+ * person — the Reader of a share too — sees what the agent kept.
  */
 export function TablesPage() {
   const { t, i18n } = useTranslation();
@@ -104,9 +101,7 @@ export function TablesPage() {
             notebookId={notebookId}
             table={chosen}
             locale={locale}
-            maintains={structure.permissions.maintain}
             notes={notesOf(chosen.name)}
-            onDeleted={() => choose(null)}
           />
         ) : (
           <>
@@ -157,20 +152,15 @@ function TableDetail({
   notebookId,
   table,
   locale,
-  maintains,
   notes,
-  onDeleted,
 }: {
   notebookId: string;
   table: NotebookTableDto;
   locale: string;
-  maintains: boolean;
   notes: readonly NoteRefDto[];
-  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('data');
-  const [deleting, setDeleting] = useState(false);
   const columns = columnsOf(table);
 
   return (
@@ -185,15 +175,6 @@ function TableDetail({
             {table.key ? ` · ${t('tables.keyIs', { columns: table.key.join(', ') })}` : ''}
           </p>
         </div>
-        {maintains ? (
-          <button
-            type="button"
-            className="button is-quiet is-danger"
-            onClick={() => setDeleting(true)}
-          >
-            <ActionWord icon={<TrashIcon />} word={t('tables.delete')} />
-          </button>
-        ) : null}
       </header>
       <p className="table-detail-meta">
         {notes.length === 0
@@ -225,15 +206,6 @@ function TableDetail({
       ) : (
         <TableSchemaView table={table} columns={columns} locale={locale} />
       )}
-      {deleting ? (
-        <DeleteTableDialog
-          notebookId={notebookId}
-          table={table}
-          notes={notes.length}
-          onClose={() => setDeleting(false)}
-          onDeleted={onDeleted}
-        />
-      ) : null}
     </section>
   );
 }
@@ -404,87 +376,5 @@ function TableSchemaView({
         </tbody>
       </table>
     </div>
-  );
-}
-
-/**
- * Deleting a table (RN-KNW-071): one write that takes it and every row out of
- * reach at once, the rows destroyed in the background. It says how many rows go
- * and is deleted only once the person ticks that they understood.
- */
-function DeleteTableDialog({
-  notebookId,
-  table,
-  notes,
-  onClose,
-  onDeleted,
-}: {
-  notebookId: string;
-  table: NotebookTableDto;
-  notes: number;
-  onClose: () => void;
-  onDeleted: () => void;
-}) {
-  const { t } = useTranslation();
-  const client = useQueryClient();
-  const [understood, setUnderstood] = useState(table.rows === 0);
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-
-  async function remove(): Promise<void> {
-    setBusy(true);
-    setFailure(null);
-    try {
-      await deleteTable(notebookId, table.name);
-      await client.invalidateQueries({ queryKey: queryKeys.notebookTables(notebookId) });
-      onDeleted();
-    } catch (error) {
-      setFailure(t(messageKeyOf(error)));
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal
-      open
-      title={t('tables.deleteTitle')}
-      subtitle={table.name}
-      onClose={onClose}
-      className="move-dialog folder-delete-dialog"
-    >
-      <div className="folder-delete">
-        <p>{t('tables.deleteHolds', { count: table.rows })}</p>
-        <p>{t('tables.deleteConsequences')}</p>
-        {notes > 0 ? <p>{t('tables.deleteShownBy', { count: notes })}</p> : null}
-        {table.rows > 0 ? (
-          <label className="folder-delete-understood">
-            <input
-              type="checkbox"
-              checked={understood}
-              onChange={(event) => setUnderstood(event.target.checked)}
-            />
-            <span>{t('tables.deleteUnderstood')}</span>
-          </label>
-        ) : null}
-        {failure ? (
-          <p className="move-refusal" role="alert">
-            {failure}
-          </p>
-        ) : null}
-        <div className="ask-dialog-foot">
-          <button type="button" className="button is-quiet" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button is-danger is-filled"
-            disabled={busy || !understood}
-            onClick={() => void remove()}
-          >
-            {busy ? t('tables.deleting') : t('tables.deleteConfirm')}
-          </button>
-        </div>
-      </div>
-    </Modal>
   );
 }
