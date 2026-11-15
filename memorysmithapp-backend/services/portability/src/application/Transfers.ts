@@ -293,9 +293,11 @@ export class MarkTransferRead {
 }
 
 /**
- * Cancelling a transfer (RN-PRT-018). It marks the record, and the worker is
- * what acts on it: an import takes its notebook back down whole at the next
- * note it was about to write, which frees the name (RN-PRT-014, RN-KNW-033).
+ * Cancelling a transfer (RN-PRT-018). It asks, and the worker is what acts on
+ * it: an import takes its notebook back down whole at the next note it was
+ * about to write, which frees the name (RN-PRT-014, RN-KNW-033), and only then
+ * ends as `cancelled`. Ending it here said cancelled while the notebook still
+ * stood, and its name was not free yet (#455).
  */
 export class CancelTransfer {
   constructor(
@@ -326,11 +328,9 @@ export class CancelTransfer {
         DomainError.conflict('An export cannot be cancelled: nothing of it is written yet'),
       );
     }
-    await this.transfers.patch(this.userId, transferId, {
-      status: 'cancelled',
-      finishedAt: Instant.now().toISOString(),
-    });
-    return ok({ ...found, status: 'cancelled' });
+    if (found.cancelRequested) return ok(found);
+    await this.transfers.patch(this.userId, transferId, { cancelRequested: true });
+    return ok({ ...found, cancelRequested: true });
   }
 }
 
@@ -633,9 +633,25 @@ export class RunImport {
     private readonly models: ModelCopier | null = null,
   ) {}
 
+  /**
+   * Ends a transfer the person cancelled, once nothing of its notebook stands
+   * (#455). A transfer deleted meanwhile stays deleted: a patch never creates.
+   */
+  private async endCancelled(work: TransferWork): Promise<void> {
+    await this.transfers.patch(work.userId, work.transferId, {
+      status: 'cancelled',
+      finishedAt: Instant.now().toISOString(),
+    });
+  }
+
   async execute(work: TransferWork): Promise<void> {
     const started = await this.transfers.get(work.userId, work.transferId);
     if (!started || started.status !== 'running') return;
+    // Cancelled before the worker began: nothing was written, so nothing goes down.
+    if (started.cancelRequested) {
+      await this.endCancelled(work);
+      return;
+    }
 
     let lastWrite = Date.now();
     let lastDone = 0;
@@ -656,7 +672,9 @@ export class RunImport {
        */
       cancelled: async (): Promise<boolean> => {
         const now = await this.transfers.get(work.userId, work.transferId);
-        return now === null || now.status === 'cancelled';
+        // `cancelled` on the record is a cancel of the API before #455, while
+        // a delivery replaces one function and not yet the other.
+        return now === null || now.cancelRequested === true || now.status === 'cancelled';
       },
     };
 
@@ -692,10 +710,12 @@ export class RunImport {
        * notebook went down with it. One that landed AFTER the importer's last
        * look finds an import that finished, so what it has to undo is here:
        * returning alone left the notebook standing, with the name it took,
-       * under a transfer that said it was cancelled (#153).
+       * under a transfer that said it was cancelled (#153). The transfer
+       * reads `cancelled` only now, with the notebook down (#455).
        */
       if (await progress.cancelled()) {
         if (written.ok) await this.importer.undo(written.value.notebookId, this.by);
+        await this.endCancelled(work);
         return;
       }
 

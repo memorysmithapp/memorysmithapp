@@ -72,6 +72,12 @@ export interface Transfer {
    * transfer, so the bell leaves it out on every device.
    */
   readonly noticeRead?: boolean | undefined;
+  /**
+   * The person asked to cancel this import (#455). It stays `running` until
+   * its worker has taken the notebook down, and only then reads `cancelled`,
+   * so a name an import reads as cancelled is already free (RN-KNW-033).
+   */
+  readonly cancelRequested?: boolean | undefined;
   /** What an upload of an agent is and where its parts are (RN-PRT-027); only on that kind. */
   readonly upload?: TransferUpload | undefined;
   /** The file an agent asked the person for (RN-PRT-030); only on a request. */

@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { DomainError, err, ok, type Instant } from '@memorysmithapp/kernel';
 import { InMemoryTransferStore } from '../src/adapters/dynamo.js';
 import {
+  CancelTransfer,
   DeleteTransfer,
   ListTransfers,
   MarkTransferRead,
@@ -400,5 +401,97 @@ describe('cancelling an import', () => {
     const ended = await transfers.get(USER, started.value.transferId);
     expect(ended?.status).toBe('cancelled');
     expect(ended?.notebookId).toBeNull();
+  });
+  const startImport = async (transfers: InMemoryTransferStore) => {
+    const started = await new StartImport(
+      transfers,
+      { send: async () => undefined },
+      SUBSCRIPTION,
+      USER,
+    ).execute({
+      uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000A.notebook`,
+      name: 'Normas importadas',
+      selection: null,
+      by: author(),
+    });
+    if (!started.ok) throw new Error('the import did not start');
+    return started.value.transferId;
+  };
+  const work = (transferId: string) => ({
+    subscriptionId: SUBSCRIPTION,
+    userId: USER,
+    transferId,
+    kind: 'import' as const,
+    uploadKey: `s/${SUBSCRIPTION}/imports/01JBQ2X000000000000000000A.notebook`,
+    name: 'Normas importadas',
+  });
+  const imported = {
+    importId: '01JBQ2X000000000000000000B',
+    notebookId: NOTEBOOK_WRITTEN,
+    status: 'imported' as const,
+    folderCount: 2,
+    noteCount: 3,
+    guidance: true,
+    templateCount: 1,
+  };
+
+  it('asks, and the transfer keeps running until its worker acts (#455)', async () => {
+    const transfers = new InMemoryTransferStore();
+    const transferId = await startImport(transfers);
+
+    const cancelled = await new CancelTransfer(transfers, USER).execute(transferId);
+    expect(cancelled.ok && cancelled.value.status).toBe('running');
+    expect(cancelled.ok && cancelled.value.cancelRequested).toBe(true);
+    const recorded = await transfers.get(USER, transferId);
+    expect(recorded?.status).toBe('running');
+    expect(recorded?.finishedAt).toBeNull();
+
+    // Asking again while it is being undone is the same request.
+    const again = await new CancelTransfer(transfers, USER).execute(transferId);
+    expect(again.ok).toBe(true);
+  });
+
+  it('reads cancelled only once the notebook is down (#455)', async () => {
+    const transfers = new InMemoryTransferStore();
+    const transferId = await startImport(transfers);
+    const seenWhileUndoing: Array<string | undefined> = [];
+    const importer = {
+      undo: async () => {
+        seenWhileUndoing.push((await transfers.get(USER, transferId))?.status);
+      },
+      execute: async () => {
+        // The person cancels as the importer finishes writing.
+        expect((await new CancelTransfer(transfers, USER).execute(transferId)).ok).toBe(true);
+        return ok(imported);
+      },
+    };
+
+    await new RunImport(transfers, importer, author()).execute(work(transferId));
+
+    // While the notebook was going down, nobody was told it was cancelled.
+    expect(seenWhileUndoing).toEqual(['running']);
+    const ended = await transfers.get(USER, transferId);
+    expect(ended?.status).toBe('cancelled');
+    expect(ended?.finishedAt).not.toBeNull();
+    expect(ended?.notebookId).toBeNull();
+  });
+
+  it('writes nothing for a cancel that lands before the worker starts (#455)', async () => {
+    const transfers = new InMemoryTransferStore();
+    const transferId = await startImport(transfers);
+    await new CancelTransfer(transfers, USER).execute(transferId);
+    let ran = false;
+    const importer = {
+      undo: async () => undefined,
+      execute: async () => {
+        ran = true;
+        return ok(imported);
+      },
+    };
+
+    await new RunImport(transfers, importer, author()).execute(work(transferId));
+
+    expect(ran).toBe(false);
+    expect((await transfers.get(USER, transferId))?.status).toBe('cancelled');
   });
 });

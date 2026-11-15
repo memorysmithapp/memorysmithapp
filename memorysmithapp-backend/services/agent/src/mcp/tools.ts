@@ -70,6 +70,8 @@ export type ToolContent =
 export interface ToolResult {
   readonly content: ToolContent[];
   readonly isError: boolean;
+  /** The answer as an object, when the whole answer is one JSON object (#458). */
+  readonly structuredContent?: Readonly<Record<string, unknown>>;
 }
 
 export interface Gateways {
@@ -83,8 +85,18 @@ function text(value: string, isError = false): ToolResult {
   return { content: [{ type: 'text', text: value }], isError };
 }
 
+/**
+ * A JSON answer goes out twice (#458): serialized in a text block, which every
+ * client reads, and, when it is one object, as `structuredContent`. ChatGPT
+ * hands its model an empty object for a text block whose JSON carries a
+ * top-level `content` — the field a note, a guidance and a template answer
+ * with — and hands over `structuredContent` whole.
+ */
 function json(value: unknown): ToolResult {
-  return text(JSON.stringify(value, null, 2));
+  const answer = text(JSON.stringify(value, null, 2));
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? { ...answer, structuredContent: value as Record<string, unknown> }
+    : answer;
 }
 
 /**

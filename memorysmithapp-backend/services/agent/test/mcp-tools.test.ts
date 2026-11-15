@@ -3429,3 +3429,117 @@ describe('read_file gives a kept file back (#394, RN-AGT-066)', () => {
     );
   });
 });
+
+describe('a JSON answer is also structuredContent (#458)', () => {
+  const notebook = '01JBQ2X00000000000000000V1';
+  const folder = '01JBQ2X00000000000000000F1';
+  const note = '01JBQ2X00000000000000000N1';
+
+  /** The object of the text block, when the answer is one text block holding one. */
+  function objectOfText(result: { content: Array<{ type: string; text?: string }> }) {
+    if (result.content.length !== 1 || result.content[0]?.type !== 'text') return undefined;
+    try {
+      const parsed: unknown = JSON.parse(result.content[0].text ?? '');
+      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+        ? parsed
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  it.each([
+    ['read_note', { notebook, note }],
+    ['read_note', { notebook, note, asOf: '2026-03-15T00:00:00.000Z' }],
+    ['get_guidance', { notebook }],
+    ['get_template', { notebook, folder }],
+    ['create_note', { notebook, folder, content: '---\nname: Nova\n---\n\n# Nova\n' }],
+    ['update_note', { notebook, note, content: '# Lei 14.133\n', baseRevision: 'v3' }],
+  ])('%s hands the note, the guidance or the template over as an object', async (name, args) => {
+    // ChatGPT answers {} for a text block whose JSON carries a top-level content.
+    const result = await gateways().call(name, args, caller);
+    expect(result.isError).toBe(false);
+    expect(result.structuredContent).toBeDefined();
+    expect(result.structuredContent?.['content']).toEqual(expect.any(String));
+    expect(result.structuredContent).toEqual(objectOfText(result));
+  });
+
+  it('keeps the text block for a client that reads only content', async () => {
+    const result = await gateways().call('read_note', { notebook, note }, caller);
+    expect(result.content).toHaveLength(1);
+    expect(JSON.parse(result.content[0]?.text ?? '')).toMatchObject({ content: '# Lei 14.133' });
+  });
+
+  it('carries structuredContent through the transport', async () => {
+    const token: VerifiedAgentToken = {
+      sub: 'user-1',
+      clientId: 'https://chatgpt.com/mcp',
+      subscriptionId: caller.subscriptionId,
+      payload: {},
+    };
+    const response = await handleMcpRequest(
+      {
+        jsonrpc: '2.0',
+        id: 7,
+        method: 'tools/call',
+        params: { name: 'read_note', arguments: { notebook, note } },
+      },
+      token,
+      gateways(),
+    );
+    const answer = (response as { result: { structuredContent?: Record<string, unknown> } }).result;
+    expect(answer.structuredContent).toMatchObject({ noteId: note, revision: 'v3' });
+  });
+
+  it('gives no structuredContent to a plain text answer', async () => {
+    const result = await gateways().call('get_notebook_context', { notebook }, caller);
+    expect(result.structuredContent).toBeUndefined();
+  });
+
+  /** A value of the type an argument declares, enough for the fakes to answer. */
+  function sample(schema: Record<string, unknown>): unknown {
+    if (Array.isArray(schema['enum'])) return schema['enum'][0];
+    const type = Array.isArray(schema['type']) ? schema['type'][0] : schema['type'];
+    switch (type) {
+      case 'number':
+      case 'integer':
+        return 1;
+      case 'boolean':
+        return true;
+      case 'array':
+        return [];
+      case 'object':
+        return {};
+      case 'null':
+        return null;
+      default:
+        return note;
+    }
+  }
+
+  it('holds for every tool the fakes answer, so a new tool cannot miss it', async () => {
+    let answered = 0;
+    for (const tool of TOOL_CATALOG) {
+      const schema = tool.inputSchema as {
+        properties: Record<string, Record<string, unknown>>;
+        required: string[];
+      };
+      const args = Object.fromEntries(
+        schema.required.map((name) => [name, sample(schema.properties[name] ?? {})]),
+      );
+      const result = await gateways()
+        .call(tool.name, args, caller)
+        .catch(() => undefined);
+      if (!result || result.isError) continue;
+      const object = objectOfText(result);
+      if (object === undefined) continue;
+      answered += 1;
+      expect({ tool: tool.name, structured: result.structuredContent }).toEqual({
+        tool: tool.name,
+        structured: object,
+      });
+    }
+    // The sweep only proves something while it reaches the tools that answer JSON.
+    expect(answered).toBeGreaterThanOrEqual(10);
+  });
+});

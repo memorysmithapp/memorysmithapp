@@ -36,6 +36,7 @@ function transfer(over: Partial<TransferDto>): TransferDto {
     bytes: 0,
     failure: null,
     noticeRead: false,
+    cancelling: false,
     fileName: null,
     ...over,
   };
@@ -86,5 +87,14 @@ describe('the transfers on the bell (#450)', () => {
     expect(html).toContain('transfer-bar');
     expect(html).toContain('width:30%');
     expect(html).not.toContain('Marcar como lida');
+  });
+
+  it('says an import asked to cancel is being undone, not cancelled yet (#455)', () => {
+    const html = draw(
+      transfer({ kind: 'import', status: 'running', finishedAt: null, cancelling: true }),
+    );
+    expect(html).toContain('cancelando · desfazendo o que foi escrito');
+    expect(html).not.toContain('transfer-bar');
+    expect(html).not.toContain('Cancelado');
   });
 });

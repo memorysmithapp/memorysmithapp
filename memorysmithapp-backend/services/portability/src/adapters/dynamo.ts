@@ -68,6 +68,8 @@ const PATCHABLE = [
   'upload',
   // The notice of its end, read by the person (#454).
   'noticeRead',
+  // The cancel the person asked for, which the worker carries out (#455).
+  'cancelRequested',
 ] as const;
 
 export class DynamoTransferStore implements TransferStore {
@@ -502,6 +504,7 @@ function transferOf(item: Item): Transfer {
     failure: item['failure'] ? String(item['failure']) : null,
     fileName: item['fileName'] ? String(item['fileName']) : null,
     ...(item['noticeRead'] === true ? { noticeRead: true } : {}),
+    ...(item['cancelRequested'] === true ? { cancelRequested: true } : {}),
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
     ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
     ...(item['model'] ? { model: modelVersionOf(item['model'] as Item) } : {}),
