@@ -237,7 +237,7 @@ Collect the data from the git history and the diff, without guessing and without
    1. `release-checks`: a version that disagrees anywhere, that has no dated section with notes, or whose tag already exists on another commit stops here;
    2. the checks of CI again, on the merged commit;
    3. `deliver --environment production`, which builds, deploys in the order the environment imposes and closes with the smoke;
-   4. `publish-release`: the annotated tag `vX.Y.Z` on the merged commit and the GitHub Release, refusing a tag that already points at another commit, because a version names one commit.
+   4. `publish-release`: the annotated tag `vX.Y.Z` on the merged commit and the GitHub Release, refusing a tag that already points at another commit, because a version names one commit; then it closes the milestone `vX.Y.Z`. A milestone that still holds an open issue or pull request stays open, and the run summary names each one, without failing the release; a version with no milestone is not an error.
 
 A merge that touches nothing deployed starts nothing. A run that failed for a cause other than the code is run again from the Actions tab. A merge delivers with alarms, dashboards and tracing off; a manual run of *Production* delivers the released commit again with the ones chosen, and the next merge turns them off ([ADR-021](ARCHITECTURE.md#adr-021-what-costs-money-in-observability-is-a-choice-of-the-delivery-off-by-default)).
 

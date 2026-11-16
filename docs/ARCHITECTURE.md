@@ -230,7 +230,7 @@ Nobody delivers production from a workstation. The workflows ([`SDLC.md` §10](S
 |---|---|---|
 | *CI* | a pull request, a push to `release/**` | the checks; no AWS |
 | *Staging* | hand, on a branch; inputs: adapter tests, functional suite, a maintenance job, alarms, dashboards, tracing | `deliver` to staging, then what was asked, and `cleanup-staging --apply` after the functional suite |
-| *Production* | a merge to `main` touching what is deployed, with alarms, dashboards and tracing off; or by hand, with inputs for each | `release-checks`, the checks, `deliver` to production, `publish-release` |
+| *Production* | a merge to `main` touching what is deployed, with alarms, dashboards and tracing off; or by hand, with inputs for each | `release-checks`, the checks, `deliver` to production, `publish-release`, which also closes the version's milestone |
 | *Production maintenance* | hand; the job, and `report` or `apply` | `reproject-links` or `forget-model-versions` against production, each run in AWS under a role of its own |
 
 They assume the roles `memorysmith-github-production` and `memorysmith-github-staging` through GitHub OIDC, trusted only for the matching GitHub environment, with no key stored. The repository variables `AWS_PRODUCTION_ROLE_ARN` and `AWS_STAGING_ROLE_ARN` name them, and the variable `ALARM_EMAIL` of the environment `production` is where alarms and budgets write (staging needs one of its own to be delivered with alarms): it is not in the repository because the repository is public.

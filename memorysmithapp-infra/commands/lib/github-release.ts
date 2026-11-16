@@ -112,3 +112,89 @@ export async function publishRelease(input: {
   expect2xx(created, `Publishing the release of ${tag}`);
   return { tag: tagOutcome, release: 'created' };
 }
+
+/** What `closeMilestone` did, and the sentence the run summary carries. */
+export interface MilestoneOutcome {
+  readonly action: 'closed' | 'kept' | 'none';
+  readonly reason: string;
+}
+
+/**
+ * Closes the milestone of a version once production serves it and its tag and
+ * Release exist, which is when the version is done (SDLC §12).
+ *
+ * A milestone named `vX.Y.Z` that still holds an open issue or pull request is
+ * left open, and each one is named: moving it to the next milestone is a
+ * person's decision, and the release does not fail for it. A version with no
+ * milestone, or one closed already (a run started again), is not an error
+ * either. It throws only when GitHub cannot be read or written, so running the
+ * job again finishes the step.
+ */
+export async function closeMilestone(input: {
+  readonly token: string;
+  readonly repository: string;
+  readonly version: string;
+  readonly fetchImpl?: Fetch;
+}): Promise<MilestoneOutcome> {
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const tag = `v${input.version}`;
+  const { token, repository } = input;
+
+  const milestones: { number: number; title: string; state: string }[] = [];
+  for (let page = 1; ; page++) {
+    const listed = await call(
+      fetchImpl,
+      token,
+      'GET',
+      `/repos/${repository}/milestones?state=all&per_page=100&page=${page}`,
+    );
+    expect2xx(listed, 'Listing the milestones');
+    const items = (Array.isArray(listed.body) ? listed.body : []) as unknown as {
+      number: number;
+      title: string;
+      state: string;
+    }[];
+    milestones.push(...items);
+    if (items.length < 100) break;
+  }
+
+  const milestone = milestones.find((m) => m.title === tag);
+  if (!milestone) {
+    return { action: 'none', reason: `No milestone is named ${tag}: there is none to close.` };
+  }
+  if (milestone.state === 'closed') {
+    return { action: 'none', reason: `The milestone ${tag} is closed already.` };
+  }
+
+  const open = await call(
+    fetchImpl,
+    token,
+    'GET',
+    `/repos/${repository}/issues?milestone=${milestone.number}&state=open&per_page=100`,
+  );
+  expect2xx(open, `Reading the open issues of ${tag}`);
+  const items = (Array.isArray(open.body) ? open.body : []) as unknown as {
+    number: number;
+    title: string;
+    pull_request?: unknown;
+  }[];
+  if (items.length > 0) {
+    const named = items
+      .map((i) => `${i.pull_request ? 'pull request' : 'issue'} #${i.number} (${i.title})`)
+      .join(', ');
+    return {
+      action: 'kept',
+      reason: `The milestone ${tag} stays open: it still holds ${named}. Close each one, or move it to the next milestone, then close ${tag} by hand.`,
+    };
+  }
+
+  const closed = await call(
+    fetchImpl,
+    token,
+    'PATCH',
+    `/repos/${repository}/milestones/${milestone.number}`,
+    { state: 'closed' },
+  );
+  expect2xx(closed, `Closing the milestone ${tag}`);
+  return { action: 'closed', reason: `Closed the milestone ${tag}.` };
+}
