@@ -46,10 +46,22 @@ const withTables = CONFORMANCE_CASES.filter((each) => each.tables !== undefined)
  * The notebook a resolution case is resolved against, built the way the product
  * builds one: the name each note states, the aliases read from
  * its frontmatter, and the attachments named by the case.
+ *
+ * A case whose notebook `includesInput` holds the input as one of its notes,
+ * `INPUT`, which is then the note its references are written in: an embed
+ * never reaches it, and a link does (RN-DSC-067, §5.2). Without it the
+ * self-embed cases would pass with no note to leave out, testing nothing.
  */
+const INPUT = 'input';
+
 function notebookOf(each: ConformanceCase) {
-  const notes = (each.notebook?.notes ?? []).map((body, index) => ({
+  const bodies = (each.notebook?.notes ?? []).map((body, index) => ({
     noteId: `n${index + 1}`,
+    body,
+  }));
+  if (each.notebook?.includesInput) bodies.push({ noteId: INPUT, body: each.markdown });
+  const notes = bodies.map(({ noteId, body }) => ({
+    noteId,
     name: noteName(body),
     aliases: extractFrontmatterAliases(body),
   }));
@@ -93,7 +105,7 @@ describe('the conformance suite of the specification', () => {
       const resolved = extractReferences(each.markdown).map((reference) => {
         // The form matters: a link reaches notes alone, an embed a file too,
         // and an image by path a file alone (§5.8, #174, #305).
-        const answer = resolveReference(reference.name, names, reference.form);
+        const answer = resolveReference(reference.name, names, reference.form, INPUT);
         return { target: answer.target, kind: answer.kind, edges: answer.noteIds.length };
       });
       // A table is reached by the block that names it and by nothing else, and
@@ -120,6 +132,9 @@ describe('the conformance suite of the specification', () => {
     // and not only the reader.
     expect(withResolution.length).toBeGreaterThan(10);
     expect(withName.length).toBeGreaterThan(10);
+    // The cases that hold the input in their notebook, which are what prove an
+    // embed leaves the note it is written in (RN-DSC-067).
+    expect(withResolution.filter((each) => each.notebook?.includesInput).length).toBeGreaterThan(4);
   });
 
   it('covers every notation of the two extractors with at least one case', () => {

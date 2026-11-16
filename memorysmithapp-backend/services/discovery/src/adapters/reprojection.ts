@@ -382,7 +382,10 @@ export function resolveAll(
 
   for (const note of notes) {
     for (const { name: target, form } of note.targets) {
-      const answer = resolveReference(target, names, form);
+      // Resolved from the note it is written in, as the write path resolves
+      // it: an embed never reaches its own note, so `![[x]]` in `x` reaches
+      // the file `x` instead of being dropped as a link to itself (RN-DSC-067).
+      const answer = resolveReference(target, names, form, note.noteId);
       if (answer.kind === 'pending') {
         pending += 1;
         continue;

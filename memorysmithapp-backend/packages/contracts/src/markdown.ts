@@ -83,6 +83,12 @@ export interface ConformanceCase {
       readonly name: string;
       readonly columns: ReadonlyArray<{ readonly name: string; readonly kind: string }>;
     }>;
+    /**
+     * Whether the input is itself one of the notebook's notes, besides `notes`:
+     * the note its references are written in, which an embed never reaches
+     * (§5.2, RN-DSC-067). Absent, it is not.
+     */
+    readonly includesInput?: boolean;
   };
   /** What each target becomes, and how many edges it produces. */
   readonly resolution?: ReadonlyArray<{

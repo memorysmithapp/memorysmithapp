@@ -157,7 +157,7 @@ export class InMemoryLinkGraph implements LinkGraph {
     for (const [fromNoteId, links] of state.outgoing) {
       if (!state.notes.has(fromNoteId)) continue;
       for (const link of links) {
-        const answer = resolveReference(link.name, names, link.form);
+        const answer = resolveReference(link.name, names, link.form, fromNoteId);
         if (answer.kind === 'note') {
           // Every note whose name matches becomes an edge (RN-DSC-042): two
           // notes with one name are two edges, never the first one.
@@ -208,7 +208,7 @@ export class InMemoryLinkGraph implements LinkGraph {
     const names = this.names(notebookId);
     const targets = new Map<string, OutgoingTarget>();
     for (const link of state.outgoing.get(noteId) ?? []) {
-      const answer = resolveReference(link.name, names, link.form);
+      const answer = resolveReference(link.name, names, link.form, noteId);
       // One entry per target, and the one that reaches further is the truth:
       // `[[curva.png]]` beside `![Curva](curva.png)` is a note showing a file.
       const held = targets.get(link.name);
@@ -306,7 +306,8 @@ export class InMemoryLinkGraph implements LinkGraph {
       const from = state.notes.get(fromNoteId);
       if (!from) continue;
       for (const link of links) {
-        if (resolveReference(link.name, names, link.form).kind !== 'attachment') continue;
+        if (resolveReference(link.name, names, link.form, fromNoteId).kind !== 'attachment')
+          continue;
         const key = link.name.normalize('NFC');
         const notes = showing.get(key) ?? [];
         if (!notes.some((note) => note.noteId === fromNoteId)) notes.push(from);

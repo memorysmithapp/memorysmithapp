@@ -127,6 +127,13 @@ describe('what the page cuts out of a note', () => {
     expect(block.kind === 'part' && block.raw).not.toContain('Free');
   });
 
+  it('keeps the frontmatter of the note before a part, which is still written in it (#472)', () => {
+    // So the renderer knows the note's name, and an embed of it in the part
+    // never reaches the note itself (RN-DSC-067).
+    const section = page.previewOf(DRAFT, 'Limits', null);
+    expect(section.kind === 'part' && section.raw).toMatch(/^---\nname: Plan limits\n/);
+  });
+
   it('says which part it did not find', () => {
     expect(page.previewOf(DRAFT, 'Nowhere', null)).toEqual({ kind: 'missing', part: 'Nowhere' });
     expect(page.previewOf(DRAFT, '^none', null).kind).toBe('missing');
@@ -151,6 +158,8 @@ describe('a draft, drawn by the reading surface of the note page', () => {
     expect(html).toContain('<table');
     expect(html).not.toContain('<h1>');
     expect(html).not.toContain('Not part of the limits');
+    // The frontmatter it keeps is drawn as nothing.
+    expect(html).not.toContain('draft');
   });
 
   it('says so where the part would be when the note does not hold it', () => {

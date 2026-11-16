@@ -36,7 +36,7 @@ import {
   resolveNoteUrl,
 } from '../api/source';
 import { isAttachmentName } from '../api/attachment';
-import { linkTargetAddress, noteAddress } from '../api/note-address';
+import { identifierOf, linkTargetAddress, noteAddress } from '../api/note-address';
 import { queryKeys, type InterfaceQueryKey } from '../api/query-keys';
 import { intlLocale } from '../../i18n/intl-locale';
 import { effectiveTheme, usePreferences } from '../store/preferences';
@@ -237,6 +237,7 @@ export interface NoteEditing {
 export function NoteContent({
   raw,
   notebookId,
+  noteId,
   baseRevision,
   writable,
   write,
@@ -250,6 +251,14 @@ export function NoteContent({
   printing?: boolean;
   raw: string;
   notebookId: string;
+  /**
+   * The note drawn, when it is a note the notebook keeps: an embed never
+   * reaches the note it is written in, so `![[x]]` in the note `x` reaches
+   * another note `x`, else the file `x` (RN-DSC-067). A Guidance, a Template
+   * and a dashboard are no note of the notebook and give none, and nothing is
+   * left out for them.
+   */
+  noteId?: string;
   baseRevision: string | null;
   writable: boolean;
   write: TaskWriter;
@@ -350,10 +359,8 @@ export function NoteContent({
   );
 
   /** An embed expands ONE note, read through the cache the note page reads. */
-  const loadNote = useCallback(
-    async (name: string): Promise<EmbeddedNote | null> => {
-      const noteId = resolveNoteId(notebookId, name);
-      if (noteId === null) return null;
+  const loadNoteById = useCallback(
+    async (noteId: string): Promise<EmbeddedNote> => {
       const note = await client.fetchQuery({
         queryKey: queryKeys.note(notebookId, noteId),
         queryFn: () => getNote(notebookId, noteId),
@@ -361,6 +368,29 @@ export function NoteContent({
       return { markdown: note.raw, name: note.name, address: noteAddress(notebookId, noteId) };
     },
     [client, notebookId],
+  );
+  const loadNote = useCallback(
+    async (name: string): Promise<EmbeddedNote | null> => {
+      const noteId = resolveNoteId(notebookId, name);
+      return noteId === null ? null : loadNoteById(noteId);
+    },
+    [notebookId, loadNoteById],
+  );
+
+  /**
+   * The note at an address `choose` gave, for an embed of the note's own name
+   * that another note also carries (RN-DSC-067): by name the host answers no
+   * single note there, and the renderer, having taken the note out itself,
+   * asks for the one left by its address. An address of another notebook, or
+   * one that is not a note's, is no note here.
+   */
+  const loadNoteAt = useCallback(
+    async (address: string): Promise<EmbeddedNote | null> => {
+      const noteId = identifierOf(address.split('/').at(-1));
+      if (noteId === null || noteAddress(notebookId, noteId) !== address) return null;
+      return loadNoteById(noteId);
+    },
+    [notebookId, loadNoteById],
   );
 
   /**
@@ -446,6 +476,8 @@ export function NoteContent({
         targetAddress={targetAddress}
         navigate={follow}
         loadNote={loadNote}
+        loadNoteAt={loadNoteAt}
+        {...(noteId ? { noteAddress: noteAddress(notebookId, noteId) } : {})}
         keeps={keeps}
         fileOf={fileOf}
         renderLink={renderLink}

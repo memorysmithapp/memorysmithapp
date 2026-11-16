@@ -828,7 +828,7 @@ export class DynamoLinkGraph implements LinkGraph {
     const byName = new Set<string>();
     for (const link of links) {
       if (link.form === 'image') continue;
-      const answer = resolveTarget(link.name, names);
+      const answer = resolveTarget(link.name, names, link.form !== 'link', note.noteId);
       if (answer.kind === 'note' && answer.by === 'name') {
         for (const targetId of answer.noteIds) byName.add(targetId);
       }
@@ -851,7 +851,7 @@ export class DynamoLinkGraph implements LinkGraph {
         });
         continue;
       }
-      const answer = resolveTarget(link.name, names);
+      const answer = resolveTarget(link.name, names, link.form !== 'link', note.noteId);
       if (answer.kind === 'note') {
         // Every note whose name matches becomes an edge (RN-DSC-042), so a
         // target carried by two notes writes two.
@@ -919,12 +919,24 @@ export class DynamoLinkGraph implements LinkGraph {
 
     // In a partition read whole the names were read whole too, as before.
     if (settled || !indexed) return;
-    const waiting = [...wanted.values()]
-      .filter((item) => item['entity'] === 'PENDING')
-      .map((item) => String(item['name']));
+    const waiting = [...wanted.values()].filter((item) => item['entity'] === 'PENDING');
     if (waiting.length === 0) return;
-    const now = await this.namesFor(notebookId, note, waiting, true, true);
-    if (waiting.some((name) => resolveTarget(name, now).kind === 'note')) {
+    const now = await this.namesFor(
+      notebookId,
+      note,
+      waiting.map((item) => String(item['name'])),
+      true,
+      true,
+    );
+    // Resolved as it was written: an embed of the note's own name is pending
+    // here on purpose, and never reaches the note (RN-DSC-067).
+    if (
+      waiting.some(
+        (item) =>
+          resolveTarget(String(item['name']), now, item['embed'] !== false, note.noteId).kind ===
+          'note',
+      )
+    ) {
       await this.replace(notebookId, note, links, true);
     }
   }
@@ -1164,15 +1176,49 @@ export class DynamoLinkGraph implements LinkGraph {
 
     // Read consistently, after the spellings were written: a link written
     // pending a moment ago is the one this must not miss (#328).
+    /**
+     * What this note wrote itself is left alone: its own write resolved it a
+     * moment ago against the notebook as it is now, so a target of its own that
+     * is pending is an embed of its own name or alias, which never reaches it
+     * and stays pending, or shows the file of that name (RN-DSC-067).
+     */
+    const othersOf = (items: Item[]): Item[] =>
+      items.filter((item) => String(item['fromNoteId']) !== note.noteId);
     const byName =
-      note.name.length === 0 ? [] : await this.query(notebookId, `PENDING#${note.name}#`, true);
-    const byAlias: Array<{ item: Item; alias: string }> = [];
+      note.name.length === 0
+        ? []
+        : othersOf(await this.query(notebookId, `PENDING#${note.name}#`, true));
+    const aliased: Array<{ item: Item; alias: string }> = [];
     for (const alias of note.aliases ?? []) {
       if (alias.length === 0) continue;
-      for (const item of await this.query(notebookId, `PENDING#${alias}#`, true)) {
-        byAlias.push({ item, alias });
+      for (const item of othersOf(await this.query(notebookId, `PENDING#${alias}#`, true))) {
+        aliased.push({ item, alias });
       }
     }
+    /**
+     * An embed written in a note NAMED as it targets matched that note by name,
+     * so no alias may take it: it reaches another note of the name, else the
+     * file, else nothing (RN-DSC-067). Only an embed can be pending under the
+     * name of the note that wrote it, since a link of that name reaches it.
+     */
+    const embedded = aliased.filter(({ item }) => item['embed'] !== false);
+    const writers =
+      embedded.length === 0
+        ? new Map<string, string>()
+        : new Map(
+            (
+              await this.getAll(
+                notebookId,
+                [...new Set(embedded.map(({ item }) => `NOTE#${String(item['fromNoteId'])}`))],
+                true,
+              )
+            ).map((item) => [String(item['noteId']), String(item['name'] ?? '').normalize('NFC')]),
+          );
+    const byAlias = aliased.filter(
+      ({ item, alias }) =>
+        item['embed'] === false ||
+        writers.get(String(item['fromNoteId'])) !== alias.normalize('NFC'),
+    );
     const waiting = [...byName, ...byAlias.map((each) => each.item)];
     if (waiting.length === 0) return 0;
 

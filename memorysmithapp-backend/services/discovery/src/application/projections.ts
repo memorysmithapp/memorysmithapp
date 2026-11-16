@@ -127,6 +127,11 @@ function forgotten(noteId: string): NoteRef {
   return { noteId, name: '', aliases: [], folderId: '' };
 }
 
+/** Every spelling a note answers to, its name and its aliases, after NFC. */
+function spellingsOf(note: NoteRef | null): string[] {
+  return spellingsLost(note, { name: null, aliases: [] });
+}
+
 export class ProjectNote {
   constructor(private readonly deps: ProjectionDependencies) {}
 
@@ -287,8 +292,24 @@ export class ProjectNote {
    * its deletion is projected (RN-DSC-013).
    */
   async onDeleted(event: NoteEvent): Promise<void> {
+    // A note that carries a spelling of the one going may have embedded that
+    // spelling, reaching this note because an embed never reaches its own
+    // (RN-DSC-067). With this note gone it reaches the file of that name, else
+    // nothing, and only its content says it was an embed and not a link to
+    // itself, so it is resolved again from it. Read before the removal, while
+    // the edges still say who links here.
+    const gone = await this.deps.graph.noteOf(event.notebookId, event.noteId);
+    const spellings = spellingsOf(gone);
+    const sharing =
+      spellings.length === 0
+        ? []
+        : (await this.deps.graph.backlinks(event.notebookId, event.noteId)).filter((source) =>
+            spellingsOf(source).some((each) => spellings.includes(each)),
+          );
+
     await this.deps.graph.replaceTableReferences(event.notebookId, forgotten(event.noteId), []);
     await this.deps.graph.removeNote(event.notebookId, event.noteId);
+    await this.resolveAgain(event.notebookId, event.noteId, sharing);
     await this.deps.facets.replaceFacets(event.notebookId, event.noteId, null);
     await this.deps.index.removeNote(event.notebookId, event.noteId);
   }

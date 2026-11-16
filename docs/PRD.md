@@ -344,6 +344,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-DSC-064 | Notebook health lists files no note shows, beside pending links and orphans, and `check_notebook` lists the uploads still open. | |
 | RN-DSC-065 | An image whose destination names no host names the kept file of its last path segment, never a note, and is pending when no such file exists.                                                                                 |                                                                                                                        |
 | RN-DSC-066 | A notebook's files are listed with the notes that show each.                                                                                                                                                                  |                                                                                                                        |
+| RN-DSC-067 | An embed never reaches the note it is written in: it reaches another note of that name or alias, else the file of that name, else is pending, and a name only that note carries tries no alias; a link still reaches it.    |                                                                                                                        |
 
 ### Audit
 

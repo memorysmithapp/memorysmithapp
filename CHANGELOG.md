@@ -25,6 +25,11 @@ issues each entry cites.
 
 - **The Tables page only reads.** An open table no longer shows *Delete table*: the page shows a table's rows and schema, and nothing on it changes the table. A table is deleted by asking the agent, through the connector, as it is created and written. (#462)
 
+### Fixed
+
+- **A note named after the file it shows counts that file as shown.** A note named `foto.jpg` whose body is `![[foto.jpg]]` showed the photo on its page, but the links of the notebook read the embed as the note pointing at itself and dropped it, so `check_notebook` and the notebook's health listed `foto.jpg` among the files no note shows. An embed now never reaches the note it is written in, as version 0.11 of the MemorySmith Markdown Specification decides: it reaches another note of that name, else the file, else it is pending, the same on the note page, in edit mode, in the preview an agent asks for, in print and in what `read_note` and `check_notebook` answer. A link is unchanged, so `[[foto.jpg#Section]]` inside that note still reaches its own section. The notebooks already written are put right when their links are rebuilt with this version. (#472, RN-DSC-067)
+- **An embed of a name a note and a file both carry draws the note.** The page drew the file, while the links of the notebook counted the note: a note comes first, as the specification says, and the page now draws what the links say. (#472)
+
 ## [0.18.1] - 2026-11-15
 
 ### Fixed

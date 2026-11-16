@@ -142,6 +142,17 @@ describe('rebuilding the graph of a notebook that keeps files', () => {
   it('never makes a kept file an edge', () => {
     expect(resolveAll(notebook, ['simbolo.svg']).edges).toEqual([]);
   });
+
+  it('reads an embed of a note of its own name as the file, as the write path does (#472)', () => {
+    const own = [read('foto', '---\nname: foto.jpg\n---\n\n![[foto.jpg]]\n')];
+    expect(resolveAll(own, ['foto.jpg'])).toEqual({ edges: [], pending: 0 });
+    expect(resolveAll(own)).toEqual({ edges: [], pending: 1 });
+
+    // Another note of the name is reached first, and the edge is the same one
+    // the rule before this one made: a rebuild loses and gains no edge for it.
+    const two = [...own, read('outra', '---\nname: foto.jpg\n---\n')];
+    expect(edgesOf(two)).toEqual(['foto->outra']);
+  });
 });
 
 /**
