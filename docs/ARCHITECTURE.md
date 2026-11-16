@@ -179,7 +179,11 @@ The `version` field of the root `package.json`. `release-checks` refuses a merge
 
 ### INV-16 main changes only through a pull request
 
-The ruleset of `main` on GitHub forbids deletion and force pushes and requires a pull request and the status check *Quality* of the workflow *CI*.
+Two settings of the repository on GitHub, the ruleset saying *how* a change reaches `main` and the branch protection saying *who* merges it ([ADR-029](#adr-029-who-merges-to-main-is-the-branch-protections)).
+
+The ruleset `main` (id `23204283`) forbids deletion and force pushes, and requires a pull request, with 0 approvals and no code owner review, and the status check *Quality* of the workflow *CI*. It has no bypass actors, so nobody can go around it, administrators included.
+
+The branch protection of `main` restricts who can push to it to the organization's team `maintainers`, which has write on the repository; GitHub applies that restriction to merging a pull request too, so the merge of anyone outside the team is refused. `enforce_admins` is on, and it requires no review and no status check of its own: those are the ruleset's. For a member of the team a merge is a permission, not a bypass. The team `contributors` keeps write, and with it branches, pull requests, the workflow *Staging* (`workflow_dispatch` needs write) and merges into a `release/vX.Y.Z`. Both are applied by hand, with the owner's go-ahead: this repository has no script that sets them.
 
 ### INV-17 Only publish-release writes a tag
 
@@ -537,3 +541,11 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 - **Rationale:** reading where the notebook is costs nothing to keep and shows every change at once, at the price of reading a whole notebook per request, which the edge cache of a minute absorbs for the public route. The boundary stays held by what the public function may reach and by the entry it starts from, rather than by a copy.
 - **Consequences:** the public function reaches the knowledge items and the content of notes of any subscription, gated by code that reads only the notebook a catalog entry names: a defect there exposes more than a snapshot did. A change the owner makes reaches the catalog within the minute of the edge. What the model declares of itself is not in its history, because Portability publishes no events. A large model notebook makes the public read slower, and its function has twenty seconds.
 - **Date:** 2026-11-10. **Status:** Accepted. **Origin:** #431.
+
+### ADR-029 Who merges to main is the branch protection's
+
+- **Context:** the team `contributors` has write on the repositories of the organization, and a contributor must not merge to `main` on their own. A `CODEOWNERS` file with a required code owner review was tried for it (#457): GitHub never lets the author of a pull request approve it, and the owner opens almost every pull request, so every merge of the owner's own became a bypass by *Organization admin* (#457 and #459 merged so), and a bypass that is routine stops being noticed.
+- **Decision:** the ruleset `main` requires no approval and has no bypass actors; the branch protection of `main` restricts pushes, and so merges, to the team `maintainers`; no `CODEOWNERS` file requests a review. As decided for the organization in memorysmithapp-template#39.
+- **Rationale:** for a member of the team the merge is a permission, so nothing is bypassed and the button stays green, and the restriction still refuses a contributor. A review requested by a file would be requested of nobody when the owner is the author, and its line would promise an approval that never happens.
+- **Consequences:** a maintainer's merge is the review of a pull request to `main` ([`SDLC.md` §8](SDLC.md#8-tests-and-review)). A ruleset rule *Restrict updates* with the team as bypass actor was the alternative, set aside because a member's merge would then be a bypass.
+- **Date:** 2026-11-16. **Status:** Accepted. **Origin:** #476.

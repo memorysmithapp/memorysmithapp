@@ -27,11 +27,11 @@ How a change travels in this repository, from a need to production. It does not 
 | 4 | **Branch** | The `release/vX.Y.Z` of the issue's milestone, or a single-purpose branch for what [§3](#3-branches) allows | Work starts, and only on an explicit go-ahead from the owner, which puts the issue in a milestone |
 | 5 | **Commits** | The branch | Code, test, document and changelog move together |
 | 6 | **Staging** | The workflow *Staging*, started by hand on the branch | The branch is delivered to staging and exercised there |
-| 7 | **Pull request** | GitHub | The single PR of the branch, reviewed by the owner |
+| 7 | **Pull request** | GitHub | The single PR of the branch, reviewed and merged by a maintainer |
 | 8 | **Merge** | `main` | What is in the documents is true on `main` |
 | 9 | **Production** | The workflow *Production* | The merged commit is delivered, then tagged and released |
 
-`main` is protected: every change reaches it through a pull request, without exception, documentation, maintenance and version bumps included. Nobody pushes to `main`, and nobody uses `--admin`, *Bypass rules*, `--no-verify` or an equivalent. The only writes that reach the repository outside a pull request are the annotated tags `publish-release` writes on already merged commits.
+`main` is protected: every change reaches it through a pull request, without exception, documentation, maintenance and version bumps included. Nobody pushes to `main`, and nobody uses `--admin`, *Bypass rules*, `--no-verify` or an equivalent. Only a **maintainer**, a member of the organization's team `maintainers`, merges to `main`: the branch protection of `main` refuses anyone else's merge, and the ruleset `main` requires no approval, so a maintainer's merge, of their own pull request included, is green and bypasses nothing. A contributor, a member of the team `contributors`, keeps write on the repository: branches, pull requests, the workflow *Staging* they dispatch, and merges into a `release/vX.Y.Z`, never into `main`. The only writes that reach the repository outside a pull request are the annotated tags `publish-release` writes on already merged commits.
 
 No stage is skipped out of haste, with one named exception: a **defect that blocks use** goes straight to stage 4, and the issue describing it is written along with the fix, not before it.
 
@@ -194,7 +194,7 @@ Collect the data from the git history and the diff, without guessing and without
 
 ## 7. A blocked merge
 
-**If a merge is blocked, stop and report.** The protection of `main` is not worked around, even with administrative rights to do so: the ruleset is the real layer of guarantee, and going around it silently defeats the reason it exists. Report what blocked it, and let the owner decide.
+**If a merge is blocked, stop and report.** The protection of `main` is not worked around, even with administrative rights to do so: the ruleset and the branch protection are the real layer of guarantee, and going around them silently defeats the reason they exist. Report what blocked it, and let the owner decide.
 
 ## 8. Tests and review
 
@@ -206,7 +206,7 @@ Collect the data from the git history and the diff, without guessing and without
 
 **The agent evaluation.** Before the pull request of a release is merged, a round of the agent evaluation (`pnpm tools agent-eval`, in `tools/agent-eval/`) runs against staging, and its scorecard is posted on the issue of the cycle. Like the staging validation, it informs the merge and never blocks it. A case changes only in a commit of its own, never inside the round that reads it.
 
-**The owner reviews and merges** the pull request of a cycle; nobody merges their own cycle without that review.
+**A maintainer reviews and merges** every pull request to `main`, and the merge is the review: no approval is required, and no review is requested by a file, since who may merge is the branch protection's ([§1](#1-the-life-cycle-of-a-change)). A contributor's cycle reaches `main` only by a maintainer's merge.
 
 ## 9. Versioning
 
@@ -232,7 +232,7 @@ Collect the data from the git history and the diff, without guessing and without
 
 1. On the branch `release/vX.Y.Z`, in **one commit** `chore(release): bump version to vX.Y.Z`: set `version` in every `package.json` of the monorepo to `X.Y.Z`; in `CHANGELOG.md`, rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD` with the date of the cut, open a fresh empty `[Unreleased]` above it, and update the compare links in the foot.
 2. Push the branch and open the single pull request of the cycle ([§6](#6-pull-request)).
-3. The owner reviews and merges it. The bump never reaches `main` by a direct push.
+3. A maintainer reviews and merges it. The bump never reaches `main` by a direct push.
 4. A merge to `main` that touches `memorysmithapp-backend/`, `memorysmithapp-frontend/`, `memorysmithapp-infra/` or the workspace files starts the workflow *Production*, which runs, in order, stopping at the first that fails:
    1. `release-checks`: a version that disagrees anywhere, that has no dated section with notes, or whose tag already exists on another commit stops here;
    2. the checks of CI again, on the merged commit;

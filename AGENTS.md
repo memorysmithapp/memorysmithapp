@@ -58,7 +58,7 @@ One line each; the reason lives where the link points.
 - Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `tools/agent-eval/`.
 - In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo de pasta*, Notebook model is *Modelo de caderno* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
 - The repository builds no container image; a Dockerfile, if one ever appears, comes with its `.dockerignore` in the same change.
-- Create or delete a GitHub repository, change a ruleset, or act on production data only with the owner's go-ahead in the session.
+- Create or delete a GitHub repository, change a ruleset or a branch protection, or act on production data only with the owner's go-ahead in the session.
 
 ## 5. Invariants
 
@@ -79,7 +79,7 @@ Breaking one is a rewrite, not a defect: when a task seems to require it, stop a
 - **INV-13** The per-notebook ceiling only lowers a role ([mechanism](docs/ARCHITECTURE.md#inv-13-the-per-notebook-ceiling-only-lowers-a-role)).
 - **INV-14** The version has one home, the root `package.json`, and every manifest and `CHANGELOG.md` agree ([mechanism](docs/ARCHITECTURE.md#inv-14-the-version-has-one-home)).
 - **INV-15** `.claude/CLAUDE.md` is exactly `@../AGENTS.md`, and no `CLAUDE.md` sits at the root ([mechanism](docs/ARCHITECTURE.md#inv-15-claudemd-is-only-the-import)).
-- **INV-16** `main` changes only through a pull request ([mechanism](docs/ARCHITECTURE.md#inv-16-main-changes-only-through-a-pull-request)).
+- **INV-16** `main` changes only through a pull request, merged by a maintainer ([mechanism](docs/ARCHITECTURE.md#inv-16-main-changes-only-through-a-pull-request)).
 - **INV-17** Only `publish-release` writes a tag, and a version names one commit ([mechanism](docs/ARCHITECTURE.md#inv-17-only-publish-release-writes-a-tag)).
 - **INV-18** The documents keep their form ([mechanism](docs/ARCHITECTURE.md#inv-18-the-documents-keep-their-form)).
 
