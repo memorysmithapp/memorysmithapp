@@ -24,7 +24,7 @@ How a change travels in this repository, from a need to production. It does not 
 | 1 | **Need** | Whoever felt it | A friction, a risk or an idea. Nothing is promised |
 | 2 | **Issue** | A GitHub issue | The need is written down, as the friction and not only as a solution |
 | 3 | **Triage** | Comments on the issue | One of three outcomes: accepted into a milestone, kept open without one, or closed as *not planned* with the reason |
-| 4 | **Branch** | `release/vX.Y.Z`, or a single-purpose branch | Work starts, and only on an explicit go-ahead from the owner |
+| 4 | **Branch** | The `release/vX.Y.Z` of the issue's milestone, or a single-purpose branch for what [§3](#3-branches) allows | Work starts, and only on an explicit go-ahead from the owner, which puts the issue in a milestone |
 | 5 | **Commits** | The branch | Code, test, document and changelog move together |
 | 6 | **Staging** | The workflow *Staging*, started by hand on the branch | The branch is delivered to staging and exercised there |
 | 7 | **Pull request** | GitHub | The single PR of the branch, reviewed by the owner |
@@ -67,6 +67,8 @@ Each is created with `gh label create <label> --color <color> --description "<de
 
 **An issue before implementing.** When the owner asks for an opinion, or says "open the issue", the answer is to register the issue and ask; implementation starts only on an explicit go-ahead.
 
+**The go-ahead puts the issue in a milestone**, the version that will carry it, and work starts on the branch [§3](#3-branches) assigns it: for anything deployed, that milestone's `release/vX.Y.Z`, created from `main` if it does not exist yet.
+
 **A milestone per version declares its scope.** An issue in milestone `vX.Y.Z` is accepted for that cycle; one without a milestone has not been decided yet. A larger piece of work is one parent issue with **sub-issues** for its parts, in the order they are built.
 
 **Refusal is an outcome, and it is written down:** the issue closes as *not planned*, with the reason in a comment.
@@ -83,17 +85,21 @@ Each is created with `gh label create <label> --color <color> --description "<de
 
 ## 3. Branches
 
-| Prefix | Use | Example |
-|---|---|---|
-| `release/` | The cycle that closes a whole version | `release/v0.14.0` |
-| `feat/` | A single feature | `feat/note-move` |
-| `fix/` | A single fix | `fix/graph-touch-target` |
-| `docs/` | Documentation and repository governance | `docs/sdlc-rollback` |
-| `chore/` | Maintenance: dependencies, CI, configuration | `chore/bump-cdk` |
+| Prefix | Use | Lands on | Example |
+|---|---|---|---|
+| `release/` | The cycle of one version, named after its milestone, created from `main` | `main`, by the single pull request of the cycle | `release/v0.14.0` |
+| `feat/` | One feature, worked apart from the rest of its cycle | The `release/vX.Y.Z` of its milestone, never `main` | `feat/note-move` |
+| `fix/` | One fix, worked apart from the rest of its cycle | The `release/vX.Y.Z` of its milestone, never `main` | `fix/graph-touch-target` |
+| `docs/` | Documentation and repository governance | `main` | `docs/sdlc-rollback` |
+| `chore/` | Maintenance of what is not deployed: the CI that checks the repository, its configuration | `main` | `chore/actions-on-main` |
 
 `release/` carries no Conventional Commits type on purpose: a cycle holds many types at once. The commits inside it keep their types.
 
-A cycle has **one** branch and **one** pull request at its end. No pull request is opened per issue: it would need a branch per issue and leave a merge button available with the version half done.
+**Which branch takes what.** A change to what is deployed (anything under `memorysmithapp-backend/`, `memorysmithapp-frontend/` or `memorysmithapp-infra/`, the workspace files `pnpm-lock.yaml` and `pnpm-workspace.yaml`, and the dependencies of any of them) always lands on the `release/vX.Y.Z` of its issue's milestone: committed there, or brought there by a pull request whose base is that branch. It never reaches `main` any other way, because a merge to `main` that touches it starts the workflow *Production* ([§10](#10-release)). The tools of `tools/` are released with the product ([§9](#9-versioning)), so they land there too.
+
+A single-purpose branch reaches `main` with a pull request of its own only when it touches nothing deployed: documents, the CI that checks the repository, its configuration. Its `CHANGELOG.md` entry, when it has one, waits in `[Unreleased]` for the next cut ([§9](#9-versioning)). A **hotfix** is not an exception: it is a release of its own, the `release/vX.Y.Z` of the patch version, holding the fix and its cut ([§11](#11-rollback)).
+
+A cycle has **one** branch and **one** pull request to `main` at its end. No pull request to `main` is opened per issue: it would need a branch per issue and leave a merge button available with the version half done. A `feat/` or `fix/` branch opens its pull request against the release branch of its milestone.
 
 ## 4. Commits
 
@@ -124,7 +130,7 @@ On `main`, documents and code never diverge. Inside a branch they move in step: 
 
 ## 5. When an issue closes
 
-The issue of a delivery closes **when its commit lands on the branch of the cycle**, not when the branch reaches `main`. It closes as `completed`, with a comment naming the commit. A refused issue closes as *not planned*, with the reason.
+The issue of a delivery closes **when its commit lands on the branch of the cycle**, the `release/vX.Y.Z` of its milestone, not when that branch reaches `main`: committed there, or merged there from a `feat/` or `fix/` branch. A commit on a `feat/` or `fix/` branch closes nothing. A change that reaches `main` by a single-purpose branch ([§3](#3-branches)) has that branch as its branch of the cycle. The issue stays in its milestone and closes as `completed`, with a comment naming the commit. A refused issue closes as *not planned*, with the reason.
 
 The consequence is counterintuitive and accepted: during the cycle there are closed issues whose work is not in production yet. What declares the scope of the version is the **milestone**; what takes everything to `main` is the single pull request of the cycle.
 
@@ -239,15 +245,15 @@ When a cycle is cut, every issue delivered in it is closed already ([§5](#5-whe
 
 A released version that turns out wrong is **never undone by moving or deleting its tag**, and production is never deployed by hand from a workstation.
 
-Production returns to the previous behaviour through a **new patch version**: the fix, or the revert of the offending commits, enters `[Unreleased]` under `Fixed` on a `fix/` or `release/` branch, is cut, and is delivered by the flow of [§10](#10-release). `release-checks` refuses to deliver a version that is tagged already on another commit, so a revert merged without a bump stops before production. Data written meanwhile stays: a migration is never reversed by a rollback, which is why a destructive key or schema migration is a major bump ([§9](#9-versioning)).
+Production returns to the previous behaviour through a **new patch version**: the fix, or the revert of the offending commits, enters `[Unreleased]` under `Fixed` on the `release/vX.Y.Z` of that patch version, committed there or brought there from a `fix/` branch ([§3](#3-branches)), is cut, and is delivered by the flow of [§10](#10-release). `release-checks` refuses to deliver a version that is tagged already on another commit, so a revert merged without a bump stops before production. Data written meanwhile stays: a migration is never reversed by a rollback, which is why a destructive key or schema migration is a major bump ([§9](#9-versioning)).
 
 ## 12. Done criteria
 
-An issue's work is done when, on the branch of the cycle:
+An issue's work is done when, on the branch of the cycle ([§5](#5-when-an-issue-closes)):
 
 - every point of its "Done when" holds, exercised the way a person would use it ([§8](#8-tests-and-review));
 - the documents it touches and its `CHANGELOG.md` entry are in the same commit as the change ([§4](#4-commits));
 - the commit is pushed and the checks of the branch are green;
-- the issue is closed as `completed`, with a comment naming the commit ([§5](#5-when-an-issue-closes)).
+- the issue, in its milestone, is closed as `completed`, with a comment naming the commit ([§5](#5-when-an-issue-closes)).
 
 The version is done when its pull request is merged, production serves it, and its tag and Release exist.
