@@ -431,7 +431,7 @@ test.describe('the tools', () => {
     expect(after.files.map((file) => file.name)).not.toContain(name);
   });
 
-  test('[tool:begin_file_upload] [tool:send_file_part] [tool:file_upload_status] [tool:finish_file_upload] [tool:list_file_uploads] keeps a file whole, by URL and inline, as the skill keep-files teaches', async ({
+  test('[tool:begin_file_upload] [tool:file_upload_status] [tool:finish_file_upload] [tool:list_file_uploads] keeps a file whole by URL, as the skill keep-files teaches, and has no inline transport', async ({
     agent,
     notebook,
   }) => {
@@ -453,7 +453,6 @@ test.describe('the tools', () => {
         size: big.length,
         sha256: sha(big),
         purpose: 'A picture an agent case kept whole',
-        transport: 'url',
       }),
     );
     expect(byUrl.targets).toHaveLength(1);
@@ -469,38 +468,39 @@ test.describe('the tools', () => {
     expect(kept.bytes).toBe(big.length);
     expect(kept.reference).toMatch(/^!\[\[whole \d+\]\]$/);
 
-    // Inline: each part with its own hash; the open upload is found again by
-    // the hash of the whole.
+    // An open upload is found again by the hash of the whole.
     const small = picture(1500);
-    const inline = parsed<{ upload: string }>(
+    const again = parsed<{ upload: string; targets: Array<{ url: string }> }>(
       await callTool(agent, 'begin_file_upload', {
         notebook: notebook.notebookId,
-        name: `inline ${Date.now()}`,
+        name: `again ${Date.now()}`,
         mimeType: 'image/png',
         size: small.length,
         sha256: sha(small),
-        purpose: 'A picture an agent case sent inline',
-        transport: 'inline',
-        partSize: 1024,
+        purpose: 'A picture an agent case left open',
       }),
     );
     const open = parsed<{ uploads: Array<{ upload: string; sha256: string }> }>(
       await callTool(agent, 'list_file_uploads', { notebook: notebook.notebookId }),
     );
-    expect(open.uploads.find((each) => each.sha256 === sha(small))?.upload).toBe(inline.upload);
-    for (const part of [1, 2]) {
-      const bytes = small.subarray((part - 1) * 1024, part * 1024);
-      const sent = await callTool(agent, 'send_file_part', {
-        upload: inline.upload,
-        part,
-        sha256: sha(bytes),
-        contentBase64: bytes.toString('base64'),
-      });
-      expect(sent.isError).toBe(false);
-    }
-    expect((await callTool(agent, 'finish_file_upload', { upload: inline.upload })).isError).toBe(
+    expect(open.uploads.find((each) => each.sha256 === sha(small))?.upload).toBe(again.upload);
+    await fetch(again.targets[0]?.url ?? '', { method: 'PUT', body: small });
+    expect((await callTool(agent, 'finish_file_upload', { upload: again.upload })).isError).toBe(
       false,
     );
+
+    // The inline transport is gone (#468): asking for it is refused, naming the argument.
+    const inline = await callTool(agent, 'begin_file_upload', {
+      notebook: notebook.notebookId,
+      name: `inline ${Date.now()}`,
+      mimeType: 'image/png',
+      size: small.length,
+      sha256: sha(small),
+      purpose: 'A picture an agent case tried to send inline',
+      transport: 'inline',
+    });
+    expect(inline.isError).toBe(true);
+    expect(inline.text).toContain('transport');
   });
 
   test('[tool:request_file] [tool:discard_file_upload] hands an upload no part reached to the person, and throws an attempt away (#253)', async ({
@@ -521,7 +521,6 @@ test.describe('the tools', () => {
         size: whole.length,
         sha256: sha(whole),
         purpose: 'A picture an agent could not send',
-        transport: 'url',
       }),
     );
     const request = parsed<{ request: string; name: string; reference: string }>(

@@ -678,14 +678,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'gives under *Keeping a file*: only its `200` with the body whoami quotes says your sandbox ' +
       'can send there; anything else, a `403` included, means it cannot, so open no upload. ' +
       'Declare the file first \u2014 its name, type, size in bytes and the SHA-256 of the whole ' +
-      'file \u2014 and then send it in parts. With transport "url" every part has an address, and ' +
-      'a script PUTs the bytes from the disk to it, so they never pass through what you write: ' +
-      'use it whenever you can run a command with network access. The parts are 8 MiB each, the ' +
-      'last one shorter. With transport "inline" you send each part yourself with ' +
-      'send_file_part, and choose its size with partSize. The file is kept by ' +
-      'finish_file_upload once every part arrived, and only if the whole hashes to what you ' +
-      'declared here. Up to 100 MB by URL; inline suits what you write out whole, a few tens of ' +
-      'kilobytes. The answer names partsHost, the host every part goes to. The room is reserved now, and the ' +
+      'file \u2014 and then send it in parts: every part has an address, and your code PUTs the ' +
+      'bytes from the disk to it, so they never pass through what you write. The parts are 8 MiB ' +
+      'each, the last one shorter. The file is kept by finish_file_upload once every part ' +
+      'arrived, and only if the whole hashes to what you declared here. Up to 100 MB. The answer ' +
+      'names partsHost, the host every part goes to. The room is reserved now, and the ' +
       'person sees the upload in Transfers until it becomes a file. Read the skill ' +
       `\`${KEEP_FILES_SKILL}\` first.`,
     inputSchema: object(
@@ -711,19 +708,6 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             '"photo of the whiteboard of the meeting, for the note of its minutes". It becomes ' +
             'the description of the file when you give none.',
         },
-        transport: {
-          type: 'string',
-          enum: ['url', 'inline'],
-          description:
-            '"url": a signed address per part, which a script PUTs to. "inline": the parts ' +
-            'travel in send_file_part.',
-        },
-        partSize: {
-          type: 'integer',
-          description:
-            'Inline only: the bytes of every part but the last, from 1024 to 1048576, at most ' +
-            '256 parts. Choose what you write out without a slip; 24576 is a good start.',
-        },
         description: {
           type: 'string',
           description: 'Optional: what this file is, for whoever reads the notebook.',
@@ -739,31 +723,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: where it sits, written like a path. It organises and never addresses.',
         },
       },
-      ['notebook', 'name', 'mimeType', 'size', 'sha256', 'purpose', 'transport'],
+      ['notebook', 'name', 'mimeType', 'size', 'sha256', 'purpose'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-  },
-  {
-    name: 'send_file_part',
-    title: 'Send one part of a file',
-    description:
-      'Sends one part of an upload whose transport is "inline": its bytes in base64 and the ' +
-      'SHA-256 of those bytes. A part whose bytes do not match its hash is refused and nothing ' +
-      'of it is kept, so send it again. A part sent twice replaces itself. Parts count from 1, ' +
-      'each exactly partSize bytes but the last.',
-    inputSchema: object(
-      {
-        upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' },
-        part: { type: 'integer', description: 'The number of the part, from 1.' },
-        sha256: {
-          type: 'string',
-          description: 'The SHA-256 of the bytes of this part, in lowercase hex.',
-        },
-        contentBase64: { type: 'string', description: 'The bytes of this part, base64.' },
-      },
-      ['upload', 'part', 'sha256', 'contentBase64'],
-    ),
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'file_upload_status',

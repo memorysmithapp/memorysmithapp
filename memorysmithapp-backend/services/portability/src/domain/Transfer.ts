@@ -147,6 +147,10 @@ export interface TransferUpload {
   readonly purpose: string;
   /** The connector that started it, as the token names it, or `null` for a person. */
   readonly platform: string | null;
+  /**
+   * How the parts travel. Every upload goes by URL since #468; `inline` is read
+   * only on an upload opened before it, kept to be discarded and never finished.
+   */
   readonly transport: 'url' | 'inline';
   readonly sha256: string;
   readonly partSize: number;
@@ -158,9 +162,9 @@ export interface TransferUpload {
    */
   readonly multipartId: string | null;
   /**
-   * The inline parts that arrived, by number, each with the exact revision it
-   * was written as — so discarding destroys the bytes rather than hiding them
-   * behind a delete marker.
+   * The parts an upload opened inline before #468 holds, by number, each with
+   * the exact revision it was written as — so discarding it destroys the bytes
+   * rather than hiding them behind a delete marker. Empty on an upload by URL.
    */
   readonly parts: Readonly<Record<string, string>>;
   /**
@@ -176,14 +180,8 @@ export interface TransferUpload {
 
 /** The part size of an upload by URL: S3 asks at least 5 MiB of every part but the last. */
 export const UPLOAD_URL_PART_BYTES = 8 * 1024 * 1024;
-/** What one file may be through an upload in parts, whichever way it travels. */
+/** What one file may be through an upload in parts. */
 export const UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
-/** What an inline upload may be in all: the door a call already had (RN-KNW-053). */
-export const UPLOAD_INLINE_MAX_BYTES = 4 * 1024 * 1024;
-/** The bounds of an inline part, and how many an inline upload may have. */
-export const UPLOAD_INLINE_PART_MIN = 1024;
-export const UPLOAD_INLINE_PART_MAX = 1024 * 1024;
-export const UPLOAD_INLINE_MAX_PARTS = 256;
 
 /** The prefix every part of one upload lives under. */
 export function uploadPrefixOf(subscriptionId: string, transferId: string): string {
@@ -195,7 +193,7 @@ export function uploadAssemblyKeyOf(subscriptionId: string, transferId: string):
   return `${uploadPrefixOf(subscriptionId, transferId)}whole`;
 }
 
-/** Where one inline part of an upload is kept. */
+/** Where one part of an upload opened inline before #468 was kept. */
 export function uploadPartKeyOf(subscriptionId: string, transferId: string, part: number): string {
   return `${uploadPrefixOf(subscriptionId, transferId)}part-${part}`;
 }
@@ -250,18 +248,6 @@ export interface TransferStore {
   addKeptBytes(delta: number, notebookId?: string | null): Promise<void>;
   /** How many exports are kept and what they occupy, whole and per notebook. */
   keptUsage(): Promise<KeptUsage>;
-  /**
-   * Records that one inline part arrived, as the revision it was written as.
-   * Only that entry of the record is written, so two parts arriving together
-   * do not overwrite each other (RN-PRT-027).
-   */
-  recordPart(
-    userId: string,
-    transferId: string,
-    part: number,
-    versionId: string,
-    at: string,
-  ): Promise<void>;
   /**
    * Moves what the open uploads reserve, by one upload: its declared size,
    * positive when it starts and negative when it ends either way, under the

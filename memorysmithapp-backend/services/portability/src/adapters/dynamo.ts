@@ -188,39 +188,6 @@ export class DynamoTransferStore implements TransferStore {
     return this.usageOf(COUNTERS.kept);
   }
 
-  /**
-   * One entry of the map of parts, and the instant it arrived: a part that
-   * arrives twice replaces its own entry and nobody else's (RN-PRT-027).
-   */
-  async recordPart(
-    userId: string,
-    transferId: string,
-    part: number,
-    versionId: string,
-    at: string,
-  ): Promise<void> {
-    await this.db
-      .send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: this.key(userId, transferId),
-          UpdateExpression: 'SET #upload.#parts.#part = :version, #upload.#last = :at',
-          ExpressionAttributeNames: {
-            '#upload': 'upload',
-            '#parts': 'parts',
-            '#part': String(part),
-            '#last': 'lastPartAt',
-          },
-          ExpressionAttributeValues: { ':version': versionId, ':at': at },
-          ConditionExpression: 'attribute_exists(SK)',
-        }),
-      )
-      .catch((error: { name?: string }) => {
-        if (error?.name === 'ConditionalCheckFailedException') return;
-        throw error;
-      });
-  }
-
   /** What the open uploads reserve moves with the declared size of one (RN-SUB-025). */
   async addTransitBytes(delta: number, notebookId: string | null): Promise<void> {
     await this.move(COUNTERS.transit, delta, notebookId);
@@ -636,25 +603,6 @@ export class InMemoryTransferStore implements TransferStore {
 
   async keptUsage(): Promise<KeptUsage> {
     return this.kept.usage();
-  }
-
-  async recordPart(
-    userId: string,
-    transferId: string,
-    part: number,
-    versionId: string,
-    at: string,
-  ): Promise<void> {
-    const found = this.of(userId).get(transferId);
-    if (!found?.upload) return;
-    this.of(userId).set(transferId, {
-      ...found,
-      upload: {
-        ...found.upload,
-        parts: { ...found.upload.parts, [String(part)]: versionId },
-        lastPartAt: at,
-      },
-    });
   }
 
   async addTransitBytes(delta: number, notebookId: string | null): Promise<void> {

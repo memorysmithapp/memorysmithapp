@@ -347,29 +347,6 @@ export class S3PartStore implements PartStore {
     );
   }
 
-  async putObject(key: string, bytes: Uint8Array): Promise<string> {
-    const written = await this.s3.send(
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: bytes }),
-    );
-    if (!written.VersionId) {
-      throw new Error(`Bucket ${this.bucket} returned no VersionId: versioning must be enabled`);
-    }
-    return written.VersionId;
-  }
-
-  async readObject(key: string, versionId: string): Promise<Uint8Array | null> {
-    try {
-      const found = await this.s3.send(
-        new GetObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),
-      );
-      return (await found.Body?.transformToByteArray()) ?? null;
-    } catch (error) {
-      const name = (error as { name?: string } | null)?.name ?? '';
-      if (name === 'NoSuchKey' || name === 'NoSuchVersion' || name === 'NotFound') return null;
-      throw error;
-    }
-  }
-
   async destroy(key: string, versionId: string): Promise<void> {
     await this.s3.send(
       new DeleteObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),

@@ -81,14 +81,6 @@ export const exportRequestSchema = z.object({
 });
 
 /**
- * How the parts of an upload travel (RN-PRT-027). `url` is a signed address per
- * part, which a script PUTs from the disk, so the bytes never pass through the
- * model; `inline` is base64 in the call, for an agent with no network, whose
- * every byte the model types — and whose every part therefore carries a hash.
- */
-export const uploadTransportSchema = z.enum(['url', 'inline']);
-
-/**
  * The probe of the upload host (#467): `GET {uploads origin}/probe` answers
  * `200` with exactly this body, at the edge, with no request reaching S3 or a
  * function. An agent's code fetches it before opening an upload: our host
@@ -113,7 +105,6 @@ export const transferUploadSchema = z.object({
   purpose: z.string(),
   /** The connector that started it, or `null` when a person did. */
   platform: z.string().nullable(),
-  transport: uploadTransportSchema,
   sha256: sha256Schema,
   partSize: z.number().int().positive(),
   partCount: z.number().int().positive(),
@@ -213,7 +204,8 @@ export const transferListSchema = z.object({
 /**
  * Starts an upload in parts (RN-PRT-027). The size and the hash of the whole
  * are declared before a byte travels: the size reserves the room (RN-SUB-025)
- * and the hash is what the finish holds the bytes to.
+ * and the hash is what the finish holds the bytes to. Every part goes by URL,
+ * to a signed address a script PUTs the bytes to from the disk (#468).
  */
 export const beginUploadRequestSchema = z.object({
   notebookId: ulidSchema,
@@ -225,9 +217,6 @@ export const beginUploadRequestSchema = z.object({
   purpose: z.string().min(1).max(500),
   size: z.number().int().positive(),
   sha256: sha256Schema,
-  transport: uploadTransportSchema,
-  /** Inline only: the bytes of every part but the last. */
-  partSize: z.number().int().positive().optional(),
   /**
    * The request of the person this upload fulfils (RN-PRT-030): the file is
    * kept under the name and in the notebook the request names.
@@ -235,25 +224,19 @@ export const beginUploadRequestSchema = z.object({
   request: ulidSchema.optional(),
 });
 
-/** Where the parts that are missing go, on an upload by URL. */
+/** Where the parts that are missing go. */
 export const uploadPartTargetSchema = z.object({
   part: z.number().int().positive(),
   url: z.string().url(),
 });
 
-/** An upload and what is left of it, with an address for every missing part by URL. */
+/** An upload and what is left of it, with an address for every missing part. */
 export const uploadStatusSchema = z.object({
   transfer: transferSchema,
   missing: z.array(z.number().int().positive()),
-  /** Empty on an inline upload, whose parts travel in the call. */
+  /** Empty once the upload has ended. */
   targets: z.array(uploadPartTargetSchema),
   expiresAt: instantSchema.nullable(),
-});
-
-/** One inline part, with the hash of its own bytes (RN-PRT-027). */
-export const uploadPartRequestSchema = z.object({
-  sha256: sha256Schema,
-  contentBase64: z.string().min(1),
 });
 
 /** A transfer of an agent pointed at another notebook, when its own is unavailable (RN-PRT-029). */
@@ -365,10 +348,8 @@ export type TransferDto = z.infer<typeof transferSchema>;
 export type TransferListDto = z.infer<typeof transferListSchema>;
 export type DownloadLinkDto = z.infer<typeof downloadLinkSchema>;
 export type TransferUploadDto = z.infer<typeof transferUploadSchema>;
-export type UploadTransport = z.infer<typeof uploadTransportSchema>;
 export type BeginUploadRequest = z.infer<typeof beginUploadRequestSchema>;
 export type UploadStatusDto = z.infer<typeof uploadStatusSchema>;
-export type UploadPartRequest = z.infer<typeof uploadPartRequestSchema>;
 export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
 export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;
 export type TransferRequestDto = z.infer<typeof transferRequestSchema>;

@@ -203,7 +203,6 @@ import {
   RequestFile,
   ListUploads,
   ObserveUpload,
-  PutUploadPart,
   type FileKeeper,
 } from '@memorysmithapp/svc-portability/application/uploads';
 import { createApp } from './app.js';
@@ -697,13 +696,6 @@ const portabilityUseCases: PortabilityUseCases = {
     ),
   uploadStatus: (request) =>
     new GetUploadStatus(
-      buildTransfers(infra, request.subscription),
-      partsOf(),
-      request.subscription.subscriptionId.value,
-      request.subscription.userId.value,
-    ),
-  putUploadPart: (request) =>
-    new PutUploadPart(
       buildTransfers(infra, request.subscription),
       partsOf(),
       request.subscription.subscriptionId.value,

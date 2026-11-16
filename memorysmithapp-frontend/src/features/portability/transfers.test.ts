@@ -109,7 +109,6 @@ describe('an upload of an agent (#240, RN-PRT-028, RN-PRT-029)', () => {
         mimeType: 'image/jpeg',
         purpose: 'A foto do quadro',
         platform: 'Claude',
-        transport: 'url',
         sha256: 'a'.repeat(64),
         partSize: 8_388_608,
         partCount: 3,

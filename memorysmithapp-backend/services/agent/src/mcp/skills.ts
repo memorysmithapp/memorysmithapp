@@ -967,20 +967,15 @@ ${SHARED_NOTEBOOKS} A file is kept in a notebook like a note is written there.
 
 ## Which way the bytes go
 
-The bytes of a file reach the notebook in one of three ways, and the first one
+The bytes of a file reach the notebook in one of two ways, and the first one
 that fits your situation is the one to use.
 
 1. **You can run a command that reaches the network** — a terminal, Claude
-   Code, a sandbox with internet access. Use \`begin_file_upload\` with
-   \`transport: "url"\`. Every part gets an address, and a script sends the
-   bytes from the disk straight to it: they never pass through what you write,
-   so a file of 50 MB costs you what one of 50 KB does. Up to 100 MB.
-2. **You write the bytes yourself** — a sandbox without network, or no sandbox
-   at all. Use \`begin_file_upload\` with \`transport: "inline"\`, let code cut
-   the file and hash each part when you have it, and send each part with
-   \`send_file_part\`. Every byte passes through what you write, so this suits
-   what you write out whole without a slip: a few tens of kilobytes.
-3. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
+   Code, a sandbox with internet access. Use \`begin_file_upload\`. Every part
+   gets an address, and a script sends the bytes from the disk straight to it:
+   they never pass through what you write, so a file of 50 MB costs you what
+   one of 50 KB does. Up to 100 MB.
+2. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
    takes it in one call: an SVG as its text in \`content\`, copied character
    for character as you were given it, and any other type in
    \`contentBase64\`, encoded by code. **Never write base64 by hand**: it slips
@@ -1004,8 +999,7 @@ You often learn you cannot send a file only by trying, so try, and look:
 1. **Try.** Start the upload by URL and send the first part.
 2. **Look.** Call \`file_upload_status\`: when the part you sent is not in
    \`received\`, your code has no way to the parts host, and more attempts will
-   not change that. Stop there — typing megabytes inline is not a way around
-   it.
+   not change that. Stop there.
 3. **Hand it to the person.** Call \`request_file\` with that \`upload\`: the
    upload becomes a request, with its name, type, description, tags and purpose,
    and its parts and the room it held are thrown away. Without an upload, call
@@ -1056,7 +1050,7 @@ print(len(data), hashlib.sha256(data).hexdigest())
 \`\`\`
 
 Call \`begin_file_upload\` with the notebook, the name a note will address, the
-type, that size, that hash, \`transport: "url"\` and a **purpose** — a sentence
+type, that size, that hash and a **purpose** — a sentence
 the person recognises in Transfers, such as *photo of the whiteboard of the
 planning meeting, for its minutes*. The answer carries \`targets\`: one address
 per part, each part 8 MiB, the last one shorter. Send every part with a plain
@@ -1076,26 +1070,6 @@ for target in targets:
 Then call \`finish_file_upload\`. It joins the parts, and keeps the file when the
 whole hashes to what you declared and its bytes are of the type you declared;
 its answer is the reference to write in a note.
-
-## Sending a file inline
-
-Choose a part size you write out without a slip — 24576 bytes is a good start —
-and declare it as \`partSize\` in \`begin_file_upload\` with
-\`transport: "inline"\`. Let the code give you each part and its hash:
-
-\`\`\`python
-import base64, hashlib
-PART = 24576
-data = open("diagram.png", "rb").read()
-for n in range(1, (len(data) + PART - 1) // PART + 1):
-    chunk = data[(n - 1) * PART : n * PART]
-    print(n, hashlib.sha256(chunk).hexdigest(), base64.b64encode(chunk).decode())
-\`\`\`
-
-Send each one with \`send_file_part\`: the upload, the number, the hash and the
-base64. A part whose bytes do not match its hash is refused and nothing of it is
-kept, so a slip costs you that one part: send it again. Then call
-\`finish_file_upload\`.
 
 ## When your client stands in the way
 

@@ -116,7 +116,6 @@ export async function attachFile(
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
       size: file.size,
       sha256,
-      transport: 'url',
       ...(input.request ? { request: input.request.transferId } : {}),
     }));
   const transferId = status.transfer.transferId;
@@ -161,7 +160,6 @@ async function resumable(
       transfer.status === 'running' &&
       transfer.bytes === size &&
       transfer.upload?.sha256 === sha256 &&
-      transfer.upload.transport === 'url' &&
       transfer.upload.platform === null &&
       (request === undefined || transfer.upload.fulfils === request),
   );

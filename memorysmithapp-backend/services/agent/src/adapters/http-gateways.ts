@@ -645,20 +645,6 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return callApi<UploadStatusDto>(this.origin, caller, `/portability/uploads/${uploadId}`);
   }
 
-  async sendFilePart(
-    caller: AgentCaller,
-    uploadId: string,
-    part: number,
-    input: { sha256: string; contentBase64: string },
-  ): Promise<UploadStatusDto> {
-    return callApi<UploadStatusDto>(
-      this.origin,
-      caller,
-      `/portability/uploads/${uploadId}/parts/${part}`,
-      { method: 'PUT', body: input },
-    );
-  }
-
   async finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto> {
     return callApi<FinishedUploadDto>(
       this.origin,

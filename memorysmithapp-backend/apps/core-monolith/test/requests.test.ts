@@ -89,7 +89,7 @@ async function transfers() {
   return transferListSchema.parse(await (await call('/portability/transfers')).json());
 }
 
-/** The person keeps the file a request names, inline for the test's sake. */
+/** The person keeps the file a request names, by URL as the browser does. */
 async function fulfil(request: string, whole: Buffer, mimeType = 'image/png'): Promise<Response> {
   const begun = await call('/portability/uploads', {
     method: 'POST',
@@ -102,19 +102,12 @@ async function fulfil(request: string, whole: Buffer, mimeType = 'image/png'): P
       purpose: 'Pedido pelo agente',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'inline',
-      partSize: 2048,
     },
   });
   if (begun.status !== 201) return begun;
   const status = uploadStatusSchema.parse(await begun.json());
-  for (let part = 1; (part - 1) * 2048 < whole.length; part += 1) {
-    const bytes = whole.subarray((part - 1) * 2048, part * 2048);
-    await call(`/portability/uploads/${status.transfer.transferId}/parts/${part}`, {
-      method: 'PUT',
-      body: { sha256: sha(bytes), contentBase64: bytes.toString('base64') },
-    });
-  }
+  const multipartId = /uploadId=([^&]+)/.exec(status.targets[0]?.url ?? '')?.[1] ?? '';
+  harness.parts.receivePart(multipartId, 1, whole);
   return call(`/portability/uploads/${status.transfer.transferId}/finish`, { method: 'POST' });
 }
 
@@ -178,7 +171,6 @@ describe('an agent asks the person for a file (#253, RN-PRT-030)', () => {
             purpose: 'O quadro, para a ata',
             size: whole.length,
             sha256: sha(whole),
-            transport: 'url',
           },
         })
       ).json(),

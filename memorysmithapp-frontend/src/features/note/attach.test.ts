@@ -32,7 +32,6 @@ function transfer(parts: number, over: Partial<TransferDto> = {}): TransferDto {
       mimeType: 'image/jpeg',
       purpose: 'Para a ata',
       platform: null,
-      transport: 'url',
       sha256: HASH,
       partSize: ATTACH_PART_BYTES,
       partCount: parts,

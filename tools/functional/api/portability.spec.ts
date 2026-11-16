@@ -668,7 +668,6 @@ test.describe('a file sent in parts', () => {
       purpose: 'A picture kept whole by a functional case',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'url',
     });
     expect(started.transfer.kind).toBe('agent');
     expect(started.targets.map((each) => each.part)).toEqual([1, 2]);
@@ -708,36 +707,34 @@ test.describe('a file sent in parts', () => {
     );
   });
 
-  test('[route:PUT /portability/uploads/:t/parts/:n] [route:GET /portability/uploads] refuses an inline part its hash does not match, and keeps the file once every part arrived', async ({
+  /** What a script does with the addresses: a PUT of the bytes of each part. */
+  async function putParts(started: Status, whole: Buffer): Promise<void> {
+    const partSize = 8 * 1024 * 1024;
+    for (const target of started.targets) {
+      const put = await fetch(target.url, {
+        method: 'PUT',
+        body: whole.subarray((target.part - 1) * partSize, target.part * partSize),
+      });
+      expect(put.status, await put.text()).toBe(200);
+    }
+  }
+
+  test('[route:GET /portability/uploads] lists an open upload, with the hash it is found again by, only to whoever started it', async ({
     owner,
     other,
     notebook,
   }) => {
     const whole = picture(3000);
-    const partSize = 2048;
     const started = await owner.ok<Status>('POST', '/portability/uploads', {
       notebookId: notebook.notebookId,
-      name: unique('inline picture'),
+      name: unique('open picture'),
       mimeType: 'image/png',
-      purpose: 'A picture sent inline by a functional case',
+      purpose: 'A picture left open by a functional case',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'inline',
-      partSize,
     });
     const id = started.transfer.transferId;
 
-    const first = whole.subarray(0, partSize);
-    const typo = Buffer.from(first);
-    typo[99] = (typo[99] ?? 0) ^ 0xff;
-    const refused = await owner.call('PUT', `/portability/uploads/${id}/parts/1`, {
-      sha256: sha(first),
-      contentBase64: typo.toString('base64'),
-    });
-    expect(refused.status).toBe(400);
-
-    // The open uploads list it, with the hash it is found again by, and only
-    // for whoever started it (RN-PRT-020).
     const open = await owner.ok<{ transfers: Array<{ transferId: string }> }>(
       'GET',
       `/portability/uploads?notebookId=${notebook.notebookId}`,
@@ -745,13 +742,7 @@ test.describe('a file sent in parts', () => {
     expect(open.transfers.map((each) => each.transferId)).toContain(id);
     expect((await other.call('GET', `/portability/uploads/${id}`)).status).toBe(404);
 
-    for (const part of [1, 2]) {
-      const bytes = whole.subarray((part - 1) * partSize, part * partSize);
-      await owner.ok('PUT', `/portability/uploads/${id}/parts/${part}`, {
-        sha256: sha(bytes),
-        contentBase64: bytes.toString('base64'),
-      });
-    }
+    await putParts(started, whole);
     const kept = await owner.ok<{ bytes: number }>('POST', `/portability/uploads/${id}/finish`);
     expect(kept.bytes).toBe(whole.length);
   });
@@ -768,17 +759,9 @@ test.describe('a file sent in parts', () => {
       purpose: 'A picture whose notebook goes away',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'inline',
-      partSize: 1024,
     });
     const id = started.transfer.transferId;
-    for (const part of [1, 2]) {
-      const bytes = whole.subarray((part - 1) * 1024, part * 1024);
-      await owner.ok('PUT', `/portability/uploads/${id}/parts/${part}`, {
-        sha256: sha(bytes),
-        contentBase64: bytes.toString('base64'),
-      });
-    }
+    await putParts(started, whole);
     expect((await owner.call('DELETE', `/knowledge/notebooks/${notebook.notebookId}`)).status).toBe(
       204,
     );
@@ -814,7 +797,6 @@ test.describe('a file sent in parts', () => {
       purpose: 'A picture an agent could not send',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'url',
     });
     const request = await owner.ok<TransferDto & { fileName: string | null }>(
       'POST',
@@ -835,20 +817,8 @@ test.describe('a file sent in parts', () => {
       purpose: 'Kept by the person',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'inline',
-      partSize: 2048,
     });
-    for (const part of [1, 2]) {
-      const bytes = whole.subarray((part - 1) * 2048, part * 2048);
-      await owner.ok(
-        'PUT',
-        `/portability/uploads/${fulfilling.transfer.transferId}/parts/${part}`,
-        {
-          sha256: sha(bytes),
-          contentBase64: bytes.toString('base64'),
-        },
-      );
-    }
+    await putParts(fulfilling, whole);
     const kept = await owner.ok<{ name: string }>(
       'POST',
       `/portability/uploads/${fulfilling.transfer.transferId}/finish`,

@@ -238,7 +238,6 @@ describe('The tool catalog is the public contract', () => {
       'keep_file',
       // A file kept whole, sent in parts (#240).
       'begin_file_upload',
-      'send_file_part',
       'file_upload_status',
       'finish_file_upload',
       'list_file_uploads',
@@ -332,7 +331,6 @@ describe('The tool catalog is the public contract', () => {
       'create_note',
       'keep_file',
       'begin_file_upload',
-      'send_file_part',
       'finish_file_upload',
       'request_file',
       'discard_file_upload',
@@ -1001,7 +999,6 @@ describe('The tool adapter translates in both directions', () => {
               mimeType: 'image/png',
               purpose: 'A foto',
               platform: 'Claude',
-              transport: 'url',
               sha256: 'a'.repeat(64),
               partSize: 8388608,
               partCount: 1,
@@ -2238,7 +2235,6 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       mimeType: 'image/jpeg',
       purpose: 'A foto do quadro, para a ata',
       platform: 'Claude',
-      transport: 'url',
       sha256: 'a'.repeat(64),
       partSize: 8_388_608,
       partCount: 3,
@@ -2271,7 +2267,6 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
         size: 20_000_000,
         sha256: 'A'.repeat(64),
         purpose: 'A foto do quadro, para a ata',
-        transport: 'url',
       },
       caller,
     );
@@ -2281,8 +2276,8 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(sent).toMatchObject({
       notebookId: '01JBQ2X00000000000000000V1',
       sha256: 'a'.repeat(64),
-      transport: 'url',
     });
+    expect(sent).not.toHaveProperty('transport');
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
     expect(body['targets']).toHaveLength(3);
     // The host the parts go to, which a client that allows hosts one by one
@@ -2292,29 +2287,26 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(String(body['next'])).toContain('PUT');
   });
 
-  it('says which parts are still missing, and when to finish', async () => {
-    const answer = await gateways({
-      knowledge: {
-        sendFilePart: async () => ({
-          transfer: transfer({ transport: 'inline', received: [1] }),
-          missing: [2, 3],
-          targets: [],
-          expiresAt: null,
-        }),
-      },
-    }).call(
-      'send_file_part',
+  it('has no inline transport any more, and refuses one naming the argument (#468)', async () => {
+    expect(TOOL_CATALOG.some((tool) => tool.name === 'send_file_part')).toBe(false);
+    const begin = TOOL_CATALOG.find((tool) => tool.name === 'begin_file_upload');
+    expect(Object.keys(begin?.inputSchema.properties ?? {})).not.toContain('transport');
+
+    const refused = await gateways().call(
+      'begin_file_upload',
       {
-        upload: '01JBQ2X00000000000000000P1',
-        part: 1,
-        sha256: 'b'.repeat(64),
-        contentBase64: 'AAAA',
+        notebook: '01JBQ2X00000000000000000V1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        size: 20_000,
+        sha256: 'a'.repeat(64),
+        purpose: 'A foto do quadro',
+        transport: 'inline',
       },
       caller,
     );
-    const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
-    expect(body['missing']).toEqual([2, 3]);
-    expect(body['next']).toBe('Send the parts still missing: 2, 3.');
+    expect(refused.isError).toBe(true);
+    expect(refused.content[0]?.text ?? '').toContain('transport');
   });
 
   it('answers the reference to write once the file is kept', async () => {
@@ -2389,7 +2381,8 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
   it('teaches the way in a skill the handshake lists, and keep_file points to it', () => {
     const skill = SKILLS.find((each) => each.name === 'keep-files');
     expect(skill?.body).toContain('begin_file_upload');
-    expect(skill?.body).toContain('transport: "url"');
+    expect(skill?.body).toContain('finish_file_upload');
+    expect(skill?.body).not.toContain('send_file_part');
     const keep = TOOL_CATALOG.find((each) => each.name === 'keep_file');
     expect(keep?.description).toContain('begin_file_upload');
     expect(keep?.description).toContain('keep-files');

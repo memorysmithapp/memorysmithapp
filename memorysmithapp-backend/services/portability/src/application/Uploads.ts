@@ -8,16 +8,16 @@
  * re-encoding pictures until they fitted what it could type without error.
  *
  * Here the agent declares the file first — its name, type, size and the
- * SHA-256 of the whole — and then sends it in parts it can follow, by one of
- * two ways:
+ * SHA-256 of the whole — and then sends it in parts **by URL**: a signed
+ * address per part, which a script PUTs from the disk. The bytes never pass
+ * through the model, so a photo of 5 MB costs it what one of 5 KB does. The
+ * parts reach the store without passing through the API, and the store is
+ * what says which arrived.
  *
- *  - **by URL**: a signed address per part, which a script PUTs from the disk.
- *    The bytes never pass through the model, so a photo of 5 MB costs it what
- *    one of 5 KB does. The parts reach the store without passing through the
- *    API, and the store is what says which arrived.
- *  - **inline**: base64 in the call, for an agent with no network. Every byte is
- *    typed, so every part carries the hash of its own bytes and a part that
- *    does not match is refused and sent again rather than kept.
+ * There used to be a second way, base64 in the call, for an agent with no
+ * network. Every conversation measured in Claude, ChatGPT and Grok sent by URL
+ * once its sandbox reached the upload host, so it was retired (#468); an agent
+ * that cannot reach the host checks the probe first and says so instead.
  *
  * Nothing becomes a file until the finish, which holds the whole to the hash
  * declared at the start and the type to the bytes; a file that merely looks
@@ -38,12 +38,7 @@ import {
   type Authorship,
   type Result,
 } from '@memorysmithapp/kernel';
-import { createHash } from 'node:crypto';
 import {
-  UPLOAD_INLINE_MAX_BYTES,
-  UPLOAD_INLINE_MAX_PARTS,
-  UPLOAD_INLINE_PART_MAX,
-  UPLOAD_INLINE_PART_MIN,
   UPLOAD_MAX_BYTES,
   UPLOAD_URL_PART_BYTES,
   uploadAssemblyKeyOf,
@@ -56,8 +51,8 @@ import {
 import type { StorageBudget } from './Transfers.js';
 
 /**
- * What starting an upload declares (RN-PRT-027): the file it becomes and how
- * its parts will travel. It is the shape the API validates at its edge.
+ * What starting an upload declares (RN-PRT-027): the file it becomes. It is the
+ * shape the API validates at its edge.
  */
 export interface BeginUploadInput {
   readonly notebookId: string;
@@ -69,8 +64,6 @@ export interface BeginUploadInput {
   readonly purpose: string;
   readonly size: number;
   readonly sha256: string;
-  readonly transport: 'url' | 'inline';
-  readonly partSize?: number | undefined;
   /**
    * The request of the person this upload fulfils (RN-PRT-030). The file is
    * then the one the request names — its notebook, name and what travels with
@@ -88,7 +81,7 @@ export const PART_URL_SECONDS = 3600;
  * of the token (INV-01).
  */
 export interface PartStore {
-  /** Opens the multipart upload of an upload by URL, and answers its identifier. */
+  /** Opens the multipart upload of an upload, and answers its identifier. */
   startMultipart(key: string, mimeType: string): Promise<string>;
   /** A short-lived address a plain PUT of the bytes of one part is sent to. */
   signPart(key: string, multipartId: string, part: number, seconds: number): Promise<string>;
@@ -100,9 +93,6 @@ export interface PartStore {
   /** Joins the parts in place, and answers the revision the whole was written as. */
   completeMultipart(key: string, multipartId: string): Promise<string>;
   abortMultipart(key: string, multipartId: string): Promise<void>;
-  /** Writes bytes once, and answers the revision they were written as. */
-  putObject(key: string, bytes: Uint8Array): Promise<string>;
-  readObject(key: string, versionId: string): Promise<Uint8Array | null>;
   /** Destroys one revision: its bytes, not a marker hiding them. */
   destroy(key: string, versionId: string): Promise<void>;
 }
@@ -151,13 +141,6 @@ export function receivedOf(upload: TransferUpload): number[] {
     .map(Number)
     .filter((part) => Number.isInteger(part) && part >= 1 && part <= upload.partCount)
     .sort((left, right) => left - right);
-}
-
-/** How many bytes part `part` of an upload must be. */
-function sizeOfPart(upload: TransferUpload, size: number, part: number): number {
-  return part < upload.partCount
-    ? upload.partSize
-    : size - upload.partSize * (upload.partCount - 1);
 }
 
 /**
@@ -291,34 +274,8 @@ export class BeginUpload {
       );
     }
 
-    let partSize: number;
-    if (input.transport === 'url') {
-      partSize = UPLOAD_URL_PART_BYTES;
-    } else {
-      if (input.size > UPLOAD_INLINE_MAX_BYTES) {
-        return err(
-          DomainError.limitExceeded(
-            `An upload whose parts travel inline goes up to ${UPLOAD_INLINE_MAX_BYTES / (1024 * 1024)} MB: above it, send the parts by URL`,
-          ),
-        );
-      }
-      partSize = input.partSize ?? 0;
-      if (partSize < UPLOAD_INLINE_PART_MIN || partSize > UPLOAD_INLINE_PART_MAX) {
-        return err(
-          DomainError.validation(
-            `An inline part is between ${UPLOAD_INLINE_PART_MIN} and ${UPLOAD_INLINE_PART_MAX} bytes: say which with partSize`,
-          ),
-        );
-      }
-    }
+    const partSize = UPLOAD_URL_PART_BYTES;
     const partCount = Math.max(1, Math.ceil(input.size / partSize));
-    if (input.transport === 'inline' && partCount > UPLOAD_INLINE_MAX_PARTS) {
-      return err(
-        DomainError.validation(
-          `An inline upload has at most ${UPLOAD_INLINE_MAX_PARTS} parts: ${partCount} of ${partSize} bytes is too many, so choose larger parts`,
-        ),
-      );
-    }
 
     const destination = await this.files.destination({
       notebookId: input.notebookId,
@@ -343,13 +300,10 @@ export class BeginUpload {
     }
 
     const transferId = ulid();
-    const multipartId =
-      input.transport === 'url'
-        ? await this.parts.startMultipart(
-            uploadAssemblyKeyOf(this.subscriptionId, transferId),
-            destination.value.mimeType,
-          )
-        : null;
+    const multipartId = await this.parts.startMultipart(
+      uploadAssemblyKeyOf(this.subscriptionId, transferId),
+      destination.value.mimeType,
+    );
 
     const transfer: Transfer = {
       transferId,
@@ -374,7 +328,7 @@ export class BeginUpload {
         path: input.path ?? '',
         purpose: input.purpose.trim(),
         platform: input.by.agent?.clientName ?? null,
-        transport: input.transport,
+        transport: 'url',
         sha256: input.sha256,
         partSize,
         partCount,
@@ -456,102 +410,6 @@ export class ListUploads {
         (notebookId === null || transfer.notebookId === notebookId),
     );
     return ok(await Promise.all(mine.map((transfer) => observe.execute(transfer))));
-  }
-}
-
-/**
- * One inline part (RN-PRT-027). Its hash is the hash of the bytes the agent
- * meant to send, and the bytes that arrived must hash to it: a mistyped part is
- * refused here and sent again, where it used to be kept as the file.
- */
-export class PutUploadPart {
-  constructor(
-    private readonly transfers: TransferStore,
-    private readonly parts: PartStore,
-    private readonly subscriptionId: string,
-    private readonly userId: string,
-  ) {}
-
-  async execute(input: {
-    transferId: string;
-    part: number;
-    sha256: string;
-    contentBase64: string;
-  }): Promise<Result<UploadStatus, DomainError>> {
-    const found = await openUpload(this.transfers, this.userId, input.transferId);
-    if (!found.ok) return found;
-    const transfer = found.value;
-    const upload = transfer.upload;
-    if (transfer.status !== 'running') {
-      return err(DomainError.conflict('This upload has ended: start another one'));
-    }
-    if (upload.transport !== 'inline') {
-      return err(
-        DomainError.validation(
-          'The parts of this upload go to their addresses by URL, not in the call',
-        ),
-      );
-    }
-    if (upload.assembled) {
-      return err(DomainError.conflict('Every part of this upload arrived: finish it'));
-    }
-    if (!Number.isInteger(input.part) || input.part < 1 || input.part > upload.partCount) {
-      return err(
-        DomainError.validation(`This upload has parts 1 to ${upload.partCount}`, {
-          partCount: upload.partCount,
-        }),
-      );
-    }
-    const text = input.contentBase64.replace(/\s+/g, '');
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(text) || text.length % 4 !== 0) {
-      return err(
-        DomainError.validation('contentBase64 is not base64', { reason: 'PART_NOT_BASE64' }),
-      );
-    }
-    const bytes = new Uint8Array(Buffer.from(text, 'base64'));
-    const expected = sizeOfPart(upload, transfer.bytes, input.part);
-    if (bytes.byteLength !== expected) {
-      return err(
-        DomainError.validation(
-          `Part ${input.part} is ${expected} bytes, and ${bytes.byteLength} arrived: send it again`,
-          { reason: 'PART_SIZE_MISMATCH', expected, arrived: bytes.byteLength },
-        ),
-      );
-    }
-    const sha256 = createHash('sha256').update(bytes).digest('hex');
-    if (sha256 !== input.sha256) {
-      return err(
-        DomainError.validation(
-          `Part ${input.part} does not hash to the SHA-256 sent with it, so it was not kept: send it again`,
-          { reason: 'PART_HASH_MISMATCH' },
-        ),
-      );
-    }
-
-    const key = uploadPartKeyOf(this.subscriptionId, transfer.transferId, input.part);
-    const versionId = await this.parts.putObject(key, bytes);
-    // A part sent twice leaves one revision, not two: the one it replaces is
-    // destroyed, so what the upload holds is exactly what it will join.
-    const previous = upload.parts[String(input.part)];
-    if (previous && previous !== versionId) {
-      await this.parts.destroy(key, previous).catch(() => undefined);
-    }
-    const at = Instant.now().toISOString();
-    await this.transfers.recordPart(this.userId, transfer.transferId, input.part, versionId, at);
-    return ok(
-      await statusOf(
-        {
-          ...transfer,
-          upload: {
-            ...upload,
-            parts: { ...upload.parts, [String(input.part)]: versionId },
-            lastPartAt: at,
-          },
-        },
-        this.parts,
-        this.subscriptionId,
-      ),
-    );
   }
 }
 
@@ -651,41 +509,26 @@ export class FinishUpload {
   }
 
   /**
-   * Joins the parts into the one object the file is made of, and records that
-   * it did, so a finish asked again joins nothing twice. By URL the store joins
-   * them in place; inline, the parts are read in order and written once — at
-   * most 4 MB — and then destroyed.
+   * Joins the parts into the one object the file is made of, in place in the
+   * store, and records that it did, so a finish asked again joins nothing
+   * twice. An upload opened inline before #468 is never joined: it is refused,
+   * to be discarded and sent again by URL.
    */
   private async assemble(
     transfer: Transfer,
     upload: TransferUpload,
   ): Promise<Result<string, DomainError>> {
     const key = uploadAssemblyKeyOf(this.subscriptionId, transfer.transferId);
-    let versionId: string;
-    if (upload.transport === 'url') {
-      if (!upload.multipartId) return err(DomainError.notFound('Upload not found'));
-      versionId = await this.parts.completeMultipart(key, upload.multipartId);
-    } else {
-      const chunks: Uint8Array[] = [];
-      for (const part of everyPart(upload)) {
-        const partKey = uploadPartKeyOf(this.subscriptionId, transfer.transferId, part);
-        const bytes = await this.parts.readObject(partKey, upload.parts[String(part)] ?? '');
-        if (!bytes) {
-          return err(
-            DomainError.conflict(`Part ${part} is not there any more: send it again`, {
-              reason: 'PARTS_MISSING',
-              missing: [part],
-            }),
-          );
-        }
-        chunks.push(bytes);
-      }
-      versionId = await this.parts.putObject(key, Buffer.concat(chunks));
-      for (const part of everyPart(upload)) {
-        const partKey = uploadPartKeyOf(this.subscriptionId, transfer.transferId, part);
-        await this.parts.destroy(partKey, upload.parts[String(part)] ?? '').catch(() => undefined);
-      }
+    if (upload.transport !== 'url') {
+      return err(
+        DomainError.conflict(
+          'This upload sent its parts inline, which is no longer supported: discard it and send the file by URL',
+          { reason: 'INLINE_RETIRED' },
+        ),
+      );
     }
+    if (!upload.multipartId) return err(DomainError.notFound('Upload not found'));
+    const versionId = await this.parts.completeMultipart(key, upload.multipartId);
     await this.transfers.patch(this.userId, transfer.transferId, {
       upload: { ...upload, parts: {}, multipartId: null, assembled: versionId },
     });

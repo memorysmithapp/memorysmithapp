@@ -276,7 +276,6 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
     upload: status.transfer.transferId,
     name: status.transfer.fileName,
     notebook: status.transfer.notebookId,
-    transport: upload?.transport,
     partSize: upload?.partSize,
     partCount: upload?.partCount,
     received: upload?.received ?? [],
@@ -327,7 +326,6 @@ function openUploadOf(each: TransferDto): Record<string, unknown> {
     sha256: each.upload?.sha256,
     purpose: each.upload?.purpose,
     openedBy: each.upload?.platform ?? null,
-    transport: each.upload?.transport,
     partCount: each.upload?.partCount,
     received: each.upload?.received ?? [],
     startedAt: each.requestedAt,
@@ -1195,12 +1193,10 @@ export class McpToolAdapter {
 
       /**
        * An upload in parts (#240, RN-PRT-027, RN-AGT-041): a file kept whole,
-       * its bytes sent by URL from the disk or inline part by part, each part
-       * held to its hash and the whole to the hash declared at the start.
+       * its bytes PUT by URL from the disk, and the whole held to the hash
+       * declared at the start. There is no other way since #468.
        */
       case 'begin_file_upload': {
-        const transport = requireString(args, 'transport', 'begin_file_upload');
-        const partSize = args['partSize'];
         const status = await knowledge.beginFileUpload(caller, {
           notebookId: requireString(args, 'notebook', 'begin_file_upload'),
           name: requireString(args, 'name', 'begin_file_upload'),
@@ -1208,8 +1204,6 @@ export class McpToolAdapter {
           size: requireInteger(args, 'size', 'begin_file_upload'),
           sha256: requireString(args, 'sha256', 'begin_file_upload').toLowerCase(),
           purpose: requireString(args, 'purpose', 'begin_file_upload'),
-          transport: transport === 'inline' ? 'inline' : 'url',
-          ...(typeof partSize === 'number' ? { partSize } : {}),
           ...(optionalString(args, 'description') === undefined
             ? {}
             : { description: optionalString(args, 'description') }),
@@ -1222,29 +1216,9 @@ export class McpToolAdapter {
         });
         return uploadAnswer(
           status,
-          status.targets.length > 0
-            ? 'PUT the bytes of each part to its url, with nothing else in the request: part n is ' +
-                'the bytes from (n - 1) * partSize, partSize long. Then call finish_file_upload.'
-            : 'Send each part with send_file_part, its SHA-256 beside its base64. Then call ' +
-                'finish_file_upload.',
-        );
-      }
-
-      case 'send_file_part': {
-        const status = await knowledge.sendFilePart(
-          caller,
-          requireString(args, 'upload', 'send_file_part'),
-          requireInteger(args, 'part', 'send_file_part'),
-          {
-            sha256: requireString(args, 'sha256', 'send_file_part').toLowerCase(),
-            contentBase64: requireString(args, 'contentBase64', 'send_file_part'),
-          },
-        );
-        return uploadAnswer(
-          status,
-          status.missing.length === 0
-            ? 'Every part arrived: call finish_file_upload.'
-            : `Send the parts still missing: ${status.missing.join(', ')}.`,
+          'PUT the bytes of each part to its url from your code, with nothing else in the ' +
+            'request: part n is the bytes from (n - 1) * partSize, partSize long. Then call ' +
+            'finish_file_upload.',
         );
       }
 

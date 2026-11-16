@@ -15,6 +15,10 @@ issues each entry cites.
 
 - **An agent can tell whether it reaches the upload host before sending a file.** The upload host answers `GET /probe` with a fixed text, and `whoami` gives the agent that address and that text, with what to do when something else comes back: open no upload, and tell the person which setting their assistant needs, or that they can attach the file from the note's editor. Until now the agent could only guess from a `403`, which the host and a proxy that blocks it both answer. (#467)
 
+### Removed
+
+- **An agent no longer sends a file inline.** `send_file_part` is gone, and `begin_file_upload` takes no `transport`: every part goes by URL, PUT by the agent's code to its own address. In every conversation measured in Claude, ChatGPT and Grok, from 41 KB to 90 MB, the agent sent by URL once its sandbox reached the upload host, and none needed inline. An agent that asks for `transport` is refused with the arguments the tool takes, and an upload opened inline before this version cannot be finished: it is discarded. (#468)
+
 ### Changed
 
 - **The Tables page only reads.** An open table no longer shows *Delete table*: the page shows a table's rows and schema, and nothing on it changes the table. A table is deleted by asking the agent, through the connector, as it is created and written. (#462)

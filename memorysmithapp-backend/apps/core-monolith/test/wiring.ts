@@ -224,7 +224,6 @@ import {
   RequestFile,
   ListUploads,
   ObserveUpload,
-  PutUploadPart,
 } from '@memorysmithapp/svc-portability/application/uploads';
 import { KnowledgeFileKeeper } from '../src/file-keeper.js';
 import { ExportNotebook } from '@memorysmithapp/svc-portability/application';
@@ -983,13 +982,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       ),
     uploadStatus: (request) =>
       new GetUploadStatus(
-        transfers,
-        parts,
-        request.subscription.subscriptionId.value,
-        request.subscription.userId.value,
-      ),
-    putUploadPart: (request) =>
-      new PutUploadPart(
         transfers,
         parts,
         request.subscription.subscriptionId.value,

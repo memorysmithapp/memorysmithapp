@@ -407,18 +407,12 @@ export interface KnowledgeGateway {
   downloadLinked(url: string, maxBytes: number): Promise<Uint8Array>;
   /**
    * An upload in parts (#240, RN-PRT-027): the file declared with the size and
-   * the hash of the whole, sent in parts by URL or inline, and kept only when
+   * the hash of the whole, sent in parts by URL, and kept only when
    * the whole hashes to what was declared. It is a transfer of the person, so
    * it reaches Portability rather than Knowledge, and Transfers shows it.
    */
   beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto>;
   fileUploadStatus(caller: AgentCaller, uploadId: string): Promise<UploadStatusDto>;
-  sendFilePart(
-    caller: AgentCaller,
-    uploadId: string,
-    part: number,
-    input: { sha256: string; contentBase64: string },
-  ): Promise<UploadStatusDto>;
   finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
   listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
   /**

@@ -13,7 +13,6 @@
  *   POST   /uploads                    ->  starts an upload in parts (RN-PRT-027)
  *   GET    /uploads                    ->  the open uploads, of one notebook or all
  *   GET    /uploads/:t                 ->  what is missing, with addresses by URL
- *   PUT    /uploads/:t/parts/:n        ->  one inline part, with its hash
  *   POST   /uploads/:t/finish          ->  the whole becomes a file, or is refused
  *   POST   /uploads/:t/link            ->  points it at another notebook (RN-PRT-029)
  *   POST   /requests                   ->  asks the person for a file (RN-PRT-030)
@@ -53,7 +52,6 @@ import {
   previewRequestSchema,
   printRequestSchema,
   requestFileRequestSchema,
-  uploadPartRequestSchema,
 } from '@memorysmithapp/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
 import {
@@ -110,7 +108,6 @@ import {
   type LinkUpload,
   type RequestFile,
   type ListUploads,
-  type PutUploadPart,
   type UploadStatus,
 } from '../application/Uploads.js';
 import type {
@@ -169,7 +166,6 @@ export interface PortabilityUseCases {
   readonly beginUpload: (request: PortabilityRequest) => BeginUpload;
   readonly listUploads: (request: PortabilityRequest) => ListUploads;
   readonly uploadStatus: (request: PortabilityRequest) => GetUploadStatus;
-  readonly putUploadPart: (request: PortabilityRequest) => PutUploadPart;
   readonly finishUpload: (request: PortabilityRequest) => FinishUpload;
   readonly linkUpload: (request: PortabilityRequest) => LinkUpload;
   readonly requestFile: (request: PortabilityRequest) => RequestFile;
@@ -292,7 +288,6 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             mimeType: transfer.upload.mimeType,
             purpose: transfer.upload.purpose,
             platform: transfer.upload.platform,
-            transport: transfer.upload.transport,
             sha256: transfer.upload.sha256,
             partSize: transfer.upload.partSize,
             partCount: transfer.upload.partCount,
@@ -729,22 +724,6 @@ export function createPortabilityRoutes(
     const request = c.get('portability');
     const status = await useCases.uploadStatus(request).execute(c.req.param('t') ?? '');
     return present(c, status, statusToDto);
-  });
-
-  app.put('/uploads/:t/parts/:n', async (c) => {
-    const request = c.get('portability');
-    const author = request.authorship;
-    if (!author.ok) return fail(c, author.error);
-    const parsed = uploadPartRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) {
-      return fail(c, DomainError.validation('A part carries its sha256 and its contentBase64'));
-    }
-    const put = await useCases.putUploadPart(request).execute({
-      transferId: c.req.param('t') ?? '',
-      part: Number(c.req.param('n')),
-      ...parsed.data,
-    });
-    return present(c, put, statusToDto);
   });
 
   app.post('/uploads/:t/finish', async (c) => {
