@@ -438,6 +438,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-067 | The connector declares a notebook as a model, reads it with what its notebook holds now and its history, and creates a notebook from it with the values of its parameters, waiting up to twenty seconds for it to be written before answering the transfer to follow. | |
 | RN-AGT-068 | The skill `derive-model` makes a model of a notebook that worked into a new notebook: it asks the level of generality and keeps the one chosen, proposes to remove, generalize or parameterize each circumstance of the case, rewrites the context, writes examples anew, and declares the model only after the author reviewed it; `design-notebook` offers a model before designing, and designs one from scratch. | |
 | RN-AGT-069 | The connector publishes and withdraws a model of the subscription, searches the community catalog, reads a published model as it stands with its history, and creates a notebook from it; `publish_model` takes the licence only once the person accepted it, and the skills say CC0 1.0 before publishing and offer a community model before designing from scratch. | |
+| RN-AGT-070 | The upload host answers `GET /probe` with `200` and a fixed body, at the edge and with no request reaching storage or a function, and `whoami` names its address and body as the check an agent's code makes before opening an upload; any other answer means the agent's sandbox cannot send there. | |
 
 ### Portability
 

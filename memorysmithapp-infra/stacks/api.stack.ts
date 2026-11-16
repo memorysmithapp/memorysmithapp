@@ -34,6 +34,10 @@ import {
   CachePolicy,
   CacheQueryStringBehavior,
   Distribution,
+  Function as CloudFrontFunction,
+  FunctionCode,
+  FunctionEventType,
+  FunctionRuntime,
   OriginProtocolPolicy,
   OriginRequestPolicy,
   PriceClass,
@@ -47,6 +51,7 @@ import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
+import { UPLOAD_PROBE } from '@memorysmithapp/contracts';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { accessLogOf } from '../constructs/access-log.js';
 import { hostOf } from '../constructs/deployment.js';
@@ -798,7 +803,38 @@ export class ApiStack extends Stack {
      * only what a signature of S3 already allows, and the bucket keeps blocking
      * public access. The Origin header travels too, so the CORS of the bucket
      * answers the site as it does on the bucket's own host.
+     *
+     * One path is answered by the host itself: `GET /probe` (#467), with `200`
+     * and the fixed body of `UPLOAD_PROBE`, by a function at the edge, so no
+     * request reaches the bucket or a Lambda. An agent's code fetches it before
+     * it opens an upload: every other unsigned GET here answers `403`, as the
+     * egress proxy of a chat that blocks the host does, so only that body says
+     * the sandbox reaches this host.
      */
+    const uploadsOriginOfBucket = new HttpOrigin(
+      props.data.contentBucket.bucketRegionalDomainName,
+      {
+        protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+      },
+    );
+    const probe = new CloudFrontFunction(this, 'UploadsProbe', {
+      comment: 'Answers GET /probe on the upload host, at the edge (#467)',
+      runtime: FunctionRuntime.JS_2_0,
+      code: FunctionCode.fromInline(`
+function handler(event) {
+  return {
+    statusCode: 200,
+    statusDescription: 'OK',
+    headers: {
+      'content-type': { value: 'text/plain; charset=utf-8' },
+      'cache-control': { value: 'no-store' },
+      'access-control-allow-origin': { value: '*' },
+    },
+    body: { encoding: 'text', data: ${JSON.stringify(UPLOAD_PROBE.body)} },
+  };
+}
+`),
+    });
     const uploads = new Distribution(this, 'UploadsDistribution', {
       comment: `MemorySmith uploads (${props.environment.name})`,
       ...(props.uploadsCertificate
@@ -806,13 +842,20 @@ export class ApiStack extends Stack {
         : {}),
       priceClass: PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
-        origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
-          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
-        }),
+        origin: uploadsOriginOfBucket,
         allowedMethods: AllowedMethods.ALLOW_ALL,
         cachePolicy: CachePolicy.CACHING_DISABLED,
         originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+      },
+      additionalBehaviors: {
+        [UPLOAD_PROBE.path]: {
+          origin: uploadsOriginOfBucket,
+          allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
+          cachePolicy: CachePolicy.CACHING_DISABLED,
+          viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+          functionAssociations: [{ function: probe, eventType: FunctionEventType.VIEWER_REQUEST }],
+        },
       },
     });
     if (props.hostedZone) {

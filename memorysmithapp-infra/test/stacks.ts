@@ -111,6 +111,7 @@ export function stacksOf(app: App) {
     hostedUiOrigin: identity.hostedUiOrigin,
     proxyClient: identity.proxyClient,
     internalApiOrigin: api.apiOrigin,
+    uploadsOrigin: api.uploadsOrigin,
     coreApi: api.httpApi,
     siteOrigin: `https://${network.siteDomainName}`,
   });

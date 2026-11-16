@@ -25,6 +25,9 @@ import {
   RECOGNISED_NOTATION,
   type Deployment,
 } from '@memorysmithapp/contracts';
+import { whoAmI } from '../src/mcp/whoami.js';
+import { PRODUCTION_DEFAULT } from '../src/mcp/environment.js';
+import { UPLOAD_PROBE } from '@memorysmithapp/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -488,6 +491,22 @@ describe('whoami answers who is acting and how to write here', () => {
     const answer = result.content[0]?.text ?? '';
     expect(answer).toContain('Normas');
     expect(answer).toContain('48 note(s)');
+  });
+
+  it('names the probe of the upload host to check before an upload (#467)', async () => {
+    const answer = whoAmI(
+      caller,
+      null,
+      [],
+      PRODUCTION_DEFAULT,
+      'https://uploads.stg.memorysmith.app',
+    );
+    expect(answer).toContain('## Keeping a file');
+    expect(answer).toContain(`GET https://uploads.stg.memorysmith.app${UPLOAD_PROBE.path}`);
+    expect(answer).toContain(UPLOAD_PROBE.body);
+    expect(answer).toContain('open no upload');
+    // With no upload host known, nothing is invented in its place.
+    expect(whoAmI(caller, null, [])).not.toContain('## Keeping a file');
   });
 
   it('says plainly when there is no notebook yet', async () => {

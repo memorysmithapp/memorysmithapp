@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **An agent can tell whether it reaches the upload host before sending a file.** The upload host answers `GET /probe` with a fixed text, and `whoami` gives the agent that address and that text, with what to do when something else comes back: open no upload, and tell the person which setting their assistant needs, or that they can attach the file from the note's editor. Until now the agent could only guess from a `403`, which the host and a proxy that blocks it both answer. (#467)
+
 ### Changed
 
 - **The Tables page only reads.** An open table no longer shows *Delete table*: the page shows a table's rows and schema, and nothing on it changes the table. A table is deleted by asking the agent, through the connector, as it is created and written. (#462)

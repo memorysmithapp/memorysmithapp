@@ -441,7 +441,7 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 ### ADR-016 Upload parts and kept files are served on hosts of the product
 
 - **Context:** an agent's sandbox allows hosts one by one and cannot be asked to allow a bucket's name; a kept file must not run in the product's origin.
-- **Decision:** `uploads.<zone>` and `files.<zone>` are CloudFront distributions in front of the content bucket that forward everything but `Host`, so S3 verifies the signature the API made. `files.` allows only reads, adds `nosniff` and a sandboxing CSP, and uses a cache policy naming every query string.
+- **Decision:** `uploads.<zone>` and `files.<zone>` are CloudFront distributions in front of the content bucket that forward everything but `Host`, so S3 verifies the signature the API made. `files.` allows only reads, adds `nosniff` and a sandboxing CSP, and uses a cache policy naming every query string. `uploads.` answers one path itself, `GET /probe`, with `200` and the fixed body of `UPLOAD_PROBE` (`packages/contracts`), from a CloudFront Function at the viewer request, so the request reaches neither the bucket nor a Lambda; `whoami` names it to the agent with the origin of the host its function is given as `UPLOADS_ORIGIN` (#467).
 - **Rationale:** nothing re-signs or sees the bytes in between. `CachingDisabled` drops the response-type parameters from the query and breaks the signature.
 - **Consequences:** a presigning client uses `requestChecksumCalculation: 'WHEN_REQUIRED'`, or the parts are signed with the checksum of an empty body.
 - **Date:** 2026-09-26, files 2026-09-28. **Status:** Accepted. **Origin:** reconstructed; #241, #255.

@@ -67,6 +67,16 @@ function servedText(): Array<{ where: string; text: string }> {
         commit: 'a1b2c3d',
       }),
     },
+    {
+      where: 'whoami, with the upload host of its environment',
+      text: whoAmI(
+        caller,
+        connector,
+        notebooks,
+        PRODUCTION_DEFAULT,
+        'https://uploads.memorysmith.app',
+      ),
+    },
     { where: 'the instructions of the handshake', text: serverInstructions(PRODUCTION_DEFAULT) },
     {
       where: 'the instructions of the handshake, in staging',

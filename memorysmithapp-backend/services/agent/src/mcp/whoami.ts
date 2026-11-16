@@ -22,8 +22,8 @@ import {
   type ToolDefinition,
 } from './catalog.js';
 import { refreshSteps } from './refresh.js';
-import { DESIGN_NOTEBOOK_SKILL, SKILLS, skillIndex } from './skills.js';
-import type { Deployment } from '@memorysmithapp/contracts';
+import { DESIGN_NOTEBOOK_SKILL, KEEP_FILES_SKILL, SKILLS, skillIndex } from './skills.js';
+import { UPLOAD_PROBE, type Deployment } from '@memorysmithapp/contracts';
 import type { AgentCaller, ConnectorIdentity, NotebookListing } from './gateway.js';
 import { environmentNotice, PRODUCTION_DEFAULT } from './environment.js';
 
@@ -147,6 +147,30 @@ function reach(notebooks: readonly NotebookListing[]): string {
   ].join('\n');
 }
 
+/**
+ * Where an agent checks it can send a file before it opens an upload (#467).
+ * The address is this environment's upload host, which only the deployment
+ * knows; without one, as in a test, the block is left out rather than invented.
+ */
+function files(uploadsOrigin: string | null): string {
+  if (!uploadsOrigin) return '';
+  return [
+    '## Keeping a file',
+    '',
+    'Before you open an upload, check from your code that it reaches the upload host:',
+    '',
+    `- \`GET ${uploadsOrigin}${UPLOAD_PROBE.path}\` answers \`200\` with exactly the body`,
+    `  \`${UPLOAD_PROBE.body}\`.`,
+    '',
+    'Anything else, a `403` included, or an error, or no answer, means your sandbox cannot',
+    'send there: the host answers `403` to every other request with no signature, and so',
+    'does a proxy that blocks it. Then open no upload. Tell the person that their assistant',
+    'needs network access to this host, a setting the About page of MemorySmith names for',
+    "each assistant, and that they can attach the file from the note's editor. The skill",
+    `\`${KEEP_FILES_SKILL}\` has the rest of the method.`,
+  ].join('\n');
+}
+
 /** The path, narrated from the catalog so the two can never disagree. */
 function path(): string {
   const steps = READING_PATH.map(byName).filter(
@@ -225,6 +249,7 @@ export function whoAmI(
   connector: ConnectorIdentity | null,
   notebooks: readonly NotebookListing[],
   deployment: Deployment = PRODUCTION_DEFAULT,
+  uploadsOrigin: string | null = null,
 ): string {
   return [
     where(deployment),
@@ -232,6 +257,7 @@ export function whoAmI(
     list(connector),
     reach(notebooks),
     path(),
+    files(uploadsOrigin),
     skills(),
     surface(),
   ]

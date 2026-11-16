@@ -674,6 +674,9 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Start sending a file in parts',
     description:
       'Starts keeping a file whole, at its own size and resolution: a photo, a recording, a PDF. ' +
+      'Before calling it, GET the probe of the upload host from your code, at the address whoami ' +
+      'gives under *Keeping a file*: only its `200` with the body whoami quotes says your sandbox ' +
+      'can send there; anything else, a `403` included, means it cannot, so open no upload. ' +
       'Declare the file first \u2014 its name, type, size in bytes and the SHA-256 of the whole ' +
       'file \u2014 and then send it in parts. With transport "url" every part has an address, and ' +
       'a script PUTs the bytes from the disk to it, so they never pass through what you write: ' +

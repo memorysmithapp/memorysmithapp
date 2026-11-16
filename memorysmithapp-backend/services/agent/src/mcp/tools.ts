@@ -818,6 +818,8 @@ export class McpToolAdapter {
   constructor(
     private readonly gateways: Gateways,
     private readonly deployment: Deployment = PRODUCTION_DEFAULT,
+    /** The upload host of this environment, whose probe whoami names (#467). */
+    private readonly uploadsOrigin: string | null = null,
   ) {}
 
   async call(
@@ -955,7 +957,7 @@ export class McpToolAdapter {
           access.connector(caller),
           knowledge.listNotebooks(caller),
         ]);
-        return text(whoAmI(caller, connector, notebooks, this.deployment));
+        return text(whoAmI(caller, connector, notebooks, this.deployment, this.uploadsOrigin));
       }
 
       case 'get_skill': {

@@ -123,6 +123,7 @@ const agent = new AgentStack(app, id('Agent'), {
   proxyClient: identity.proxyClient,
   directProvider: identity.directProvider,
   internalApiOrigin: api.apiOrigin,
+  uploadsOrigin: api.uploadsOrigin,
   coreApi: api.httpApi,
   siteOrigin: `https://${network.siteDomainName}`,
 });

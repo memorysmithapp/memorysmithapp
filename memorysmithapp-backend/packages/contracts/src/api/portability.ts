@@ -88,6 +88,18 @@ export const exportRequestSchema = z.object({
  */
 export const uploadTransportSchema = z.enum(['url', 'inline']);
 
+/**
+ * The probe of the upload host (#467): `GET {uploads origin}/probe` answers
+ * `200` with exactly this body, at the edge, with no request reaching S3 or a
+ * function. An agent's code fetches it before opening an upload: our host
+ * answers `403` to any other unsigned GET, and so do the egress proxies of the
+ * chats that block it, so only this body says the host is reached.
+ */
+export const UPLOAD_PROBE = {
+  path: '/probe',
+  body: 'MemorySmith upload host: reachable',
+} as const;
+
 const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/, 'a SHA-256 in lowercase hex');
 
 /**
