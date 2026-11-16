@@ -1117,11 +1117,8 @@ test.describe('the pages of an account', () => {
       fullPage: true,
     });
 
-    await app.getByRole('button', { name: words.deleteTable }).click();
-    const dialog = app.getByRole('dialog');
-    await dialog.getByRole('checkbox').check();
-    await dialog.getByRole('button', { name: words.deleteForGood }).click();
-    await expect(app.locator('.table-row', { hasText: name })).toHaveCount(0);
+    // The page only reads: a table is deleted through the connector alone (#462).
+    await expect(app.getByRole('button', { name: words.deleteTable })).toHaveCount(0);
   });
 
   test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
