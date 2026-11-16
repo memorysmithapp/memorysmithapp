@@ -893,9 +893,23 @@ function handler(event) {
      * that sandboxes the document and allows no script make that hold by
      * header too — an SVG opened in its own tab runs nothing, while a picture,
      * a PDF and a recording still show where they are opened.
+     *
+     * It answers the site with CORS on a read, and nothing else (#466,
+     * RN-KNW-090): the files page reads the bytes of a kept file with `fetch`
+     * to check it against the person's original, which a canvas cannot do
+     * with an `<img>` of another origin. Only the product's own origin, only
+     * GET and HEAD, no credentials: what a script of the site can read is what
+     * the signed link already let anyone holding it download.
      */
     const filesHeaders = new ResponseHeadersPolicy(this, 'FilesHeaders', {
       comment: `MemorySmith files (${props.environment.name})`,
+      corsBehavior: {
+        accessControlAllowCredentials: false,
+        accessControlAllowHeaders: ['*'],
+        accessControlAllowMethods: ['GET', 'HEAD'],
+        accessControlAllowOrigins: [props.frontendOrigin],
+        originOverride: true,
+      },
       securityHeadersBehavior: {
         contentTypeOptions: { override: true },
         contentSecurityPolicy: {

@@ -3977,9 +3977,93 @@ button.attachment-thumb:focus-visible {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.attachment-download {
+.attachment-actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.attachment-download,
+.attachment-check {
   flex: none;
   gap: 6px;
+}
+/* The SHA-256 beside the size (#466, RN-KNW-089): the start and the end of
+   it, the whole of it in its title and in what the button copies. */
+.attachment-hash {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.attachment-hash code {
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+.attachment-hash-copy {
+  padding-block: 2px;
+}
+/* The check against the original (#466, RN-KNW-090, RN-KNW-091). */
+.check-original-dialog .ask-dialog-box {
+  width: min(40rem, calc(100vw - 2rem));
+}
+.check-original-lead,
+.check-original-note,
+.check-original-ask,
+.check-original-status,
+.check-original-hash {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.check-original-note,
+.check-original-status {
+  color: var(--text-soft);
+}
+.check-original-status.is-failure {
+  color: var(--danger);
+}
+.check-original-hash code {
+  overflow-wrap: anywhere;
+}
+.check-original-verdict {
+  margin: 0 0 0.75rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.check-original-verdict.is-different {
+  border-left-color: var(--danger);
+}
+.check-original-table {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.check-original-table :is(th, td) {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.check-original-table thead th {
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.check-original-table tbody th {
+  font-weight: 500;
+  color: var(--text-soft);
+}
+.check-original-table tr.is-different td {
+  font-weight: 600;
 }
 .attachment-zoom-dialog {
   width: min(960px, calc(100vw - 32px));
@@ -3997,7 +4081,8 @@ button.attachment-thumb:focus-visible {
     gap: 12px;
   }
   /* The icon alone on a phone, the word kept as its accessible name. */
-  .attachment-download {
+  .attachment-download,
+  .attachment-check {
     width: 44px;
     height: 44px;
     padding: 0;

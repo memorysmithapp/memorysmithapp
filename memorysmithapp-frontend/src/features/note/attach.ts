@@ -89,6 +89,12 @@ export async function attachFile(
      */
     name?: string | undefined;
     description?: string | undefined;
+    /**
+     * The tags and the folder path of a file it takes the place of (#466,
+     * RN-KNW-091): the original is kept as the copy was described.
+     */
+    tags?: readonly string[] | undefined;
+    path?: string | undefined;
   },
   progress: AttachProgress = () => undefined,
   phase: (now: AttachPhase) => void = () => undefined,
@@ -109,6 +115,8 @@ export async function attachFile(
       mimeType,
       purpose: input.purpose,
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+      ...(input.tags && input.tags.length > 0 ? { tags: [...input.tags] } : {}),
+      ...(input.path ? { path: input.path } : {}),
       size: file.size,
       sha256,
     }));

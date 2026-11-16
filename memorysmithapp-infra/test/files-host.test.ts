@@ -3,7 +3,8 @@
  * is four lines of a template no compiler reads: the host the API is told to
  * answer on, a distribution that forwards everything but Host — so S3 checks
  * the very request it signed —, one that only reads, and the headers that
- * keep something somebody uploaded from running when it is opened on its own.
+ * keep something somebody uploaded from running when it is opened on its own —
+ * and the CORS that lets the site, and nothing else, read a kept file (#466).
  */
 
 import { App } from 'aws-cdk-lib';
@@ -171,6 +172,29 @@ describe('the files host', () => {
     expect(csp).toContain("default-src 'none'");
     expect(csp).toMatch(/(^|; )sandbox($|;)/);
     expect(csp).not.toContain('script-src');
+  });
+
+  it('lets the site, and only the site, read a kept file with fetch (#466)', () => {
+    const behaviour = distributionOn(api, 'files.stg.memorysmith.app').DefaultCacheBehavior;
+    const policyId = behaviour.ResponseHeadersPolicyId?.Ref;
+    const policy = api.toJSON().Resources[policyId as string] as {
+      Properties: {
+        ResponseHeadersPolicyConfig: {
+          CorsConfig: {
+            AccessControlAllowCredentials: boolean;
+            AccessControlAllowMethods: { Items: string[] };
+            AccessControlAllowOrigins: { Items: string[] };
+            OriginOverride: boolean;
+          };
+        };
+      };
+    };
+    const cors = policy.Properties.ResponseHeadersPolicyConfig.CorsConfig;
+
+    expect(cors.AccessControlAllowOrigins.Items).toEqual(['https://stg.memorysmith.app']);
+    expect([...cors.AccessControlAllowMethods.Items].sort()).toEqual(['GET', 'HEAD']);
+    expect(cors.AccessControlAllowCredentials).toBe(false);
+    expect(cors.OriginOverride).toBe(true);
   });
 
   it('leaves the uploads host as people allowed it', () => {

@@ -17,8 +17,10 @@ import { fileKind } from '../../shared/components/file-kind';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { Modal } from '../../shared/components/Modal';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
-import { DownloadIcon, FileIcon } from '../../shared/components/icons';
+import { CopyButton } from '../../shared/components/CopyButton';
+import { CheckIcon, DownloadIcon, FileIcon } from '../../shared/components/icons';
 import { intlLocale } from '../../i18n/intl-locale';
+import { CheckOriginal, shortHash } from './CheckOriginal';
 
 /**
  * The files a notebook keeps, together (#307, RN-DSC-066).
@@ -31,8 +33,14 @@ import { intlLocale } from '../../i18n/intl-locale';
  *
  * What a file is comes from Knowledge, which keeps it; which notes show it
  * comes from Discovery, which reads the notes. The page only joins the two by
- * name, the address a note reaches a file by (§5.8). Nothing is changed from
- * here: it is a page to read, open to every role that reads the notebook.
+ * name, the address a note reaches a file by (§5.8).
+ *
+ * Each file shows its SHA-256 beside its size (RN-KNW-089), and can be checked
+ * against the person's original, read in this browser and sent nowhere
+ * (RN-KNW-090). That is the one change made from here: when the two differ,
+ * whoever may write content is asked whether to keep the original in the
+ * place of the copy (RN-KNW-091). Everything else is a page to read, open to
+ * every role that reads the notebook.
  */
 export function AttachmentsPage() {
   const { t, i18n } = useTranslation();
@@ -42,6 +50,7 @@ export function AttachmentsPage() {
   const { structure } = useOutletContext<NotebookOutletContext>();
   const live = useLiveInterval();
   const [zoom, setZoom] = useState<{ file: NotebookFileDto; url: string } | null>(null);
+  const [checking, setChecking] = useState<NotebookFileDto | null>(null);
 
   useDocumentTitle(t('attachments.heading'), structure.notebook.name);
 
@@ -103,6 +112,7 @@ export function AttachmentsPage() {
                   usesFailed={uses.isError}
                   locale={locale}
                   onZoom={(url) => setZoom({ file, url })}
+                  onCheck={() => setChecking(file)}
                 />
               ))}
             </ul>
@@ -120,6 +130,15 @@ export function AttachmentsPage() {
           <img className="attachment-zoom" src={zoom.url} alt={zoom.file.description} />
         ) : null}
       </Modal>
+      {checking ? (
+        <CheckOriginal
+          key={checking.fileId}
+          notebookId={notebookId}
+          file={checking}
+          writable={structure.permissions.writeContent}
+          onClose={() => setChecking(null)}
+        />
+      ) : null}
     </>
   );
 }
@@ -131,6 +150,7 @@ function AttachmentRow({
   usesFailed,
   locale,
   onZoom,
+  onCheck,
 }: {
   notebookId: string;
   file: NotebookFileDto;
@@ -139,6 +159,8 @@ function AttachmentRow({
   usesFailed: boolean;
   locale: string;
   onZoom: (url: string) => void;
+  /** Opens the check of this file against the person's original (RN-KNW-090). */
+  onCheck: () => void;
 }) {
   const { t } = useTranslation();
   const image = rendersAs(file.mimeType) === 'image';
@@ -150,6 +172,7 @@ function AttachmentRow({
     staleTime: 30 * 60 * 1000,
   });
   const download = t('attachments.download');
+  const checkLabel = t('attachments.check.title');
 
   return (
     <li className="attachment-row">
@@ -172,6 +195,11 @@ function AttachmentRow({
         <span className="attachment-name">{file.name}</span>
         <span className="attachment-meta">
           {fileKind(t, file.mimeType)} · {formatBytes(file.bytes, locale)}
+        </span>
+        <span className="attachment-hash">
+          <span className="attachment-hash-label">SHA-256</span>
+          <code title={file.sha256}>{shortHash(file.sha256)}</code>
+          <CopyButton text={() => file.sha256} className="is-quiet attachment-hash-copy" />
         </span>
         {file.description ? <span className="attachment-desc">{file.description}</span> : null}
         <div className="attachment-notes">
@@ -201,18 +229,30 @@ function AttachmentRow({
           )}
         </div>
       </div>
-      {link.data ? (
-        <a
-          className="button is-quiet is-small attachment-download"
-          href={link.data.downloadUrl}
-          download={file.name}
-          title={download}
-          aria-label={`${download}: ${file.name}`}
+      <div className="attachment-actions">
+        <button
+          type="button"
+          className="button is-quiet is-small attachment-check"
+          title={checkLabel}
+          aria-label={`${checkLabel}: ${file.name}`}
+          onClick={onCheck}
         >
-          <DownloadIcon />
-          <span className="attachment-download-label">{download}</span>
-        </a>
-      ) : null}
+          <CheckIcon />
+          <span className="attachment-download-label">{checkLabel}</span>
+        </button>
+        {link.data ? (
+          <a
+            className="button is-quiet is-small attachment-download"
+            href={link.data.downloadUrl}
+            download={file.name}
+            title={download}
+            aria-label={`${download}: ${file.name}`}
+          >
+            <DownloadIcon />
+            <span className="attachment-download-label">{download}</span>
+          </a>
+        ) : null}
+      </div>
     </li>
   );
 }

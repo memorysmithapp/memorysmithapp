@@ -463,6 +463,15 @@ export async function linkToFile(notebookId: string, fileId: string): Promise<Fi
   return request<FileLinkDto>(`/knowledge/notebooks/${notebookId}/files/${fileId}/link`);
 }
 
+/**
+ * Lets a kept file go, definitively (INV-08): the one way a file changes, since
+ * a file has no update. The interface does it only to keep the original in the
+ * place of a copy, right before the original is sent (#466, RN-KNW-091).
+ */
+export async function deleteNotebookFile(notebookId: string, fileId: string): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}/files/${fileId}`, { method: 'DELETE' });
+}
+
 export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {
   const [detail, notes] = await Promise.all([
     request<NotebookDetailDto>(`/knowledge/notebooks/${notebookId}`),

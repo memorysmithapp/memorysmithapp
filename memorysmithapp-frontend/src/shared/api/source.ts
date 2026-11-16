@@ -123,6 +123,10 @@ export function linkToFile(notebookId: string, fileId: string): Promise<FileLink
   return backend.linkToFile(notebookId, fileId);
 }
 
+export function deleteNotebookFile(notebookId: string, fileId: string): Promise<void> {
+  return backend.deleteNotebookFile(notebookId, fileId);
+}
+
 export async function getNotebookNames(notebookId: string): Promise<number> {
   const notes = await backend.getNotebookNames(notebookId);
   const byAlias = new Map<string, string[]>();
