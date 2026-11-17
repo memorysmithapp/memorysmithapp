@@ -43,11 +43,13 @@ import {
   UPLOAD_URL_PART_BYTES,
   uploadAssemblyKeyOf,
   uploadPartKeyOf,
+  type KeptUpload,
   type Transfer,
   type TransferStore,
+  type UploadRefusal,
   type TransferUpload,
 } from '../domain/Transfer.js';
-import type { StorageBudget } from './Transfers.js';
+import type { StorageBudget, TransferQueue } from './Transfers.js';
 
 /**
  * What starting an upload declares (RN-PRT-027): the file it becomes. It is the
@@ -122,6 +124,40 @@ function reasonOf(error: DomainError): string | null {
   return details?.reason ?? null;
 }
 
+/** A refusal as the record keeps it, for whoever asks after the worker (#480). */
+function refusalOf(error: DomainError): UploadRefusal {
+  return {
+    code: error.code,
+    message: error.message,
+    ...(error.details === undefined ? {} : { details: error.details }),
+    ...(error.revealsExistence ? { revealsExistence: true } : {}),
+  };
+}
+
+/** The refusal kept on the record, as the error it was. */
+function errorOf(refusal: UploadRefusal): DomainError {
+  return new DomainError(
+    refusal.code as DomainError['code'],
+    refusal.message,
+    refusal.details,
+    refusal.revealsExistence === true,
+  );
+}
+
+/**
+ * The file an upload became, read once: the record goes as it is read, since
+ * the file is what stays (RN-PRT-028, #480).
+ */
+async function takeKept(
+  transfers: TransferStore,
+  userId: string,
+  transfer: Transfer,
+): Promise<KeptUpload | null> {
+  const kept = transfer.status === 'ready' ? (transfer.upload?.kept ?? null) : null;
+  if (kept) await transfers.remove(userId, transfer.transferId);
+  return kept;
+}
+
 /** Every part number of an upload, from 1. */
 function everyPart(upload: TransferUpload): number[] {
   return Array.from({ length: upload.partCount }, (_, index) => index + 1);
@@ -186,6 +222,8 @@ export interface UploadStatus {
   readonly missing: number[];
   readonly targets: Array<{ part: number; url: string }>;
   readonly expiresAt: string | null;
+  /** The file the upload became, when the worker kept it (#480). */
+  readonly kept?: KeptUpload | undefined;
 }
 
 async function statusOf(
@@ -197,7 +235,12 @@ async function statusOf(
   const upload = observed.upload as TransferUpload;
   const received = new Set(receivedOf(upload));
   const missing = everyPart(upload).filter((part) => !received.has(part));
-  if (observed.status !== 'running' || upload.transport !== 'url' || !upload.multipartId) {
+  if (
+    observed.status !== 'running' ||
+    upload.transport !== 'url' ||
+    !upload.multipartId ||
+    upload.finishing
+  ) {
     return { transfer: observed, missing, targets: [], expiresAt: null };
   }
   const key = uploadAssemblyKeyOf(subscriptionId, transfer.transferId);
@@ -333,7 +376,10 @@ export class GetUploadStatus {
   async execute(transferId: string): Promise<Result<UploadStatus, DomainError>> {
     const found = await openUpload(this.transfers, this.userId, transferId);
     if (!found.ok) return found;
-    return ok(await statusOf(found.value, this.parts, this.subscriptionId));
+    // A finish the worker ended: the file it kept is answered, once (#480).
+    const kept = await takeKept(this.transfers, this.userId, found.value);
+    const status = await statusOf(found.value, this.parts, this.subscriptionId);
+    return ok(kept ? { ...status, kept } : status);
   }
 }
 
@@ -348,9 +394,18 @@ export class ListUploads {
 
   async execute(notebookId: string | null): Promise<Result<Transfer[], DomainError>> {
     const observe = new ObserveUpload(this.parts, this.subscriptionId);
-    const mine = (await this.transfers.list(this.userId)).filter(
+    const all = await this.transfers.list(this.userId);
+    // An upload the worker made a file of is no upload any more (RN-PRT-028).
+    for (const transfer of all) {
+      if (transfer.kind === 'agent' && transfer.status === 'ready') {
+        await this.transfers.remove(this.userId, transfer.transferId);
+      }
+    }
+    const mine = all.filter(
       (transfer) =>
-        transfer.kind === 'agent' && (notebookId === null || transfer.notebookId === notebookId),
+        transfer.kind === 'agent' &&
+        transfer.status !== 'ready' &&
+        (notebookId === null || transfer.notebookId === notebookId),
     );
     return ok(await Promise.all(mine.map((transfer) => observe.execute(transfer))));
   }
@@ -430,8 +485,23 @@ export class FinishUpload {
 
     if (kept.ok) {
       await this.parts.destroy(assemblyKey, assembledVersion).catch(() => undefined);
-      await this.transfers.remove(this.userId, transfer.transferId);
-      return ok({ ...kept.value, notebookId });
+      // The file is what stays (RN-PRT-028). The record says so until whoever
+      // asked for the finish reads it, and then goes (#480).
+      const file = { ...kept.value, notebookId };
+      await this.transfers.patch(this.userId, transfer.transferId, {
+        status: 'ready',
+        finishedAt: Instant.now().toISOString(),
+        upload: {
+          ...upload,
+          parts: {},
+          multipartId: null,
+          assembled: null,
+          finishing: null,
+          refusal: null,
+          kept: file,
+        },
+      });
+      return ok(file);
     }
 
     const reason = reasonOf(kept.error);
@@ -441,11 +511,28 @@ export class FinishUpload {
         status: 'failed',
         finishedAt: Instant.now().toISOString(),
         failure: reason,
-        upload: { ...upload, parts: {}, assembled: null, multipartId: null },
+        upload: {
+          ...upload,
+          parts: {},
+          assembled: null,
+          multipartId: null,
+          finishing: null,
+          refusal: refusalOf(kept.error),
+        },
       });
       return kept;
     }
     await this.transfers.addTransitBytes(transfer.bytes, notebookId);
+    await this.transfers.patch(this.userId, transfer.transferId, {
+      upload: {
+        ...upload,
+        parts: {},
+        multipartId: null,
+        assembled: assembledVersion,
+        finishing: null,
+        refusal: refusalOf(kept.error),
+      },
+    });
     return kept;
   }
 
@@ -475,6 +562,141 @@ export class FinishUpload {
     });
     return ok(versionId);
   }
+}
+
+/** What asking for the finish answers: the file, or that the worker is still at it. */
+export type FinishAnswer =
+  | { readonly status: 'kept'; readonly file: KeptUpload }
+  | { readonly status: 'finishing'; readonly transferId: string };
+
+/** How long asking for the finish waits for the worker, and how often it looks. */
+export interface FinishWait {
+  readonly withinMs: number;
+  readonly everyMs: number;
+  readonly sleep?: (ms: number) => Promise<void>;
+}
+
+/** A little under the 29 seconds of the API, as a notebook from a model waits (RN-AGT-067). */
+export const FINISH_WAIT: FinishWait = { withinMs: 20_000, everyMs: 1_000 };
+
+/**
+ * A finish asked for again while the worker runs it is not run twice; one that
+ * has run longer than the worker can is asked for again.
+ */
+const STALE_FINISH_MS = 16 * 60 * 1000;
+
+/**
+ * Asking for the finish (#480, RN-PRT-027). Joining the parts and reading the
+ * whole back to hold it to its hash take time that grows with the file, and a
+ * file near 500 MB passed the 29 seconds of the API after every part had
+ * arrived. So the API checks what it can at once — the upload is open, every
+ * part is there — hands the finish to the transfer worker, and waits for it
+ * within the call: a file of a few megabytes is answered as before; a larger
+ * one answers `finishing`, and the status says when it is kept.
+ */
+export class RequestFinish {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly parts: PartStore,
+    private readonly queue: TransferQueue,
+    private readonly subscriptionId: string,
+    private readonly userId: string,
+    private readonly wait: FinishWait = FINISH_WAIT,
+  ) {}
+
+  async execute(transferId: string, by: Authorship): Promise<Result<FinishAnswer, DomainError>> {
+    const found = await openUpload(this.transfers, this.userId, transferId);
+    if (!found.ok) return found;
+    const already = await takeKept(this.transfers, this.userId, found.value);
+    if (already) return ok({ status: 'kept', file: already });
+    if (found.value.status !== 'running') {
+      return err(DomainError.conflict('This upload has ended: start another one'));
+    }
+
+    const transfer = await new ObserveUpload(this.parts, this.subscriptionId).execute(found.value);
+    const upload = transfer.upload as TransferUpload;
+    if (!transfer.notebookId) return err(DomainError.notFound('Notebook not found'));
+    const received = new Set(receivedOf(upload));
+    const missing = everyPart(upload).filter((part) => !received.has(part));
+    if (missing.length > 0) {
+      return err(
+        DomainError.conflict(
+          `Parts ${missing.join(', ')} of ${upload.partCount} have not arrived yet`,
+          { reason: 'PARTS_MISSING', missing },
+        ),
+      );
+    }
+
+    const started = upload.finishing ? Date.parse(upload.finishing) : Number.NaN;
+    const running = Number.isFinite(started) && Date.now() - started < STALE_FINISH_MS;
+    if (!running) {
+      const current = found.value.upload as TransferUpload;
+      await this.transfers.patch(this.userId, transferId, {
+        upload: { ...current, finishing: Instant.now().toISOString(), refusal: null },
+      });
+      await this.queue.send({
+        kind: 'finish',
+        subscriptionId: this.subscriptionId,
+        userId: this.userId,
+        transferId,
+        authorship: {
+          userId: by.user.value,
+          agent: by.agent ? { clientId: by.agent.clientId, clientName: by.agent.clientName } : null,
+        },
+      });
+    }
+    return this.waitFor(transferId);
+  }
+
+  private async waitFor(transferId: string): Promise<Result<FinishAnswer, DomainError>> {
+    const sleep =
+      this.wait.sleep ?? ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)));
+    const deadline = Date.now() + this.wait.withinMs;
+    for (;;) {
+      const now = await this.transfers.get(this.userId, transferId);
+      if (!now?.upload) return err(DomainError.notFound('Upload not found'));
+      const kept = await takeKept(this.transfers, this.userId, now);
+      if (kept) return ok({ status: 'kept', file: kept });
+      if (!now.upload.finishing && now.upload.refusal) return err(errorOf(now.upload.refusal));
+      if (Date.now() >= deadline) return ok({ status: 'finishing', transferId });
+      await sleep(this.wait.everyMs);
+    }
+  }
+}
+
+/**
+ * The finish, run by the transfer worker (#480): the finish of before, and,
+ * when it is refused before it reaches the file — a part gone, the notebook
+ * unavailable — the refusal kept on the record for whoever asks next.
+ */
+export class RunFinish {
+  constructor(
+    private readonly transfers: TransferStore,
+    private readonly finish: FinishUpload,
+    private readonly userId: string,
+  ) {}
+
+  async execute(transferId: string, by: Authorship): Promise<void> {
+    const done = await this.finish.execute(transferId, by);
+    if (!done.ok) await refuseFinish(this.transfers, this.userId, transferId, done.error);
+  }
+}
+
+/**
+ * A finish refused before it reached the file, kept on the record for whoever
+ * asks next (#480); an upload that ended meanwhile is left as it is.
+ */
+export async function refuseFinish(
+  transfers: TransferStore,
+  userId: string,
+  transferId: string,
+  error: DomainError,
+): Promise<void> {
+  const now = await transfers.get(userId, transferId);
+  if (!now?.upload || now.status !== 'running' || !now.upload.finishing) return;
+  await transfers.patch(userId, transferId, {
+    upload: { ...now.upload, finishing: null, refusal: refusalOf(error) },
+  });
 }
 
 /**

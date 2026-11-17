@@ -18,6 +18,7 @@ import type {
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   UploadStatusDto,
   TransferDto,
   TransferListDto,
@@ -358,7 +359,7 @@ export function beginUpload(input: BeginUploadRequest): Promise<UploadStatusDto>
   return backend.beginUpload(input);
 }
 
-export function finishUpload(transferId: string): Promise<FinishedUploadDto> {
+export function finishUpload(transferId: string): Promise<FinishedUploadDto | FinishingUploadDto> {
   return backend.finishUpload(transferId);
 }
 

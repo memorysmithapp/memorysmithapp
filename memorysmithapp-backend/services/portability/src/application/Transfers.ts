@@ -59,7 +59,12 @@ export interface TransferWork {
   readonly subscriptionId: string;
   readonly userId: string;
   readonly transferId: string;
-  readonly kind: 'export' | 'import';
+  /**
+   * `finish` is the finish of an upload in parts (#480): joining the parts and
+   * holding the whole to its hash take time a large file does not fit in the
+   * 29 seconds of the API.
+   */
+  readonly kind: 'export' | 'import' | 'finish';
   readonly notebookId?: string | undefined;
   /**
    * An import that creates a notebook from a model (#359): the parameters it

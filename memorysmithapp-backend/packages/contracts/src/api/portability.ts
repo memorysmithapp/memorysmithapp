@@ -112,6 +112,10 @@ export const transferUploadSchema = z.object({
   received: z.array(z.number().int().positive()),
   /** When the last part arrived, or `null` while none has. */
   lastPartAt: instantSchema.nullable(),
+  /** Whether the finish is running in the transfer worker (#480). */
+  finishing: z.boolean().optional(),
+  /** Why the last finish did not keep the file, when it did not (#480). */
+  refusal: z.object({ code: z.string(), message: z.string() }).nullable().optional(),
 });
 
 /**
@@ -184,13 +188,23 @@ export const uploadPartTargetSchema = z.object({
   url: z.string().url(),
 });
 
+/** What a finished upload became: a file of the notebook, by the name a note addresses. */
+export const finishedUploadSchema = z.object({
+  fileId: ulidSchema,
+  notebookId: ulidSchema,
+  name: z.string(),
+  bytes: z.number().int().nonnegative(),
+});
+
 /** An upload and what is left of it, with an address for every missing part. */
 export const uploadStatusSchema = z.object({
   transfer: transferSchema,
   missing: z.array(z.number().int().positive()),
-  /** Empty once the upload has ended. */
+  /** Empty once the upload has ended, or while its finish runs. */
   targets: z.array(uploadPartTargetSchema),
   expiresAt: instantSchema.nullable(),
+  /** The file the upload became, once the worker kept it; read once (#480). */
+  kept: finishedUploadSchema.optional(),
 });
 
 /** A transfer of an agent pointed at another notebook, when its own is unavailable (RN-PRT-029). */
@@ -198,12 +212,13 @@ export const linkUploadRequestSchema = z.object({
   notebookId: ulidSchema,
 });
 
-/** What a finished upload became: a file of the notebook, by the name a note addresses. */
-export const finishedUploadSchema = z.object({
-  fileId: ulidSchema,
-  notebookId: ulidSchema,
-  name: z.string(),
-  bytes: z.number().int().nonnegative(),
+/**
+ * The finish was asked for and is still running in the transfer worker (#480):
+ * the status of the upload says when the file is kept, or why not.
+ */
+export const finishingUploadSchema = z.object({
+  status: z.literal('finishing'),
+  upload: ulidSchema,
 });
 
 /** Issued at the moment of each download, and never stored (RN-PRT-019). */
@@ -306,6 +321,7 @@ export type BeginUploadRequest = z.infer<typeof beginUploadRequestSchema>;
 export type UploadStatusDto = z.infer<typeof uploadStatusSchema>;
 export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
 export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;
+export type FinishingUploadDto = z.infer<typeof finishingUploadSchema>;
 export type PrintRequest = z.infer<typeof printRequestSchema>;
 export type PrintDto = z.infer<typeof printSchema>;
 export type PreviewRequest = z.input<typeof previewRequestSchema>;

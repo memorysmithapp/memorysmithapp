@@ -968,6 +968,7 @@
     "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?",
     "attachHashing": "Preparando o arquivo…",
     "attachSending": "Enviando a parte {{sent}} de {{total}}",
+    "attachFinishing": "Conferindo o arquivo inteiro…",
     "attachPurpose": "Anexado pela interface à nota “{{note}}”",
     "attachPurposeUnnamed": "Anexado pela interface a uma nota",
     "attachPurposeGuidance": "Anexado pela interface à Orientação do caderno",

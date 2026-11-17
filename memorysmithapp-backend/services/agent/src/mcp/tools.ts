@@ -1211,6 +1211,30 @@ export class McpToolAdapter {
           caller,
           requireString(args, 'upload', 'file_upload_status'),
         );
+        // The finish ended in the worker and kept the file (#480).
+        if (status.kept) {
+          return json({
+            ...status.kept,
+            status: 'kept',
+            reference: `![[${status.kept.name}]]`,
+            note: 'The file is kept. Write that reference in a note and the page draws it.',
+          });
+        }
+        const upload = status.transfer.upload;
+        if (upload?.finishing) {
+          return uploadAnswer(
+            status,
+            'The finish is running: the file is being held to its SHA-256. Ask again in a few ' +
+              'seconds.',
+          );
+        }
+        if (upload?.refusal && status.transfer.status === 'running') {
+          return uploadAnswer(
+            status,
+            `The last finish was refused (${upload.refusal.code}: ${upload.refusal.message}). ` +
+              'Fix what it says, or tell the person, and call finish_file_upload again.',
+          );
+        }
         return uploadAnswer(
           status,
           status.transfer.status === 'failed'
@@ -1222,13 +1246,24 @@ export class McpToolAdapter {
       }
 
       case 'finish_file_upload': {
-        const kept = await knowledge.finishFileUpload(
+        const answer = await knowledge.finishFileUpload(
           caller,
           requireString(args, 'upload', 'finish_file_upload'),
         );
+        // A large file is still being held to its hash in the worker (#480).
+        if ('status' in answer) {
+          return json({
+            upload: answer.upload,
+            status: 'finishing',
+            next:
+              'The file is being joined and held to its SHA-256, which takes longer for a large ' +
+              'file. Call file_upload_status for this upload in a few seconds: it answers the ' +
+              'reference once the file is kept, or why it was not. Do not send the parts again.',
+          });
+        }
         return json({
-          ...kept,
-          reference: `![[${kept.name}]]`,
+          ...answer,
+          reference: `![[${answer.name}]]`,
           note: 'The file is kept. Write that reference in a note and the page draws it.',
         });
       }

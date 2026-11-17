@@ -29,6 +29,7 @@ import type {
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   UploadStatusDto,
   TransferDto,
   TransferListDto,
@@ -724,10 +725,15 @@ export async function uploadStatus(transferId: string): Promise<UploadStatusDto>
 }
 
 /** Joins the parts and keeps the file, or answers why not. */
-export async function finishUpload(transferId: string): Promise<FinishedUploadDto> {
-  return request<FinishedUploadDto>(`/portability/uploads/${transferId}/finish`, {
-    method: 'POST',
-  });
+export async function finishUpload(
+  transferId: string,
+): Promise<FinishedUploadDto | FinishingUploadDto> {
+  return request<FinishedUploadDto | FinishingUploadDto>(
+    `/portability/uploads/${transferId}/finish`,
+    {
+      method: 'POST',
+    },
+  );
 }
 
 /**

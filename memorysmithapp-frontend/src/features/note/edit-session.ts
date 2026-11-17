@@ -236,13 +236,15 @@ export function useEditSession({
                     message: t('editor.attachHashing'),
                     ...(phase.total > 0 ? { fraction: phase.read / phase.total } : {}),
                   }
-                : {
-                    message: t('editor.attachSending', {
-                      sent: Math.min(phase.sent + 1, phase.total),
-                      total: phase.total,
-                    }),
-                    ...(phase.total > 0 ? { fraction: phase.sent / phase.total } : {}),
-                  },
+                : phase.phase === 'finishing'
+                  ? { message: t('editor.attachFinishing') }
+                  : {
+                      message: t('editor.attachSending', {
+                        sent: Math.min(phase.sent + 1, phase.total),
+                        total: phase.total,
+                      }),
+                      ...(phase.total > 0 ? { fraction: phase.sent / phase.total } : {}),
+                    },
             ),
         );
         progress({ message: t('editor.attachKept', { name: kept.name }), fraction: 1 });

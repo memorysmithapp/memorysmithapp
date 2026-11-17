@@ -219,6 +219,8 @@ import {
   BeginUpload,
   discardUpload,
   FinishUpload,
+  RequestFinish,
+  RunFinish,
   GetUploadStatus,
   LinkUpload,
   ListUploads,
@@ -986,13 +988,32 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
       ),
+    // The worker, inline, as an import's is (#480): a finish of the harness has
+    // ended by the time the call looks.
     finishUpload: (request) =>
-      new FinishUpload(
+      new RequestFinish(
         transfers,
         parts,
-        request.files,
+        {
+          send: async (work) => {
+            const author = request.authorship;
+            if (!author.ok) return;
+            await new RunFinish(
+              transfers,
+              new FinishUpload(
+                transfers,
+                parts,
+                request.files,
+                request.subscription.subscriptionId.value,
+                request.subscription.userId.value,
+              ),
+              request.subscription.userId.value,
+            ).execute(work.transferId, author.value);
+          },
+        },
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
+        { withinMs: 0, everyMs: 0 },
       ),
     linkUpload: (request) =>
       new LinkUpload(transfers, request.files, request.subscription.userId.value),

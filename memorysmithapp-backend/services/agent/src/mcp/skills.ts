@@ -1027,7 +1027,10 @@ for target in targets:
 Then call \`finish_file_upload\`. It joins the parts, and keeps the file when the
 whole hashes to what you declared and its bytes are of the type you declared;
 its answer is the reference to write in a note. Its check is the whole check:
-what is kept is byte for byte what you hashed.
+what is kept is byte for byte what you hashed. A large file takes longer to hold
+to its hash than one call waits: the answer is then \`status: "finishing"\`.
+Call \`file_upload_status\` every few seconds until it answers the reference, or
+why the file was not kept; never send the parts again for it.
 
 ## A few kilobytes of text
 

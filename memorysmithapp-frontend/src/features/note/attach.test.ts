@@ -94,6 +94,40 @@ const file = (size: number, type = 'image/jpeg') =>
   new File([new Uint8Array(size)], 'quadro.jpg', { type });
 
 describe('giving a file from the interface', () => {
+  it('follows a finish still running in the background until the file is kept (#480)', async () => {
+    let looks = 0;
+    const phases: string[] = [];
+    const { port, calls } = ports(1, {
+      finish: async () => ({ status: 'finishing' as const, upload: UPLOAD }),
+      status: async () => {
+        looks += 1;
+        const base = status(1);
+        return looks < 2
+          ? base
+          : {
+              ...base,
+              kept: {
+                fileId: '01JBQ2X0000000000000000F01',
+                notebookId: 'nb',
+                name: 'quadro.jpg',
+                bytes: 1,
+              },
+            };
+      },
+      wait: async () => undefined,
+    });
+    const kept = await attachFile(
+      port,
+      { notebookId: 'nb', file: file(10), purpose: 'x' },
+      undefined,
+      (now) => phases.push(now.phase),
+    );
+    expect(kept.name).toBe('quadro.jpg');
+    expect(looks).toBe(2);
+    expect(phases).toContain('finishing');
+    expect(calls.filter((call) => call.startsWith('put:'))).toHaveLength(1);
+  });
+
   it('declares it with its hash, sends every part to its address, and finishes', async () => {
     const { port, calls, sizes } = ports(2);
     const seen: Array<[number, number]> = [];

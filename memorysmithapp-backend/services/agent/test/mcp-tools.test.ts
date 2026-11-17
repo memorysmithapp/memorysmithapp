@@ -2251,6 +2251,41 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(refused.content[0]?.text ?? '').toContain('transport');
   });
 
+  it('says a large file is still finishing, and the status answers its reference once kept (#480)', async () => {
+    const finishing = await gateways({
+      knowledge: {
+        finishFileUpload: async () => ({
+          status: 'finishing' as const,
+          upload: '01JBQ2X00000000000000000P1',
+        }),
+      },
+    }).call('finish_file_upload', { upload: '01JBQ2X00000000000000000P1' }, caller);
+    const body = JSON.parse(finishing.content[0]?.text ?? '') as Record<string, unknown>;
+    expect(body['status']).toBe('finishing');
+    expect(String(body['next'])).toContain('file_upload_status');
+
+    const kept = await gateways({
+      knowledge: {
+        fileUploadStatus: async () => ({
+          transfer: transfer({}),
+          missing: [],
+          targets: [],
+          expiresAt: null,
+          kept: {
+            fileId: '01JBQ2X0000000000000000F01',
+            notebookId: '01JBQ2X00000000000000000V1',
+            name: 'quadro.jpg',
+            bytes: 20_000_000,
+          },
+        }),
+      },
+    }).call('file_upload_status', { upload: '01JBQ2X00000000000000000P1' }, caller);
+    expect(JSON.parse(kept.content[0]?.text ?? '')).toMatchObject({
+      status: 'kept',
+      reference: '![[quadro.jpg]]',
+    });
+  });
+
   it('answers the reference to write once the file is kept', async () => {
     const answer = await gateways({
       knowledge: {

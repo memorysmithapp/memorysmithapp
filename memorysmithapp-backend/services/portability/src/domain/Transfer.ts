@@ -148,6 +148,37 @@ export interface TransferUpload {
    */
   readonly assembled: string | null;
   readonly lastPartAt: string | null;
+  /**
+   * When the finish was asked for, while the transfer worker joins the parts
+   * and holds the whole to its hash (#480): it runs outside the API call, whose
+   * 29 seconds a large file passes. `null` once it ended either way.
+   */
+  readonly finishing?: string | null | undefined;
+  /**
+   * The file the upload became, once the worker kept it: read once by the
+   * finish or the status that asks for it, which then removes the record
+   * (RN-PRT-028).
+   */
+  readonly kept?: KeptUpload | null | undefined;
+  /** Why the last finish did not keep the file, for whoever asks next. */
+  readonly refusal?: UploadRefusal | null | undefined;
+}
+
+/** The file an upload became. */
+export interface KeptUpload {
+  readonly fileId: string;
+  readonly notebookId: string;
+  readonly name: string;
+  readonly bytes: number;
+}
+
+/** A refusal of the finish, as the error it was, kept on the record for the next ask. */
+export interface UploadRefusal {
+  readonly code: string;
+  readonly message: string;
+  readonly details?: unknown;
+  /** A refusal a member may see as such, a 403 and not a 404 (INV-09). */
+  readonly revealsExistence?: boolean | undefined;
 }
 
 /** The part size of an upload by URL: S3 asks at least 5 MiB of every part but the last. */

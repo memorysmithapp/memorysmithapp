@@ -16,6 +16,13 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import {
+  FinishUpload,
+  refuseFinish,
+  RunFinish,
+} from '@memorysmithapp/svc-portability/application/uploads';
+import { S3PartStore } from '@memorysmithapp/svc-portability/adapters/s3';
+import { fileKeeperFor } from './file-keeper.js';
+import {
   AgentIdentity,
   Authorship,
   DomainError,
@@ -256,7 +263,7 @@ function modelCopierFor(work: TransferWork): ModelCopier {
 function startOf(work: TransferWork, correlationId: string | undefined): OperationStart {
   const agent = work.authorship?.agent ?? null;
   return {
-    operation: work.kind === 'import' ? 'import' : 'export',
+    operation: work.kind,
     correlationId,
     subscriptionId: work.subscriptionId,
     userId: work.authorship?.userId ?? work.userId,
@@ -295,10 +302,46 @@ async function tellFailure(work: TransferWork): Promise<void> {
   if (/^[A-Z][A-Z_]*$/.test(code)) annotate({ outcome: outcomeOfCode(code), errorCode: code });
 }
 
+/**
+ * The finish of an upload in parts (#480): the parts joined, the whole held to
+ * its hash and its type, and the file kept, as the person who asked for it —
+ * into their own notebook or one shared with them, as the API reaches it.
+ */
+async function finish(work: TransferWork, transfers: DynamoTransferStore): Promise<void> {
+  const context = contextOf(work);
+  const { scoped } = buildAccess(infra, context);
+  if (!scoped) throw new Error('unreachable: the worker was given a subscription');
+  const resolved = await new ResolveRequestContext(scoped.subscriptions).execute(context);
+  const by = authorshipOf(work);
+  if (!resolved.ok) {
+    // The person may no longer write here: the finish is refused, as the API would.
+    await refuseFinish(transfers, work.userId, work.transferId, resolved.error);
+    return;
+  }
+  const keeper = fileKeeperFor(infra, buildShares(infra), {
+    ctx: resolved.value,
+    subscription: context,
+    authorship: ok(by),
+    subscriptionRole: resolved.value.role,
+  });
+  // The parts are joined and read, never signed, here.
+  const parts = new S3PartStore(infra.s3, infra.s3, infra.contentBucket, '');
+  await new RunFinish(
+    transfers,
+    new FinishUpload(transfers, parts, keeper, work.subscriptionId, work.userId),
+    work.userId,
+  ).execute(work.transferId, by);
+}
+
 async function run(work: TransferWork): Promise<void> {
   const context = contextOf(work);
 
   const transfers = new DynamoTransferStore(infra.db, infra.portabilityTable, work.subscriptionId);
+
+  if (work.kind === 'finish') {
+    await finish(work, transfers);
+    return;
+  }
 
   /**
    * The trail of THIS subscription, read for an export that carries the

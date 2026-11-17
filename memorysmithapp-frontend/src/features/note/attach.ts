@@ -1,6 +1,7 @@
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   TransferDto,
   UploadStatusDto,
 } from '@memorysmithapp/contracts';
@@ -33,7 +34,8 @@ export const ATTACH_PART_BYTES = 8 * 1024 * 1024;
 
 export interface AttachPorts {
   begin(input: BeginUploadRequest): Promise<UploadStatusDto>;
-  finish(transferId: string): Promise<FinishedUploadDto>;
+  /** The file, or `finishing` while the worker still holds it to its hash (#480). */
+  finish(transferId: string): Promise<FinishedUploadDto | FinishingUploadDto>;
   /** Throws an upload away, which is what a finish refused for its bytes leaves behind. */
   discard(transferId: string): Promise<void>;
   /** A plain PUT of the bytes to a signed address. */
@@ -44,14 +46,20 @@ export interface AttachPorts {
   open(): Promise<TransferDto[]>;
   /** What an open upload is missing, with a fresh address for each missing part. */
   status(transferId: string): Promise<UploadStatusDto>;
+  /** Waits between two looks at a finish still running; a test answers at once. */
+  wait?(ms: number): Promise<void>;
 }
+
+/** How often a finish still running is looked at again (#480). */
+export const FINISH_POLL_MS = 2000;
 
 export type AttachProgress = (sent: number, total: number) => void;
 
 /** Where an attachment is, for whoever draws it. */
 export type AttachPhase =
   | { phase: 'hashing'; read: number; total: number }
-  | { phase: 'sending'; sent: number; total: number };
+  | { phase: 'sending'; sent: number; total: number }
+  | { phase: 'finishing' };
 
 /** Why an attachment did not happen, when it is the file and not the server. */
 export class AttachRefusal extends Error {
@@ -135,7 +143,26 @@ export async function attachFile(
   }
 
   try {
-    return await ports.finish(transferId);
+    const answer = await ports.finish(transferId);
+    if (!('status' in answer)) return answer;
+    // A large file is held to its hash in the background (#480): the status
+    // answers the file once it is kept, or why not.
+    phase({ phase: 'finishing' });
+    const wait = ports.wait ?? ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)));
+    for (;;) {
+      await wait(FINISH_POLL_MS);
+      const now = await ports.status(transferId);
+      if (now.kept) return now.kept;
+      const upload = now.transfer.upload;
+      if (now.transfer.status === 'failed') {
+        throw Object.assign(new Error(now.transfer.failure ?? 'The upload failed'), {
+          details: { reason: now.transfer.failure },
+        });
+      }
+      if (upload && !upload.finishing && upload.refusal) {
+        throw Object.assign(new Error(upload.refusal.message), { code: upload.refusal.code });
+      }
+    }
   } catch (error) {
     // Bytes the finish refused are refused for good: nothing is left open for them.
     const reason = reasonOf(error);

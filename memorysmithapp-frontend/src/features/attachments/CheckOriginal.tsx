@@ -149,12 +149,14 @@ export function CheckOriginal({
             <p className="check-original-status" role="status">
               {state.now.phase === 'letting-go'
                 ? t('attachments.check.lettingGo')
-                : state.now.phase === 'sending'
-                  ? t('editor.attachSending', {
-                      sent: Math.min(state.now.sent + 1, state.now.total),
-                      total: state.now.total,
-                    })
-                  : t('attachments.check.preparing')}
+                : state.now.phase === 'finishing'
+                  ? t('editor.attachFinishing')
+                  : state.now.phase === 'sending'
+                    ? t('editor.attachSending', {
+                        sent: Math.min(state.now.sent + 1, state.now.total),
+                        total: state.now.total,
+                      })
+                    : t('attachments.check.preparing')}
             </p>
           ) : null}
         </>

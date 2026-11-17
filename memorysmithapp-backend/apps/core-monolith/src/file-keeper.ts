@@ -11,11 +11,15 @@
 
 import { DomainError, NotebookId, ok, type Authorship, type Result } from '@memorysmithapp/kernel';
 import type { RequestContext } from '@memorysmithapp/svc-knowledge/domain';
-import type {
+import {
   CheckFileDestination,
   KeepAssembledFile,
 } from '@memorysmithapp/svc-knowledge/application/files';
+import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
+import type { KnowledgeRequest } from '@memorysmithapp/svc-knowledge/adapters/http';
 import type { FileKeeper } from '@memorysmithapp/svc-portability/application/uploads';
+import { buildKnowledge, type buildShares, type Infrastructure } from './composition-root.js';
+import { openShared } from './shares.js';
 
 /** The use cases and the context a notebook is reached with, for one step of an upload. */
 export interface FileKeeperReach {
@@ -68,4 +72,45 @@ export class KnowledgeFileKeeper implements FileKeeper {
       bytes: kept.value.contentRef.bytes,
     });
   }
+}
+
+function notebookIdOf(raw: string): NotebookId | null {
+  const parsed = NotebookId.create(raw);
+  return parsed.ok ? parsed.value : null;
+}
+
+/**
+ * What an upload in parts becomes a file with, over the Knowledge use cases
+ * (RN-PRT-027), for the API and for the transfer worker that finishes an
+ * upload (#480) alike.
+ */
+export function fileKeeperFor(
+  infra: Infrastructure,
+  sharing: ReturnType<typeof buildShares>,
+  request: KnowledgeRequest,
+): FileKeeper {
+  return new KnowledgeFileKeeper(async (notebookId) => {
+    // A notebook shared with this person is kept into as its owner's (#347).
+    const through =
+      (await openShared(request, notebookId.value, { ...sharing, parse: notebookIdOf })) ?? request;
+    const knowledge = {
+      ...buildKnowledge(infra, through.subscription),
+      // The parts land in this person's subscription, and become a file of
+      // the notebook's (INV-01: each key still starts with its subscription).
+      fileStore: new S3FileStore(
+        through.subscription,
+        infra.s3,
+        infra.contentBucket,
+        infra.filesOrigin ?? null,
+        request.subscription,
+      ),
+    };
+    return {
+      useCases: {
+        destination: new CheckFileDestination(knowledge),
+        keep: new KeepAssembledFile(knowledge),
+      },
+      ctx: through.ctx,
+    };
+  });
 }

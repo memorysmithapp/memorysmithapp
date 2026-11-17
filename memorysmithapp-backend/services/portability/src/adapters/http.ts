@@ -45,6 +45,7 @@ import {
   declareModelRequestSchema,
   publishModelRequestSchema,
   finishedUploadSchema,
+  finishingUploadSchema,
   importFromExportRequestSchema,
   importUploadSchema,
   linkUploadRequestSchema,
@@ -101,7 +102,7 @@ import {
   receivedOf,
   type BeginUpload,
   type FileKeeper,
-  type FinishUpload,
+  type RequestFinish,
   type GetUploadStatus,
   type LinkUpload,
   type ListUploads,
@@ -163,7 +164,7 @@ export interface PortabilityUseCases {
   readonly beginUpload: (request: PortabilityRequest) => BeginUpload;
   readonly listUploads: (request: PortabilityRequest) => ListUploads;
   readonly uploadStatus: (request: PortabilityRequest) => GetUploadStatus;
-  readonly finishUpload: (request: PortabilityRequest) => FinishUpload;
+  readonly finishUpload: (request: PortabilityRequest) => RequestFinish;
   readonly linkUpload: (request: PortabilityRequest) => LinkUpload;
   readonly startPrint: (request: PortabilityRequest) => StartPrint;
   readonly getPrint: (request: PortabilityRequest) => GetPrint;
@@ -289,6 +290,10 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             partCount: transfer.upload.partCount,
             received: receivedOf(transfer.upload),
             lastPartAt: transfer.upload.lastPartAt,
+            finishing: Boolean(transfer.upload.finishing),
+            refusal: transfer.upload.refusal
+              ? { code: transfer.upload.refusal.code, message: transfer.upload.refusal.message }
+              : null,
           },
         }
       : {}),
@@ -301,6 +306,7 @@ function statusToDto(status: UploadStatus): Record<string, unknown> {
     missing: status.missing,
     targets: status.targets,
     expiresAt: status.expiresAt,
+    ...(status.kept ? { kept: finishedUploadSchema.parse(status.kept) } : {}),
   };
 }
 
@@ -725,7 +731,15 @@ export function createPortabilityRoutes(
     const finished = await useCases
       .finishUpload(request)
       .execute(c.req.param('t') ?? '', author.value);
-    return present(c, finished, (value) => finishedUploadSchema.parse(value));
+    if (!finished.ok) return fail(c, finished.error);
+    // Kept within the wait, the file; still running in the worker, 202 and
+    // the upload to ask the status of (#480).
+    return finished.value.status === 'kept'
+      ? c.json(finishedUploadSchema.parse(finished.value.file), 200)
+      : c.json(
+          finishingUploadSchema.parse({ status: 'finishing', upload: finished.value.transferId }),
+          202,
+        );
   });
 
   app.post('/uploads/:t/link', async (c) => {

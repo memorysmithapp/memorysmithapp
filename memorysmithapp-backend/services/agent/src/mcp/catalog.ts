@@ -733,9 +733,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     name: 'file_upload_status',
     title: 'See what an upload is missing',
     description:
-      'Which parts of an upload arrived and which are missing, and, for an upload by URL, a ' +
-      'fresh address for every missing part. Addresses last an hour: ask here again for new ' +
-      'ones. This is also how an upload stopped halfway is resumed.',
+      'Which parts of an upload arrived and which are missing, and a fresh address for every ' +
+      'missing part. Addresses last an hour: ask here again for new ones. This is also how an ' +
+      'upload stopped halfway is resumed, and how a finish answered `finishing` is followed: ' +
+      'once the file is kept, it answers its reference.',
     inputSchema: object(
       { upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' } },
       ['upload'],
@@ -747,8 +748,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Finish an upload and keep the file',
     description:
       'Joins the parts and keeps the file, when every part arrived, the whole hashes to the ' +
-      'SHA-256 declared at the start and the bytes support the declared type. The upload then ' +
-      'leaves Transfers, and the answer is the reference to write in a note. Bytes that do not ' +
+      'SHA-256 declared at the start and the bytes support the declared type. That runs in the ' +
+      'background and this call waits for it up to about twenty seconds: a file kept in that ' +
+      'time is answered with the reference to write in a note; a larger one answers `status: ' +
+      '"finishing"`, and file_upload_status answers the reference once it is kept. The upload ' +
+      'then leaves Transfers. Bytes that do not ' +
       'hash to what was declared end the upload as failed, with nothing kept: start again ' +
       'from the file. Any other refusal \u2014 a part missing, a name taken meanwhile, the ' +
       'notebook no longer reachable \u2014 leaves the upload open, to finish again.',

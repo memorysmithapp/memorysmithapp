@@ -181,15 +181,23 @@ describe('the upload an import discards', () => {
     }
   });
 
-  it('is the only thing the worker may delete, and never a revision of one', () => {
-    // A delete of a VERSION destroys bytes, and exactly one principal in this
-    // system may do that (INV-08, RN-KNW-047). The worker is not it: its delete
-    // leaves a marker the lifecycle rule of the tag collects.
+  it('is, with the parts of an upload it finishes, all the worker may delete, and never a revision of a note or a file', () => {
+    // A delete of a VERSION of a note or a file destroys it, and exactly one
+    // principal in this system may do that (INV-08, RN-KNW-047). The worker is
+    // not it: its delete of an import leaves a marker the lifecycle rule of the
+    // tag collects, and the parts of an upload it finishes (#480) are no file
+    // yet, the delete the API holds for `uploads/` and for nothing else.
     const deletes = allowedOf(template, roles.get(TRANSFER_WORKER) ?? '').filter((each) =>
       each.actions.some((action) => action.startsWith('s3:Delete')),
     );
-    expect(deletes.flatMap((each) => each.actions)).toEqual(['s3:DeleteObject']);
-    expect(deletes.every((each) => each.resource.includes(UPLOADS))).toBe(true);
+    const imports = deletes.filter((each) => each.resource.includes(UPLOADS));
+    const parts = deletes.filter((each) => each.resource.includes('/uploads/'));
+    expect(imports.flatMap((each) => each.actions)).toEqual(['s3:DeleteObject']);
+    expect(parts.flatMap((each) => each.actions).sort()).toEqual([
+      's3:DeleteObject',
+      's3:DeleteObjectVersion',
+    ]);
+    expect(imports.length + parts.length).toBe(deletes.length);
   });
 });
 

@@ -27,6 +27,7 @@ import type {
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   TransferDto,
   UploadStatusDto,
   FileLinkDto,
@@ -644,8 +645,11 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return callApi<UploadStatusDto>(this.origin, caller, `/portability/uploads/${uploadId}`);
   }
 
-  async finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto> {
-    return callApi<FinishedUploadDto>(
+  async finishFileUpload(
+    caller: AgentCaller,
+    uploadId: string,
+  ): Promise<FinishedUploadDto | FinishingUploadDto> {
+    return callApi<FinishedUploadDto | FinishingUploadDto>(
       this.origin,
       caller,
       `/portability/uploads/${uploadId}/finish`,

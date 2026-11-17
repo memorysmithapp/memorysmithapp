@@ -20,7 +20,7 @@ MemorySmith is three projects in one pnpm monorepo, with the tools that operate 
                                                                                          └─► mv-purge queue     → ContentPurge
  blobs: S3 content bucket  s/{subscription}/c/{contentId}.md · s/{subscription}/f/{contentId}
         served on uploads.<zone> (parts) and files.<zone> (kept files, exports)
- queues: mv-transfer → TransferWorker (export, import) · mv-print → PrintRenderer (Chromium, PDF and previews)
+ queues: mv-transfer → TransferWorker (export, import, finish of an upload) · mv-print → PrintRenderer (Chromium, PDF and previews)
 ```
 
 **Six bounded contexts**, each a package under `memorysmithapp-backend/services/`:

@@ -535,6 +535,27 @@ function uploadOf(item: Item): TransferUpload {
     parts,
     assembled: item['assembled'] ? String(item['assembled']) : null,
     lastPartAt: item['lastPartAt'] ? String(item['lastPartAt']) : null,
+    finishing: item['finishing'] ? String(item['finishing']) : null,
+    kept: item['kept']
+      ? {
+          fileId: String((item['kept'] as Item)['fileId'] ?? ''),
+          notebookId: String((item['kept'] as Item)['notebookId'] ?? ''),
+          name: String((item['kept'] as Item)['name'] ?? ''),
+          bytes: Number((item['kept'] as Item)['bytes'] ?? 0),
+        }
+      : null,
+    refusal: item['refusal']
+      ? {
+          code: String((item['refusal'] as Item)['code'] ?? 'INTERNAL'),
+          message: String((item['refusal'] as Item)['message'] ?? ''),
+          ...((item['refusal'] as Item)['details'] === undefined
+            ? {}
+            : { details: (item['refusal'] as Item)['details'] }),
+          ...((item['refusal'] as Item)['revealsExistence'] === true
+            ? { revealsExistence: true }
+            : {}),
+        }
+      : null,
   };
 }
 

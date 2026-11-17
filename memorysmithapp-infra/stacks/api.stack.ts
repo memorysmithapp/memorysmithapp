@@ -656,6 +656,18 @@ export class ApiStack extends Stack {
       }),
     );
     /**
+     * The finish of an upload in parts runs here since #480: it joins the
+     * parts, reads the whole back to hold it to its hash, copies it where a
+     * file lives and destroys what it joined, the delete of a version the API
+     * holds for `uploads/` and for nothing else.
+     */
+    transfers.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/uploads/*')],
+      }),
+    );
+    /**
      * The trail, read and appended to and nothing else: an export may carry
      * the history of a notebook and an import writes one back, keeping the
      * person and the instant each entry carried (RN-PRT-022, RN-PRT-023).

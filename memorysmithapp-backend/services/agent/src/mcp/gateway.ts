@@ -33,6 +33,7 @@ import type {
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   NoteOrder,
   PreviewDto,
   TransferDto,
@@ -412,7 +413,11 @@ export interface KnowledgeGateway {
    */
   beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto>;
   fileUploadStatus(caller: AgentCaller, uploadId: string): Promise<UploadStatusDto>;
-  finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
+  /** The file, or `finishing` while the transfer worker still runs the finish (#480). */
+  finishFileUpload(
+    caller: AgentCaller,
+    uploadId: string,
+  ): Promise<FinishedUploadDto | FinishingUploadDto>;
   listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
   /**
    * Throws an open upload away, its parts and the room it reserved (RN-PRT-028).

@@ -965,6 +965,7 @@
     "leaveWarning": "You have changes you have not written. Leave and lose them?",
     "attachHashing": "Preparing the file…",
     "attachSending": "Sending part {{sent}} of {{total}}",
+    "attachFinishing": "Checking the whole file…",
     "attachPurpose": "Attached from the interface to the note “{{note}}”",
     "attachPurposeUnnamed": "Attached from the interface to a note",
     "attachPurposeGuidance": "Attached from the interface to the Guidance of the notebook",
