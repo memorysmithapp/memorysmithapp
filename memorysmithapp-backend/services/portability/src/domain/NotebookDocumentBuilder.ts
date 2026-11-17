@@ -28,7 +28,7 @@ import type { ParameterDeclaration } from './NotebookModel.js';
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.5';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.6';
 
 /**
  * One version of a model, as a `1.4` document carried it (#397): its meta and
@@ -90,7 +90,12 @@ export interface DocumentHistory {
 }
 
 /**
- * One file the notebook keeps, with its bytes base64 (RN-PRT-025).
+ * One file the notebook keeps, as a document carries it (RN-PRT-025).
+ *
+ * From `1.6` its bytes are an entry of their own in the archive, which
+ * `entry` names, with how many there are and their SHA-256 (RN-PRT-092); a
+ * document up to `1.5` carries them base64 in `bytes`, and is read as it was.
+ * A file carries one of the two.
  *
  * No identifier: an import mints its own, and nothing addresses a file by one.
  * A note reaches a file by NAME, which is what makes the `![[name]]` of an
@@ -102,7 +107,49 @@ export interface DocumentFile {
   readonly mimeType: string;
   readonly tags: readonly string[];
   readonly path: string;
-  readonly bytes: string;
+  /** The bytes base64, in a document up to `1.5`; never written since `1.6`. */
+  readonly bytes?: string | undefined;
+  /** The entry of the archive that holds the bytes, from `1.6`. */
+  readonly entry?: string | undefined;
+  /** How many bytes the entry holds, from `1.6`. */
+  readonly size?: number | undefined;
+  /** Their SHA-256, in hex, from `1.6`. */
+  readonly sha256?: string | undefined;
+}
+
+/**
+ * One file the notebook keeps, as the Knowledge context hands it over for an
+ * export (#481): what it is, how large and its hash, and how to read its
+ * bytes as a stream. `read` is called once, when the entry of the file is
+ * written, so the bytes go from the store into the archive without being held.
+ */
+export interface ExportFile {
+  readonly name: string;
+  readonly description: string;
+  readonly mimeType: string;
+  readonly tags: readonly string[];
+  readonly path: string;
+  readonly size: number;
+  readonly sha256: string;
+  readonly read: () => Promise<AsyncIterable<Uint8Array>>;
+}
+
+/**
+ * The entry of the archive the `n`th file of a document is written under
+ * (RN-PRT-092), counting from 1: `files/{n}/{name}`. The number makes it
+ * unique whatever the name becomes once made safe; the name is there so that
+ * unzipping the archive gives each file under its own name. The import never
+ * reads it as a path: it finds the entry by the exact name the document gives.
+ */
+export function fileEntryOf(n: number, name: string): string {
+  const safe = name
+    .normalize('NFC')
+    // What no file system takes in a name, control characters included.
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f\\/:*?"<>|]/g, '-')
+    .trim()
+    .slice(0, 200);
+  return `files/${n}/${/^\.*$/.test(safe) ? 'file' : safe}`;
 }
 
 /**
@@ -246,7 +293,7 @@ export interface ExportInput {
    * lands pending because the picture was left behind is a worse default than
    * a larger archive (RN-PRT-025).
    */
-  readonly files?: readonly DocumentFile[] | undefined;
+  readonly files?: readonly ExportFile[] | undefined;
   /** The tables of the notebook, each with its rows (#366). */
   readonly tables?: readonly DocumentTable[] | undefined;
   /** The dashboards of the notebook (#368). */
@@ -479,8 +526,23 @@ export function buildNotebookDocument(
     // Absent unless it was asked for: a document without history is a `1.0`
     // document in every way that matters (RN-PRT-022).
     ...(input.history ? { history: input.history } : {}),
-    // And the files, whenever the notebook keeps any (RN-PRT-025).
-    ...(input.files && input.files.length > 0 ? { files: input.files } : {}),
+    // And the files, whenever the notebook keeps any (RN-PRT-025): what each
+    // one is and the entry its bytes are written under, never the bytes
+    // themselves (RN-PRT-092).
+    ...(input.files && input.files.length > 0
+      ? {
+          files: input.files.map((file, index): DocumentFile => ({
+            name: file.name,
+            description: file.description,
+            mimeType: file.mimeType,
+            tags: file.tags,
+            path: file.path,
+            entry: fileEntryOf(index + 1, file.name),
+            size: file.size,
+            sha256: file.sha256,
+          })),
+        }
+      : {}),
     // And the tables, whenever it has any (#366).
     ...(input.tables && input.tables.length > 0 ? { tables: input.tables } : {}),
     // And the dashboards whose tables travel with them (#368).

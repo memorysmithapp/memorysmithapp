@@ -72,7 +72,6 @@ export class KnowledgeExportSource implements ExportSource {
   async load(
     notebookId: string,
     report?: (readNotes: number, totalNotes: number) => void,
-    options?: { readonly fileBytes?: boolean },
   ): Promise<ExportInput | null> {
     const parsed = NotebookId.create(notebookId);
     if (!parsed.ok) return null;
@@ -108,7 +107,7 @@ export class KnowledgeExportSource implements ExportSource {
     );
 
     let read = 0;
-    const [guidance, templates, bodies, fileBytes] = await Promise.all([
+    const [guidance, templates, bodies] = await Promise.all([
       guidanceSlot ? this.knowledge.content.read(guidanceSlot.ref) : Promise.resolve(null),
       mapWithConcurrency(folders, READ_CONCURRENCY, async (folder) => {
         const ref = templateOf.get(folder.id.value);
@@ -122,14 +121,6 @@ export class KnowledgeExportSource implements ExportSource {
         report?.(read, notes.length);
         return body;
       }),
-      // The bytes themselves, because an archive whose pictures live somewhere
-      // else is not an archive (RN-PRT-025); a model read whole says what each
-      // file is and reads none of them (#431).
-      options?.fileBytes === false
-        ? Promise.resolve(kept.map(() => new Uint8Array()))
-        : mapWithConcurrency(kept, READ_CONCURRENCY, (file) =>
-            this.knowledge.fileStore.read(file.contentRef),
-          ),
     ]);
 
     return {
@@ -162,14 +153,22 @@ export class KnowledgeExportSource implements ExportSource {
        * The files, with no identifier of their own: an import mints one, and
        * nothing addresses a file by id. A note reaches one by NAME, which is
        * what makes the `![[name]]` of an imported note find its picture.
+       *
+       * No byte is read here (#481): the archive opens each file as a stream
+       * when it writes its entry, because an archive whose pictures live
+       * somewhere else is not an archive (RN-PRT-025), and one that held them
+       * all in memory stopped at the memory of the worker (RN-PRT-093). A
+       * model read whole never opens one (#431).
        */
-      files: kept.map((file, index) => ({
+      files: kept.map((file) => ({
         name: file.name,
         description: file.description,
         mimeType: file.mimeType,
         tags: [...file.tags],
         path: file.path,
-        bytes: Buffer.from(fileBytes[index] ?? new Uint8Array()).toString('base64'),
+        size: file.contentRef.bytes,
+        sha256: file.contentRef.sha256,
+        read: () => this.knowledge.fileStore.stream(file.contentRef),
       })),
       /**
        * The tables, as JSON Schema and rows by column name, in the order they

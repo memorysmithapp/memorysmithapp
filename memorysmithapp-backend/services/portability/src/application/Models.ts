@@ -122,7 +122,8 @@ export async function contentsOf(
   reading: ModelReading,
   notebookId: string,
 ): Promise<NotebookDocument | null> {
-  const input = await reading.source.load(notebookId, undefined, { fileBytes: false });
+  // The files say what each is and are never opened: no byte of one is read.
+  const input = await reading.source.load(notebookId);
   return input ? buildNotebookDocument(input, Instant.now().toISOString(), null) : null;
 }
 

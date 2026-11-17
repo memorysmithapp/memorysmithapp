@@ -625,6 +625,16 @@ export class InMemoryFileStore implements FileStore {
     return this.bytes.get(this.keyOf(ref.contentId, ref.versionId)) ?? new Uint8Array();
   }
 
+  /** The bytes in chunks of 64 KiB, as a body of the store arrives. */
+  async stream(ref: ContentRef): Promise<AsyncIterable<Uint8Array>> {
+    const whole = await this.read(ref);
+    return (async function* () {
+      for (let at = 0; at < whole.byteLength; at += 64 * 1024) {
+        yield whole.subarray(at, at + 64 * 1024);
+      }
+    })();
+  }
+
   async peekAssembled(key: string, versionId: string, bytes: number): Promise<Uint8Array | null> {
     return this.uploads.get(`${key}@${versionId}`)?.slice(0, bytes) ?? null;
   }

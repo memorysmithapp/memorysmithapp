@@ -28,6 +28,7 @@ import type {
 import type { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
 import {
   MAX_ASSEMBLED_BYTES,
+  type KeepAssembledFile,
   type KeepFile,
 } from '@memorysmithapp/svc-knowledge/application/files';
 import type { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
@@ -41,8 +42,13 @@ export interface KnowledgeWriteUseCases {
   readonly putTemplate: PutTemplate;
   readonly restoreFolderNumber: RestoreFolderNumber;
   readonly createNote: CreateNote;
-  /** The files an archive carries back, through the door an upload uses (#166). */
+  /** The files a `1.5` archive carries back, through the door an upload uses (#166). */
   readonly keepFile: KeepFile;
+  /**
+   * The files a `1.6` archive carries back, each an entry staged as an object
+   * of the subscription, through the door an upload in parts uses (RN-PRT-092).
+   */
+  readonly keepAssembledFile: KeepAssembledFile;
   /** The tables an archive carries, and their rows, through the doors an agent uses (#366). */
   readonly createTable: CreateTable;
   readonly insertRows: InsertRows;
@@ -177,6 +183,40 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       bytes: input.bytes,
       by: input.by,
       maxBytes: MAX_ASSEMBLED_BYTES,
+    });
+    return kept.ok ? ok() : kept;
+  }
+
+  /**
+   * It goes through `KeepAssembledFile`, the door a file sent in parts goes
+   * through: the type is checked against the first bytes of the entry, the
+   * quota is asked for its size, a name already held is refused, and the whole
+   * is hashed as it is read and held to the SHA-256 the document declares
+   * before it is copied where a file lives (RN-PRT-092). The bytes never pass
+   * whole through the memory of the worker (RN-PRT-093).
+   */
+  async keepStagedFile(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    mimeType: string;
+    tags: readonly string[];
+    path: string;
+    staged: { key: string; versionId: string; size: number; sha256: string };
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    const kept = await this.useCases.keepAssembledFile.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      name: input.name,
+      description: input.description,
+      mimeType: input.mimeType,
+      tags: input.tags,
+      path: input.path,
+      assembled: input.staged,
+      by: input.by,
     });
     return kept.ok ? ok() : kept;
   }

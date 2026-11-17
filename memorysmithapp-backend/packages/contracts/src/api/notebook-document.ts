@@ -44,7 +44,7 @@ import { parameterDeclarationSchema } from './models.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.5';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.6';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
@@ -53,9 +53,19 @@ export const NOTEBOOK_DOCUMENT_VERSION = '1.5';
  * a newer one with that part missing, so it is read exactly as it always was
  * (RN-PRT-022, RN-PRT-025, RN-PRT-057, RN-PRT-073). `1.5` stopped writing the
  * versions of a model, which a model no longer has (#431): the versions a
- * `1.4` document carries are read and left out.
+ * `1.4` document carries are read and left out. `1.6` moved the bytes of each
+ * file out of the document into an entry of its own in the archive (#481): a
+ * file of a `1.5` document still carries them base64, and is read as it was.
  */
-export const READABLE_DOCUMENT_VERSIONS = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5'] as const;
+export const READABLE_DOCUMENT_VERSIONS = [
+  '1.0',
+  '1.1',
+  '1.2',
+  '1.3',
+  '1.4',
+  '1.5',
+  '1.6',
+] as const;
 
 export const documentFolderSchema = z.object({
   folderId: ulidSchema,
@@ -137,27 +147,59 @@ export const documentHistorySchema = z.object({
 /**
  * One file the notebook keeps (RN-PRT-025, RN-KNW-048).
  *
- * The bytes travel **base64 inside the document**, because the document is one
- * file and that is the whole promise of the format: an archive whose pictures
- * live somewhere else is not an archive. What it costs is a third more bytes
- * than the file itself, and the alternative — a second entry beside the JSON —
- * costs an archive that can be half-restored.
+ * Since `1.6` the bytes are an **entry of their own** in the archive, named
+ * by `entry`, stored without compression, and the document says how many
+ * there are and their SHA-256 (RN-PRT-092). Up to `1.5` they travelled base64
+ * inside the document, which made the document as large as every file of the
+ * notebook together, a third more, held whole as one string by whoever wrote
+ * or read it: a file of a few hundred megabytes passed both the memory of the
+ * worker and the longest string Node holds (#481). A file carries one of the
+ * two, never both, and an archive is still one file for the person.
  *
  * No identifier travels. An import mints its own (RN-PRT-013), and nothing
  * addresses a file by id: a note reaches one by NAME, which is what makes the
  * `![[name]]` of an imported note find the picture it always found.
  */
-export const documentFileSchema = z.object({
-  name: z.string().min(1).max(512),
-  description: z.string().max(500),
-  /** What the file IS, which is what decides how it is drawn (RN-KNW-075). */
-  mimeType: z.string().min(1).max(128),
-  tags: z.array(z.string().min(1).max(40)).max(20),
-  /** Where it was filed, written like a path of a filesystem. */
-  path: z.string().max(512),
-  /** The bytes, base64. */
-  bytes: z.string(),
-});
+export const documentFileSchema = z
+  .object({
+    name: z.string().min(1).max(512),
+    description: z.string().max(500),
+    /** What the file IS, which is what decides how it is drawn (RN-KNW-075). */
+    mimeType: z.string().min(1).max(128),
+    tags: z.array(z.string().min(1).max(40)).max(20),
+    /** Where it was filed, written like a path of a filesystem. */
+    path: z.string().max(512),
+    /** The bytes, base64: what a document up to `1.5` carries, and `1.6` never writes. */
+    bytes: z.string().optional(),
+    /**
+     * The name of the entry of the archive that holds the bytes, from `1.6`:
+     * `files/{n}/{name}`, `n` counting the files from 1 and the name made safe
+     * for a file system, so unzipping the archive gives each file under its
+     * own name (RN-PRT-092).
+     */
+    entry: z
+      .string()
+      .min(1)
+      .max(1024)
+      .refine((entry) => !entry.startsWith('/') && !entry.split('/').includes('..'), {
+        message: 'An entry is a path inside the archive',
+      })
+      .optional(),
+    /** How many bytes the entry holds, from `1.6`. */
+    size: z.number().int().nonnegative().optional(),
+    /** The SHA-256 of those bytes, in hex, which the import holds the entry to (RN-PRT-092). */
+    sha256: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .optional(),
+  })
+  .refine(
+    (file) =>
+      file.entry === undefined
+        ? file.bytes !== undefined && file.size === undefined && file.sha256 === undefined
+        : file.bytes === undefined && file.size !== undefined && file.sha256 !== undefined,
+    { message: 'A file carries its bytes base64, or names its entry with its size and SHA-256' },
+  );
 
 /**
  * One Table of the notebook (#366): its schema in JSON Schema, its key by
@@ -263,5 +305,9 @@ export type DocumentHistoryEntry = z.infer<typeof documentHistoryEntrySchema>;
 export type DocumentFolder = z.infer<typeof documentFolderSchema>;
 export type DocumentNote = z.infer<typeof documentNoteSchema>;
 
-/** The one file inside the `.notebook` container. */
+/**
+ * The entry of the `.notebook` container that holds the document. It is the
+ * first entry, and since `1.6` each kept file follows it as an entry of its
+ * own (RN-PRT-092).
+ */
 export const NOTEBOOK_DOCUMENT_ENTRY = 'notebook.json';

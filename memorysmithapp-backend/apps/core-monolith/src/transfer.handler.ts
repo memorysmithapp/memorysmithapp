@@ -42,7 +42,7 @@ import {
 } from '@memorysmithapp/svc-portability/application/transfers';
 import { ImportNotebook } from '@memorysmithapp/svc-portability/application/import';
 import { S3ArchiveStore, S3UploadStore } from '@memorysmithapp/svc-portability/adapters/s3';
-import { createZip, readZip } from '@memorysmithapp/svc-portability/adapters/zip';
+import { zipStream } from '@memorysmithapp/svc-portability/adapters/zip';
 import { KnowledgeNotebookWriter } from './import-writer.js';
 import { AuditHistorySource } from './history-source.js';
 import { ImportedTrailWriter } from './trail-writer.js';
@@ -59,7 +59,7 @@ import {
   RestoreFolderNumber,
 } from '@memorysmithapp/svc-knowledge/application/folders';
 import { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
-import { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import { KeepAssembledFile, KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
 import { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
 import { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
@@ -179,6 +179,7 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
       createNote: new CreateNote(knowledge),
       keepFile: new KeepFile(knowledge),
+      keepAssembledFile: new KeepAssembledFile(knowledge),
       createTable: new CreateTable(knowledge),
       insertRows: new InsertRows(knowledge),
       createDashboard: new CreateDashboard(knowledge),
@@ -246,7 +247,7 @@ function modelCopierFor(work: TransferWork): ModelCopier {
       const copied = await new ExportNotebook(
         new KnowledgeExportSource(buildKnowledge(infra, holder.value)),
         new S3ArchiveStore(infra.s3, infra.contentBucket),
-        createZip,
+        zipStream,
         work.subscriptionId,
         serializeNotebookDocument,
       ).execute({ notebookId: source.notebookId, now: Instant.now(), modelCopyAt: uploadKey });
@@ -354,7 +355,6 @@ async function run(work: TransferWork): Promise<void> {
     const importer = new ImportNotebook(
       new S3UploadStore(infra.s3, infra.contentBucket),
       await writerFor(context),
-      readZip,
       parseNotebookDocument,
       work.subscriptionId,
       new ImportedTrailWriter(trail, work.subscriptionId),
@@ -385,7 +385,7 @@ async function run(work: TransferWork): Promise<void> {
     // The archive is kept, and counted, where the transfer is: under the
     // person who asked, whoever holds the notebook (RN-ACC-027).
     new S3ArchiveStore(infra.s3, infra.contentBucket),
-    createZip,
+    zipStream,
     work.subscriptionId,
     serializeNotebookDocument,
     new AuditHistorySource(

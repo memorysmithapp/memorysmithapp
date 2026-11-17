@@ -12,6 +12,13 @@
  *
  * Deleted notes do not enter the export (RN-PRT-006).
  *
+ * **It is written as a stream** (RN-PRT-093). The document is built in memory,
+ * since it carries no bytes of any file, and each kept file follows it as an
+ * entry of its own, read from the store as it is written into the archive,
+ * which goes to the store in parts as it is made (RN-PRT-092). Nothing holds a
+ * file whole, so the size of a file is not bounded by the memory of the worker
+ * (#481).
+ *
  * **It runs in a worker and not in a request** (RN-PRT-019). Building the
  * archive means reading every note of the notebook, and the function behind the
  * API stops at 29 seconds: a notebook large enough could not be exported at
@@ -46,12 +53,6 @@ export interface ExportSource {
   load(
     notebookId: string,
     report?: (readNotes: number, totalNotes: number) => void,
-    /**
-     * `fileBytes: false` reads what a file is and not its bytes, for a reader
-     * that shows the notebook rather than carries it: a model read whole
-     * (#431). Absent, the bytes are read, which an archive needs (RN-PRT-025).
-     */
-    options?: { readonly fileBytes?: boolean },
   ): Promise<ExportInput | null>;
 }
 
@@ -78,15 +79,33 @@ export interface ModelCarrier {
   of(notebookId: string): Promise<DocumentModel | null>;
 }
 
+/**
+ * One entry of the archive (RN-PRT-092): the document, from a string in
+ * memory, or a kept file, from a stream of its bytes opened when its entry is
+ * written.
+ */
+export type ArchiveEntry =
+  | { readonly path: string; readonly content: string }
+  | {
+      readonly path: string;
+      readonly size: number;
+      readonly open: () => Promise<AsyncIterable<Uint8Array>>;
+    };
+
 /** Where the archive lands, and how the caller reaches it. */
 export interface ArchiveStore {
   /**
-   * Answers the revision it wrote. An export is written once and never
-   * overwritten, so that revision IS the object: deleting it by version
-   * destroys the bytes without listing anything and without leaving a delete
-   * marker behind (RN-PRT-020).
+   * Writes the archive as its chunks arrive, in parts (RN-PRT-093), and
+   * answers the revision it wrote and how many bytes it holds. An export is
+   * written once and never overwritten, so that revision IS the object:
+   * deleting it by version destroys the bytes without listing anything and
+   * without leaving a delete marker behind (RN-PRT-020). An archive that
+   * failed midway leaves nothing.
    */
-  put(key: string, archive: Buffer): Promise<{ versionId: string | null }>;
+  write(
+    key: string,
+    archive: AsyncIterable<Uint8Array>,
+  ): Promise<{ versionId: string | null; bytes: number }>;
   /**
    * A short-lived URL for that one object. `filename` is what the browser
    * saves it as: the identifier addresses the object, the name of the notebook
@@ -110,7 +129,11 @@ export class ExportNotebook {
   constructor(
     private readonly source: ExportSource,
     private readonly archives: ArchiveStore,
-    private readonly zip: (files: Array<{ path: string; content: string }>, now: Date) => Buffer,
+    /** Writes the entries as the chunks of one zip, each file streamed into its own. */
+    private readonly zip: (
+      entries: readonly ArchiveEntry[],
+      now: Date,
+    ) => AsyncIterable<Uint8Array>,
     private readonly subscriptionId: string,
     /**
      * Turns the document into the bytes of the one entry of the archive, and
@@ -192,21 +215,31 @@ export class ExportNotebook {
     const model = !input.modelCopyAt && this.models ? await this.models.of(input.notebookId) : null;
     const document = buildNotebookDocument({ ...wanted, history }, input.now.toISOString(), model);
     const written = this.serialize(document);
-    const archive = this.zip(
-      [{ path: written.entry, content: written.content }],
-      new Date(input.now.epochMillis),
-    );
+    // The document first, then each file under the entry the document names
+    // for it, in the same order (RN-PRT-092).
+    const files = wanted.files ?? [];
+    const entries: ArchiveEntry[] = [
+      { path: written.entry, content: written.content },
+      ...(document.files ?? []).map((file, index): ArchiveEntry => {
+        const kept = files[index];
+        if (!kept || file.entry === undefined) {
+          throw new Error('unreachable: the document names an entry for every file it carries');
+        }
+        return { path: file.entry, size: kept.size, open: kept.read };
+      }),
+    ];
+    const archive = this.zip(entries, new Date(input.now.epochMillis));
 
     // The archive lives under the same subscription prefix as everything else.
     const key = input.modelCopyAt ?? `s/${this.subscriptionId}/exports/${ulid()}.notebook`;
-    const { versionId } = await this.archives.put(key, archive);
+    const stored = await this.archives.write(key, archive);
 
     return ok({
       key,
-      versionId,
+      versionId: stored.versionId,
       notebookName: archiveNameOf(source.notebookName),
       noteCount: wanted.notes.length,
-      bytes: archive.length,
+      bytes: stored.bytes,
     });
   }
 }

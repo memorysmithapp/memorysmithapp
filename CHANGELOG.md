@@ -29,6 +29,8 @@ issues each entry cites.
 
 ### Changed
 
+- **A notebook with large files exports and imports whole.** A `.notebook` is still one file, and now holds each kept file as a file of its own beside the notebook's document (format `1.6`): unzip it and every photo, PDF or video is there under its name, unchanged. The export is written as it is read and the import reads the archive where it is, so the size of a file no longer depends on what the server holds in memory at once, and every file that comes back is checked against the SHA-256 the archive declares for it; an archive whose file does not match, or that misses one, is refused before anything is written. Archives exported before this version still import as they did. (#481)
+
 - **An agent checks it can reach the upload host before it sends a file, and says what to change when it cannot.** The skill `keep-files` and the descriptions of `begin_file_upload` and `keep_file` now teach one method: the agent's code fetches the probe `whoami` names; with its answer, a file the agent holds as bytes goes by URL, whole, and only a few kilobytes of text such as an SVG go in one call. With any other answer the agent opens no upload, and tells the person which setting their assistant needs, as the About page names it, and that they can attach the file from the note's editor. The agent keeps a file under the name the person gave it, and compares the size or hash the person gives before keeping anything. (#470)
 
 - **The About page teaches how to connect Grok.** A Grok tab joins Claude and ChatGPT: where to add the connector, the name and the address, the sign-in, and how to use it in a conversation; and, for files, that Grok's code reaches MemorySmith with no setting to change. (#465)

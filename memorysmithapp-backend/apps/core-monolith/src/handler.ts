@@ -93,6 +93,7 @@ import {
 } from '@memorysmithapp/svc-knowledge/application/notes';
 import {
   DeleteFile,
+  KeepAssembledFile,
   KeepFile,
   LinkToFile,
   ListFiles,
@@ -542,6 +543,9 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
       // An archive carries the files of the notebook, and they come back
       // through the door an upload uses (#166, RN-PRT-025).
       keepFile: new KeepFile(knowledge),
+      // And a `1.6` archive, each file an entry of its own, through the door
+      // an upload in parts uses (RN-PRT-092).
+      keepAssembledFile: new KeepAssembledFile(knowledge),
       createTable: new CreateTable(knowledge),
       insertRows: new InsertRows(knowledge),
       createDashboard: new CreateDashboard(knowledge),

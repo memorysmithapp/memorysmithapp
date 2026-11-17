@@ -91,6 +91,19 @@ export class S3FileStore implements FileStore {
     return (await response.Body?.transformToByteArray()) ?? new Uint8Array();
   }
 
+  async stream(ref: ContentRef): Promise<AsyncIterable<Uint8Array>> {
+    const response = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: this.keyOf(ref.contentId),
+        VersionId: ref.versionId,
+      }),
+    );
+    const body = response.Body as AsyncIterable<Uint8Array> | undefined;
+    if (!body) throw new Error(`The store answered no body for the file ${ref.contentId.value}`);
+    return body;
+  }
+
   /**
    * A link a browser can follow on its own, which is what an `<img>` needs:
    * it carries its own authorisation in the query string, and it points at
