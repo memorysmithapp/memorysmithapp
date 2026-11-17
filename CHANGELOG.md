@@ -23,6 +23,8 @@ issues each entry cites.
 
 - **Choosing a kept export to import no longer downloads it whole.** The import dialog reads the export from where it is kept by ranges, its contents list and its document, and shows what it holds at once, however large its files are; when the import starts, the server copies it as before. (#484)
 
+- **A file above 5 GiB can be kept when the plan has room for it.** The last step of keeping a file copied it in one operation, which the store refuses above 5 GiB; it now copies a larger file in parts. No plan of today reaches that size. (#485)
+
 ### Removed
 
 - **An agent no longer asks the person for a file through Transfers.** `request_file` is gone, and so are the tab *Aguardando você* of Transfers and the requests in `check_notebook` and `list_file_uploads`. In every conversation measured in Claude, ChatGPT and Grok, the agent sent its file by URL once its sandbox reached the upload host. When it cannot reach the host, the agent now says which setting its assistant needs, and the person attaches the file from the note's editor under the name the note expects. The requests still open are discarded with this version; a note that named a requested file keeps a pending link. (#469)

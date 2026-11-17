@@ -16,7 +16,12 @@
 
 import { ContentId, ContentRef, Instant, type SubscriptionContext } from '@memorysmithapp/kernel';
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
   CopyObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCopyCommand,
+  type CompletedPart,
   GetObjectCommand,
   PutObjectCommand,
   type S3Client,
@@ -28,6 +33,11 @@ import type { FileDisposition, FileStore, SignedFile } from '../../../domain/por
 
 /** How long a link to a file lasts. Long enough to read a note, and no longer. */
 const LINK_SECONDS = 3600;
+
+/** The largest object one CopyObject copies. */
+export const SINGLE_COPY_MAX_BYTES = 5 * 1024 * 1024 * 1024;
+/** The part of a copy in parts: S3 takes up to 5 GiB a part and 10,000 parts. */
+const COPY_PART_BYTES = 1024 * 1024 * 1024;
 
 export class S3FileStore implements FileStore {
   constructor(
@@ -195,20 +205,31 @@ export class S3FileStore implements FileStore {
     if (sha256 !== input.sha256) return 'mismatch';
 
     const contentId = ContentId.generate();
-    const copied = await this.s3.send(
-      new CopyObjectCommand({
-        Bucket: this.bucket,
-        Key: this.keyOf(contentId),
-        CopySource: `${this.bucket}/${input.key
-          .split('/')
-          .map(encodeURIComponent)
-          .join('/')}?versionId=${encodeURIComponent(input.versionId)}`,
-        MetadataDirective: 'REPLACE',
-        ContentType: input.mimeType,
-        ContentDisposition: rendersAs(input.mimeType) === 'card' ? 'attachment' : 'inline',
-      }),
-    );
-    const versionId = copied.VersionId;
+    const copySource = `${this.bucket}/${input.key
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/')}?versionId=${encodeURIComponent(input.versionId)}`;
+    const disposition = rendersAs(input.mimeType) === 'card' ? 'attachment' : 'inline';
+    // One CopyObject stops at 5 GiB; above it the copy goes in parts (#485),
+    // the bytes never passing through the function either way.
+    const versionId =
+      size > SINGLE_COPY_MAX_BYTES
+        ? await this.copyInParts(copySource, this.keyOf(contentId), size, {
+            contentType: input.mimeType,
+            disposition,
+          })
+        : (
+            await this.s3.send(
+              new CopyObjectCommand({
+                Bucket: this.bucket,
+                Key: this.keyOf(contentId),
+                CopySource: copySource,
+                MetadataDirective: 'REPLACE',
+                ContentType: input.mimeType,
+                ContentDisposition: disposition,
+              }),
+            )
+          ).VersionId;
     if (!versionId) {
       throw new Error(
         `Bucket ${this.bucket} returned no VersionId: object versioning must be enabled`,
@@ -217,6 +238,58 @@ export class S3FileStore implements FileStore {
     const ref = ContentRef.create({ contentId, versionId, sha256, bytes: size });
     if (!ref.ok) throw new Error(ref.error.message);
     return ref.value;
+  }
+
+  /** The copy of a whole larger than one CopyObject takes, in parts of 1 GiB (#485). */
+  private async copyInParts(
+    copySource: string,
+    key: string,
+    size: number,
+    options: { readonly contentType: string; readonly disposition: string },
+  ): Promise<string | undefined> {
+    const started = await this.s3.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: options.contentType,
+        ContentDisposition: options.disposition,
+      }),
+    );
+    if (!started.UploadId) throw new Error('The store opened no multipart upload');
+    const uploadId = started.UploadId;
+    try {
+      const parts: CompletedPart[] = [];
+      for (let at = 0; at < size; at += COPY_PART_BYTES) {
+        const number = parts.length + 1;
+        const copied = await this.s3.send(
+          new UploadPartCopyCommand({
+            Bucket: this.bucket,
+            Key: key,
+            UploadId: uploadId,
+            PartNumber: number,
+            CopySource: copySource,
+            CopySourceRange: `bytes=${at}-${Math.min(size, at + COPY_PART_BYTES) - 1}`,
+          }),
+        );
+        parts.push({ PartNumber: number, ETag: copied.CopyPartResult?.ETag });
+      }
+      const completed = await this.s3.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: this.bucket,
+          Key: key,
+          UploadId: uploadId,
+          MultipartUpload: { Parts: parts },
+        }),
+      );
+      return completed.VersionId;
+    } catch (error) {
+      await this.s3
+        .send(
+          new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: key, UploadId: uploadId }),
+        )
+        .catch(() => undefined);
+      throw error;
+    }
   }
 
   /**
