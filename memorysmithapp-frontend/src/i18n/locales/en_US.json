@@ -590,7 +590,7 @@
       "purpose": "The original of {{name}}, kept in place of a copy",
       "refusal": {
         "EMPTY": "Your file is empty, so nothing was changed.",
-        "TOO_LARGE": "Your file is larger than 100 MB, the most a file sent from here can be, so nothing was changed.",
+        "NO_ROOM": "Your plan has no room for your file, even once the copy is let go, so nothing was changed.",
         "TYPE_NOT_KEPT": "A notebook does not keep files of the type of yours, so nothing was changed.",
         "TYPE_CONTRADICTED": "The bytes of your file are not of the type it says it is, so nothing was changed."
       },
@@ -984,7 +984,7 @@
     "attachPurposeGuidance": "Attached from the interface to the Guidance of the notebook",
     "attachPurposeTemplate": "Attached from the interface to the Template of the folder “{{folder}}”",
     "attachRefusal": {
-      "TOO_LARGE": "An attached file goes up to 100 MB.",
+      "QUOTA": "This file has {{size}}, and your plan has {{room}} free: delete something, or ask for a larger plan.",
       "EMPTY": "This file is empty.",
       "NO_TYPE": "The browser did not say what type this file is, so it cannot be kept."
     },

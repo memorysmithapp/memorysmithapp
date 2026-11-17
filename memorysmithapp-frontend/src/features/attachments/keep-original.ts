@@ -1,5 +1,5 @@
 import { bytesSupport, fileTypeOf, type NotebookFileDto } from '@memorysmithapp/contracts';
-import { ATTACH_MAX_BYTES, attachFile, type AttachPhase, type AttachPorts } from '../note/attach';
+import { attachFile, type AttachPhase, type AttachPorts } from '../note/attach';
 
 /**
  * The person's original kept in the place of the copy a notebook holds (#466,
@@ -11,7 +11,8 @@ import { ATTACH_MAX_BYTES, attachFile, type AttachPhase, type AttachPorts } from
  *
  *  1. everything the API would refuse after the copy is gone is asked first,
  *     here, by the same checks it runs — the type is on the list, the bytes
- *     support it, the size fits (RN-KNW-075, RN-KNW-055);
+ *     support it, the plan has room for it once the copy is gone (RN-KNW-075,
+ *     RN-SUB-025, #482);
  *  2. the copy is let go (INV-08) only at the moment the upload is declared,
  *     because a name is free to declare only once nothing holds it;
  *  3. the original goes through the editor's own checked upload, under the
@@ -29,11 +30,13 @@ export interface KeepOriginalPorts {
   remove(): Promise<void>;
   /** The files of the notebook, read again to check what was kept. */
   list(): Promise<NotebookFileDto[]>;
+  /** What the plan has free now, in bytes, or `null` when it cannot be read. */
+  room(): Promise<number | null>;
 }
 
 /** Why the original was not sent, before anything changed. */
 export class OriginalRefusal extends Error {
-  constructor(readonly reason: 'EMPTY' | 'TOO_LARGE' | 'TYPE_NOT_KEPT' | 'TYPE_CONTRADICTED') {
+  constructor(readonly reason: 'EMPTY' | 'NO_ROOM' | 'TYPE_NOT_KEPT' | 'TYPE_CONTRADICTED') {
     super(reason);
   }
 }
@@ -67,12 +70,15 @@ export async function keepOriginal(
 ): Promise<KeptOriginal> {
   const { file, kept, sha256 } = input;
   if (file.size === 0) throw new OriginalRefusal('EMPTY');
-  if (file.size > ATTACH_MAX_BYTES) throw new OriginalRefusal('TOO_LARGE');
   // The type the person's system gives the file, or the copy's when it gives none.
   const declared = file.type ? fileTypeOf(file.type) : fileTypeOf(kept.mimeType);
   if (!declared) throw new OriginalRefusal('TYPE_NOT_KEPT');
   const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
   if (!bytesSupport(declared.mimeType, head)) throw new OriginalRefusal('TYPE_CONTRADICTED');
+  // Once the copy is let go its bytes are free again: the original must fit in
+  // what is free now plus them, or the copy would go and the original be refused.
+  const room = await ports.room();
+  if (room !== null && file.size > room + kept.bytes) throw new OriginalRefusal('NO_ROOM');
 
   const name = kept.name.normalize('NFC');
   const replacing: AttachPorts = {

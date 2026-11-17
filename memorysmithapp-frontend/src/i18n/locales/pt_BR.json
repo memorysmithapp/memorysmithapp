@@ -593,7 +593,7 @@
       "purpose": "O original de {{name}}, guardado no lugar de uma cópia",
       "refusal": {
         "EMPTY": "O seu arquivo está vazio, então nada mudou.",
-        "TOO_LARGE": "O seu arquivo tem mais de 100 MB, o máximo de um arquivo enviado daqui, então nada mudou.",
+        "NO_ROOM": "O seu plano não tem espaço para o seu arquivo, nem depois de liberar a cópia, então nada mudou.",
         "TYPE_NOT_KEPT": "Um caderno não guarda arquivos do tipo do seu, então nada mudou.",
         "TYPE_CONTRADICTED": "Os bytes do seu arquivo não são do tipo que ele diz ser, então nada mudou."
       },
@@ -987,7 +987,7 @@
     "attachPurposeGuidance": "Anexado pela interface à Orientação do caderno",
     "attachPurposeTemplate": "Anexado pela interface ao Modelo de pasta de “{{folder}}”",
     "attachRefusal": {
-      "TOO_LARGE": "Um arquivo anexado vai até 100 MB.",
+      "QUOTA": "Este arquivo tem {{size}}, e o seu plano tem {{room}} livres: apague algo ou peça um plano maior.",
       "EMPTY": "Esse arquivo está vazio.",
       "NO_TYPE": "O navegador não disse de que tipo é esse arquivo, então ele não pode ser guardado."
     },

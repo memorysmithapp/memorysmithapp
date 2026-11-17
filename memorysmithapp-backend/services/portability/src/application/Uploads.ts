@@ -39,7 +39,6 @@ import {
   type Result,
 } from '@memorysmithapp/kernel';
 import {
-  UPLOAD_MAX_BYTES,
   UPLOAD_URL_PART_BYTES,
   uploadAssemblyKeyOf,
   uploadPartKeyOf,
@@ -287,13 +286,6 @@ export class BeginUpload {
     declared: BeginUploadInput & { by: Authorship },
   ): Promise<Result<UploadStatus, DomainError>> {
     const input = declared;
-    if (input.size > UPLOAD_MAX_BYTES) {
-      return err(
-        DomainError.limitExceeded(
-          `A file sent in parts goes up to ${UPLOAD_MAX_BYTES / (1024 * 1024)} MB`,
-        ),
-      );
-    }
 
     const partSize = UPLOAD_URL_PART_BYTES;
     const partCount = Math.max(1, Math.ceil(input.size / partSize));
@@ -309,13 +301,17 @@ export class BeginUpload {
      * The whole declared size is reserved now (RN-SUB-025). Parts by URL reach
      * the store without passing through here, so nothing could count them as
      * they arrive; and an upload with no room is refused before a byte travels
-     * rather than at its last part.
+     * rather than at its last part. The room is the only size a file is refused
+     * for (#482): no ceiling of its own stands in front of it.
      */
     const budget = await this.budget.current();
-    if (budget.usedBytes + input.size > budget.limitBytes) {
+    const room = Math.max(0, budget.limitBytes - budget.usedBytes);
+    if (input.size > room) {
       return err(
         DomainError.limitExceeded(
-          'The storage of this plan has no room for this file: delete something first',
+          `This file is ${input.size} bytes and the storage of this plan has ${room} bytes free: ` +
+            'delete something, or ask for a larger plan',
+          { reason: 'QUOTA', sizeBytes: input.size, roomBytes: room },
         ),
       );
     }

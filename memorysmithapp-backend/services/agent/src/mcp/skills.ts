@@ -996,7 +996,8 @@ cannot send it* and open no upload.
 A file you hold as bytes — a photo, a recording, a PDF, a spreadsheet — goes
 one way: \`begin_file_upload\`, a PUT of each part from your code, and
 \`finish_file_upload\`. The bytes never pass through what you write, so a file
-of 50 MB costs you what one of 50 KB does. Up to 100 MB.
+of 50 MB costs you what one of 50 KB does. A file may be as large as the room
+the person's plan has left, which the start refuses at once when it is not.
 
 Measure the file and hash it:
 

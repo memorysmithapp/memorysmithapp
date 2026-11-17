@@ -683,7 +683,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'file \u2014 and then send it in parts: every part has an address, and your code PUTs the ' +
       'bytes from the disk to it, so they never pass through what you write. The parts are 8 MiB ' +
       'each, the last one shorter. The file is kept by finish_file_upload once every part ' +
-      'arrived, and only if the whole hashes to what you declared here. Up to 100 MB. The answer ' +
+      'arrived, and only if the whole hashes to what you declared here. A file goes up to the room ' +
+      'the plan has left, and a larger one is refused here, before a byte travels. The answer ' +
       'names partsHost, the host every part goes to. The room is reserved now, and the ' +
       'person sees the upload in Transfers until it becomes a file. Read the skill ' +
       `\`${KEEP_FILES_SKILL}\` first.`,

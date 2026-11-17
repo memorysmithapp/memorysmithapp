@@ -27,8 +27,6 @@ import type {
  * Kept apart from the component so each step can be proved without a browser.
  */
 
-/** What a file sent in parts may be, the ceiling the API states. */
-export const ATTACH_MAX_BYTES = 100 * 1024 * 1024;
 /** The size of every part but the last, which the API fixes for an upload by URL. */
 export const ATTACH_PART_BYTES = 8 * 1024 * 1024;
 
@@ -63,7 +61,7 @@ export type AttachPhase =
 
 /** Why an attachment did not happen, when it is the file and not the server. */
 export class AttachRefusal extends Error {
-  constructor(readonly reason: 'TOO_LARGE' | 'EMPTY' | 'NO_TYPE') {
+  constructor(readonly reason: 'EMPTY' | 'NO_TYPE') {
     super(reason);
   }
 }
@@ -110,7 +108,6 @@ export async function attachFile(
   const { file } = input;
   const mimeType = file.type;
   if (file.size === 0) throw new AttachRefusal('EMPTY');
-  if (file.size > ATTACH_MAX_BYTES) throw new AttachRefusal('TOO_LARGE');
   if (!mimeType) throw new AttachRefusal('NO_TYPE');
 
   const sha256 = await ports.hash(file, (read, total) => phase({ phase: 'hashing', read, total }));

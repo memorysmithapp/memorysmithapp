@@ -68,7 +68,9 @@ const status = (name = kept.name): UploadStatusDto => ({
   expiresAt: null,
 });
 
-function ports(over: { remove?: () => Promise<void>; open?: TransferDto[] } = {}) {
+function ports(
+  over: { remove?: () => Promise<void>; open?: TransferDto[]; room?: number | null } = {},
+) {
   const calls: string[] = [];
   const attach: AttachPorts = {
     begin: async (input) => {
@@ -107,6 +109,7 @@ function ports(over: { remove?: () => Promise<void>; open?: TransferDto[] } = {}
       (async () => {
         calls.push('remove');
       }),
+    room: async () => (over.room === undefined ? null : over.room),
     list: async () => {
       calls.push('list');
       return [{ ...kept, fileId: '01JBQ2X0000000000000000F02', bytes: JPEG.length, sha256: SHA }];
@@ -179,6 +182,20 @@ describe('keeping the original in the place of the copy', () => {
 
     expect(calls[0]).toMatch(/^begin:/);
     expect(answer.identical).toBe(true);
+  });
+
+  it('refuses before letting the copy go when the plan has no room for the original (#482)', async () => {
+    const { port, calls } = ports({ room: 0 });
+    await expect(
+      keepOriginal(port, {
+        notebookId: 'nb',
+        kept: { ...kept, bytes: 5 },
+        file: new File([JPEG], 'foto.jpg', { type: 'image/jpeg' }),
+        sha256: SHA,
+        purpose: 'x',
+      }),
+    ).rejects.toMatchObject({ reason: 'NO_ROOM' });
+    expect(calls).not.toContain('remove');
   });
 
   it('stops before declaring anything when letting the copy go fails otherwise', async () => {

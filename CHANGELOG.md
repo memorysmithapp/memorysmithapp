@@ -19,6 +19,8 @@ issues each entry cites.
 
 - **A file sent in parts is checked and kept in the background.** Once every part has arrived, the file is held to its SHA-256 and kept by the worker that runs exports and imports, instead of within one call whose time a large file would pass. The agent and the editor wait for it up to about twenty seconds, which covers the files of today; a larger one answers *finishing*, the agent follows it with `file_upload_status`, and the editor shows *Checking the whole file…* until it is kept. (#480)
 
+- **A file is refused only when it does not fit in your plan.** A file sent in parts, by an agent or from the note's editor, no longer stops at 100 MB: it may be as large as the room your plan has left, and a larger one is refused at once, before any byte travels, saying how large the file is and how much room is free, in your language. Keeping your original in the place of a copy on the files of a notebook checks that room before it lets the copy go. (#482)
+
 ### Removed
 
 - **An agent no longer asks the person for a file through Transfers.** `request_file` is gone, and so are the tab *Aguardando você* of Transfers and the requests in `check_notebook` and `list_file_uploads`. In every conversation measured in Claude, ChatGPT and Grok, the agent sent its file by URL once its sandbox reached the upload host. When it cannot reach the host, the agent now says which setting its assistant needs, and the person attaches the file from the note's editor under the name the note expects. The requests still open are discarded with this version; a note that named a requested file keeps a pending link. (#469)

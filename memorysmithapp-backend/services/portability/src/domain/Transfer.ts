@@ -183,8 +183,6 @@ export interface UploadRefusal {
 
 /** The part size of an upload by URL: S3 asks at least 5 MiB of every part but the last. */
 export const UPLOAD_URL_PART_BYTES = 8 * 1024 * 1024;
-/** What one file may be through an upload in parts. */
-export const UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
 
 /** The prefix every part of one upload lives under. */
 export function uploadPrefixOf(subscriptionId: string, transferId: string): string {

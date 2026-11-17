@@ -220,7 +220,7 @@ describe('an upload in parts', () => {
     ).toBe(204);
   });
 
-  it('refuses before a byte travels: too large, a type it does not keep, no room, a name the notebook keeps', async () => {
+  it('refuses before a byte travels: a type it does not keep, no room, a name the notebook keeps', async () => {
     const notebookId = await notebook();
     const base = {
       notebookId,
@@ -229,11 +229,23 @@ describe('an upload in parts', () => {
       purpose: 'Uma foto',
       sha256: sha(Buffer.from('x')),
     };
-    expect((await begin({ ...base, size: 101 * 1024 * 1024 })).status).toBe(413);
+    // No size of its own stands in front of a file (#482): one far above the
+    // 100 MB of before starts, when the plan has the room.
+    const large = await begin({ ...base, name: 'grande', size: 600 * 1024 * 1024 });
+    expect(large.status).toBe(201);
+    const { transfer } = uploadStatusSchema.parse(await large.json());
+    await call(`/portability/transfers/${transfer.transferId}`, { method: 'DELETE' });
     expect((await begin({ ...base, size: 4096, mimeType: 'text/html' })).status).toBe(400);
 
+    // The room of the plan is what refuses, saying both sizes.
     harness.storage.limitBytes = 1000;
-    expect((await begin({ ...base, size: 4096 })).status).toBe(413);
+    const refused = await begin({ ...base, size: 4096 });
+    expect(refused.status).toBe(413);
+    expect(((await refused.json()) as { details?: unknown }).details).toMatchObject({
+      reason: 'QUOTA',
+      sizeBytes: 4096,
+      roomBytes: 1000,
+    });
     harness.storage.limitBytes = Number.MAX_SAFE_INTEGER;
 
     await call(`/knowledge/notebooks/${notebookId}/files`, {

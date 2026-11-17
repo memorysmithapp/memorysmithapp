@@ -1,5 +1,10 @@
 import type { NotebookFileDto } from '@memorysmithapp/contracts';
-import { deleteNotebookFile, getNotebookFiles, linkToFile } from '../../shared/api/source';
+import {
+  deleteNotebookFile,
+  getNotebookFiles,
+  linkToFile,
+  readUsage,
+} from '../../shared/api/source';
 import { hashFile } from '../../shared/files/sha256';
 import { ATTACH_PORTS } from '../note/attach-ports';
 import type { KeepOriginalPorts } from './keep-original';
@@ -145,5 +150,9 @@ export function keepOriginalPorts(notebookId: string, kept: NotebookFileDto): Ke
     attach: ATTACH_PORTS,
     remove: () => deleteNotebookFile(notebookId, kept.fileId),
     list: () => getNotebookFiles(notebookId),
+    room: async () => {
+      const usage = await readUsage().catch(() => null);
+      return usage ? Math.max(0, usage.quotaBytes - usage.usedBytes) : null;
+    },
   };
 }
