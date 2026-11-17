@@ -918,9 +918,8 @@
         "three": "These changes reach <b>new conversations</b>: start one, attach the file and ask for it to be kept. An upload left halfway is resumed there, without starting over."
       },
       "grok": {
-        "one": "Grok has no button that refreshes the tools of a connector. When the assistant says its list of tools is older than MemorySmith's, open <b>Settings</b>, then <b>Connect Apps</b> and <b>MemorySmith.app</b>, click <b>Disconnect</b>, and add it again as above.",
-        "two": "Grok's code reaches the address above as it comes: there is no setting to change.",
-        "three": "Start a new conversation, attach the file and ask for it to be kept."
+        "one": "Grok's code reaches the address above as it comes: there is no setting to change.",
+        "two": "Start a new conversation, attach the file and ask for it to be kept."
       }
     }
   },

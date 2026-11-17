@@ -32,12 +32,20 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
  */
 const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
 
-/** What sending a file through each client needs, in the order it is met (#244). */
-const FILE_STEPS = ['one', 'two', 'three'] as const;
-
-/** The two clients whose steps the page gives, one at a time (#216). */
+/** The clients whose steps the page gives, one at a time (#216, #465). */
 const CLIENTS = ['claude', 'chatgpt', 'grok'] as const;
 type Client = (typeof CLIENTS)[number];
+
+/**
+ * What sending a file through each client needs, in the order it is met
+ * (#244). Grok needs no setting and refreshes its tools by itself, so it has
+ * fewer steps than the others (#465).
+ */
+const FILE_STEPS: Readonly<Record<Client, readonly string[]>> = {
+  claude: ['one', 'two', 'three'],
+  chatgpt: ['one', 'two', 'three'],
+  grok: ['one', 'two'],
+};
 
 /**
  * What this product is, said once, to whoever just arrived (#167, RN-ACC-019).
@@ -189,7 +197,7 @@ export function AboutPage() {
           role="tabpanel"
           aria-labelledby={`about-files-tab-${filesClient}`}
         >
-          {FILE_STEPS.map((step, index) => (
+          {FILE_STEPS[filesClient].map((step, index) => (
             <li key={step}>
               <span className="about-step-number" aria-hidden="true">
                 {index + 1}

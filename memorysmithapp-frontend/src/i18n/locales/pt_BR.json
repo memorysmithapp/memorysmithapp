@@ -921,9 +921,8 @@
         "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
       },
       "grok": {
-        "one": "O Grok não tem um botão que atualize as ferramentas de um conector. Quando o assistente disser que a lista de ferramentas dele é mais antiga que a do MemorySmith, abra <b>Configurações</b>, depois <b>Connect Apps</b> e <b>MemorySmith.app</b>, clique em <b>Desconectar</b> e adicione-o de novo como acima.",
-        "two": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar.",
-        "three": "Comece uma conversa nova, anexe o arquivo e peça para guardá-lo."
+        "one": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar.",
+        "two": "Comece uma conversa nova, anexe o arquivo e peça para guardá-lo."
       }
     }
   },
