@@ -872,19 +872,27 @@
       "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de pasta de cada pasta. O endereço deste ambiente é:",
       "claude": {
         "heading": "No Claude",
-        "one": "No menu lateral, abra <b>Personalizar</b> e depois <b>Conectores</b>.",
+        "one": "No menu lateral, abra <b>Plugins</b>.",
         "two": "Clique em <b>Adicionar</b> e escolha <b>Adicionar conector personalizado</b>.",
         "three": "Em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>URL do servidor MCP</b>, cole o endereço acima; clique em <b>Continuar</b>.",
         "four": "O Claude abre a tela de login do MemorySmith (se não abrir, clique em <b>Conectar</b> no conector); entre com esta mesma conta e autorize.",
-        "five": "Numa conversa, confira em <b>+</b> e depois <b>Conectores</b> que o MemorySmith.app está ligado, e peça seus cadernos."
+        "five": "Numa conversa, clique em <b>+</b> e depois em <b>Plugins</b>, confira que o MemorySmith.app está ligado e peça seus cadernos."
       },
       "chatgpt": {
         "heading": "No ChatGPT",
-        "one": "Pelo navegador, e não pelo app de celular ou tablet, que não mostra estas opções: em <b>Configurações</b>, abra <b>Plugins</b>, depois <b>Modo de desenvolvedor</b>, e ligue-o: é ele que permite adicionar um servidor que não está no catálogo.",
-        "two": "No menu lateral, abra <b>Plugins</b> e clique no <b>+</b> ao lado da busca.",
+        "one": "Pelo navegador, e não pelo app de celular ou tablet, que não mostra estas opções: no menu lateral, abra <b>Plugins</b>.",
+        "two": "Clique em <b>Adicionar</b>, no canto superior direito, e escolha <b>Adicionar servidor MCP personalizado</b>.",
         "three": "Em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>Conexão</b>, deixe <b>URL do servidor</b> e cole o endereço acima; deixe <b>Autenticação</b> em <b>OAuth</b>.",
-        "four": "Marque <b>Entendi e quero continuar</b> e clique em <b>Criar</b>; o aviso é o mesmo para qualquer servidor fora do catálogo. Entre com esta mesma conta e autorize.",
-        "five": "Numa conversa, clique no <b>+</b>, digite <b>MemorySmith</b>, escolha o plugin e peça seus cadernos."
+        "four": "Marque <b>Entendo e quero continuar</b> e clique em <b>Criar como plugin</b>; o aviso é o mesmo para qualquer servidor fora do catálogo. Entre com esta mesma conta e autorize.",
+        "five": "Numa conversa, clique no <b>+</b>, escolha <b>MemorySmith.app</b> entre os plugins e peça seus cadernos."
+      },
+      "grok": {
+        "heading": "No Grok",
+        "one": "Abra o menu da sua conta e depois <b>Configurações</b>, e escolha <b>Connect Apps</b>.",
+        "two": "Clique no filtro <b>Custom</b> e depois em <b>Add a custom connector</b>.",
+        "three": "Em <b>Adicionar servidor MCP</b>, em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>URL do servidor</b>, cole o endereço acima; clique em <b>Adicionar MCP</b>.",
+        "four": "O Grok abre a tela de login do MemorySmith numa janela própria; entre com esta mesma conta e autorize. O conector passa a mostrar <b>Connected</b>.",
+        "five": "Numa conversa, clique no <b>+</b>, depois em <b>Conectores</b> e em <b>MemorySmith.app</b>, que entra na sua mensagem, e peça seus cadernos."
       },
       "sameAccount": "Seja qual for a ferramenta, entre com a mesma conta com que você está lendo isto: o assistente alcança exatamente os cadernos que você alcança, com exatamente as suas permissões, e cada mudança que ele faz fica registrada no seu nome."
     },
@@ -903,14 +911,19 @@
       "check": "O MemorySmith guarda exatamente o que o assistente envia. Para ter certeza de que um arquivo guardado é o que você tem, abra os arquivos do caderno e confira-o com o seu original: o navegador compara os dois sem enviar o seu para lugar nenhum.",
       "editor": "Quando o assistente não alcança o endereço, ou para anexar algo por conta própria, abra a nota, clique em <b>Editar</b> no canto superior direito dela e depois no clipe da barra de ferramentas, que anexa um arquivo do computador, um que o caderno já guarda ou uma imagem de um endereço da web; ou cole ou arraste o arquivo sobre a nota.",
       "claude": {
-        "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
-        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. A menos que a lista de domínios permitidos seja <b>Todos os domínios</b>, acrescente <b>*.memorysmith.app</b> a ela: sem isso, o endereço acima fica fora de alcance mesmo com a rede ligada.",
+        "one": "Depois de uma atualização do MemorySmith, abra <b>Plugins</b>, depois <b>Seus plugins</b> e <b>Mostrar tudo</b>, e no <b>⋯</b> do <b>MemorySmith.app</b> escolha <b>Atualizar lista de ferramentas</b>: é assim que as ferramentas novas aparecem para o Claude.",
+        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, na seção <b>Execução de código e criação de arquivos</b>, ligue <b>Executar código na nuvem</b> e <b>Permitir acesso de rede externo</b>. Na <b>Lista de domínios permitidos</b>, com <b>Todos os domínios</b> não é preciso mais nada; com <b>Só gerenciadores de pacotes</b>, acrescente <b>*.memorysmith.app</b>, ou o endereço acima fica fora de alcance.",
         "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
       },
       "chatgpt": {
-        "one": "Depois de uma atualização do MemorySmith, abra o plugin <b>MemorySmith.app</b> nas configurações de <b>Plugins</b> e clique em <b>Atualizar</b>, para as ferramentas novas aparecerem.",
-        "two": "Em <b>Configurações</b>, depois <b>Controles de dados</b>, ligue <b>Acesso à rede do Work</b>. Com ele desligado, o código do assistente não alcança o endereço acima, e a lista de sites em <b>Computador na nuvem</b> não muda isso.",
+        "one": "Depois de uma atualização do MemorySmith, abra <b>Configurações</b>, depois <b>Plugins</b> e <b>MemorySmith.app</b>, e em <b>Gerenciar aplicativo</b> clique em <b>Atualizar ferramentas</b>, para as ferramentas novas aparecerem.",
+        "two": "Em <b>Configurações</b>, depois <b>Controles de dados</b>, ligue <b>Acesso do Work à rede</b>. Com ele desligado, o código do assistente não alcança o endereço acima, e as <b>Permissões do site</b> de <b>Computador na nuvem</b> não mudam isso.",
         "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
+      },
+      "grok": {
+        "one": "O Grok não tem um botão que atualize as ferramentas de um conector. Quando o assistente disser que a lista de ferramentas dele é mais antiga que a do MemorySmith, abra <b>Configurações</b>, depois <b>Connect Apps</b> e <b>MemorySmith.app</b>, clique em <b>Desconectar</b> e adicione-o de novo como acima.",
+        "two": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar.",
+        "three": "Comece uma conversa nova, anexe o arquivo e peça para guardá-lo."
       }
     }
   },

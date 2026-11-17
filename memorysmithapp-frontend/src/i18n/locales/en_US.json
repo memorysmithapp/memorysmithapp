@@ -869,19 +869,27 @@
       "body": "This is the part worth doing today. MemorySmith answers AI tools through a remote MCP server, so an assistant does not merely read your notebooks: it writes in them, obeying the Guidance of the notebook and the Template of each folder. The address of this environment is:",
       "claude": {
         "heading": "In Claude",
-        "one": "In the side menu, open <b>Customize</b> and then <b>Connectors</b>.",
+        "one": "In the side menu, open <b>Plugins</b>.",
         "two": "Click <b>Add</b> and choose <b>Add custom connector</b>.",
-        "three": "Under <b>Name</b>, write <b>MemorySmith.app</b>; under <b>Remote MCP server URL</b>, paste the address above; click <b>Continue</b>.",
+        "three": "Under <b>Name</b>, write <b>MemorySmith.app</b>; under <b>MCP server URL</b>, paste the address above; click <b>Continue</b>.",
         "four": "Claude opens the MemorySmith sign-in page (if it does not, click <b>Connect</b> on the connector); sign in with this same account and authorise it.",
-        "five": "In a conversation, check under <b>+</b> and then <b>Connectors</b> that MemorySmith.app is switched on, and ask for your notebooks."
+        "five": "In a conversation, click <b>+</b> and then <b>Plugins</b>, check that MemorySmith.app is switched on, and ask for your notebooks."
       },
       "chatgpt": {
         "heading": "In ChatGPT",
-        "one": "In the browser, not the phone or tablet app, which does not show these options: in <b>Settings</b>, open <b>Plugins</b>, then <b>Developer mode</b>, and switch it on: it is what lets you add a server that is not in the catalogue.",
-        "two": "In the side menu, open <b>Plugins</b> and click the <b>+</b> beside the search.",
+        "one": "In the browser, not the phone or tablet app, which does not show these options: in the side menu, open <b>Plugins</b>.",
+        "two": "Click <b>Add</b>, at the top right, and choose <b>Add custom MCP server</b>.",
         "three": "Under <b>Name</b>, write <b>MemorySmith.app</b>; under <b>Connection</b>, keep <b>Server URL</b> and paste the address above; keep <b>Authentication</b> on <b>OAuth</b>.",
-        "four": "Tick <b>I understand and want to continue</b> and click <b>Create</b>; the warning is the same for any server outside the catalogue. Sign in with this same account and authorise it.",
-        "five": "In a conversation, click the <b>+</b>, type <b>MemorySmith</b>, pick the plugin and ask for your notebooks."
+        "four": "Tick <b>I understand and want to continue</b> and click <b>Create as a plugin</b>; the warning is the same for any server outside the catalogue. Sign in with this same account and authorise it.",
+        "five": "In a conversation, click the <b>+</b>, pick <b>MemorySmith.app</b> among the plugins and ask for your notebooks."
+      },
+      "grok": {
+        "heading": "In Grok",
+        "one": "Open the menu of your account and then <b>Settings</b>, and choose <b>Connect Apps</b>.",
+        "two": "Click the <b>Custom</b> filter and then <b>Add a custom connector</b>.",
+        "three": "In <b>Add MCP Server</b>, under <b>Name</b>, write <b>MemorySmith.app</b>; under <b>Server URL</b>, paste the address above; click <b>Add MCP</b>.",
+        "four": "Grok opens the MemorySmith sign-in page in a window of its own; sign in with this same account and authorise it. The connector then reads <b>Connected</b>.",
+        "five": "In a conversation, click the <b>+</b>, then <b>Connectors</b> and <b>MemorySmith.app</b>, which joins your message, and ask for your notebooks."
       },
       "sameAccount": "Whichever tool you use, sign in with the same account you are reading this with: the assistant reaches exactly the notebooks you reach, with exactly your permissions, and every change it makes is recorded under your name."
     },
@@ -900,14 +908,19 @@
       "check": "MemorySmith keeps exactly what the assistant sends. To be sure a kept file is the one you have, open the files of the notebook and check it against your original: your browser compares the two without sending yours anywhere.",
       "editor": "When the assistant cannot reach the address, or to attach something yourself, open the note, click <b>Edit</b> at its top right and then the paperclip of the toolbar, which attaches a file from the computer, one the notebook already keeps or an image at a web address; or paste or drag the file onto the note.",
       "claude": {
-        "one": "After an update of MemorySmith, open <b>Customize</b>, then <b>Connectors</b>, and reconnect <b>MemorySmith.app</b>: that is how new tools reach Claude.",
-        "two": "In <b>Settings</b>, then <b>Capabilities</b>, turn on <b>Allow network egress</b>. Unless the list of allowed domains is <b>All domains</b>, add <b>*.memorysmith.app</b> to it: without it, the address above is out of reach even with the network on.",
+        "one": "After an update of MemorySmith, open <b>Plugins</b>, then <b>Your plugins</b> and <b>Show all</b>, and in the <b>⋯</b> of <b>MemorySmith.app</b> choose <b>Refresh tools list</b>: that is how new tools reach Claude.",
+        "two": "In <b>Settings</b>, then <b>Capabilities</b>, turn on <b>Create and edit files</b> and <b>Use the internet while making files</b>. Under <b>Allowed websites</b>, click <b>Manage</b>: with <b>Any website</b> nothing else is needed; with <b>Standard download sites only</b>, add <b>*.memorysmith.app</b>, or the address above is out of reach.",
         "three": "These changes reach <b>new conversations</b>: start one, attach the file and ask for it to be kept. An upload left halfway is resumed there, without starting over."
       },
       "chatgpt": {
-        "one": "After an update of MemorySmith, open the <b>MemorySmith.app</b> plugin in the <b>Plugins</b> settings and click <b>Refresh</b>, so the new tools appear.",
-        "two": "In <b>Settings</b>, then <b>Data controls</b>, turn on <b>Work network access</b>. With it off, the assistant's code cannot reach the address above, and the list of sites under <b>Cloud computer</b> does not change that.",
+        "one": "After an update of MemorySmith, open <b>Settings</b>, then <b>Plugins</b> and <b>MemorySmith.app</b>, and under <b>Manage app</b> click <b>Refresh tools</b>, so the new tools appear.",
+        "two": "In <b>Settings</b>, then <b>Data controls</b>, turn on <b>Work network access</b>. With it off, the assistant's code cannot reach the address above, and the <b>Website permissions</b> of <b>Cloud computer</b> do not change that.",
         "three": "These changes reach <b>new conversations</b>: start one, attach the file and ask for it to be kept. An upload left halfway is resumed there, without starting over."
+      },
+      "grok": {
+        "one": "Grok has no button that refreshes the tools of a connector. When the assistant says its list of tools is older than MemorySmith's, open <b>Settings</b>, then <b>Connect Apps</b> and <b>MemorySmith.app</b>, click <b>Disconnect</b>, and add it again as above.",
+        "two": "Grok's code reaches the address above as it comes: there is no setting to change.",
+        "three": "Start a new conversation, attach the file and ask for it to be kept."
       }
     }
   },

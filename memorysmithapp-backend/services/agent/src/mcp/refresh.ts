@@ -42,12 +42,12 @@ export function clientKind(connector: ConnectorIdentity | null): ClientKind {
 
 const STEPS: Readonly<Record<Exclude<ClientKind, 'other'>, string>> = {
   claude:
-    'In Claude: open the MemorySmith connector, and in the `⋯` menu beside the button that ' +
-    'connects it choose the item that refreshes the list of tools (*Atualizar lista de ' +
-    'ferramentas* in Portuguese).',
+    'In Claude: open **Plugins**, then **Your plugins** and **Show all**, and in the `⋯` of ' +
+    'MemorySmith.app choose **Refresh tools list** (*Atualizar lista de ferramentas* in ' +
+    'Portuguese).',
   chatgpt:
-    'In ChatGPT: open **Plugins → MemorySmith.app**, and in its section press the button that ' +
-    'refreshes the tools (*Atualizar ferramentas* in Portuguese).',
+    'In ChatGPT: open **Settings → Plugins → MemorySmith.app**, and under **Manage app** press ' +
+    '**Refresh tools** (*Atualizar ferramentas* in Portuguese).',
 };
 
 /**

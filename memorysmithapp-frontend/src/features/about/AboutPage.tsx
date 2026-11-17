@@ -36,7 +36,7 @@ const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
 const FILE_STEPS = ['one', 'two', 'three'] as const;
 
 /** The two clients whose steps the page gives, one at a time (#216). */
-const CLIENTS = ['claude', 'chatgpt'] as const;
+const CLIENTS = ['claude', 'chatgpt', 'grok'] as const;
 type Client = (typeof CLIENTS)[number];
 
 /**
