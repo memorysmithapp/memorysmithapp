@@ -450,7 +450,7 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 ### ADR-017 The link graph is rebuilt by a Step Functions run, through the product's own write path
 
 - **Context:** the rebuild ran on a workstation, one notebook after another, and stopped whenever the machine did.
-- **Decision:** the state machine `mv-reproject-links` lists the live notebooks and rebuilds each in a Distributed Map iteration, 20 at once, with two retries and the failures named in its summary, through the ordinary projection code. Notebooks and results travel in the run's state, never in a bucket.
+- **Decision:** the state machine `mv-reproject-links` lists the live notebooks and rebuilds each in a Distributed Map iteration, 20 at once, with two retries and the failures named in its summary, through the ordinary projection code. Notebooks and results travel in the run's state, never in a bucket; a notebook that gained and lost no edge answers its counts alone, with no identifier, since a state carries 256 KB and the answers of 1558 notebooks with their identifiers passed it (#472).
 - **Rationale:** a rebuild with its own path to the table would be a second, untested implementation of the projection, and a bucket keyed by run would be a key outside every subscription. A run reports by default, because replacing a graph nobody looked at makes a wrong graph the truth.
 - **Consequences:** production starts it from the Actions tab, with a role that may start the run and reaches no table.
 - **Date:** 2026-10-17. **Status:** Accepted. **Origin:** reconstructed; #311.

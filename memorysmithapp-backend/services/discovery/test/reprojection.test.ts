@@ -18,6 +18,8 @@ import {
   summarise,
   type NotebookResult,
   type ReadNote,
+  compactOf,
+  type NotebookOutcome,
 } from '../src/adapters/reprojection.js';
 
 /** A note as the rebuild reads it: from its bytes, by the current rules. */
@@ -202,6 +204,35 @@ describe('the summary of a run over every notebook', () => {
     expect(summary.failed).toEqual([
       { subscriptionId: 'sub', notebookId: 'broken', failed: true, error: 'NoSuchVersion' },
     ]);
+  });
+
+  it('carries a notebook that changed nothing as its counts alone, and sums it the same (#472)', () => {
+    const quiet = compactOf(rebuilt('one', 0) as NotebookOutcome);
+    expect(quiet).toEqual([3, 1, 4, 4, 2]);
+    // One that changed keeps its address, which the summary names.
+    expect(compactOf(rebuilt('two', 2) as NotebookOutcome)).toMatchObject({ notebookId: 'two' });
+    const summary = summarise('apply', [quiet, compactOf(rebuilt('two', 2) as NotebookOutcome)]);
+    expect(summary).toMatchObject({
+      notebooks: 2,
+      rebuilt: 2,
+      notes: 6,
+      edgesBefore: 8,
+      gained: 2,
+    });
+    expect(summary.changed).toEqual([
+      { subscriptionId: 'sub', notebookId: 'two', gained: 2, lost: 0 },
+    ]);
+  });
+
+  it('keeps the answers of thousands of quiet notebooks far under what a state may carry', () => {
+    const answers = Array.from({ length: 1600 }, (_, index) =>
+      compactOf({
+        ...(rebuilt('01M7FK4YH6QAZKM19GZYFHRWWA', 0) as NotebookOutcome),
+        notes: 1000 + index,
+      }),
+    );
+    // A Distributed Map hands its results to the next state, which carries 256 KB.
+    expect(JSON.stringify(answers).length).toBeLessThan(64 * 1024);
   });
 
   it('is not good when an edge was lost, and names the edge', () => {
