@@ -5823,7 +5823,8 @@ button.attachment-thumb:focus-visible {
 }
 /* A card of About darkens its edge under the mouse, as every card does. */
 .about .about-list > div:hover,
-.about .about-steps li:hover {
+.about .about-steps li:hover,
+.about .about-asks li:hover {
   border-color: var(--text-soft);
 }
 .about .about-steps li {

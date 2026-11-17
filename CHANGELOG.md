@@ -41,6 +41,8 @@ issues each entry cites.
 
 - **The steps of the About page follow the screens of Claude and ChatGPT as they are today.** In Claude, connectors are under *Plugins*, the field is *MCP server URL*, and the tools are refreshed from *Your plugins*; in ChatGPT, a server is added from *Plugins → Add → Add custom MCP server* and created with *Create as a plugin*, and the tools are refreshed with *Refresh tools*. `whoami` gives the same steps. (#471)
 
+- **The cards of *What to ask first*, on the About page, darken their edge under the mouse**, as every other card of the page does. (#471)
+
 - **The About page names the one setting each assistant needs to keep files.** For Claude, network access on and `*.memorysmith.app` among the allowed domains unless they are all allowed; for ChatGPT, *Work network access* on. It no longer says that ChatGPT's code cannot reach the network, nor sends anybody to *Aguardando você*: when an assistant cannot reach the upload host, the person attaches the file from the note's editor. A line for every assistant says that MemorySmith keeps exactly what the assistant sends, and that a kept file can be checked against the original on the files of the notebook. (#471)
 
 - **The Tables page only reads.** An open table no longer shows *Delete table*: the page shows a table's rows and schema, and nothing on it changes the table. A table is deleted by asking the agent, through the connector, as it is created and written. (#462)
