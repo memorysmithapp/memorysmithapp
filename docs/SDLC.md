@@ -67,7 +67,7 @@ Each is created with `gh label create <label> --color <color> --description "<de
 
 **An issue before implementing.** When the owner asks for an opinion, or says "open the issue", the answer is to register the issue and ask; implementation starts only on an explicit go-ahead.
 
-**The go-ahead puts the issue in a milestone**, the version that will carry it, and work starts on the branch [§3](#3-branches) assigns it: for anything deployed, that milestone's `release/vX.Y.Z`, created from `main` if it does not exist yet. An issue whose change reaches `main` by a single-purpose branch takes the milestone of the next version, the one whose cut carries its `[Unreleased]` entry.
+**The go-ahead puts the issue in a milestone**, the version that will carry it, and work starts on the branch [§3](#3-branches) assigns it: for anything deployed, that milestone's `release/vX.Y.Z`, created from `main` if it does not exist yet. An issue whose change reaches `main` by a single-purpose branch takes the milestone of the next version, the one whose cut carries its `[Unreleased]` entry: while a `release/vX.Y.Z` is open, that release's, since its branch brings `main` in before its cut ([§3](#3-branches)); otherwise the version after the last released one.
 
 **A milestone per version declares its scope.** An issue in milestone `vX.Y.Z` is accepted for that cycle; one without a milestone has not been decided yet. A larger piece of work is one parent issue with **sub-issues** for its parts, in the order they are built.
 
@@ -103,6 +103,10 @@ A single-purpose branch reaches `main` with a pull request of its own only when 
 
 A cycle has **one** branch and **one** pull request to `main` at its end. No pull request to `main` is opened per issue: it would need a branch per issue and leave a merge button available with the version half done. A `feat/` or `fix/` branch opens its pull request against the release branch of its milestone.
 
+**Where a branch starts.** A `release/vX.Y.Z`, a `docs/` and a `chore/` branch are created from `main`, the branch they reach; a `feat/` or `fix/` branch is created from the release branch it lands on.
+
+**The open cycle brings `main` in** whenever `main` gained a commit the release branch does not have — a `docs/` or `chore/` pull request, or a patch version ([§11](#11-rollback)) — and at the latest before its cut: a merge of `main` committed on the release branch itself, which is not `main` and takes no pull request. In `CHANGELOG.md` the sections already released stay as `main` has them, and `[Unreleased]` holds the entries of both: the cycle's and those `main` gained.
+
 ## 4. Commits
 
 **Conventional Commits, imperative mood:** `feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `test:`, `refactor:`, with a scope when it helps (`feat(knowledge): …`). The body says why, and references the issue by `#N` and the rule by its `RN-*` code.
@@ -132,7 +136,7 @@ On `main`, documents and code never diverge. Inside a branch they move in step: 
 
 ## 5. When an issue closes
 
-The issue of a delivery closes **when its commit lands on the branch of the cycle**, the `release/vX.Y.Z` of its milestone, not when that branch reaches `main`: committed there, or merged there from a `feat/` or `fix/` branch. A commit on a `feat/` or `fix/` branch closes nothing. The issue of a change that reaches `main` by a single-purpose branch ([§3](#3-branches)) closes instead when its pull request is merged to `main`, and its comment names the merge commit: until then the owner has not accepted the change, and it may never reach `main`. The issue stays in its milestone and closes as `completed`, with a comment naming the commit. A refused issue closes as *not planned*, with the reason.
+The issue of a delivery closes **when its commit lands on the branch of the cycle**, the `release/vX.Y.Z` of its milestone, not when that branch reaches `main`: committed there, or merged there from a `feat/` or `fix/` branch, when the comment names the merge commit on the release branch, where the change landed. A commit on a `feat/` or `fix/` branch closes nothing. The issue of a change that reaches `main` by a single-purpose branch ([§3](#3-branches)) closes instead when its pull request is merged to `main`, and its comment names the merge commit: until then the owner has not accepted the change, and it may never reach `main`. The issue stays in its milestone and closes as `completed`, with a comment naming the commit. A refused issue closes as *not planned*, with the reason.
 
 The consequence is counterintuitive and accepted: during the cycle there are closed issues whose work is not in production yet. What declares the scope of the version is the **milestone**; what takes everything to `main` is the single pull request of the cycle.
 
@@ -140,7 +144,7 @@ The consequence is counterintuitive and accepted: during the cycle there are clo
 
 A pull request references issues by `#N`, **never with `Closes #N`** or another closing keyword: the issue of a cycle closed already, when its commit landed on the release branch, and the issue of a single-purpose branch is closed after the merge with a comment naming the merge commit ([§5](#5-when-an-issue-closes)).
 
-Every PR description has three sections, in this order.
+Every PR description has three sections, in this order; the pull request of a release has a fourth, last one, [§6.4](#64-agent-evaluation).
 
 ### 6.1 Summary of changes
 
@@ -192,6 +196,17 @@ Collect the data from the git history and the diff, without guessing and without
   - Expressed in hours, for example `8h`; `< 1h` when very small.
 - **Total estimated effort:** `{total_days}` = `{hours}` ÷ 8 and `{total_weeks}` = `{hours}` ÷ 40, rounded to one decimal place. An estimate of `< 1h` counts as `0.5h`, noted on the line.
 
+### 6.4 Agent evaluation
+
+```
+## Agent evaluation
+
+{the scorecard of the round run against staging (§8): the version it ran on, each case and its result}
+{or: no round ran for this release, and the merge is the author's decision}
+```
+
+Only on the pull request of a release. Like the staging validation, it informs the merge and never blocks it.
+
 ## 7. A blocked merge
 
 **If a merge is blocked, stop and report.** The protection of `main` is not worked around, even with administrative rights to do so: the ruleset and the branch protection are the real layer of guarantee, and going around them silently defeats the reason they exist. Report what blocked it, and let the owner decide.
@@ -204,7 +219,7 @@ Collect the data from the git history and the diff, without guessing and without
 
 **What staging adds.** The workflow *Staging* delivers a branch to staging and closes with the smoke; on request it also runs the adapter tests against the real services and the functional suite, a browser driving the deployed product. A defect found there becomes a case of the suite before it is fixed.
 
-**The agent evaluation.** Before the pull request of a release is merged, a round of the agent evaluation (`pnpm tools agent-eval`, in `tools/agent-eval/`) runs against staging, and its scorecard is posted on the issue of the cycle. Like the staging validation, it informs the merge and never blocks it. A case changes only in a commit of its own, never inside the round that reads it.
+**The agent evaluation.** Before the pull request of a release is merged, a round of the agent evaluation (`pnpm tools agent-eval`, in `tools/agent-eval/`) runs against staging, and its scorecard is posted in the pull request of the release ([§6.4](#64-agent-evaluation)). Like the staging validation, it informs the merge and never blocks it. A case changes only in a commit of its own, never inside the round that reads it.
 
 **A maintainer reviews and merges** every pull request to `main`, and the merge is the review: no approval is required, and no review is requested by a file, since who may merge is the branch protection's ([§1](#1-the-life-cycle-of-a-change)). A contributor's cycle reaches `main` only by a maintainer's merge.
 
@@ -249,7 +264,7 @@ A released version that turns out wrong is **never undone by moving or deleting 
 
 Production returns to the previous behaviour through a **new patch version**: the fix, or the revert of the offending commits, enters `[Unreleased]` under `Fixed` on the `release/vX.Y.Z` of that patch version, committed there or brought there from a `fix/` branch ([§3](#3-branches)), is cut, and is delivered by the flow of [§10](#10-release). `release-checks` refuses to deliver a version that is tagged already on another commit, so a revert merged without a bump stops before production. Data written meanwhile stays: a migration is never reversed by a rollback, which is why a destructive key or schema migration is a major bump ([§9](#9-versioning)).
 
-**A fix of a released version while a cycle is open** becomes a patch version of its own when the released version is wrong in a way a person meets before the open cycle is cut; otherwise it enters the open cycle under `Fixed`. The criterion is the owner's, and the go-ahead says which. The patch is the `release/vX.Y.Z` of that patch version, created from `main`; once it is merged, the open cycle's branch brings `main` in, so that its manifests and `CHANGELOG.md` keep the released patch.
+**A fix of a released version while a cycle is open** becomes a patch version of its own when the released version is wrong in a way a person meets before the open cycle is cut; otherwise it enters the open cycle under `Fixed`. The criterion is the owner's, and the go-ahead says which. The patch is the `release/vX.Y.Z` of that patch version, created from `main`; once it is merged, the open cycle's branch brings `main` in ([§3](#3-branches)), so that its manifests and `CHANGELOG.md` keep the released patch.
 
 ## 12. Done criteria
 
