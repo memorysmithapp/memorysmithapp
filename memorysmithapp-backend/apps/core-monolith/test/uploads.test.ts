@@ -307,6 +307,31 @@ describe('an upload whose parts travel by URL', () => {
   });
 });
 
+describe('a file above the 100 MB of before (#482)', () => {
+  it('is kept whole when the plan has room for it, bounded by nothing else', async () => {
+    const notebookId = await notebook('Caderno do arquivo grande');
+    const whole = picture(101 * 1024 * 1024);
+    const status = uploadStatusSchema.parse(
+      await (
+        await begin({
+          notebookId,
+          name: 'video grande',
+          mimeType: 'image/png',
+          purpose: 'Um arquivo maior que o teto de antes',
+          size: whole.length,
+          sha256: sha(whole),
+        })
+      ).json(),
+    );
+    sendByUrl(status, whole);
+    const finished = await call(`/portability/uploads/${status.transfer.transferId}/finish`, {
+      method: 'POST',
+    });
+    expect(finished.status).toBe(200);
+    expect(finishedUploadSchema.parse(await finished.json()).bytes).toBe(whole.length);
+  });
+});
+
 describe('a file above 4 MB, sent in parts (#381)', () => {
   it('comes back whole in a notebook created from a model that holds it', async () => {
     const notebookId = await notebook('Modelo com foto grande');

@@ -180,9 +180,10 @@ export class KeepFile {
 }
 
 /**
- * What one file may be when an upload in parts assembled it (RN-PRT-027). Its
- * bytes never travel in a request, so the ceiling is not the transport's: it is
- * what the finish can hash and copy inside the time a request lives.
+ * What a file inside an archive of format 1.5 may be, whose bytes travel
+ * base64 inside the document and are kept in one call: the ceiling an upload in
+ * parts had before #482, which no such archive exceeds. A file assembled from
+ * parts has no ceiling of its own: the room of the plan bounds it (RN-SUB-025).
  */
 export const MAX_ASSEMBLED_BYTES = 100 * 1024 * 1024;
 
@@ -265,13 +266,6 @@ export class KeepAssembledFile {
     }
     if (input.assembled.size <= 0) {
       return err(DomainError.validation('A file with no bytes is not a file'));
-    }
-    if (input.assembled.size > MAX_ASSEMBLED_BYTES) {
-      return err(
-        DomainError.limitExceeded(
-          `A file sent in parts goes up to ${MAX_ASSEMBLED_BYTES / (1024 * 1024)} MB`,
-        ),
-      );
     }
     const start = await this.deps.fileStore.peekAssembled(
       input.assembled.key,
