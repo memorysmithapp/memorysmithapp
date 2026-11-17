@@ -921,8 +921,7 @@
         "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
       },
       "grok": {
-        "one": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar.",
-        "two": "Comece uma conversa nova, anexe o arquivo e peça para guardá-lo."
+        "one": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar."
       }
     }
   },

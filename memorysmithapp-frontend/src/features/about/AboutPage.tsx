@@ -38,13 +38,12 @@ type Client = (typeof CLIENTS)[number];
 
 /**
  * What sending a file through each client needs, in the order it is met
- * (#244). Grok needs no setting and refreshes its tools by itself, so it has
- * fewer steps than the others (#465).
+ * (#244). Grok needs no setting at all, so its one step says so (#465).
  */
 const FILE_STEPS: Readonly<Record<Client, readonly string[]>> = {
   claude: ['one', 'two', 'three'],
   chatgpt: ['one', 'two', 'three'],
-  grok: ['one', 'two'],
+  grok: ['one'],
 };
 
 /**

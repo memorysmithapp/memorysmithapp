@@ -918,8 +918,7 @@
         "three": "These changes reach <b>new conversations</b>: start one, attach the file and ask for it to be kept. An upload left halfway is resumed there, without starting over."
       },
       "grok": {
-        "one": "Grok's code reaches the address above as it comes: there is no setting to change.",
-        "two": "Start a new conversation, attach the file and ask for it to be kept."
+        "one": "Grok's code reaches the address above as it comes: there is no setting to change."
       }
     }
   },
