@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-17
+
 ### Added
 
 - **An agent can tell whether it reaches the upload host before sending a file.** The upload host answers `GET /probe` with a fixed text, and `whoami` gives the agent that address and that text, with what to do when something else comes back: open no upload, and tell the person which setting their assistant needs, or that they can attach the file from the note's editor. Until now the agent could only guess from a `403`, which the host and a proxy that blocks it both answer. (#467)
@@ -1121,7 +1123,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...v0.17.0
