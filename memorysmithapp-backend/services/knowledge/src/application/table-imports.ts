@@ -2,7 +2,7 @@
  * Rows from a file the notebook keeps: a CSV or an Excel workbook (#366).
  *
  * The file arrives the way every file does, kept whole through the upload in
- * parts or by a request the person fulfils (RN-PRT-027, RN-PRT-030), and this
+ * parts or attached by the person from the editor (RN-PRT-027, RN-KNW-054), and this
  * reads it. Without a table, or with `dryRun`, it writes nothing and answers
  * the schema the sheet suggests and a few rows, for the agent to show the
  * person before anything is created. Into a table, every row of the sheet is

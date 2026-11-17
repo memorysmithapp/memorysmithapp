@@ -34,6 +34,10 @@ import {
   CachePolicy,
   CacheQueryStringBehavior,
   Distribution,
+  Function as CloudFrontFunction,
+  FunctionCode,
+  FunctionEventType,
+  FunctionRuntime,
   OriginProtocolPolicy,
   OriginRequestPolicy,
   PriceClass,
@@ -47,6 +51,7 @@ import type { Construct } from 'constructs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
+import { UPLOAD_PROBE } from '@memorysmithapp/contracts';
 import { ServiceLambda } from '../constructs/service-lambda.js';
 import { accessLogOf } from '../constructs/access-log.js';
 import { hostOf } from '../constructs/deployment.js';
@@ -387,6 +392,12 @@ export class ApiStack extends Stack {
      * its owner deleting it would — the archive by its revision under
      * `models/`, the record, the counter of what it occupied — and says the
      * entries of the catalog again. It reaches no notebook and no note.
+     *
+     * Invoked with `job: "discard-file-requests"`, the same function discards
+     * the file requests and the inline uploads left open when they were retired
+     * (#469, #468): the records, the counters of the room they reserved, and the
+     * parts by their revision under `uploads/`. One function for both keeps the
+     * roles that deliver, which may invoke it, as they are.
      */
     const forgetVersions = new ServiceLambda(this, 'ForgetModelVersions', {
       entry: join(backend, 'apps', 'core-monolith', 'src', 'forget-model-versions.handler.ts'),
@@ -415,7 +426,10 @@ export class ApiStack extends Stack {
     forgetVersions.function.addToRolePolicy(
       new PolicyStatement({
         actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
-        resources: [props.data.contentBucket.arnForObjects('s/*/models/*')],
+        resources: [
+          props.data.contentBucket.arnForObjects('s/*/models/*'),
+          props.data.contentBucket.arnForObjects('s/*/uploads/*'),
+        ],
       }),
     );
 
@@ -642,6 +656,18 @@ export class ApiStack extends Stack {
       }),
     );
     /**
+     * The finish of an upload in parts runs here since #480: it joins the
+     * parts, reads the whole back to hold it to its hash, copies it where a
+     * file lives and destroys what it joined, the delete of a version the API
+     * holds for `uploads/` and for nothing else.
+     */
+    transfers.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
+        resources: [props.data.contentBucket.arnForObjects('s/*/uploads/*')],
+      }),
+    );
+    /**
      * The trail, read and appended to and nothing else: an export may carry
      * the history of a notebook and an import writes one back, keeping the
      * person and the instant each entry carried (RN-PRT-022, RN-PRT-023).
@@ -798,7 +824,38 @@ export class ApiStack extends Stack {
      * only what a signature of S3 already allows, and the bucket keeps blocking
      * public access. The Origin header travels too, so the CORS of the bucket
      * answers the site as it does on the bucket's own host.
+     *
+     * One path is answered by the host itself: `GET /probe` (#467), with `200`
+     * and the fixed body of `UPLOAD_PROBE`, by a function at the edge, so no
+     * request reaches the bucket or a Lambda. An agent's code fetches it before
+     * it opens an upload: every other unsigned GET here answers `403`, as the
+     * egress proxy of a chat that blocks the host does, so only that body says
+     * the sandbox reaches this host.
      */
+    const uploadsOriginOfBucket = new HttpOrigin(
+      props.data.contentBucket.bucketRegionalDomainName,
+      {
+        protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+      },
+    );
+    const probe = new CloudFrontFunction(this, 'UploadsProbe', {
+      comment: 'Answers GET /probe on the upload host, at the edge (#467)',
+      runtime: FunctionRuntime.JS_2_0,
+      code: FunctionCode.fromInline(`
+function handler(event) {
+  return {
+    statusCode: 200,
+    statusDescription: 'OK',
+    headers: {
+      'content-type': { value: 'text/plain; charset=utf-8' },
+      'cache-control': { value: 'no-store' },
+      'access-control-allow-origin': { value: '*' },
+    },
+    body: { encoding: 'text', data: ${JSON.stringify(UPLOAD_PROBE.body)} },
+  };
+}
+`),
+    });
     const uploads = new Distribution(this, 'UploadsDistribution', {
       comment: `MemorySmith uploads (${props.environment.name})`,
       ...(props.uploadsCertificate
@@ -806,13 +863,20 @@ export class ApiStack extends Stack {
         : {}),
       priceClass: PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
-        origin: new HttpOrigin(props.data.contentBucket.bucketRegionalDomainName, {
-          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
-        }),
+        origin: uploadsOriginOfBucket,
         allowedMethods: AllowedMethods.ALLOW_ALL,
         cachePolicy: CachePolicy.CACHING_DISABLED,
         originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+      },
+      additionalBehaviors: {
+        [UPLOAD_PROBE.path]: {
+          origin: uploadsOriginOfBucket,
+          allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
+          cachePolicy: CachePolicy.CACHING_DISABLED,
+          viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
+          functionAssociations: [{ function: probe, eventType: FunctionEventType.VIEWER_REQUEST }],
+        },
       },
     });
     if (props.hostedZone) {
@@ -841,9 +905,26 @@ export class ApiStack extends Stack {
      * that sandboxes the document and allows no script make that hold by
      * header too — an SVG opened in its own tab runs nothing, while a picture,
      * a PDF and a recording still show where they are opened.
+     *
+     * It answers the site with CORS on a read, and nothing else (#466,
+     * RN-KNW-090): the files page reads the bytes of a kept file with `fetch`
+     * to check it against the person's original, which a canvas cannot do
+     * with an `<img>` of another origin. Only the product's own origin, only
+     * GET and HEAD, no credentials: what a script of the site can read is what
+     * the signed link already let anyone holding it download.
      */
     const filesHeaders = new ResponseHeadersPolicy(this, 'FilesHeaders', {
       comment: `MemorySmith files (${props.environment.name})`,
+      corsBehavior: {
+        accessControlAllowCredentials: false,
+        accessControlAllowHeaders: ['*'],
+        accessControlAllowMethods: ['GET', 'HEAD'],
+        accessControlAllowOrigins: [props.frontendOrigin],
+        // A kept export is read by ranges to show what it holds (#484): the
+        // page learns the size of the whole from the range it was answered.
+        accessControlExposeHeaders: ['Content-Range', 'Content-Length', 'Accept-Ranges'],
+        originOverride: true,
+      },
       securityHeadersBehavior: {
         contentTypeOptions: { override: true },
         contentSecurityPolicy: {

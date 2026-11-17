@@ -59,7 +59,12 @@ export interface TransferWork {
   readonly subscriptionId: string;
   readonly userId: string;
   readonly transferId: string;
-  readonly kind: 'export' | 'import';
+  /**
+   * `finish` is the finish of an upload in parts (#480): joining the parts and
+   * holding the whole to its hash take time a large file does not fit in the
+   * 29 seconds of the API.
+   */
+  readonly kind: 'export' | 'import' | 'finish';
   readonly notebookId?: string | undefined;
   /**
    * An import that creates a notebook from a model (#359): the parameters it
@@ -316,12 +321,8 @@ export class CancelTransfer {
      * notebook it had started back down. An export writes nothing anybody can
      * see until it ends, so there is nothing to undo and nothing to stop.
      */
-    if (found.kind === 'agent' || found.kind === 'request') {
-      return err(
-        DomainError.conflict(
-          `${found.kind === 'agent' ? 'An upload' : 'A request'} is not cancelled: deleting it throws it away`,
-        ),
-      );
+    if (found.kind === 'agent') {
+      return err(DomainError.conflict('An upload is not cancelled: deleting it throws it away'));
     }
     if (found.kind !== 'import') {
       return err(
@@ -433,13 +434,6 @@ export class DeleteTransfer {
   async execute(transferId: string): Promise<Result<void, DomainError>> {
     const found = await this.transfers.get(this.userId, transferId);
     if (!found) return err(DomainError.notFound('Transfer not found'));
-    // A request holds no bytes and no room: dismissing it is its record going
-    // (RN-PRT-030). An upload already fulfilling it stays, and still keeps the
-    // file it names.
-    if (found.kind === 'request') {
-      await this.transfers.remove(this.userId, transferId);
-      return ok(undefined);
-    }
     if (found.kind === 'agent') {
       await this.discard(found);
       await this.transfers.remove(this.userId, transferId);

@@ -22,6 +22,8 @@ export interface MaintenanceJob {
    * bucket.
    */
   readonly function?: string;
+  /** The job a function shared by several runs, named in the event it is invoked with. */
+  readonly event?: string;
   /** What it rebuilds, as a person reads it, or what it deletes, for a job that deletes. */
   readonly rebuilds?: string;
   readonly deletes?: string;
@@ -66,6 +68,13 @@ export const MAINTENANCE_JOBS = {
   'forget-model-versions': {
     function: 'mv-forget-model-versions',
     deletes: 'the versions notebook models kept before they were read as they stand',
+  },
+  // request_file and the inline transport were retired (#469, #468), and what
+  // they left open goes, by the same function, run with the delivery.
+  'discard-file-requests': {
+    function: 'mv-forget-model-versions',
+    event: 'discard-file-requests',
+    deletes: 'the file requests and the inline uploads left open when they were retired',
   },
 } as const satisfies Record<string, MaintenanceJob>;
 
@@ -256,5 +265,35 @@ export function forgetLines(summary: ForgetSummary): string[] {
 
 /** A run that was asked to apply fails when any version stayed. */
 export function forgetExitCode(summary: ForgetSummary): number {
+  return summary.mode === 'apply' && summary.failures.length > 0 ? 1 : 0;
+}
+
+/** What the discard of the file requests and inline uploads answers (#469). */
+export interface DiscardSummary {
+  readonly job: 'discard-file-requests';
+  readonly mode: 'report' | 'apply';
+  readonly requests: number;
+  readonly inlineUploads: number;
+  readonly subscriptions: number;
+  readonly reservedBytes: number;
+  readonly discarded: number;
+  readonly failures: readonly string[];
+}
+
+/** The summary as a person reads it, one fact a line. */
+export function discardLines(summary: DiscardSummary): string[] {
+  return [
+    `${summary.requests} file requests and ${summary.inlineUploads} inline uploads left open, in ${summary.subscriptions} subscriptions; the uploads reserve ${summary.reservedBytes} bytes.`,
+    ...(summary.mode === 'apply'
+      ? [
+          `${summary.discarded} discarded, the room they reserved given back.`,
+          ...summary.failures.map((failure) => `Not discarded: ${failure}`),
+        ]
+      : ['Nothing was discarded: this was a report.']),
+  ];
+}
+
+/** A run that was asked to apply fails when anything stayed. */
+export function discardExitCode(summary: DiscardSummary): number {
   return summary.mode === 'apply' && summary.failures.length > 0 ? 1 : 0;
 }

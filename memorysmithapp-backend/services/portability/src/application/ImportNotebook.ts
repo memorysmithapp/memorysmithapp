@@ -84,6 +84,7 @@ export const READABLE_DOCUMENT_VERSIONS: readonly string[] = [
   '1.3',
   '1.4',
   '1.5',
+  '1.6',
 ];
 
 /**
@@ -110,11 +111,45 @@ export function refusalOf(error: DomainError): string {
   return details?.reason ?? details?.code ?? error.code;
 }
 
+/**
+ * An object a file of the archive was copied into, without its bytes passing
+ * through the function, for the door an upload in parts uses to adopt it
+ * (RN-PRT-092): its key, the revision written and how many bytes it holds.
+ */
+export interface StagedEntry {
+  readonly key: string;
+  readonly versionId: string;
+  readonly size: number;
+}
+
+/**
+ * An uploaded archive, read where it is (RN-PRT-093): its central directory
+ * once, then each entry by its range, so a file of the archive is never held
+ * whole by whoever imports it.
+ */
+export interface UploadedArchive {
+  /** The names of its entries, as its central directory says them. */
+  readonly entries: readonly string[];
+  /** One entry whole, as text: the document. */
+  text(name: string): Promise<string>;
+  /**
+   * Copies the bytes of one entry into an object at `key`, inside the store;
+   * `null` when the archive has no such entry, or one it cannot read.
+   */
+  stage(name: string, key: string): Promise<StagedEntry | null>;
+}
+
 /** Where an uploaded document is read from, and what happens to it after. */
 export interface UploadStore {
   /** A short-lived address the client uploads to, under the subscription. */
   presignUpload(key: string, expiresInSeconds: number): Promise<string>;
-  read(key: string): Promise<Buffer | null>;
+  /**
+   * The archive at `key`, its directory read; `null` when nothing is there,
+   * and `'not-an-archive'` when what is there is not a zip.
+   */
+  open(key: string): Promise<UploadedArchive | null | 'not-an-archive'>;
+  /** Destroys what `stage` wrote, once its file was kept or refused. */
+  discardStaged(staged: StagedEntry): Promise<void>;
   /** The upload is discarded once the import ends, whichever way it ended. */
   discard(key: string): Promise<void>;
   /**
@@ -182,6 +217,22 @@ export interface NotebookWriter {
     tags: readonly string[];
     path: string;
     bytes: Uint8Array;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
+  /**
+   * Keeps one file of a `1.6` archive (RN-PRT-092): its entry, copied into an
+   * object of this subscription, adopted through the door an upload in parts
+   * goes through, so its type is checked against its first bytes and the
+   * whole is held to the SHA-256 the document declares before it is kept.
+   */
+  keepStagedFile(input: {
+    notebookId: string;
+    name: string;
+    description: string;
+    mimeType: string;
+    tags: readonly string[];
+    path: string;
+    staged: StagedEntry & { readonly sha256: string };
     by: Authorship;
   }): Promise<Result<void, DomainError>>;
   /**
@@ -397,7 +448,6 @@ export class ImportNotebook {
   constructor(
     private readonly uploads: UploadStore,
     private readonly writer: NotebookWriter,
-    private readonly unzip: (archive: Buffer) => Record<string, string>,
     /**
      * Parses and validates the document against the published schema. It is
      * injected for the same reason the export's serialiser is: the schema
@@ -454,12 +504,18 @@ export class ImportNotebook {
       return err(DomainError.notFound('Upload not found'));
     }
 
-    const archive = await this.uploads.read(input.uploadKey);
-    if (!archive) return err(DomainError.notFound('Upload not found'));
-
     try {
+      const archive = await this.uploads.open(input.uploadKey);
+      if (!archive) return err(DomainError.notFound('Upload not found'));
+      if (archive === 'not-an-archive') {
+        return err(
+          DomainError.validation('That file is not a .notebook archive', {
+            reason: IMPORT_REFUSALS.notAnArchive,
+          }),
+        );
+      }
       const selection = input.selection ?? null;
-      const document = this.readDocument(archive, selection);
+      const document = await this.readDocument(archive, selection);
       if (!document.ok) return document;
       let written = document.value;
       if (input.fill) {
@@ -473,6 +529,8 @@ export class ImportNotebook {
         written = fillDocument(written, values.value);
       }
       return await this.write(
+        archive,
+        input.uploadKey,
         written,
         input.name,
         input.by,
@@ -494,26 +552,25 @@ export class ImportNotebook {
     }
   }
 
-  private readDocument(
-    archive: Buffer,
+  private async readDocument(
+    archive: UploadedArchive,
     selection: ImportSelection | null,
-  ): Result<NotebookDocument, DomainError> {
-    let entries: Record<string, string>;
+  ): Promise<Result<NotebookDocument, DomainError>> {
+    const entry = archive.entries.find((name) => name.endsWith('.json'));
+    if (entry === undefined) {
+      return err(
+        DomainError.validation('That archive carries no notebook document', {
+          reason: IMPORT_REFUSALS.noDocument,
+        }),
+      );
+    }
+    let json: string;
     try {
-      entries = this.unzip(archive);
+      json = await archive.text(entry);
     } catch {
       return err(
         DomainError.validation('That file is not a .notebook archive', {
           reason: IMPORT_REFUSALS.notAnArchive,
-        }),
-      );
-    }
-
-    const json = Object.entries(entries).find(([name]) => name.endsWith('.json'))?.[1];
-    if (json === undefined) {
-      return err(
-        DomainError.validation('That archive carries no notebook document', {
-          reason: IMPORT_REFUSALS.noDocument,
         }),
       );
     }
@@ -536,6 +593,22 @@ export class ImportNotebook {
           { reason: IMPORT_REFUSALS.unreadableVersion, version: document.documentVersion },
         ),
       );
+    }
+
+    // Every file the document names an entry for is in the archive, or the
+    // archive is refused here, whole, before the first write: finding it
+    // missing at the file would mean undoing a notebook half written
+    // (RN-PRT-014, RN-PRT-092).
+    const held = new Set(archive.entries);
+    for (const file of document.files ?? []) {
+      if (file.entry !== undefined && !held.has(file.entry)) {
+        return err(
+          DomainError.validation(
+            `That archive names an entry for the file "${file.name}" that it does not hold`,
+            { reason: IMPORT_REFUSALS.badFormat, name: file.name },
+          ),
+        );
+      }
     }
 
     // A folder holds one live note of each name (RN-KNW-042), and a document
@@ -573,6 +646,8 @@ export class ImportNotebook {
    * because an import that stopped halfway is not a notebook anybody asked for.
    */
   private async write(
+    archive: UploadedArchive,
+    uploadKey: string,
     document: NotebookDocument,
     name: string | null,
     by: Authorship,
@@ -705,6 +780,7 @@ export class ImportNotebook {
      * #176).
      */
     const wantedFiles = selection?.files;
+    let staging = 0;
     for (const file of (document.files ?? []).filter(
       (file) => wantedFiles === undefined || wantedFiles.includes(file.name),
     )) {
@@ -715,16 +791,31 @@ export class ImportNotebook {
           }),
         );
       }
-      const keep = await this.writer.keepFile({
-        notebookId,
-        name: file.name,
-        description: file.description,
-        mimeType: file.mimeType,
-        tags: file.tags,
-        path: file.path,
-        bytes: new Uint8Array(Buffer.from(file.bytes, 'base64')),
-        by,
-      });
+      const keep =
+        file.entry !== undefined && file.sha256 !== undefined
+          ? await this.keepEntry(archive, uploadKey, (staging += 1), {
+              notebookId,
+              name: file.name,
+              description: file.description,
+              mimeType: file.mimeType,
+              tags: file.tags,
+              path: file.path,
+              entry: file.entry,
+              sha256: file.sha256,
+              by,
+            })
+          : // A file of a document up to `1.5` carries its bytes base64, and
+            // is kept as it always was (RN-PRT-092).
+            await this.writer.keepFile({
+              notebookId,
+              name: file.name,
+              description: file.description,
+              mimeType: file.mimeType,
+              tags: file.tags,
+              path: file.path,
+              bytes: new Uint8Array(Buffer.from(file.bytes ?? '', 'base64')),
+              by,
+            });
       if (!keep.ok) return undo(keep);
     }
 
@@ -804,6 +895,68 @@ export class ImportNotebook {
         document.folders.some((folder) => folder.folderId === folderId && folder.template !== null),
       ).length,
     });
+  }
+
+  /**
+   * Keeps the file of one entry of a `1.6` archive (RN-PRT-092, RN-PRT-093).
+   *
+   * The entry is copied into an object beside the uploads in parts of the
+   * subscription, inside the store, and adopted as one of them is: its first
+   * bytes say whether it is the type declared, the whole is hashed as it is
+   * read and held to the SHA-256 the document declares, and only then is it
+   * copied where a file lives. What was staged is destroyed whichever way the
+   * keep went, since it was only the means of getting the bytes there.
+   */
+  private async keepEntry(
+    archive: UploadedArchive,
+    uploadKey: string,
+    n: number,
+    file: {
+      notebookId: string;
+      name: string;
+      description: string;
+      mimeType: string;
+      tags: readonly string[];
+      path: string;
+      entry: string;
+      sha256: string;
+      by: Authorship;
+    },
+  ): Promise<Result<void, DomainError>> {
+    // Under the uploads of the subscription, which is the prefix a file is
+    // adopted from (INV-01), and named after the upload of the import.
+    const upload =
+      uploadKey
+        .split('/')
+        .pop()
+        ?.replace(/\.notebook$/, '') ?? ulid();
+    const staged = await archive.stage(
+      file.entry,
+      `s/${this.subscriptionId}/uploads/${upload}/entries/${n}`,
+    );
+    if (!staged) {
+      return err(
+        DomainError.validation(
+          `That archive names an entry for the file "${file.name}" that it does not hold`,
+          { reason: IMPORT_REFUSALS.badFormat, name: file.name },
+        ),
+      );
+    }
+    try {
+      return await this.writer.keepStagedFile({
+        notebookId: file.notebookId,
+        name: file.name,
+        description: file.description,
+        mimeType: file.mimeType,
+        tags: file.tags,
+        path: file.path,
+        staged: { ...staged, sha256: file.sha256 },
+        by: file.by,
+      });
+    } finally {
+      // Like the upload itself, a discard that fails is not a failed import.
+      await this.uploads.discardStaged(staged).catch(() => undefined);
+    }
   }
 
   /**

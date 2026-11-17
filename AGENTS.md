@@ -46,7 +46,9 @@ One line each; the reason lives where the link points.
 
 - `main` is protected: every change reaches it through a pull request. Never push to `main`; never use `--admin`, *Bypass rules*, `--no-verify` or an equivalent ([SDLC §1](docs/SDLC.md#1-the-life-cycle-of-a-change)).
 - A blocked merge means **stop and report**, never work around it ([SDLC §7](docs/SDLC.md#7-a-blocked-merge)).
-- An issue before implementing. An opinion asked for, or "open the issue", means register and ask; implement only on an explicit go-ahead from the owner ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
+- An issue before implementing. An opinion asked for, or "open the issue", means register and ask; implement only on an explicit go-ahead from the owner, which puts the issue in a milestone ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
+- A gap that reaches other repositories of the organization is registered at its origin, with a sub-issue in each repository it reaches, without asking whether to open them ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
+- Anything deployed lands on the `release/vX.Y.Z` of its issue's milestone, never on `main` from a `feat/` or `fix/` branch ([SDLC §3](docs/SDLC.md#3-branches)).
 - Nobody tags by hand, and nobody delivers production from a workstation ([SDLC §10](docs/SDLC.md#10-release)).
 - A document never describes the future: if it is in a document, it is true now ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
 - No version notes, revision dates or "internal document" footers inside documents ([SDLC §4](docs/SDLC.md#4-commits)).
@@ -56,7 +58,7 @@ One line each; the reason lives where the link points.
 - Everything is written in American English (en-US): documents, code, comments, commits, branches, labels, issue and PR text. Brazilian Portuguese exists only in the `pt_BR` locale of the interface, in what a person reporting an issue writes, and in the words of the person in a case of `tools/agent-eval/`.
 - In the `pt_BR` locale, and only there, Guidance is *Orientação*, Template is *Modelo de pasta*, Notebook model is *Modelo de caderno* and Notebook is *Caderno* ([PRD §5](docs/PRD.md#5-ubiquitous-language)).
 - The repository builds no container image; a Dockerfile, if one ever appears, comes with its `.dockerignore` in the same change.
-- Create or delete a GitHub repository, change a ruleset, or act on production data only with the owner's go-ahead in the session.
+- Create or delete a GitHub repository, change a ruleset or a branch protection, or act on production data only with the owner's go-ahead in the session.
 
 ## 5. Invariants
 
@@ -77,7 +79,7 @@ Breaking one is a rewrite, not a defect: when a task seems to require it, stop a
 - **INV-13** The per-notebook ceiling only lowers a role ([mechanism](docs/ARCHITECTURE.md#inv-13-the-per-notebook-ceiling-only-lowers-a-role)).
 - **INV-14** The version has one home, the root `package.json`, and every manifest and `CHANGELOG.md` agree ([mechanism](docs/ARCHITECTURE.md#inv-14-the-version-has-one-home)).
 - **INV-15** `.claude/CLAUDE.md` is exactly `@../AGENTS.md`, and no `CLAUDE.md` sits at the root ([mechanism](docs/ARCHITECTURE.md#inv-15-claudemd-is-only-the-import)).
-- **INV-16** `main` changes only through a pull request ([mechanism](docs/ARCHITECTURE.md#inv-16-main-changes-only-through-a-pull-request)).
+- **INV-16** `main` changes only through a pull request, merged by a maintainer ([mechanism](docs/ARCHITECTURE.md#inv-16-main-changes-only-through-a-pull-request)).
 - **INV-17** Only `publish-release` writes a tag, and a version names one commit ([mechanism](docs/ARCHITECTURE.md#inv-17-only-publish-release-writes-a-tag)).
 - **INV-18** The documents keep their form ([mechanism](docs/ARCHITECTURE.md#inv-18-the-documents-keep-their-form)).
 
@@ -102,5 +104,5 @@ Each command with the directory it runs in, what it does, and the date somebody 
 - [ ] `CHANGELOG.md` has the entry under `[Unreleased]`, in the same commit as the change, written from the side of the person and the agent.
 - [ ] Every document the change touches is updated in the same commit ([SDLC §4.1](docs/SDLC.md#41-when-a-commit-touches-each-document)).
 - [ ] `.gitignore` was assessed for every file or directory created, moved or deleted; no sensitive file is left untracked without an entry.
-- [ ] The commit is pushed, and the CI of the branch is green.
-- [ ] The issue is closed as `completed`, with a comment naming the commit ([SDLC §5](docs/SDLC.md#5-when-an-issue-closes)).
+- [ ] The commit is on the branch of the cycle ([SDLC §3](docs/SDLC.md#3-branches)), pushed, and the CI of the branch is green.
+- [ ] The issue, in its milestone, is closed as `completed`, with a comment naming the commit ([SDLC §5](docs/SDLC.md#5-when-an-issue-closes)).

@@ -7,7 +7,7 @@ import {
   getNotebookNames,
   getNotebookStructure,
 } from '../../shared/api/source';
-import { noteNameOf, splitFrontmatter } from '../../shared/api/markdown';
+import { noteNameOf, splitFrontmatter, toUnixNewlines } from '../../shared/api/markdown';
 import { blockOf, isBlockAnchor, sectionOf } from '../../shared/api/transclusion';
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
@@ -100,16 +100,28 @@ export function previewOf(raw: string, part: string | null, name: string | null)
     };
   }
   const cut = isBlockAnchor(part) ? blockOf(body, part.slice(1)) : sectionOf(body, part);
-  return cut === null ? { kind: 'missing', part } : { kind: 'part', raw: cut };
+  if (cut === null) return { kind: 'missing', part };
+  // The part keeps the frontmatter of its note, which the page draws as
+  // nothing: it is still written in that note, and an embed in it of the
+  // note's own name or alias reaches what it reaches on the note page, never
+  // the note itself (RN-DSC-067), which the renderer reads from it.
+  const unix = toUnixNewlines(raw);
+  return { kind: 'part', raw: `${unix.slice(0, unix.length - body.length)}${cut}` };
 }
 
 /** The note or the part as the reading surface of the note page draws it. */
 export function NotePreview({
   notebookId,
+  noteId,
   drawing,
   invalidates,
 }: {
   notebookId: string;
+  /**
+   * The note drawn, whole or a part of it; none for a draft, which is no note
+   * the notebook keeps yet (RN-DSC-067).
+   */
+  noteId?: string | null;
   drawing: PreviewDrawing;
   invalidates: ReturnType<typeof queryKeys.note>;
 }) {
@@ -123,6 +135,7 @@ export function NotePreview({
     <NoteContent
       raw={drawing.raw}
       notebookId={notebookId}
+      {...(noteId ? { noteId } : {})}
       baseRevision={null}
       writable={false}
       write={() => Promise.reject(new Error('A preview writes nothing.'))}
@@ -274,6 +287,7 @@ export function PreviewNotePage() {
           ) : drawing ? (
             <NotePreview
               notebookId={notebookId}
+              noteId={noteId}
               drawing={drawing}
               invalidates={queryKeys.note(notebookId, noteId)}
             />

@@ -6,6 +6,8 @@ import type { AttachProgress, NoteMode } from '@memorysmithapp/markdown-renderer
 import { getNotebookGraph, updateNote } from '../../shared/api/backend';
 import { getNote } from '../../shared/api/source';
 import { ApiError, messageKeyOf } from '../../shared/api/error-mapper';
+import { formatBytes } from '../../shared/components/StorageBar';
+import { intlLocale } from '../../i18n/intl-locale';
 import { noteNameOf, withAlias } from '../../shared/api/markdown';
 import { queryKeys } from '../../shared/api/query-keys';
 import type { NoteDetail } from '../../shared/types/api';
@@ -88,7 +90,7 @@ export function useEditSession({
   document: EditedDocument | undefined;
   target: EditTarget;
 }): { editing: NoteEditing | undefined; open: boolean } {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const [mode, setMode] = useState<NoteMode>('view');
   /** The text the editor starts from, and the host's own changes to it. */
@@ -236,13 +238,15 @@ export function useEditSession({
                     message: t('editor.attachHashing'),
                     ...(phase.total > 0 ? { fraction: phase.read / phase.total } : {}),
                   }
-                : {
-                    message: t('editor.attachSending', {
-                      sent: Math.min(phase.sent + 1, phase.total),
-                      total: phase.total,
-                    }),
-                    ...(phase.total > 0 ? { fraction: phase.sent / phase.total } : {}),
-                  },
+                : phase.phase === 'finishing'
+                  ? { message: t('editor.attachFinishing') }
+                  : {
+                      message: t('editor.attachSending', {
+                        sent: Math.min(phase.sent + 1, phase.total),
+                        total: phase.total,
+                      }),
+                      ...(phase.total > 0 ? { fraction: phase.sent / phase.total } : {}),
+                    },
             ),
         );
         progress({ message: t('editor.attachKept', { name: kept.name }), fraction: 1 });
@@ -256,13 +260,18 @@ export function useEditSession({
           message:
             error instanceof AttachRefusal
               ? t(`editor.attachRefusal.${error.reason}`)
-              : error instanceof ApiError && error.code !== 'INTERNAL'
-                ? error.message
-                : t(messageKeyOf(error)),
+              : quotaOf(error)
+                ? t('editor.attachRefusal.QUOTA', {
+                    size: formatBytes(quotaOf(error)?.sizeBytes ?? 0, intlLocale(i18n.language)),
+                    room: formatBytes(quotaOf(error)?.roomBytes ?? 0, intlLocale(i18n.language)),
+                  })
+                : error instanceof ApiError && error.code !== 'INTERNAL'
+                  ? error.message
+                  : t(messageKeyOf(error)),
         };
       }
     },
-    [client, notebookId, t],
+    [client, notebookId, t, i18n.language],
   );
 
   // Another document, or the page closing: the session ends with what is waiting.
@@ -430,4 +439,13 @@ async function renameCost(
       wanted !== undefined && link.targetName.normalize('NFC') === wanted && link.from !== at,
   );
   return { losing: from === null || at === -1 ? 0 : linking.size, gaining: waiting.length };
+}
+
+/** The sizes a refusal for the room of the plan names (#482), or null for any other. */
+function quotaOf(error: unknown): { sizeBytes: number; roomBytes: number } | null {
+  if (!(error instanceof ApiError)) return null;
+  const details = error.details as
+    { reason?: unknown; sizeBytes?: unknown; roomBytes?: unknown } | undefined;
+  if (details?.reason !== 'QUOTA') return null;
+  return { sizeBytes: Number(details.sizeBytes ?? 0), roomBytes: Number(details.roomBytes ?? 0) };
 }

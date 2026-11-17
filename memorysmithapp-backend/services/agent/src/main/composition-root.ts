@@ -38,6 +38,7 @@ export function buildToolAdapter(env: NodeJS.ProcessEnv = process.env): McpToolA
       audit: new HttpAuditGateway(origin),
     },
     deploymentOf(env),
+    (env['UPLOADS_ORIGIN'] ?? '').replace(/\/$/, '') || null,
   );
 }
 

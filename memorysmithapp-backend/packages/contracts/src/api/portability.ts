@@ -81,12 +81,16 @@ export const exportRequestSchema = z.object({
 });
 
 /**
- * How the parts of an upload travel (RN-PRT-027). `url` is a signed address per
- * part, which a script PUTs from the disk, so the bytes never pass through the
- * model; `inline` is base64 in the call, for an agent with no network, whose
- * every byte the model types — and whose every part therefore carries a hash.
+ * The probe of the upload host (#467): `GET {uploads origin}/probe` answers
+ * `200` with exactly this body, at the edge, with no request reaching S3 or a
+ * function. An agent's code fetches it before opening an upload: our host
+ * answers `403` to any other unsigned GET, and so do the egress proxies of the
+ * chats that block it, so only this body says the host is reached.
  */
-export const uploadTransportSchema = z.enum(['url', 'inline']);
+export const UPLOAD_PROBE = {
+  path: '/probe',
+  body: 'MemorySmith upload host: reachable',
+} as const;
 
 const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/, 'a SHA-256 in lowercase hex');
 
@@ -101,7 +105,6 @@ export const transferUploadSchema = z.object({
   purpose: z.string(),
   /** The connector that started it, or `null` when a person did. */
   platform: z.string().nullable(),
-  transport: uploadTransportSchema,
   sha256: sha256Schema,
   partSize: z.number().int().positive(),
   partCount: z.number().int().positive(),
@@ -109,45 +112,10 @@ export const transferUploadSchema = z.object({
   received: z.array(z.number().int().positive()),
   /** When the last part arrived, or `null` while none has. */
   lastPartAt: instantSchema.nullable(),
-  /** The request of the person this upload fulfils, when it does (RN-PRT-030). */
-  fulfils: ulidSchema.nullable().optional(),
-});
-
-/**
- * A file an agent asked the person for instead of sending it (#253,
- * RN-PRT-030). Its name is the `fileName` of the transfer. The size and hash
- * are what the agent knows of the file, shown as a reference and never
- * enforced: what an agent knows may be a copy its client reduced.
- */
-export const transferRequestSchema = z.object({
-  mimeType: z.string(),
-  description: z.string(),
-  purpose: z.string(),
-  tags: z.array(z.string()),
-  path: z.string(),
-  /** The connector that asked. */
-  platform: z.string().nullable(),
-  expectedSize: z.number().int().nonnegative().nullable(),
-  expectedSha256: z.string().nullable(),
-});
-
-/**
- * Asking the person for a file (RN-PRT-030), from nothing — the notebook, the
- * name, the type and what it is for — or from an upload the agent could not
- * finish, which the request replaces: its parts are thrown away and the room it
- * reserved given back.
- */
-export const requestFileRequestSchema = z.object({
-  notebookId: ulidSchema.optional(),
-  name: z.string().min(1).max(512).optional(),
-  description: z.string().max(500).optional(),
-  mimeType: z.string().min(1).optional(),
-  tags: z.array(z.string()).optional(),
-  path: z.string().optional(),
-  purpose: z.string().min(1).max(500).optional(),
-  size: z.number().int().positive().optional(),
-  sha256: sha256Schema.optional(),
-  fromUpload: ulidSchema.optional(),
+  /** Whether the finish is running in the transfer worker (#480). */
+  finishing: z.boolean().optional(),
+  /** Why the last finish did not keep the file, when it did not (#480). */
+  refusal: z.object({ code: z.string(), message: z.string() }).nullable().optional(),
 });
 
 /**
@@ -158,7 +126,7 @@ export const requestFileRequestSchema = z.object({
  */
 export const transferSchema = z.object({
   transferId: ulidSchema,
-  kind: z.enum(['export', 'import', 'agent', 'request']),
+  kind: z.enum(['export', 'import', 'agent']),
   status: z.enum(['running', 'ready', 'failed', 'cancelled']),
   notebookId: ulidSchema.nullable(),
   /** The name of the notebook AS IT WAS: an export survives its notebook. */
@@ -186,8 +154,6 @@ export const transferSchema = z.object({
   fileName: z.string().nullable(),
   /** What an upload of an agent is and how far it got; absent on the other kinds. */
   upload: transferUploadSchema.optional(),
-  /** The file an agent asked the person for; only on a request (RN-PRT-030). */
-  request: transferRequestSchema.optional(),
 });
 
 export const transferListSchema = z.object({
@@ -201,7 +167,8 @@ export const transferListSchema = z.object({
 /**
  * Starts an upload in parts (RN-PRT-027). The size and the hash of the whole
  * are declared before a byte travels: the size reserves the room (RN-SUB-025)
- * and the hash is what the finish holds the bytes to.
+ * and the hash is what the finish holds the bytes to. Every part goes by URL,
+ * to a signed address a script PUTs the bytes to from the disk (#468).
  */
 export const beginUploadRequestSchema = z.object({
   notebookId: ulidSchema,
@@ -213,40 +180,12 @@ export const beginUploadRequestSchema = z.object({
   purpose: z.string().min(1).max(500),
   size: z.number().int().positive(),
   sha256: sha256Schema,
-  transport: uploadTransportSchema,
-  /** Inline only: the bytes of every part but the last. */
-  partSize: z.number().int().positive().optional(),
-  /**
-   * The request of the person this upload fulfils (RN-PRT-030): the file is
-   * kept under the name and in the notebook the request names.
-   */
-  request: ulidSchema.optional(),
 });
 
-/** Where the parts that are missing go, on an upload by URL. */
+/** Where the parts that are missing go. */
 export const uploadPartTargetSchema = z.object({
   part: z.number().int().positive(),
   url: z.string().url(),
-});
-
-/** An upload and what is left of it, with an address for every missing part by URL. */
-export const uploadStatusSchema = z.object({
-  transfer: transferSchema,
-  missing: z.array(z.number().int().positive()),
-  /** Empty on an inline upload, whose parts travel in the call. */
-  targets: z.array(uploadPartTargetSchema),
-  expiresAt: instantSchema.nullable(),
-});
-
-/** One inline part, with the hash of its own bytes (RN-PRT-027). */
-export const uploadPartRequestSchema = z.object({
-  sha256: sha256Schema,
-  contentBase64: z.string().min(1),
-});
-
-/** A transfer of an agent pointed at another notebook, when its own is unavailable (RN-PRT-029). */
-export const linkUploadRequestSchema = z.object({
-  notebookId: ulidSchema,
 });
 
 /** What a finished upload became: a file of the notebook, by the name a note addresses. */
@@ -255,6 +194,31 @@ export const finishedUploadSchema = z.object({
   notebookId: ulidSchema,
   name: z.string(),
   bytes: z.number().int().nonnegative(),
+});
+
+/** An upload and what is left of it, with an address for every missing part. */
+export const uploadStatusSchema = z.object({
+  transfer: transferSchema,
+  missing: z.array(z.number().int().positive()),
+  /** Empty once the upload has ended, or while its finish runs. */
+  targets: z.array(uploadPartTargetSchema),
+  expiresAt: instantSchema.nullable(),
+  /** The file the upload became, once the worker kept it; read once (#480). */
+  kept: finishedUploadSchema.optional(),
+});
+
+/** A transfer of an agent pointed at another notebook, when its own is unavailable (RN-PRT-029). */
+export const linkUploadRequestSchema = z.object({
+  notebookId: ulidSchema,
+});
+
+/**
+ * The finish was asked for and is still running in the transfer worker (#480):
+ * the status of the upload says when the file is kept, or why not.
+ */
+export const finishingUploadSchema = z.object({
+  status: z.literal('finishing'),
+  upload: ulidSchema,
 });
 
 /** Issued at the moment of each download, and never stored (RN-PRT-019). */
@@ -353,14 +317,11 @@ export type TransferDto = z.infer<typeof transferSchema>;
 export type TransferListDto = z.infer<typeof transferListSchema>;
 export type DownloadLinkDto = z.infer<typeof downloadLinkSchema>;
 export type TransferUploadDto = z.infer<typeof transferUploadSchema>;
-export type UploadTransport = z.infer<typeof uploadTransportSchema>;
 export type BeginUploadRequest = z.infer<typeof beginUploadRequestSchema>;
 export type UploadStatusDto = z.infer<typeof uploadStatusSchema>;
-export type UploadPartRequest = z.infer<typeof uploadPartRequestSchema>;
 export type LinkUploadRequest = z.infer<typeof linkUploadRequestSchema>;
 export type FinishedUploadDto = z.infer<typeof finishedUploadSchema>;
-export type TransferRequestDto = z.infer<typeof transferRequestSchema>;
-export type RequestFileRequest = z.infer<typeof requestFileRequestSchema>;
+export type FinishingUploadDto = z.infer<typeof finishingUploadSchema>;
 export type PrintRequest = z.infer<typeof printRequestSchema>;
 export type PrintDto = z.infer<typeof printSchema>;
 export type PreviewRequest = z.input<typeof previewRequestSchema>;

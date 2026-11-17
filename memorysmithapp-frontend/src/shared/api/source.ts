@@ -18,6 +18,7 @@ import type {
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   UploadStatusDto,
   TransferDto,
   TransferListDto,
@@ -80,13 +81,6 @@ export function queryTable(
   return backend.queryTable(...args);
 }
 
-export function deleteTable(
-  notebookId: string,
-  table: string,
-): ReturnType<typeof backend.deleteTable> {
-  return backend.deleteTable(notebookId, table);
-}
-
 /** The Dashboards of a notebook, what one shows now, and its deletion (#368). */
 export function listDashboards(notebookId: string): ReturnType<typeof backend.listDashboards> {
   return backend.listDashboards(notebookId);
@@ -128,6 +122,10 @@ export function deleteDashboard(notebookId: string, dashboard: string): Promise<
 
 export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
   return backend.linkToFile(notebookId, fileId);
+}
+
+export function deleteNotebookFile(notebookId: string, fileId: string): Promise<void> {
+  return backend.deleteNotebookFile(notebookId, fileId);
 }
 
 export async function getNotebookNames(notebookId: string): Promise<number> {
@@ -361,7 +359,7 @@ export function beginUpload(input: BeginUploadRequest): Promise<UploadStatusDto>
   return backend.beginUpload(input);
 }
 
-export function finishUpload(transferId: string): Promise<FinishedUploadDto> {
+export function finishUpload(transferId: string): Promise<FinishedUploadDto | FinishingUploadDto> {
   return backend.finishUpload(transferId);
 }
 

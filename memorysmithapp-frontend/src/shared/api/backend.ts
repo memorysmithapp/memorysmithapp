@@ -29,6 +29,7 @@ import type {
   TransferSelection,
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   UploadStatusDto,
   TransferDto,
   TransferListDto,
@@ -390,14 +391,6 @@ export async function queryTable(
   );
 }
 
-/** Deletes a table and its rows, for good (#366, RN-KNW-071). */
-export async function deleteTable(notebookId: string, table: string): Promise<{ rows: number }> {
-  return request<{ rows: number }>(
-    `/knowledge/notebooks/${notebookId}/tables/${encodeURIComponent(table)}`,
-    { method: 'DELETE' },
-  );
-}
-
 /** The Dashboards of a notebook, each with its definition (#368). */
 export async function listDashboards(notebookId: string): Promise<NotebookDashboardDto[]> {
   const answer = await request<DashboardListDto>(`/knowledge/notebooks/${notebookId}/dashboards`);
@@ -469,6 +462,15 @@ export async function linkToFile(notebookId: string, fileId: string): Promise<Fi
   // Typed by the DTO the API publishes and not by hand: a response retyped
   // here is what refused every write of a task box for a whole release (0.5.1).
   return request<FileLinkDto>(`/knowledge/notebooks/${notebookId}/files/${fileId}/link`);
+}
+
+/**
+ * Lets a kept file go, definitively (INV-08): the one way a file changes, since
+ * a file has no update. The interface does it only to keep the original in the
+ * place of a copy, right before the original is sent (#466, RN-KNW-091).
+ */
+export async function deleteNotebookFile(notebookId: string, fileId: string): Promise<void> {
+  await request<void>(`/knowledge/notebooks/${notebookId}/files/${fileId}`, { method: 'DELETE' });
 }
 
 export async function getNotebookStructure(notebookId: string): Promise<NotebookStructure> {
@@ -723,10 +725,15 @@ export async function uploadStatus(transferId: string): Promise<UploadStatusDto>
 }
 
 /** Joins the parts and keeps the file, or answers why not. */
-export async function finishUpload(transferId: string): Promise<FinishedUploadDto> {
-  return request<FinishedUploadDto>(`/portability/uploads/${transferId}/finish`, {
-    method: 'POST',
-  });
+export async function finishUpload(
+  transferId: string,
+): Promise<FinishedUploadDto | FinishingUploadDto> {
+  return request<FinishedUploadDto | FinishingUploadDto>(
+    `/portability/uploads/${transferId}/finish`,
+    {
+      method: 'POST',
+    },
+  );
 }
 
 /**

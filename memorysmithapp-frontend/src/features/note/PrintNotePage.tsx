@@ -367,6 +367,7 @@ export function PrintNotePage() {
                 <NoteContent
                   raw={data.raw}
                   notebookId={notebookId}
+                  noteId={data.id}
                   baseRevision={data.revision}
                   writable={false}
                   write={() => Promise.reject(new Error('A page drawn for paper writes nothing.'))}

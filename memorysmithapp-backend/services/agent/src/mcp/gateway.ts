@@ -33,9 +33,9 @@ import type {
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   NoteOrder,
   PreviewDto,
-  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
 } from '@memorysmithapp/contracts';
@@ -407,28 +407,20 @@ export interface KnowledgeGateway {
   downloadLinked(url: string, maxBytes: number): Promise<Uint8Array>;
   /**
    * An upload in parts (#240, RN-PRT-027): the file declared with the size and
-   * the hash of the whole, sent in parts by URL or inline, and kept only when
+   * the hash of the whole, sent in parts by URL, and kept only when
    * the whole hashes to what was declared. It is a transfer of the person, so
    * it reaches Portability rather than Knowledge, and Transfers shows it.
    */
   beginFileUpload(caller: AgentCaller, input: BeginUploadRequest): Promise<UploadStatusDto>;
   fileUploadStatus(caller: AgentCaller, uploadId: string): Promise<UploadStatusDto>;
-  sendFilePart(
+  /** The file, or `finishing` while the transfer worker still runs the finish (#480). */
+  finishFileUpload(
     caller: AgentCaller,
     uploadId: string,
-    part: number,
-    input: { sha256: string; contentBase64: string },
-  ): Promise<UploadStatusDto>;
-  finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
+  ): Promise<FinishedUploadDto | FinishingUploadDto>;
   listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
   /**
-   * Asks the person for a file instead of sending it (#253, RN-PRT-030), from
-   * nothing or from an upload the agent could not finish, which it replaces.
-   */
-  requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto>;
-  /**
-   * Throws an open upload away, its parts and the room it reserved, or
-   * dismisses a request (RN-PRT-028, RN-PRT-030).
+   * Throws an open upload away, its parts and the room it reserved (RN-PRT-028).
    */
   discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void>;
   /**

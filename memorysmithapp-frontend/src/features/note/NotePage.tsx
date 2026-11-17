@@ -253,6 +253,7 @@ export function NotePage({ noteId }: { noteId: string }) {
         <NoteContent
           raw={data.raw}
           notebookId={notebookId}
+          noteId={data.id}
           baseRevision={data.revision}
           writable={writable}
           write={({ raw, baseRevision, keepalive }) =>

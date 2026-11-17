@@ -1,6 +1,7 @@
 import type {
   BeginUploadRequest,
   FinishedUploadDto,
+  FinishingUploadDto,
   TransferDto,
   UploadStatusDto,
 } from '@memorysmithapp/contracts';
@@ -26,14 +27,13 @@ import type {
  * Kept apart from the component so each step can be proved without a browser.
  */
 
-/** What a file sent in parts may be, the ceiling the API states. */
-export const ATTACH_MAX_BYTES = 100 * 1024 * 1024;
 /** The size of every part but the last, which the API fixes for an upload by URL. */
 export const ATTACH_PART_BYTES = 8 * 1024 * 1024;
 
 export interface AttachPorts {
   begin(input: BeginUploadRequest): Promise<UploadStatusDto>;
-  finish(transferId: string): Promise<FinishedUploadDto>;
+  /** The file, or `finishing` while the worker still holds it to its hash (#480). */
+  finish(transferId: string): Promise<FinishedUploadDto | FinishingUploadDto>;
   /** Throws an upload away, which is what a finish refused for its bytes leaves behind. */
   discard(transferId: string): Promise<void>;
   /** A plain PUT of the bytes to a signed address. */
@@ -44,18 +44,24 @@ export interface AttachPorts {
   open(): Promise<TransferDto[]>;
   /** What an open upload is missing, with a fresh address for each missing part. */
   status(transferId: string): Promise<UploadStatusDto>;
+  /** Waits between two looks at a finish still running; a test answers at once. */
+  wait?(ms: number): Promise<void>;
 }
+
+/** How often a finish still running is looked at again (#480). */
+export const FINISH_POLL_MS = 2000;
 
 export type AttachProgress = (sent: number, total: number) => void;
 
 /** Where an attachment is, for whoever draws it. */
 export type AttachPhase =
   | { phase: 'hashing'; read: number; total: number }
-  | { phase: 'sending'; sent: number; total: number };
+  | { phase: 'sending'; sent: number; total: number }
+  | { phase: 'finishing' };
 
 /** Why an attachment did not happen, when it is the file and not the server. */
 export class AttachRefusal extends Error {
-  constructor(readonly reason: 'TOO_LARGE' | 'EMPTY' | 'NO_TYPE') {
+  constructor(readonly reason: 'EMPTY' | 'NO_TYPE') {
     super(reason);
   }
 }
@@ -76,10 +82,6 @@ function reasonOf(error: unknown): string | null {
 /**
  * Keeps one file in a notebook: hashes it, resumes the upload of the same file
  * when one is open, or declares it; sends what is missing; finishes it.
- *
- * With `request`, the file fulfils what an agent asked for: the request decides
- * the notebook and the name, and a file without a type of its own takes the one
- * the request asks for.
  */
 export async function attachFile(
   ports: AttachPorts,
@@ -93,19 +95,23 @@ export async function attachFile(
      */
     name?: string | undefined;
     description?: string | undefined;
-    request?: { transferId: string; mimeType: string } | undefined;
+    /**
+     * The tags and the folder path of a file it takes the place of (#466,
+     * RN-KNW-091): the original is kept as the copy was described.
+     */
+    tags?: readonly string[] | undefined;
+    path?: string | undefined;
   },
   progress: AttachProgress = () => undefined,
   phase: (now: AttachPhase) => void = () => undefined,
 ): Promise<FinishedUploadDto> {
   const { file } = input;
-  const mimeType = file.type || input.request?.mimeType || '';
+  const mimeType = file.type;
   if (file.size === 0) throw new AttachRefusal('EMPTY');
-  if (file.size > ATTACH_MAX_BYTES) throw new AttachRefusal('TOO_LARGE');
   if (!mimeType) throw new AttachRefusal('NO_TYPE');
 
   const sha256 = await ports.hash(file, (read, total) => phase({ phase: 'hashing', read, total }));
-  const resumed = await resumable(ports, sha256, file.size, input.request?.transferId);
+  const resumed = await resumable(ports, sha256, file.size);
   const status =
     resumed ??
     (await ports.begin({
@@ -114,10 +120,10 @@ export async function attachFile(
       mimeType,
       purpose: input.purpose,
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+      ...(input.tags && input.tags.length > 0 ? { tags: [...input.tags] } : {}),
+      ...(input.path ? { path: input.path } : {}),
       size: file.size,
       sha256,
-      transport: 'url',
-      ...(input.request ? { request: input.request.transferId } : {}),
     }));
   const transferId = status.transfer.transferId;
   const partCount = status.transfer.upload?.partCount ?? status.targets.length;
@@ -134,7 +140,26 @@ export async function attachFile(
   }
 
   try {
-    return await ports.finish(transferId);
+    const answer = await ports.finish(transferId);
+    if (!('status' in answer)) return answer;
+    // A large file is held to its hash in the background (#480): the status
+    // answers the file once it is kept, or why not.
+    phase({ phase: 'finishing' });
+    const wait = ports.wait ?? ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)));
+    for (;;) {
+      await wait(FINISH_POLL_MS);
+      const now = await ports.status(transferId);
+      if (now.kept) return now.kept;
+      const upload = now.transfer.upload;
+      if (now.transfer.status === 'failed') {
+        throw Object.assign(new Error(now.transfer.failure ?? 'The upload failed'), {
+          details: { reason: now.transfer.failure },
+        });
+      }
+      if (upload && !upload.finishing && upload.refusal) {
+        throw Object.assign(new Error(upload.refusal.message), { code: upload.refusal.code });
+      }
+    }
   } catch (error) {
     // Bytes the finish refused are refused for good: nothing is left open for them.
     const reason = reasonOf(error);
@@ -144,15 +169,13 @@ export async function attachFile(
 }
 
 /**
- * The open upload of this very file, by the hash of its whole, sent by URL:
- * the one a dropped connection left behind. For a request, only the upload that
- * fulfils it; otherwise only one started from the interface, never an agent's.
+ * The open upload of this very file, by the hash of its whole: the one a
+ * dropped connection left behind, started from the interface, never an agent's.
  */
 async function resumable(
   ports: AttachPorts,
   sha256: string,
   size: number,
-  request: string | undefined,
 ): Promise<UploadStatusDto | null> {
   const open = await ports.open().catch(() => [] as TransferDto[]);
   const found = open.find(
@@ -161,9 +184,7 @@ async function resumable(
       transfer.status === 'running' &&
       transfer.bytes === size &&
       transfer.upload?.sha256 === sha256 &&
-      transfer.upload.transport === 'url' &&
-      transfer.upload.platform === null &&
-      (request === undefined || transfer.upload.fulfils === request),
+      transfer.upload.platform === null,
   );
   return found ? ports.status(found.transferId) : null;
 }

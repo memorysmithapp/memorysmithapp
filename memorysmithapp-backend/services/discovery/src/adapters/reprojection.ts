@@ -382,7 +382,10 @@ export function resolveAll(
 
   for (const note of notes) {
     for (const { name: target, form } of note.targets) {
-      const answer = resolveReference(target, names, form);
+      // Resolved from the note it is written in, as the write path resolves
+      // it: an embed never reaches its own note, so `![[x]]` in `x` reaches
+      // the file `x` instead of being dropped as a link to itself (RN-DSC-067).
+      const answer = resolveReference(target, names, form, note.noteId);
       if (answer.kind === 'pending') {
         pending += 1;
         continue;
@@ -430,7 +433,40 @@ export interface NotebookGone extends NotebookAddress {
   readonly gone: true;
 }
 
-export type NotebookResult = NotebookOutcome | NotebookFailure | NotebookGone;
+/**
+ * A notebook whose rebuild gained and lost no edge, as its counts alone:
+ * `[notes, files, before, after, pending]`. Every answer of a run travels in
+ * its state, which may carry 256 KB (ADR-017), and the answers of 1558
+ * notebooks with their identifiers passed it; the summary names only the
+ * notebooks that changed or failed, so the others need no identifier (#472).
+ */
+export type QuietOutcome = readonly [number, number, number, number, number];
+
+export type NotebookResult = NotebookOutcome | NotebookFailure | NotebookGone | QuietOutcome;
+
+/** The answer a notebook sends back to its run: its counts alone when nothing changed. */
+export function compactOf(outcome: NotebookOutcome): NotebookOutcome | QuietOutcome {
+  if (outcome.gained > 0 || outcome.lost.length > 0) return outcome;
+  return [outcome.notes, outcome.files, outcome.before, outcome.after, outcome.pending];
+}
+
+/** A quiet notebook read back as an outcome, with no address since none is named. */
+function outcomeFrom(result: NotebookResult): NotebookResult {
+  if (!Array.isArray(result)) return result;
+  const [notes, files, before, after, pending] = result as QuietOutcome;
+  return {
+    subscriptionId: '',
+    notebookId: '',
+    notes,
+    files,
+    before,
+    after,
+    gained: 0,
+    gainedByAlias: 0,
+    lost: [],
+    pending,
+  };
+}
 
 export function outcomeOf(plan: NotebookPlan): NotebookOutcome {
   return {
@@ -475,8 +511,9 @@ export interface RunSummary {
 
 export function summarise(
   mode: 'report' | 'apply',
-  results: readonly NotebookResult[],
+  answers: readonly NotebookResult[],
 ): RunSummary {
+  const results = answers.map(outcomeFrom);
   const outcomes = results.filter(
     (result): result is NotebookOutcome => !('failed' in result) && !('gone' in result),
   );

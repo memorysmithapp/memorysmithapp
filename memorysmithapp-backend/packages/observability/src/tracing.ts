@@ -44,10 +44,7 @@ const FLOW_OF: ReadonlyArray<readonly [RegExp, Flow]> = [
   // token or a read of the session happens on every visit, and is no step.
   [/^POST .*\/(subscriptions|requests|password|session\/welcomed)\b|^Subscription/, 'onboarding'],
   [/^whoami$|\/authorize\b|\/callback\b|\/token\b|\/connector\b|oauth|^Connector/, 'connect-agent'],
-  [
-    /file_upload|send_file_part|^(keep|request|delete)_file$|\/uploads\b|\/files\b|^NotebookFile|^Upload/,
-    'file-upload',
-  ],
+  [/file_upload|^(keep|delete)_file$|\/uploads\b|\/files\b|^NotebookFile|^Upload/, 'file-upload'],
   [/\/shares?\b|\/shared\b|^Share|^Notebook(Shared|Unshared)/, 'share'],
   [/\/export\b|^Export|export/i, 'export'],
   [/\/imports?\b|^Import|import/i, 'import'],

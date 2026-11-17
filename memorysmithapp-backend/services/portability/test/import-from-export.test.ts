@@ -49,7 +49,8 @@ function storeOf(objects: Record<string, string>) {
   const copies: Array<{ source: string; key: string }> = [];
   const uploads: UploadStore = {
     presignUpload: async (key) => `memory://upload/${key}`,
-    read: async (key) => (bucket.has(key) ? Buffer.from(bucket.get(key) ?? '') : null),
+    open: async (key) => (bucket.has(key) ? 'not-an-archive' : null),
+    discardStaged: async () => undefined,
     discard: async (key) => void bucket.delete(key),
     copyFrom: async (source, key) => {
       const found = bucket.get(source);

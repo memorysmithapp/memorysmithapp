@@ -3,8 +3,8 @@
  * RN-PRT-029, RN-SUB-025).
  *
  * The cases follow what an agent does: it declares the file with the hash of
- * the whole, sends the parts — inline, each with its own hash, or by the
- * addresses the store signed — asks what is missing, and finishes. And what a
+ * the whole, sends the parts to the addresses the store signed, asks what is
+ * missing, and finishes. Every part goes by URL since #468. And what a
  * person sees: the upload in Transfers, as *agent*, reserving its room, gone
  * once it is a file, kept as a notice when its bytes were wrong, and pointed at
  * another notebook when its own became unavailable.
@@ -89,25 +89,18 @@ async function begin(body: Record<string, unknown>): Promise<Response> {
   return call('/portability/uploads', { method: 'POST', body });
 }
 
-async function sendInline(
-  transferId: string,
-  whole: Buffer,
-  partSize: number,
-): Promise<UploadStatusDto> {
-  let status: UploadStatusDto | null = null;
-  for (let part = 1; part * partSize - partSize < whole.length; part += 1) {
-    const bytes = whole.subarray((part - 1) * partSize, part * partSize);
-    const response = await call(`/portability/uploads/${transferId}/parts/${part}`, {
-      method: 'PUT',
-      body: { sha256: sha(bytes), contentBase64: bytes.toString('base64') },
-    });
-    expect(response.status).toBe(200);
-    status = uploadStatusSchema.parse(await response.json());
+const PART = 8 * 1024 * 1024;
+
+/** What a script does with the addresses: a PUT of each part, which the store receives. */
+function sendByUrl(status: UploadStatusDto, whole: Buffer, only?: number[]): void {
+  const multipartId = /uploadId=([^&]+)/.exec(status.targets[0]?.url ?? '')?.[1] ?? '';
+  for (const { part } of status.targets) {
+    if (only && !only.includes(part)) continue;
+    harness.parts.receivePart(multipartId, part, whole.subarray((part - 1) * PART, part * PART));
   }
-  return status as UploadStatusDto;
 }
 
-describe('an upload whose parts travel inline', () => {
+describe('an upload in parts', () => {
   it('becomes a file once every part arrived and the whole hashes to what was declared', async () => {
     const notebookId = await notebook();
     const whole = picture(5000);
@@ -119,23 +112,24 @@ describe('an upload whose parts travel inline', () => {
       purpose: 'A foto do quadro, para a ata',
       size: whole.length,
       sha256: sha(whole),
-      transport: 'inline',
-      partSize: 2048,
     });
     expect(started.status).toBe(201);
     const status = uploadStatusSchema.parse(await started.json());
     expect(status.transfer.kind).toBe('agent');
-    expect(status.transfer.upload?.partCount).toBe(3);
-    expect(status.missing).toEqual([1, 2, 3]);
-    expect(status.targets).toEqual([]);
+    expect(status.transfer.upload?.partCount).toBe(1);
+    expect(status.missing).toEqual([1]);
+    expect(status.targets.map((each) => each.part)).toEqual([1]);
 
     // The room is reserved from the start, as in transit (RN-SUB-025).
     const usage = subscriptionUsageSchema.parse(await (await call('/access/usage')).json());
     expect(usage.byType.transit).toEqual({ count: 1, bytes: 5000 });
 
-    const sent = await sendInline(status.transfer.transferId, whole, 2048);
+    sendByUrl(status, whole);
+    const sent = uploadStatusSchema.parse(
+      await (await call(`/portability/uploads/${status.transfer.transferId}`)).json(),
+    );
     expect(sent.missing).toEqual([]);
-    expect(sent.transfer.upload?.received).toEqual([1, 2, 3]);
+    expect(sent.transfer.upload?.received).toEqual([1]);
 
     const finished = await call(`/portability/uploads/${status.transfer.transferId}/finish`, {
       method: 'POST',
@@ -159,9 +153,9 @@ describe('an upload whose parts travel inline', () => {
     expect(transfers.transitBytes).toBe(0);
   });
 
-  it('refuses a mistyped part and keeps nothing of it', async () => {
+  it('names the parts missing when finished early, and ends nothing', async () => {
     const notebookId = await notebook();
-    const whole = picture(3000);
+    const whole = picture(20 * 1024 * 1024);
     const status = uploadStatusSchema.parse(
       await (
         await begin({
@@ -171,35 +165,17 @@ describe('an upload whose parts travel inline', () => {
           purpose: 'Uma foto',
           size: whole.length,
           sha256: sha(whole),
-          transport: 'inline',
-          partSize: 2048,
         })
       ).json(),
     );
-    const first = whole.subarray(0, 2048);
-    const typo = Buffer.from(first);
-    typo[100] = (typo[100] ?? 0) ^ 0xff;
+    sendByUrl(status, whole, [2]);
 
-    const refused = await call(`/portability/uploads/${status.transfer.transferId}/parts/1`, {
-      method: 'PUT',
-      body: { sha256: sha(first), contentBase64: typo.toString('base64') },
-    });
-    expect(refused.status).toBe(400);
-    const body = (await refused.json()) as { details?: { reason?: string } };
-    expect(body.details?.reason).toBe('PART_HASH_MISMATCH');
-
-    const after = uploadStatusSchema.parse(
-      await (await call(`/portability/uploads/${status.transfer.transferId}`)).json(),
-    );
-    expect(after.missing).toEqual([1, 2]);
-
-    // Finishing with parts missing names them, and ends nothing.
     const early = await call(`/portability/uploads/${status.transfer.transferId}/finish`, {
       method: 'POST',
     });
     expect(early.status).toBe(409);
     expect(((await early.json()) as { details: { missing: number[] } }).details.missing).toEqual([
-      1, 2,
+      1, 3,
     ]);
   });
 
@@ -216,12 +192,10 @@ describe('an upload whose parts travel inline', () => {
           size: whole.length,
           // The hash of other bytes: every part is right, the whole is not.
           sha256: sha(Buffer.from('something else')),
-          transport: 'inline',
-          partSize: 1024,
         })
       ).json(),
     );
-    await sendInline(status.transfer.transferId, whole, 1024);
+    sendByUrl(status, whole);
 
     const finished = await call(`/portability/uploads/${status.transfer.transferId}/finish`, {
       method: 'POST',
@@ -246,7 +220,7 @@ describe('an upload whose parts travel inline', () => {
     ).toBe(204);
   });
 
-  it('refuses before a byte travels: too large inline, no room, a name the notebook keeps', async () => {
+  it('refuses before a byte travels: a type it does not keep, no room, a name the notebook keeps', async () => {
     const notebookId = await notebook();
     const base = {
       notebookId,
@@ -255,19 +229,23 @@ describe('an upload whose parts travel inline', () => {
       purpose: 'Uma foto',
       sha256: sha(Buffer.from('x')),
     };
-    expect(
-      (await begin({ ...base, size: 5 * 1024 * 1024, transport: 'inline', partSize: 1024 * 1024 }))
-        .status,
-    ).toBe(413);
-    expect((await begin({ ...base, size: 4096, transport: 'inline', partSize: 10 })).status).toBe(
-      400,
-    );
-    expect(
-      (await begin({ ...base, size: 4096, transport: 'url', mimeType: 'text/html' })).status,
-    ).toBe(400);
+    // No size of its own stands in front of a file (#482): one far above the
+    // 100 MB of before starts, when the plan has the room.
+    const large = await begin({ ...base, name: 'grande', size: 600 * 1024 * 1024 });
+    expect(large.status).toBe(201);
+    const { transfer } = uploadStatusSchema.parse(await large.json());
+    await call(`/portability/transfers/${transfer.transferId}`, { method: 'DELETE' });
+    expect((await begin({ ...base, size: 4096, mimeType: 'text/html' })).status).toBe(400);
 
+    // The room of the plan is what refuses, saying both sizes.
     harness.storage.limitBytes = 1000;
-    expect((await begin({ ...base, size: 4096, transport: 'url' })).status).toBe(413);
+    const refused = await begin({ ...base, size: 4096 });
+    expect(refused.status).toBe(413);
+    expect(((await refused.json()) as { details?: unknown }).details).toMatchObject({
+      reason: 'QUOTA',
+      sizeBytes: 4096,
+      roomBytes: 1000,
+    });
     harness.storage.limitBytes = Number.MAX_SAFE_INTEGER;
 
     await call(`/knowledge/notebooks/${notebookId}/files`, {
@@ -279,7 +257,7 @@ describe('an upload whose parts travel inline', () => {
         contentBase64: picture(64).toString('base64'),
       },
     });
-    expect((await begin({ ...base, size: 4096, transport: 'url' })).status).toBe(409);
+    expect((await begin({ ...base, size: 4096 })).status).toBe(409);
   });
 });
 
@@ -297,7 +275,6 @@ describe('an upload whose parts travel by URL', () => {
           purpose: 'A foto inteira, sem recorte',
           size: whole.length,
           sha256: sha(whole),
-          transport: 'url',
         })
       ).json(),
     );
@@ -330,6 +307,31 @@ describe('an upload whose parts travel by URL', () => {
   });
 });
 
+describe('a file above the 100 MB of before (#482)', () => {
+  it('is kept whole when the plan has room for it, bounded by nothing else', async () => {
+    const notebookId = await notebook('Caderno do arquivo grande');
+    const whole = picture(101 * 1024 * 1024);
+    const status = uploadStatusSchema.parse(
+      await (
+        await begin({
+          notebookId,
+          name: 'video grande',
+          mimeType: 'image/png',
+          purpose: 'Um arquivo maior que o teto de antes',
+          size: whole.length,
+          sha256: sha(whole),
+        })
+      ).json(),
+    );
+    sendByUrl(status, whole);
+    const finished = await call(`/portability/uploads/${status.transfer.transferId}/finish`, {
+      method: 'POST',
+    });
+    expect(finished.status).toBe(200);
+    expect(finishedUploadSchema.parse(await finished.json()).bytes).toBe(whole.length);
+  });
+});
+
 describe('a file above 4 MB, sent in parts (#381)', () => {
   it('comes back whole in a notebook created from a model that holds it', async () => {
     const notebookId = await notebook('Modelo com foto grande');
@@ -343,7 +345,6 @@ describe('a file above 4 MB, sent in parts (#381)', () => {
           purpose: 'A foto inteira do modelo',
           size: whole.length,
           sha256: sha(whole),
-          transport: 'url',
         })
       ).json(),
     );
@@ -394,13 +395,11 @@ describe('an upload whose notebook became unavailable', () => {
           purpose: 'Para a ata',
           size: whole.length,
           sha256: sha(whole),
-          transport: 'inline',
-          partSize: 1024,
         })
       ).json(),
     );
     const transferId = status.transfer.transferId;
-    await sendInline(transferId, whole, 1024);
+    sendByUrl(status, whole);
 
     expect((await call(`/knowledge/notebooks/${first}`, { method: 'DELETE' })).status).toBe(204);
 
@@ -439,12 +438,10 @@ describe('an upload whose notebook became unavailable', () => {
           purpose: 'Uma foto',
           size: whole.length,
           sha256: sha(whole),
-          transport: 'inline',
-          partSize: 1024,
         })
       ).json(),
     );
-    await sendInline(status.transfer.transferId, whole.subarray(0, 1024), 1024);
+    sendByUrl(status, whole);
 
     expect(
       (await call(`/portability/transfers/${status.transfer.transferId}`, { method: 'DELETE' }))
@@ -454,5 +451,51 @@ describe('an upload whose notebook became unavailable', () => {
     expect(after.transfers).toEqual([]);
     expect(after.transitBytes).toBe(0);
     expect([...harness.parts.objects.keys()]).toEqual([]);
+  });
+});
+
+describe('an upload opened inline before the transport was retired (#468)', () => {
+  it('is refused at the finish, saying to discard it and send by URL, and is discarded whole', async () => {
+    const notebookId = await notebook();
+    const whole = picture(1500);
+    const status = uploadStatusSchema.parse(
+      await (
+        await begin({
+          notebookId,
+          name: 'foto antiga',
+          mimeType: 'image/png',
+          purpose: 'Uma foto',
+          size: whole.length,
+          sha256: sha(whole),
+        })
+      ).json(),
+    );
+    const transferId = status.transfer.transferId;
+    // What a record written by the inline transport looks like: no multipart
+    // upload of the store, its one part kept as an object of its own.
+    const record = await harness.transfers.get('user-owner', transferId);
+    const partKey = `s/legacy/uploads/${transferId}/part-1`;
+    const versionId = await harness.parts.putObject(partKey, whole);
+    await harness.transfers.patch('user-owner', transferId, {
+      upload: {
+        ...record!.upload!,
+        transport: 'inline',
+        multipartId: null,
+        parts: { '1': versionId },
+      },
+    });
+
+    const refused = await call(`/portability/uploads/${transferId}/finish`, { method: 'POST' });
+    expect(refused.status).toBe(409);
+    expect(((await refused.json()) as { details?: { reason?: string } }).details?.reason).toBe(
+      'INLINE_RETIRED',
+    );
+
+    expect((await call(`/portability/transfers/${transferId}`, { method: 'DELETE' })).status).toBe(
+      204,
+    );
+    const after = transferListSchema.parse(await (await call('/portability/transfers')).json());
+    expect(after.transfers).toEqual([]);
+    expect(after.transitBytes).toBe(0);
   });
 });

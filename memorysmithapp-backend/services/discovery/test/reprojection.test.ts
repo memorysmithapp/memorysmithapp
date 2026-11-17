@@ -18,6 +18,8 @@ import {
   summarise,
   type NotebookResult,
   type ReadNote,
+  compactOf,
+  type NotebookOutcome,
 } from '../src/adapters/reprojection.js';
 
 /** A note as the rebuild reads it: from its bytes, by the current rules. */
@@ -142,6 +144,17 @@ describe('rebuilding the graph of a notebook that keeps files', () => {
   it('never makes a kept file an edge', () => {
     expect(resolveAll(notebook, ['simbolo.svg']).edges).toEqual([]);
   });
+
+  it('reads an embed of a note of its own name as the file, as the write path does (#472)', () => {
+    const own = [read('foto', '---\nname: foto.jpg\n---\n\n![[foto.jpg]]\n')];
+    expect(resolveAll(own, ['foto.jpg'])).toEqual({ edges: [], pending: 0 });
+    expect(resolveAll(own)).toEqual({ edges: [], pending: 1 });
+
+    // Another note of the name is reached first, and the edge is the same one
+    // the rule before this one made: a rebuild loses and gains no edge for it.
+    const two = [...own, read('outra', '---\nname: foto.jpg\n---\n')];
+    expect(edgesOf(two)).toEqual(['foto->outra']);
+  });
 });
 
 /**
@@ -191,6 +204,35 @@ describe('the summary of a run over every notebook', () => {
     expect(summary.failed).toEqual([
       { subscriptionId: 'sub', notebookId: 'broken', failed: true, error: 'NoSuchVersion' },
     ]);
+  });
+
+  it('carries a notebook that changed nothing as its counts alone, and sums it the same (#472)', () => {
+    const quiet = compactOf(rebuilt('one', 0) as NotebookOutcome);
+    expect(quiet).toEqual([3, 1, 4, 4, 2]);
+    // One that changed keeps its address, which the summary names.
+    expect(compactOf(rebuilt('two', 2) as NotebookOutcome)).toMatchObject({ notebookId: 'two' });
+    const summary = summarise('apply', [quiet, compactOf(rebuilt('two', 2) as NotebookOutcome)]);
+    expect(summary).toMatchObject({
+      notebooks: 2,
+      rebuilt: 2,
+      notes: 6,
+      edgesBefore: 8,
+      gained: 2,
+    });
+    expect(summary.changed).toEqual([
+      { subscriptionId: 'sub', notebookId: 'two', gained: 2, lost: 0 },
+    ]);
+  });
+
+  it('keeps the answers of thousands of quiet notebooks far under what a state may carry', () => {
+    const answers = Array.from({ length: 1600 }, (_, index) =>
+      compactOf({
+        ...(rebuilt('01M7FK4YH6QAZKM19GZYFHRWWA', 0) as NotebookOutcome),
+        notes: 1000 + index,
+      }),
+    );
+    // A Distributed Map hands its results to the next state, which carries 256 KB.
+    expect(JSON.stringify(answers).length).toBeLessThan(64 * 1024);
   });
 
   it('is not good when an edge was lost, and names the edge', () => {

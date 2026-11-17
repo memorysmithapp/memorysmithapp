@@ -208,6 +208,12 @@ export interface FileStore {
   put(bytes: Uint8Array, mimeType: string): Promise<ContentRef>;
   read(ref: ContentRef): Promise<Uint8Array>;
   /**
+   * The same bytes as a stream, for whoever carries a file rather than reads
+   * it: an export writes them into its archive as they arrive, and never holds
+   * a file whole (RN-PRT-093).
+   */
+  stream(ref: ContentRef): Promise<AsyncIterable<Uint8Array>>;
+  /**
    * The first bytes of a whole an upload in parts assembled (RN-PRT-027), which
    * is all the check of a type reads; `null` when nothing is there. The key is
    * one of the subscription's own uploads and nothing else.

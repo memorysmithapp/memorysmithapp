@@ -195,7 +195,7 @@ describe('deleting a transfer', () => {
 
     const destroyed: Array<[string, string]> = [];
     const archives = {
-      put: async () => ({ versionId: null }),
+      write: async () => ({ versionId: null, bytes: 0 }),
       presign: async () => 'memory://link',
       destroy: async (key: string, versionId: string) => void destroyed.push([key, versionId]),
     };
@@ -289,7 +289,7 @@ describe('deleting a transfer', () => {
     await transfers.addKeptBytes(4_096, NOTEBOOK);
     const destroyed: string[] = [];
     const archives = {
-      put: async () => ({ versionId: null }),
+      write: async () => ({ versionId: null, bytes: 0 }),
       presign: async () => 'memory://link',
       destroy: async (key: string) => void destroyed.push(key),
     };
@@ -324,7 +324,7 @@ describe('deleting a transfer', () => {
     const deleted = await new DeleteTransfer(
       transfers,
       {
-        put: async () => ({ versionId: null }),
+        write: async () => ({ versionId: null, bytes: 0 }),
         presign: async () => 'memory://link',
         destroy: async () => undefined,
       },

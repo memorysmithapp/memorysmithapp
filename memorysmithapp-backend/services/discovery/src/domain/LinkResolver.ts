@@ -113,6 +113,18 @@ export function spellingsLost(
  * An attachment reference renders and is never an edge (RN-DSC-044): the graph
  * is between notes, and a name matching nothing is reported as pending rather
  * than treated as an error.
+ *
+ * **An embed never reaches the note it is written in (RN-DSC-067, §5.2).**
+ * Given the note an embed is written in, that note is taken out of what
+ * matched, by name or else by alias, and the notes left are what the embed
+ * reaches. When it was the only match no later step is tried: a name it alone
+ * carries does not fall through to the aliases, and the embed reaches the file
+ * of that name, else nothing. So `![[foto.jpg]]` in a note named `foto.jpg`
+ * shows the file, as the page draws it, instead of resolving to the note and
+ * being dropped as a link to itself (#472). A link is resolved with the note
+ * included, so `[[x#Section]]` in `x` still reaches its own note; and whoever
+ * asks with no source — the route behind a link's choice — is answered every
+ * note, because the renderer takes the note out itself.
  */
 export function resolveTarget(
   target: string,
@@ -125,17 +137,20 @@ export function resolveTarget(
    * steps. An edge is unaffected either way: an attachment is never one.
    */
   embed = true,
+  /** The note the reference is written in, which an embed never reaches. */
+  sourceNoteId?: string,
 ): Resolution {
   const key = asName(target);
+  const leaving = embed ? sourceNoteId : undefined;
 
-  const byName = names.byName.get(key);
-  if (byName && byName.length > 0) {
-    return { target: key, kind: 'note', by: 'name', noteIds: byName };
-  }
+  const byName = names.byName.get(key) ?? [];
+  const byAlias = byName.length > 0 ? [] : (names.byAlias.get(key) ?? []);
+  const by = byName.length > 0 ? 'name' : byAlias.length > 0 ? 'alias' : null;
+  const matched = by === 'name' ? byName : byAlias;
+  const reached = leaving === undefined ? matched : matched.filter((id) => id !== leaving);
 
-  const byAlias = names.byAlias.get(key);
-  if (byAlias && byAlias.length > 0) {
-    return { target: key, kind: 'note', by: 'alias', noteIds: byAlias };
+  if (by !== null && reached.length > 0) {
+    return { target: key, kind: 'note', by, noteIds: reached };
   }
 
   if (embed && names.attachments.has(key)) {
@@ -148,17 +163,20 @@ export function resolveTarget(
 /**
  * One reference, resolved by the form it was written in (#305, RN-DSC-065).
  *
- * A link and an embed are `resolveTarget`, the embed alone reaching a file. An
- * image by path names a file and nothing else: a note called `curva.png` is
- * not what `![Curva](curva.png)` draws, so it never becomes an edge, and with
- * no file of that name it is pending the way `![[curva.png]]` is.
+ * A link and an embed are `resolveTarget`, the embed alone reaching a file and
+ * never the note it is written in (RN-DSC-067). An image by path names a file
+ * and nothing else: a note called `curva.png` is not what `![Curva](curva.png)`
+ * draws, so it never becomes an edge, and with no file of that name it is
+ * pending the way `![[curva.png]]` is.
  */
 export function resolveReference(
   target: string,
   names: NotebookNames,
   form: 'link' | 'embed' | 'image' = 'embed',
+  /** The note the reference is written in, which an embed never reaches. */
+  sourceNoteId?: string,
 ): Resolution {
-  if (form !== 'image') return resolveTarget(target, names, form === 'embed');
+  if (form !== 'image') return resolveTarget(target, names, form === 'embed', sourceNoteId);
   const key = asName(target);
   return {
     target: key,

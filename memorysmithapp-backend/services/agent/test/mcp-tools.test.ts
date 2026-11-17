@@ -25,6 +25,9 @@ import {
   RECOGNISED_NOTATION,
   type Deployment,
 } from '@memorysmithapp/contracts';
+import { whoAmI } from '../src/mcp/whoami.js';
+import { PRODUCTION_DEFAULT } from '../src/mcp/environment.js';
+import { UPLOAD_PROBE } from '@memorysmithapp/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -235,12 +238,10 @@ describe('The tool catalog is the public contract', () => {
       'keep_file',
       // A file kept whole, sent in parts (#240).
       'begin_file_upload',
-      'send_file_part',
       'file_upload_status',
       'finish_file_upload',
       'list_file_uploads',
-      // A file asked of the person, and an attempt thrown away (#253).
-      'request_file',
+      // An attempt thrown away (#253).
       'discard_file_upload',
       'list_files',
       'read_file',
@@ -329,9 +330,7 @@ describe('The tool catalog is the public contract', () => {
       'create_note',
       'keep_file',
       'begin_file_upload',
-      'send_file_part',
       'finish_file_upload',
-      'request_file',
       'discard_file_upload',
       'delete_file',
       'create_table',
@@ -488,6 +487,22 @@ describe('whoami answers who is acting and how to write here', () => {
     const answer = result.content[0]?.text ?? '';
     expect(answer).toContain('Normas');
     expect(answer).toContain('48 note(s)');
+  });
+
+  it('names the probe of the upload host to check before an upload (#467)', async () => {
+    const answer = whoAmI(
+      caller,
+      null,
+      [],
+      PRODUCTION_DEFAULT,
+      'https://uploads.stg.memorysmith.app',
+    );
+    expect(answer).toContain('## Keeping a file');
+    expect(answer).toContain(`GET https://uploads.stg.memorysmith.app${UPLOAD_PROBE.path}`);
+    expect(answer).toContain(UPLOAD_PROBE.body);
+    expect(answer).toContain('open no upload');
+    // With no upload host known, nothing is invented in its place.
+    expect(whoAmI(caller, null, [])).not.toContain('## Keeping a file');
   });
 
   it('says plainly when there is no notebook yet', async () => {
@@ -911,7 +926,7 @@ describe('The tool adapter translates in both directions', () => {
     );
     expect(result.isError).toBe(false);
     expect(JSON.parse(result.content[0]?.text ?? '')).toEqual({
-      pending: answer.pending.map((each) => ({ ...each, waitingFor: null })),
+      pending: answer.pending,
       orphans: [],
       unshownFiles: [],
       openUploads: [],
@@ -921,7 +936,7 @@ describe('The tool adapter translates in both directions', () => {
     });
   });
 
-  it('says what is still on its way: a file asked of the person, an upload left open, a file shown nowhere (#253)', async () => {
+  it('says what is still on its way: an upload left open, a file shown nowhere (#253, #469)', async () => {
     const note = {
       noteId: '01JBQ2X00000000000000000N2',
       name: 'Ata',
@@ -942,30 +957,6 @@ describe('The tool adapter translates in both directions', () => {
       knowledge: {
         listFileUploads: async () => [
           {
-            transferId: '01JBQ2X00000000000000000R1',
-            kind: 'request',
-            status: 'running',
-            notebookId: '01JBQ2X00000000000000000V1',
-            notebookName: 'Atas',
-            requestedAt: '2026-09-27T10:00:00.000Z',
-            finishedAt: null,
-            done: 0,
-            total: 0,
-            bytes: 0,
-            failure: null,
-            fileName: 'quadro.jpg',
-            request: {
-              mimeType: 'image/jpeg',
-              description: '',
-              purpose: 'O quadro da reunião',
-              tags: [],
-              path: '',
-              platform: 'ChatGPT',
-              expectedSize: null,
-              expectedSha256: null,
-            },
-          },
-          {
             transferId: '01JBQ2X00000000000000000P1',
             kind: 'agent',
             status: 'running',
@@ -982,7 +973,6 @@ describe('The tool adapter translates in both directions', () => {
               mimeType: 'image/png',
               purpose: 'A foto',
               platform: 'Claude',
-              transport: 'url',
               sha256: 'a'.repeat(64),
               partSize: 8388608,
               partCount: 1,
@@ -999,63 +989,31 @@ describe('The tool adapter translates in both directions', () => {
       caller,
     );
     const answer = JSON.parse(result.content[0]?.text ?? '') as {
-      pending: Array<{ target: string; waitingFor: string | null }>;
+      pending: Array<{ target: string; waitingFor?: string }>;
       unshownFiles: string[];
       openUploads: Array<{ kind: string; name: string; openedBy: string | null }>;
     };
-    expect(answer.pending.map((each) => [each.target, each.waitingFor])).toEqual([
-      ['quadro.jpg', 'person'],
-      ['foto.png', 'upload'],
-      ['Próxima reunião', null],
+    expect(answer.pending.map((each) => each.target)).toEqual([
+      'quadro.jpg',
+      'foto.png',
+      'Próxima reunião',
     ]);
+    // Nothing waits on the person any more (#469): no pending link says it does.
+    expect(answer.pending.some((each) => 'waitingFor' in each)).toBe(false);
     expect(answer.unshownFiles).toEqual(['figura-original.jpg']);
     expect(answer.openUploads.map((each) => [each.kind, each.name, each.openedBy])).toEqual([
-      ['request', 'quadro.jpg', 'ChatGPT'],
       ['upload', 'foto.png', 'Claude'],
     ]);
   });
 
-  it('asks the person for a file, from nothing or from an upload it could not finish (#253)', async () => {
-    const asked: unknown[] = [];
-    const adapter = gateways({
-      knowledge: {
-        requestFile: async (_caller: unknown, input: unknown) => {
-          asked.push(input);
-          return {
-            transferId: '01JBQ2X00000000000000000R1',
-            kind: 'request',
-            notebookId: '01JBQ2X00000000000000000V1',
-            fileName: 'quadro.jpg',
-          };
-        },
-      },
-    });
-    const fromNothing = await adapter.call(
+  it('has no request_file any more, and its call is refused as a tool it does not serve (#469)', async () => {
+    expect(TOOL_CATALOG.some((tool) => tool.name === 'request_file')).toBe(false);
+    const refused = await gateways().call(
       'request_file',
-      {
-        notebook: '01JBQ2X00000000000000000V1',
-        name: 'quadro.jpg',
-        mimeType: 'image/jpeg',
-        purpose: 'O quadro da reunião',
-        size: 1935884,
-      },
+      { notebook: '01JBQ2X00000000000000000V1', name: 'quadro.jpg' },
       caller,
     );
-    expect(JSON.parse(fromNothing.content[0]?.text ?? '')).toMatchObject({
-      request: '01JBQ2X00000000000000000R1',
-      reference: '![[quadro.jpg]]',
-    });
-    await adapter.call('request_file', { upload: '01jbq2x00000000000000000p1' }, caller);
-    expect(asked).toEqual([
-      {
-        notebookId: '01JBQ2X00000000000000000V1',
-        name: 'quadro.jpg',
-        mimeType: 'image/jpeg',
-        purpose: 'O quadro da reunião',
-        size: 1935884,
-      },
-      { fromUpload: '01JBQ2X00000000000000000P1' },
-    ]);
+    expect(refused.isError).toBe(true);
   });
 
   it('throws an upload away when asked to (#253)', async () => {
@@ -2219,7 +2177,6 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
       mimeType: 'image/jpeg',
       purpose: 'A foto do quadro, para a ata',
       platform: 'Claude',
-      transport: 'url',
       sha256: 'a'.repeat(64),
       partSize: 8_388_608,
       partCount: 3,
@@ -2252,7 +2209,6 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
         size: 20_000_000,
         sha256: 'A'.repeat(64),
         purpose: 'A foto do quadro, para a ata',
-        transport: 'url',
       },
       caller,
     );
@@ -2262,8 +2218,8 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(sent).toMatchObject({
       notebookId: '01JBQ2X00000000000000000V1',
       sha256: 'a'.repeat(64),
-      transport: 'url',
     });
+    expect(sent).not.toHaveProperty('transport');
     const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
     expect(body['targets']).toHaveLength(3);
     // The host the parts go to, which a client that allows hosts one by one
@@ -2273,29 +2229,61 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     expect(String(body['next'])).toContain('PUT');
   });
 
-  it('says which parts are still missing, and when to finish', async () => {
-    const answer = await gateways({
-      knowledge: {
-        sendFilePart: async () => ({
-          transfer: transfer({ transport: 'inline', received: [1] }),
-          missing: [2, 3],
-          targets: [],
-          expiresAt: null,
-        }),
-      },
-    }).call(
-      'send_file_part',
+  it('has no inline transport any more, and refuses one naming the argument (#468)', async () => {
+    expect(TOOL_CATALOG.some((tool) => tool.name === 'send_file_part')).toBe(false);
+    const begin = TOOL_CATALOG.find((tool) => tool.name === 'begin_file_upload');
+    expect(Object.keys(begin?.inputSchema.properties ?? {})).not.toContain('transport');
+
+    const refused = await gateways().call(
+      'begin_file_upload',
       {
-        upload: '01JBQ2X00000000000000000P1',
-        part: 1,
-        sha256: 'b'.repeat(64),
-        contentBase64: 'AAAA',
+        notebook: '01JBQ2X00000000000000000V1',
+        name: 'quadro.jpg',
+        mimeType: 'image/jpeg',
+        size: 20_000,
+        sha256: 'a'.repeat(64),
+        purpose: 'A foto do quadro',
+        transport: 'inline',
       },
       caller,
     );
-    const body = JSON.parse(answer.content[0]?.text ?? '') as Record<string, unknown>;
-    expect(body['missing']).toEqual([2, 3]);
-    expect(body['next']).toBe('Send the parts still missing: 2, 3.');
+    expect(refused.isError).toBe(true);
+    expect(refused.content[0]?.text ?? '').toContain('transport');
+  });
+
+  it('says a large file is still finishing, and the status answers its reference once kept (#480)', async () => {
+    const finishing = await gateways({
+      knowledge: {
+        finishFileUpload: async () => ({
+          status: 'finishing' as const,
+          upload: '01JBQ2X00000000000000000P1',
+        }),
+      },
+    }).call('finish_file_upload', { upload: '01JBQ2X00000000000000000P1' }, caller);
+    const body = JSON.parse(finishing.content[0]?.text ?? '') as Record<string, unknown>;
+    expect(body['status']).toBe('finishing');
+    expect(String(body['next'])).toContain('file_upload_status');
+
+    const kept = await gateways({
+      knowledge: {
+        fileUploadStatus: async () => ({
+          transfer: transfer({}),
+          missing: [],
+          targets: [],
+          expiresAt: null,
+          kept: {
+            fileId: '01JBQ2X0000000000000000F01',
+            notebookId: '01JBQ2X00000000000000000V1',
+            name: 'quadro.jpg',
+            bytes: 20_000_000,
+          },
+        }),
+      },
+    }).call('file_upload_status', { upload: '01JBQ2X00000000000000000P1' }, caller);
+    expect(JSON.parse(kept.content[0]?.text ?? '')).toMatchObject({
+      status: 'kept',
+      reference: '![[quadro.jpg]]',
+    });
   });
 
   it('answers the reference to write once the file is kept', async () => {
@@ -2370,25 +2358,30 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
   it('teaches the way in a skill the handshake lists, and keep_file points to it', () => {
     const skill = SKILLS.find((each) => each.name === 'keep-files');
     expect(skill?.body).toContain('begin_file_upload');
-    expect(skill?.body).toContain('transport: "url"');
+    expect(skill?.body).toContain('finish_file_upload');
+    expect(skill?.body).not.toContain('send_file_part');
     const keep = TOOL_CATALOG.find((each) => each.name === 'keep_file');
     expect(keep?.description).toContain('begin_file_upload');
     expect(keep?.description).toContain('keep-files');
-    // What was seen on 2026-09-26: a chat that recompresses the attachment,
-    // and an agent that kept the small copy in silence (#243, RN-AGT-042).
-    expect(keep?.description).toContain('tell them both sizes');
-    expect(skill?.body).toContain('request_file');
-    expect(skill?.body).toContain('Aguardando você');
+    // An agent that kept a smaller copy in silence (#243, RN-AGT-042): the size
+    // or hash the person gives is compared before anything is kept.
+    expect(keep?.description).toContain('compare before keeping anything');
+    expect(skill?.body).not.toContain('request_file');
+    expect(skill?.body).not.toContain('Aguardando você');
     expect(skill?.body).not.toContain('Anexar arquivo');
-    expect(skill?.body).toContain('host_not_allowed');
+    // The method of #470: the probe first, and on any other answer no upload.
+    expect(skill?.body).toContain(UPLOAD_PROBE.path);
+    expect(skill?.body).toContain(UPLOAD_PROBE.body);
+    expect(skill?.body).toContain('Open no upload');
+    expect(skill?.body).toContain("attach the file\nthemselves from the note's editor");
   });
 
   it('holds a kept file to the one the person sent by its bytes, and keeps its name (#246)', () => {
     const skill = SKILLS.find((each) => each.name === 'keep-files')?.body ?? '';
     // ChatGPT pointed a note at a thumbnail of 7,500 bytes kept earlier under
     // a similar name, and called a copy reduced to 2048 px the original.
-    expect(skill).toContain('is the one the person sent only when its\nsize matches');
-    expect(skill).toContain('the file you\nreceived');
+    expect(skill).toContain('is the one the person means only when its\nsize matches');
+    expect(skill).toContain('the file you received');
     expect(skill).toContain('Keep a file under the name the person gave it');
     const list = TOOL_CATALOG.find((each) => each.name === 'list_files');
     expect(list?.description).toContain('only when its bytes match');

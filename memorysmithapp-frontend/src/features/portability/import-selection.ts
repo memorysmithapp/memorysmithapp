@@ -264,7 +264,9 @@ export function treeOf(document: NotebookDocument): DocumentTree {
       name: file.name,
       description: file.description,
       mimeType: file.mimeType,
-      bytes: Math.floor((file.bytes.length * 3) / 4),
+      // A `1.6` document says how many bytes the entry of a file holds; one
+      // up to `1.5` carries them base64, a third more than the file.
+      bytes: file.size ?? Math.floor(((file.bytes ?? '').length * 3) / 4),
     })),
     noteCount: document.notes.length,
     historyEntries: document.history?.entries.length ?? 0,

@@ -11,6 +11,49 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-17
+
+### Added
+
+- **An agent can tell whether it reaches the upload host before sending a file.** The upload host answers `GET /probe` with a fixed text, and `whoami` gives the agent that address and that text, with what to do when something else comes back: open no upload, and tell the person which setting their assistant needs, or that they can attach the file from the note's editor. Until now the agent could only guess from a `403`, which the host and a proxy that blocks it both answer. (#467)
+
+- **Check a kept file against your original.** The *Attachments* page of a notebook shows each file's SHA-256 beside its size, with a button that copies it, and offers *Check against the original*: you choose the file on your computer, your browser reads it there, and nothing of it is sent. When the two are the same, the page says the kept file is your original. When they are not, it shows how they differ: both sizes and what each one's bytes are, and for an image both dimensions, the color mode, an alpha channel, a color profile or EXIF on either side, and how much of the picture changed once both are drawn at the same size. It then asks whether to keep your file in place of the kept one; on yes, your file is kept under the same name, description, tags and folder, so every note that shows it shows your original, and the page checks it again and says it is now identical. On no, nothing changes. Images above 40 megapixels are compared by their metadata and SHA-256 only, and the page says so. (#466)
+
+- **A file sent in parts is checked and kept in the background.** Once every part has arrived, the file is held to its SHA-256 and kept by the worker that runs exports and imports, instead of within one call whose time a large file would pass. The agent and the editor wait for it up to about twenty seconds, which covers the files of today; a larger one answers *finishing*, the agent follows it with `file_upload_status`, and the editor shows *Checking the whole file…* until it is kept. (#480)
+
+- **A file is refused only when it does not fit in your plan.** A file sent in parts, by an agent or from the note's editor, no longer stops at 100 MB: it may be as large as the room your plan has left, and a larger one is refused at once, before any byte travels, saying how large the file is and how much room is free, in your language. Keeping your original in the place of a copy on the files of a notebook checks that room before it lets the copy go. (#482)
+
+- **Choosing a kept export to import no longer downloads it whole.** The import dialog reads the export from where it is kept by ranges, its contents list and its document, and shows what it holds at once, however large its files are; when the import starts, the server copies it as before. (#484)
+
+- **A file above 5 GiB can be kept when the plan has room for it.** The last step of keeping a file copied it in one operation, which the store refuses above 5 GiB; it now copies a larger file in parts. No plan of today reaches that size. (#485)
+
+### Removed
+
+- **An agent no longer asks the person for a file through Transfers.** `request_file` is gone, and so are the tab *Aguardando você* of Transfers and the requests in `check_notebook` and `list_file_uploads`. In every conversation measured in Claude, ChatGPT and Grok, the agent sent its file by URL once its sandbox reached the upload host. When it cannot reach the host, the agent now says which setting its assistant needs, and the person attaches the file from the note's editor under the name the note expects. The requests still open are discarded with this version; a note that named a requested file keeps a pending link. (#469)
+
+- **An agent no longer sends a file inline.** `send_file_part` is gone, and `begin_file_upload` takes no `transport`: every part goes by URL, PUT by the agent's code to its own address. In every conversation measured in Claude, ChatGPT and Grok, from 41 KB to 90 MB, the agent sent by URL once its sandbox reached the upload host, and none needed inline. An agent that asks for `transport` is refused with the arguments the tool takes, and an upload opened inline before this version cannot be finished: it is discarded. (#468)
+
+### Changed
+
+- **A notebook with large files exports and imports whole.** A `.notebook` is still one file, and now holds each kept file as a file of its own beside the notebook's document (format `1.6`): unzip it and every photo, PDF or video is there under its name, unchanged. The export is written as it is read and the import reads the archive where it is, so the size of a file no longer depends on what the server holds in memory at once, and every file that comes back is checked against the SHA-256 the archive declares for it; an archive whose file does not match, or that misses one, is refused before anything is written. Archives exported before this version still import as they did. (#481)
+
+- **An agent checks it can reach the upload host before it sends a file, and says what to change when it cannot.** The skill `keep-files` and the descriptions of `begin_file_upload` and `keep_file` now teach one method: the agent's code fetches the probe `whoami` names; with its answer, a file the agent holds as bytes goes by URL, whole, and only a few kilobytes of text such as an SVG go in one call. With any other answer the agent opens no upload, and tells the person which setting their assistant needs, as the About page names it, and that they can attach the file from the note's editor. The agent keeps a file under the name the person gave it, and compares the size or hash the person gives before keeping anything. (#470)
+
+- **The About page teaches how to connect Grok.** A Grok tab joins Claude and ChatGPT: where to add the connector, the name and the address, the sign-in, and how to use it in a conversation; and, for files, that Grok's code reaches MemorySmith with no setting to change. (#465)
+
+- **The steps of the About page follow the screens of Claude and ChatGPT as they are today.** In Claude, connectors are under *Plugins*, the field is *MCP server URL*, and the tools are refreshed from *Your plugins*; in ChatGPT, a server is added from *Plugins → Add → Add custom MCP server* and created with *Create as a plugin*, and the tools are refreshed with *Refresh tools*. `whoami` gives the same steps. (#471)
+
+- **The cards of *What to ask first*, on the About page, darken their edge under the mouse**, as every other card of the page does. (#471)
+
+- **The About page names the one setting each assistant needs to keep files.** For Claude, network access on and `*.memorysmith.app` among the allowed domains unless they are all allowed; for ChatGPT, *Work network access* on. It no longer says that ChatGPT's code cannot reach the network, nor sends anybody to *Aguardando você*: when an assistant cannot reach the upload host, the person attaches the file from the note's editor. A line for every assistant says that MemorySmith keeps exactly what the assistant sends, and that a kept file can be checked against the original on the files of the notebook. (#471)
+
+- **The Tables page only reads.** An open table no longer shows *Delete table*: the page shows a table's rows and schema, and nothing on it changes the table. A table is deleted by asking the agent, through the connector, as it is created and written. (#462)
+
+### Fixed
+
+- **A note named after the file it shows counts that file as shown.** A note named `foto.jpg` whose body is `![[foto.jpg]]` showed the photo on its page, but the links of the notebook read the embed as the note pointing at itself and dropped it, so `check_notebook` and the notebook's health listed `foto.jpg` among the files no note shows. An embed now never reaches the note it is written in, as version 0.11 of the MemorySmith Markdown Specification decides: it reaches another note of that name, else the file, else it is pending, the same on the note page, in edit mode, in the preview an agent asks for, in print and in what `read_note` and `check_notebook` answer. A link is unchanged, so `[[foto.jpg#Section]]` inside that note still reaches its own section. The notebooks already written are put right when their links are rebuilt with this version. (#472, RN-DSC-067)
+- **An embed of a name a note and a file both carry draws the note.** The page drew the file, while the links of the notebook counted the note: a note comes first, as the specification says, and the page now draws what the links say. (#472)
+
 ## [0.18.1] - 2026-11-15
 
 ### Fixed
@@ -1080,7 +1123,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.16.0...v0.17.0

@@ -13,10 +13,8 @@
  *   POST   /uploads                    ->  starts an upload in parts (RN-PRT-027)
  *   GET    /uploads                    ->  the open uploads, of one notebook or all
  *   GET    /uploads/:t                 ->  what is missing, with addresses by URL
- *   PUT    /uploads/:t/parts/:n        ->  one inline part, with its hash
  *   POST   /uploads/:t/finish          ->  the whole becomes a file, or is refused
  *   POST   /uploads/:t/link            ->  points it at another notebook (RN-PRT-029)
- *   POST   /requests                   ->  asks the person for a file (RN-PRT-030)
  *   POST   /notebooks/:v/notes/:n/pdf  ->  starts a print, answers it (RN-PRT-031)
  *   GET    /prints/:p                  ->  the print, with a link once its file is made
  *   POST   /notebooks/:v/previews      ->  starts drawing a note or a draft (RN-PRT-032)
@@ -47,13 +45,12 @@ import {
   declareModelRequestSchema,
   publishModelRequestSchema,
   finishedUploadSchema,
+  finishingUploadSchema,
   importFromExportRequestSchema,
   importUploadSchema,
   linkUploadRequestSchema,
   previewRequestSchema,
   printRequestSchema,
-  requestFileRequestSchema,
-  uploadPartRequestSchema,
 } from '@memorysmithapp/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
 import {
@@ -105,12 +102,10 @@ import {
   receivedOf,
   type BeginUpload,
   type FileKeeper,
-  type FinishUpload,
+  type RequestFinish,
   type GetUploadStatus,
   type LinkUpload,
-  type RequestFile,
   type ListUploads,
-  type PutUploadPart,
   type UploadStatus,
 } from '../application/Uploads.js';
 import type {
@@ -169,10 +164,8 @@ export interface PortabilityUseCases {
   readonly beginUpload: (request: PortabilityRequest) => BeginUpload;
   readonly listUploads: (request: PortabilityRequest) => ListUploads;
   readonly uploadStatus: (request: PortabilityRequest) => GetUploadStatus;
-  readonly putUploadPart: (request: PortabilityRequest) => PutUploadPart;
-  readonly finishUpload: (request: PortabilityRequest) => FinishUpload;
+  readonly finishUpload: (request: PortabilityRequest) => RequestFinish;
   readonly linkUpload: (request: PortabilityRequest) => LinkUpload;
-  readonly requestFile: (request: PortabilityRequest) => RequestFile;
   readonly startPrint: (request: PortabilityRequest) => StartPrint;
   readonly getPrint: (request: PortabilityRequest) => GetPrint;
   readonly startPreview: (request: PortabilityRequest) => StartPreview;
@@ -292,18 +285,17 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             mimeType: transfer.upload.mimeType,
             purpose: transfer.upload.purpose,
             platform: transfer.upload.platform,
-            transport: transfer.upload.transport,
             sha256: transfer.upload.sha256,
             partSize: transfer.upload.partSize,
             partCount: transfer.upload.partCount,
             received: receivedOf(transfer.upload),
             lastPartAt: transfer.upload.lastPartAt,
-            fulfils: transfer.upload.fulfils ?? null,
+            finishing: Boolean(transfer.upload.finishing),
+            refusal: transfer.upload.refusal
+              ? { code: transfer.upload.refusal.code, message: transfer.upload.refusal.message }
+              : null,
           },
         }
-      : {}),
-    ...(transfer.request
-      ? { request: { ...transfer.request, tags: [...transfer.request.tags] } }
       : {}),
   };
 }
@@ -314,6 +306,7 @@ function statusToDto(status: UploadStatus): Record<string, unknown> {
     missing: status.missing,
     targets: status.targets,
     expiresAt: status.expiresAt,
+    ...(status.kept ? { kept: finishedUploadSchema.parse(status.kept) } : {}),
   };
 }
 
@@ -731,22 +724,6 @@ export function createPortabilityRoutes(
     return present(c, status, statusToDto);
   });
 
-  app.put('/uploads/:t/parts/:n', async (c) => {
-    const request = c.get('portability');
-    const author = request.authorship;
-    if (!author.ok) return fail(c, author.error);
-    const parsed = uploadPartRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) {
-      return fail(c, DomainError.validation('A part carries its sha256 and its contentBase64'));
-    }
-    const put = await useCases.putUploadPart(request).execute({
-      transferId: c.req.param('t') ?? '',
-      part: Number(c.req.param('n')),
-      ...parsed.data,
-    });
-    return present(c, put, statusToDto);
-  });
-
   app.post('/uploads/:t/finish', async (c) => {
     const request = c.get('portability');
     const author = request.authorship;
@@ -754,7 +731,15 @@ export function createPortabilityRoutes(
     const finished = await useCases
       .finishUpload(request)
       .execute(c.req.param('t') ?? '', author.value);
-    return present(c, finished, (value) => finishedUploadSchema.parse(value));
+    if (!finished.ok) return fail(c, finished.error);
+    // Kept within the wait, the file; still running in the worker, 202 and
+    // the upload to ask the status of (#480).
+    return finished.value.status === 'kept'
+      ? c.json(finishedUploadSchema.parse(finished.value.file), 200)
+      : c.json(
+          finishingUploadSchema.parse({ status: 'finishing', upload: finished.value.transferId }),
+          202,
+        );
   });
 
   app.post('/uploads/:t/link', async (c) => {
@@ -769,30 +754,6 @@ export function createPortabilityRoutes(
       .linkUpload(request)
       .execute(c.req.param('t') ?? '', parsed.data.notebookId);
     return present(c, linked, transferToDto);
-  });
-
-  /**
-   * An agent asks the person for a file instead of sending it (RN-PRT-030),
-   * from nothing or from an upload it could not finish. It is a write, of a
-   * record the person acts on, so an unbound connector is refused (INV-07).
-   */
-  app.post('/requests', async (c) => {
-    const request = c.get('portability');
-    const author = request.authorship;
-    if (!author.ok) return fail(c, author.error);
-    const parsed = requestFileRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) {
-      return fail(
-        c,
-        DomainError.validation(
-          parsed.error.issues
-            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-            .join('; '),
-        ),
-      );
-    }
-    const asked = await useCases.requestFile(request).execute({ ...parsed.data, by: author.value });
-    return asked.ok ? c.json(transferToDto(asked.value), 201) : fail(c, asked.error);
   });
 
   return app;

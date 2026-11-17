@@ -115,7 +115,6 @@
   "POST /portability/notebooks/:v/export",
   "POST /portability/notebooks/:v/notes/:n/pdf",
   "POST /portability/notebooks/:v/previews",
-  "POST /portability/requests",
   "POST /portability/transfers/:t/cancel",
   "POST /portability/transfers/:t/download",
   "POST /portability/transfers/:t/read",
@@ -132,6 +131,5 @@
   "PUT /knowledge/notebooks/:v/limits/:user",
   "PUT /knowledge/notebooks/:v/notes/:n",
   "PUT /portability/models/:v",
-  "PUT /portability/models/:v/publication",
-  "PUT /portability/uploads/:t/parts/:n"
+  "PUT /portability/models/:v/publication"
 ]

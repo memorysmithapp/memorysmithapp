@@ -28,6 +28,7 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { SubscriptionId } from '@memorysmithapp/kernel';
 import { DynamoLinkGraph } from '@memorysmithapp/svc-discovery/adapters/aws';
 import {
+  compactOf,
   LinkReprojection,
   outcomeOf,
   summarise,
@@ -113,7 +114,9 @@ export async function handler(
         const plan = await reprojection.planNotebook(address);
         if (!plan) return { ...address, gone: true };
         if (mode === 'apply') await reprojection.apply(plan);
-        return outcomeOf(plan);
+        // The counts alone when nothing changed: every answer travels in the
+        // state of the run, which carries 256 KB (#472, ADR-017).
+        return compactOf(outcomeOf(plan));
       },
     );
   }

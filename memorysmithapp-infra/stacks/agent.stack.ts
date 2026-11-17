@@ -51,6 +51,11 @@ export interface AgentStackProps extends StackProps {
    * declares and is the website it names (RN-AGT-026).
    */
   siteOrigin: string;
+  /**
+   * The upload host of the same environment, whose probe (#467) `whoami` and
+   * the description of `begin_file_upload` name to the agent.
+   */
+  uploadsOrigin: string;
 }
 
 export class AgentStack extends Stack {
@@ -103,6 +108,7 @@ export class AgentStack extends Stack {
         ...(props.directProvider ? { IDENTITY_PROVIDER: props.directProvider } : {}),
         STATE_SECRET_ID: stateSecret.secretArn,
         INTERNAL_API_ORIGIN: props.internalApiOrigin,
+        UPLOADS_ORIGIN: props.uploadsOrigin,
       },
     });
     const fn = service.function;

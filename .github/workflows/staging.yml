@@ -20,7 +20,15 @@ on:
         description: A maintenance job to apply after the delivery
         type: choice
         default: none
-        options: [none, recount-storage, reproject-links, both, forget-model-versions]
+        options:
+          [
+            none,
+            recount-storage,
+            reproject-links,
+            both,
+            forget-model-versions,
+            discard-file-requests,
+          ]
       # What costs money is off unless it is chosen here (ADR-021), and the
       # next delivery that does not choose it removes it again.
       alarms:
@@ -102,6 +110,11 @@ jobs:
         run: |
           # The versions of models go before the recount, which then counts
           # what is left (#431).
+          if [ "${{ inputs.maintenance }}" = discard-file-requests ]; then
+            pnpm tools data discard-file-requests --environment staging
+            pnpm tools data discard-file-requests --environment staging --apply
+            exit 0
+          fi
           if [ "${{ inputs.maintenance }}" = forget-model-versions ]; then
             pnpm tools data forget-model-versions --environment staging --apply
             pnpm tools data recount-storage --environment staging --apply

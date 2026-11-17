@@ -16,6 +16,13 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import {
+  FinishUpload,
+  refuseFinish,
+  RunFinish,
+} from '@memorysmithapp/svc-portability/application/uploads';
+import { S3PartStore } from '@memorysmithapp/svc-portability/adapters/s3';
+import { fileKeeperFor } from './file-keeper.js';
+import {
   AgentIdentity,
   Authorship,
   DomainError,
@@ -35,7 +42,7 @@ import {
 } from '@memorysmithapp/svc-portability/application/transfers';
 import { ImportNotebook } from '@memorysmithapp/svc-portability/application/import';
 import { S3ArchiveStore, S3UploadStore } from '@memorysmithapp/svc-portability/adapters/s3';
-import { createZip, readZip } from '@memorysmithapp/svc-portability/adapters/zip';
+import { zipStream } from '@memorysmithapp/svc-portability/adapters/zip';
 import { KnowledgeNotebookWriter } from './import-writer.js';
 import { AuditHistorySource } from './history-source.js';
 import { ImportedTrailWriter } from './trail-writer.js';
@@ -52,7 +59,7 @@ import {
   RestoreFolderNumber,
 } from '@memorysmithapp/svc-knowledge/application/folders';
 import { CreateNote } from '@memorysmithapp/svc-knowledge/application/notes';
-import { KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
+import { KeepAssembledFile, KeepFile } from '@memorysmithapp/svc-knowledge/application/files';
 import { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
 import { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import { ResolveRequestContext } from '@memorysmithapp/svc-access/application/context';
@@ -172,6 +179,7 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
       createNote: new CreateNote(knowledge),
       keepFile: new KeepFile(knowledge),
+      keepAssembledFile: new KeepAssembledFile(knowledge),
       createTable: new CreateTable(knowledge),
       insertRows: new InsertRows(knowledge),
       createDashboard: new CreateDashboard(knowledge),
@@ -239,7 +247,7 @@ function modelCopierFor(work: TransferWork): ModelCopier {
       const copied = await new ExportNotebook(
         new KnowledgeExportSource(buildKnowledge(infra, holder.value)),
         new S3ArchiveStore(infra.s3, infra.contentBucket),
-        createZip,
+        zipStream,
         work.subscriptionId,
         serializeNotebookDocument,
       ).execute({ notebookId: source.notebookId, now: Instant.now(), modelCopyAt: uploadKey });
@@ -256,7 +264,7 @@ function modelCopierFor(work: TransferWork): ModelCopier {
 function startOf(work: TransferWork, correlationId: string | undefined): OperationStart {
   const agent = work.authorship?.agent ?? null;
   return {
-    operation: work.kind === 'import' ? 'import' : 'export',
+    operation: work.kind,
     correlationId,
     subscriptionId: work.subscriptionId,
     userId: work.authorship?.userId ?? work.userId,
@@ -295,10 +303,46 @@ async function tellFailure(work: TransferWork): Promise<void> {
   if (/^[A-Z][A-Z_]*$/.test(code)) annotate({ outcome: outcomeOfCode(code), errorCode: code });
 }
 
+/**
+ * The finish of an upload in parts (#480): the parts joined, the whole held to
+ * its hash and its type, and the file kept, as the person who asked for it —
+ * into their own notebook or one shared with them, as the API reaches it.
+ */
+async function finish(work: TransferWork, transfers: DynamoTransferStore): Promise<void> {
+  const context = contextOf(work);
+  const { scoped } = buildAccess(infra, context);
+  if (!scoped) throw new Error('unreachable: the worker was given a subscription');
+  const resolved = await new ResolveRequestContext(scoped.subscriptions).execute(context);
+  const by = authorshipOf(work);
+  if (!resolved.ok) {
+    // The person may no longer write here: the finish is refused, as the API would.
+    await refuseFinish(transfers, work.userId, work.transferId, resolved.error);
+    return;
+  }
+  const keeper = fileKeeperFor(infra, buildShares(infra), {
+    ctx: resolved.value,
+    subscription: context,
+    authorship: ok(by),
+    subscriptionRole: resolved.value.role,
+  });
+  // The parts are joined and read, never signed, here.
+  const parts = new S3PartStore(infra.s3, infra.s3, infra.contentBucket, '');
+  await new RunFinish(
+    transfers,
+    new FinishUpload(transfers, parts, keeper, work.subscriptionId, work.userId),
+    work.userId,
+  ).execute(work.transferId, by);
+}
+
 async function run(work: TransferWork): Promise<void> {
   const context = contextOf(work);
 
   const transfers = new DynamoTransferStore(infra.db, infra.portabilityTable, work.subscriptionId);
+
+  if (work.kind === 'finish') {
+    await finish(work, transfers);
+    return;
+  }
 
   /**
    * The trail of THIS subscription, read for an export that carries the
@@ -311,7 +355,6 @@ async function run(work: TransferWork): Promise<void> {
     const importer = new ImportNotebook(
       new S3UploadStore(infra.s3, infra.contentBucket),
       await writerFor(context),
-      readZip,
       parseNotebookDocument,
       work.subscriptionId,
       new ImportedTrailWriter(trail, work.subscriptionId),
@@ -342,7 +385,7 @@ async function run(work: TransferWork): Promise<void> {
     // The archive is kept, and counted, where the transfer is: under the
     // person who asked, whoever holds the notebook (RN-ACC-027).
     new S3ArchiveStore(infra.s3, infra.contentBucket),
-    createZip,
+    zipStream,
     work.subscriptionId,
     serializeNotebookDocument,
     new AuditHistorySource(

@@ -14,7 +14,7 @@ on:
         description: The job to run
         type: choice
         default: reproject-links
-        options: [reproject-links, forget-model-versions]
+        options: [reproject-links, forget-model-versions, discard-file-requests]
       mode:
         description: Report what a rebuild would change, or apply it
         type: choice

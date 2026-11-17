@@ -540,7 +540,67 @@
     "shownByNone": "Nenhuma nota mostra este arquivo.",
     "notesUnknown": "Não foi possível ler quais notas mostram este arquivo.",
     "download": "Baixar",
-    "enlarge": "Ampliar"
+    "enlarge": "Ampliar",
+    "check": {
+      "title": "Conferir com o original",
+      "lead": "Escolha o arquivo no seu computador. Ele é lido aqui, neste navegador, e nada dele é enviado: o tamanho e o SHA-256 dele são comparados com os do arquivo guardado.",
+      "hashing": "Lendo o seu arquivo… {{percent}}",
+      "reading": "Lendo o arquivo guardado para comparar os dois…",
+      "comparing": "Comparando as duas imagens…",
+      "identical": "Este é o original: o arquivo guardado tem o mesmo tamanho e o mesmo SHA-256 que o seu.",
+      "differs": "O arquivo guardado não é o seu arquivo. É assim que os dois diferem:",
+      "keptUnread": "Não foi possível ler o arquivo guardado para comparar o conteúdo, então só o tamanho e o SHA-256 dele aparecem.",
+      "columnWhat": "O que é comparado",
+      "columnKept": "Guardado no caderno",
+      "columnLocal": "No seu computador",
+      "rowSize": "Tamanho",
+      "rowType": "Tipo lido dos bytes",
+      "rowDimensions": "Dimensões",
+      "rowColor": "Modo de cor",
+      "rowAlpha": "Canal alfa",
+      "rowIcc": "Perfil de cor (ICC)",
+      "rowExif": "EXIF",
+      "yes": "Sim",
+      "no": "Não",
+      "dimensions": "{{width}} × {{height}} pixels",
+      "color": {
+        "gray": "Tons de cinza",
+        "rgb": "Cor (RGB)",
+        "indexed": "Cores indexadas",
+        "cmyk": "CMYK"
+      },
+      "typeUnknown": "Não reconhecido",
+      "kinds": {
+        "image_heic": "Imagem HEIC",
+        "image_avif": "Imagem AVIF",
+        "image_tiff": "Imagem TIFF",
+        "image_bmp": "Imagem BMP",
+        "application_zip": "Arquivo ZIP (um documento do Word, do Excel ou do PowerPoint é um)",
+        "text_plain": "Texto"
+      },
+      "pixels": "Desenhadas no tamanho do arquivo guardado, {{share}} de {{samples}} amostras de pixels são idênticas; a diferença média é {{mean}} e a maior, {{peak}}, numa escala de 0 a 255.",
+      "pixelsSame": "Desenhadas no tamanho do arquivo guardado, todas as {{samples}} amostras de pixels são idênticas: a imagem é a mesma, e só o jeito como foi salva difere.",
+      "overCeiling": "Uma das duas imagens tem mais de {{megapixels}} megapixels, então os pixels não foram comparados: só o que está acima e o SHA-256.",
+      "undrawable": "Este navegador não consegue desenhar uma das duas imagens, então os pixels não foram comparados: só o que está acima e o SHA-256.",
+      "ask": "Guardar o arquivo do seu computador no lugar do guardado? Ele fica com o mesmo nome, “{{name}}”, e toda nota que o mostra passa a mostrar o seu original. A cópia guardada é excluída, e os dois passos entram no histórico do caderno.",
+      "askReadOnly": "Só quem pode escrever neste caderno pode guardar o original no lugar.",
+      "keepNo": "Não, deixar como está",
+      "keepYes": "Sim, guardar o original",
+      "preparing": "Preparando o seu arquivo…",
+      "lettingGo": "Excluindo a cópia guardada…",
+      "kept": "Guardado. Conferido de novo: o arquivo no caderno agora é idêntico ao seu, com o mesmo tamanho e o mesmo SHA-256.",
+      "keptDiffers": "O seu arquivo foi enviado, mas o arquivo no caderno não confere com ele. Confira de novo.",
+      "purpose": "O original de {{name}}, guardado no lugar de uma cópia",
+      "refusal": {
+        "EMPTY": "O seu arquivo está vazio, então nada mudou.",
+        "NO_ROOM": "O seu plano não tem espaço para o seu arquivo, nem depois de liberar a cópia, então nada mudou.",
+        "TYPE_NOT_KEPT": "Um caderno não guarda arquivos do tipo do seu, então nada mudou.",
+        "TYPE_CONTRADICTED": "Os bytes do seu arquivo não são do tipo que ele diz ser, então nada mudou."
+      },
+      "failedAfterLettingGo": "A cópia guardada foi excluída, mas o seu arquivo não foi guardado: {{message}} Tente de novo: o que já foi enviado não é enviado outra vez.",
+      "retry": "Tentar de novo",
+      "pickAgain": "Escolher o arquivo de novo"
+    }
   },
   "tables": {
     "heading": "Tabelas",
@@ -584,22 +644,13 @@
       "yes": "Sim",
       "no": "Não"
     },
-    "delete": "Apagar tabela",
-    "deleteTitle": "Apagar esta tabela?",
-    "deleteHolds_one": "Ela tem {{count}} linha.",
-    "deleteHolds_other": "Ela tem {{count}} linhas.",
-    "deleteConsequences": "A tabela e suas linhas saem de uma vez e para sempre, e toda nota que a mostra vai dizer que ela não existe. Nada a traz de volta.",
-    "deleteUnderstood": "Entendo que as linhas são apagadas de vez",
-    "deleteConfirm": "Apagar de vez",
     "deleting": "Apagando…",
     "carry": {
       "published": "Estas tabelas vão com as linhas, que toda pessoa que entra no MemorySmith.app vai ler: {{tables}}."
     },
     "shownBy_one": "Aparece em {{count}} nota",
     "shownBy_other": "Aparece em {{count}} notas",
-    "shownByNone": "Nenhuma nota mostra esta tabela.",
-    "deleteShownBy_one": "{{count}} nota a mostra, e vai dizer que a tabela não existe.",
-    "deleteShownBy_other": "{{count}} notas a mostram, e vão dizer que a tabela não existe."
+    "shownByNone": "Nenhuma nota mostra esta tabela."
   },
   "dashboards": {
     "heading": "Painéis",
@@ -670,7 +721,11 @@
         "failed": "A importação de <b>{{notebook}}</b> falhou."
       }
     },
-    "columns": { "what": "Transferência", "state": "Situação", "actions": "Ações" },
+    "columns": {
+      "what": "Transferência",
+      "state": "Situação",
+      "actions": "Ações"
+    },
     "heading": "Transferências",
     "seeAll": "Ver todas",
     "filter": "O que mostrar",
@@ -678,8 +733,7 @@
       "all": "Todas",
       "export": "Exportações",
       "import": "Importações",
-      "agent": "Do agente",
-      "request": "Aguardando você"
+      "agent": "Do agente"
     },
     "empty": "Nada foi transferido ainda.",
     "help": "Cada exportação e importação da sua conta. Uma exportação fica guardada aqui até você apagar, conta no seu plano e sobrevive ao caderno de onde veio, por isso é o caminho de volta de uma exclusão por engano. Uma importação cria um caderno novo a partir de um arquivo exportado. Os envios que um agente faz em partes reservam espaço do seu plano até terminarem, e os arquivos que um agente pediu a você esperam aqui.",
@@ -693,8 +747,7 @@
     "running": {
       "export": "exportando · {{done}} de {{total}} notas",
       "import": "importando · {{done}} de {{total}} notas",
-      "agent": "enviando · {{done}} de {{total}} partes",
-      "request": "aguardando você"
+      "agent": "enviando · {{done}} de {{total}} partes"
     },
     "ended": {
       "ready": "pronta",
@@ -708,8 +761,7 @@
     "line": {
       "export": "Exportação · {{notebook}}",
       "import": "Importação · {{notebook}}",
-      "agent": "Agente · {{notebook}}",
-      "request": "Pedido · {{notebook}}"
+      "agent": "Agente · {{notebook}}"
     },
     "wrote_one": "{{count}} nota escrita",
     "wrote_other": "{{count}} notas escritas",
@@ -718,8 +770,7 @@
     "kind": {
       "export": "Exportação",
       "import": "Importação",
-      "agent": "Agente",
-      "request": "Pedido"
+      "agent": "Agente"
     },
     "state": {
       "ready": "Pronta",
@@ -753,19 +804,7 @@
     "deleteUploadAsk": "Apagar este envio?",
     "deleteUploadFrees": "As partes que chegaram são descartadas e os {{size}} reservados voltam para o seu plano. Isto é definitivo.",
     "deleteFailedUpload": "Só este aviso sai da lista; as partes já foram descartadas.",
-    "platformInterface": "pela interface",
-    "requestKnown": "o agente conhece {{size}}",
-    "fulfil": "Enviar o arquivo",
-    "dismiss": "Dispensar",
-    "deleteRequestAsk": "Dispensar este pedido?",
-    "deleteRequestKeeps": "A nota continua com a referência a {{name}}, pendente, até um arquivo com esse nome ser guardado; o agente vê o pedido dispensado na próxima verificação do caderno.",
-    "requestUnavailable": "Sem caderno: o caderno deste pedido não está disponível. Vincule-o a um caderno para enviar o arquivo.",
-    "requestKeptAs": "O arquivo é guardado como {{name}}, seja qual for o nome dele no seu computador, e a nota que o pediu passa a mostrá-lo.",
-    "requestHashing": "lendo o arquivo · {{percent}}",
-    "requestDone": "Guardado como {{name}}.",
-    "requestWrongType": "Este pedido é de um arquivo do tipo {{kind}}: escolha um arquivo desse tipo.",
-    "waitingCount_one": "{{count}} arquivo aguardando você",
-    "waitingCount_other": "{{count}} arquivos aguardando você"
+    "platformInterface": "pela interface"
   },
   "about": {
     "title": "Sobre o MemorySmith.app",
@@ -833,19 +872,27 @@
       "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de pasta de cada pasta. O endereço deste ambiente é:",
       "claude": {
         "heading": "No Claude",
-        "one": "No menu lateral, abra <b>Personalizar</b> e depois <b>Conectores</b>.",
+        "one": "No menu lateral, abra <b>Plugins</b>.",
         "two": "Clique em <b>Adicionar</b> e escolha <b>Adicionar conector personalizado</b>.",
         "three": "Em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>URL do servidor MCP</b>, cole o endereço acima; clique em <b>Continuar</b>.",
         "four": "O Claude abre a tela de login do MemorySmith (se não abrir, clique em <b>Conectar</b> no conector); entre com esta mesma conta e autorize.",
-        "five": "Numa conversa, confira em <b>+</b> e depois <b>Conectores</b> que o MemorySmith.app está ligado, e peça seus cadernos."
+        "five": "Numa conversa, clique em <b>+</b> e depois em <b>Plugins</b>, confira que o MemorySmith.app está ligado e peça seus cadernos."
       },
       "chatgpt": {
         "heading": "No ChatGPT",
-        "one": "Pelo navegador, e não pelo app de celular ou tablet, que não mostra estas opções: em <b>Configurações</b>, abra <b>Plugins</b>, depois <b>Modo de desenvolvedor</b>, e ligue-o: é ele que permite adicionar um servidor que não está no catálogo.",
-        "two": "No menu lateral, abra <b>Plugins</b> e clique no <b>+</b> ao lado da busca.",
+        "one": "Pelo navegador, e não pelo app de celular ou tablet, que não mostra estas opções: no menu lateral, abra <b>Plugins</b>.",
+        "two": "Clique em <b>Adicionar</b>, no canto superior direito, e escolha <b>Adicionar servidor MCP personalizado</b>.",
         "three": "Em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>Conexão</b>, deixe <b>URL do servidor</b> e cole o endereço acima; deixe <b>Autenticação</b> em <b>OAuth</b>.",
-        "four": "Marque <b>Entendi e quero continuar</b> e clique em <b>Criar</b>; o aviso é o mesmo para qualquer servidor fora do catálogo. Entre com esta mesma conta e autorize.",
-        "five": "Numa conversa, clique no <b>+</b>, digite <b>MemorySmith</b>, escolha o plugin e peça seus cadernos."
+        "four": "Marque <b>Entendo e quero continuar</b> e clique em <b>Criar como plugin</b>; o aviso é o mesmo para qualquer servidor fora do catálogo. Entre com esta mesma conta e autorize.",
+        "five": "Numa conversa, clique no <b>+</b>, escolha <b>MemorySmith.app</b> entre os plugins e peça seus cadernos."
+      },
+      "grok": {
+        "heading": "No Grok",
+        "one": "Abra o menu da sua conta e depois <b>Configurações</b>, e escolha <b>Connect Apps</b>.",
+        "two": "Clique no filtro <b>Custom</b> e depois em <b>Add a custom connector</b>.",
+        "three": "Em <b>Adicionar servidor MCP</b>, em <b>Nome</b>, escreva <b>MemorySmith.app</b>; em <b>URL do servidor</b>, cole o endereço acima; clique em <b>Adicionar MCP</b>.",
+        "four": "O Grok abre a tela de login do MemorySmith numa janela própria; entre com esta mesma conta e autorize. O conector passa a mostrar <b>Connected</b>.",
+        "five": "Numa conversa, clique no <b>+</b>, depois em <b>Conectores</b> e em <b>MemorySmith.app</b>, que entra na sua mensagem, e peça seus cadernos."
       },
       "sameAccount": "Seja qual for a ferramenta, entre com a mesma conta com que você está lendo isto: o assistente alcança exatamente os cadernos que você alcança, com exatamente as suas permissões, e cada mudança que ele faz fica registrada no seu nome."
     },
@@ -859,18 +906,22 @@
     },
     "files": {
       "heading": "Arquivos pelo assistente",
-      "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
+      "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar o código dele alcançar esse endereço, e a configuração que decide isso não avisa quando está no caminho. Antes de enviar, o assistente confere se alcança o endereço e, quando não alcança, diz isso a você em vez de tentar.",
       "back": "E ele devolve um arquivo que o caderno guarda: peça a foto, o PDF ou a gravação, e ele lê o conteúdo de um arquivo de até 4 MB e entrega a você um link que baixa o arquivo com o próprio nome, válido por uma hora, de qualquer tamanho.",
-      "editor": "Quando o aplicativo não deixa, o assistente pede o arquivo a você: ele aparece em <b>Transferências</b>, na aba <b>Aguardando você</b>, com o nome que a nota espera. Escolha, arraste ou cole o arquivo ali, e ele é guardado inteiro, já aparecendo na nota. Para anexar algo por conta própria, abra a nota, clique em <b>Editar</b> no canto superior direito dela e depois no clipe da barra de ferramentas, que anexa um arquivo do computador, um que o caderno já guarda ou uma imagem de um endereço da web; ou cole ou arraste o arquivo sobre a nota.",
+      "check": "O MemorySmith guarda exatamente o que o assistente envia. Para ter certeza de que um arquivo guardado é o que você tem, abra os arquivos do caderno e confira-o com o seu original: o navegador compara os dois sem enviar o seu para lugar nenhum.",
+      "editor": "Quando o assistente não alcança o endereço, ou para anexar algo por conta própria, abra a nota, clique em <b>Editar</b> no canto superior direito dela e depois no clipe da barra de ferramentas, que anexa um arquivo do computador, um que o caderno já guarda ou uma imagem de um endereço da web; ou cole ou arraste o arquivo sobre a nota.",
       "claude": {
-        "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
-        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. Se você libera domínios um a um, libere o endereço acima, ou <b>*.memorysmith.app</b> de uma vez.",
+        "one": "Depois de uma atualização do MemorySmith, abra <b>Plugins</b>, depois <b>Seus plugins</b> e <b>Mostrar tudo</b>, e no <b>⋯</b> do <b>MemorySmith.app</b> escolha <b>Atualizar lista de ferramentas</b>: é assim que as ferramentas novas aparecem para o Claude.",
+        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, na seção <b>Execução de código e criação de arquivos</b>, ligue <b>Executar código na nuvem</b> e <b>Permitir acesso de rede externo</b>. Na <b>Lista de domínios permitidos</b>, com <b>Todos os domínios</b> não é preciso mais nada; com <b>Só gerenciadores de pacotes</b>, acrescente <b>*.memorysmith.app</b>, ou o endereço acima fica fora de alcance.",
         "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
       },
       "chatgpt": {
-        "one": "Depois de uma atualização do MemorySmith, abra o plugin <b>MemorySmith.app</b> nas configurações de <b>Plugins</b> e clique em <b>Atualizar</b>, para as ferramentas novas aparecerem.",
-        "two": "O ChatGPT entrega ao assistente uma <b>cópia reduzida</b> da foto anexada, e o código dele não alcança a rede: o assistente não tem o original para guardar, e deve dizer isso em vez de guardar a cópia.",
-        "three": "Para guardar a foto inteira, o assistente pede o arquivo a você: envie-o em <b>Transferências</b>, na aba <b>Aguardando você</b>, e ele aparece na nota que o pediu."
+        "one": "Depois de uma atualização do MemorySmith, abra <b>Configurações</b>, depois <b>Plugins</b> e <b>MemorySmith.app</b>, e em <b>Gerenciar aplicativo</b> clique em <b>Atualizar ferramentas</b>, para as ferramentas novas aparecerem.",
+        "two": "Em <b>Configurações</b>, depois <b>Controles de dados</b>, ligue <b>Acesso do Work à rede</b>. Com ele desligado, o código do assistente não alcança o endereço acima, e as <b>Permissões do site</b> de <b>Computador na nuvem</b> não mudam isso.",
+        "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
+      },
+      "grok": {
+        "one": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar."
       }
     }
   },
@@ -928,12 +979,13 @@
     "leaveWarning": "Você tem mudanças que ainda não gravou. Sair e perdê-las?",
     "attachHashing": "Preparando o arquivo…",
     "attachSending": "Enviando a parte {{sent}} de {{total}}",
+    "attachFinishing": "Conferindo o arquivo inteiro…",
     "attachPurpose": "Anexado pela interface à nota “{{note}}”",
     "attachPurposeUnnamed": "Anexado pela interface a uma nota",
     "attachPurposeGuidance": "Anexado pela interface à Orientação do caderno",
     "attachPurposeTemplate": "Anexado pela interface ao Modelo de pasta de “{{folder}}”",
     "attachRefusal": {
-      "TOO_LARGE": "Um arquivo anexado vai até 100 MB.",
+      "QUOTA": "Este arquivo tem {{size}}, e o seu plano tem {{room}} livres: apague algo ou peça um plano maior.",
       "EMPTY": "Esse arquivo está vazio.",
       "NO_TYPE": "O navegador não disse de que tipo é esse arquivo, então ele não pode ser guardado."
     },

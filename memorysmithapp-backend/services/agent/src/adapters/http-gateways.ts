@@ -27,7 +27,7 @@ import type {
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
-  RequestFileRequest,
+  FinishingUploadDto,
   TransferDto,
   UploadStatusDto,
   FileLinkDto,
@@ -645,22 +645,11 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
     return callApi<UploadStatusDto>(this.origin, caller, `/portability/uploads/${uploadId}`);
   }
 
-  async sendFilePart(
+  async finishFileUpload(
     caller: AgentCaller,
     uploadId: string,
-    part: number,
-    input: { sha256: string; contentBase64: string },
-  ): Promise<UploadStatusDto> {
-    return callApi<UploadStatusDto>(
-      this.origin,
-      caller,
-      `/portability/uploads/${uploadId}/parts/${part}`,
-      { method: 'PUT', body: input },
-    );
-  }
-
-  async finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto> {
-    return callApi<FinishedUploadDto>(
+  ): Promise<FinishedUploadDto | FinishingUploadDto> {
+    return callApi<FinishedUploadDto | FinishingUploadDto>(
       this.origin,
       caller,
       `/portability/uploads/${uploadId}/finish`,
@@ -676,13 +665,6 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `/portability/uploads${query}`,
     );
     return listed.transfers;
-  }
-
-  async requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto> {
-    return callApi<TransferDto>(this.origin, caller, '/portability/requests', {
-      method: 'POST',
-      body: input,
-    });
   }
 
   async discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void> {

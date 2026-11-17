@@ -276,7 +276,6 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
     upload: status.transfer.transferId,
     name: status.transfer.fileName,
     notebook: status.transfer.notebookId,
-    transport: upload?.transport,
     partSize: upload?.partSize,
     partCount: upload?.partCount,
     received: upload?.received ?? [],
@@ -295,26 +294,10 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
 }
 
 /**
- * An upload or a request as the connector lists it: who opened it, what for and
- * how far it got — what deciding to finish, hand over or throw it away takes.
+ * An upload as the connector lists it: who opened it, what for and how far it
+ * got — what deciding to finish or throw it away takes.
  */
 function openUploadOf(each: TransferDto): Record<string, unknown> {
-  if (each.kind === 'request') {
-    return {
-      upload: each.transferId,
-      kind: 'request',
-      name: each.fileName,
-      notebook: each.notebookId,
-      notebookName: each.notebookName,
-      status: each.status,
-      waitingFor: 'person',
-      purpose: each.request?.purpose,
-      mimeType: each.request?.mimeType,
-      openedBy: each.request?.platform ?? null,
-      expectedSize: each.request?.expectedSize ?? null,
-      startedAt: each.requestedAt,
-    };
-  }
   return {
     upload: each.transferId,
     kind: 'upload',
@@ -327,7 +310,6 @@ function openUploadOf(each: TransferDto): Record<string, unknown> {
     sha256: each.upload?.sha256,
     purpose: each.upload?.purpose,
     openedBy: each.upload?.platform ?? null,
-    transport: each.upload?.transport,
     partCount: each.upload?.partCount,
     received: each.upload?.received ?? [],
     startedAt: each.requestedAt,
@@ -818,6 +800,8 @@ export class McpToolAdapter {
   constructor(
     private readonly gateways: Gateways,
     private readonly deployment: Deployment = PRODUCTION_DEFAULT,
+    /** The upload host of this environment, whose probe whoami names (#467). */
+    private readonly uploadsOrigin: string | null = null,
   ) {}
 
   async call(
@@ -955,7 +939,7 @@ export class McpToolAdapter {
           access.connector(caller),
           knowledge.listNotebooks(caller),
         ]);
-        return text(whoAmI(caller, connector, notebooks, this.deployment));
+        return text(whoAmI(caller, connector, notebooks, this.deployment, this.uploadsOrigin));
       }
 
       case 'get_skill': {
@@ -1193,12 +1177,10 @@ export class McpToolAdapter {
 
       /**
        * An upload in parts (#240, RN-PRT-027, RN-AGT-041): a file kept whole,
-       * its bytes sent by URL from the disk or inline part by part, each part
-       * held to its hash and the whole to the hash declared at the start.
+       * its bytes PUT by URL from the disk, and the whole held to the hash
+       * declared at the start. There is no other way since #468.
        */
       case 'begin_file_upload': {
-        const transport = requireString(args, 'transport', 'begin_file_upload');
-        const partSize = args['partSize'];
         const status = await knowledge.beginFileUpload(caller, {
           notebookId: requireString(args, 'notebook', 'begin_file_upload'),
           name: requireString(args, 'name', 'begin_file_upload'),
@@ -1206,8 +1188,6 @@ export class McpToolAdapter {
           size: requireInteger(args, 'size', 'begin_file_upload'),
           sha256: requireString(args, 'sha256', 'begin_file_upload').toLowerCase(),
           purpose: requireString(args, 'purpose', 'begin_file_upload'),
-          transport: transport === 'inline' ? 'inline' : 'url',
-          ...(typeof partSize === 'number' ? { partSize } : {}),
           ...(optionalString(args, 'description') === undefined
             ? {}
             : { description: optionalString(args, 'description') }),
@@ -1220,29 +1200,9 @@ export class McpToolAdapter {
         });
         return uploadAnswer(
           status,
-          status.targets.length > 0
-            ? 'PUT the bytes of each part to its url, with nothing else in the request: part n is ' +
-                'the bytes from (n - 1) * partSize, partSize long. Then call finish_file_upload.'
-            : 'Send each part with send_file_part, its SHA-256 beside its base64. Then call ' +
-                'finish_file_upload.',
-        );
-      }
-
-      case 'send_file_part': {
-        const status = await knowledge.sendFilePart(
-          caller,
-          requireString(args, 'upload', 'send_file_part'),
-          requireInteger(args, 'part', 'send_file_part'),
-          {
-            sha256: requireString(args, 'sha256', 'send_file_part').toLowerCase(),
-            contentBase64: requireString(args, 'contentBase64', 'send_file_part'),
-          },
-        );
-        return uploadAnswer(
-          status,
-          status.missing.length === 0
-            ? 'Every part arrived: call finish_file_upload.'
-            : `Send the parts still missing: ${status.missing.join(', ')}.`,
+          'PUT the bytes of each part to its url from your code, with nothing else in the ' +
+            'request: part n is the bytes from (n - 1) * partSize, partSize long. Then call ' +
+            'finish_file_upload.',
         );
       }
 
@@ -1251,6 +1211,30 @@ export class McpToolAdapter {
           caller,
           requireString(args, 'upload', 'file_upload_status'),
         );
+        // The finish ended in the worker and kept the file (#480).
+        if (status.kept) {
+          return json({
+            ...status.kept,
+            status: 'kept',
+            reference: `![[${status.kept.name}]]`,
+            note: 'The file is kept. Write that reference in a note and the page draws it.',
+          });
+        }
+        const upload = status.transfer.upload;
+        if (upload?.finishing) {
+          return uploadAnswer(
+            status,
+            'The finish is running: the file is being held to its SHA-256. Ask again in a few ' +
+              'seconds.',
+          );
+        }
+        if (upload?.refusal && status.transfer.status === 'running') {
+          return uploadAnswer(
+            status,
+            `The last finish was refused (${upload.refusal.code}: ${upload.refusal.message}). ` +
+              'Fix what it says, or tell the person, and call finish_file_upload again.',
+          );
+        }
         return uploadAnswer(
           status,
           status.transfer.status === 'failed'
@@ -1262,13 +1246,24 @@ export class McpToolAdapter {
       }
 
       case 'finish_file_upload': {
-        const kept = await knowledge.finishFileUpload(
+        const answer = await knowledge.finishFileUpload(
           caller,
           requireString(args, 'upload', 'finish_file_upload'),
         );
+        // A large file is still being held to its hash in the worker (#480).
+        if ('status' in answer) {
+          return json({
+            upload: answer.upload,
+            status: 'finishing',
+            next:
+              'The file is being joined and held to its SHA-256, which takes longer for a large ' +
+              'file. Call file_upload_status for this upload in a few seconds: it answers the ' +
+              'reference once the file is kept, or why it was not. Do not send the parts again.',
+          });
+        }
         return json({
-          ...kept,
-          reference: `![[${kept.name}]]`,
+          ...answer,
+          reference: `![[${answer.name}]]`,
           note: 'The file is kept. Write that reference in a note and the page draws it.',
         });
       }
@@ -1279,49 +1274,6 @@ export class McpToolAdapter {
           optionalString(args, 'notebook') ?? null,
         );
         return json({ uploads: uploads.map(openUploadOf) });
-      }
-
-      /**
-       * A file asked of the person instead of sent (#253, RN-PRT-030, RN-AGT-045):
-       * from nothing, or made of an upload the agent could not finish.
-       */
-      case 'request_file': {
-        const upload = optionalString(args, 'upload');
-        const size = args['size'];
-        const sha256 = optionalString(args, 'sha256');
-        const request = await knowledge.requestFile(
-          caller,
-          upload !== undefined
-            ? { fromUpload: upload }
-            : {
-                notebookId: requireString(args, 'notebook', 'request_file'),
-                name: requireString(args, 'name', 'request_file'),
-                mimeType: requireString(args, 'mimeType', 'request_file'),
-                purpose: requireString(args, 'purpose', 'request_file'),
-                ...(optionalString(args, 'description') === undefined
-                  ? {}
-                  : { description: optionalString(args, 'description') }),
-                ...(optionalStrings(args, 'tags') === undefined
-                  ? {}
-                  : { tags: optionalStrings(args, 'tags') }),
-                ...(optionalString(args, 'path') === undefined
-                  ? {}
-                  : { path: optionalString(args, 'path') }),
-                ...(typeof size === 'number' && Number.isInteger(size) && size > 0 ? { size } : {}),
-                ...(sha256 === undefined ? {} : { sha256: sha256.toLowerCase() }),
-              },
-        );
-        return json({
-          request: request.transferId,
-          name: request.fileName,
-          notebook: request.notebookId,
-          reference: `![[${request.fileName ?? ''}]]`,
-          next:
-            'The person keeps the file from Transfers, under this name. Write the reference ' +
-            'where the file belongs, if it is not written yet, and tell them the file is ' +
-            'waiting for them there: the note draws it the moment it is kept, which list_files ' +
-            'will say.',
-        });
       }
 
       case 'discard_file_upload': {
@@ -1827,26 +1779,15 @@ export class McpToolAdapter {
 
       case 'check_notebook': {
         // The sweep reads the links from Discovery and what is still on its way
-        // from Portability (RN-DSC-064): a name the person was asked for is a
-        // pending link that waits for them, not a note still to write.
+        // from Portability (RN-DSC-064).
         const notebook = requireString(args, 'notebook', 'check_notebook');
         const [check, open, notices] = await Promise.all([
           discovery.checkNotebook(caller, notebook),
           knowledge.listFileUploads(caller, notebook),
           this.noticesOfNotebook(caller, notebook),
         ]);
-        const waiting = new Map<string, 'person' | 'upload'>();
-        for (const each of open) {
-          if (each.status !== 'running' || !each.fileName) continue;
-          const name = each.fileName.normalize('NFC');
-          if (each.kind === 'request') waiting.set(name, 'person');
-          else if (!waiting.has(name)) waiting.set(name, 'upload');
-        }
         return json({
-          pending: check.pending.map((each) => ({
-            ...each,
-            waitingFor: waiting.get(each.target.normalize('NFC')) ?? null,
-          })),
+          pending: check.pending,
           orphans: check.orphans,
           unshownFiles: check.unshownFiles,
           openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),

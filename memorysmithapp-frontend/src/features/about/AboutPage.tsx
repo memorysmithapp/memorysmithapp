@@ -32,12 +32,19 @@ export function WelcomeGate({ children }: { children: ReactNode }) {
  */
 const STEPS = ['one', 'two', 'three', 'four', 'five'] as const;
 
-/** What sending a file through each client needs, in the order it is met (#244). */
-const FILE_STEPS = ['one', 'two', 'three'] as const;
-
-/** The two clients whose steps the page gives, one at a time (#216). */
-const CLIENTS = ['claude', 'chatgpt'] as const;
+/** The clients whose steps the page gives, one at a time (#216, #465). */
+const CLIENTS = ['claude', 'chatgpt', 'grok'] as const;
 type Client = (typeof CLIENTS)[number];
+
+/**
+ * What sending a file through each client needs, in the order it is met
+ * (#244). Grok needs no setting at all, so its one step says so (#465).
+ */
+const FILE_STEPS: Readonly<Record<Client, readonly string[]>> = {
+  claude: ['one', 'two', 'three'],
+  chatgpt: ['one', 'two', 'three'],
+  grok: ['one'],
+};
 
 /**
  * What this product is, said once, to whoever just arrived (#167, RN-ACC-019).
@@ -189,7 +196,7 @@ export function AboutPage() {
           role="tabpanel"
           aria-labelledby={`about-files-tab-${filesClient}`}
         >
-          {FILE_STEPS.map((step, index) => (
+          {FILE_STEPS[filesClient].map((step, index) => (
             <li key={step}>
               <span className="about-step-number" aria-hidden="true">
                 {index + 1}
@@ -206,6 +213,9 @@ export function AboutPage() {
         <p className="about-note">
           <Trans i18nKey="about.files.editor" components={{ b: <strong /> }} />
         </p>
+        {/* One line for every assistant, naming none (#471, #466): what the
+            product guarantees, and how a person checks it. */}
+        <p className="about-note">{t('about.files.check')}</p>
       </section>
 
       <section className="about-section">

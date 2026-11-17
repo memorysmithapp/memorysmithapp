@@ -130,8 +130,9 @@ jobs:
           REPOSITORY_SUBJECT: ${{ vars.REPOSITORY_SUBJECT }}
         run: pnpm -C memorysmithapp-infra deliver --environment production
 
-  # The tag and the release of the project, written by its own App: a fork
-  # delivers its installation and publishes nothing.
+  # The tag and the release of the project, and the close of its milestone: a
+  # fork delivers its installation and publishes nothing. Closing a milestone
+  # needs `issues: write`.
   release:
     name: Tag and release
     needs: deliver
@@ -140,6 +141,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v7
         with:

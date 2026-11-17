@@ -29,13 +29,7 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import type {
-  KeptUsage,
-  Transfer,
-  TransferRequest,
-  TransferStore,
-  TransferUpload,
-} from '../domain/Transfer.js';
+import type { KeptUsage, Transfer, TransferStore, TransferUpload } from '../domain/Transfer.js';
 import {
   PARAMETER_TYPES,
   type ModelStore,
@@ -108,7 +102,7 @@ export class DynamoTransferStore implements TransferStore {
         ConsistentRead: true,
       }),
     );
-    return found.Item ? transferOf(found.Item as Item) : null;
+    return found.Item && isReadable(found.Item as Item) ? transferOf(found.Item as Item) : null;
   }
 
   async list(userId: string): Promise<Transfer[]> {
@@ -122,7 +116,7 @@ export class DynamoTransferStore implements TransferStore {
         ScanIndexForward: false,
       }),
     );
-    return ((answer.Items ?? []) as Item[]).map(transferOf);
+    return ((answer.Items ?? []) as Item[]).filter(isReadable).map(transferOf);
   }
 
   async patch(userId: string, transferId: string, changes: Partial<Transfer>): Promise<void> {
@@ -186,39 +180,6 @@ export class DynamoTransferStore implements TransferStore {
   /** The total and every line per notebook, from the one partition of the subscription. */
   async keptUsage(): Promise<KeptUsage> {
     return this.usageOf(COUNTERS.kept);
-  }
-
-  /**
-   * One entry of the map of parts, and the instant it arrived: a part that
-   * arrives twice replaces its own entry and nobody else's (RN-PRT-027).
-   */
-  async recordPart(
-    userId: string,
-    transferId: string,
-    part: number,
-    versionId: string,
-    at: string,
-  ): Promise<void> {
-    await this.db
-      .send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: this.key(userId, transferId),
-          UpdateExpression: 'SET #upload.#parts.#part = :version, #upload.#last = :at',
-          ExpressionAttributeNames: {
-            '#upload': 'upload',
-            '#parts': 'parts',
-            '#part': String(part),
-            '#last': 'lastPartAt',
-          },
-          ExpressionAttributeValues: { ':version': versionId, ':at': at },
-          ConditionExpression: 'attribute_exists(SK)',
-        }),
-      )
-      .catch((error: { name?: string }) => {
-        if (error?.name === 'ConditionalCheckFailedException') return;
-        throw error;
-      });
   }
 
   /** What the open uploads reserve moves with the declared size of one (RN-SUB-025). */
@@ -483,13 +444,18 @@ function counter(value: unknown): number {
   return Number.isFinite(number) && number > 0 ? Math.trunc(number) : 0;
 }
 
+/**
+ * A record of a kind the product no longer has: a file request, retired with
+ * `request_file` (#469). Nothing reads it but the job that discards it.
+ */
+function isReadable(item: Item): boolean {
+  return item['kind'] !== 'request';
+}
+
 function transferOf(item: Item): Transfer {
   return {
     transferId: String(item['transferId']),
-    kind:
-      item['kind'] === 'import' || item['kind'] === 'agent' || item['kind'] === 'request'
-        ? item['kind']
-        : 'export',
+    kind: item['kind'] === 'import' || item['kind'] === 'agent' ? item['kind'] : 'export',
     status: item['status'] as Transfer['status'],
     userId: String(item['userId']),
     notebookId: item['notebookId'] ? String(item['notebookId']) : null,
@@ -506,7 +472,6 @@ function transferOf(item: Item): Transfer {
     ...(item['noticeRead'] === true ? { noticeRead: true } : {}),
     ...(item['cancelRequested'] === true ? { cancelRequested: true } : {}),
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
-    ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
     ...(item['model'] ? { model: modelVersionOf(item['model'] as Item) } : {}),
     ...(item['origin']
       ? {
@@ -550,22 +515,6 @@ export function parameterOf(item: Item): ParameterDeclaration {
   };
 }
 
-function requestOf(item: Item): TransferRequest {
-  return {
-    mimeType: String(item['mimeType'] ?? ''),
-    description: String(item['description'] ?? ''),
-    tags: Array.isArray(item['tags']) ? (item['tags'] as unknown[]).map(String) : [],
-    path: String(item['path'] ?? ''),
-    purpose: String(item['purpose'] ?? ''),
-    platform: item['platform'] ? String(item['platform']) : null,
-    expectedSize:
-      item['expectedSize'] === null || item['expectedSize'] === undefined
-        ? null
-        : Number(item['expectedSize']),
-    expectedSha256: item['expectedSha256'] ? String(item['expectedSha256']) : null,
-  };
-}
-
 function uploadOf(item: Item): TransferUpload {
   const parts: Record<string, string> = {};
   for (const [part, version] of Object.entries((item['parts'] as Item | undefined) ?? {})) {
@@ -586,7 +535,27 @@ function uploadOf(item: Item): TransferUpload {
     parts,
     assembled: item['assembled'] ? String(item['assembled']) : null,
     lastPartAt: item['lastPartAt'] ? String(item['lastPartAt']) : null,
-    fulfils: item['fulfils'] ? String(item['fulfils']) : null,
+    finishing: item['finishing'] ? String(item['finishing']) : null,
+    kept: item['kept']
+      ? {
+          fileId: String((item['kept'] as Item)['fileId'] ?? ''),
+          notebookId: String((item['kept'] as Item)['notebookId'] ?? ''),
+          name: String((item['kept'] as Item)['name'] ?? ''),
+          bytes: Number((item['kept'] as Item)['bytes'] ?? 0),
+        }
+      : null,
+    refusal: item['refusal']
+      ? {
+          code: String((item['refusal'] as Item)['code'] ?? 'INTERNAL'),
+          message: String((item['refusal'] as Item)['message'] ?? ''),
+          ...((item['refusal'] as Item)['details'] === undefined
+            ? {}
+            : { details: (item['refusal'] as Item)['details'] }),
+          ...((item['refusal'] as Item)['revealsExistence'] === true
+            ? { revealsExistence: true }
+            : {}),
+        }
+      : null,
   };
 }
 
@@ -636,25 +605,6 @@ export class InMemoryTransferStore implements TransferStore {
 
   async keptUsage(): Promise<KeptUsage> {
     return this.kept.usage();
-  }
-
-  async recordPart(
-    userId: string,
-    transferId: string,
-    part: number,
-    versionId: string,
-    at: string,
-  ): Promise<void> {
-    const found = this.of(userId).get(transferId);
-    if (!found?.upload) return;
-    this.of(userId).set(transferId, {
-      ...found,
-      upload: {
-        ...found.upload,
-        parts: { ...found.upload.parts, [String(part)]: versionId },
-        lastPartAt: at,
-      },
-    });
   }
 
   async addTransitBytes(delta: number, notebookId: string | null): Promise<void> {

@@ -92,7 +92,6 @@ import {
   UpdateNote,
 } from '@memorysmithapp/svc-knowledge/application/notes';
 import {
-  CheckFileDestination,
   DeleteFile,
   KeepAssembledFile,
   KeepFile,
@@ -187,8 +186,7 @@ import {
   type NotebookWriter,
 } from '@memorysmithapp/svc-portability/application/import';
 import { KnowledgeNotebookWriter } from './import-writer.js';
-import { KnowledgeFileKeeper } from './file-keeper.js';
-import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
+import { fileKeeperFor } from './file-keeper.js';
 import {
   S3ArchiveStore,
   S3PartStore,
@@ -197,13 +195,11 @@ import {
 import {
   BeginUpload,
   discardUpload,
-  FinishUpload,
   GetUploadStatus,
   LinkUpload,
-  RequestFile,
   ListUploads,
   ObserveUpload,
-  PutUploadPart,
+  RequestFinish,
   type FileKeeper,
 } from '@memorysmithapp/svc-portability/application/uploads';
 import { createApp } from './app.js';
@@ -547,6 +543,9 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
       // An archive carries the files of the notebook, and they come back
       // through the door an upload uses (#166, RN-PRT-025).
       keepFile: new KeepFile(knowledge),
+      // And a `1.6` archive, each file an entry of its own, through the door
+      // an upload in parts uses (RN-PRT-092).
+      keepAssembledFile: new KeepAssembledFile(knowledge),
       createTable: new CreateTable(knowledge),
       insertRows: new InsertRows(knowledge),
       createDashboard: new CreateDashboard(knowledge),
@@ -559,31 +558,8 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
 }
 
 /** What an upload in parts becomes a file with, over the Knowledge use cases (RN-PRT-027). */
-function fileKeeperFor(request: KnowledgeRequest): FileKeeper {
-  return new KnowledgeFileKeeper(async (notebookId) => {
-    // A notebook shared with this person is kept into as its owner's (#347).
-    const through =
-      (await openShared(request, notebookId.value, { ...sharing, parse: notebookIdOf })) ?? request;
-    const knowledge = {
-      ...buildKnowledge(infra, through.subscription),
-      // The parts land in this person's subscription, and become a file of
-      // the notebook's (INV-01: each key still starts with its subscription).
-      fileStore: new S3FileStore(
-        through.subscription,
-        infra.s3,
-        infra.contentBucket,
-        infra.filesOrigin ?? null,
-        request.subscription,
-      ),
-    };
-    return {
-      useCases: {
-        destination: new CheckFileDestination(knowledge),
-        keep: new KeepAssembledFile(knowledge),
-      },
-      ctx: through.ctx,
-    };
-  });
+function fileKeeperOf(request: KnowledgeRequest): FileKeeper {
+  return fileKeeperFor(infra, sharing, request);
 }
 
 const portabilityUseCases: PortabilityUseCases = {
@@ -702,18 +678,12 @@ const portabilityUseCases: PortabilityUseCases = {
       request.subscription.subscriptionId.value,
       request.subscription.userId.value,
     ),
-  putUploadPart: (request) =>
-    new PutUploadPart(
-      buildTransfers(infra, request.subscription),
-      partsOf(),
-      request.subscription.subscriptionId.value,
-      request.subscription.userId.value,
-    ),
+  // The finish runs in the transfer worker, and this call waits for it (#480).
   finishUpload: (request) =>
-    new FinishUpload(
+    new RequestFinish(
       buildTransfers(infra, request.subscription),
       partsOf(),
-      request.files,
+      new SqsTransferQueue(sqs, transferQueueUrl),
       request.subscription.subscriptionId.value,
       request.subscription.userId.value,
     ),
@@ -721,15 +691,6 @@ const portabilityUseCases: PortabilityUseCases = {
     new LinkUpload(
       buildTransfers(infra, request.subscription),
       request.files,
-      request.subscription.userId.value,
-    ),
-  // A file the agent asks the person for (#253, RN-PRT-030).
-  requestFile: (request) =>
-    new RequestFile(
-      buildTransfers(infra, request.subscription),
-      partsOf(),
-      request.files,
-      request.subscription.subscriptionId.value,
       request.subscription.userId.value,
     ),
   startPrint: (request) =>
@@ -890,7 +851,7 @@ const app = createApp({
     rebindConnector: (context) => new RebindConnector(buildConnectorBindings(infra, context)),
   },
   notebookWriterFor,
-  fileKeeperFor,
+  fileKeeperFor: fileKeeperOf,
   openSharedNotebook: (request, notebookId) =>
     openShared(request, notebookId, { ...sharing, parse: notebookIdOf }),
   accessUseCases,

@@ -4,11 +4,14 @@
  *
  * It runs **after** the delivery of production, and that order is the whole of
  * what a version tag means here: `v0.6.0` says "this exact commit is what
- * production serves", so it is written once production serves it.
+ * production serves", so it is written once production serves it. Then the
+ * version is done (SDLC §12), and its milestone `vX.Y.Z` is closed, unless it
+ * still holds an open issue, which the run summary names.
  *
  *   GITHUB_REPOSITORY  owner/name
  *   COMMIT             the commit that was deployed
- *   GITHUB_TOKEN       optional: a token with `contents: write` on the
+ *   GITHUB_TOKEN       optional: a token with `contents: write` and
+ *                      `issues: write` (what closing a milestone needs) on the
  *                      repository. Absent, the token of the `gh` CLI is used,
  *                      which is what a person running this from a workstation
  *                      already has.
@@ -19,7 +22,8 @@
  * pipeline that comes back injects `GITHUB_TOKEN` from Secrets Manager.
  */
 import { execSync } from 'node:child_process';
-import { publishRelease } from './lib/github-release.js';
+import { appendFileSync } from 'node:fs';
+import { closeMilestone, publishRelease } from './lib/github-release.js';
 import { baseVersionOf, changelogSection } from './lib/release.js';
 import { readText } from './lib/repository.js';
 
@@ -71,5 +75,16 @@ if (!version || !notes) {
   process.exit(1);
 }
 
-const outcome = await publishRelease({ token: token(), repository, version, commit, notes });
+const secret = token();
+const outcome = await publishRelease({ token: secret, repository, version, commit, notes });
 process.stdout.write(`v${version}: tag ${outcome.tag}, release ${outcome.release}.\n`);
+
+const milestone = await closeMilestone({ token: secret, repository, version });
+process.stdout.write(`${milestone.reason}\n`);
+const summary = process.env['GITHUB_STEP_SUMMARY'];
+if (summary) {
+  appendFileSync(
+    summary,
+    `### v${version}\n\nTag ${outcome.tag}, release ${outcome.release}.\n\n${milestone.reason}\n`,
+  );
+}

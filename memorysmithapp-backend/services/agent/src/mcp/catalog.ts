@@ -612,14 +612,13 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG or a ' +
-      'CSV as its text in `content`, copied exactly as you were given it, and any other type in ' +
-      '`contentBase64`, which you write without a slip only when code encodes it \u2014 base64 ' +
-      'written by hand slips even on a small file. A photo, a recording or a document ' +
-      'of any real size is sent with begin_file_upload instead, whole and at its own ' +
-      `resolution, as the skill \`${KEEP_FILES_SKILL}\` describes. Keep what the person gave you: ` +
-      'when the bytes you hold are fewer than what they sent — a chat that recompresses ' +
-      'attachments — tell them both sizes before keeping anything. The type is checked against the bytes, so ' +
+      'The bytes travel in this one call, so it suits a few kilobytes of text: an SVG or a CSV ' +
+      'in `content`, copied exactly as you were given it. A file you hold as bytes \u2014 a photo, ' +
+      'a recording, a document \u2014 goes with begin_file_upload instead, whole, once your code ' +
+      `reached the probe whoami names, as the skill \`${KEEP_FILES_SKILL}\` describes; ` +
+      '`contentBase64` is for code that encodes a small file, never base64 written by hand. ' +
+      'Keep the file under the name the person gave it, and when they gave its size or hash, ' +
+      'compare before keeping anything. The type is checked against the bytes, so ' +
       'a declaration they do not support is refused naming both. A notebook keeps one file of ' +
       'each name; the path only organises, so moving a file never breaks a note.',
     inputSchema: object(
@@ -674,15 +673,19 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Start sending a file in parts',
     description:
       'Starts keeping a file whole, at its own size and resolution: a photo, a recording, a PDF. ' +
+      'It is the one way for a file you hold as bytes. Before calling it, GET the probe of the ' +
+      'upload host from your code, at the address whoami gives under *Keeping a file*: only its ' +
+      '`200` with the body whoami quotes says your sandbox can send there; anything else, a `403` ' +
+      'included, means it cannot, so open no upload and tell the person which setting their ' +
+      'assistant needs, as the About page names it, and that they can attach the file from the ' +
+      "note's editor. " +
       'Declare the file first \u2014 its name, type, size in bytes and the SHA-256 of the whole ' +
-      'file \u2014 and then send it in parts. With transport "url" every part has an address, and ' +
-      'a script PUTs the bytes from the disk to it, so they never pass through what you write: ' +
-      'use it whenever you can run a command with network access. The parts are 8 MiB each, the ' +
-      'last one shorter. With transport "inline" you send each part yourself with ' +
-      'send_file_part, and choose its size with partSize. The file is kept by ' +
-      'finish_file_upload once every part arrived, and only if the whole hashes to what you ' +
-      'declared here. Up to 100 MB by URL; inline suits what you write out whole, a few tens of ' +
-      'kilobytes. The answer names partsHost, the host every part goes to. The room is reserved now, and the ' +
+      'file \u2014 and then send it in parts: every part has an address, and your code PUTs the ' +
+      'bytes from the disk to it, so they never pass through what you write. The parts are 8 MiB ' +
+      'each, the last one shorter. The file is kept by finish_file_upload once every part ' +
+      'arrived, and only if the whole hashes to what you declared here. A file goes up to the room ' +
+      'the plan has left, and a larger one is refused here, before a byte travels. The answer ' +
+      'names partsHost, the host every part goes to. The room is reserved now, and the ' +
       'person sees the upload in Transfers until it becomes a file. Read the skill ' +
       `\`${KEEP_FILES_SKILL}\` first.`,
     inputSchema: object(
@@ -708,19 +711,6 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             '"photo of the whiteboard of the meeting, for the note of its minutes". It becomes ' +
             'the description of the file when you give none.',
         },
-        transport: {
-          type: 'string',
-          enum: ['url', 'inline'],
-          description:
-            '"url": a signed address per part, which a script PUTs to. "inline": the parts ' +
-            'travel in send_file_part.',
-        },
-        partSize: {
-          type: 'integer',
-          description:
-            'Inline only: the bytes of every part but the last, from 1024 to 1048576, at most ' +
-            '256 parts. Choose what you write out without a slip; 24576 is a good start.',
-        },
         description: {
           type: 'string',
           description: 'Optional: what this file is, for whoever reads the notebook.',
@@ -736,39 +726,18 @@ const DEFINITIONS: readonly ToolDefinition[] = [
             'Optional: where it sits, written like a path. It organises and never addresses.',
         },
       },
-      ['notebook', 'name', 'mimeType', 'size', 'sha256', 'purpose', 'transport'],
+      ['notebook', 'name', 'mimeType', 'size', 'sha256', 'purpose'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-  },
-  {
-    name: 'send_file_part',
-    title: 'Send one part of a file',
-    description:
-      'Sends one part of an upload whose transport is "inline": its bytes in base64 and the ' +
-      'SHA-256 of those bytes. A part whose bytes do not match its hash is refused and nothing ' +
-      'of it is kept, so send it again. A part sent twice replaces itself. Parts count from 1, ' +
-      'each exactly partSize bytes but the last.',
-    inputSchema: object(
-      {
-        upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' },
-        part: { type: 'integer', description: 'The number of the part, from 1.' },
-        sha256: {
-          type: 'string',
-          description: 'The SHA-256 of the bytes of this part, in lowercase hex.',
-        },
-        contentBase64: { type: 'string', description: 'The bytes of this part, base64.' },
-      },
-      ['upload', 'part', 'sha256', 'contentBase64'],
-    ),
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'file_upload_status',
     title: 'See what an upload is missing',
     description:
-      'Which parts of an upload arrived and which are missing, and, for an upload by URL, a ' +
-      'fresh address for every missing part. Addresses last an hour: ask here again for new ' +
-      'ones. This is also how an upload stopped halfway is resumed.',
+      'Which parts of an upload arrived and which are missing, and a fresh address for every ' +
+      'missing part. Addresses last an hour: ask here again for new ones. This is also how an ' +
+      'upload stopped halfway is resumed, and how a finish answered `finishing` is followed: ' +
+      'once the file is kept, it answers its reference.',
     inputSchema: object(
       { upload: { type: 'string', description: 'The upload, as begin_file_upload answered it.' } },
       ['upload'],
@@ -780,8 +749,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Finish an upload and keep the file',
     description:
       'Joins the parts and keeps the file, when every part arrived, the whole hashes to the ' +
-      'SHA-256 declared at the start and the bytes support the declared type. The upload then ' +
-      'leaves Transfers, and the answer is the reference to write in a note. Bytes that do not ' +
+      'SHA-256 declared at the start and the bytes support the declared type. That runs in the ' +
+      'background and this call waits for it up to about twenty seconds: a file kept in that ' +
+      'time is answered with the reference to write in a note; a larger one answers `status: ' +
+      '"finishing"`, and file_upload_status answers the reference once it is kept. The upload ' +
+      'then leaves Transfers. Bytes that do not ' +
       'hash to what was declared end the upload as failed, with nothing kept: start again ' +
       'from the file. Any other refusal \u2014 a part missing, a name taken meanwhile, the ' +
       'notebook no longer reachable \u2014 leaves the upload open, to finish again.',
@@ -796,8 +768,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'List the open uploads',
     description:
       'The uploads of the person that have not become files yet, newest first, each with the ' +
-      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did, ' +
-      'and the files requested from the person and still waiting for them, as `kind: "request"`. ' +
+      'name, the SHA-256 of its whole file, the parts that arrived and when the last one did. ' +
       'Read it before starting an upload: an upload of the same file, found by its SHA-256, is ' +
       'resumed with file_upload_status instead of sent again.',
     inputSchema: object(
@@ -812,73 +783,19 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     annotations: { readOnlyHint: true },
   },
   {
-    name: 'request_file',
-    title: 'Ask the person for a file',
-    description:
-      'Asks the person for a file instead of sending it, when you cannot send its bytes: a ' +
-      'sandbox with no network, where no part of an upload by URL ever arrives, or a copy of an ' +
-      'attachment your client reduced. Write `![[name]]` where the file belongs first; the person ' +
-      'keeps the file from Transfers, under this name, and that reference draws it. Name an ' +
-      '`upload` you could not finish and the request is made of it — its name, type, description, ' +
-      'tags, path and purpose — and replaces it, its parts thrown away and its room given back; ' +
-      'otherwise declare the file as begin_file_upload does. A size and SHA-256 you know are shown ' +
-      'to the person as a reference, never enforced. Asking again for a name the notebook already ' +
-      'waits for answers the same request. `list_files` says when the file is kept.',
-    inputSchema: object(
-      {
-        upload: {
-          type: 'string',
-          description:
-            'Optional: an upload you could not finish, as begin_file_upload answered it. The ' +
-            'request takes everything from it and replaces it.',
-        },
-        notebook: {
-          ...notebookArgument,
-          description: 'The notebook the file goes to, when no upload is named.',
-        },
-        name: {
-          type: 'string',
-          description:
-            'The name a note addresses the file by, `![[name]]`: the one the person gave it.',
-        },
-        mimeType: { type: 'string', description: 'The type of the file, such as image/jpeg.' },
-        purpose: {
-          type: 'string',
-          description:
-            'What the file is for, in a sentence the person recognises in Transfers, such as ' +
-            '*the photo of the whiteboard of the planning meeting, for its minutes*.',
-        },
-        description: { type: 'string', description: 'Optional: what the file is.' },
-        tags: { type: 'array', items: { type: 'string' }, description: 'Optional: its tags.' },
-        path: { type: 'string', description: 'Optional: where it sits, such as /atas.' },
-        size: {
-          type: 'integer',
-          description: 'Optional: the size in bytes you know of the file.',
-        },
-        sha256: {
-          type: 'string',
-          description: 'Optional: the SHA-256 you know of the file, in lowercase hex.',
-        },
-      },
-      [],
-    ),
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-  },
-  {
     name: 'discard_file_upload',
     title: 'Throw an upload away',
     description:
       'Throws away an upload that is not going to become a file — its parts, and the room it ' +
-      'reserved — or dismisses a request the person has not fulfilled. Use it on an attempt you ' +
-      'are giving up, so none is left open in Transfers; to hand an upload to the person instead, ' +
-      'use request_file with that upload. Any upload open on a notebook may be thrown away, ' +
+      'reserved. Use it on an attempt you are giving up, so none is left open in Transfers. ' +
+      'Any upload open on a notebook may be thrown away, ' +
       "another agent's included: `list_file_uploads` says who opened each, what for and when its " +
       'last part arrived, which is what to decide on.',
     inputSchema: object(
       {
         upload: {
           type: 'string',
-          description: 'The upload or request, as list_file_uploads answers it.',
+          description: 'The upload, as list_file_uploads answers it.',
         },
       },
       ['upload'],
@@ -1114,7 +1031,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'semicolon between fields, 1.250,75 as a number and 29/10/2026 as a date. `sheet` picks a ' +
       'sheet of a workbook, the first one by default. `mode: "upsert"` changes the rows whose ' +
       'key the table already holds instead of refusing them. Keep the file first, as the skill ' +
-      `\`${KEEP_FILES_SKILL}\` says, or ask the person for it with request_file.`,
+      `\`${KEEP_FILES_SKILL}\` says, or ask the person to attach it from the note's editor.`,
     inputSchema: object(
       {
         notebook: notebookArgument,
@@ -1461,13 +1378,12 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'The sweep to run before saying a piece of work is done. Returns `pending`, every name ' +
       'the notebook links to that no note or file carries yet, each with the notes that link to ' +
       'it; `orphans`, the notes nothing links to; `unshownFiles`, the files kept that no note ' +
-      'names; and `openUploads`, the uploads not finished and the files requested from the ' +
-      'person. A pending link is fine on purpose: a note still to write, or a file the person ' +
-      'was asked for, which it says as `waitingFor`. One with `likelyMeant` looks broken instead ' +
+      'names; and `openUploads`, the uploads not finished. A pending link is fine on purpose: a ' +
+      'note still to write, or a file the person will attach from the editor. One with `likelyMeant` looks broken instead ' +
       '— it almost reaches a note or a file the notebook has, in another case, without its ' +
       'accents or as the start of a longer name — and the link is what to fix. A file no note ' +
       'shows may be kept on purpose: tell the person which. An upload left open is finished, ' +
-      'handed to the person with request_file, or thrown away with discard_file_upload. ' +
+      'or thrown away with discard_file_upload. ' +
       '`notices` lists, note by note, where the page will not show what was typed — a fence ' +
       'never closed, a heading that skips a level, a footnote with no definition — read from ' +
       'the most recently written notes, up to 200, with `noticesRead` saying how many were read ' +

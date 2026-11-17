@@ -207,6 +207,7 @@ import {
 } from '@memorysmithapp/svc-portability/application/catalog';
 import { forgetPublication, NO_EDGE_CACHE, publicCatalogUseCasesOf } from '../src/catalog.js';
 import {
+  archiveInMemory,
   InMemoryPartStore,
   InMemoryPreviewQueue,
   InMemoryPreviewStore,
@@ -219,16 +220,16 @@ import {
   BeginUpload,
   discardUpload,
   FinishUpload,
+  RequestFinish,
+  RunFinish,
   GetUploadStatus,
   LinkUpload,
-  RequestFile,
   ListUploads,
   ObserveUpload,
-  PutUploadPart,
 } from '@memorysmithapp/svc-portability/application/uploads';
 import { KnowledgeFileKeeper } from '../src/file-keeper.js';
 import { ExportNotebook } from '@memorysmithapp/svc-portability/application';
-import { createZip, readZip } from '@memorysmithapp/svc-portability/adapters/zip';
+import { zipStream } from '@memorysmithapp/svc-portability/adapters/zip';
 import {
   ImportFromExport,
   ImportNotebook,
@@ -320,6 +321,13 @@ const TEST_DEPLOYMENT: Deployment = {
   version: '0.0.0-test',
   commit: null,
 };
+
+/** An archive written as a stream, gathered whole: the harness keeps its objects in memory. */
+async function gathered(archive: AsyncIterable<Uint8Array>): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of archive) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
 
 export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
   const accessDb = new InMemoryAccessDatabase();
@@ -698,9 +706,30 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
    * cleanup failed.
    */
   const refusals: { discard: Error | null } = { discard: null };
+  /**
+   * Where a file of a `1.6` archive is staged (RN-PRT-092): the store of files
+   * of its subscription, which is where the bucket would have it for the copy
+   * that makes it a file, as the whole of an upload in parts is.
+   */
+  let staged = 0;
+  const stageEntry = (key: string, bytes: Uint8Array): string => {
+    const versionId = `v-staged-${++staged}`;
+    const subscriptionId = /^s\/([^/]+)\/uploads\//.exec(key)?.[1];
+    const store = subscriptionId ? fileStores.get(subscriptionId) : undefined;
+    store?.assembled.set(`${key}@${versionId}`, bytes);
+    return versionId;
+  };
   const uploadStore = {
     presignUpload: async (key: string) => `memory://upload/${key}`,
-    read: async (key: string) => uploads.get(key) ?? null,
+    open: async (key: string) => {
+      const archive = uploads.get(key);
+      return archive ? archiveInMemory(archive, stageEntry) : null;
+    },
+    discardStaged: async (entry: { key: string; versionId: string }) => {
+      const subscriptionId = /^s\/([^/]+)\/uploads\//.exec(entry.key)?.[1];
+      const store = subscriptionId ? fileStores.get(subscriptionId) : undefined;
+      store?.assembled.delete(`${entry.key}@${entry.versionId}`);
+    },
     discard: async (key: string) => {
       if (refusals.discard) throw refusals.discard;
       uploads.delete(key);
@@ -714,11 +743,12 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
   };
   const archiveStore = {
-    put: async (key: string, archive: Buffer) => {
-      archives.set(key, archive);
+    write: async (key: string, archive: AsyncIterable<Uint8Array>) => {
+      const whole = await gathered(archive);
+      archives.set(key, whole);
       // The harness is not versioned, so the revision is the key: what the
       // tests exercise is that deleting reaches the exact revision it stored.
-      return { versionId: `v-${key}` };
+      return { versionId: `v-${key}`, bytes: whole.length };
     },
     presign: async (key: string, _ttl: number, filename: string) =>
       `memory://${key}?filename=${filename}`,
@@ -755,7 +785,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     return new ExportNotebook(
       new KnowledgeExportSource(knowledgeRepos(source)),
       archiveStore,
-      createZip,
+      zipStream,
       request.subscription.subscriptionId.value,
       serializeNotebookDocument,
       // The history an export may be asked to carry (RN-PRT-022).
@@ -905,7 +935,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
               new ImportNotebook(
                 uploadStore,
                 request.write,
-                readZip,
                 parseNotebookDocument,
                 request.subscription.subscriptionId.value,
                 // Where a history the archive carried is written back, and the
@@ -934,12 +963,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
                     // upload key is the upload the import reads.
                     {
                       ...archiveStore,
-                      put: async (key: string, archive: Buffer) => {
-                        uploads.set(key, archive);
-                        return { versionId: `v-${key}` };
+                      write: async (key: string, archive: AsyncIterable<Uint8Array>) => {
+                        const whole = await gathered(archive);
+                        uploads.set(key, whole);
+                        return { versionId: `v-${key}`, bytes: whole.length };
                       },
                     },
-                    createZip,
+                    zipStream,
                     request.subscription.subscriptionId.value,
                     serializeNotebookDocument,
                   ).execute({
@@ -988,31 +1018,35 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
       ),
-    putUploadPart: (request) =>
-      new PutUploadPart(
-        transfers,
-        parts,
-        request.subscription.subscriptionId.value,
-        request.subscription.userId.value,
-      ),
+    // The worker, inline, as an import's is (#480): a finish of the harness has
+    // ended by the time the call looks.
     finishUpload: (request) =>
-      new FinishUpload(
+      new RequestFinish(
         transfers,
         parts,
-        request.files,
+        {
+          send: async (work) => {
+            const author = request.authorship;
+            if (!author.ok) return;
+            await new RunFinish(
+              transfers,
+              new FinishUpload(
+                transfers,
+                parts,
+                request.files,
+                request.subscription.subscriptionId.value,
+                request.subscription.userId.value,
+              ),
+              request.subscription.userId.value,
+            ).execute(work.transferId, author.value);
+          },
+        },
         request.subscription.subscriptionId.value,
         request.subscription.userId.value,
+        { withinMs: 0, everyMs: 0 },
       ),
     linkUpload: (request) =>
       new LinkUpload(transfers, request.files, request.subscription.userId.value),
-    requestFile: (request) =>
-      new RequestFile(
-        transfers,
-        parts,
-        request.files,
-        request.subscription.subscriptionId.value,
-        request.subscription.userId.value,
-      ),
     startPrint: (request) =>
       new StartPrint(prints.queue, request.subscription.subscriptionId.value),
     getPrint: (request) => new GetPrint(prints.store, request.subscription.subscriptionId.value),
@@ -1067,6 +1101,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
           restoreFolderNumber: new RestoreFolderNumber(knowledgeRepos(request.subscription)),
           createNote: new CreateNote(knowledgeRepos(request.subscription)),
           keepFile: new KeepFile(knowledgeRepos(request.subscription)),
+          keepAssembledFile: new KeepAssembledFile(knowledgeRepos(request.subscription)),
           createTable: new CreateTable(knowledgeRepos(request.subscription)),
           insertRows: new InsertRows(knowledgeRepos(request.subscription)),
           createDashboard: new CreateDashboard(knowledgeRepos(request.subscription)),

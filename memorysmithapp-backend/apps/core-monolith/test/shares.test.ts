@@ -638,22 +638,15 @@ describe('the profiles of a share (#347)', () => {
           purpose: 'A photo for the notebook',
           size: whole.length,
           sha256: sha(whole),
-          transport: 'inline',
-          partSize: 2048,
         },
       });
+    // What a script does with the address of the one part: a PUT the store receives.
     const sendAll = async (transferId: string) => {
-      for (const [part, bytes] of [whole.subarray(0, 2048), whole.subarray(2048)].entries()) {
-        const sent = await call(
-          GRANTEE.token,
-          `/portability/uploads/${transferId}/parts/${part + 1}`,
-          {
-            method: 'PUT',
-            body: { sha256: sha(bytes), contentBase64: Buffer.from(bytes).toString('base64') },
-          },
-        );
-        expect(sent.status).toBe(200);
-      }
+      const status = (await (
+        await call(GRANTEE.token, `/portability/uploads/${transferId}`)
+      ).json()) as { targets: Array<{ url: string }> };
+      const multipartId = /uploadId=([^&]+)/.exec(status.targets[0]?.url ?? '')?.[1] ?? '';
+      harness.parts.receivePart(multipartId, 1, whole);
     };
 
     const started = await begin('foto do grantee');

@@ -5,8 +5,19 @@
  * which is what a script does with the signed address in production.
  */
 
+import { inflateRawSync } from 'node:zlib';
+import type { StagedEntry, UploadedArchive } from '../application/ImportNotebook.js';
 import type { PrintJob, PrintQueue, PrintState, PrintStore } from '../application/Prints.js';
 import type { PartStore } from '../application/Uploads.js';
+import {
+  DEFLATED,
+  STORED,
+  bufferSource,
+  dataStartOf,
+  readDirectory,
+  readText,
+  type ZipDirectoryEntry,
+} from './zip.js';
 import type {
   PreviewJob,
   PreviewQueue,
@@ -89,6 +100,43 @@ export class InMemoryPartStore implements PartStore {
   get openMultiparts(): number {
     return this.multiparts.size;
   }
+}
+
+/**
+ * An archive held in memory, read the way the store reads one where it is
+ * (RN-PRT-093): by its central directory, an entry at a time. `keep` is where
+ * a staged entry lands, and answers the revision it wrote.
+ */
+export async function archiveInMemory(
+  archive: Buffer,
+  keep: (key: string, bytes: Uint8Array) => string,
+): Promise<UploadedArchive | 'not-an-archive'> {
+  const source = bufferSource(archive);
+  let directory: ZipDirectoryEntry[];
+  try {
+    directory = await readDirectory(source);
+  } catch {
+    return 'not-an-archive';
+  }
+  const byName = new Map(directory.map((entry) => [entry.name, entry]));
+  return {
+    entries: directory.map((entry) => entry.name),
+    text: async (name) => {
+      const entry = byName.get(name);
+      if (!entry) throw new Error(`no entry ${name}`);
+      return readText(source, entry);
+    },
+    stage: async (name, key): Promise<StagedEntry | null> => {
+      const entry = byName.get(name);
+      if (!entry) return null;
+      const start = await dataStartOf(source, entry);
+      const data = await source.read(start, entry.compressedSize);
+      const bytes =
+        entry.method === STORED ? data : entry.method === DEFLATED ? inflateRawSync(data) : null;
+      if (!bytes) return null;
+      return { key, versionId: keep(key, new Uint8Array(bytes)), size: bytes.length };
+    },
+  };
 }
 
 /** A queue of prints that keeps what it was handed, for a test to read (#263). */

@@ -20,11 +20,11 @@
 import type { ModelVersionMeta } from './NotebookModel.js';
 
 /**
- * `request` is a file an agent asked the person for instead of sending it
- * itself (#253, RN-PRT-030): it has no bytes, reserves no room, and ends when
- * the person keeps the file it names.
+ * There was a fourth kind, `request`, a file an agent asked the person for
+ * (#253). It was retired with `request_file` (#469): a record of it left in a
+ * table is read by nothing but the job that discards it.
  */
-export type TransferKind = 'export' | 'import' | 'agent' | 'request';
+export type TransferKind = 'export' | 'import' | 'agent';
 
 /**
  * `running` is the only state a worker moves out of, and it moves out of it
@@ -80,8 +80,6 @@ export interface Transfer {
   readonly cancelRequested?: boolean | undefined;
   /** What an upload of an agent is and where its parts are (RN-PRT-027); only on that kind. */
   readonly upload?: TransferUpload | undefined;
-  /** The file an agent asked the person for (RN-PRT-030); only on a request. */
-  readonly request?: TransferRequest | undefined;
   /**
    * A version of a notebook model, as one created before #431 is recorded: an
    * export of the model notebook kept apart from the person's other exports.
@@ -105,30 +103,6 @@ export interface TransferOrigin {
 }
 
 /**
- * A file an agent asked the person for (#253, RN-PRT-030): what travels with a
- * file, declared by the agent as it would declare an upload, and nothing of
- * its bytes. The name is `fileName` of the transfer, and the file is kept under
- * it, so the embed the agent wrote draws it without anybody touching the note.
- */
-export interface TransferRequest {
-  readonly mimeType: string;
-  readonly description: string;
-  readonly tags: readonly string[];
-  readonly path: string;
-  /** What the file is for, in the words of the agent. */
-  readonly purpose: string;
-  /** The connector that asked, as the token names it. */
-  readonly platform: string | null;
-  /**
-   * The size and SHA-256 the agent knows of the file, when it knows them: a
-   * reference the person is shown, never a lock — what an agent knows may be
-   * a copy its client reduced.
-   */
-  readonly expectedSize: number | null;
-  readonly expectedSha256: string | null;
-}
-
-/**
  * An upload in parts (RN-PRT-027). The file it becomes is declared up front —
  * name, type, description, tags and path, as `keep_file` takes them — with the
  * size and the hash of the whole, which the finish holds the bytes to.
@@ -147,6 +121,10 @@ export interface TransferUpload {
   readonly purpose: string;
   /** The connector that started it, as the token names it, or `null` for a person. */
   readonly platform: string | null;
+  /**
+   * How the parts travel. Every upload goes by URL since #468; `inline` is read
+   * only on an upload opened before it, kept to be discarded and never finished.
+   */
   readonly transport: 'url' | 'inline';
   readonly sha256: string;
   readonly partSize: number;
@@ -158,9 +136,9 @@ export interface TransferUpload {
    */
   readonly multipartId: string | null;
   /**
-   * The inline parts that arrived, by number, each with the exact revision it
-   * was written as — so discarding destroys the bytes rather than hiding them
-   * behind a delete marker.
+   * The parts an upload opened inline before #468 holds, by number, each with
+   * the exact revision it was written as — so discarding it destroys the bytes
+   * rather than hiding them behind a delete marker. Empty on an upload by URL.
    */
   readonly parts: Readonly<Record<string, string>>;
   /**
@@ -170,20 +148,41 @@ export interface TransferUpload {
    */
   readonly assembled: string | null;
   readonly lastPartAt: string | null;
-  /** The request of the person this upload fulfils, when it does (RN-PRT-030). */
-  readonly fulfils?: string | null | undefined;
+  /**
+   * When the finish was asked for, while the transfer worker joins the parts
+   * and holds the whole to its hash (#480): it runs outside the API call, whose
+   * 29 seconds a large file passes. `null` once it ended either way.
+   */
+  readonly finishing?: string | null | undefined;
+  /**
+   * The file the upload became, once the worker kept it: read once by the
+   * finish or the status that asks for it, which then removes the record
+   * (RN-PRT-028).
+   */
+  readonly kept?: KeptUpload | null | undefined;
+  /** Why the last finish did not keep the file, for whoever asks next. */
+  readonly refusal?: UploadRefusal | null | undefined;
+}
+
+/** The file an upload became. */
+export interface KeptUpload {
+  readonly fileId: string;
+  readonly notebookId: string;
+  readonly name: string;
+  readonly bytes: number;
+}
+
+/** A refusal of the finish, as the error it was, kept on the record for the next ask. */
+export interface UploadRefusal {
+  readonly code: string;
+  readonly message: string;
+  readonly details?: unknown;
+  /** A refusal a member may see as such, a 403 and not a 404 (INV-09). */
+  readonly revealsExistence?: boolean | undefined;
 }
 
 /** The part size of an upload by URL: S3 asks at least 5 MiB of every part but the last. */
 export const UPLOAD_URL_PART_BYTES = 8 * 1024 * 1024;
-/** What one file may be through an upload in parts, whichever way it travels. */
-export const UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
-/** What an inline upload may be in all: the door a call already had (RN-KNW-053). */
-export const UPLOAD_INLINE_MAX_BYTES = 4 * 1024 * 1024;
-/** The bounds of an inline part, and how many an inline upload may have. */
-export const UPLOAD_INLINE_PART_MIN = 1024;
-export const UPLOAD_INLINE_PART_MAX = 1024 * 1024;
-export const UPLOAD_INLINE_MAX_PARTS = 256;
 
 /** The prefix every part of one upload lives under. */
 export function uploadPrefixOf(subscriptionId: string, transferId: string): string {
@@ -195,7 +194,7 @@ export function uploadAssemblyKeyOf(subscriptionId: string, transferId: string):
   return `${uploadPrefixOf(subscriptionId, transferId)}whole`;
 }
 
-/** Where one inline part of an upload is kept. */
+/** Where one part of an upload opened inline before #468 was kept. */
 export function uploadPartKeyOf(subscriptionId: string, transferId: string, part: number): string {
   return `${uploadPrefixOf(subscriptionId, transferId)}part-${part}`;
 }
@@ -250,18 +249,6 @@ export interface TransferStore {
   addKeptBytes(delta: number, notebookId?: string | null): Promise<void>;
   /** How many exports are kept and what they occupy, whole and per notebook. */
   keptUsage(): Promise<KeptUsage>;
-  /**
-   * Records that one inline part arrived, as the revision it was written as.
-   * Only that entry of the record is written, so two parts arriving together
-   * do not overwrite each other (RN-PRT-027).
-   */
-  recordPart(
-    userId: string,
-    transferId: string,
-    part: number,
-    versionId: string,
-    at: string,
-  ): Promise<void>;
   /**
    * Moves what the open uploads reserve, by one upload: its declared size,
    * positive when it starts and negative when it ends either way, under the

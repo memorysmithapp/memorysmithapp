@@ -28,15 +28,201 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListPartsCommand,
   PutObjectCommand,
   UploadPartCommand,
+  UploadPartCopyCommand,
+  type CompletedPart,
   type S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { Readable } from 'node:stream';
+import { createInflateRaw } from 'node:zlib';
 import type { ArchiveStore } from '../application/ExportNotebook.js';
-import type { UploadStore } from '../application/ImportNotebook.js';
+import type { StagedEntry, UploadedArchive, UploadStore } from '../application/ImportNotebook.js';
 import type { PartStore } from '../application/Uploads.js';
+import { DEFLATED, STORED, dataStartOf, readDirectory, readText, type RangeSource } from './zip.js';
+
+/**
+ * The size of each part an archive goes to the store in (RN-PRT-093): what
+ * the worker holds of an archive at once, twice over while a part is sent.
+ * Ten thousand of them, the most a multipart upload takes, are 78 GiB.
+ */
+export const ARCHIVE_PART_BYTES = 8 * 1024 * 1024;
+
+/**
+ * The size of each part a copy inside the store is made in. The copy never
+ * passes through the function, so the part is as large as the store takes
+ * one under its ceiling of 5 GiB, and a copy of a whole object of up to this
+ * size is one `CopyObject`.
+ */
+export const COPY_PART_BYTES = 1024 * 1024 * 1024;
+const COPY_OBJECT_MAX_BYTES = 5 * 1024 * 1024 * 1024;
+
+/**
+ * Writes an object from a stream of chunks, in parts of at least
+ * `ARCHIVE_PART_BYTES` (RN-PRT-093): nothing longer than one part is held. An
+ * object smaller than one part is one `PutObject`. A write that fails midway
+ * aborts its multipart upload, so it leaves nothing billed behind.
+ */
+export async function writeInParts(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+  chunks: AsyncIterable<Uint8Array>,
+  options: { readonly contentType: string; readonly tagging?: string },
+): Promise<{ versionId: string | null; bytes: number }> {
+  let pending: Buffer[] = [];
+  let pendingBytes = 0;
+  let total = 0;
+  let uploadId: string | undefined;
+  const parts: CompletedPart[] = [];
+
+  const flush = async (): Promise<void> => {
+    if (uploadId === undefined) {
+      const started = await s3.send(
+        new CreateMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+          ContentType: options.contentType,
+          ChecksumAlgorithm: 'CRC32',
+          ...(options.tagging ? { Tagging: options.tagging } : {}),
+        }),
+      );
+      if (!started.UploadId) throw new Error('The store opened no multipart upload');
+      uploadId = started.UploadId;
+    }
+    const body = Buffer.concat(pending, pendingBytes);
+    pending = [];
+    pendingBytes = 0;
+    const number = parts.length + 1;
+    const sent = await s3.send(
+      new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: number,
+        Body: body,
+        ChecksumAlgorithm: 'CRC32',
+      }),
+    );
+    parts.push({
+      PartNumber: number,
+      ETag: sent.ETag,
+      ...(sent.ChecksumCRC32 ? { ChecksumCRC32: sent.ChecksumCRC32 } : {}),
+    });
+  };
+
+  try {
+    for await (const chunk of chunks) {
+      if (chunk.byteLength === 0) continue;
+      pending.push(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+      pendingBytes += chunk.byteLength;
+      total += chunk.byteLength;
+      if (pendingBytes >= ARCHIVE_PART_BYTES) await flush();
+    }
+    if (uploadId === undefined) {
+      const written = await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: Buffer.concat(pending, pendingBytes),
+          ContentType: options.contentType,
+          ...(options.tagging ? { Tagging: options.tagging } : {}),
+        }),
+      );
+      return { versionId: written.VersionId ?? null, bytes: total };
+    }
+    if (pendingBytes > 0) await flush();
+    const completed = await s3.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: { Parts: parts },
+      }),
+    );
+    return { versionId: completed.VersionId ?? null, bytes: total };
+  } catch (error) {
+    if (uploadId !== undefined) {
+      const opened = uploadId;
+      await s3
+        .send(new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: opened }))
+        .catch(() => undefined);
+    }
+    throw error;
+  }
+}
+
+/** A key as a `CopySource` takes it, with the revision it copies when one is named. */
+function copySourceOf(bucket: string, key: string, versionId: string | null): string {
+  const path = `${bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
+  return versionId ? `${path}?versionId=${encodeURIComponent(versionId)}` : path;
+}
+
+/**
+ * Copies a range of one object into another inside the store, in parts of
+ * `COPY_PART_BYTES`: the bytes never pass through the function, and no size
+ * stops it, where one `CopyObject` stops at 5 GiB.
+ */
+export async function copyRangeInParts(
+  s3: S3Client,
+  bucket: string,
+  source: { readonly key: string; readonly versionId: string | null },
+  range: { readonly start: number; readonly length: number },
+  key: string,
+  options: { readonly contentType: string; readonly tagging?: string },
+): Promise<string | null> {
+  const started = await s3.send(
+    new CreateMultipartUploadCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: options.contentType,
+      ...(options.tagging ? { Tagging: options.tagging } : {}),
+    }),
+  );
+  if (!started.UploadId) throw new Error('The store opened no multipart upload');
+  const uploadId = started.UploadId;
+  try {
+    const parts: CompletedPart[] = [];
+    for (let at = 0; at < range.length; at += COPY_PART_BYTES) {
+      const last = Math.min(range.length, at + COPY_PART_BYTES) - 1;
+      const number = parts.length + 1;
+      const copied = await s3.send(
+        new UploadPartCopyCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: uploadId,
+          PartNumber: number,
+          CopySource: copySourceOf(bucket, source.key, source.versionId),
+          CopySourceRange: `bytes=${range.start + at}-${range.start + last}`,
+        }),
+      );
+      parts.push({ PartNumber: number, ETag: copied.CopyPartResult?.ETag });
+    }
+    const completed = await s3.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: { Parts: parts },
+      }),
+    );
+    return completed.VersionId ?? null;
+  } catch (error) {
+    await s3
+      .send(new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }))
+      .catch(() => undefined);
+    throw error;
+  }
+}
+
+/** Whether the store said there is nothing at that key, or at that revision. */
+function missing(error: unknown): boolean {
+  const name = (error as { name?: string } | null)?.name ?? '';
+  return name === 'NoSuchKey' || name === 'NotFound' || name === 'NoSuchVersion';
+}
 
 /**
  * What the bucket rule expires on. It is worn by the upload of an IMPORT and by
@@ -59,19 +245,20 @@ export class S3ArchiveStore implements ArchiveStore {
     private readonly publicOrigin: string | null = null,
   ) {}
 
-  async put(key: string, archive: Buffer): Promise<{ versionId: string | null }> {
-    const written = await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: archive,
-        ContentType: 'application/zip',
-      }),
-    );
-    // The revision it wrote. An export is written once and never overwritten,
-    // so this version IS the object: deleting it destroys the bytes without
-    // listing versions and without leaving a delete marker (RN-PRT-020).
-    return { versionId: written.VersionId ?? null };
+  /**
+   * The archive, written as it is made, in parts of 8 MiB (RN-PRT-093): a
+   * file of the notebook goes from its object into the archive without being
+   * held, so the size of the archive is not bounded by the memory of the
+   * worker. It answers the revision it wrote: an export is written once and
+   * never overwritten, so this version IS the object, and deleting it destroys
+   * the bytes without listing versions and without leaving a delete marker
+   * (RN-PRT-020).
+   */
+  async write(
+    key: string,
+    archive: AsyncIterable<Uint8Array>,
+  ): Promise<{ versionId: string | null; bytes: number }> {
+    return writeInParts(this.s3, this.bucket, key, archive, { contentType: 'application/zip' });
   }
 
   /**
@@ -173,16 +360,134 @@ export class S3UploadStore implements UploadStore {
     );
   }
 
-  async read(key: string): Promise<Buffer | null> {
+  /**
+   * The archive where it is (RN-PRT-093): its size and revision, then its
+   * tail and central directory by ranged reads of that revision, and later
+   * the document by its range. A file entry is never read here: `stage`
+   * copies it inside the store.
+   */
+  async open(key: string): Promise<UploadedArchive | null | 'not-an-archive'> {
+    let size: number;
+    let versionId: string | null;
     try {
-      const found = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
-      const bytes = await found.Body?.transformToByteArray();
-      return bytes ? Buffer.from(bytes) : null;
-    } catch {
+      const head = await this.s3.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+      size = head.ContentLength ?? 0;
+      versionId = head.VersionId ?? null;
+    } catch (error) {
       // An upload that never happened and one that expired are the same
       // answer: there is nothing at that key.
-      return null;
+      if (missing(error)) return null;
+      throw error;
     }
+
+    const source: RangeSource = {
+      size,
+      read: async (start, length) => {
+        if (length === 0) return Buffer.alloc(0);
+        const found = await this.s3.send(
+          new GetObjectCommand({
+            Bucket: this.bucket,
+            Key: key,
+            ...(versionId ? { VersionId: versionId } : {}),
+            Range: `bytes=${start}-${start + length - 1}`,
+          }),
+        );
+        const bytes = Buffer.from((await found.Body?.transformToByteArray()) ?? new Uint8Array());
+        if (bytes.length !== length) throw new Error('A ranged read answered another length');
+        return bytes;
+      },
+    };
+
+    let directory: Awaited<ReturnType<typeof readDirectory>>;
+    try {
+      directory = await readDirectory(source);
+    } catch {
+      return 'not-an-archive';
+    }
+    const byName = new Map(directory.map((entry) => [entry.name, entry]));
+
+    return {
+      entries: directory.map((entry) => entry.name),
+      text: async (name) => {
+        const entry = byName.get(name);
+        if (!entry) throw new Error(`no entry ${name}`);
+        return readText(source, entry);
+      },
+      stage: async (name, target): Promise<StagedEntry | null> => {
+        const entry = byName.get(name);
+        if (!entry) return null;
+        let start: number;
+        try {
+          start = await dataStartOf(source, entry);
+        } catch {
+          return null;
+        }
+        const options = { contentType: 'application/octet-stream' };
+        if (entry.method === STORED) {
+          // Copied inside the store, range by range: the bytes of the file
+          // never pass through the function on the way to the stage.
+          if (entry.compressedSize < ARCHIVE_PART_BYTES) {
+            const written = await this.s3.send(
+              new PutObjectCommand({
+                Bucket: this.bucket,
+                Key: target,
+                Body: await source.read(start, entry.compressedSize),
+                ContentType: options.contentType,
+              }),
+            );
+            return stagedAt(target, written.VersionId, entry.compressedSize);
+          }
+          const written = await copyRangeInParts(
+            this.s3,
+            this.bucket,
+            { key, versionId },
+            { start, length: entry.compressedSize },
+            target,
+            options,
+          );
+          return stagedAt(target, written ?? undefined, entry.compressedSize);
+        }
+        if (entry.method === DEFLATED) {
+          // Not what an export writes, and what a person who zipped the
+          // archive again may have: inflated as it is read, written in parts.
+          if (entry.compressedSize === 0) return null;
+          const found = await this.s3.send(
+            new GetObjectCommand({
+              Bucket: this.bucket,
+              Key: key,
+              ...(versionId ? { VersionId: versionId } : {}),
+              Range: `bytes=${start}-${start + entry.compressedSize - 1}`,
+            }),
+          );
+          const body = found.Body as Readable | undefined;
+          if (!body) return null;
+          const written = await writeInParts(
+            this.s3,
+            this.bucket,
+            target,
+            body.pipe(createInflateRaw()),
+            options,
+          );
+          return stagedAt(target, written.versionId ?? undefined, written.bytes);
+        }
+        return null;
+      },
+    };
+  }
+
+  /**
+   * What `stage` wrote is destroyed by its revision, which the worker may do
+   * under `uploads/` and nowhere else: a delete without one would only hide
+   * the bytes behind a marker while they stay billed (RN-PRT-028).
+   */
+  async discardStaged(staged: StagedEntry): Promise<void> {
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: staged.key,
+        VersionId: staged.versionId,
+      }),
+    );
   }
 
   async discard(key: string): Promise<void> {
@@ -199,6 +504,24 @@ export class S3UploadStore implements UploadStore {
    */
   async copyFrom(source: string, key: string): Promise<boolean> {
     try {
+      // A single CopyObject stops at 5 GiB; an archive past it is copied in
+      // parts, still inside the store (#481).
+      const head = await this.s3.send(new HeadObjectCommand({ Bucket: this.bucket, Key: source }));
+      const size = head.ContentLength ?? 0;
+      if (size > COPY_OBJECT_MAX_BYTES) {
+        await copyRangeInParts(
+          this.s3,
+          this.bucket,
+          { key: source, versionId: head.VersionId ?? null },
+          { start: 0, length: size },
+          key,
+          {
+            contentType: 'application/zip',
+            tagging: `${UPLOAD_LIFECYCLE_TAG.key}=${UPLOAD_LIFECYCLE_TAG.value}`,
+          },
+        );
+        return true;
+      }
       await this.s3.send(
         new CopyObjectCommand({
           Bucket: this.bucket,
@@ -217,11 +540,16 @@ export class S3UploadStore implements UploadStore {
       // An archive that is not there is the one answer this owes the caller;
       // anything else is a failure of the store, and saying "not found" for
       // it would hide a refusal of IAM behind a 404.
-      const name = (error as { name?: string } | null)?.name ?? '';
-      if (name === 'NoSuchKey' || name === 'NotFound') return false;
+      if (missing(error)) return false;
       throw error;
     }
   }
+}
+
+/** Where an entry was staged, or a failure: a staged object is a revision like any other. */
+function stagedAt(key: string, versionId: string | undefined, size: number): StagedEntry {
+  if (!versionId) throw new Error('The bucket returned no VersionId: versioning must be enabled');
+  return { key, versionId, size };
 }
 
 /**
@@ -345,29 +673,6 @@ export class S3PartStore implements PartStore {
     await this.s3.send(
       new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: key, UploadId: multipartId }),
     );
-  }
-
-  async putObject(key: string, bytes: Uint8Array): Promise<string> {
-    const written = await this.s3.send(
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: bytes }),
-    );
-    if (!written.VersionId) {
-      throw new Error(`Bucket ${this.bucket} returned no VersionId: versioning must be enabled`);
-    }
-    return written.VersionId;
-  }
-
-  async readObject(key: string, versionId: string): Promise<Uint8Array | null> {
-    try {
-      const found = await this.s3.send(
-        new GetObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),
-      );
-      return (await found.Body?.transformToByteArray()) ?? null;
-    } catch (error) {
-      const name = (error as { name?: string } | null)?.name ?? '';
-      if (name === 'NoSuchKey' || name === 'NoSuchVersion' || name === 'NotFound') return null;
-      throw error;
-    }
   }
 
   async destroy(key: string, versionId: string): Promise<void> {
