@@ -21,6 +21,10 @@ import { notebookDocumentSchema, type NotebookDocument } from '@memorysmithapp/c
  * each kept file is an entry of its own beside the document, and an archive
  * may be gigabytes: what is read is its tail, its central directory, ZIP64
  * included, and the document, and no byte of any file.
+ *
+ * A file of the machine is read by `Blob.slice`; a kept export is read the same
+ * way from the link its download mints, by HTTP ranges, so choosing it to import
+ * downloads its document and not its files (#484).
  */
 
 const EOCD = 0x06054b50;
@@ -51,16 +55,72 @@ interface Entry {
   readonly localOffset: number;
 }
 
-/** A range of the file, as a view; a range past its end is not an archive. */
-async function slice(file: Blob, start: number, length: number): Promise<DataView> {
+/** Where the bytes of an archive are read from, a range at a time. */
+export interface ArchiveSource {
+  readonly size: number;
+  read(start: number, length: number): Promise<Uint8Array>;
+}
+
+/** A file of the machine, read by slices. */
+export function blobSource(file: Blob): ArchiveSource {
+  return {
+    size: file.size,
+    read: async (start, length) =>
+      new Uint8Array(await file.slice(start, start + length).arrayBuffer()),
+  };
+}
+
+/** What `Content-Range` says of the whole: `bytes 100-199/12345` → 12345. */
+function totalOf(contentRange: string | null): number | null {
+  const total = /\/(\d+)\s*$/.exec(contentRange ?? '')?.[1];
+  return total ? Number(total) : null;
+}
+
+/**
+ * An archive at an address, read by HTTP ranges (#484): the first request asks
+ * for its tail, which also says how large it is, and is kept, since the end
+ * record and most central directories are in it.
+ */
+export async function remoteSource(
+  url: string,
+  fetchImpl: typeof fetch = (input, init) => fetch(input, init),
+): Promise<ArchiveSource> {
+  const first = await fetchImpl(url, { headers: { Range: `bytes=-${TAIL}` } });
+  if (first.status !== 206 && first.status !== 200) throw new ArchiveError('NOT_AN_ARCHIVE');
+  const tail = new Uint8Array(await first.arrayBuffer());
+  // A server that ignores the range answers the whole, which is then all there is.
+  const size = first.status === 200 ? tail.byteLength : totalOf(first.headers.get('content-range'));
+  if (size === null) throw new ArchiveError('NOT_AN_ARCHIVE');
+  const tailStart = size - tail.byteLength;
+  return {
+    size,
+    read: async (start, length) => {
+      if (start >= tailStart && start + length <= size) {
+        return tail.subarray(start - tailStart, start - tailStart + length);
+      }
+      if (length === 0) return new Uint8Array(0);
+      const part = await fetchImpl(url, {
+        headers: { Range: `bytes=${start}-${start + length - 1}` },
+      });
+      if (part.status !== 206) throw new ArchiveError('NOT_AN_ARCHIVE');
+      return new Uint8Array(await part.arrayBuffer());
+    },
+  };
+}
+
+/** A range of the archive, as a view; a range past its end is not an archive. */
+async function slice(file: ArchiveSource, start: number, length: number): Promise<DataView> {
   if (start < 0 || length < 0 || start + length > file.size) {
     throw new ArchiveError('NOT_AN_ARCHIVE');
   }
+  let bytes: Uint8Array;
   try {
-    return new DataView(await file.slice(start, start + length).arrayBuffer());
+    bytes = await file.read(start, length);
   } catch {
     throw new ArchiveError('NOT_AN_ARCHIVE');
   }
+  if (bytes.byteLength !== length) throw new ArchiveError('NOT_AN_ARCHIVE');
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 }
 
 function uint64(view: DataView, at: number): number {
@@ -70,7 +130,7 @@ function uint64(view: DataView, at: number): number {
 }
 
 /** The entries of the archive, out of its central directory. */
-async function entriesOf(file: Blob): Promise<Entry[]> {
+async function entriesOf(file: ArchiveSource): Promise<Entry[]> {
   // The end-of-central-directory record is the last thing in the file, and its
   // comment may follow it: it is found by scanning back for the signature.
   const tailStart = Math.max(0, file.size - TAIL);
@@ -159,7 +219,10 @@ async function inflate(bytes: Uint8Array, method: number): Promise<string> {
 }
 
 /** The document a `.notebook` carries, or the reason it carries none. */
-export async function readNotebookArchive(file: Blob): Promise<NotebookDocument> {
+export async function readNotebookArchive(
+  archive: Blob | ArchiveSource,
+): Promise<NotebookDocument> {
+  const file = archive instanceof Blob ? blobSource(archive) : archive;
   if (file.size < 22) throw new ArchiveError('NOT_AN_ARCHIVE');
 
   const entries = await entriesOf(file);

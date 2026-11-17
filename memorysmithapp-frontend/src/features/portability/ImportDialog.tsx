@@ -17,7 +17,20 @@ import {
   prepareImport,
 } from '../../shared/api/source';
 import { Segmented } from '../../shared/components/Segmented';
-import { ArchiveError, readNotebookArchive } from './notebook-archive';
+import {
+  ArchiveError,
+  readNotebookArchive,
+  remoteSource,
+  type ArchiveSource,
+} from './notebook-archive';
+
+/** An archive chosen to import, from the machine or from the kept exports. */
+interface ChosenArchive {
+  readonly name: string;
+  readonly size: number;
+  /** The file of the machine, which the import uploads; none for a kept export. */
+  readonly file: File | null;
+}
 import { TransferChooser, type ChooserTab, type Preset } from './TransferChooser';
 import { TransferDialog } from './TransferDialog';
 import { carriedParts } from './ExportChoice';
@@ -74,7 +87,12 @@ export function ImportDialog({
   const input = useRef<HTMLInputElement>(null);
   /** The field the name is typed in, which a refusal sends the person back to. */
   const nameField = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  /**
+   * The archive chosen: its name and size, and, from the machine, the file
+   * itself, which is what an import of it uploads. A kept export has none: it is
+   * read by ranges and copied by the server (#207, #484).
+   */
+  const [file, setFile] = useState<ChosenArchive | null>(null);
   const [document, setDocument] = useState<NotebookDocument | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -114,10 +132,14 @@ export function ImportDialog({
   );
 
   async function choose(chosenFile: File): Promise<void> {
+    await read({ name: chosenFile.name, size: chosenFile.size, file: chosenFile }, chosenFile);
+  }
+
+  async function read(chosen: ChosenArchive, source: File | ArchiveSource): Promise<void> {
     setRefusal(null);
-    setFile(chosenFile);
+    setFile(chosen);
     try {
-      const read = await readNotebookArchive(chosenFile);
+      const read = await readNotebookArchive(source);
       setDocument(read);
       setName(read.notebook.name);
       setPreset('everything');
@@ -144,12 +166,12 @@ export function ImportDialog({
     setLoadingKept(true);
     setRefusal(null);
     try {
+      // Read by ranges from the link its download mints: its document, never
+      // its files, which the server copies when the import starts (#484).
       const link = await downloadTransfer(transferId);
-      const answer = await fetch(link.downloadUrl);
-      if (!answer.ok) throw new Error('download');
-      const blob = await answer.blob();
+      const source = await remoteSource(link.downloadUrl);
       const named = transfer.fileName ?? `${transfer.notebookName}.notebook`;
-      await choose(new File([blob], named, { type: 'application/zip' }));
+      await read({ name: named, size: source.size, file: null }, source);
     } catch {
       setFile(null);
       setDocument(null);
@@ -208,10 +230,11 @@ export function ImportDialog({
         // Copied where it is kept, so nothing leaves the device (#207).
         uploadKey = (await importFromExport(keptId)).uploadKey;
       } else {
+        if (!file.file) throw new Error('no file in hand');
         const prepared = await prepareImport();
         const uploaded = await fetch(prepared.uploadUrl, {
           method: 'PUT',
-          body: file,
+          body: file.file,
           headers: { 'Content-Type': 'application/zip' },
         });
         if (!uploaded.ok) throw new Error('upload');

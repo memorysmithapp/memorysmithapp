@@ -920,6 +920,9 @@ function handler(event) {
         accessControlAllowHeaders: ['*'],
         accessControlAllowMethods: ['GET', 'HEAD'],
         accessControlAllowOrigins: [props.frontendOrigin],
+        // A kept export is read by ranges to show what it holds (#484): the
+        // page learns the size of the whole from the range it was answered.
+        accessControlExposeHeaders: ['Content-Range', 'Content-Length', 'Accept-Ranges'],
         originOverride: true,
       },
       securityHeadersBehavior: {

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ArchiveError, readNotebookArchive } from './notebook-archive';
+import { ArchiveError, readNotebookArchive, remoteSource } from './notebook-archive';
 
 /**
  * An archive as the export of `1.6` writes it: `notebook.json`, deflated, and
@@ -69,5 +69,53 @@ describe('reading a .notebook in the browser', () => {
     await expect(
       readNotebookArchive(new Blob(['not a zip at all, nothing like one'])),
     ).rejects.toEqual(new ArchiveError('NOT_AN_ARCHIVE'));
+  });
+});
+
+describe('a kept export read from its link, by ranges (#484)', () => {
+  /** A server of the bytes that answers ranges as S3 does, and the ranges it was asked. */
+  function server(bytes: Uint8Array, honoursRanges = true) {
+    const asked: string[] = [];
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      const range = new Headers(init?.headers).get('range') ?? '';
+      asked.push(range);
+      if (!honoursRanges) return new Response(bytes as BodyInit, { status: 200 });
+      const suffix = /^bytes=-(\d+)$/.exec(range);
+      const span = /^bytes=(\d+)-(\d+)$/.exec(range);
+      const from = suffix ? Math.max(0, bytes.length - Number(suffix[1])) : Number(span?.[1]);
+      const to = suffix ? bytes.length - 1 : Number(span?.[2]);
+      return new Response(bytes.slice(from, to + 1) as BodyInit, {
+        status: 206,
+        headers: { 'content-range': `bytes ${from}-${to}/${bytes.length}` },
+      });
+    }) as typeof fetch;
+    return { asked, fetchImpl };
+  }
+
+  it('reads the document of a 1.6 archive, learning its size from the first range', async () => {
+    const archive = bytesOf(ARCHIVE_1_6);
+    const { asked, fetchImpl } = server(archive);
+    const source = await remoteSource('https://files.example/x', fetchImpl);
+    expect(source.size).toBe(archive.length);
+    const document = await readNotebookArchive(source);
+    expect(document.documentVersion).toBe('1.6');
+    expect(asked[0]).toMatch(/^bytes=-\d+$/);
+  });
+
+  it('asks for exactly the range it reads past the tail, and nothing else', async () => {
+    const big = new Uint8Array(1_000_000).map((_, index) => index % 251);
+    const { asked, fetchImpl } = server(big);
+    const source = await remoteSource('https://files.example/x', fetchImpl);
+    const read = await source.read(1000, 16);
+    expect([...read]).toEqual([...big.slice(1000, 1016)]);
+    expect(asked).toEqual([expect.stringMatching(/^bytes=-\d+$/), 'bytes=1000-1015']);
+  });
+
+  it('still reads a server that answers the whole instead of the range', async () => {
+    const { fetchImpl } = server(bytesOf(ARCHIVE_1_6), false);
+    const document = await readNotebookArchive(
+      await remoteSource('https://files.example/x', fetchImpl),
+    );
+    expect(document.documentVersion).toBe('1.6');
   });
 });

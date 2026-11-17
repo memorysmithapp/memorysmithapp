@@ -184,6 +184,7 @@ describe('the files host', () => {
             AccessControlAllowCredentials: boolean;
             AccessControlAllowMethods: { Items: string[] };
             AccessControlAllowOrigins: { Items: string[] };
+            AccessControlExposeHeaders?: { Items: string[] };
             OriginOverride: boolean;
           };
         };
@@ -194,6 +195,8 @@ describe('the files host', () => {
     expect(cors.AccessControlAllowOrigins.Items).toEqual(['https://stg.memorysmith.app']);
     expect([...cors.AccessControlAllowMethods.Items].sort()).toEqual(['GET', 'HEAD']);
     expect(cors.AccessControlAllowCredentials).toBe(false);
+    // What reading a kept export by ranges needs to read of the answer (#484).
+    expect(cors.AccessControlExposeHeaders?.Items).toContain('Content-Range');
     expect(cors.OriginOverride).toBe(true);
   });
 
