@@ -27,6 +27,7 @@ import {
   MARKDOWN_SPEC_SOURCES,
   MARKDOWN_SPEC_URL,
   RECOGNISED_NOTATION,
+  UPLOAD_PROBE,
   type RecognisedNotation,
 } from '@memorysmithapp/contracts';
 
@@ -965,70 +966,37 @@ convert it when the person asks for that.
 
 ${SHARED_NOTEBOOKS} A file is kept in a notebook like a note is written there.
 
-## Which way the bytes go
+## First, reach the upload host
 
-The bytes of a file reach the notebook in one of two ways, and the first one
-that fits your situation is the one to use.
+Before anything else, check from your code that it reaches the upload host.
+\`whoami\` gives the probe under *Keeping a file*: an address ending in
+\`/probe\`, and the exact text it answers.
 
-1. **You can run a command that reaches the network** — a terminal, Claude
-   Code, a sandbox with internet access. Use \`begin_file_upload\`. Every part
-   gets an address, and a script sends the bytes from the disk straight to it:
-   they never pass through what you write, so a file of 50 MB costs you what
-   one of 50 KB does. Up to 100 MB.
-2. **The file is a few kilobytes** — an icon, a small diagram. \`keep_file\`
-   takes it in one call: an SVG as its text in \`content\`, copied character
-   for character as you were given it, and any other type in
-   \`contentBase64\`, encoded by code. **Never write base64 by hand**: it slips
-   even on a few hundred bytes, and a file with one byte changed is not the
-   person's file. With no code to encode it and a type that is not text, ask
-   the person for it, as below.
+\`\`\`python
+import urllib.request
+PROBE = "https://uploads.memorysmith.app${UPLOAD_PROBE.path}"  # the address whoami gives
+EXPECTED = "${UPLOAD_PROBE.body}"  # the text whoami quotes
+try:
+    with urllib.request.urlopen(PROBE, timeout=20) as answer:
+        reached = answer.status == 200 and answer.read().decode().strip() == EXPECTED
+except Exception as error:
+    reached = False
+    print(error)
+print(reached)
+\`\`\`
 
-\`keep_file\` answers the size and the SHA-256 of what was kept. When you know
-either of the file you were given and they differ, say so to the person before
-anything else: never tell them the file is theirs on a size you did not
-compare. An upload in parts needs no such look, since its finish keeps only a
-whole that hashes to what you declared.
+Only \`200\` with exactly that text says your sandbox can send there. Anything
+else — a \`403\`, another text, a refused connection, no answer — means it
+cannot, whatever the status: the host answers \`403\` to every other request
+with no signature, and so does a proxy that blocks it. Then go to *When you
+cannot send it* and open no upload.
 
-Anything larger that you cannot send by URL, the person attaches from the
-note's editor: see *When you cannot send it* below.
+## Then, send it by URL
 
-## When you cannot send it
-
-When your code cannot reach the upload host, no attempt of yours will change
-that, and no other route exists. **Open no upload.** Write the reference
-\`![[name]]\` where the file belongs, with the name the person gave it, and tell
-the person two things: that their assistant needs network access to the upload
-host, a setting the About page of MemorySmith names for each assistant, and that
-they can attach the file themselves from the note's editor, under that name.
-The note draws it the moment it is kept; \`list_files\` says when it is.
-
-An attempt you give up on is thrown away with \`discard_file_upload\`, so none is
-left open in Transfers reserving room.
-
-## Keep what the person gave you, or say what you have
-
-When you see a picture in the conversation but have no file of it, you have its
-appearance and not its bytes: ask the person for the file itself. And a chat
-often hands an agent a **copy** of an attachment, recompressed on the way in —
-a photo of 1.9 MB arriving as 280 KB, or reduced to 2048 pixels on its longest
-side. Compare what you hold with what the person sent; when it is less, tell
-them both sizes before keeping anything, and let them choose between that copy
-and attaching the original themselves. What you hold is **the file you
-received**: call it that, and not *the original*, because a client may have
-reduced it without saying so.
-
-**A file the notebook already keeps is the one the person sent only when its
-size matches** — and its SHA-256, when you can compute it. \`list_files\`
-answers the bytes of every file, which is what tells a file apart from another
-of a similar name, and the check costs one call. When they do not match, say
-so with both sizes, and point the note at the file the person is going to
-keep rather than at the one that is there.
-
-**Keep a file under the name the person gave it**, spaces and accents
-included: a name is found by the person who gave it. Change it only when the
-guidance of the notebook declares a pattern for the names of its files.
-
-## Sending a file by URL
+A file you hold as bytes — a photo, a recording, a PDF, a spreadsheet — goes
+one way: \`begin_file_upload\`, a PUT of each part from your code, and
+\`finish_file_upload\`. The bytes never pass through what you write, so a file
+of 50 MB costs you what one of 50 KB does. Up to 100 MB.
 
 Measure the file and hash it:
 
@@ -1039,11 +1007,11 @@ print(len(data), hashlib.sha256(data).hexdigest())
 \`\`\`
 
 Call \`begin_file_upload\` with the notebook, the name a note will address, the
-type, that size, that hash and a **purpose** — a sentence
-the person recognises in Transfers, such as *photo of the whiteboard of the
-planning meeting, for its minutes*. The answer carries \`targets\`: one address
-per part, each part 8 MiB, the last one shorter. Send every part with a plain
-PUT of its bytes and nothing else:
+type, that size, that hash and a **purpose** — a sentence the person recognises
+in Transfers, such as *photo of the whiteboard of the planning meeting, for its
+minutes*. The answer carries \`targets\`: one address per part, each part
+8 MiB, the last one shorter. Send every part with a plain PUT of its bytes and
+nothing else:
 
 \`\`\`python
 import urllib.request
@@ -1058,31 +1026,72 @@ for target in targets:
 
 Then call \`finish_file_upload\`. It joins the parts, and keeps the file when the
 whole hashes to what you declared and its bytes are of the type you declared;
-its answer is the reference to write in a note.
+its answer is the reference to write in a note. Its check is the whole check:
+what is kept is byte for byte what you hashed.
+
+## A few kilobytes of text
+
+An SVG or a small CSV is text: \`keep_file\` takes it in one call, in
+\`content\`, every character exactly as you were given it, nothing reformatted.
+\`keep_file\` answers the size and the SHA-256 of what was kept. Never write
+base64 by hand for anything: it slips even on a few hundred bytes, and a file
+with one byte changed is not the person's file.
+
+## When you cannot send it
+
+When the probe did not answer its text, no attempt of yours will change that,
+and no other route exists. **Open no upload**, and do not try to send the bytes
+in a call. Write the reference \`![[name]]\` where the file belongs, with the
+name the person gave it, and tell the person two things: that their assistant
+needs network access to the upload host, a setting the About page of
+MemorySmith names for each assistant, and that they can attach the file
+themselves from the note's editor, under that name. The note draws it the
+moment it is kept; \`list_files\` says when it is. A change of that setting
+reaches a new conversation, not the one already open.
+
+An attempt you give up on is thrown away with \`discard_file_upload\`, so none is
+left open in Transfers reserving room.
+
+## What you hold is the file you received
+
+When you see a picture in the conversation but have no file of it, you have its
+appearance and not its bytes: ask the person for the file itself.
+
+**Keep a file under the name the person gave it**, spaces and accents
+included: a name is found by the person who gave it. What you hold may carry
+another name than the one the person sees — a prefix, or a generic name such as
+\`image.jpg\` — so take the name from what the person said, or ask. Change it
+only when the guidance of the notebook declares a pattern for the names of its
+files.
+
+What you hold is **the file you received**: call it that, and not *the
+original*, since you cannot see what the person has. When the person gives a
+size or a SHA-256 of their file, compare before keeping anything, and when they
+differ say so with both values and keep nothing until they choose. MemorySmith
+keeps exactly what you send, and the person can check a kept file against their
+original on the files of the notebook.
+
+**A file the notebook already keeps is the one the person means only when its
+size matches** — and its SHA-256, when you can compute it. \`list_files\`
+answers the bytes and the hash of every file, which is what tells a file apart
+from another of a similar name. When they do not match, say so with both
+values, and point the note at the file the person is going to keep rather than
+at the one that is there.
 
 ## When your client stands in the way
-
-Three things of the client an agent runs in decide whether the bytes can go at
-all, and none of them announces itself:
 
 - **A tool \`whoami\` lists and your client does not show**: the client kept
   the list it read before. \`whoami\` says how the person refreshes it in the
   client you run in; the refreshed list reaches a new conversation, where the
   upload is found again as below.
-- **A PUT refused by your own environment** — a proxy answering
-  \`host_not_allowed\`, a connection refused — means your code has no network,
-  or not to that host. The answer of \`begin_file_upload\` names the host the
-  parts go to, \`partsHost\`: ask the person to turn on network access for code
-  and allow that host, or every host of the product at once, \`*.memorysmith.app\`.
-- **Such a change reaches a new conversation**, not the one already open. The
-  upload waits: in the new conversation, \`list_file_uploads\` finds it by the
-  SHA-256 of the file and \`file_upload_status\` signs fresh addresses.
+- **A PUT refused after the probe answered** — a connection cut, an address
+  expired — is resumed: \`file_upload_status\` signs fresh addresses for the
+  parts still missing.
 
 ## Following an upload, and resuming one
 
 \`file_upload_status\` says which parts arrived and which are missing, and signs
-a fresh address for every missing part of an upload by URL — addresses last an
-hour. An upload has no deadline: the person sees it in Transfers, with what it
+a fresh address for every missing part — addresses last an hour. An upload has no deadline: the person sees it in Transfers, with what it
 is for, until it becomes a file. Before starting one, read
 \`list_file_uploads\`: an upload of the same file, found by the SHA-256 of the
 whole, is resumed with \`file_upload_status\` rather than sent again, from this

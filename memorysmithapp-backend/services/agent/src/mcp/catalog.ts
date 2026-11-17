@@ -612,14 +612,13 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '\u2014 an extension is yours to write or to leave out, and it decides nothing. What decides ' +
       'how the file is drawn, and whether it may be kept at all, is mimeType: an image, an ' +
       'audio and a video are drawn on the page, and everything else is a card with a download. ' +
-      'The bytes travel in this one call, so it suits a file of a few kilobytes: an SVG or a ' +
-      'CSV as its text in `content`, copied exactly as you were given it, and any other type in ' +
-      '`contentBase64`, which you write without a slip only when code encodes it \u2014 base64 ' +
-      'written by hand slips even on a small file. A photo, a recording or a document ' +
-      'of any real size is sent with begin_file_upload instead, whole and at its own ' +
-      `resolution, as the skill \`${KEEP_FILES_SKILL}\` describes. Keep what the person gave you: ` +
-      'when the bytes you hold are fewer than what they sent — a chat that recompresses ' +
-      'attachments — tell them both sizes before keeping anything. The type is checked against the bytes, so ' +
+      'The bytes travel in this one call, so it suits a few kilobytes of text: an SVG or a CSV ' +
+      'in `content`, copied exactly as you were given it. A file you hold as bytes \u2014 a photo, ' +
+      'a recording, a document \u2014 goes with begin_file_upload instead, whole, once your code ' +
+      `reached the probe whoami names, as the skill \`${KEEP_FILES_SKILL}\` describes; ` +
+      '`contentBase64` is for code that encodes a small file, never base64 written by hand. ' +
+      'Keep the file under the name the person gave it, and when they gave its size or hash, ' +
+      'compare before keeping anything. The type is checked against the bytes, so ' +
       'a declaration they do not support is refused naming both. A notebook keeps one file of ' +
       'each name; the path only organises, so moving a file never breaks a note.',
     inputSchema: object(
@@ -674,9 +673,12 @@ const DEFINITIONS: readonly ToolDefinition[] = [
     title: 'Start sending a file in parts',
     description:
       'Starts keeping a file whole, at its own size and resolution: a photo, a recording, a PDF. ' +
-      'Before calling it, GET the probe of the upload host from your code, at the address whoami ' +
-      'gives under *Keeping a file*: only its `200` with the body whoami quotes says your sandbox ' +
-      'can send there; anything else, a `403` included, means it cannot, so open no upload. ' +
+      'It is the one way for a file you hold as bytes. Before calling it, GET the probe of the ' +
+      'upload host from your code, at the address whoami gives under *Keeping a file*: only its ' +
+      '`200` with the body whoami quotes says your sandbox can send there; anything else, a `403` ' +
+      'included, means it cannot, so open no upload and tell the person which setting their ' +
+      'assistant needs, as the About page names it, and that they can attach the file from the ' +
+      "note's editor. " +
       'Declare the file first \u2014 its name, type, size in bytes and the SHA-256 of the whole ' +
       'file \u2014 and then send it in parts: every part has an address, and your code PUTs the ' +
       'bytes from the disk to it, so they never pass through what you write. The parts are 8 MiB ' +

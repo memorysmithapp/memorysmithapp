@@ -2328,21 +2328,25 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     const keep = TOOL_CATALOG.find((each) => each.name === 'keep_file');
     expect(keep?.description).toContain('begin_file_upload');
     expect(keep?.description).toContain('keep-files');
-    // What was seen on 2026-09-26: a chat that recompresses the attachment,
-    // and an agent that kept the small copy in silence (#243, RN-AGT-042).
-    expect(keep?.description).toContain('tell them both sizes');
+    // An agent that kept a smaller copy in silence (#243, RN-AGT-042): the size
+    // or hash the person gives is compared before anything is kept.
+    expect(keep?.description).toContain('compare before keeping anything');
     expect(skill?.body).not.toContain('request_file');
     expect(skill?.body).not.toContain('Aguardando você');
     expect(skill?.body).not.toContain('Anexar arquivo');
-    expect(skill?.body).toContain('host_not_allowed');
+    // The method of #470: the probe first, and on any other answer no upload.
+    expect(skill?.body).toContain(UPLOAD_PROBE.path);
+    expect(skill?.body).toContain(UPLOAD_PROBE.body);
+    expect(skill?.body).toContain('Open no upload');
+    expect(skill?.body).toContain("attach the file\nthemselves from the note's editor");
   });
 
   it('holds a kept file to the one the person sent by its bytes, and keeps its name (#246)', () => {
     const skill = SKILLS.find((each) => each.name === 'keep-files')?.body ?? '';
     // ChatGPT pointed a note at a thumbnail of 7,500 bytes kept earlier under
     // a similar name, and called a copy reduced to 2048 px the original.
-    expect(skill).toContain('is the one the person sent only when its\nsize matches');
-    expect(skill).toContain('the file you\nreceived');
+    expect(skill).toContain('is the one the person means only when its\nsize matches');
+    expect(skill).toContain('the file you received');
     expect(skill).toContain('Keep a file under the name the person gave it');
     const list = TOOL_CATALOG.find((each) => each.name === 'list_files');
     expect(list?.description).toContain('only when its bytes match');
