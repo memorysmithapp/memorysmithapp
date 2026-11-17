@@ -658,7 +658,11 @@
         "failed": "The import of <b>{{notebook}}</b> failed."
       }
     },
-    "columns": { "what": "Transfer", "state": "State", "actions": "Actions" },
+    "columns": {
+      "what": "Transfer",
+      "state": "State",
+      "actions": "Actions"
+    },
     "heading": "Transfers",
     "seeAll": "See all",
     "filter": "What to show",
@@ -666,8 +670,7 @@
       "all": "All",
       "export": "Exports",
       "import": "Imports",
-      "agent": "From agents",
-      "request": "Waiting for you"
+      "agent": "From agents"
     },
     "empty": "Nothing has been transferred yet.",
     "help": "Every export and import of your account. An export is kept here until you delete it, counts towards your plan, and outlives the notebook it came from, so it is the way back from a deletion by mistake. An import creates a new notebook from an exported file. The uploads an agent sends in parts reserve space of your plan until they finish, and the files an agent asked you for wait here for you.",
@@ -681,8 +684,7 @@
     "running": {
       "export": "exporting · {{done}} of {{total}} notes",
       "import": "importing · {{done}} of {{total}} notes",
-      "agent": "sending · {{done}} of {{total}} parts",
-      "request": "waiting for you"
+      "agent": "sending · {{done}} of {{total}} parts"
     },
     "ended": {
       "ready": "ready",
@@ -696,8 +698,7 @@
     "line": {
       "export": "Export · {{notebook}}",
       "import": "Import · {{notebook}}",
-      "agent": "Agent · {{notebook}}",
-      "request": "Request · {{notebook}}"
+      "agent": "Agent · {{notebook}}"
     },
     "wrote_one": "{{count}} note written",
     "wrote_other": "{{count}} notes written",
@@ -706,8 +707,7 @@
     "kind": {
       "export": "Export",
       "import": "Import",
-      "agent": "Agent",
-      "request": "Request"
+      "agent": "Agent"
     },
     "state": {
       "ready": "Ready",
@@ -741,19 +741,7 @@
     "deleteUploadAsk": "Delete this upload?",
     "deleteUploadFrees": "The parts that arrived are thrown away and the {{size}} reserved go back to your plan. This is for good.",
     "deleteFailedUpload": "Only this notice leaves the list; its parts were already thrown away.",
-    "platformInterface": "from the interface",
-    "requestKnown": "the agent knows it as {{size}}",
-    "fulfil": "Send the file",
-    "dismiss": "Dismiss",
-    "deleteRequestAsk": "Dismiss this request?",
-    "deleteRequestKeeps": "The note keeps its reference to {{name}}, pending, until a file of that name is kept; the agent sees it dismissed the next time it checks the notebook.",
-    "requestUnavailable": "No notebook: the notebook of this request is not available. Link it to a notebook to send the file.",
-    "requestKeptAs": "The file is kept as {{name}}, whatever it is called on your disk, and the note that asked for it shows it.",
-    "requestHashing": "reading the file · {{percent}}",
-    "requestDone": "Kept as {{name}}.",
-    "requestWrongType": "This request asks for a file of the kind {{kind}}: choose a file of that kind.",
-    "waitingCount_one": "{{count}} file waiting for you",
-    "waitingCount_other": "{{count}} files waiting for you"
+    "platformInterface": "from the interface"
   },
   "about": {
     "title": "About MemorySmith.app",

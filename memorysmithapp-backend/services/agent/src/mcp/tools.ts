@@ -294,26 +294,10 @@ function uploadAnswer(status: UploadStatusDto, next: string): ToolResult {
 }
 
 /**
- * An upload or a request as the connector lists it: who opened it, what for and
- * how far it got — what deciding to finish, hand over or throw it away takes.
+ * An upload as the connector lists it: who opened it, what for and how far it
+ * got — what deciding to finish or throw it away takes.
  */
 function openUploadOf(each: TransferDto): Record<string, unknown> {
-  if (each.kind === 'request') {
-    return {
-      upload: each.transferId,
-      kind: 'request',
-      name: each.fileName,
-      notebook: each.notebookId,
-      notebookName: each.notebookName,
-      status: each.status,
-      waitingFor: 'person',
-      purpose: each.request?.purpose,
-      mimeType: each.request?.mimeType,
-      openedBy: each.request?.platform ?? null,
-      expectedSize: each.request?.expectedSize ?? null,
-      startedAt: each.requestedAt,
-    };
-  }
   return {
     upload: each.transferId,
     kind: 'upload',
@@ -1257,49 +1241,6 @@ export class McpToolAdapter {
         return json({ uploads: uploads.map(openUploadOf) });
       }
 
-      /**
-       * A file asked of the person instead of sent (#253, RN-PRT-030, RN-AGT-045):
-       * from nothing, or made of an upload the agent could not finish.
-       */
-      case 'request_file': {
-        const upload = optionalString(args, 'upload');
-        const size = args['size'];
-        const sha256 = optionalString(args, 'sha256');
-        const request = await knowledge.requestFile(
-          caller,
-          upload !== undefined
-            ? { fromUpload: upload }
-            : {
-                notebookId: requireString(args, 'notebook', 'request_file'),
-                name: requireString(args, 'name', 'request_file'),
-                mimeType: requireString(args, 'mimeType', 'request_file'),
-                purpose: requireString(args, 'purpose', 'request_file'),
-                ...(optionalString(args, 'description') === undefined
-                  ? {}
-                  : { description: optionalString(args, 'description') }),
-                ...(optionalStrings(args, 'tags') === undefined
-                  ? {}
-                  : { tags: optionalStrings(args, 'tags') }),
-                ...(optionalString(args, 'path') === undefined
-                  ? {}
-                  : { path: optionalString(args, 'path') }),
-                ...(typeof size === 'number' && Number.isInteger(size) && size > 0 ? { size } : {}),
-                ...(sha256 === undefined ? {} : { sha256: sha256.toLowerCase() }),
-              },
-        );
-        return json({
-          request: request.transferId,
-          name: request.fileName,
-          notebook: request.notebookId,
-          reference: `![[${request.fileName ?? ''}]]`,
-          next:
-            'The person keeps the file from Transfers, under this name. Write the reference ' +
-            'where the file belongs, if it is not written yet, and tell them the file is ' +
-            'waiting for them there: the note draws it the moment it is kept, which list_files ' +
-            'will say.',
-        });
-      }
-
       case 'discard_file_upload': {
         const upload = requireString(args, 'upload', 'discard_file_upload');
         await knowledge.discardFileUpload(caller, upload);
@@ -1803,26 +1744,15 @@ export class McpToolAdapter {
 
       case 'check_notebook': {
         // The sweep reads the links from Discovery and what is still on its way
-        // from Portability (RN-DSC-064): a name the person was asked for is a
-        // pending link that waits for them, not a note still to write.
+        // from Portability (RN-DSC-064).
         const notebook = requireString(args, 'notebook', 'check_notebook');
         const [check, open, notices] = await Promise.all([
           discovery.checkNotebook(caller, notebook),
           knowledge.listFileUploads(caller, notebook),
           this.noticesOfNotebook(caller, notebook),
         ]);
-        const waiting = new Map<string, 'person' | 'upload'>();
-        for (const each of open) {
-          if (each.status !== 'running' || !each.fileName) continue;
-          const name = each.fileName.normalize('NFC');
-          if (each.kind === 'request') waiting.set(name, 'person');
-          else if (!waiting.has(name)) waiting.set(name, 'upload');
-        }
         return json({
-          pending: check.pending.map((each) => ({
-            ...each,
-            waitingFor: waiting.get(each.target.normalize('NFC')) ?? null,
-          })),
+          pending: check.pending,
           orphans: check.orphans,
           unshownFiles: check.unshownFiles,
           openUploads: open.filter((each) => each.status === 'running').map(openUploadOf),

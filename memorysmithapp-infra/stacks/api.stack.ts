@@ -392,6 +392,12 @@ export class ApiStack extends Stack {
      * its owner deleting it would — the archive by its revision under
      * `models/`, the record, the counter of what it occupied — and says the
      * entries of the catalog again. It reaches no notebook and no note.
+     *
+     * Invoked with `job: "discard-file-requests"`, the same function discards
+     * the file requests and the inline uploads left open when they were retired
+     * (#469, #468): the records, the counters of the room they reserved, and the
+     * parts by their revision under `uploads/`. One function for both keeps the
+     * roles that deliver, which may invoke it, as they are.
      */
     const forgetVersions = new ServiceLambda(this, 'ForgetModelVersions', {
       entry: join(backend, 'apps', 'core-monolith', 'src', 'forget-model-versions.handler.ts'),
@@ -420,7 +426,10 @@ export class ApiStack extends Stack {
     forgetVersions.function.addToRolePolicy(
       new PolicyStatement({
         actions: ['s3:DeleteObject', 's3:DeleteObjectVersion'],
-        resources: [props.data.contentBucket.arnForObjects('s/*/models/*')],
+        resources: [
+          props.data.contentBucket.arnForObjects('s/*/models/*'),
+          props.data.contentBucket.arnForObjects('s/*/uploads/*'),
+        ],
       }),
     );
 

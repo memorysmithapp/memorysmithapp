@@ -20,11 +20,11 @@
 import type { ModelVersionMeta } from './NotebookModel.js';
 
 /**
- * `request` is a file an agent asked the person for instead of sending it
- * itself (#253, RN-PRT-030): it has no bytes, reserves no room, and ends when
- * the person keeps the file it names.
+ * There was a fourth kind, `request`, a file an agent asked the person for
+ * (#253). It was retired with `request_file` (#469): a record of it left in a
+ * table is read by nothing but the job that discards it.
  */
-export type TransferKind = 'export' | 'import' | 'agent' | 'request';
+export type TransferKind = 'export' | 'import' | 'agent';
 
 /**
  * `running` is the only state a worker moves out of, and it moves out of it
@@ -80,8 +80,6 @@ export interface Transfer {
   readonly cancelRequested?: boolean | undefined;
   /** What an upload of an agent is and where its parts are (RN-PRT-027); only on that kind. */
   readonly upload?: TransferUpload | undefined;
-  /** The file an agent asked the person for (RN-PRT-030); only on a request. */
-  readonly request?: TransferRequest | undefined;
   /**
    * A version of a notebook model, as one created before #431 is recorded: an
    * export of the model notebook kept apart from the person's other exports.
@@ -102,30 +100,6 @@ export interface TransferOrigin {
   readonly notebookId: string;
   /** The version it was created from, on a record written before #431. */
   readonly version?: number | undefined;
-}
-
-/**
- * A file an agent asked the person for (#253, RN-PRT-030): what travels with a
- * file, declared by the agent as it would declare an upload, and nothing of
- * its bytes. The name is `fileName` of the transfer, and the file is kept under
- * it, so the embed the agent wrote draws it without anybody touching the note.
- */
-export interface TransferRequest {
-  readonly mimeType: string;
-  readonly description: string;
-  readonly tags: readonly string[];
-  readonly path: string;
-  /** What the file is for, in the words of the agent. */
-  readonly purpose: string;
-  /** The connector that asked, as the token names it. */
-  readonly platform: string | null;
-  /**
-   * The size and SHA-256 the agent knows of the file, when it knows them: a
-   * reference the person is shown, never a lock — what an agent knows may be
-   * a copy its client reduced.
-   */
-  readonly expectedSize: number | null;
-  readonly expectedSha256: string | null;
 }
 
 /**
@@ -174,8 +148,6 @@ export interface TransferUpload {
    */
   readonly assembled: string | null;
   readonly lastPartAt: string | null;
-  /** The request of the person this upload fulfils, when it does (RN-PRT-030). */
-  readonly fulfils?: string | null | undefined;
 }
 
 /** The part size of an upload by URL: S3 asks at least 5 MiB of every part but the last. */

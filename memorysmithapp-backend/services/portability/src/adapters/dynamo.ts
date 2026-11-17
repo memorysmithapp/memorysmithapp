@@ -29,13 +29,7 @@ import {
   UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
-import type {
-  KeptUsage,
-  Transfer,
-  TransferRequest,
-  TransferStore,
-  TransferUpload,
-} from '../domain/Transfer.js';
+import type { KeptUsage, Transfer, TransferStore, TransferUpload } from '../domain/Transfer.js';
 import {
   PARAMETER_TYPES,
   type ModelStore,
@@ -108,7 +102,7 @@ export class DynamoTransferStore implements TransferStore {
         ConsistentRead: true,
       }),
     );
-    return found.Item ? transferOf(found.Item as Item) : null;
+    return found.Item && isReadable(found.Item as Item) ? transferOf(found.Item as Item) : null;
   }
 
   async list(userId: string): Promise<Transfer[]> {
@@ -122,7 +116,7 @@ export class DynamoTransferStore implements TransferStore {
         ScanIndexForward: false,
       }),
     );
-    return ((answer.Items ?? []) as Item[]).map(transferOf);
+    return ((answer.Items ?? []) as Item[]).filter(isReadable).map(transferOf);
   }
 
   async patch(userId: string, transferId: string, changes: Partial<Transfer>): Promise<void> {
@@ -450,13 +444,18 @@ function counter(value: unknown): number {
   return Number.isFinite(number) && number > 0 ? Math.trunc(number) : 0;
 }
 
+/**
+ * A record of a kind the product no longer has: a file request, retired with
+ * `request_file` (#469). Nothing reads it but the job that discards it.
+ */
+function isReadable(item: Item): boolean {
+  return item['kind'] !== 'request';
+}
+
 function transferOf(item: Item): Transfer {
   return {
     transferId: String(item['transferId']),
-    kind:
-      item['kind'] === 'import' || item['kind'] === 'agent' || item['kind'] === 'request'
-        ? item['kind']
-        : 'export',
+    kind: item['kind'] === 'import' || item['kind'] === 'agent' ? item['kind'] : 'export',
     status: item['status'] as Transfer['status'],
     userId: String(item['userId']),
     notebookId: item['notebookId'] ? String(item['notebookId']) : null,
@@ -473,7 +472,6 @@ function transferOf(item: Item): Transfer {
     ...(item['noticeRead'] === true ? { noticeRead: true } : {}),
     ...(item['cancelRequested'] === true ? { cancelRequested: true } : {}),
     ...(item['upload'] ? { upload: uploadOf(item['upload'] as Item) } : {}),
-    ...(item['request'] ? { request: requestOf(item['request'] as Item) } : {}),
     ...(item['model'] ? { model: modelVersionOf(item['model'] as Item) } : {}),
     ...(item['origin']
       ? {
@@ -517,22 +515,6 @@ export function parameterOf(item: Item): ParameterDeclaration {
   };
 }
 
-function requestOf(item: Item): TransferRequest {
-  return {
-    mimeType: String(item['mimeType'] ?? ''),
-    description: String(item['description'] ?? ''),
-    tags: Array.isArray(item['tags']) ? (item['tags'] as unknown[]).map(String) : [],
-    path: String(item['path'] ?? ''),
-    purpose: String(item['purpose'] ?? ''),
-    platform: item['platform'] ? String(item['platform']) : null,
-    expectedSize:
-      item['expectedSize'] === null || item['expectedSize'] === undefined
-        ? null
-        : Number(item['expectedSize']),
-    expectedSha256: item['expectedSha256'] ? String(item['expectedSha256']) : null,
-  };
-}
-
 function uploadOf(item: Item): TransferUpload {
   const parts: Record<string, string> = {};
   for (const [part, version] of Object.entries((item['parts'] as Item | undefined) ?? {})) {
@@ -553,7 +535,6 @@ function uploadOf(item: Item): TransferUpload {
     parts,
     assembled: item['assembled'] ? String(item['assembled']) : null,
     lastPartAt: item['lastPartAt'] ? String(item['lastPartAt']) : null,
-    fulfils: item['fulfils'] ? String(item['fulfils']) : null,
   };
 }
 

@@ -989,29 +989,18 @@ anything else: never tell them the file is theirs on a size you did not
 compare. An upload in parts needs no such look, since its finish keeps only a
 whole that hashes to what you declared.
 
-Anything larger that you cannot send by URL, **ask the person for**: see *When
-you cannot send it* below.
+Anything larger that you cannot send by URL, the person attaches from the
+note's editor: see *When you cannot send it* below.
 
 ## When you cannot send it
 
-You often learn you cannot send a file only by trying, so try, and look:
-
-1. **Try.** Start the upload by URL and send the first part.
-2. **Look.** Call \`file_upload_status\`: when the part you sent is not in
-   \`received\`, your code has no way to the parts host, and more attempts will
-   not change that. Stop there.
-3. **Hand it to the person.** Call \`request_file\` with that \`upload\`: the
-   upload becomes a request, with its name, type, description, tags and purpose,
-   and its parts and the room it held are thrown away. Without an upload, call
-   \`request_file\` with the notebook, the name, the type and the purpose.
-4. **Write the reference** \`![[name]]\` where the file belongs, with the name
-   of the request, and tell the person the file waits for them in Transfers,
-   **Aguardando você**: they keep it there, under that name, and the note draws
-   it the moment it is kept. \`list_files\` says when it is.
-
-The request is also the way when what you hold is a copy the client reduced and
-the person wants the original kept. Give it a size or SHA-256 only when you know
-it of the file the person has, not of your copy.
+When your code cannot reach the upload host, no attempt of yours will change
+that, and no other route exists. **Open no upload.** Write the reference
+\`![[name]]\` where the file belongs, with the name the person gave it, and tell
+the person two things: that their assistant needs network access to the upload
+host, a setting the About page of MemorySmith names for each assistant, and that
+they can attach the file themselves from the note's editor, under that name.
+The note draws it the moment it is kept; \`list_files\` says when it is.
 
 An attempt you give up on is thrown away with \`discard_file_upload\`, so none is
 left open in Transfers reserving room.
@@ -1125,13 +1114,12 @@ size, and it is how they get one above 4 MB.
 
 ## Before you say it is done
 
-Run \`check_notebook\`. Besides the links, it lists \`openUploads\` — uploads not
-finished and requests the person has not fulfilled — and \`unshownFiles\`, the
-files kept that no note names. Finish an upload, hand it to the person with
-\`request_file\`, or throw it away with \`discard_file_upload\`: leave none open
-without telling the person why. A file no note shows may be kept on purpose,
-such as the source of a figure: say which ones to the person. A pending link
-with \`waitingFor: "person"\` is a file they were asked for.
+Run \`check_notebook\`. Besides the links, it lists \`openUploads\`, the uploads
+not finished, and \`unshownFiles\`, the files kept that no note names. Finish an
+upload or throw it away with \`discard_file_upload\`: leave none open without
+telling the person why. A file no note shows may be kept on purpose, such as the
+source of a figure: say which ones to the person. A pending link to a file is
+one the person still has to attach from the editor: say so.
 `;
 const KEEP_TABLES = `# Keeping structured data in a Table
 
@@ -1161,7 +1149,8 @@ schema they would have changed is one you alter or delete afterwards.
 1. **A file the person has: a CSV or an Excel workbook.** Keep it whole, the
    way the skill \`${'keep-files'}\` says — \`begin_file_upload\` and its parts, or
    \`keep_file\` with \`content\` for a small CSV — or, when the file is with
-   the person and not with you, ask for it with \`request_file\`. Then call
+   the person and not with you, ask them to attach it from a note's editor and
+   find it with \`list_files\`. Then call
    \`import_table\` with the file and no table: it writes nothing and answers
    the schema the sheet suggests, the column each header becomes, and the
    first rows. Show that to the person, change what they want changed, create

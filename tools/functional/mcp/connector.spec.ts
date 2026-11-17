@@ -503,46 +503,43 @@ test.describe('the tools', () => {
     expect(inline.text).toContain('transport');
   });
 
-  test('[tool:request_file] [tool:discard_file_upload] hands an upload no part reached to the person, and throws an attempt away (#253)', async ({
+  test('[tool:discard_file_upload] throws an attempt away, and offers no request_file (#253, #469)', async ({
     agent,
     notebook,
   }) => {
     const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
     const whole = Buffer.alloc(3000, 9);
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(whole);
-    const name = `requested ${Date.now()}`;
 
-    // An agent with no network opens an upload by URL and no part arrives.
+    // An agent opens an upload and gives it up: the sweep lists it until it is thrown away.
     const begun = parsed<{ upload: string }>(
       await callTool(agent, 'begin_file_upload', {
         notebook: notebook.notebookId,
-        name,
+        name: `given up ${Date.now()}`,
         mimeType: 'image/png',
         size: whole.length,
         sha256: sha(whole),
-        purpose: 'A picture an agent could not send',
+        purpose: 'A picture an agent gave up on',
       }),
     );
-    const request = parsed<{ request: string; name: string; reference: string }>(
-      await callTool(agent, 'request_file', { upload: begun.upload }),
-    );
-    expect(request).toMatchObject({ name, reference: `![[${name}]]` });
-
-    // The upload became the request: the sweep sees it waiting for the person.
     const check = parsed<{ openUploads: Array<{ upload: string; kind: string }> }>(
       await callTool(agent, 'check_notebook', { notebook: notebook.notebookId }),
     );
-    const open = check.openUploads.map((each) => [each.upload, each.kind]);
-    expect(open).toContainEqual([request.request, 'request']);
-    expect(open.map(([upload]) => upload)).not.toContain(begun.upload);
+    expect(check.openUploads.map((each) => [each.upload, each.kind])).toContainEqual([
+      begun.upload,
+      'upload',
+    ]);
 
-    expect(
-      (await callTool(agent, 'discard_file_upload', { upload: request.request })).isError,
-    ).toBe(false);
+    expect((await callTool(agent, 'discard_file_upload', { upload: begun.upload })).isError).toBe(
+      false,
+    );
     const after = parsed<{ uploads: Array<{ upload: string }> }>(
       await callTool(agent, 'list_file_uploads', { notebook: notebook.notebookId }),
     );
-    expect(after.uploads.map((each) => each.upload)).not.toContain(request.request);
+    expect(after.uploads.map((each) => each.upload)).not.toContain(begun.upload);
+
+    // The person is no longer asked for a file through the connector.
+    expect((await callTool(agent, 'request_file', { upload: begun.upload })).isError).toBe(true);
   });
 
   test('[tool:next_number] issues the next number of a folder', async ({ agent, notebook }) => {

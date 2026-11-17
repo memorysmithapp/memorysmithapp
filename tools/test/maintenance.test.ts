@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest';
 import {
   accountRefusal,
   environmentRefusal,
+  discardExitCode,
+  discardLines,
   forgetExitCode,
   forgetLines,
   jobVariables,
@@ -198,5 +200,27 @@ describe('the report of a reprojection run (#311)', () => {
     expect(progressLine({ total: 707, succeeded: 300, failed: 1, running: 20 })).toBe(
       '  301/707 notebook(s) done, 20 running',
     );
+  });
+
+  it('discards what request_file and the inline transport left open by the function that delivery roles invoke (#469)', () => {
+    const job = MAINTENANCE_JOBS['discard-file-requests'];
+    expect(job.function).toBe(MAINTENANCE_JOBS['forget-model-versions'].function);
+    expect(job.event).toBe('discard-file-requests');
+    const found = {
+      job: 'discard-file-requests' as const,
+      requests: 3,
+      inlineUploads: 1,
+      subscriptions: 2,
+      reservedBytes: 3000,
+      discarded: 0,
+      failures: [],
+    };
+    expect(discardLines({ ...found, mode: 'report' })).toContain(
+      'Nothing was discarded: this was a report.',
+    );
+    expect(
+      discardExitCode({ ...found, mode: 'apply', discarded: 3, failures: ['U1: denied'] }),
+    ).toBe(1);
+    expect(discardExitCode({ ...found, mode: 'apply', discarded: 4 })).toBe(0);
   });
 });

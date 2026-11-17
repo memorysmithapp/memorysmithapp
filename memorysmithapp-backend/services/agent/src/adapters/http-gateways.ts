@@ -27,7 +27,6 @@ import type {
   BacklinksDto,
   BeginUploadRequest,
   FinishedUploadDto,
-  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
   FileLinkDto,
@@ -662,13 +661,6 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
       `/portability/uploads${query}`,
     );
     return listed.transfers;
-  }
-
-  async requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto> {
-    return callApi<TransferDto>(this.origin, caller, '/portability/requests', {
-      method: 'POST',
-      body: input,
-    });
   }
 
   async discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void> {

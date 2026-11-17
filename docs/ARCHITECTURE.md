@@ -231,7 +231,7 @@ Nobody delivers production from a workstation. The workflows ([`SDLC.md` §10](S
 | *CI* | a pull request, a push to `release/**` | the checks; no AWS |
 | *Staging* | hand, on a branch; inputs: adapter tests, functional suite, a maintenance job, alarms, dashboards, tracing | `deliver` to staging, then what was asked, and `cleanup-staging --apply` after the functional suite |
 | *Production* | a merge to `main` touching what is deployed, with alarms, dashboards and tracing off; or by hand, with inputs for each | `release-checks`, the checks, `deliver` to production, `publish-release`, which also closes the version's milestone |
-| *Production maintenance* | hand; the job, and `report` or `apply` | `reproject-links` or `forget-model-versions` against production, each run in AWS under a role of its own |
+| *Production maintenance* | hand; the job, and `report` or `apply` | `reproject-links`, `forget-model-versions` or `discard-file-requests` against production, each run in AWS under a role of its own |
 
 They assume the roles `memorysmith-github-production` and `memorysmith-github-staging` through GitHub OIDC, trusted only for the matching GitHub environment, with no key stored. The repository variables `AWS_PRODUCTION_ROLE_ARN` and `AWS_STAGING_ROLE_ARN` name them, and the variable `ALARM_EMAIL` of the environment `production` is where alarms and budgets write (staging needs one of its own to be delivered with alarms): it is not in the repository because the repository is public.
 
@@ -272,6 +272,7 @@ What operates and evaluates the product runs from the root with `pnpm tools <com
 | `data reproject-links [--apply] [--follow <arn>]` | Starts the Step Functions run that rebuilds the link graph, 20 notebooks at once, and follows it; exit 2 when an edge would be lost ([ADR-017](#adr-017-the-link-graph-is-rebuilt-by-a-step-functions-run-through-the-products-own-write-path)) |
 | `data migrate-slots [--apply]` | Rebuilds the Guidance and the Templates written before they had a life of their own |
 | `data forget-model-versions [--apply]` | Invokes the function `mv-forget-model-versions`, which deletes the versions notebook models kept before they were read as they stand, as their owner deleting them would, says the catalog entries again without them, and answers what it found and deleted ([ADR-028](#adr-028-a-notebook-model-is-read-where-it-is-and-keeps-no-copy-of-itself)) |
+| `data discard-file-requests [--apply]` | Invokes the function `mv-forget-model-versions` with `job: "discard-file-requests"`, which discards the file requests and the inline uploads left open when `request_file` and the inline transport were retired: the records, the parts by their revision and the room they reserved (#469, #468) |
 | `functional` | The Playwright suites against staging; never production |
 | `agent-eval` | A round of the agent evaluation against staging; never production |
 

@@ -35,7 +35,6 @@ import type {
   FinishedUploadDto,
   NoteOrder,
   PreviewDto,
-  RequestFileRequest,
   TransferDto,
   UploadStatusDto,
 } from '@memorysmithapp/contracts';
@@ -416,13 +415,7 @@ export interface KnowledgeGateway {
   finishFileUpload(caller: AgentCaller, uploadId: string): Promise<FinishedUploadDto>;
   listFileUploads(caller: AgentCaller, notebookId: string | null): Promise<TransferDto[]>;
   /**
-   * Asks the person for a file instead of sending it (#253, RN-PRT-030), from
-   * nothing or from an upload the agent could not finish, which it replaces.
-   */
-  requestFile(caller: AgentCaller, input: RequestFileRequest): Promise<TransferDto>;
-  /**
-   * Throws an open upload away, its parts and the room it reserved, or
-   * dismisses a request (RN-PRT-028, RN-PRT-030).
+   * Throws an open upload away, its parts and the room it reserved (RN-PRT-028).
    */
   discardFileUpload(caller: AgentCaller, uploadId: string): Promise<void>;
   /**

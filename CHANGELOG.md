@@ -17,6 +17,8 @@ issues each entry cites.
 
 ### Removed
 
+- **An agent no longer asks the person for a file through Transfers.** `request_file` is gone, and so are the tab *Aguardando você* of Transfers and the requests in `check_notebook` and `list_file_uploads`. In every conversation measured in Claude, ChatGPT and Grok, the agent sent its file by URL once its sandbox reached the upload host. When it cannot reach the host, the agent now says which setting its assistant needs, and the person attaches the file from the note's editor under the name the note expects. The requests still open are discarded with this version; a note that named a requested file keeps a pending link. (#469)
+
 - **An agent no longer sends a file inline.** `send_file_part` is gone, and `begin_file_upload` takes no `transport`: every part goes by URL, PUT by the agent's code to its own address. In every conversation measured in Claude, ChatGPT and Grok, from 41 KB to 90 MB, the agent sent by URL once its sandbox reached the upload host, and none needed inline. An agent that asks for `transport` is refused with the arguments the tool takes, and an upload opened inline before this version cannot be finished: it is discarded. (#468)
 
 ### Changed

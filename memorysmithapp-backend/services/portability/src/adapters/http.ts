@@ -15,7 +15,6 @@
  *   GET    /uploads/:t                 ->  what is missing, with addresses by URL
  *   POST   /uploads/:t/finish          ->  the whole becomes a file, or is refused
  *   POST   /uploads/:t/link            ->  points it at another notebook (RN-PRT-029)
- *   POST   /requests                   ->  asks the person for a file (RN-PRT-030)
  *   POST   /notebooks/:v/notes/:n/pdf  ->  starts a print, answers it (RN-PRT-031)
  *   GET    /prints/:p                  ->  the print, with a link once its file is made
  *   POST   /notebooks/:v/previews      ->  starts drawing a note or a draft (RN-PRT-032)
@@ -51,7 +50,6 @@ import {
   linkUploadRequestSchema,
   previewRequestSchema,
   printRequestSchema,
-  requestFileRequestSchema,
 } from '@memorysmithapp/contracts';
 import { archiveNameOf } from '../domain/NotebookDocumentBuilder.js';
 import {
@@ -106,7 +104,6 @@ import {
   type FinishUpload,
   type GetUploadStatus,
   type LinkUpload,
-  type RequestFile,
   type ListUploads,
   type UploadStatus,
 } from '../application/Uploads.js';
@@ -168,7 +165,6 @@ export interface PortabilityUseCases {
   readonly uploadStatus: (request: PortabilityRequest) => GetUploadStatus;
   readonly finishUpload: (request: PortabilityRequest) => FinishUpload;
   readonly linkUpload: (request: PortabilityRequest) => LinkUpload;
-  readonly requestFile: (request: PortabilityRequest) => RequestFile;
   readonly startPrint: (request: PortabilityRequest) => StartPrint;
   readonly getPrint: (request: PortabilityRequest) => GetPrint;
   readonly startPreview: (request: PortabilityRequest) => StartPreview;
@@ -293,12 +289,8 @@ function transferToDto(transfer: Transfer): Record<string, unknown> {
             partCount: transfer.upload.partCount,
             received: receivedOf(transfer.upload),
             lastPartAt: transfer.upload.lastPartAt,
-            fulfils: transfer.upload.fulfils ?? null,
           },
         }
-      : {}),
-    ...(transfer.request
-      ? { request: { ...transfer.request, tags: [...transfer.request.tags] } }
       : {}),
   };
 }
@@ -748,30 +740,6 @@ export function createPortabilityRoutes(
       .linkUpload(request)
       .execute(c.req.param('t') ?? '', parsed.data.notebookId);
     return present(c, linked, transferToDto);
-  });
-
-  /**
-   * An agent asks the person for a file instead of sending it (RN-PRT-030),
-   * from nothing or from an upload it could not finish. It is a write, of a
-   * record the person acts on, so an unbound connector is refused (INV-07).
-   */
-  app.post('/requests', async (c) => {
-    const request = c.get('portability');
-    const author = request.authorship;
-    if (!author.ok) return fail(c, author.error);
-    const parsed = requestFileRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) {
-      return fail(
-        c,
-        DomainError.validation(
-          parsed.error.issues
-            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-            .join('; '),
-        ),
-      );
-    }
-    const asked = await useCases.requestFile(request).execute({ ...parsed.data, by: author.value });
-    return asked.ok ? c.json(transferToDto(asked.value), 201) : fail(c, asked.error);
   });
 
   return app;

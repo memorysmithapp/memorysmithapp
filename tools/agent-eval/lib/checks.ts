@@ -83,7 +83,6 @@ export const WRITES: ReadonlySet<string> = new Set([
   'keep_file',
   'begin_file_upload',
   'finish_file_upload',
-  'request_file',
   'delete_file',
   // A notebook model and what is made of it (#353, #359, #431).
   'declare_model',

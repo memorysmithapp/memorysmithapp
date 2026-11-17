@@ -76,10 +76,6 @@ function reasonOf(error: unknown): string | null {
 /**
  * Keeps one file in a notebook: hashes it, resumes the upload of the same file
  * when one is open, or declares it; sends what is missing; finishes it.
- *
- * With `request`, the file fulfils what an agent asked for: the request decides
- * the notebook and the name, and a file without a type of its own takes the one
- * the request asks for.
  */
 export async function attachFile(
   ports: AttachPorts,
@@ -93,19 +89,18 @@ export async function attachFile(
      */
     name?: string | undefined;
     description?: string | undefined;
-    request?: { transferId: string; mimeType: string } | undefined;
   },
   progress: AttachProgress = () => undefined,
   phase: (now: AttachPhase) => void = () => undefined,
 ): Promise<FinishedUploadDto> {
   const { file } = input;
-  const mimeType = file.type || input.request?.mimeType || '';
+  const mimeType = file.type;
   if (file.size === 0) throw new AttachRefusal('EMPTY');
   if (file.size > ATTACH_MAX_BYTES) throw new AttachRefusal('TOO_LARGE');
   if (!mimeType) throw new AttachRefusal('NO_TYPE');
 
   const sha256 = await ports.hash(file, (read, total) => phase({ phase: 'hashing', read, total }));
-  const resumed = await resumable(ports, sha256, file.size, input.request?.transferId);
+  const resumed = await resumable(ports, sha256, file.size);
   const status =
     resumed ??
     (await ports.begin({
@@ -116,7 +111,6 @@ export async function attachFile(
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
       size: file.size,
       sha256,
-      ...(input.request ? { request: input.request.transferId } : {}),
     }));
   const transferId = status.transfer.transferId;
   const partCount = status.transfer.upload?.partCount ?? status.targets.length;
@@ -143,15 +137,13 @@ export async function attachFile(
 }
 
 /**
- * The open upload of this very file, by the hash of its whole, sent by URL:
- * the one a dropped connection left behind. For a request, only the upload that
- * fulfils it; otherwise only one started from the interface, never an agent's.
+ * The open upload of this very file, by the hash of its whole: the one a
+ * dropped connection left behind, started from the interface, never an agent's.
  */
 async function resumable(
   ports: AttachPorts,
   sha256: string,
   size: number,
-  request: string | undefined,
 ): Promise<UploadStatusDto | null> {
   const open = await ports.open().catch(() => [] as TransferDto[]);
   const found = open.find(
@@ -160,8 +152,7 @@ async function resumable(
       transfer.status === 'running' &&
       transfer.bytes === size &&
       transfer.upload?.sha256 === sha256 &&
-      transfer.upload.platform === null &&
-      (request === undefined || transfer.upload.fulfils === request),
+      transfer.upload.platform === null,
   );
   return found ? ports.status(found.transferId) : null;
 }

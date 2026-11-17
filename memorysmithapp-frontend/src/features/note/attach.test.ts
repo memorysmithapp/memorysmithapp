@@ -37,7 +37,6 @@ function transfer(parts: number, over: Partial<TransferDto> = {}): TransferDto {
       partCount: parts,
       received: [],
       lastPartAt: null,
-      fulfils: null,
     },
     ...over,
   };
@@ -58,9 +57,7 @@ function ports(parts: number, over: Partial<AttachPorts> = {}) {
   const sizes: number[] = [];
   const port: AttachPorts = {
     begin: async (input) => {
-      calls.push(
-        `begin:${input.name}:${input.mimeType}:${input.size}:${input.sha256}:${input.request ?? '-'}`,
-      );
+      calls.push(`begin:${input.name}:${input.mimeType}:${input.size}:${input.sha256}`);
       return status(parts);
     },
     put: async (url, bytes) => {
@@ -107,7 +104,7 @@ describe('giving a file from the interface', () => {
     );
 
     expect(calls).toEqual([
-      `begin:quadro.jpg:image/jpeg:${ATTACH_PART_BYTES + 10}:${HASH}:-`,
+      `begin:quadro.jpg:image/jpeg:${ATTACH_PART_BYTES + 10}:${HASH}`,
       'put:https://uploads.example/p1',
       'put:https://uploads.example/p2',
       `finish:${UPLOAD}`,
@@ -174,17 +171,6 @@ describe('giving a file from the interface', () => {
       attachFile(port, { notebookId: 'nb', file: file(100), purpose: 'x' }),
     ).rejects.toThrow('refused');
     expect(calls).toContain(`discard:${UPLOAD}`);
-  });
-
-  it('fulfils a request, taking its type when the file has none of its own (RN-PRT-030)', async () => {
-    const { port, calls } = ports(1);
-    await attachFile(port, {
-      notebookId: 'nb',
-      file: file(100, ''),
-      purpose: 'Pedido',
-      request: { transferId: '01JBQ2X0000000000000000RQ1', mimeType: 'image/png' },
-    });
-    expect(calls[0]).toBe(`begin:quadro.jpg:image/png:100:${HASH}:01JBQ2X0000000000000000RQ1`);
   });
 
   it('refuses before anything travels what the API would refuse anyway', async () => {

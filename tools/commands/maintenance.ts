@@ -9,6 +9,7 @@
  *   pnpm tools data reproject-links --environment staging [--apply]
  *   pnpm tools data reproject-links --environment staging --follow <execution>
  *   pnpm tools data forget-model-versions --environment production [--apply]
+ *   pnpm tools data discard-file-requests --environment production [--apply]
  *
  * With credentials of the account of the environment, and refused under any
  * other; a job that names the environments it may run in is refused in every
@@ -41,6 +42,9 @@ import { parseArgs } from 'node:util';
 import {
   accountRefusal,
   environmentRefusal,
+  discardExitCode,
+  discardLines,
+  type DiscardSummary,
   forgetExitCode,
   forgetLines,
   type ForgetSummary,
@@ -114,12 +118,20 @@ if ('function' in job) {
     new InvokeCommand({
       FunctionName: `${job.function}-${environment}`,
       Payload: new TextEncoder().encode(
-        JSON.stringify({ mode: values.apply ? 'apply' : 'report' }),
+        JSON.stringify({
+          mode: values.apply ? 'apply' : 'report',
+          ...('event' in job ? { job: job.event } : {}),
+        }),
       ),
     }),
   );
   const payload = new TextDecoder().decode(answer.Payload ?? new Uint8Array());
   if (answer.FunctionError) fail(`The function failed: ${payload}`);
+  if ('event' in job) {
+    const summary = JSON.parse(payload) as DiscardSummary;
+    process.stdout.write(`${discardLines(summary).join('\n')}\n`);
+    process.exit(discardExitCode(summary));
+  }
   const summary = JSON.parse(payload) as ForgetSummary;
   process.stdout.write(`${forgetLines(summary).join('\n')}\n`);
   process.exit(forgetExitCode(summary));

@@ -241,8 +241,7 @@ describe('The tool catalog is the public contract', () => {
       'file_upload_status',
       'finish_file_upload',
       'list_file_uploads',
-      // A file asked of the person, and an attempt thrown away (#253).
-      'request_file',
+      // An attempt thrown away (#253).
       'discard_file_upload',
       'list_files',
       'read_file',
@@ -332,7 +331,6 @@ describe('The tool catalog is the public contract', () => {
       'keep_file',
       'begin_file_upload',
       'finish_file_upload',
-      'request_file',
       'discard_file_upload',
       'delete_file',
       'create_table',
@@ -928,7 +926,7 @@ describe('The tool adapter translates in both directions', () => {
     );
     expect(result.isError).toBe(false);
     expect(JSON.parse(result.content[0]?.text ?? '')).toEqual({
-      pending: answer.pending.map((each) => ({ ...each, waitingFor: null })),
+      pending: answer.pending,
       orphans: [],
       unshownFiles: [],
       openUploads: [],
@@ -938,7 +936,7 @@ describe('The tool adapter translates in both directions', () => {
     });
   });
 
-  it('says what is still on its way: a file asked of the person, an upload left open, a file shown nowhere (#253)', async () => {
+  it('says what is still on its way: an upload left open, a file shown nowhere (#253, #469)', async () => {
     const note = {
       noteId: '01JBQ2X00000000000000000N2',
       name: 'Ata',
@@ -958,30 +956,6 @@ describe('The tool adapter translates in both directions', () => {
       },
       knowledge: {
         listFileUploads: async () => [
-          {
-            transferId: '01JBQ2X00000000000000000R1',
-            kind: 'request',
-            status: 'running',
-            notebookId: '01JBQ2X00000000000000000V1',
-            notebookName: 'Atas',
-            requestedAt: '2026-09-27T10:00:00.000Z',
-            finishedAt: null,
-            done: 0,
-            total: 0,
-            bytes: 0,
-            failure: null,
-            fileName: 'quadro.jpg',
-            request: {
-              mimeType: 'image/jpeg',
-              description: '',
-              purpose: 'O quadro da reunião',
-              tags: [],
-              path: '',
-              platform: 'ChatGPT',
-              expectedSize: null,
-              expectedSha256: null,
-            },
-          },
           {
             transferId: '01JBQ2X00000000000000000P1',
             kind: 'agent',
@@ -1015,63 +989,31 @@ describe('The tool adapter translates in both directions', () => {
       caller,
     );
     const answer = JSON.parse(result.content[0]?.text ?? '') as {
-      pending: Array<{ target: string; waitingFor: string | null }>;
+      pending: Array<{ target: string; waitingFor?: string }>;
       unshownFiles: string[];
       openUploads: Array<{ kind: string; name: string; openedBy: string | null }>;
     };
-    expect(answer.pending.map((each) => [each.target, each.waitingFor])).toEqual([
-      ['quadro.jpg', 'person'],
-      ['foto.png', 'upload'],
-      ['Próxima reunião', null],
+    expect(answer.pending.map((each) => each.target)).toEqual([
+      'quadro.jpg',
+      'foto.png',
+      'Próxima reunião',
     ]);
+    // Nothing waits on the person any more (#469): no pending link says it does.
+    expect(answer.pending.some((each) => 'waitingFor' in each)).toBe(false);
     expect(answer.unshownFiles).toEqual(['figura-original.jpg']);
     expect(answer.openUploads.map((each) => [each.kind, each.name, each.openedBy])).toEqual([
-      ['request', 'quadro.jpg', 'ChatGPT'],
       ['upload', 'foto.png', 'Claude'],
     ]);
   });
 
-  it('asks the person for a file, from nothing or from an upload it could not finish (#253)', async () => {
-    const asked: unknown[] = [];
-    const adapter = gateways({
-      knowledge: {
-        requestFile: async (_caller: unknown, input: unknown) => {
-          asked.push(input);
-          return {
-            transferId: '01JBQ2X00000000000000000R1',
-            kind: 'request',
-            notebookId: '01JBQ2X00000000000000000V1',
-            fileName: 'quadro.jpg',
-          };
-        },
-      },
-    });
-    const fromNothing = await adapter.call(
+  it('has no request_file any more, and its call is refused as a tool it does not serve (#469)', async () => {
+    expect(TOOL_CATALOG.some((tool) => tool.name === 'request_file')).toBe(false);
+    const refused = await gateways().call(
       'request_file',
-      {
-        notebook: '01JBQ2X00000000000000000V1',
-        name: 'quadro.jpg',
-        mimeType: 'image/jpeg',
-        purpose: 'O quadro da reunião',
-        size: 1935884,
-      },
+      { notebook: '01JBQ2X00000000000000000V1', name: 'quadro.jpg' },
       caller,
     );
-    expect(JSON.parse(fromNothing.content[0]?.text ?? '')).toMatchObject({
-      request: '01JBQ2X00000000000000000R1',
-      reference: '![[quadro.jpg]]',
-    });
-    await adapter.call('request_file', { upload: '01jbq2x00000000000000000p1' }, caller);
-    expect(asked).toEqual([
-      {
-        notebookId: '01JBQ2X00000000000000000V1',
-        name: 'quadro.jpg',
-        mimeType: 'image/jpeg',
-        purpose: 'O quadro da reunião',
-        size: 1935884,
-      },
-      { fromUpload: '01JBQ2X00000000000000000P1' },
-    ]);
+    expect(refused.isError).toBe(true);
   });
 
   it('throws an upload away when asked to (#253)', async () => {
@@ -2389,8 +2331,8 @@ describe('A file is kept whole, sent in parts (#240, RN-PRT-027, RN-AGT-041)', (
     // What was seen on 2026-09-26: a chat that recompresses the attachment,
     // and an agent that kept the small copy in silence (#243, RN-AGT-042).
     expect(keep?.description).toContain('tell them both sizes');
-    expect(skill?.body).toContain('request_file');
-    expect(skill?.body).toContain('Aguardando você');
+    expect(skill?.body).not.toContain('request_file');
+    expect(skill?.body).not.toContain('Aguardando você');
     expect(skill?.body).not.toContain('Anexar arquivo');
     expect(skill?.body).toContain('host_not_allowed');
   });

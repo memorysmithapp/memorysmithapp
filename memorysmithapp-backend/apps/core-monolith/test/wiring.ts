@@ -221,7 +221,6 @@ import {
   FinishUpload,
   GetUploadStatus,
   LinkUpload,
-  RequestFile,
   ListUploads,
   ObserveUpload,
 } from '@memorysmithapp/svc-portability/application/uploads';
@@ -997,14 +996,6 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       ),
     linkUpload: (request) =>
       new LinkUpload(transfers, request.files, request.subscription.userId.value),
-    requestFile: (request) =>
-      new RequestFile(
-        transfers,
-        parts,
-        request.files,
-        request.subscription.subscriptionId.value,
-        request.subscription.userId.value,
-      ),
     startPrint: (request) =>
       new StartPrint(prints.queue, request.subscription.subscriptionId.value),
     getPrint: (request) => new GetPrint(prints.store, request.subscription.subscriptionId.value),

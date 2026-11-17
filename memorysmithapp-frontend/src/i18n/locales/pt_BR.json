@@ -661,7 +661,11 @@
         "failed": "A importação de <b>{{notebook}}</b> falhou."
       }
     },
-    "columns": { "what": "Transferência", "state": "Situação", "actions": "Ações" },
+    "columns": {
+      "what": "Transferência",
+      "state": "Situação",
+      "actions": "Ações"
+    },
     "heading": "Transferências",
     "seeAll": "Ver todas",
     "filter": "O que mostrar",
@@ -669,8 +673,7 @@
       "all": "Todas",
       "export": "Exportações",
       "import": "Importações",
-      "agent": "Do agente",
-      "request": "Aguardando você"
+      "agent": "Do agente"
     },
     "empty": "Nada foi transferido ainda.",
     "help": "Cada exportação e importação da sua conta. Uma exportação fica guardada aqui até você apagar, conta no seu plano e sobrevive ao caderno de onde veio, por isso é o caminho de volta de uma exclusão por engano. Uma importação cria um caderno novo a partir de um arquivo exportado. Os envios que um agente faz em partes reservam espaço do seu plano até terminarem, e os arquivos que um agente pediu a você esperam aqui.",
@@ -684,8 +687,7 @@
     "running": {
       "export": "exportando · {{done}} de {{total}} notas",
       "import": "importando · {{done}} de {{total}} notas",
-      "agent": "enviando · {{done}} de {{total}} partes",
-      "request": "aguardando você"
+      "agent": "enviando · {{done}} de {{total}} partes"
     },
     "ended": {
       "ready": "pronta",
@@ -699,8 +701,7 @@
     "line": {
       "export": "Exportação · {{notebook}}",
       "import": "Importação · {{notebook}}",
-      "agent": "Agente · {{notebook}}",
-      "request": "Pedido · {{notebook}}"
+      "agent": "Agente · {{notebook}}"
     },
     "wrote_one": "{{count}} nota escrita",
     "wrote_other": "{{count}} notas escritas",
@@ -709,8 +710,7 @@
     "kind": {
       "export": "Exportação",
       "import": "Importação",
-      "agent": "Agente",
-      "request": "Pedido"
+      "agent": "Agente"
     },
     "state": {
       "ready": "Pronta",
@@ -744,19 +744,7 @@
     "deleteUploadAsk": "Apagar este envio?",
     "deleteUploadFrees": "As partes que chegaram são descartadas e os {{size}} reservados voltam para o seu plano. Isto é definitivo.",
     "deleteFailedUpload": "Só este aviso sai da lista; as partes já foram descartadas.",
-    "platformInterface": "pela interface",
-    "requestKnown": "o agente conhece {{size}}",
-    "fulfil": "Enviar o arquivo",
-    "dismiss": "Dispensar",
-    "deleteRequestAsk": "Dispensar este pedido?",
-    "deleteRequestKeeps": "A nota continua com a referência a {{name}}, pendente, até um arquivo com esse nome ser guardado; o agente vê o pedido dispensado na próxima verificação do caderno.",
-    "requestUnavailable": "Sem caderno: o caderno deste pedido não está disponível. Vincule-o a um caderno para enviar o arquivo.",
-    "requestKeptAs": "O arquivo é guardado como {{name}}, seja qual for o nome dele no seu computador, e a nota que o pediu passa a mostrá-lo.",
-    "requestHashing": "lendo o arquivo · {{percent}}",
-    "requestDone": "Guardado como {{name}}.",
-    "requestWrongType": "Este pedido é de um arquivo do tipo {{kind}}: escolha um arquivo desse tipo.",
-    "waitingCount_one": "{{count}} arquivo aguardando você",
-    "waitingCount_other": "{{count}} arquivos aguardando você"
+    "platformInterface": "pela interface"
   },
   "about": {
     "title": "Sobre o MemorySmith.app",

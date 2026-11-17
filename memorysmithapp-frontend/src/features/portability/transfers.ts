@@ -32,14 +32,6 @@ export function isWorking(transfer: TransferDto): boolean {
   );
 }
 
-/**
- * A file an agent asked the person for, still waiting for them (#253,
- * RN-PRT-030): the one kind of transfer that waits on the person.
- */
-export function isWaitingRequest(transfer: TransferDto): boolean {
-  return transfer.status === 'running' && transfer.kind === 'request';
-}
-
 /** An upload of an agent still waiting for parts or for its finish. */
 export function isOpenUpload(transfer: TransferDto): boolean {
   return transfer.status === 'running' && transfer.kind === 'agent';
@@ -80,8 +72,8 @@ export function useTransfers(enabled = true) {
     refetchInterval: (query) =>
       (query.state.data as TransferListDto | undefined)?.transfers.some(isWorking)
         ? POLL_MS
-        : (query.state.data as TransferListDto | undefined)?.transfers.some(
-              (transfer) => isOpenUpload(transfer) || isWaitingRequest(transfer),
+        : (query.state.data as TransferListDto | undefined)?.transfers.some((transfer) =>
+              isOpenUpload(transfer),
             )
           ? UPLOAD_POLL_MS
           : false,
