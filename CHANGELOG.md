@@ -27,6 +27,8 @@ issues each entry cites.
 
 - **An agent checks it can reach the upload host before it sends a file, and says what to change when it cannot.** The skill `keep-files` and the descriptions of `begin_file_upload` and `keep_file` now teach one method: the agent's code fetches the probe `whoami` names; with its answer, a file the agent holds as bytes goes by URL, whole, and only a few kilobytes of text such as an SVG go in one call. With any other answer the agent opens no upload, and tells the person which setting their assistant needs, as the About page names it, and that they can attach the file from the note's editor. The agent keeps a file under the name the person gave it, and compares the size or hash the person gives before keeping anything. (#470)
 
+- **The About page names the one setting each assistant needs to keep files.** For Claude, network access on and `*.memorysmith.app` among the allowed domains unless they are all allowed; for ChatGPT, *Work network access* on. It no longer says that ChatGPT's code cannot reach the network, nor sends anybody to *Aguardando você*: when an assistant cannot reach the upload host, the person attaches the file from the note's editor. A line for every assistant says that MemorySmith keeps exactly what the assistant sends, and that a kept file can be checked against the original on the files of the notebook. (#471)
+
 - **The Tables page only reads.** An open table no longer shows *Delete table*: the page shows a table's rows and schema, and nothing on it changes the table. A table is deleted by asking the agent, through the connector, as it is created and written. (#462)
 
 ### Fixed

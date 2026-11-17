@@ -206,6 +206,9 @@ export function AboutPage() {
         <p className="about-note">
           <Trans i18nKey="about.files.editor" components={{ b: <strong /> }} />
         </p>
+        {/* One line for every assistant, naming none (#471, #466): what the
+            product guarantees, and how a person checks it. */}
+        <p className="about-note">{t('about.files.check')}</p>
       </section>
 
       <section className="about-section">

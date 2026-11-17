@@ -898,18 +898,19 @@
     },
     "files": {
       "heading": "Arquivos pelo assistente",
-      "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar: as configurações que decidem isso não avisam quando estão no caminho.",
+      "body": "Um assistente guarda uma foto, um PDF ou uma gravação inteiros, no tamanho em que chegaram, enviando as partes do arquivo direto para o endereço abaixo. Para isso, o aplicativo em que ele roda precisa deixar o código dele alcançar esse endereço, e a configuração que decide isso não avisa quando está no caminho. Antes de enviar, o assistente confere se alcança o endereço e, quando não alcança, diz isso a você em vez de tentar.",
       "back": "E ele devolve um arquivo que o caderno guarda: peça a foto, o PDF ou a gravação, e ele lê o conteúdo de um arquivo de até 4 MB e entrega a você um link que baixa o arquivo com o próprio nome, válido por uma hora, de qualquer tamanho.",
-      "editor": "Quando o aplicativo não deixa, o assistente pede o arquivo a você: ele aparece em <b>Transferências</b>, na aba <b>Aguardando você</b>, com o nome que a nota espera. Escolha, arraste ou cole o arquivo ali, e ele é guardado inteiro, já aparecendo na nota. Para anexar algo por conta própria, abra a nota, clique em <b>Editar</b> no canto superior direito dela e depois no clipe da barra de ferramentas, que anexa um arquivo do computador, um que o caderno já guarda ou uma imagem de um endereço da web; ou cole ou arraste o arquivo sobre a nota.",
+      "check": "O MemorySmith guarda exatamente o que o assistente envia. Para ter certeza de que um arquivo guardado é o que você tem, abra os arquivos do caderno e confira-o com o seu original: o navegador compara os dois sem enviar o seu para lugar nenhum.",
+      "editor": "Quando o assistente não alcança o endereço, ou para anexar algo por conta própria, abra a nota, clique em <b>Editar</b> no canto superior direito dela e depois no clipe da barra de ferramentas, que anexa um arquivo do computador, um que o caderno já guarda ou uma imagem de um endereço da web; ou cole ou arraste o arquivo sobre a nota.",
       "claude": {
         "one": "Depois de uma atualização do MemorySmith, abra <b>Personalizar</b>, depois <b>Conectores</b>, e reconecte o <b>MemorySmith.app</b>: é assim que as ferramentas novas aparecem para o Claude.",
-        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. Se você libera domínios um a um, libere o endereço acima, ou <b>*.memorysmith.app</b> de uma vez.",
+        "two": "Em <b>Configurações</b>, depois <b>Recursos</b>, ligue <b>Permitir acesso de rede externo</b>. A menos que a lista de domínios permitidos seja <b>Todos os domínios</b>, acrescente <b>*.memorysmith.app</b> a ela: sem isso, o endereço acima fica fora de alcance mesmo com a rede ligada.",
         "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
       },
       "chatgpt": {
         "one": "Depois de uma atualização do MemorySmith, abra o plugin <b>MemorySmith.app</b> nas configurações de <b>Plugins</b> e clique em <b>Atualizar</b>, para as ferramentas novas aparecerem.",
-        "two": "O ChatGPT entrega ao assistente uma <b>cópia reduzida</b> da foto anexada, e o código dele não alcança a rede: o assistente não tem o original para guardar, e deve dizer isso em vez de guardar a cópia.",
-        "three": "Para guardar a foto inteira, o assistente pede o arquivo a você: envie-o em <b>Transferências</b>, na aba <b>Aguardando você</b>, e ele aparece na nota que o pediu."
+        "two": "Em <b>Configurações</b>, depois <b>Controles de dados</b>, ligue <b>Acesso à rede do Work</b>. Com ele desligado, o código do assistente não alcança o endereço acima, e a lista de sites em <b>Computador na nuvem</b> não muda isso.",
+        "three": "Essas mudanças valem para <b>conversas novas</b>: comece uma, anexe o arquivo e peça para guardá-lo. Um envio que ficou pela metade é retomado ali, sem começar de novo."
       }
     }
   },
