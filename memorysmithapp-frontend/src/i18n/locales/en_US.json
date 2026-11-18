@@ -657,6 +657,7 @@
     "components_other": "{{count}} components",
     "readAt": "Data of {{time}}",
     "refresh": "Refresh",
+    "updated": "The dashboard was read again, with new values.",
     "allPeriods": "All",
     "compared": "compared",
     "ofGoal": "of {{goal}}",

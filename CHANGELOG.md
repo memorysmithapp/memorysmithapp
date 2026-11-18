@@ -19,6 +19,10 @@ issues each entry cites.
 
 - **The Dashboards page only reads.** An open dashboard no longer shows *Delete dashboard*, for its owner either: the page shows what the agent built, and nothing on it changes the dashboard. A dashboard is deleted by asking the agent, through the connector, as it is built and changed, as tables already are. (#487)
 
+### Fixed
+
+- **A dashboard no longer blinks when it is read again.** On its interval, when the tab is looked at again and on *Refresh*, every chart vanished and was drawn again, even when no value had changed. A read that brings the same values now leaves the charts as they are; one that brings new values moves the marks from the old values to the new ones. A dot beside the time pulses while the data is read and turns green for a moment when the read brought new values, which a screen reader also hears. *Refresh* fades only while a read you asked for is running. (#489)
+
 ## [0.19.0] - 2026-11-17
 
 ### Added

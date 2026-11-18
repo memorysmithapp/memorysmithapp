@@ -987,6 +987,43 @@ test.describe('the pages of an account', () => {
     // agent deletes it through the connector (#487).
     await expect(app.locator('.dashboard-actions button')).toHaveCount(2);
     await expect(app.locator('.dashboard-actions .is-danger')).toHaveCount(0);
+    // A read is told in the head, never by the charts (#489). One that brings
+    // the same values leaves the chart drawn as it was, and says nothing.
+    await app.locator('.dash-chart svg').evaluate((svg) => svg.setAttribute('data-kept', 'yes'));
+    const refresh = app.locator('.dashboard-actions button').first();
+    const read = () =>
+      app.waitForResponse(
+        (response) => response.request().method() === 'POST' && response.url().endsWith('/data'),
+      );
+    let landed = read();
+    await refresh.click();
+    await landed;
+    await expect(refresh).toBeEnabled();
+    await expect(app.locator('.dash-chart svg[data-kept="yes"]')).toHaveCount(1);
+    await expect(app.locator('.dashboard-read[data-state="fresh"]')).toHaveCount(0);
+    // One that brings new values moves the marks of the same chart, and the
+    // head says it, to the eye and to a screen reader.
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        {
+          data: '2026-10-20',
+          categoria: 'casa',
+          valor: 49.25,
+          status: 'paga',
+          inicio: '2026-10-20',
+          fim: '2026-10-22',
+        },
+      ],
+    });
+    landed = read();
+    await refresh.click();
+    await landed;
+    await expect(app.locator('.dashboard-read[data-state="fresh"]')).toBeVisible();
+    await expect(app.locator('.dashboard-head [role="status"]')).not.toBeEmpty();
+    await expect(app.locator('.dash-kpi-value')).toHaveText(
+      appLocale === 'pt_BR' ? '1.600' : '1,600',
+    );
+    await expect(app.locator('.dash-chart svg[data-kept="yes"]')).toHaveCount(1);
     await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
     await app.screenshot({
       animations: 'disabled',

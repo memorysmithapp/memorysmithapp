@@ -660,6 +660,7 @@
     "components_other": "{{count}} componentes",
     "readAt": "Dados de {{time}}",
     "refresh": "Atualizar",
+    "updated": "O painel foi lido de novo, com valores novos.",
     "allPeriods": "Tudo",
     "compared": "na comparação",
     "ofGoal": "de {{goal}}",

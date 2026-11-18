@@ -36,6 +36,12 @@ import {
   Wbs,
 } from './components';
 
+/** What a component without an answer draws from, the same array on every render (#489). */
+const NONE = Object.freeze([]) as never;
+
+/** How long the head says a read brought new values (#489). */
+const FRESH_MS = 2500;
+
 /** What sits beside its like in the header of a dashboard. */
 const HEADLINE: ReadonlySet<string> = new Set(['kpi', 'gauge']);
 
@@ -192,6 +198,11 @@ export function DashboardView({
   const [cross, setCross] = useState<DashboardCrossFilter | null>(view?.cross ?? null);
   const [pages, setPages] = useState<Record<string, number>>({});
   const [drawing, setDrawing] = useState(false);
+  /** A read the person asked for with Refresh, the only one that holds the button (#489). */
+  const [asked, setAsked] = useState(false);
+  /** A read that brought values other than those on the screen, said for a moment (#489). */
+  const [fresh, setFresh] = useState(false);
+  const seen = useRef<{ key: string; components: unknown } | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const { i18n } = useTranslation();
   const request = { filters: chosen, pages, cross };
@@ -227,6 +238,32 @@ export function DashboardView({
     refetchInterval: !still && definition.refreshSeconds ? definition.refreshSeconds * 1000 : false,
   });
   const byId = new Map((data.data?.components ?? []).map((component) => [component.id, component]));
+  // A read is told in the head, never by the charts (#489): the components keep
+  // their identity across reads that bring the same values, so only a read of
+  // the same periods and marks that changed them counts as an update. What the
+  // person chose themselves is not announced, and neither is the first read.
+  const answeredFor = JSON.stringify(request);
+  const answeredWith = data.isPlaceholderData ? undefined : data.data?.components;
+  useEffect(() => {
+    if (!answeredWith) return;
+    const before = seen.current;
+    seen.current = { key: answeredFor, components: answeredWith };
+    if (before && before.key === answeredFor && before.components !== answeredWith) setFresh(true);
+  }, [answeredFor, answeredWith]);
+  useEffect(() => {
+    if (!fresh) return undefined;
+    const done = setTimeout(() => setFresh(false), FRESH_MS);
+    return () => clearTimeout(done);
+  }, [fresh]);
+  async function refresh(): Promise<void> {
+    setAsked(true);
+    try {
+      await data.refetch();
+    } finally {
+      setAsked(false);
+    }
+  }
+  const reading = data.isFetching && data.data !== undefined;
   const readAt = data.data
     ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(data.data.readAt))
     : null;
@@ -257,13 +294,22 @@ export function DashboardView({
         {still ? null : (
           <div className="dashboard-actions">
             {readAt ? (
-              <span className="dashboard-read">{t('dashboards.readAt', { time: readAt })}</span>
+              <span
+                className="dashboard-read"
+                data-state={reading ? 'reading' : fresh ? 'fresh' : undefined}
+              >
+                <span className="dashboard-read-dot" aria-hidden="true" />
+                {t('dashboards.readAt', { time: readAt })}
+              </span>
             ) : null}
+            <span className="visually-hidden" role="status">
+              {fresh ? t('dashboards.updated') : ''}
+            </span>
             <button
               type="button"
               className="button is-quiet is-small"
-              onClick={() => void data.refetch()}
-              disabled={data.isFetching}
+              onClick={() => void refresh()}
+              disabled={asked}
             >
               {t('dashboards.refresh')}
             </button>
@@ -414,8 +460,8 @@ function ComponentBody({
       return (
         <Chart
           type={component.type}
-          groups={(answer['groups'] as never) ?? []}
-          measures={(answer['measures'] as string[]) ?? []}
+          groups={(answer['groups'] as never) ?? NONE}
+          measures={(answer['measures'] as string[]) ?? NONE}
           options={component.options}
           locale={locale}
           still={still}
@@ -430,7 +476,7 @@ function ComponentBody({
     case 'scatter':
       return (
         <Scatter
-          rows={(answer['rows'] as never) ?? []}
+          rows={(answer['rows'] as never) ?? NONE}
           options={component.options}
           locale={locale}
           still={still}
@@ -443,20 +489,20 @@ function ComponentBody({
     case 'timeline':
       return (
         <Timeline
-          rows={(answer['rows'] as never) ?? []}
+          rows={(answer['rows'] as never) ?? NONE}
           options={component.options}
           locale={locale}
         />
       );
     case 'wbs':
-      return <Wbs rows={(answer['rows'] as never) ?? []} options={component.options} />;
+      return <Wbs rows={(answer['rows'] as never) ?? NONE} options={component.options} />;
     case 'matrix':
       return <Matrix data={answer as never} options={component.options} locale={locale} />;
     case 'table':
       return (
         <RowsTable
-          columns={(answer['columns'] as never) ?? []}
-          rows={(answer['rows'] as never) ?? []}
+          columns={(answer['columns'] as never) ?? NONE}
+          rows={(answer['rows'] as never) ?? NONE}
           total={Number(answer['total'] ?? 0)}
           options={component.options}
           page={page}
@@ -466,12 +512,16 @@ function ComponentBody({
       );
     case 'gantt':
       return (
-        <Gantt rows={(answer['rows'] as never) ?? []} options={component.options} locale={locale} />
+        <Gantt
+          rows={(answer['rows'] as never) ?? NONE}
+          options={component.options}
+          locale={locale}
+        />
       );
     case 'kanban':
       return (
         <Kanban
-          rows={(answer['rows'] as never) ?? []}
+          rows={(answer['rows'] as never) ?? NONE}
           total={Number(answer['total'] ?? 0)}
           options={component.options}
         />
