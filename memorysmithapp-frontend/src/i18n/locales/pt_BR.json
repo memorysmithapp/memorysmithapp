@@ -215,21 +215,6 @@
     "saving": "Salvando…",
     "nameTaken": "Já existe uma pasta chamada “{{name}}” neste nível. Nada foi alterado."
   },
-  "folderDelete": {
-    "short": "Apagar",
-    "open": "Apagar esta pasta",
-    "title": "Apagar a pasta",
-    "holds": "Ela guarda {{notes}} e {{folders}}.",
-    "notes_one": "{{count}} nota",
-    "notes_other": "{{count}} notas",
-    "folders_one": "{{count}} subpasta",
-    "folders_other": "{{count}} subpastas",
-    "consequences": "Apagá-la tira tudo isso do caderno na hora, de vez: é destruído logo depois, com todas as revisões, e os links para essas notas ficam pendentes. Nada traz de volta.",
-    "understood": "Entendo que tudo nesta pasta é apagado de vez",
-    "empty": "A pasta está vazia. Apagá-la não tem volta.",
-    "delete": "Apagar a pasta",
-    "deleting": "Apagando…"
-  },
   "note": {
     "propertyTrue": "Sim",
     "propertyFalse": "Não",
@@ -1006,24 +991,6 @@
       "template": "o Modelo de nota desta pasta",
       "structure": "as pastas do caderno"
     }
-  },
-  "move": {
-    "short": "Mover",
-    "open": "Mover esta nota para outra pasta do caderno",
-    "title": "Mover para outra pasta",
-    "explain": "A nota leva o seu histórico, e todo link para ela continua funcionando: um link encontra uma nota pelo nome, nunca pela pasta.",
-    "folder": "Pasta",
-    "current": "{{folder}} (onde está)",
-    "noOther": "Este caderno não tem outra pasta para onde movê-la.",
-    "where": "Onde na pasta",
-    "atEnd": "No fim",
-    "after": "Depois de {{name}}",
-    "byName": "Esta pasta ordena as notas pelo nome, então a nota aparecerá pelo nome dela.",
-    "move": "Mover",
-    "moving": "Movendo…",
-    "nameTaken": "“{{folder}}” já tem uma nota chamada “{{name}}”, e uma pasta guarda uma nota de cada nome. Nada foi movido.",
-    "openHolder": "Abrir essa nota",
-    "moved": "Movida para {{folder}}."
   },
   "history": {
     "heading": "Histórico desta nota",

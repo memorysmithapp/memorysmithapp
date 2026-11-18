@@ -851,33 +851,6 @@ export async function updateNote(
   });
 }
 
-/**
- * A folder and everything under it (RN-KNW-007, RN-KNW-046): one write that
- * takes it all out of reach at once, and a purge that destroys it after. The
- * policy is always said: CASCADE is what the person confirmed.
- */
-export async function deleteFolder(notebookId: string, folderId: string): Promise<void> {
-  await request<unknown>(`/knowledge/notebooks/${notebookId}/folders/${folderId}?policy=CASCADE`, {
-    method: 'DELETE',
-  });
-}
-
-/**
- * A note to another folder of its notebook (#265, RN-KNW-057): the same note,
- * its identifier and its history with it, last there or right after a note of
- * that folder. It writes no content, so it carries no revision.
- */
-export async function moveNote(
-  notebookId: string,
-  noteId: string,
-  input: { toFolderId: string; afterNoteId: string | null; context?: NoteContextDto },
-): Promise<NoteSummaryDto> {
-  return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}/move`, {
-    method: 'POST',
-    body: input,
-  });
-}
-
 // ---- Discovery and audit ----------------------------------------------------
 
 export interface BacklinkDto {

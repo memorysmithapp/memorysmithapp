@@ -21,6 +21,8 @@ issues each entry cites.
 
 ### Removed
 
+- **A folder's page no longer offers *Delete*, and a note's page no longer offers *Move*.** A folder is deleted, and a note moved to another folder, by asking the agent, through the connector, which does both as before; the note keeps its history, and the history still shows the move. (#496)
+
 - **The Dashboards page only reads.** An open dashboard no longer shows *Delete dashboard*, for its owner either: the page shows what the agent built, and nothing on it changes the dashboard. A dashboard is deleted by asking the agent, through the connector, as it is built and changed, as tables already are. (#487)
 
 ### Fixed

@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { getTemplate, setNoteOrder } from '../../shared/api/source';
 import { Segmented } from '../../shared/components/Segmented';
 import { Hint } from '../../shared/components/Hint';
-import { folderAddress, identifierOf, notebookAddress } from '../../shared/api/note-address';
-import { ChevronRightIcon, PencilIcon, TrashIcon } from '../../shared/components/icons';
+import { identifierOf } from '../../shared/api/note-address';
+import { ChevronRightIcon, PencilIcon } from '../../shared/components/icons';
 import { TemplateSkeleton } from '../../shared/components/skeletons';
 import { FolderNotesTable } from './FolderNotesTable';
 import { FolderRows } from './FolderRows';
@@ -17,7 +17,6 @@ import type { NotebookOutletContext } from './NotebookLayout';
 import { folderTrailOf } from './trail';
 import { BarButton, NotebookBar, folderCrumbs } from './NotebookBreadcrumb';
 import { EditFolderDialog } from './EditFolder';
-import { DeleteFolderDialog } from './DeleteFolder';
 import { useNotebookId } from './route-ids';
 import { queryKeys } from '../../shared/api/query-keys';
 
@@ -48,7 +47,6 @@ export function FolderPage() {
    */
   const client = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const editButton = useRef<HTMLButtonElement>(null);
   const ordering = useMutation({
     mutationFn: (noteOrder: 'manual' | 'alphabetical') =>
@@ -94,14 +92,6 @@ export function FolderPage() {
             label={t('folderEdit.short')}
             title={t('folderEdit.open')}
             onClick={() => setEditOpen(true)}
-          />
-        ) : null}
-        {writable ? (
-          <BarButton
-            icon={<TrashIcon />}
-            label={t('folderDelete.short')}
-            title={t('folderDelete.open')}
-            onClick={() => setDeleteOpen(true)}
           />
         ) : null}
       </NotebookBar>
@@ -217,18 +207,6 @@ export function FolderPage() {
         notebookId={notebookId}
         folder={folder}
         returnFocus={editButton}
-      />
-      <DeleteFolderDialog
-        key={deleteOpen ? 'delete-open' : 'delete-closed'}
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        notebookId={notebookId}
-        folder={folder}
-        parentAddress={
-          chain.length > 1
-            ? folderAddress(notebookId, chain[chain.length - 2]!.id)
-            : notebookAddress(notebookId)
-        }
       />
     </>
   );

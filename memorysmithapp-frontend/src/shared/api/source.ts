@@ -404,16 +404,6 @@ export function updateNote(
     .then((note) => note.revision.versionId);
 }
 
-/** A note to another folder of its notebook, keeping its history (RN-KNW-057). */
-export async function moveNote(
-  notebookId: string,
-  noteId: string,
-  toFolderId: string,
-  afterNoteId: string | null,
-): Promise<void> {
-  await backend.moveNote(notebookId, noteId, { toFolderId, afterNoteId });
-}
-
 export function putGuidance(
   notebookId: string,
   content: string,
@@ -451,10 +441,6 @@ export function updateFolder(
   change: { name?: string; description?: string },
 ): Promise<void> {
   return backend.updateFolder(notebookId, folderId, change);
-}
-
-export function deleteFolder(notebookId: string, folderId: string): Promise<void> {
-  return backend.deleteFolder(notebookId, folderId);
 }
 
 /**

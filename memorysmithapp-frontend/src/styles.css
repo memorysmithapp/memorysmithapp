@@ -1839,23 +1839,6 @@ a:hover {
   padding-left: 12px;
 }
 
-/* Deleting a folder (#350): what it holds and what follows, and the box that
-   says it was understood before the delete is offered. */
-.folder-delete p {
-  margin: 0 0 12px;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-.folder-delete-understood {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 4px 0 16px;
-  font-size: 0.85rem;
-}
-.folder-delete-understood input {
-  margin-top: 3px;
-}
 .note-row:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--accent);
@@ -6374,22 +6357,17 @@ button.attachment-thumb:focus-visible {
   padding: 12px 0;
 }
 
-/* Moving a note to another folder (#265): what goes with it, the folder, and
-   where in it when the folder is kept by hand. A modal on a computer and a
-   sheet on a phone, as the history is. */
+/* A form in a modal on a computer and a sheet on a phone, as the history is:
+   a folder's name and description (#278). */
 .move-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-.move-form .hint,
-.move-explain {
+.move-form .hint {
   margin: 0;
   font-size: 0.8125rem;
   line-height: 1.5;
-}
-.move-explain {
-  color: var(--text);
 }
 .move-form .ask-dialog-foot {
   margin-top: 4px;

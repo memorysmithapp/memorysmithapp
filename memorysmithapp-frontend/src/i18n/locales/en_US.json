@@ -215,21 +215,6 @@
     "saving": "Saving…",
     "nameTaken": "A folder named “{{name}}” already exists at this level. Nothing was changed."
   },
-  "folderDelete": {
-    "short": "Delete",
-    "open": "Delete this folder",
-    "title": "Delete the folder",
-    "holds": "It holds {{notes}} and {{folders}}.",
-    "notes_one": "{{count}} note",
-    "notes_other": "{{count}} notes",
-    "folders_one": "{{count}} subfolder",
-    "folders_other": "{{count}} subfolders",
-    "consequences": "Deleting it takes all of them out of the notebook at once, for good: they are destroyed shortly after, with every revision, and links to those notes become pending. Nothing brings them back.",
-    "understood": "I understand that everything in this folder is deleted for good",
-    "empty": "The folder is empty. Deleting it cannot be undone.",
-    "delete": "Delete the folder",
-    "deleting": "Deleting…"
-  },
   "note": {
     "propertyTrue": "Yes",
     "propertyFalse": "No",
@@ -1003,24 +988,6 @@
       "template": "the Template of this folder",
       "structure": "the folders of the notebook"
     }
-  },
-  "move": {
-    "short": "Move",
-    "open": "Move this note to another folder of the notebook",
-    "title": "Move to another folder",
-    "explain": "The note keeps its history, and every link to it keeps working: a link finds a note by its name, never by its folder.",
-    "folder": "Folder",
-    "current": "{{folder}} (where it is)",
-    "noOther": "This notebook has no other folder to move it to.",
-    "where": "Where in the folder",
-    "atEnd": "At the end",
-    "after": "After {{name}}",
-    "byName": "This folder orders its notes by name, so the note will appear by its name.",
-    "move": "Move",
-    "moving": "Moving…",
-    "nameTaken": "“{{folder}}” already holds a note named “{{name}}”, and a folder holds one note of each name. Nothing was moved.",
-    "openHolder": "Open that note",
-    "moved": "Moved to {{folder}}."
   },
   "history": {
     "heading": "History of this note",

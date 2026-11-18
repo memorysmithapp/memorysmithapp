@@ -2550,12 +2550,12 @@ A note to rename.
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId] moves a note to another folder from its bar, with its history, and refuses a folder that holds its name (#265)', async ({
+  test('[page:/notebooks/:notebookId/notes/:noteId] offers no Move, and a note moved through the connector keeps its history (#496)', async ({
     app,
     owner,
     notebook,
     words,
-  }, testInfo) => {
+  }) => {
     // Its own note, written twice, so the history has something to keep.
     const path = `/knowledge/notebooks/${notebook.notebookId}`;
     const name = `Draft ${randomBytes(3).toString('hex')}`;
@@ -2572,26 +2572,20 @@ A note to rename.
       baseRevision: read.revision.versionId,
     });
 
+    // The bar reads and prints; moving is asked of the agent, for the owner too.
     await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    await expect(app.getByRole('button', { name: words.historyButton, exact: true })).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0);
+    await expect(app.getByRole('button', { name: 'Mover', exact: true })).toHaveCount(0);
 
-    // It says beforehand that the links keep working, and only then asks where.
-    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
-    const dialog = app.getByRole('dialog', { name: words.moveHeading });
-    await expect(dialog.getByText(words.moveLinksKeep)).toBeVisible();
-    await dialog.getByLabel(words.moveFolder, { exact: true }).selectOption({ label: 'Concepts' });
-    await testInfo.attach('move-dialog.png', {
-      body: await app.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
-    });
-    await dialog.getByRole('button', { name: words.moveNote, exact: true }).click();
-    await expect(dialog).toHaveCount(0);
-
-    // The same address, the same note, in its new folder, and the tree follows.
+    // Moved the way the connector moves it, the same note in its new folder.
+    const concepts = await owner.ok<{ folders: { folderId: string; name: string }[] }>('GET', path);
+    const toFolderId = concepts.folders.find((folder) => folder.name === 'Concepts')!.folderId;
+    await owner.ok('POST', `${path}/notes/${noteId}/move`, { toFolderId, afterNoteId: null });
+    await app.reload();
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
     await expect(app.getByText('Second take.')).toBeVisible();
-    const moved = await owner.ok<{ folderId: string }>('GET', `${path}/notes/${noteId}`);
-    expect(moved.folderId).not.toBe(notebook.folderId);
 
     // And its history goes with it: both writes, and the move.
     await app.getByRole('button', { name: words.historyButton, exact: true }).click();
@@ -2602,38 +2596,12 @@ A note to rename.
     await expect(history.locator('.history-list li')).toHaveCount(3);
     await app.keyboard.press('Escape');
 
-    // A folder holds one note of each name: Facet is in both, so the one in
-    // Findings cannot join the one in Concepts, and the dialog says so.
-    await app.goto(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
-    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
-    const refusing = app.getByRole('dialog', { name: words.moveHeading });
-    await refusing
-      .getByLabel(words.moveFolder, { exact: true })
-      .selectOption({ label: 'Concepts' });
-    await refusing.getByRole('button', { name: words.moveNote, exact: true }).click();
-    await expect(refusing.getByRole('alert')).toContainText(words.moveNameTaken);
-    await testInfo.attach('move-refused.png', {
-      body: await app.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
-    });
-    // Closed by its own button before the window narrows: an Escape may land on
-    // the select that last held the focus, and the dialog would come back as a
-    // sheet over the bar.
-    await refusing.getByRole('button', { name: words.cancel, exact: true }).click();
-    await expect(refusing).toHaveCount(0);
-    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
-
-    // On a phone it rises as a sheet from the foot of the screen.
-    await app.setViewportSize({ width: 390, height: 844 });
-    await app.locator(`button.bar-button[title="${words.moveNoteTitle}"]`).click();
-    const sheet = app.getByRole('dialog', { name: words.moveHeading });
-    await expect(sheet.getByText(words.moveLinksKeep)).toBeVisible();
-    await testInfo.attach('move-sheet-phone.png', {
-      body: await app.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
-    });
-    await app.keyboard.press('Escape');
-    await expect(sheet).toHaveCount(0);
+    // A folder's page offers no Delete either (#496).
+    await app.goto(notebook.page(`/folders/${toFolderId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
+    // Its bar holds Edit alone: the folder is deleted by asking the agent.
+    await expect(app.locator('.notebook-bar .bar-button')).toHaveCount(1);
+    await expect(app.getByRole('button', { name: words.folderEdit, exact: true })).toBeVisible();
   });
 
   test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({
