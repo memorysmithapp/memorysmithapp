@@ -15,6 +15,8 @@ issues each entry cites.
 
 - **The Notebook Context lists the folders before their Templates.** The notebook menu, the *Notebook Context* page and the notebook overview show Guidance, Folders, Templates, since a Template belongs to a folder. (#488)
 
+- **In Portuguese, a Template is now a *Modelo de nota*.** It names what it shapes, the notes of a folder, as a *Modelo de caderno* names the notebook it creates; *Modelo de pasta* read as if it created folders. The folder is said where it matters, as in *Modelo de nota da pasta Contas*. Nothing changes in English, in the API or in the connector. (#490)
+
 ### Removed
 
 - **The Dashboards page only reads.** An open dashboard no longer shows *Delete dashboard*, for its owner either: the page shows what the agent built, and nothing on it changes the dashboard. A dashboard is deleted by asking the agent, through the connector, as it is built and changed, as tables already are. (#487)

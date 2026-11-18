@@ -141,7 +141,7 @@ describe('the history of a model (#431, #435)', () => {
     const html = draw(CHANGES);
     expect(html).toContain('Pela interface');
     expect(html).toContain('O que mudou');
-    expect(html).toContain('Modelo de pasta escrito');
+    expect(html).toContain('Modelo de nota escrito');
     expect(html).toContain('3 salvamentos, desde');
     // Day before month, as Brazil writes a date.
     expect(html).toMatch(/\b\d{2}\/11\/2026/);

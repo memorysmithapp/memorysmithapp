@@ -49,7 +49,7 @@ Code comments cite them by code. A principle that stopped holding keeps its code
 
 ## 5. Ubiquitous language
 
-The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de pasta_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, _Table_ is _tabela_ and _Dashboard_ is _painel_, the ordinary words, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
+The terms as the code names them. In the `pt_BR` locale, and only there, four are translated: **Guidance** is _Orientação_, **Template** is _Modelo de nota_, **Notebook model** is _Modelo de caderno_, **Notebook** is _Caderno_. No other term is translated; _Note_ is _nota_, _Table_ is _tabela_ and _Dashboard_ is _painel_, the ordinary words, and the share profiles are named in ordinary words too: _Leitor do modelo_, _Leitor_, _Editor de conteúdo_, _Editor do caderno_.
 
 | Term                    | Meaning                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
