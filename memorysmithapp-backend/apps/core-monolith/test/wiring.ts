@@ -253,6 +253,7 @@ import type { AuditUseCases } from '@memorysmithapp/svc-audit/adapters/http';
 import {
   InMemoryContentIndex,
   InMemoryProjectedVersions,
+  InMemoryActivityLog,
   InMemoryFacetIndex,
   InMemoryLinkGraph,
   InMemoryNoteCatalog,
@@ -267,6 +268,8 @@ import {
   ResolveLinkTarget,
   GetFacetStats,
   GetNoteFacets,
+  ReadActivity,
+  RecordActivity,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -638,8 +641,10 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     structure: new InMemoryStructureProjection(),
     catalog: new InMemoryNoteCatalog(),
     index: new InMemoryContentIndex(),
+    activity: new InMemoryActivityLog(),
   };
   const discoveryDeps = {
+    activity: discovery.activity,
     graph: discovery.graph,
     facets: discovery.facets,
     catalog: discovery.catalog,
@@ -656,6 +661,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     index: discovery.index,
     structure: discovery.structure,
     versions: new InMemoryProjectedVersions(),
+    activity: discovery.activity,
     content: {
       // The slot is addressed by its content id, exactly as the S3 adapter
       // addresses it; the version id alone is not unique across slots.
@@ -683,6 +689,8 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     search: () => new SearchNotes(discoveryDeps),
     facets: () => new GetFacetStats(discoveryDeps),
     noteFacets: () => new GetNoteFacets(discoveryDeps),
+    recordActivity: () => new RecordActivity(discoveryDeps),
+    readActivity: () => new ReadActivity(discoveryDeps),
   };
 
   /**

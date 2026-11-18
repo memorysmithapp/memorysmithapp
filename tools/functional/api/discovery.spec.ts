@@ -354,6 +354,39 @@ test.describe('facets and search', () => {
     );
   });
 
+  test('[route:GET /discovery/notebooks/:v/activity] [route:POST /discovery/notebooks/:v/activity] says what a write changed in the frontmatter, and records no activity of a person (#495)', async ({
+    owner,
+    notebook,
+  }) => {
+    const { alpha } = await writeLinkedNotes(owner, notebook);
+    // The projection of a write says what the note's frontmatter took, for the
+    // graph to show it and to read itself again.
+    await eventually(
+      'the projection of the write',
+      () =>
+        owner.ok<{
+          entries: Array<{
+            kind: string;
+            noteId?: string;
+            added?: Array<{ facet: string; value: string }>;
+          }>;
+        }>('GET', `${discovery(notebook)}/activity`),
+      (answer) =>
+        answer.entries.some(
+          (entry) =>
+            entry.kind === 'projected' &&
+            entry.noteId === alpha &&
+            (entry.added ?? []).some((each) => each.facet === 'kind' && each.value === 'claim'),
+        ),
+    );
+    // What a person does in the interface is no agent's activity.
+    const refused = await owner.call('POST', `${discovery(notebook)}/activity`, {
+      kind: 'read',
+      tool: 'read_note',
+    });
+    expect(refused.status).toBe(403);
+  });
+
   test('[route:POST /discovery/notebooks/:v/search] finds a note by a word of its body, and filters by an attribute', async ({
     owner,
     notebook,

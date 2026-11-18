@@ -18,6 +18,7 @@ import { extractFrontmatterAliases } from '../domain/Aliases.js';
 import { spellingsLost } from '../domain/LinkResolver.js';
 import { normalize } from '../domain/SearchQuery.js';
 import type {
+  ActivityLog,
   ContentIndex,
   FacetIndex,
   LinkGraph,
@@ -80,6 +81,11 @@ export interface ProjectionDependencies {
   readonly content: ContentReader;
   /** What was last projected of each note, and at which version (#141). */
   readonly versions: ProjectedVersions;
+  /**
+   * Where a projection says what a write changed in the frontmatter, for the
+   * graph to show it and to read the graph again (#495). Absent, nothing is said.
+   */
+  readonly activity?: ActivityLog | undefined;
 }
 
 /**
@@ -225,7 +231,19 @@ export class ProjectNote {
 
     // 2. Facets, from the frontmatter block and nothing else.
     const facets = extractFacets(markdown);
-    await this.deps.facets.replaceFacets(event.notebookId, event.noteId, facets);
+    const moved = await this.deps.facets.replaceFacets(event.notebookId, event.noteId, facets);
+    // The graph re-reads itself when this arrives, so it never reads the
+    // projection a step behind; failing to say it never fails the projection.
+    await this.deps.activity
+      ?.record(event.notebookId, {
+        kind: 'projected',
+        noteId: event.noteId,
+        folderId: event.folderId,
+        version: event.version,
+        added: moved.added,
+        removed: moved.removed,
+      })
+      .catch(() => undefined);
 
     // 3. The searchable portrait, normalized once here so no search ever
     // normalizes on the hot path.

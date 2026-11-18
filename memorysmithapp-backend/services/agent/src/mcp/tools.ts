@@ -609,6 +609,25 @@ export const UNNAMED_NOTE_NOTICE =
  * read before a long body. It is a field of the one JSON document and never a
  * second content block, so a client reading the answer as JSON keeps reading it.
  */
+/** The JSON a tool answered, or nothing when it answered text. */
+function answerOf(result: ToolResult): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(result.content[0]?.text ?? '') as unknown;
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * How the graph names the person a connector acts for (#495): the first word
+ * of the address the token carries, as a name; the identifier when it has none.
+ */
+function personOf(caller: AgentCaller): string {
+  const local = caller.email?.split('@')[0]?.split(/[._-]/)[0] ?? '';
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : caller.userId.slice(0, 8);
+}
+
 function noteAnswer(note: NoteContent, notices: readonly NoteNotice[] = []): ToolResult {
   // A note with no name already opens with the notice that says so, so the
   // diagnosis does not say it a second time.
@@ -858,7 +877,10 @@ export class McpToolAdapter {
     const outOfCatalogue = this.outOfCatalogue(name, args);
     if (outOfCatalogue) return text(await this.staleList(outOfCatalogue, caller), true);
     try {
-      return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
+      const canonical = canonicalIdentifiers(args, name);
+      return await this.recorded(name, canonical, caller, () =>
+        this.dispatch(name, canonical, caller),
+      );
     } catch (error) {
       if (error instanceof GatewayError) {
         const taken = nameTakenAnswer(error, name);
@@ -868,6 +890,54 @@ export class McpToolAdapter {
         return text(`${error.code}: ${error.message}${details}`, true);
       }
       throw error;
+    }
+  }
+
+  /**
+   * A tool call, and what it did recorded for the notebook's graph (#495,
+   * RN-AGT-072). A read is recorded while it runs, so it adds no wait; a write
+   * once it succeeded, since only its answer names the note it created. The
+   * connector runs in a function that may freeze once it answers, so the
+   * record is awaited before the answer, and a record that fails is dropped:
+   * the graph missing a pulse never fails the tool.
+   */
+  private async recorded(
+    name: string,
+    args: Record<string, unknown>,
+    caller: AgentCaller,
+    run: () => Promise<ToolResult>,
+  ): Promise<ToolResult> {
+    const notebookId = typeof args['notebook'] === 'string' ? args['notebook'] : null;
+    const record = this.gateways.discovery.recordActivity?.bind(this.gateways.discovery);
+    if (!notebookId || !record) return run();
+    const reads =
+      TOOL_CATALOG.find((tool) => tool.name === name)?.annotations.readOnlyHint === true;
+    const base = {
+      tool: name,
+      noteId: typeof args['note'] === 'string' ? args['note'] : undefined,
+      folderId: typeof args['folder'] === 'string' ? args['folder'] : undefined,
+      query: typeof args['query'] === 'string' ? args['query'] : undefined,
+      person: personOf(caller),
+    };
+    const pending: Array<Promise<void>> = [];
+    if (reads) pending.push(record(caller, notebookId, { kind: 'read', ...base }));
+    try {
+      const result = await run();
+      if (!reads && !result.isError) {
+        const answer = answerOf(result);
+        pending.push(
+          record(caller, notebookId, {
+            kind: 'write',
+            ...base,
+            noteId:
+              base.noteId ?? (typeof answer['noteId'] === 'string' ? answer['noteId'] : undefined),
+            version: typeof answer['version'] === 'number' ? answer['version'] : undefined,
+          }),
+        );
+      }
+      return result;
+    } finally {
+      await Promise.allSettled(pending);
     }
   }
 

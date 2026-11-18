@@ -594,6 +594,33 @@ export async function getNotebookGraph(notebookId: string): Promise<NotebookGrap
   return request<NotebookGraphDto>(`/discovery/notebooks/${notebookId}/graph`);
 }
 
+/** What an agent did in a notebook, or what a write changed once projected (#495). */
+export interface GraphActivityDto {
+  id: string;
+  kind: 'read' | 'write' | 'projected';
+  at: string;
+  tool?: string;
+  noteId?: string;
+  folderId?: string;
+  query?: string;
+  version?: number;
+  who?: { userId: string; client: string; person: string };
+  added?: Array<{ facet: string; value: string }>;
+  removed?: Array<{ facet: string; value: string }>;
+}
+
+/** The activity of a notebook after the entry the graph saw last, oldest first (#495). */
+export async function getNotebookActivity(
+  notebookId: string,
+  after: string | null,
+): Promise<GraphActivityDto[]> {
+  const query = after ? `?after=${encodeURIComponent(after)}` : '';
+  const answer = await request<{ entries: GraphActivityDto[] }>(
+    `/discovery/notebooks/${notebookId}/activity${query}`,
+  );
+  return answer.entries;
+}
+
 /** A short-lived address to upload a `.notebook` file to (RN-PRT-014). */
 export async function prepareImport(): Promise<{ uploadKey: string; uploadUrl: string }> {
   return request<{ uploadKey: string; uploadUrl: string }>('/portability/imports', {

@@ -707,7 +707,25 @@
     "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
     "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
     "empty": "This notebook has no notes to draw yet.",
-    "truncated": "Showing the first 2000 notes of this notebook."
+    "truncated": "Showing the first 2000 notes of this notebook.",
+    "activity": {
+      "reading": "is reading {{target}}",
+      "writing": "is writing {{target}}",
+      "read": "read {{target}}",
+      "wrote": "wrote {{target}}",
+      "aNote": "a note",
+      "newNote": "a new note",
+      "folder": "the folder {{name}}",
+      "search": "the search “{{query}}”",
+      "context": "the notebook context",
+      "table": "a table",
+      "dashboard": "a dashboard",
+      "file": "a file",
+      "notebook": "the notebook",
+      "more_one": "+{{count}} assistant",
+      "more_other": "+{{count}} assistants",
+      "log": "Assistants' activity"
+    }
   },
   "errors": {
     "validation": "Something in what was sent is not accepted.",

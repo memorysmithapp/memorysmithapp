@@ -16,6 +16,7 @@ import {
   DynamoFacetIndex,
   DynamoLinkGraph,
   DynamoProjectedVersions,
+  DynamoActivityLog,
   DynamoStructureProjection,
 } from '../adapters/aws.js';
 import { ProjectFiles, ProjectNote, ProjectStructure } from '../application/projections.js';
@@ -70,6 +71,8 @@ function projectorsFor(subscriptionId: SubscriptionId) {
       structure: new DynamoStructureProjection(subscriptionId, db, table),
       content,
       versions: new DynamoProjectedVersions(subscriptionId, db, table),
+      // What a write changed in the frontmatter, for the graph (#495).
+      activity: new DynamoActivityLog(subscriptionId, db, table),
     }),
     files: new ProjectFiles(graph),
     structure: new ProjectStructure(new DynamoStructureProjection(subscriptionId, db, table)),

@@ -710,7 +710,25 @@
     "pinned": "Fixado: <b>{{value}}</b> · clique numa nota para abri-la, num atributo para fixar suas notas",
     "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este caderno ainda não tem notas para desenhar.",
-    "truncated": "Mostrando as primeiras 2000 notas deste caderno."
+    "truncated": "Mostrando as primeiras 2000 notas deste caderno.",
+    "activity": {
+      "reading": "está lendo {{target}}",
+      "writing": "está gravando {{target}}",
+      "read": "leu {{target}}",
+      "wrote": "gravou {{target}}",
+      "aNote": "uma nota",
+      "newNote": "uma nova nota",
+      "folder": "a pasta {{name}}",
+      "search": "a busca “{{query}}”",
+      "context": "o contexto do caderno",
+      "table": "uma tabela",
+      "dashboard": "um painel",
+      "file": "um arquivo",
+      "notebook": "o caderno",
+      "more_one": "+{{count}} assistente",
+      "more_other": "+{{count}} assistentes",
+      "log": "Atividade dos assistentes"
+    }
   },
   "errors": {
     "validation": "Algo no que foi enviado não é aceito.",

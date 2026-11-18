@@ -20,6 +20,9 @@ import {
   type PendingLink,
   type ScanMeter,
   type SearchLog,
+  type ActivityEntry,
+  type ActivityLog,
+  type ActivityWho,
 } from '../domain/ports.js';
 import type { StructureProjection } from './projections.js';
 import {
@@ -42,6 +45,8 @@ export interface QueryDependencies {
   readonly searchLog?: SearchLog | undefined;
   /** The shape of the notebook, which names the folders of a trail. */
   readonly structure?: StructureProjection | undefined;
+  /** What agents did in a notebook, for its graph (#495). */
+  readonly activity?: ActivityLog | undefined;
 }
 
 function candidateOf(note: IndexedNote): Candidate {
@@ -414,5 +419,58 @@ export class GetNoteFacets {
   }): Promise<Result<Array<{ noteId: string; facets: Record<string, string[]> }>, DomainError>> {
     const portraits = await this.deps.facets.notebookNoteFacets(input.notebookId);
     return ok([...portraits].map(([noteId, facets]) => ({ noteId, facets })));
+  }
+}
+
+/**
+ * A read or a write an agent made through the connector, recorded for the
+ * notebook's graph to show (#495, RN-DSC-068). Only a request bound to a
+ * connector records one: what a person does in the interface is not activity
+ * of an agent. Nothing is written to the trail (INV-06).
+ */
+export class RecordActivity {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: {
+    notebookId: string;
+    who: ActivityWho | null;
+    kind: string;
+    tool: string;
+    noteId?: string | undefined;
+    folderId?: string | undefined;
+    query?: string | undefined;
+    version?: number | undefined;
+  }): Promise<Result<void, DomainError>> {
+    if (!input.who) {
+      return err(DomainError.forbiddenVisible('Only a connector records what an agent did'));
+    }
+    if (input.kind !== 'read' && input.kind !== 'write') {
+      return err(DomainError.validation('An activity is a read or a write'));
+    }
+    if (!/^[a-z_]{1,40}$/.test(input.tool)) {
+      return err(DomainError.validation('An activity names the tool it was'));
+    }
+    await this.deps.activity?.record(input.notebookId, {
+      kind: input.kind,
+      tool: input.tool,
+      noteId: input.noteId,
+      folderId: input.folderId,
+      query: input.query?.slice(0, 200),
+      version: input.version,
+      who: input.who,
+    });
+    return ok(undefined);
+  }
+}
+
+/** What agents did in a notebook after the entry a page saw last, oldest first (#495). */
+export class ReadActivity {
+  constructor(private readonly deps: QueryDependencies) {}
+
+  async execute(input: {
+    notebookId: string;
+    after: string | null;
+  }): Promise<Result<ActivityEntry[], DomainError>> {
+    return ok((await this.deps.activity?.since(input.notebookId, input.after)) ?? []);
   }
 }

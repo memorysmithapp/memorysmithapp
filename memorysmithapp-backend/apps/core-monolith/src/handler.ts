@@ -137,6 +137,8 @@ import {
   ResolveLinkTarget,
   GetFacetStats,
   GetNoteFacets,
+  ReadActivity,
+  RecordActivity,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -523,6 +525,8 @@ const discoveryUseCases: DiscoveryUseCases = {
   search: (request) => new SearchNotes(discoveryFor(request.subscription)),
   facets: (request) => new GetFacetStats(discoveryFor(request.subscription)),
   noteFacets: (request) => new GetNoteFacets(discoveryFor(request.subscription)),
+  recordActivity: (request) => new RecordActivity(discoveryFor(request.subscription)),
+  readActivity: (request) => new ReadActivity(discoveryFor(request.subscription)),
 };
 
 /**
@@ -819,6 +823,7 @@ function discoveryFor(context: SubscriptionContext) {
     facets: built.facets,
     content: built.index,
     structure: built.structure,
+    activity: built.activity,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
     /**
      * One line per search, in the logs of the function (ADR-012). A notebook

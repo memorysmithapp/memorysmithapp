@@ -70,6 +70,7 @@ import {
   type AccessGateway,
   type AgentCaller,
   type ConnectorIdentity,
+  type AgentActivity,
   type ContextChanged,
   type NoteContextRevisions,
   type ShareAccessName,
@@ -1293,6 +1294,17 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
 
 export class HttpDiscoveryGateway implements DiscoveryGateway {
   constructor(private readonly origin: string) {}
+
+  async recordActivity(
+    caller: AgentCaller,
+    notebookId: string,
+    activity: AgentActivity,
+  ): Promise<void> {
+    await callApi<void>(this.origin, caller, `/discovery/notebooks/${notebookId}/activity`, {
+      method: 'POST',
+      body: activity,
+    });
+  }
 
   async relatedNotes(
     caller: AgentCaller,

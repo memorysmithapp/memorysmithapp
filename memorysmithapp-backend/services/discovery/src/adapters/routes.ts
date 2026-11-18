@@ -13,6 +13,8 @@
  *   GET  /notebooks/:v/facets
  *   GET  /notebooks/:v/note-facets       what each note declares in its frontmatter
  *   POST /notebooks/:v/search   { query }   lexical, over names and folders
+ *   POST /notebooks/:v/activity            what an agent read or wrote (#495)
+ *   GET  /notebooks/:v/activity?after=     what agents did since, for the graph
  *
  * Every route reads a projection. None of them touches a note, and none of
  * them is consulted by the Knowledge context (ADR-013).
@@ -39,6 +41,8 @@ import type {
   SearchNotes,
   NotebookGraphQuery,
   NotebookHealth,
+  ReadActivity,
+  RecordActivity,
 } from '../application/queries.js';
 
 export interface DiscoveryRequest {
@@ -49,6 +53,11 @@ export interface DiscoveryRequest {
    * question this request can ask (INV-09).
    */
   readonly canRead: (notebookId: string) => Promise<boolean>;
+  /**
+   * The person and the connector this request was bound to, when it is an
+   * agent's (RN-AGT-001); null for a person in the interface (#495).
+   */
+  readonly agent?: { readonly userId: string; readonly client: string } | null | undefined;
 }
 
 export interface DiscoveryUseCases {
@@ -64,6 +73,8 @@ export interface DiscoveryUseCases {
   readonly search: (request: DiscoveryRequest) => SearchNotes;
   readonly facets: (request: DiscoveryRequest) => GetFacetStats;
   readonly noteFacets: (request: DiscoveryRequest) => GetNoteFacets;
+  readonly recordActivity: (request: DiscoveryRequest) => RecordActivity;
+  readonly readActivity: (request: DiscoveryRequest) => ReadActivity;
 }
 
 type Variables = { discovery: DiscoveryRequest };
@@ -243,6 +254,57 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
 
     const found = await useCases.noteFacets(request).execute({ notebookId });
     return present(c, found, (notes) => ({ notes }));
+  });
+
+  /**
+   * What an agent read or wrote, posted by the connector with the token it
+   * called the tool with (#495, RN-DSC-068). The person and the connector come
+   * from the token and its binding; the name the connector gives its person is
+   * shown on the screen and decides nothing.
+   */
+  app.post('/notebooks/:v/activity', async (c) => {
+    const request = c.get('discovery');
+    const notebookId = idParam(c, 'v');
+    const denied = await guard(request, notebookId);
+    if (denied) return fail(c, denied);
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const text = (key: string): string | undefined =>
+      typeof body[key] === 'string' && body[key] !== '' ? (body[key] as string) : undefined;
+    const id = (key: string): string | undefined => {
+      const raw = text(key);
+      return raw === undefined ? undefined : (canonicalUlid(raw) ?? undefined);
+    };
+    const recorded = await useCases.recordActivity(request).execute({
+      notebookId,
+      who: request.agent
+        ? {
+            userId: request.agent.userId,
+            client: request.agent.client,
+            person: (text('person') ?? '').slice(0, 60),
+          }
+        : null,
+      kind: text('kind') ?? '',
+      tool: text('tool') ?? '',
+      noteId: id('noteId'),
+      folderId: id('folderId'),
+      query: text('query'),
+      version: typeof body['version'] === 'number' ? body['version'] : undefined,
+    });
+    return recorded.ok ? c.body(null, 204) : fail(c, recorded.error);
+  });
+
+  /**
+   * What agents did in the notebook after the entry the page saw last, oldest
+   * first: the graph asks every few seconds while it is open (#495).
+   */
+  app.get('/notebooks/:v/activity', async (c) => {
+    const request = c.get('discovery');
+    const notebookId = idParam(c, 'v');
+    const denied = await guard(request, notebookId);
+    if (denied) return fail(c, denied);
+    const after = canonicalUlid(c.req.query('after') ?? '');
+    const found = await useCases.readActivity(request).execute({ notebookId, after });
+    return present(c, found, (entries) => ({ entries }));
   });
 
   app.post('/notebooks/:v/search', async (c) => {

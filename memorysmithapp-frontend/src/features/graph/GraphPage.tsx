@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import {
@@ -21,7 +21,23 @@ import { folderTrailForNote } from '../structure/trail';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { getNotebookGraph } from '../../shared/api/backend';
+import { intlLocale } from '../../i18n/intl-locale';
+import {
+  getNotebookActivity,
+  getNotebookGraph,
+  type GraphActivityDto,
+} from '../../shared/api/backend';
+import type { FolderNode } from '../../shared/types/api';
+import {
+  assistantOf,
+  captionOf,
+  planOf,
+  slotFor,
+  type Assistant,
+  type GraphContext,
+  type Mark,
+  type Target,
+} from './activity';
 import { CloseIcon, GearIcon } from '../../shared/components/icons';
 import { COLLISION_GAP, linkLength, radiiOf } from './node-scale';
 
@@ -60,6 +76,29 @@ interface GraphNode extends SimulationNodeDatum {
 }
 
 type GraphLink = SimulationLinkDatum<GraphNode>;
+
+/** A line of the log of what the agents did (#495). */
+interface LogRow {
+  readonly id: string;
+  readonly at: string;
+  readonly who: string;
+  readonly slot: number;
+  readonly kind: 'read' | 'write';
+  readonly target: string;
+  readonly tool: string;
+}
+
+/** How often the page asks, while it is looked at, and once nothing happened for two minutes. */
+const ACTIVITY_EVERY_MS = 3_000;
+const ACTIVITY_QUIET_EVERY_MS = 15_000;
+const ACTIVITY_QUIET_AFTER_MS = 120_000;
+/** An assistant gives its colour back this long after its last activity. */
+const ASSISTANT_IDLE_MS = 4_500;
+/** One assistant's activities play one after the other, this far apart. */
+const ACTIVITY_STEP_MS = 700;
+/** How many assistants the notice names before it says how many more. */
+const ASSISTANTS_SHOWN = 3;
+const LOG_ROWS = 8;
 
 /** A value node is keyed `attribute:value`; the foot writes it `attribute: value`. */
 function pinnedLabel(id: string): string {
@@ -162,6 +201,16 @@ function attributesOf(nodes: GraphFile['nodes']): Attribute[] {
 }
 
 /** Which CSS custom property paints a given slot. */
+/** The name of a folder anywhere in the tree, or null when the tree holds none. */
+function findFolderName(folders: readonly FolderNode[], folderId: string): string | null {
+  for (const folder of folders) {
+    if (folder.id === folderId) return folder.name;
+    const inside = findFolderName(folder.children, folderId);
+    if (inside !== null) return inside;
+  }
+  return null;
+}
+
 function slotColor(slot: number): string {
   return slot < VALUE_SLOTS ? `var(--val-${slot + 1})` : 'var(--val-other)';
 }
@@ -183,7 +232,7 @@ function useTouchOnly(): boolean {
 }
 
 export function GraphPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const touchOnly = useTouchOnly();
   const navigate = useNavigate();
   const notebookId = useNotebookId();
@@ -228,6 +277,14 @@ export function GraphPage() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [data, setData] = useState<GraphFile | null>(null);
   const [failed, setFailed] = useState(false);
+  /**
+   * Bumped to read the graph again, when a projection says a write landed
+   * (#495): the drawing keeps where every note stood across the read.
+   */
+  const [reads, setReads] = useState(0);
+  /** The assistants working in the notebook now, newest first, and the last activities. */
+  const [assistants, setAssistants] = useState<readonly (Assistant & { doing: string })[]>([]);
+  const [log, setLog] = useState<readonly LogRow[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
     nodes: GraphNode[];
@@ -254,6 +311,12 @@ export function GraphPage() {
      */
     shown: Set<GraphNode> | null;
     redraw: (() => void) | null;
+    /** The nodes by identifier, which the marks of the activity point at. */
+    byId: Map<string, GraphNode>;
+    /** What the activity of the agents draws now (#495). */
+    marks: Mark[];
+    /** Starts the frames the marks need, when the simulation is not ticking. */
+    kick: (() => void) | null;
   }>({
     nodes: [],
     links: [],
@@ -264,6 +327,9 @@ export function GraphPage() {
     pinned: null,
     shown: null,
     redraw: null,
+    byId: new Map(),
+    marks: [],
+    kick: null,
   });
 
   /**
@@ -293,13 +359,201 @@ export function GraphPage() {
       })
       .catch(() => {
         // A failure is not an empty notebook. Saying so is the difference between
-        // "nobody has written anything" and "we could not read it".
-        if (live) setFailed(true);
+        // "nobody has written anything" and "we could not read it". A read
+        // again that fails leaves the drawing as it was.
+        if (live && reads === 0) setFailed(true);
       });
     return () => {
       live = false;
     };
-  }, [notebookId]);
+    // `reads` is what reads the graph again (#495).
+  }, [notebookId, reads]);
+
+  /*
+    The activity of the agents (#495): asked every few seconds while the page
+    is looked at, and every fifteen once nothing happened for two minutes. The
+    first answer is where the page starts from, and is not played: what an
+    agent did before the graph was opened is not news.
+  */
+  const latest = useRef({ data, drawn, structure });
+  latest.current = { data, drawn, structure };
+  useEffect(() => {
+    let stopped = false;
+    let cursor: string | null = null;
+    let started = false;
+    let timer = 0;
+    let quietSince = Date.now();
+    let rereading = 0;
+    const working = new Map<
+      string,
+      { name: string; slot: number; lastAt: number; nextAt: number; doing: string }
+    >();
+    /** Which assistant last wrote each note, whose colour the change it made is told in. */
+    const writerOf = new Map<string, number>();
+    const state = stateRef.current;
+
+    const publish = () =>
+      setAssistants(
+        [...working.entries()]
+          .sort(([, a], [, b]) => b.lastAt - a.lastAt)
+          .map(([key, each]) => ({ key, name: each.name, slot: each.slot, doing: each.doing })),
+      );
+
+    const say = (target: Target): string => {
+      switch (target.kind) {
+        case 'note':
+          return target.name ? `“${target.name}”` : t('graph.activity.aNote');
+        case 'newNote':
+          return t('graph.activity.newNote');
+        case 'folder':
+          return t('graph.activity.folder', { name: target.name });
+        case 'search':
+          return t('graph.activity.search', { query: target.query });
+        default:
+          return t(`graph.activity.${target.kind}`);
+      }
+    };
+
+    function handle(entries: readonly GraphActivityDto[]) {
+      const { data: graphData, drawn: on, structure: tree } = latest.current;
+      if (!graphData) return;
+      const graph: GraphContext = {
+        notes: graphData.nodes,
+        folderName: (folderId) => findFolderName(tree.folders, folderId),
+      };
+      const rows: LogRow[] = [];
+      let readAgain = false;
+      const now = performance.now();
+      for (const entry of entries) {
+        if (entry.kind === 'projected') {
+          // The projection holds the write now: the graph is read again, and
+          // what the write changed in the frontmatter is said under the note.
+          readAgain = true;
+          const caption = captionOf(entry);
+          if (caption && entry.noteId) {
+            state.marks.push({
+              kind: 'write',
+              nodeId: entry.noteId,
+              slot: writerOf.get(entry.noteId) ?? -1,
+              start: now + 400,
+              duration: 3_200,
+              caption,
+            });
+          }
+          continue;
+        }
+        const assistant = assistantOf(entry);
+        const plan = assistant ? planOf(entry, graph) : null;
+        if (!assistant || !plan) continue;
+        let held = working.get(assistant.key);
+        if (!held) {
+          const taken = [
+            ...on.map((each) => each.slot),
+            ...[...working.values()].map((w) => w.slot),
+          ];
+          held = { name: assistant.name, slot: slotFor(taken), lastAt: 0, nextAt: 0, doing: '' };
+          working.set(assistant.key, held);
+        }
+        const start = Math.max(now, held.nextAt);
+        held.nextAt = start + ACTIVITY_STEP_MS;
+        held.lastAt = Date.now() + (start - now);
+        const target = say(plan.target);
+        held.doing = t(
+          plan.kind === 'write' ? 'graph.activity.writing' : 'graph.activity.reading',
+          {
+            target,
+          },
+        );
+        if (plan.kind === 'write' && entry.noteId) writerOf.set(entry.noteId, held.slot);
+
+        const lit = [...plan.notes, ...plan.values.filter((id) => state.byId.has(id))];
+        let far = 1;
+        if (plan.wave) {
+          for (const id of lit) {
+            const node = state.byId.get(id);
+            far = Math.max(far, Math.hypot(node?.x ?? 0, node?.y ?? 0));
+          }
+        }
+        lit.forEach((id, index) => {
+          const node = state.byId.get(id);
+          const delay = plan.wave
+            ? (Math.hypot(node?.x ?? 0, node?.y ?? 0) / far) * 1_100
+            : lit.length > 1
+              ? index * 60
+              : 0;
+          state.marks.push({
+            kind: plan.kind,
+            nodeId: id,
+            slot: held.slot,
+            start: start + delay,
+            duration: plan.kind === 'write' ? 1_700 : lit.length > 1 ? 1_000 : 1_500,
+          });
+        });
+        rows.push({
+          id: entry.id,
+          at: entry.at,
+          who: assistant.name,
+          slot: held.slot,
+          kind: plan.kind,
+          target,
+          tool: entry.tool ?? '',
+        });
+      }
+      if (rows.length > 0) {
+        publish();
+        setLog((current) => [...rows.reverse(), ...current].slice(0, LOG_ROWS));
+      }
+      state.kick?.();
+      if (readAgain) {
+        window.clearTimeout(rereading);
+        rereading = window.setTimeout(() => setReads((count) => count + 1), 300);
+      }
+    }
+
+    async function ask() {
+      if (stopped) return;
+      if (!document.hidden) {
+        try {
+          const entries = await getNotebookActivity(notebookId, cursor);
+          if (stopped) return;
+          const last = entries.at(-1)?.id;
+          if (last) cursor = last;
+          if (started && entries.length > 0) {
+            quietSince = Date.now();
+            handle(entries);
+          }
+          started = true;
+        } catch {
+          // A missed answer is a missed pulse, never an error on the page.
+        }
+      }
+      const quiet = Date.now() - quietSince > ACTIVITY_QUIET_AFTER_MS;
+      timer = window.setTimeout(ask, quiet ? ACTIVITY_QUIET_EVERY_MS : ACTIVITY_EVERY_MS);
+    }
+    void ask();
+
+    // An assistant that stopped gives its colour back.
+    const idle = window.setInterval(() => {
+      let changed = false;
+      for (const [key, each] of working) {
+        if (Date.now() - each.lastAt > ASSISTANT_IDLE_MS) {
+          working.delete(key);
+          changed = true;
+        }
+      }
+      if (changed) publish();
+    }, 1_000);
+
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      window.clearTimeout(rereading);
+      window.clearInterval(idle);
+      state.marks = [];
+      setAssistants([]);
+      setLog([]);
+    };
+  }, [notebookId, t]);
 
   const attributes = useMemo(() => (data ? attributesOf(data.nodes) : []), [data]);
   /**
@@ -438,21 +692,49 @@ export function GraphPage() {
     }
     sizeCanvas();
 
-    const nodes = filtered.nodes.map((n) => ({ ...n }));
+    /*
+      A read again keeps the drawing (#495): every node that was there stays
+      where it stood, still, and one that is new starts beside the first node
+      it links to, so a note an agent creates comes in among the notes it cites
+      and nothing else jumps. Only the first read lays the graph from nothing.
+    */
+    const previous = new Map(state.nodes.map((node) => [node.id, node]));
+    const pinnedBefore = state.pinned?.id ?? null;
+    const nodes: GraphNode[] = filtered.nodes.map((n) => {
+      const was = previous.get(n.id);
+      return was?.x !== undefined && was.y !== undefined
+        ? { ...n, x: was.x, y: was.y, vx: 0, vy: 0 }
+        : { ...n };
+    });
+    const kept = nodes.some((node) => node.x !== undefined);
+    if (kept) {
+      for (const { source, target } of filtered.links) {
+        const [from, to] = [nodes[source], nodes[target]];
+        if (!from || !to) continue;
+        const [placed, unplaced] = from.x === undefined ? [to, from] : [from, to];
+        if (placed.x === undefined || unplaced.x !== undefined) continue;
+        unplaced.x = placed.x + placed.radius + 8 + Math.random() * 6;
+        unplaced.y = (placed.y ?? 0) - placed.radius - 6 - Math.random() * 6;
+      }
+    }
     const links: GraphLink[] = filtered.links.map((l) => ({ ...l }));
     state.nodes = nodes;
     state.links = links;
-    state.transform = {
-      x: width / 2,
-      y: height / 2,
-      k: Math.min(1, 600 / Math.sqrt(nodes.length) / 12),
-    };
+    state.byId = new Map(nodes.map((node) => [node.id, node]));
+    if (!kept) {
+      state.transform = {
+        x: width / 2,
+        y: height / 2,
+        k: Math.min(1, 600 / Math.sqrt(nodes.length) / 12),
+      };
+    }
     state.hovered = null;
     // The nodes were just rebuilt, so a pin from the previous drawing points
-    // at an object that is no longer on it.
+    // at an object that is no longer on it; it is held again below when the
+    // value is still there.
     state.pinned = null;
-    setPinnedId(null);
     state.shown = null;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -537,6 +819,8 @@ export function GraphPage() {
         ctx.fill();
       }
 
+      drawMarks(bySlot, colors);
+
       // The ring around the pinned node, so the drawing says whether this
       // group is being held or merely pointed at. It is drawn in ink and not
       // in the attribute's own colour, which would be a ring the same shade as
@@ -604,6 +888,92 @@ export function GraphPage() {
       }
     }
 
+    /*
+      What the agents do, over the drawing (#495). A read is one thin outline
+      opening from the note; a write is a double outline pulsing on it, with
+      strokes running out along its links, and what it changed in the
+      frontmatter written under it. Nothing is filled: a filled disc is a node,
+      and an attribute's value most of all. The colour is the assistant's.
+      With reduced motion the marks stand still and fade, and nothing runs.
+    */
+    function drawMarks(bySlot: string[], colors: { other: string; halo: string }) {
+      if (!ctx || state.marks.length === 0) return;
+      const now = performance.now();
+      state.marks = state.marks.filter((mark) => now < mark.start + mark.duration);
+      const still = reduced.matches;
+      const k = state.transform.k;
+      const shown = state.shown;
+      const ordered = [...state.marks].sort(
+        (a, b) => (a.kind === 'write' ? 1 : 0) - (b.kind === 'write' ? 1 : 0),
+      );
+      for (const mark of ordered) {
+        if (now < mark.start) continue;
+        const node = state.byId.get(mark.nodeId);
+        if (!node || (shown && !shown.has(node))) continue;
+        const p = Math.min(1, (now - mark.start) / mark.duration);
+        const nx = node.x ?? 0;
+        const ny = node.y ?? 0;
+        const color = bySlot[mark.slot] ?? colors.other;
+        ctx.strokeStyle = color;
+        if (mark.kind === 'read') {
+          ctx.globalAlpha = still ? 1 - p * 0.7 : 1 - p;
+          ctx.lineWidth = 1.5 / k;
+          ctx.beginPath();
+          ctx.arc(nx, ny, node.radius + (still ? 4 : 3 + p * 14) / k, 0, Math.PI * 2);
+          ctx.stroke();
+          continue;
+        }
+        const pulse = still ? 0 : Math.sin(p * Math.PI * 3) * 1.5;
+        ctx.globalAlpha = 1 - p * p;
+        ctx.lineWidth = 2 / k;
+        for (const gap of [3, 6.5]) {
+          ctx.beginPath();
+          ctx.arc(nx, ny, node.radius + (gap + pulse) / k, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (!still) {
+          const head = Math.min(1, p * 1.4);
+          const tail = Math.max(0, head - 0.2);
+          ctx.lineWidth = 1.5 / k;
+          ctx.beginPath();
+          for (const other of state.neighbors.get(node) ?? []) {
+            if (shown && !shown.has(other)) continue;
+            const dx = (other.x ?? 0) - nx;
+            const dy = (other.y ?? 0) - ny;
+            ctx.moveTo(nx + dx * tail, ny + dy * tail);
+            ctx.lineTo(nx + dx * head, ny + dy * head);
+          }
+          ctx.stroke();
+        }
+        if (mark.caption) {
+          const size = Math.max(10.5 / k, 4);
+          ctx.font = `600 ${size}px Inter, sans-serif`;
+          ctx.textBaseline = 'top';
+          ctx.textAlign = 'center';
+          const cy = ny + node.radius + 9 / k;
+          ctx.globalAlpha = p < 0.8 ? 1 : (1 - p) / 0.2;
+          ctx.lineWidth = 3 / k;
+          ctx.strokeStyle = colors.halo;
+          ctx.strokeText(mark.caption, nx, cy);
+          ctx.fillStyle = color;
+          ctx.fillText(mark.caption, nx, cy);
+          ctx.textAlign = 'start';
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /** The frames the marks need while the simulation is at rest. */
+    let frame = 0;
+    function animate() {
+      frame = 0;
+      draw();
+      if (state.marks.length > 0) frame = requestAnimationFrame(animate);
+    }
+    state.kick = () => {
+      if (!frame) frame = requestAnimationFrame(animate);
+    };
+
     // Held apart so holding a group can retune them: a group of forty in an
     // empty field wants more room between its nodes than one of six hundred.
     // A link is measured between the edges of its nodes (#275), so two large
@@ -625,6 +995,8 @@ export function GraphPage() {
       .force('y', forceY(0).strength(0.04))
       .force('collide', collideForce)
       .on('tick', draw);
+    // A read again only settles what moved; the first lays the whole graph.
+    if (kept) sim.alpha(0.15);
     state.sim = sim;
     state.redraw = draw;
 
@@ -888,6 +1260,16 @@ export function GraphPage() {
       rescope();
     }
 
+    // A value held before the read again is held again, if it is still there.
+    const heldAgain = pinnedBefore ? state.byId.get(pinnedBefore) : undefined;
+    if (heldAgain?.kind === 'value') {
+      state.pinned = heldAgain;
+      rescope();
+    } else {
+      setPinnedId(null);
+    }
+    if (state.marks.length > 0) state.kick();
+
     const resize = new ResizeObserver(() => {
       const w = parent?.clientWidth ?? width;
       const h = parent?.clientHeight ?? height;
@@ -912,6 +1294,8 @@ export function GraphPage() {
 
     return () => {
       sim.stop();
+      cancelAnimationFrame(frame);
+      state.kick = null;
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('mousedown', onDown);
       canvas.removeEventListener('mousemove', onMove);
@@ -999,6 +1383,61 @@ export function GraphPage() {
               </button>
             ))}
         </div>
+        {/*
+          Who is working in the notebook now, and what they did last (#495):
+          one line per assistant in its colour, the newest first, which is the
+          legend of the colours on the drawing; and the last activities.
+        */}
+        {assistants.length > 0 ? (
+          <div className="graph-activity" role="status" aria-live="polite">
+            {assistants.slice(0, ASSISTANTS_SHOWN).map((assistant) => (
+              <p
+                key={assistant.key}
+                className="graph-activity-who"
+                style={{ '--who': slotColor(assistant.slot) } as CSSProperties}
+              >
+                <span className="graph-activity-ring" aria-hidden="true" />
+                <span>
+                  <b>{assistant.name}</b> {assistant.doing}
+                </span>
+              </p>
+            ))}
+            {assistants.length > ASSISTANTS_SHOWN ? (
+              <p className="graph-activity-who">
+                {t('graph.activity.more', { count: assistants.length - ASSISTANTS_SHOWN })}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {log.length > 0 ? (
+          <section className="graph-activity-log" aria-label={t('graph.activity.log')}>
+            <h2>{t('graph.activity.log')}</h2>
+            <ol>
+              {log.map((row) => (
+                <li key={row.id} style={{ '--who': slotColor(row.slot) } as CSSProperties}>
+                  <time dateTime={row.at}>
+                    {new Date(row.at).toLocaleTimeString(intlLocale(i18n.language), {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </time>
+                  <span
+                    className={`graph-activity-ring${row.kind === 'write' ? ' is-write' : ''}`}
+                    aria-hidden="true"
+                  />
+                  <span className="graph-activity-what">
+                    <b>{row.who}</b>{' '}
+                    {t(row.kind === 'write' ? 'graph.activity.wrote' : 'graph.activity.read', {
+                      target: row.target,
+                    })}{' '}
+                    <code>{row.tool}</code>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
         {/*
           There used to be a legend here, a second panel repeating the name of
           every attribute beside its colour. It says nothing the switch above

@@ -12,6 +12,8 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UNIDENTIFIED_CONNECTOR } from '@memorysmithapp/svc-access/application/connectors';
+import { ProjectFiles } from '@memorysmithapp/svc-discovery/application/projections';
+import { dispatch } from '@memorysmithapp/svc-discovery/adapters/dispatch';
 import { buildTestApp, CONNECTOR_CLIENT_ID, SIGNED_WITH_IAM } from './wiring.js';
 
 type App = ReturnType<typeof buildTestApp>;
@@ -388,5 +390,126 @@ describe('the connector of a session', () => {
     expect(
       (await call('/access/connector', { token: proxyToken('proxy-unbound', 'jti-9') })).status,
     ).toBe(404);
+  });
+});
+
+describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () => {
+  async function project(): Promise<void> {
+    const projectors = {
+      note: harness.projectNote,
+      structure: harness.projectStructure,
+      files: new ProjectFiles(harness.discovery.graph),
+    };
+    for (const event of harness.events.published) {
+      await dispatch(projectors, {
+        eventId: event.eventId,
+        type: event.type,
+        occurredAt: event.occurredAt.toISOString(),
+        subscriptionId: event.subscriptionId.value,
+        subject: event.subject,
+        subjectId: event.subjectId,
+        authorship: event.authorship.toJSON(),
+        contentRef: event.contentRef ? event.contentRef.toJSON() : null,
+        payload: event.payload,
+      } as Parameters<typeof dispatch>[1]);
+    }
+    harness.events.published.length = 0;
+  }
+
+  type Entry = {
+    id: string;
+    kind: string;
+    tool?: string;
+    noteId?: string;
+    query?: string;
+    who?: { userId: string; client: string; person: string };
+    added?: Array<{ facet: string; value: string }>;
+    removed?: Array<{ facet: string; value: string }>;
+  };
+  const activityOf = async (notebookId: string, after = ''): Promise<Entry[]> =>
+    (
+      (await (
+        await call(`/discovery/notebooks/${notebookId}/activity${after ? `?after=${after}` : ''}`)
+      ).json()) as { entries: Entry[] }
+    ).entries;
+
+  it('records what a connector read or wrote, with its person and connector, and what a write changed once projected', async () => {
+    const where = await place();
+    const token = proxyToken('proxy-1', 'jti-1');
+    await bind({
+      grant: 'authorization_code',
+      accessToken: token,
+      connector: CLAUDE,
+      refreshTokenHash: null,
+    });
+    const created = (await (
+      await call(`/knowledge/notebooks/${where.notebookId}/notes`, {
+        method: 'POST',
+        token,
+        body: { folderId: where.folderId, content: '---\nname: Achado 12\nstatus: aberta\n---\n' },
+      })
+    ).json()) as { noteId: string };
+    await project();
+
+    const read = await call(`/discovery/notebooks/${where.notebookId}/activity`, {
+      method: 'POST',
+      token,
+      body: { kind: 'read', tool: 'search_notes', query: 'status:aberta', person: 'Owner' },
+    });
+    expect(read.status).toBe(204);
+    const wrote = await call(`/discovery/notebooks/${where.notebookId}/activity`, {
+      method: 'POST',
+      token,
+      body: {
+        kind: 'write',
+        tool: 'update_note',
+        noteId: created.noteId,
+        version: 2,
+        person: 'Owner',
+      },
+    });
+    expect(wrote.status).toBe(204);
+
+    const entries = await activityOf(where.notebookId);
+    // The projection of the creation says what the note's frontmatter took.
+    expect(entries[0]).toMatchObject({
+      kind: 'projected',
+      noteId: created.noteId,
+      added: [{ facet: 'status', value: 'aberta' }],
+      removed: [],
+    });
+    expect(entries[1]).toMatchObject({
+      kind: 'read',
+      tool: 'search_notes',
+      query: 'status:aberta',
+      who: { userId: 'user-owner', client: 'Claude', person: 'Owner' },
+    });
+    expect(entries[2]).toMatchObject({
+      kind: 'write',
+      tool: 'update_note',
+      noteId: created.noteId,
+    });
+    // A page that saw an entry asks for what came after it.
+    expect(await activityOf(where.notebookId, entries[1]?.id)).toHaveLength(1);
+  });
+
+  it('is never recorded for the interface, and nothing of it reaches the history (INV-06)', async () => {
+    const where = await place();
+    const refused = await call(`/discovery/notebooks/${where.notebookId}/activity`, {
+      method: 'POST',
+      body: { kind: 'read', tool: 'read_note' },
+    });
+    expect(refused.status).not.toBe(204);
+    expect(
+      (await activityOf(where.notebookId)).filter((entry) => entry.kind !== 'projected'),
+    ).toEqual([]);
+    expect(harness.events.published.filter((event) => /Activity|Read/.test(event.type))).toEqual(
+      [],
+    );
+  });
+
+  it('answers 404 to whoever cannot read the notebook (INV-09)', async () => {
+    const missing = '01J8X2K9QZ3M4N5P6R7S8T9V0A';
+    expect((await call(`/discovery/notebooks/${missing}/activity`)).status).toBe(404);
   });
 });

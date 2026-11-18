@@ -3605,3 +3605,85 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
     expect(called).toBe(false);
   });
 });
+
+describe('what an agent does is recorded for the notebook graph (#495, RN-AGT-072)', () => {
+  const NOTEBOOK = '01JBQ2X00000000000000000V1';
+  const recording = (fail = false) => {
+    const recorded: Array<{ notebook: string; activity: Record<string, unknown> }> = [];
+    return {
+      recorded,
+      discovery: {
+        recordActivity: async (
+          _caller: unknown,
+          notebook: string,
+          activity: Record<string, unknown>,
+        ) => {
+          if (fail) throw new Error('the activity route is down');
+          recorded.push({ notebook, activity });
+        },
+      },
+    };
+  };
+
+  it('records a read with its tool, its note and the person the connector acts for', async () => {
+    const { recorded, discovery } = recording();
+    const adapter = gateways({ discovery });
+    await adapter.call(
+      'read_note',
+      { notebook: NOTEBOOK, note: '01JBQ2X00000000000000000N1' },
+      { ...caller, email: 'heitor.rapcinski@example.com' },
+    );
+    expect(recorded).toEqual([
+      {
+        notebook: NOTEBOOK,
+        activity: expect.objectContaining({
+          kind: 'read',
+          tool: 'read_note',
+          noteId: '01JBQ2X00000000000000000N1',
+          person: 'Heitor',
+        }),
+      },
+    ]);
+  });
+
+  it('records a write once it succeeded, naming the note it created, and nothing for one refused', async () => {
+    const { recorded, discovery } = recording();
+    await gateways({ discovery }).call(
+      'create_note',
+      { notebook: NOTEBOOK, folder: '01JBQ2X00000000000000000F1', content: '---\nname: X\n---\n' },
+      caller,
+    );
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]?.activity).toMatchObject({ kind: 'write', tool: 'create_note' });
+    expect(typeof recorded[0]?.activity['noteId']).toBe('string');
+
+    recorded.length = 0;
+    await gateways({
+      discovery,
+      knowledge: {
+        createNote: async () => {
+          throw new GatewayError('VALIDATION', 'refused');
+        },
+      },
+    }).call(
+      'create_note',
+      { notebook: NOTEBOOK, folder: '01JBQ2X00000000000000000F1', content: '---\nname: X\n---\n' },
+      caller,
+    );
+    expect(recorded).toEqual([]);
+  });
+
+  it('records nothing for a tool that names no notebook, and a record that fails never fails the tool', async () => {
+    const quiet = recording();
+    await gateways({ discovery: quiet.discovery }).call('list_notebooks', {}, caller);
+    expect(quiet.recorded).toEqual([]);
+
+    const failing = recording(true);
+    const result = await gateways({ discovery: failing.discovery }).call(
+      'get_notebook_context',
+      { notebook: NOTEBOOK },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+  });
+});

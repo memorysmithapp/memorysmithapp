@@ -662,6 +662,23 @@ export interface DiscoveryGateway {
   ): Promise<RelatedNode>;
   backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteReference[]>;
   checkNotebook(caller: AgentCaller, notebookId: string): Promise<NotebookCheck>;
+  /**
+   * What the agent read or wrote, for the notebook's graph to show (#495).
+   * Optional: a gateway without it records nothing.
+   */
+  recordActivity?(caller: AgentCaller, notebookId: string, activity: AgentActivity): Promise<void>;
+}
+
+/** One read or write of a tool, as the graph shows it (#495). */
+export interface AgentActivity {
+  readonly kind: 'read' | 'write';
+  readonly tool: string;
+  readonly noteId?: string | undefined;
+  readonly folderId?: string | undefined;
+  readonly query?: string | undefined;
+  readonly version?: number | undefined;
+  /** How the connector names its person, for the screen. */
+  readonly person?: string | undefined;
 }
 
 export interface AuditGateway {
