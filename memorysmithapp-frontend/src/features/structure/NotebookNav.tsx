@@ -144,11 +144,11 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
           <NavItem to={guidanceAddress(notebookId)} icon={<GuidanceIcon />} child>
             {t('structure.guidance')}
           </NavItem>
-          <NavItem to={templatesAddress(notebookId)} icon={<TemplateIcon />} child>
-            {t('structure.templates')}
-          </NavItem>
           <NavItem to={foldersAddress(notebookId)} icon={<FolderIcon />} child>
             {t('structure.folders')}
+          </NavItem>
+          <NavItem to={templatesAddress(notebookId)} icon={<TemplateIcon />} child>
+            {t('structure.templates')}
           </NavItem>
         </div>
       ) : null}

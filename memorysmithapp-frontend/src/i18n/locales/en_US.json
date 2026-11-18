@@ -169,7 +169,7 @@
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "openNavigation": "Notebook navigation",
     "heading": "Notebook Context",
-    "contextParts": "Guidance, Templates and Folders",
+    "contextParts": "Guidance, Folders and Templates",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
     "noGuidanceWrite": "This notebook has no Guidance yet. Use the pencil to write one: it directs every agent that writes here.",

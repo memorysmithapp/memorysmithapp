@@ -571,7 +571,7 @@ test.describe('the pages of an account', () => {
       .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
     expect(
       leads.filter((href) => !href.startsWith('#')).map((href) => href.split('/').pop()),
-    ).toEqual(['guidance', 'templates', 'folders', 'attachments', 'tables', 'dashboards', 'graph']);
+    ).toEqual(['guidance', 'folders', 'templates', 'attachments', 'tables', 'dashboards', 'graph']);
     const widths = await stats.evaluateAll((cards) =>
       cards.map((card) => Math.round((card as unknown as { offsetWidth: number }).offsetWidth)),
     );
@@ -609,8 +609,24 @@ test.describe('the pages of an account', () => {
     await expect(cards).toHaveCount(3);
     await expect(cards.filter({ hasText: words.guidance })).toBeVisible();
     await expect(cards.filter({ hasText: words.folders })).toBeVisible();
-    // The sidebar leads to it, and to the overview above it.
+    // The folders come before the Templates that hang on them, here and in
+    // the sidebar (#488).
+    const order = ['guidance', 'folders', 'templates'];
+    const pageOf = (hrefs: string[]) => hrefs.map((href) => href.split('/').pop());
+    expect(
+      pageOf(
+        await cards.evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? '')),
+      ),
+    ).toEqual(order);
     const sidebar = app.locator('aside#notebook-sidebar');
+    expect(
+      pageOf(
+        await sidebar
+          .locator('#notebook-nav-parts a.nav-row')
+          .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? '')),
+      ),
+    ).toEqual(order);
+    // The sidebar leads to it, and to the overview above it.
     await expect(sidebar.locator('a.nav-row', { hasText: words.context })).toHaveClass(/active/);
     await sidebar.locator('a.nav-row', { hasText: words.overview }).click();
     await expect(app).toHaveURL(notebook.page());

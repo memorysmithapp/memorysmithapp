@@ -63,16 +63,16 @@ export function NotebookContextPage() {
             hint={t('structure.guidanceHint')}
           />
           <ContextCard
-            to={templatesAddress(notebookId)}
-            icon={<TemplateIcon />}
-            title={t('structure.templates')}
-            hint={t('structure.templatesHint', { count: templateCount })}
-          />
-          <ContextCard
             to={foldersAddress(notebookId)}
             icon={<FolderIcon />}
             title={t('structure.folders')}
             hint={t('structure.foldersHint')}
+          />
+          <ContextCard
+            to={templatesAddress(notebookId)}
+            icon={<TemplateIcon />}
+            title={t('structure.templates')}
+            hint={t('structure.templatesHint', { count: templateCount })}
           />
         </nav>
       </article>

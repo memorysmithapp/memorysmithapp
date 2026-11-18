@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The Notebook Context lists the folders before their Templates.** The notebook menu, the *Notebook Context* page and the notebook overview show Guidance, Folders, Templates, since a Template belongs to a folder. (#488)
+
 ## [0.19.0] - 2026-11-17
 
 ### Added

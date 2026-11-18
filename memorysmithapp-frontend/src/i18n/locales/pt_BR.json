@@ -169,7 +169,7 @@
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "openNavigation": "Navegação do caderno",
     "heading": "Contexto do caderno",
-    "contextParts": "Orientação, Modelos de pasta e Pastas",
+    "contextParts": "Orientação, Pastas e Modelos de pasta",
     "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo de pasta diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
     "noGuidanceWrite": "Este caderno ainda não tem Orientação. Use o lápis para escrever uma: ela orienta todo agente que escreve aqui.",
