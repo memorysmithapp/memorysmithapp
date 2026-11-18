@@ -3673,6 +3673,36 @@ describe('what an agent does is recorded for the notebook graph (#495, RN-AGT-07
     expect(recorded).toEqual([]);
   });
 
+  it('never leaves a refused record of a read unhandled, which would end the function', async () => {
+    const unhandled: unknown[] = [];
+    const listen = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', listen);
+    try {
+      const adapter = gateways({
+        discovery: {
+          // The core refuses at once, while the tool is still running.
+          recordActivity: () => Promise.reject(new GatewayError('FORBIDDEN', 'Notebook not found')),
+        },
+        knowledge: {
+          readNote: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            throw new GatewayError('NOT_FOUND', 'Note not found');
+          },
+        },
+      });
+      const result = await adapter.call(
+        'read_note',
+        { notebook: NOTEBOOK, note: '01JBQ2X00000000000000000N1' },
+        caller,
+      );
+      expect(result.isError).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', listen);
+    }
+  });
+
   it('records nothing for a tool that names no notebook, and a record that fails never fails the tool', async () => {
     const quiet = recording();
     await gateways({ discovery: quiet.discovery }).call('list_notebooks', {}, caller);

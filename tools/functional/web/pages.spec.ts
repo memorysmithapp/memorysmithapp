@@ -595,7 +595,7 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
   });
 
-  test('[page:/notebooks/:notebookId/context] opens the Context of a notebook: the trail and its three parts', async ({
+  test('[page:/notebooks/:notebookId/context] opens the Context of a notebook: the trail and its four parts (#493)', async ({
     app,
     notebook,
     words,
@@ -604,14 +604,15 @@ test.describe('the pages of an account', () => {
 
     const trail = app.locator('.notebook-bar .notebook-breadcrumb');
     await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
-    // Three parts of the same weight, each a way into a page of its own (#227).
+    // Parts of the same weight, each a way into a page of its own (#227), the
+    // style of the notebook the last (#493).
     const cards = app.locator('a.context-card');
-    await expect(cards).toHaveCount(3);
+    await expect(cards).toHaveCount(4);
     await expect(cards.filter({ hasText: words.guidance })).toBeVisible();
     await expect(cards.filter({ hasText: words.folders })).toBeVisible();
     // The folders come before the Templates that hang on them, here and in
     // the sidebar (#488).
-    const order = ['guidance', 'folders', 'templates'];
+    const order = ['guidance', 'folders', 'templates', 'style'];
     const pageOf = (hrefs: string[]) => hrefs.map((href) => href.split('/').pop());
     expect(
       pageOf(
@@ -1024,7 +1025,8 @@ test.describe('the pages of an account', () => {
       appLocale === 'pt_BR' ? '1.600' : '1,600',
     );
     await expect(app.locator('.dash-chart svg[data-kept="yes"]')).toHaveCount(1);
-    await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
+    // The row written above has a start and an end, so it is a third bar.
+    await expect(app.locator('.dash-gantt-row')).toHaveCount(3);
     await app.screenshot({
       animations: 'disabled',
       path: test.info().outputPath(`dashboard-${appLocale}.png`),
@@ -1085,10 +1087,14 @@ test.describe('the pages of an account', () => {
       const block = app.locator('.markdown .data-table table');
       await expect(block.locator('tbody tr')).toHaveCount(2);
 
-      // The cells of the block wrap and are ruled as the Markdown table's are,
-      // and its header scrolls with the note instead of sticking (#403).
+      // The cells of the block are ruled as the Markdown table's are, and its
+      // header scrolls with the note instead of sticking (#403). On the screen
+      // a cell of the block holds one line, a longer value ending in an
+      // ellipsis that its row shows whole (#491); the Markdown table wraps.
+      await expect(markdown.locator('td').first()).toHaveCSS('white-space', 'normal');
+      await expect(block.locator('td').first()).toHaveCSS('white-space', 'nowrap');
+      await expect(block.locator('td').first()).toHaveCSS('text-overflow', 'ellipsis');
       for (const cell of [markdown.locator('td').first(), block.locator('td').first()]) {
-        await expect(cell).toHaveCSS('white-space', 'normal');
         await expect(cell).toHaveCSS('border-left-style', 'solid');
       }
       await expect(block.locator('thead th').first()).toHaveCSS('position', 'static');
@@ -2182,10 +2188,12 @@ test.describe('the pages of an account', () => {
       const text = app.getByRole('radiogroup', { name: pt ? 'Texto' : 'Text' });
       const sample = app.locator('.style-sample .markdown p').first();
       await expect(sample).toHaveCSS('text-align', 'left');
-      await text.getByRole('radio', { name: pt ? 'Justificado' : 'Justified' }).click();
+      await text
+        .getByRole('radio', { name: pt ? 'Justificado' : 'Justified', exact: true })
+        .click();
       await app
         .getByRole('radiogroup', { name: pt ? 'Fonte' : 'Font' })
-        .getByRole('radio', { name: pt ? 'Com serifa' : 'Serif' })
+        .getByRole('radio', { name: pt ? 'Com serifa' : 'Serif', exact: true })
         .click();
       // The sample shows the choice before anything is saved.
       await expect(sample).toHaveCSS('text-align', 'justify');

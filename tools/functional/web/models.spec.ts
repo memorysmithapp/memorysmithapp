@@ -286,7 +286,8 @@ test.describe('notebook models', () => {
     // Its Context lists what it declares as a model, first of its parts (#422);
     // the Context is a page of its own, under the overview (#417).
     await app.locator('aside#notebook-sidebar a.nav-row[href$="/context"]').click();
-    await expect(app.locator('a.context-card')).toHaveCount(4);
+    // The model, the Guidance, the folders, the Templates and the style (#493).
+    await expect(app.locator('a.context-card')).toHaveCount(5);
     await expect(app.locator('a.context-card').first()).toHaveAttribute('href', /\/model$/);
     await app.goto(modelPage);
 

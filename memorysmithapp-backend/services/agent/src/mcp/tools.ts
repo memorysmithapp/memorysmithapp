@@ -919,13 +919,17 @@ export class McpToolAdapter {
       query: typeof args['query'] === 'string' ? args['query'] : undefined,
       person: personOf(caller),
     };
+    // Each record is answered for the moment it starts: a read's runs beside
+    // the tool, and a refusal that arrived before anything awaited it was an
+    // unhandled rejection, which ends the function and answered the agent 500.
     const pending: Array<Promise<void>> = [];
-    if (reads) pending.push(record(caller, notebookId, { kind: 'read', ...base }));
+    const settle = (recording: Promise<void>) => pending.push(recording.catch(() => undefined));
+    if (reads) settle(record(caller, notebookId, { kind: 'read', ...base }));
     try {
       const result = await run();
       if (!reads && !result.isError) {
         const answer = answerOf(result);
-        pending.push(
+        settle(
           record(caller, notebookId, {
             kind: 'write',
             ...base,
