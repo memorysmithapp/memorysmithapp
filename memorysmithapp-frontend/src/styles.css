@@ -7882,6 +7882,85 @@ button.attachment-thumb:focus-visible {
   }
 }
 
+/* The grid of a Table's rows (#491): its columns fixed from the first answer,
+   so no page and no order moves them; a cell of one line, a longer value
+   ending in an ellipsis, which the row's dialog shows whole; rows that fill a
+   shorter last page, so the pager stays where it was. */
+.tables-grid.is-fixed {
+  table-layout: fixed;
+}
+.tables-grid.is-fixed :is(th, td) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.tables-grid.is-fixed .tables-grid-sort {
+  max-width: 100%;
+}
+.tables-grid-sort-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tables-grid-row {
+  cursor: pointer;
+}
+.tables-grid-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tables-grid-filler {
+  visibility: hidden;
+}
+.tables-grid .tables-grid-filler td {
+  border-bottom-color: transparent;
+}
+.tables-grid tbody tr.tables-grid-filler:hover {
+  background: none;
+}
+
+/* A row shown whole (#491): each column's name over its value, which wraps
+   as long as it needs. */
+.table-row-dialog .ask-dialog-box {
+  width: min(36rem, calc(100vw - 2rem));
+}
+.table-row-fields {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+.table-row-field dt {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.table-row-field dd {
+  margin: 0.15rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The one pager (#491): an arrow and its word, the arrows alone on a phone. */
+.tables-grid-page-buttons .button {
+  gap: 0.35rem;
+}
+@media (max-width: 40rem) {
+  .pager-word {
+    display: none;
+  }
+}
+
+/* The pager of a `table` block, drawn by the renderer as the app's own quiet
+   small buttons (#491). */
+.markdown {
+  --markdown-pager-bg: var(--surface);
+  --markdown-pager-color: var(--text);
+  --markdown-pager-border: 1px solid var(--border);
+  --markdown-pager-radius: 8px;
+  --markdown-pager-padding: 0 11px;
+  --markdown-pager-font: var(--display);
+  --markdown-pager-hover-bg: var(--bg);
+}
+
 .tables-grid-pages {
   display: flex;
   justify-content: space-between;

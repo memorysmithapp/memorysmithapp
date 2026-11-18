@@ -13,6 +13,8 @@ issues each entry cites.
 
 ### Changed
 
+- **A table keeps its rows one height and its pager in one place.** On the Tables page and in a `table` block of a note, a cell holds one line and a longer value ends in an ellipsis; a click on a row, or Enter on it, opens the row whole in a dialog, each column's name over its full value, closed by its ×, Escape or a click outside it. A table's columns keep their widths as its pages turn and as it is sorted, and a shorter last page keeps the height of a full one, so the pager never moves. Every pager reads the same — a folder's list, a search, a dashboard's table, the Tables page and the `table` block: which rows of how many on the left, *‹ Previous* and *Next ›* on the right, the arrows alone on a phone. Printing is unchanged: every row whole, every value wrapping. (#491)
+
 - **The Notebook Context lists the folders before their Templates.** The notebook menu, the *Notebook Context* page and the notebook overview show Guidance, Folders, Templates, since a Template belongs to a folder. (#488)
 
 - **In Portuguese, a Template is now a *Modelo de nota*.** It names what it shapes, the notes of a folder, as a *Modelo de caderno* names the notebook it creates; *Modelo de pasta* read as if it created folders. The folder is said where it matters, as in *Modelo de nota da pasta Contas*. Nothing changes in English, in the API or in the connector. (#490)

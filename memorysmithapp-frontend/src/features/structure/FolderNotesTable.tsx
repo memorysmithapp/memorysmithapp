@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
+import { ListPager } from '../../shared/components/ListPager';
 import { useLiveInterval } from '../../shared/api/live';
 import { noteAddress } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -192,35 +193,13 @@ export function FolderNotesTable({
           </tbody>
         </table>
       </div>
-      {pages > 1 ? (
-        <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
-          <span>
-            {t('tables.showing', {
-              first: (current - 1) * PAGE_SIZE + 1,
-              last: Math.min(current * PAGE_SIZE, sorted.length),
-              total: sorted.length,
-            })}
-          </span>
-          <span className="tables-grid-page-buttons">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={current <= 1}
-              onClick={() => setPage(current - 1)}
-            >
-              {t('tables.previous')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={current >= pages}
-              onClick={() => setPage(current + 1)}
-            >
-              {t('tables.next')}
-            </button>
-          </span>
-        </nav>
-      ) : null}
+      <ListPager
+        page={current}
+        pages={pages}
+        total={sorted.length}
+        size={PAGE_SIZE}
+        onPage={setPage}
+      />
     </div>
   );
 }

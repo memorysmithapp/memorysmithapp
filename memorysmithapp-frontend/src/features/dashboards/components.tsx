@@ -20,6 +20,7 @@ import {
 } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import { NoteContent } from '../../shared/components/NoteContent';
+import { ListPager } from '../../shared/components/ListPager';
 import { queryKeys } from '../../shared/api/query-keys';
 import { ganttScale } from './gantt-scale';
 import { wbsLines, wbsTree } from './wbs';
@@ -863,35 +864,7 @@ export function RowsTable({
           </tbody>
         </table>
       </div>
-      {pages > 1 ? (
-        <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
-          <span>
-            {t('tables.showing', {
-              first: (page - 1) * size + 1,
-              last: Math.min(total, page * size),
-              total,
-            })}
-          </span>
-          <span className="tables-grid-page-buttons">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={page <= 1}
-              onClick={() => onPage(page - 1)}
-            >
-              {t('tables.previous')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={page >= pages}
-              onClick={() => onPage(page + 1)}
-            >
-              {t('tables.next')}
-            </button>
-          </span>
-        </nav>
-      ) : null}
+      <ListPager page={page} pages={pages} total={total} size={size} onPage={onPage} />
     </>
   );
 }

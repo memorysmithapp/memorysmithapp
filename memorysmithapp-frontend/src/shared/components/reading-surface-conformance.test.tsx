@@ -234,6 +234,23 @@ const EXPECTED: Record<string, (html: string) => void> = {
     // The delimiter row is structure and never a row of its own.
     expect(html).not.toContain('---');
   },
+  'table-justified': (html) => {
+    // The specification's own delimiter: a table, its column justified, and
+    // the `;` never reaching the page (#492).
+    expect(html).toContain('<table');
+    expect(html).toMatch(/text-align:\s*justify/);
+    expect(html).not.toContain(';---;');
+    expect(html).toContain('wikilink');
+  },
+  'style-block': (html) => {
+    // A passage in its own style: the fence and its options leave the page,
+    // and what the block holds is drawn inside it, its link still a link (#492).
+    expect(html).toContain('style-block');
+    expect(html).not.toContain(':::');
+    expect(html).not.toContain('text: justify');
+    expect(html).toContain('Ata da assembleia');
+    expect(html).toContain('wikilink');
+  },
   strikethrough: (html) => {
     // Two tildes and only two. The example carries both halves on one line
     // since specification v0.4.0, which is the point: `~~revoked~~` is struck and

@@ -1,7 +1,15 @@
 import type { TableRequest } from '@memorysmithapp/markdown-renderer';
 import { answerTableBlock } from '../api/table-block';
 import { useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -19,6 +27,7 @@ import {
   type LinkChoices,
   type NoteMode,
   type NoteStrings,
+  type TableRowView,
 } from '@memorysmithapp/markdown-renderer';
 import { FILE_MIME_TYPES, rendersAs, type NotebookFileDto } from '@memorysmithapp/contracts';
 import '@memorysmithapp/markdown-renderer/styles.css';
@@ -43,6 +52,7 @@ import { effectiveTheme, usePreferences } from '../store/preferences';
 import { useWriteStatus } from '../store/write-status';
 import { fileKindKey } from './file-kind';
 import { useTaskWrite, type TaskWriter } from './TaskListWriter';
+import { TableRowDialog } from './TableRowDialog';
 
 /** What the page draws where the renderer draws the frontmatter (#300). */
 const NoteHeader = createContext<ReactNode>(null);
@@ -114,11 +124,26 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     no: t('note.propertyFalse'),
     footnotes: t('note.footnotes'),
     footnoteBack: (number) => t('note.footnoteBack', { number }),
-    tableRows: (count) => t('note.tableRows', { count }),
-    tablePage: (page, pages) => t('note.tablePage', { page, pages }),
-    tablePrevious: t('note.tablePrevious'),
-    tableNext: t('note.tableNext'),
+    // The footer of a `table` block reads as the app's own pager (#491).
+    tableShowing: (first, last, total) => t('tables.showing', { first, last, total }),
+    tablePrevious: t('tables.previous'),
+    tableNext: t('tables.next'),
     tableTotal: t('note.tableTotal'),
+    // A table printed as an appendix (#494): a `table` block by its table, a
+    // Markdown table, which has no name, by its place among the note's.
+    tableAppendix: ({ number, table, markdownTable }) =>
+      t('note.tableAppendix', {
+        number,
+        name: table ?? t('note.tableNumbered', { number: markdownTable }),
+      }),
+    tableAppendixReference: ({ number, table, markdownTable }) =>
+      t('note.tableAppendixReference', {
+        number,
+        name:
+          table === null
+            ? t('note.tableNumbered', { number: markdownTable })
+            : t('note.tableNamed', { table }),
+      }),
     tableEmpty: t('note.tableEmpty'),
     tableSortBy: (column) => t('note.tableSortBy', { column }),
     tableProblem: (code, table) => t(`note.tableProblem.${code}`, { table: table ?? '' }),
@@ -332,6 +357,10 @@ export function NoteContent({
   const language = i18n.language;
   const strings = useMemo(() => noteStrings(t, intlLocale(language)), [t, language]);
 
+  /** A row of a `table` block shown whole, in the app's own dialog (#491). */
+  const [row, setRow] = useState<TableRowView | null>(null);
+  const openTableRow = useCallback((view: TableRowView) => setRow(view), []);
+
   /**
    * The notes a target no single note answers may lead to, which only
    * Discovery knows, because only it reads the aliases (RN-DSC-046).
@@ -468,6 +497,7 @@ export function NoteContent({
     <NoteHeader.Provider value={header ?? null}>
       <NoteBody
         queryTable={queryTable}
+        openTableRow={openTableRow}
         printing={printing}
         markdown={editing?.mode === 'edit' ? editing.markdown : text}
         resolve={resolve}
@@ -503,6 +533,16 @@ export function NoteContent({
             }
           : {})}
       />
+      {row ? (
+        <TableRowDialog
+          table={row.table}
+          fields={row.columns.map((column, index) => ({
+            name: column.name,
+            value: row.values[index] ?? '',
+          }))}
+          onClose={() => setRow(null)}
+        />
+      ) : null}
     </NoteHeader.Provider>
   );
 }

@@ -19,8 +19,12 @@ export function useListPage<T>(
 }
 
 /**
- * The pager of the list of a folder, word for word (#438): which rows of how
- * many it shows, and Previous and Next. Nothing at all for a list of one page.
+ * The one pager of the product (#438, #491): which rows of how many it shows
+ * on the left, and Previous and Next on the right, each an arrow and its word,
+ * the arrows alone on a phone. A folder's list, a history, the Tables page and
+ * the `table` block of a note (drawn by the renderer in the same structure,
+ * through the `--markdown-pager-*` properties) all read the same. Nothing at
+ * all for a list of one page.
  */
 export function ListPager({
   page,
@@ -28,12 +32,15 @@ export function ListPager({
   total,
   size = LIST_PAGE,
   onPage,
+  holdNext = false,
 }: {
   page: number;
   pages: number;
   total: number;
   size?: number;
   onPage: (page: number) => void;
+  /** Next waits, as while the next page of a search is still being read. */
+  holdNext?: boolean;
 }) {
   const { t } = useTranslation();
   if (pages <= 1) return null;
@@ -52,16 +59,24 @@ export function ListPager({
           className="button is-quiet is-small"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
+          aria-label={t('tables.previous')}
         >
-          {t('tables.previous')}
+          <span aria-hidden="true">‹</span>
+          <span className="pager-word" aria-hidden="true">
+            {t('tables.previous')}
+          </span>
         </button>
         <button
           type="button"
           className="button is-quiet is-small"
-          disabled={page >= pages}
+          disabled={page >= pages || holdNext}
           onClick={() => onPage(page + 1)}
+          aria-label={t('tables.next')}
         >
-          {t('tables.next')}
+          <span className="pager-word" aria-hidden="true">
+            {t('tables.next')}
+          </span>
+          <span aria-hidden="true">›</span>
         </button>
       </span>
     </nav>

@@ -57,8 +57,12 @@ export const FORMATTING_USES: Readonly<Record<string, string>> = {
   'list-bullet': 'Items with no order among them',
   'task-list': 'What is still to be done, which a person can tick on the page',
   table: 'A comparison, or the same few fields across several items',
+  'table-justified':
+    'A table column of long text set justified; anywhere but MemorySmith the whole table reads as text',
   'table-block': 'Rows the notebook keeps in a Table, shown in a note through a query, paged',
   callout: 'A rule, a warning or a decision a reader must not miss',
+  'style-block':
+    "A passage that differs from the notebook's style, such as a centered title or a justified clause; never HTML",
   'block-quote': 'A passage quoted from a source, word for word',
   mermaid: 'A flow, a sequence or how the parts of something relate, drawn instead of described',
   'math-inline': 'A formula inside a sentence',
