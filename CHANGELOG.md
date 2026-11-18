@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **A passage of a note can differ from its notebook's style, and a table column can be justified.** A `:::{style}` block sets what it holds in its own face, `sans` or `serif`, and aligns its headings, its text and its tables left, centered, right or justified; justified text hyphenates in your language. `;---;` in a table's delimiter row justifies that column; outside MemorySmith such a table reads as text. Both are drawn on the screen, in the editor and in print, and the editor writes them: *Style* on its toolbar wraps the selection in a block or changes the block the cursor is in, and *Justify* on a table's controls justifies the column. The serif face is Source Serif 4. An agent asked to center a title or justify a passage writes the block, never HTML. (#492)
+
 ### Changed
 
 - **A table keeps its rows one height and its pager in one place.** On the Tables page and in a `table` block of a note, a cell holds one line and a longer value ends in an ellipsis; a click on a row, or Enter on it, opens the row whole in a dialog, each column's name over its full value, closed by its ×, Escape or a click outside it. A table's columns keep their widths as its pages turn and as it is sorted, and a shorter last page keeps the height of a full one, so the pager never moves. Every pager reads the same — a folder's list, a search, a dashboard's table, the Tables page and the `table` block: which rows of how many on the left, *‹ Previous* and *Next ›* on the right, the arrows alone on a phone. Printing is unchanged: every row whole, every value wrapping. (#491)

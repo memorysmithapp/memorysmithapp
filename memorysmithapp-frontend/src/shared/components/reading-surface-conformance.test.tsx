@@ -250,6 +250,9 @@ const EXPECTED: Record<string, (html: string) => void> = {
     expect(html).not.toContain('text: justify');
     expect(html).toContain('Ata da assembleia');
     expect(html).toContain('wikilink');
+    // Justified text hyphenates in the reader's language, which the block
+    // carries for the browser (#492).
+    expect(html).toMatch(/class="style-block"[^>]*lang="[a-z]{2}-[A-Z]{2}"/);
   },
   strikethrough: (html) => {
     // Two tildes and only two. The example carries both halves on one line

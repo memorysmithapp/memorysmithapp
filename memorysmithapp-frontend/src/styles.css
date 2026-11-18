@@ -7928,8 +7928,10 @@ button.attachment-thumb:focus-visible {
 }
 
 /* The pager of a `table` block, drawn by the renderer as the app's own quiet
-   small buttons (#491). */
+   small buttons (#491), and the serif face a note's style or a `:::{style}`
+   block may choose: Source Serif 4, decided by the owner (#492, #493). */
 .markdown {
+  --markdown-font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --markdown-pager-bg: var(--surface);
   --markdown-pager-color: var(--text);
   --markdown-pager-border: 1px solid var(--border);
