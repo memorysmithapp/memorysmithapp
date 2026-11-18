@@ -176,6 +176,8 @@
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
+    "style": "Style",
+    "styleHint": "The font and alignment of the notes, and how they print",
     "noTemplates": "No folder in this notebook declares a Template.",
     "templatesPageHint_one": "Each folder may declare a suggested layout for its notes. {{count}} folder of this notebook declares one, shown below; the server never validates a note against it.",
     "templatesPageHint_other": "Each folder may declare a suggested layout for its notes. {{count}} folders of this notebook declare one, each shown below; the server never validates a note against them.",
@@ -270,25 +272,54 @@
     "print": "Print",
     "toolbar": "Printing",
     "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
+    "styleLink": "Change how this notebook prints",
+    "download": "Download PDF",
+    "downloading": "Making the PDF…",
+    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+  },
+  "style": {
+    "intro": "How every note of this notebook looks on the screen and on paper, for everybody who reads it. A passage of one note that has to differ uses a :::{style} block in that note.",
+    "introReader": "How every note of this notebook looks on the screen and on paper. Only whoever maintains the notebook changes its style.",
+    "screen": "On the screen and on paper",
+    "print": "When printed",
+    "font": "Font",
+    "fonts": {
+      "sans": "Sans serif",
+      "serif": "Serif"
+    },
+    "headings": "Headings",
+    "text": "Text",
+    "tables": "Tables",
+    "tablesHint": "For the columns that declare no alignment of their own.",
+    "align": {
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "justify": "Justified"
+    },
     "properties": "Properties",
     "placement": {
       "cover": "Cover page",
       "end": "At the end",
       "none": "None"
     },
-    "tables": "Wide tables",
-    "fit": {
-      "wrap": "Wrap the text",
-      "shrink": "Shrink to fit"
-    },
     "orientation": "Orientation",
     "orient": {
       "portrait": "Portrait",
       "landscape": "Landscape"
     },
-    "download": "Download PDF",
-    "downloading": "Making the PDF…",
-    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+    "printTables": "Wide tables",
+    "fit": {
+      "wrap": "Wrap the text",
+      "shrink": "Shrink to fit"
+    },
+    "save": "Save style",
+    "saving": "Saving…",
+    "saved": "Style saved.",
+    "unsaved": "Unsaved changes.",
+    "undo": "Undo",
+    "sampleLabel": "A note in this style",
+    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n| Stage | Status | Amount |\n|---|---|--:|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n"
   },
   "common": {
     "loading": "Loading…",
@@ -1343,6 +1374,7 @@
     "change": {
       "NotebookCreated": "Notebook created",
       "NotebookRenamed": "Notebook renamed",
+      "NotebookStyled": "Notebook style set",
       "GuidanceUpdated": "Guidance written",
       "GuidanceDeleted": "Guidance deleted",
       "FolderAdded": "Folder added",

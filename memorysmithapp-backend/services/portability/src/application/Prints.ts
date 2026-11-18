@@ -4,9 +4,9 @@
  * The print tab previews the pages a note prints on, and the browser prints
  * them — but not every device has a PDF printer in its dialog, or a person who
  * knows that "Save as PDF" is one. So the server makes the file: a Chromium of
- * its own opens THE SAME page the tab previews, as the person who asked, with
- * the choices they made, and saves its pages as a PDF. One page drawn once,
- * whoever prints it, so the file and the preview never differ.
+ * its own opens THE SAME page the tab previews, as the person who asked, laid
+ * as the notebook's style says (#493), and saves its pages as a PDF. One page
+ * drawn once, whoever prints it, so the file and the preview never differ.
  *
  * It is a job and not a request, as an export is (RN-PRT-019): starting a
  * browser and drawing a note does not fit in the 29 seconds the function behind
@@ -27,13 +27,6 @@ import {
   type Result,
 } from '@memorysmithapp/kernel';
 
-/** Where the properties go, how wide tables fit and which way the sheet lies (#258). */
-export interface PrintChoices {
-  readonly placement: 'cover' | 'end' | 'none';
-  readonly tables: 'wrap' | 'shrink';
-  readonly orientation: 'portrait' | 'landscape';
-}
-
 /**
  * What the renderer is handed. The page is opened as the person who asked, so
  * it reads only what they read: the token of their session travels with the
@@ -45,7 +38,6 @@ export interface PrintJob {
   readonly notebookId: string;
   readonly noteId: string;
   readonly accessToken: string;
-  readonly choices: PrintChoices;
   /** The language the page is drawn in, as the person reads it. */
   readonly locale: string;
 }
@@ -93,7 +85,6 @@ export class StartPrint {
     notebookId: string;
     noteId: string;
     accessToken: string;
-    choices: PrintChoices;
     locale: string;
   }): Promise<Result<{ printId: string }, DomainError>> {
     const noteId = canonicalUlid(input.noteId);
@@ -108,7 +99,6 @@ export class StartPrint {
       notebookId: input.notebookId,
       noteId,
       accessToken: input.accessToken,
-      choices: input.choices,
       locale: input.locale,
     });
     return ok({ printId });

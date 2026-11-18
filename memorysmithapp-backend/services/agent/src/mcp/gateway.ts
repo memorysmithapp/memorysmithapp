@@ -35,6 +35,8 @@ import type {
   FinishedUploadDto,
   FinishingUploadDto,
   NoteOrder,
+  NotebookStyle,
+  NotebookStylePatch,
   PreviewDto,
   TransferDto,
   UploadStatusDto,
@@ -555,7 +557,16 @@ export interface KnowledgeGateway {
   contextRevisions(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<{ guidance: string | null; structure: string }>;
+  ): Promise<{ guidance: string | null; structure: string; style?: NotebookStyle }>;
+  /**
+   * How the notebook's notes are drawn and printed (#493, RN-KNW-092): the
+   * settings named change, the others keep theirs. Answers the style as it now is.
+   */
+  setStyle(
+    caller: AgentCaller,
+    notebookId: string,
+    style: NotebookStylePatch,
+  ): Promise<NotebookStyle>;
   /** Without an anchor the note goes last in its folder. */
   createNote(
     caller: AgentCaller,

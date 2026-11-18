@@ -36,6 +36,7 @@ import type {
   PutGuidance,
   RenameNotebook,
   SetNotebookRoleLimit,
+  StyleNotebook,
 } from '../../../application/notebooks.js';
 import type {
   CreateFolder,
@@ -57,7 +58,12 @@ import type {
   UpdateNote,
 } from '../../../application/notes.js';
 import type { DeleteFile, KeepFile, LinkToFile, ListFiles } from '../../../application/files.js';
-import { NOTE_MESSAGE_MAX_LENGTH, noteContextSchema, ulidSchema } from '@memorysmithapp/contracts';
+import {
+  NOTE_MESSAGE_MAX_LENGTH,
+  noteContextSchema,
+  notebookStylePatchSchema,
+  ulidSchema,
+} from '@memorysmithapp/contracts';
 import { registerTableRoutes, type TableUseCases } from './table-routes.js';
 import { registerDashboardRoutes, type DashboardUseCases } from './dashboard-routes.js';
 import {
@@ -91,6 +97,7 @@ export interface KnowledgeUseCases
   readonly listNotebooks: (request: KnowledgeRequest) => ListNotebooks;
   readonly getNotebook: (request: KnowledgeRequest) => GetNotebook;
   readonly renameNotebook: (request: KnowledgeRequest) => RenameNotebook;
+  readonly styleNotebook: (request: KnowledgeRequest) => StyleNotebook;
   readonly deleteNotebook: (request: KnowledgeRequest) => DeleteNotebook;
   readonly putGuidance: (request: KnowledgeRequest) => PutGuidance;
   readonly deleteGuidance: (request: KnowledgeRequest) => DeleteGuidance;
@@ -231,6 +238,39 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
         by: author.value,
       }),
     );
+  });
+
+  /**
+   * How the notebook's notes are drawn and printed (#493, RN-KNW-092): the
+   * settings named change, the others keep what they were, and the answer is
+   * the style as it now is. Whoever maintains the notebook sets it.
+   */
+  app.patch('/notebooks/:v/style', async (c) => {
+    const request = c.get('knowledge');
+    const author = request.authorship;
+    if (!author.ok) return fail(c, author.error);
+    const notebookId = parseNotebookId(c.req.param('v'));
+    if (!notebookId.ok) return fail(c, notebookId.error);
+    const parsed = notebookStylePatchSchema.safeParse(await c.req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return fail(
+        c,
+        DomainError.validation(
+          "A style takes font (sans, serif); headings, text and tables (left, center, right, justify); properties (cover, end, none); orientation (portrait, landscape); printTables (wrap, shrink, appendices); and appendixOrientation (portrait, landscape, or null for the document's)",
+          { issues: parsed.error.issues.map((issue) => issue.path.join('.')).join(', ') },
+        ),
+      );
+    }
+    const styled = await useCases.styleNotebook(request).execute({
+      ctx: request.ctx,
+      notebookId: notebookId.value,
+      // Only the settings the body names: one it leaves out keeps its value.
+      style: Object.fromEntries(
+        Object.entries(parsed.data).filter(([, value]) => value !== undefined),
+      ),
+      by: author.value,
+    });
+    return present(c, styled, (style) => ({ style }));
   });
 
   /**

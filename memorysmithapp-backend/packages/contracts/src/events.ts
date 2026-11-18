@@ -10,6 +10,7 @@
 
 import { z } from 'zod';
 import { NOTE_ORDERS } from './note-order.js';
+import { notebookStyleSchema } from './notebook-style.js';
 import {
   authorshipSchema,
   contentRefSchema,
@@ -89,6 +90,7 @@ export const domainEventTypeSchema = z.enum([
   'FolderDescribed',
   // How a folder orders its notes, by hand or by name (#262).
   'FolderNotesOrdered',
+  'NotebookStyled',
   'FolderMoved',
   'FolderReordered',
   'FolderRemoved',
@@ -332,6 +334,12 @@ export const folderNotesOrderedPayload = z.object({
   notebookId: ulidSchema,
   folderId: ulidSchema,
   noteOrder: z.enum(NOTE_ORDERS),
+});
+
+/** How the notebook's notes are drawn and printed, whole, as it now is (#493). */
+export const notebookStyledPayload = z.object({
+  notebookId: ulidSchema,
+  style: notebookStyleSchema,
 });
 
 export const folderMovedPayload = z.object({
@@ -607,6 +615,7 @@ export const eventPayloadSchemas = {
   FolderRenamed: folderRenamedPayload,
   FolderDescribed: folderDescribedPayload,
   FolderNotesOrdered: folderNotesOrderedPayload,
+  NotebookStyled: notebookStyledPayload,
   FolderMoved: folderMovedPayload,
   FolderReordered: folderReorderedPayload,
   FolderRemoved: folderRemovedPayload,

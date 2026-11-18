@@ -981,7 +981,7 @@ describe('Portability answers over the API', () => {
       folders: unknown[];
       notebook: { guidance: string | null };
     };
-    expect(document.documentVersion).toBe('1.6');
+    expect(document.documentVersion).toBe('1.7');
     expect(document.history).toBeUndefined();
     expect(document.notes).toEqual([]);
     expect(document.folders).toEqual([]);
@@ -1023,6 +1023,8 @@ describe('Portability answers over the API', () => {
     const { notebookId, notes } = await seed();
     const started = await call(`/portability/notebooks/${notebookId}/notes/${notes['lei']}/pdf`, {
       method: 'POST',
+      // How the page is laid is the notebook's style, which the page reads (#493);
+      // what an older tab still sends is left out.
       body: { placement: 'end', tables: 'shrink', orientation: 'landscape', locale: 'pt_BR' },
     });
     expect(started.status).toBe(202);
@@ -1032,9 +1034,9 @@ describe('Portability answers over the API', () => {
       printId,
       notebookId,
       accessToken: TOKEN,
-      choices: { placement: 'end', tables: 'shrink', orientation: 'landscape' },
       locale: 'pt_BR',
     });
+    expect(job).not.toHaveProperty('choices');
 
     const polled = async () =>
       (await (await call(`/portability/prints/${printId}`)).json()) as {
@@ -1060,7 +1062,7 @@ describe('Portability answers over the API', () => {
       `/portability/notebooks/${notebookId}/notes/${notes['lei']}/pdf`,
       {
         method: 'POST',
-        body: { orientation: 'diagonal' },
+        body: { locale: 'fr_FR' },
       },
     );
     expect(refusedChoice.status).toBe(400);
@@ -1168,6 +1170,44 @@ describe('Portability answers over the API', () => {
     };
     expect(imported.folders[0]?.noteOrder).toBe('alphabetical');
     expect(await listed(job.notebookId, imported.folders[0]?.folderId)).toEqual(byName);
+  });
+
+  it("carries the notebook's style through an export, and an import writes it (#493)", async () => {
+    const { notebookId } = await seed();
+    const style = {
+      font: 'serif',
+      text: 'justify',
+      printTables: 'appendices',
+      orientation: 'landscape',
+    };
+    await call(`/knowledge/notebooks/${notebookId}/style`, { method: 'PATCH', body: style });
+
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exportKey = [...harness.archives.keys()].pop() ?? '';
+    const document = JSON.parse(
+      readZip(harness.archives.get(exportKey) as Buffer)['notebook.json'] ?? '{}',
+    ) as { notebook: { style?: Record<string, unknown> } };
+    expect(document.notebook.style).toMatchObject(style);
+
+    const prepared = (await (await call('/portability/imports', { method: 'POST' })).json()) as {
+      uploadKey: string;
+    };
+    harness.uploads.set(prepared.uploadKey, harness.archives.get(exportKey) as Buffer);
+    const job = await imported_(prepared.uploadKey, 'Normas e Legislacao (com estilo)');
+    const imported = (await (await call(`/knowledge/notebooks/${job.notebookId}`)).json()) as {
+      style: Record<string, unknown>;
+    };
+    expect(imported.style).toMatchObject(style);
+  });
+
+  it('carries no style for a notebook that set none, and its import keeps the default (#493)', async () => {
+    const { notebookId } = await seed();
+    await call(`/portability/notebooks/${notebookId}/export`, { method: 'POST' });
+    const exportKey = [...harness.archives.keys()].pop() ?? '';
+    const document = JSON.parse(
+      readZip(harness.archives.get(exportKey) as Buffer)['notebook.json'] ?? '{}',
+    ) as { notebook: { style?: unknown } };
+    expect(document.notebook.style).toBeUndefined();
   });
 
   /**

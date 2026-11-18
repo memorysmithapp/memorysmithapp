@@ -249,6 +249,7 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'and which folders carry a template. Read this before writing anything: the guidance ' +
       'declares the conventions of this notebook, the folder descriptions say what belongs where, ' +
       'and the identifiers are what you pass to get_template, create_note and list_notes. It ' +
+      'says the style its notes are drawn and printed in, which set_style changes, and ' +
       'ends with the revisions of what you read, to declare as `context` when you write a note.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
@@ -373,6 +374,41 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         noteOrder: { ...noteOrderArgument, description: 'Required. manual or alphabetical.' },
       },
       ['notebook', 'folder', 'noteOrder'],
+    ),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'set_style',
+    title: "Set the notebook's style",
+    description:
+      'Sets how every note of a notebook is drawn and printed, for everybody who reads it. ' +
+      'Pass only the settings to change; the others keep theirs. font is sans or serif. ' +
+      'headings, text (paragraphs and lists) and tables (the columns that declare no alignment ' +
+      'of their own) are each left, center, right or justify. properties is where a printed ' +
+      'note shows its properties: cover (a page of their own before the text), end (a page ' +
+      'after it) or none. orientation is the printed page, portrait or landscape. printTables ' +
+      'is how a printed note fits its tables: wrap their text, shrink them to the page, or ' +
+      'appendices (each table printed whole at the end of the note, a reference in its place). ' +
+      'appendixOrientation is the orientation of those appendices, or null for the ' +
+      "document's. A passage of one note that differs is a :::{style} block in that note, " +
+      'never this. Answers the style as it now is.',
+    inputSchema: object(
+      {
+        notebook: notebookArgument,
+        font: { type: 'string', enum: ['sans', 'serif'] },
+        headings: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
+        text: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
+        tables: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
+        properties: { type: 'string', enum: ['cover', 'end', 'none'] },
+        orientation: { type: 'string', enum: ['portrait', 'landscape'] },
+        printTables: { type: 'string', enum: ['wrap', 'shrink', 'appendices'] },
+        appendixOrientation: {
+          type: ['string', 'null'],
+          enum: ['portrait', 'landscape', null],
+          description: "portrait or landscape, or null for the document's orientation.",
+        },
+      },
+      ['notebook'],
     ),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },

@@ -10,16 +10,14 @@ import { attachmentNamed } from '../src/adapters/s3.js';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
 const NOTE = '01JBQ2X00000000000000000N1';
-const choices = { placement: 'cover', tables: 'wrap', orientation: 'portrait' } as const;
 
 describe('a print is started as the person who asks for it', () => {
-  it('hands the renderer the note, the choices and the token, and answers the print', async () => {
+  it('hands the renderer the note, the language and the token, and answers the print', async () => {
     const queue = new InMemoryPrintQueue();
     const started = await new StartPrint(queue, SUBSCRIPTION).execute({
       notebookId: '01JBQ2X00000000000000000V1',
       noteId: NOTE.toLowerCase(),
       accessToken: 'eyJ.token.of-the-session',
-      choices,
       locale: 'pt_BR',
     });
     expect(started.ok).toBe(true);
@@ -28,7 +26,6 @@ describe('a print is started as the person who asks for it', () => {
       subscriptionId: SUBSCRIPTION,
       noteId: NOTE,
       accessToken: 'eyJ.token.of-the-session',
-      choices,
       locale: 'pt_BR',
     });
   });
@@ -36,7 +33,7 @@ describe('a print is started as the person who asks for it', () => {
   it('starts nothing for a note that is not an identifier, or without a session', async () => {
     const queue = new InMemoryPrintQueue();
     const print = new StartPrint(queue, SUBSCRIPTION);
-    const base = { notebookId: 'x', choices, locale: 'en_US' };
+    const base = { notebookId: 'x', locale: 'en_US' };
     expect((await print.execute({ ...base, noteId: 'nota', accessToken: 't' })).ok).toBe(false);
     expect((await print.execute({ ...base, noteId: NOTE, accessToken: '' })).ok).toBe(false);
     expect(queue.sent).toHaveLength(0);

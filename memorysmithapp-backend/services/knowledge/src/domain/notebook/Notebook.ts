@@ -46,6 +46,7 @@ import {
   type ShortText,
   NOTEBOOK_LIMITS,
   type NotebookName,
+  NotebookStyle,
 } from '../values.js';
 import { Folder } from './Folder.js';
 import { FolderTree } from './FolderTree.js';
@@ -81,6 +82,8 @@ export class Notebook {
     private _updatedAt: Instant,
     /** Set means soft-deleted: the notebook is out of every listing, intact. */
     private _deletedAt: Instant | null,
+    /** How its notes are drawn and printed (#493). */
+    private _style: NotebookStyle = NotebookStyle.DEFAULT,
   ) {}
 
   static create(input: {
@@ -142,6 +145,7 @@ export class Notebook {
     createdBy: Authorship;
     updatedAt: Instant;
     deletedAt: Instant | null;
+    style?: NotebookStyle | undefined;
   }): Notebook {
     return new Notebook(
       input.id,
@@ -159,6 +163,7 @@ export class Notebook {
       input.createdBy,
       input.updatedAt,
       input.deletedAt,
+      input.style ?? NotebookStyle.DEFAULT,
     );
   }
 
@@ -186,6 +191,10 @@ export class Notebook {
   }
   get description(): ShortText {
     return this._description;
+  }
+  /** How its notes are drawn and printed (#493). */
+  get style(): NotebookStyle {
+    return this._style;
   }
   /** Whether a Guidance exists for this notebook, as the tree query saw it. */
   get hasGuidance(): boolean {
@@ -248,6 +257,22 @@ export class Notebook {
       notebookId: this.id.value,
       name: name.value,
       slug: slug.value.value,
+    });
+    return ok();
+  }
+
+  /**
+   * Sets how the notebook's notes are drawn and printed (#493, RN-KNW-092).
+   * A style that says what the notebook already says changes nothing and
+   * records nothing.
+   */
+  restyle(style: NotebookStyle, by: Authorship): Result<void, DomainError> {
+    if (NotebookStyle.same(style, this._style)) return ok();
+    this._style = { ...style };
+    this.touch(by.at);
+    this.record('NotebookStyled', 'NOTEBOOK', this.id.value, by, {
+      notebookId: this.id.value,
+      style: { ...style },
     });
     return ok();
   }

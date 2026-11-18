@@ -20,7 +20,12 @@ import type {
   TableRepository,
   DashboardRepository,
 } from '@memorysmithapp/svc-knowledge/domain';
-import { presentCell, presentDefinition, tableSchema } from '@memorysmithapp/svc-knowledge/domain';
+import {
+  NotebookStyle,
+  presentCell,
+  presentDefinition,
+  tableSchema,
+} from '@memorysmithapp/svc-knowledge/domain';
 import type { ExportSource } from '@memorysmithapp/svc-portability/application';
 import type { ExportInput } from '@memorysmithapp/svc-portability/domain';
 
@@ -127,6 +132,10 @@ export class KnowledgeExportSource implements ExportSource {
       notebookName: notebook.name.value,
       notebookDescription: notebook.description.value,
       guidance,
+      // Only a style that differs from the default is carried (#493).
+      ...(NotebookStyle.same(notebook.style, NotebookStyle.DEFAULT)
+        ? {}
+        : { style: { ...notebook.style } }),
       folders: folders.map((folder, index) => ({
         folderId: folder.id.value,
         parentFolderId: folder.parentFolderId?.value ?? null,

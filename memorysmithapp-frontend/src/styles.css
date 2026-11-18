@@ -7046,20 +7046,11 @@ button.attachment-thumb:focus-visible {
   padding: 0.75rem 0;
   background: var(--bg);
 }
-.print-choice {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.print-choice-label {
-  color: var(--text-soft);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.75rem;
-}
+/* The bar holds a hint and the actions: how the note is laid is the
+   notebook's style (#493), which whoever maintains it reaches from the hint. */
 .print-hint {
-  flex: 1 1 100%;
-  order: 1;
+  flex: 1 1 18rem;
+  align-self: center;
   margin: 0;
   color: var(--text-soft);
   font-size: 0.875rem;
@@ -7068,13 +7059,102 @@ button.attachment-thumb:focus-visible {
   display: flex;
   gap: 0.5rem;
 }
+
+/* The style of a notebook (#493): its settings beside a note drawn in them,
+   one under the other on a narrow screen. */
+.style-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+.style-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.style-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.style-group legend {
+  padding: 0 0.35rem;
+  margin-left: -0.35rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.style-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.style-setting-label {
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+.style-setting-hint {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+/* A reader sees what is chosen, as it is, and cannot change it. */
+.style-page .segmented > button[aria-checked='true']:disabled {
+  opacity: 1;
+}
+.style-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+.style-status {
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.style-sample {
+  position: sticky;
+  top: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.style-sample-label {
+  margin: 0 0 0.75rem;
+  color: var(--text-soft);
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 960px) {
+  .style-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .style-sample {
+    position: static;
+  }
+}
 .print-actions .button {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-/* A phone keeps every choice, as icons: each still has its name, for the
+/* A phone keeps every action, as icons: each still has its name, for the
    tooltip and for a screen reader. */
 @media (max-width: 720px) {
   .print-page {
@@ -7084,11 +7164,10 @@ button.attachment-thumb:focus-visible {
     justify-content: center;
     align-items: center;
   }
-  .print-choice-label,
   .print-hint {
     display: none;
   }
-  .print-toolbar :is(.segmented-label, .print-action-label) {
+  .print-toolbar .print-action-label {
     position: absolute;
     width: 1px;
     height: 1px;

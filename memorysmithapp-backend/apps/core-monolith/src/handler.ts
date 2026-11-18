@@ -69,6 +69,7 @@ import {
   ListNotebooks,
   PutGuidance,
   RenameNotebook,
+  StyleNotebook,
   SetNotebookRoleLimit,
 } from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
@@ -429,6 +430,7 @@ const knowledgeUseCases: KnowledgeUseCases = {
   listNotebooks: (request) => new ListNotebooks(buildKnowledge(infra, request.subscription)),
   getNotebook: (request) => new GetNotebook(buildKnowledge(infra, request.subscription)),
   renameNotebook: (request) => new RenameNotebook(buildKnowledge(infra, request.subscription)),
+  styleNotebook: (request) => new StyleNotebook(buildKnowledge(infra, request.subscription)),
   // Deleting a notebook takes its shares, both sides (RN-ACC-028).
   deleteNotebook: (request) =>
     new DeleteNotebookAndShares(
@@ -536,6 +538,7 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
     {
       createNotebook: new CreateNotebook(knowledge),
       putGuidance: new PutGuidance(knowledge),
+      styleNotebook: new StyleNotebook(knowledge),
       createFolder: new CreateFolder(knowledge),
       putTemplate: new PutTemplate(knowledge),
       restoreFolderNumber: new RestoreFolderNumber(knowledge),

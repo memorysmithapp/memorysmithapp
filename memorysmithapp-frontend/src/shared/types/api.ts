@@ -1,7 +1,7 @@
 // DTO shapes mirror the future internal API.
 // The seed adapter fills them today; the HTTP client will fill them tomorrow.
 
-import type { SearchHitDto } from '@memorysmithapp/contracts';
+import type { NotebookStyle, SearchHitDto } from '@memorysmithapp/contracts';
 
 export interface NotebookSummary {
   id: string;
@@ -65,6 +65,8 @@ export interface NotebookStructure {
    * by its profile, a member by role.
    */
   permissions: { writeContent: boolean; maintain: boolean; administer: boolean };
+  /** How its notes are drawn and printed, for everybody who reads it (#493). */
+  style: NotebookStyle;
   /** min(papel de assinatura, teto do caderno), owner acima dos dois. */
   effectiveRole: string;
   folders: FolderNode[];

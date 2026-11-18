@@ -176,6 +176,8 @@
     "templates": "Modelos de nota",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
+    "style": "Estilo",
+    "styleHint": "A fonte e o alinhamento das notas, e como elas são impressas",
     "templatesPageHint_one": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pasta deste caderno declara um, mostrado abaixo; o servidor nunca valida uma nota contra ele.",
     "templatesPageHint_other": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pastas deste caderno declaram um, cada um mostrado abaixo; o servidor nunca valida uma nota contra eles.",
     "noTemplates": "Nenhuma pasta deste caderno declara um Modelo de nota.",
@@ -270,25 +272,54 @@
     "print": "Imprimir",
     "toolbar": "Impressão",
     "hint": "Baixar PDF entrega o arquivo pronto; ao imprimir, “Salvar como PDF” também gera um.",
+    "styleLink": "Mudar como este caderno imprime",
+    "download": "Baixar PDF",
+    "downloading": "Gerando PDF…",
+    "downloadFailed": "O PDF não pôde ser gerado agora. Tente de novo, ou imprima e escolha “Salvar como PDF”."
+  },
+  "style": {
+    "intro": "Como todas as notas deste caderno aparecem na tela e na impressão, para todo mundo que as lê. Um trecho de uma nota que precise ser diferente usa um bloco :::{style} na própria nota.",
+    "introReader": "Como todas as notas deste caderno aparecem na tela e na impressão. Só quem mantém o caderno muda o estilo.",
+    "screen": "Na tela e no papel",
+    "print": "Na impressão",
+    "font": "Fonte",
+    "fonts": {
+      "sans": "Sem serifa",
+      "serif": "Com serifa"
+    },
+    "headings": "Títulos",
+    "text": "Texto",
+    "tables": "Tabelas",
+    "tablesHint": "Vale para as colunas que não declaram alinhamento próprio.",
+    "align": {
+      "left": "Esquerda",
+      "center": "Centro",
+      "right": "Direita",
+      "justify": "Justificado"
+    },
     "properties": "Propriedades",
     "placement": {
       "cover": "Folha de rosto",
       "end": "No final",
       "none": "Nenhuma"
     },
-    "tables": "Tabelas largas",
-    "fit": {
-      "wrap": "Quebrar o texto",
-      "shrink": "Reduzir para caber"
-    },
     "orientation": "Orientação",
     "orient": {
       "portrait": "Retrato",
       "landscape": "Paisagem"
     },
-    "download": "Baixar PDF",
-    "downloading": "Gerando PDF…",
-    "downloadFailed": "O PDF não pôde ser gerado agora. Tente de novo, ou imprima e escolha “Salvar como PDF”."
+    "printTables": "Tabelas largas",
+    "fit": {
+      "wrap": "Quebrar o texto",
+      "shrink": "Reduzir para caber"
+    },
+    "save": "Salvar estilo",
+    "saving": "Salvando…",
+    "saved": "Estilo salvo.",
+    "unsaved": "Alterações não salvas.",
+    "undo": "Desfazer",
+    "sampleLabel": "Uma nota neste estilo",
+    "sample": "# Relatório da obra\n\nA reforma do salão começou em março e segue o cronograma aprovado em assembleia. O síndico acompanha cada etapa e envia um resumo mensal a todos os condôminos, com o que foi feito, o que falta e quanto já se gastou.\n\n## Próximos passos\n\n- Trocar o piso até o fim do mês\n- Pintar as paredes depois da vistoria\n\n| Etapa | Situação | Valor |\n|---|---|--:|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n"
   },
   "common": {
     "loading": "Carregando…",
@@ -1346,6 +1377,7 @@
     "change": {
       "NotebookCreated": "Caderno criado",
       "NotebookRenamed": "Caderno renomeado",
+      "NotebookStyled": "Estilo do caderno definido",
       "GuidanceUpdated": "Orientação escrita",
       "GuidanceDeleted": "Orientação excluída",
       "FolderAdded": "Pasta adicionada",

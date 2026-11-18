@@ -12,6 +12,7 @@
  * when none does, every note carrying it as an alias (§5.2, steps 7 and 8).
  */
 
+import { DEFAULT_NOTEBOOK_STYLE } from '@memorysmithapp/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FolderNode, NotebookStructure } from '../types/api';
 
@@ -59,6 +60,7 @@ const structure: NotebookStructure = {
   guidance: null,
   guidanceRevision: null,
   structureRevision: '1',
+  style: DEFAULT_NOTEBOOK_STYLE,
   permissions: { writeContent: true, maintain: true, administer: true },
   effectiveRole: 'owner',
   folders: [

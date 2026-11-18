@@ -7,6 +7,11 @@
 // call names the notebook it reads with the identifier the address carried and
 // never goes through the listing to find it.
 
+import {
+  notebookStyleOf,
+  type NotebookStyle,
+  type NotebookStylePatch,
+} from '@memorysmithapp/contracts';
 import type {
   NotebookTableUsesDto,
   PreviewDto,
@@ -475,6 +480,8 @@ export async function getNotebookStructure(notebookId: string): Promise<Notebook
     guidanceRevision: detail.guidance?.revision.versionId ?? null,
     structureRevision: detail.structureRevision,
     permissions: detail.permissions,
+    // An API older than the style answers none, which is the default (#493).
+    style: notebookStyleOf(detail.style),
     effectiveRole: detail.effectiveRole,
     folders: nest(detail.folders, notes),
   };
@@ -772,6 +779,21 @@ export async function setNoteOrder(
     method: 'PATCH',
     body: { noteOrder },
   });
+}
+
+/**
+ * Sets how a notebook's notes are drawn and printed (#493): the settings named
+ * change, the others keep theirs, and the answer is the style as it now is.
+ */
+export async function setNotebookStyle(
+  notebookId: string,
+  style: NotebookStylePatch,
+): Promise<NotebookStyle> {
+  const answered = await request<{ style: unknown }>(`/knowledge/notebooks/${notebookId}/style`, {
+    method: 'PATCH',
+    body: style,
+  });
+  return notebookStyleOf(answered.style);
 }
 
 /**

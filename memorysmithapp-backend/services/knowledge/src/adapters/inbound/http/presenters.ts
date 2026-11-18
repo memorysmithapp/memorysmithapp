@@ -61,6 +61,7 @@ export function notebookToDetail(
     guidance: guidance ? { content: guidance.content, revision: guidance.ref.toJSON() } : null,
     structureRevision: String(notebook.version),
     permissions: { ...permissions },
+    style: { ...notebook.style },
   };
 }
 

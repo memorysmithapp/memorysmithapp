@@ -16,7 +16,7 @@
  * loaded here, by the one page that uses it.
  */
 
-import type { Orientation } from '../../shared/store/print-layout';
+import type { PrintOrientation as Orientation } from '@memorysmithapp/contracts';
 
 /** The sheet and its margins: the same numbers the stylesheet lays the drawn note at. */
 export const PAGE_MARGINS = '18mm 16mm 20mm';

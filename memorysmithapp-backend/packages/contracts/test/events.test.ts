@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseEvent, eventEnvelopeSchema } from '../src/events.js';
 import { notebookDetailSchema } from '../src/api/knowledge.js';
+import { DEFAULT_NOTEBOOK_STYLE } from '../src/notebook-style.js';
 import { sessionSchema } from '../src/api/access.js';
 
 const SUBSCRIPTION = '01JBQ2X0000000000000000000';
@@ -133,6 +134,7 @@ describe('API DTOs', () => {
       guidance: null,
       structureRevision: '3',
       permissions: { writeContent: true, maintain: true, administer: false },
+      style: DEFAULT_NOTEBOOK_STYLE,
     });
     expect(detail.folders[0]?.hasTemplate).toBe(true);
     expect(detail.folders[0]?.noteOrder).toBe('alphabetical');

@@ -6,12 +6,14 @@ import {
   CopyIcon,
   FolderIcon,
   GuidanceIcon,
+  StyleIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
 import {
   foldersAddress,
   guidanceAddress,
   modelAddress,
+  styleAddress,
   templatesAddress,
 } from '../../shared/api/note-address';
 import { useIsModel } from '../../shared/api/is-model';
@@ -29,8 +31,9 @@ function countTemplates(folders: FolderNode[]): number {
 }
 
 // The Notebook Context, in its navigable form: the same object
-// get_notebook_context returns as Markdown, as three parts of the same weight —
-// the Guidance, the Templates and the folders — each a page of its own (#227);
+// get_notebook_context returns as Markdown, as parts of the same weight — the
+// Guidance, the folders, the Templates and the style its notes are drawn and
+// printed in (#493) — each a page of its own (#227);
 // in a notebook declared as a model, what it declares as a model is the first
 // of them, as it is in the sidebar (#373, #422).
 export function NotebookContextPage() {
@@ -73,6 +76,12 @@ export function NotebookContextPage() {
             icon={<TemplateIcon />}
             title={t('structure.templates')}
             hint={t('structure.templatesHint', { count: templateCount })}
+          />
+          <ContextCard
+            to={styleAddress(notebookId)}
+            icon={<StyleIcon />}
+            title={t('structure.style')}
+            hint={t('structure.styleHint')}
           />
         </nav>
       </article>

@@ -515,13 +515,11 @@ export function createPortabilityRoutes(
         DomainError.validation('That is not a print this page makes', body.error.issues),
       );
     }
-    const { locale, ...choices } = body.data;
     const started = await useCases.startPrint(request).execute({
       notebookId,
       noteId: c.req.param('n') ?? '',
       accessToken: request.accessToken,
-      choices,
-      locale,
+      locale: body.data.locale,
     });
     return started.ok
       ? c.json({ printId: started.value.printId, status: 'running' }, 202)

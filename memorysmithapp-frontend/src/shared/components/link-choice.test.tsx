@@ -10,6 +10,7 @@
  * browser, by the functional suite.
  */
 
+import { DEFAULT_NOTEBOOK_STYLE } from '@memorysmithapp/contracts';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -61,6 +62,7 @@ const STRUCTURE = {
   guidance: null,
   guidanceRevision: null,
   structureRevision: '1',
+  style: DEFAULT_NOTEBOOK_STYLE,
   permissions: { writeContent: true, maintain: true, administer: true },
   effectiveRole: 'OWNER',
   folders: [

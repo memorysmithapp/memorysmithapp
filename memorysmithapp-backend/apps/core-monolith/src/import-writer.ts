@@ -15,10 +15,12 @@
 import type { Authorship, DomainError, Result } from '@memorysmithapp/kernel';
 import { FolderId, ok, NotebookId, type SubscriptionId } from '@memorysmithapp/kernel';
 import type { NotebookWriter } from '@memorysmithapp/svc-portability/application/import';
+import { notebookStyleOf } from '@memorysmithapp/contracts';
 import type {
   CreateNotebook,
   DeleteNotebook,
   PutGuidance,
+  StyleNotebook,
 } from '@memorysmithapp/svc-knowledge/application/notebooks';
 import type {
   CreateFolder,
@@ -38,6 +40,7 @@ import type { ContentStore, RequestContext } from '@memorysmithapp/svc-knowledge
 export interface KnowledgeWriteUseCases {
   readonly createNotebook: CreateNotebook;
   readonly putGuidance: PutGuidance;
+  readonly styleNotebook: StyleNotebook;
   readonly createFolder: CreateFolder;
   readonly putTemplate: PutTemplate;
   readonly restoreFolderNumber: RestoreFolderNumber;
@@ -99,6 +102,24 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
       by: input.by,
     });
     return written.ok ? ok() : written;
+  }
+
+  async setStyle(input: {
+    notebookId: string;
+    style: Readonly<Record<string, string | null>>;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>> {
+    const notebookId = NotebookId.create(input.notebookId);
+    if (!notebookId.ok) return notebookId;
+    // The document was validated against the published schema, and a style it
+    // carried whole is read whole: a setting it lacks is the default (#493).
+    const styled = await this.useCases.styleNotebook.execute({
+      ctx: this.ctx,
+      notebookId: notebookId.value,
+      style: notebookStyleOf(input.style),
+      by: input.by,
+    });
+    return styled.ok ? ok() : styled;
   }
 
   async createFolder(input: {

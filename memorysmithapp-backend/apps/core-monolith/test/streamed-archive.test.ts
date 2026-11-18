@@ -150,7 +150,7 @@ describe('an archive of format 1.6', () => {
       files: DocumentFile[];
     };
 
-    expect(document.documentVersion).toBe('1.6');
+    expect(document.documentVersion).toBe('1.7');
     // The document carries what each file is and where its bytes are, and
     // never the bytes (RN-PRT-092).
     expect(document.files).toEqual([

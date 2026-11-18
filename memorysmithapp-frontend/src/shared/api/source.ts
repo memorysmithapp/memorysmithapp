@@ -22,6 +22,8 @@ import type {
   UploadStatusDto,
   TransferDto,
   TransferListDto,
+  NotebookStyle,
+  NotebookStylePatch,
 } from '@memorysmithapp/contracts';
 import * as backend from './backend';
 import { linkTargetAddress, noteAddress } from './note-address';
@@ -427,6 +429,13 @@ export function putTemplate(
  * The two Content Slots that are not notes are deleted on their own, and their
  * parent stays (RN-KNW-045).
  */
+export function setNotebookStyle(
+  notebookId: string,
+  style: NotebookStylePatch,
+): Promise<NotebookStyle> {
+  return backend.setNotebookStyle(notebookId, style);
+}
+
 export function setNoteOrder(
   notebookId: string,
   folderId: string,

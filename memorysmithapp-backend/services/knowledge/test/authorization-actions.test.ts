@@ -37,6 +37,8 @@ const EXPECTED: Record<string, readonly string[]> = {
   RestoreFolderNumber: ['maintain'],
   PutGuidance: ['maintain'],
   DeleteGuidance: ['maintain'],
+  // How its notes are drawn and printed, beside its Guidance (#493, RN-KNW-063).
+  StyleNotebook: ['maintain'],
   RenameNotebook: ['administer'],
   DeleteNotebook: ['administer'],
   SetNotebookRoleLimit: ['administer'],

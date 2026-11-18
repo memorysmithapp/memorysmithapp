@@ -372,6 +372,40 @@ export function LandscapeIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/* A notebook's style (#493): its face, and how its lines are aligned. */
+
+export function StyleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m3 15 4-11 4 11" />
+      <path d="M4.5 11h5" />
+      <path d="M14 8h7" />
+      <path d="M14 12h7" />
+      <path d="M3 20h18" />
+    </svg>
+  );
+}
+
+export function SansIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m5 20 7-16 7 16" />
+      <path d="M8 14h8" />
+    </svg>
+  );
+}
+
+export function SerifIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m6 20 6-16 6 16" />
+      <path d="M8.5 14h7" />
+      <path d="M3.5 20h5" />
+      <path d="M15.5 20h5" />
+    </svg>
+  );
+}
+
 export function InfoIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

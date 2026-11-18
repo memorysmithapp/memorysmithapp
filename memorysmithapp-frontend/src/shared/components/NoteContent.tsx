@@ -1,6 +1,6 @@
 import type { TableRequest } from '@memorysmithapp/markdown-renderer';
 import { answerTableBlock } from '../api/table-block';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
   useCallback,
@@ -27,6 +27,7 @@ import {
   type LinkChoices,
   type NoteMode,
   type NoteStrings,
+  type NoteStyle,
   type TableRowView,
 } from '@memorysmithapp/markdown-renderer';
 import { FILE_MIME_TYPES, rendersAs, type NotebookFileDto } from '@memorysmithapp/contracts';
@@ -37,6 +38,7 @@ import {
   folderOfNote,
   getNote,
   getNotebookFiles,
+  getNotebookStructure,
   linkToFile,
   noteNamesIn,
   notesReaching,
@@ -271,7 +273,13 @@ export function NoteContent({
   editing,
   header,
   printing = false,
+  noteStyle,
 }: {
+  /**
+   * The style to draw the note in, over the notebook's: the Style page draws
+   * its sample in what is being chosen (#493). Left out, the notebook's.
+   */
+  noteStyle?: NoteStyle;
   /** Drawn for paper: a `table` block carries every row its filter returns (§7.15). */
   printing?: boolean;
   raw: string;
@@ -313,6 +321,21 @@ export function NoteContent({
     (request: TableRequest) => answerTableBlock(notebookId, request),
     [notebookId],
   );
+  // The notebook's style (#493), from the structure every page of the notebook
+  // already reads: the face and the alignments are the note's defaults, which
+  // a `:::{style}` block of the note overrides for its passage.
+  const notebookStyle = useQuery({
+    queryKey: queryKeys.notebookStructure(notebookId),
+    queryFn: () => getNotebookStructure(notebookId),
+    enabled: notebookId !== '' && noteStyle === undefined,
+    select: (structure) => structure.style,
+  }).data;
+  const drawnStyle = useMemo<NoteStyle | undefined>(() => {
+    const style = noteStyle ?? notebookStyle;
+    return style
+      ? { font: style.font, headings: style.headings, text: style.text, tables: style.tables }
+      : undefined;
+  }, [noteStyle, notebookStyle]);
   const theme = usePreferences((state) => state.theme);
   const paper = usePreferences((state) => state.paper);
   const scheme = effectiveTheme(theme, paper);
@@ -498,6 +521,7 @@ export function NoteContent({
       <NoteBody
         queryTable={queryTable}
         openTableRow={openTableRow}
+        {...(drawnStyle ? { noteStyle: drawnStyle } : {})}
         printing={printing}
         markdown={editing?.mode === 'edit' ? editing.markdown : text}
         resolve={resolve}

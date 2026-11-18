@@ -78,7 +78,7 @@ async function printed(api: Api, notebookId: string, noteId: string): Promise<Pr
   const started = await api.ok<PrintDto>(
     'POST',
     `/portability/notebooks/${notebookId}/notes/${noteId}/pdf`,
-    { placement: 'end', tables: 'wrap', orientation: 'landscape', locale: 'pt_BR' },
+    { locale: 'pt_BR' },
   );
   expect(started.status).toBe('running');
   return eventually(

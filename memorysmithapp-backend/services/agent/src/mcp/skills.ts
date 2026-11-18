@@ -269,6 +269,11 @@ reader, and state each convention once.
   deleting the original, which destroys its history for good.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
   limit of notes: what bounds a notebook is the storage of its subscription.
+- **How its notes look is the notebook's style**, not the guidance: the face,
+  the alignment of headings, text and tables, and how a note prints — where its
+  properties go, which way the page lies, how wide tables fit. When the person
+  says how the notes should look or print, set it once with \`set_style\`, and
+  keep a \`:::{style}\` block for the one passage of a note that differs.
 
 ## Properties and tags
 

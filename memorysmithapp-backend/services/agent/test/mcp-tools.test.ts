@@ -27,7 +27,7 @@ import {
 } from '@memorysmithapp/contracts';
 import { whoAmI } from '../src/mcp/whoami.js';
 import { PRODUCTION_DEFAULT } from '../src/mcp/environment.js';
-import { UPLOAD_PROBE } from '@memorysmithapp/contracts';
+import { DEFAULT_NOTEBOOK_STYLE, UPLOAD_PROBE } from '@memorysmithapp/contracts';
 import type { VerifiedAgentToken } from '../src/auth.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -71,6 +71,10 @@ function gateways(overrides: Record<string, unknown> = {}) {
     nextNumber: async () => 42,
     recentNotes: async () => [],
     contextRevisions: async () => ({ guidance: 'g1', structure: '7' }),
+    setStyle: async (_caller: unknown, _notebook: string, style: Record<string, unknown>) => ({
+      ...DEFAULT_NOTEBOOK_STYLE,
+      ...style,
+    }),
     readNote: async () => ({
       noteId: '01JBQ2X00000000000000000N1',
       name: 'Lei 14.133',
@@ -224,6 +228,8 @@ describe('The tool catalog is the public contract', () => {
       'reorder_folder',
       // How a folder orders its notes, by hand or by name (#262).
       'set_note_order',
+      // How the notebook's notes are drawn and printed (#493).
+      'set_style',
       // A folder renamed, redescribed or moved after it exists (#278).
       'update_folder',
       'delete_folder',
@@ -322,6 +328,7 @@ describe('The tool catalog is the public contract', () => {
       'create_folder',
       'reorder_folder',
       'set_note_order',
+      'set_style',
       'update_folder',
       'delete_folder',
       'set_template',
@@ -3534,5 +3541,67 @@ describe('a JSON answer is also structuredContent (#458)', () => {
     }
     // The sweep only proves something while it reaches the tools that answer JSON.
     expect(answered).toBeGreaterThanOrEqual(10);
+  });
+});
+
+describe("the notebook's style through the connector (#493, RN-AGT-071)", () => {
+  it('says the style in get_notebook_context, and how to change it', async () => {
+    const answer =
+      (
+        await gateways().call(
+          'get_notebook_context',
+          { notebook: '01JBQ2X00000000000000000V1' },
+          caller,
+        )
+      ).content[0]?.text ?? '';
+    expect(answer).toContain('## Style');
+    expect(answer).toContain('- Font: sans');
+    expect(answer).toContain('set_style');
+    // Before the revisions, which close the context.
+    expect(answer.indexOf('## Style')).toBeLessThan(answer.indexOf('## Context revisions'));
+  });
+
+  it('changes only the settings named, and answers the style as it now is', async () => {
+    const asked: unknown[] = [];
+    const adapter = gateways({
+      knowledge: {
+        setStyle: async (_caller: unknown, _notebook: string, style: Record<string, unknown>) => {
+          asked.push(style);
+          return { ...DEFAULT_NOTEBOOK_STYLE, ...style };
+        },
+      },
+    });
+    const result = await adapter.call(
+      'set_style',
+      { notebook: '01JBQ2X00000000000000000V1', text: 'justify', appendixOrientation: null },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(asked).toEqual([{ text: 'justify', appendixOrientation: null }]);
+    expect(JSON.parse(result.content[0]?.text ?? '{}')).toEqual({
+      style: { ...DEFAULT_NOTEBOOK_STYLE, text: 'justify' },
+    });
+  });
+
+  it('refuses a value it cannot take, a setting it does not have, and a call that names none', async () => {
+    let called = false;
+    const adapter = gateways({
+      knowledge: {
+        setStyle: async () => {
+          called = true;
+          return DEFAULT_NOTEBOOK_STYLE;
+        },
+      },
+    });
+    for (const args of [{ text: 'justified' }, { colour: 'blue' }, {}]) {
+      const result = await adapter.call(
+        'set_style',
+        { notebook: '01JBQ2X00000000000000000V1', ...args },
+        caller,
+      );
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text ?? '').toContain('printTables');
+    }
+    expect(called).toBe(false);
   });
 });

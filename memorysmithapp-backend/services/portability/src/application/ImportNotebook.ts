@@ -46,6 +46,7 @@ import {
   type Result,
 } from '@memorysmithapp/kernel';
 import {
+  type DocumentStyle,
   type DocumentHistory,
   type DocumentModel,
   type NotebookDocument,
@@ -85,6 +86,7 @@ export const READABLE_DOCUMENT_VERSIONS: readonly string[] = [
   '1.4',
   '1.5',
   '1.6',
+  '1.7',
 ];
 
 /**
@@ -178,6 +180,12 @@ export interface NotebookWriter {
   setGuidance(input: {
     notebookId: string;
     content: string;
+    by: Authorship;
+  }): Promise<Result<void, DomainError>>;
+  /** How its notes are drawn and printed (#493), as the document carries it. */
+  setStyle(input: {
+    notebookId: string;
+    style: DocumentStyle;
     by: Authorship;
   }): Promise<Result<void, DomainError>>;
   createFolder(input: {
@@ -676,6 +684,17 @@ export class ImportNotebook {
       await this.writer.deleteNotebook({ notebookId, by });
       return true;
     };
+
+    // The style comes with the notebook whatever the selection: it is how the
+    // notes it holds are drawn, and no part of what a selection chooses (#493).
+    if (document.notebook.style) {
+      const styled = await this.writer.setStyle({
+        notebookId,
+        style: document.notebook.style,
+        by,
+      });
+      if (!styled.ok) return undo(styled);
+    }
 
     if (document.notebook.guidance !== null && chosen.guidance) {
       const guidance = await this.writer.setGuidance({

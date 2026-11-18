@@ -200,6 +200,8 @@ export function fillDocument(document: NotebookDocument, values: FilledValues): 
         document.notebook.guidance === null
           ? null
           : fillMarkdown(document.notebook.guidance, values),
+      // A style holds no text to fill, and goes with the notebook as it is (#493).
+      ...(document.notebook.style ? { style: document.notebook.style } : {}),
     },
     folders: document.folders.map((folder) => ({
       ...folder,

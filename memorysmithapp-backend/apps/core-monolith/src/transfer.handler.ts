@@ -52,6 +52,7 @@ import {
   CreateNotebook,
   DeleteNotebook,
   PutGuidance,
+  StyleNotebook,
 } from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
   CreateFolder,
@@ -174,6 +175,7 @@ async function writerFor(context: SubscriptionContext): Promise<KnowledgeNoteboo
     {
       createNotebook: new CreateNotebook(knowledge),
       putGuidance: new PutGuidance(knowledge),
+      styleNotebook: new StyleNotebook(knowledge),
       createFolder: new CreateFolder(knowledge),
       putTemplate: new PutTemplate(knowledge),
       restoreFolderNumber: new RestoreFolderNumber(knowledge),

@@ -12,6 +12,7 @@ import {
   contextAddress,
   modelAddress,
   notebookAddress,
+  styleAddress,
   templatesAddress,
 } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -27,6 +28,7 @@ import {
   PaperclipIcon,
   TableIcon,
   DashboardIcon,
+  StyleIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
 
@@ -96,7 +98,7 @@ export function useNotebookPages(notebookId: string): Array<{
 export function NotebookNav({ notebookId }: { notebookId: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const parts = [guidanceAddress, templatesAddress, foldersAddress].map((address) =>
+  const parts = [guidanceAddress, templatesAddress, foldersAddress, styleAddress].map((address) =>
     address(notebookId),
   );
   const inPart = parts.includes(pathname) || pathname.startsWith(modelAddress(notebookId));
@@ -149,6 +151,10 @@ export function NotebookNav({ notebookId }: { notebookId: string }) {
           </NavItem>
           <NavItem to={templatesAddress(notebookId)} icon={<TemplateIcon />} child>
             {t('structure.templates')}
+          </NavItem>
+          {/* How its notes are drawn and printed (#493). */}
+          <NavItem to={styleAddress(notebookId)} icon={<StyleIcon />} child>
+            {t('structure.style')}
           </NavItem>
         </div>
       ) : null}

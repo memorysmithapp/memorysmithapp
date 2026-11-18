@@ -108,6 +108,7 @@ import {
   PutGuidance,
   DeleteNotebook,
   RenameNotebook,
+  StyleNotebook,
   SetNotebookRoleLimit,
 } from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
@@ -544,6 +545,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     listNotebooks: (request) => new ListNotebooks(knowledgeRepos(request.subscription)),
     getNotebook: (request) => new GetNotebook(knowledgeRepos(request.subscription)),
     renameNotebook: (request) => new RenameNotebook(knowledgeRepos(request.subscription)),
+    styleNotebook: (request) => new StyleNotebook(knowledgeRepos(request.subscription)),
     deleteNotebook: (request) =>
       new DeleteNotebookAndShares(
         knowledgeRepos(request.subscription),
@@ -1096,6 +1098,7 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         {
           createNotebook: new CreateNotebook(knowledgeRepos(request.subscription)),
           putGuidance: new PutGuidance(knowledgeRepos(request.subscription)),
+          styleNotebook: new StyleNotebook(knowledgeRepos(request.subscription)),
           createFolder: new CreateFolder(knowledgeRepos(request.subscription)),
           putTemplate: new PutTemplate(knowledgeRepos(request.subscription)),
           restoreFolderNumber: new RestoreFolderNumber(knowledgeRepos(request.subscription)),

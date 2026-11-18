@@ -31,6 +31,7 @@ import type { ContextPart, NoteContextRecord } from '../../../domain/note/NoteCo
 import { Notebook } from '../../../domain/notebook/Notebook.js';
 import { FolderDescription, FolderName, ShortText, NotebookName } from '../../../domain/values.js';
 import { currentCorrelationId } from '@memorysmithapp/observability';
+import { notebookStyleOf } from '@memorysmithapp/contracts';
 
 /** A raw item as the DynamoDB document client hands it over. */
 export type Item = Record<string, unknown>;
@@ -82,6 +83,7 @@ export function notebookMetaItem(notebook: Notebook, pk: string): Item {
     name: notebook.name.value,
     slug: notebook.slug.value,
     description: notebook.description.value,
+    style: { ...notebook.style },
     version: notebook.version + 1,
     createdBy: serializeAuthorship(notebook.createdBy),
     createdAt: notebook.createdBy.at.toISOString(),
@@ -175,6 +177,8 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
     createdBy: parseAuthorship(meta['createdBy']),
     updatedAt: unwrapOrThrow(Instant.fromISO(String(meta['updatedAt']))),
     deletedAt: meta['deletedAt'] ? unwrapOrThrow(Instant.fromISO(String(meta['deletedAt']))) : null,
+    // A notebook written before it had a style carries the default (#493).
+    style: notebookStyleOf(meta['style']),
   });
 }
 

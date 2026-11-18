@@ -12,6 +12,7 @@
 
 import { z } from 'zod';
 import { NOTE_ORDERS } from '../note-order.js';
+import { notebookStyleSchema } from '../notebook-style.js';
 import {
   contentRefSchema,
   authorshipSchema,
@@ -69,6 +70,8 @@ export const notebookDetailSchema = notebookSummarySchema.extend({
     maintain: z.boolean(),
     administer: z.boolean(),
   }),
+  /** How its notes are drawn and printed, for everybody who reads it (#493). */
+  style: notebookStyleSchema,
 });
 
 /**

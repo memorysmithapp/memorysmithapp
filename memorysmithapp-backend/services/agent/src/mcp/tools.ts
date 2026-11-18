@@ -21,6 +21,10 @@ import {
   type TransferDto,
   type UploadStatusDto,
   type NoteOrder,
+  notebookStyleOf,
+  notebookStylePatchSchema,
+  type NotebookStyle,
+  type NotebookStylePatch,
 } from '@memorysmithapp/contracts';
 import type { DashboardCross } from './gateway.js';
 import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
@@ -657,6 +661,48 @@ export function sharedBanner(shared: NotebookListing): string {
 }
 
 /** The revisions a note write declares as `context`, closing the notebook context (RN-KNW-061). */
+/**
+ * How the notebook's notes are drawn and printed (#493): what an agent asked
+ * to justify the text or turn the pages finds already set, and changes with
+ * set_style.
+ */
+export function styleSection(style: NotebookStyle): string {
+  const appendix = style.appendixOrientation ?? `${style.orientation}, the document's`;
+  return [
+    '## Style',
+    '',
+    'How every note of this notebook is drawn and printed, for everybody who reads it. ' +
+      'set_style changes it; a passage of one note that differs is a `:::{style}` block in ' +
+      'that note.',
+    '',
+    `- Font: ${style.font}`,
+    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}`,
+    `- Printed: properties ${style.properties === 'none' ? 'not printed' : `on a ${style.properties === 'cover' ? 'cover page' : 'page at the end'}`}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
+  ].join('\n');
+}
+
+/**
+ * The settings set_style names, each one of its values (#493): a setting it
+ * does not have, or a value it cannot take, refuses the call naming them.
+ */
+function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
+  const { notebook: _notebook, ...rest } = args;
+  const parsed = notebookStylePatchSchema.safeParse(rest);
+  if (!parsed.success || Object.keys(rest).length === 0) {
+    throw new GatewayError(
+      'VALIDATION',
+      'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
+        'tables (left, center, right, justify); properties (cover, end, none); orientation ' +
+        '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
+        '(portrait, landscape, or null).',
+      { given: Object.keys(rest).join(', ') || null },
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(parsed.data).filter(([, value]) => value !== undefined),
+  ) as NotebookStylePatch;
+}
+
 export function contextRevisionsSection(revisions: {
   guidance: string | null;
   structure: string;
@@ -1053,6 +1099,15 @@ export class McpToolAdapter {
         });
         return json(folder);
       }
+
+      case 'set_style':
+        return json({
+          style: await knowledge.setStyle(
+            caller,
+            requireString(args, 'notebook', 'set_style'),
+            styleArgument(args),
+          ),
+        });
 
       case 'set_note_order':
         return json(
@@ -1562,7 +1617,12 @@ export class McpToolAdapter {
         const shared = reach.find(
           (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
-        const body = [context.trimEnd(), tablesSection(tables), contextRevisionsSection(revisions)]
+        const body = [
+          context.trimEnd(),
+          tablesSection(tables),
+          styleSection(notebookStyleOf(revisions.style)),
+          contextRevisionsSection(revisions),
+        ]
           .filter((part) => part.length > 0)
           .join('\n\n');
         return text(shared ? `${sharedBanner(shared)}\n\n${body}` : body);

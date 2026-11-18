@@ -57,7 +57,14 @@ import type {
   TablePageDto,
   TableQueryRequest,
 } from '@memorysmithapp/contracts';
-import { likelyMeant, noteOrderOf, type NoteOrder } from '@memorysmithapp/contracts';
+import {
+  likelyMeant,
+  noteOrderOf,
+  notebookStyleOf,
+  type NoteOrder,
+  type NotebookStyle,
+  type NotebookStylePatch,
+} from '@memorysmithapp/contracts';
 import {
   GatewayError,
   type AccessGateway,
@@ -947,15 +954,31 @@ export class HttpKnowledgeGateway implements KnowledgeGateway {
   async contextRevisions(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<{ guidance: string | null; structure: string }> {
+  ): Promise<{ guidance: string | null; structure: string; style: NotebookStyle }> {
     const detail = await callApi<{
       guidance: { revision: { versionId: string } } | null;
       structureRevision: string;
+      style?: unknown;
     }>(this.origin, caller, `/knowledge/notebooks/${notebookId}`);
     return {
       guidance: detail.guidance?.revision.versionId ?? null,
       structure: detail.structureRevision,
+      style: notebookStyleOf(detail.style),
     };
+  }
+
+  async setStyle(
+    caller: AgentCaller,
+    notebookId: string,
+    style: NotebookStylePatch,
+  ): Promise<NotebookStyle> {
+    const answered = await callApi<{ style: unknown }>(
+      this.origin,
+      caller,
+      `/knowledge/notebooks/${notebookId}/style`,
+      { method: 'PATCH', body: style },
+    );
+    return notebookStyleOf(answered.style);
   }
 
   async notebookContext(caller: AgentCaller, notebookId: string): Promise<string> {

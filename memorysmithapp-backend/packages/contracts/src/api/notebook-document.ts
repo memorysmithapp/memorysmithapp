@@ -26,6 +26,7 @@
  */
 
 import { z } from 'zod';
+import { notebookStyleSchema } from '../notebook-style.js';
 import { NOTE_ORDERS } from '../note-order.js';
 import {
   authorshipSchema,
@@ -44,7 +45,7 @@ import { parameterDeclarationSchema } from './models.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.6';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.7';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
@@ -56,6 +57,8 @@ export const NOTEBOOK_DOCUMENT_VERSION = '1.6';
  * `1.4` document carries are read and left out. `1.6` moved the bytes of each
  * file out of the document into an entry of its own in the archive (#481): a
  * file of a `1.5` document still carries them base64, and is read as it was.
+ * `1.7` added the notebook's style (#493): an older document has none, and
+ * the notebook it creates has the default.
  */
 export const READABLE_DOCUMENT_VERSIONS = [
   '1.0',
@@ -65,6 +68,7 @@ export const READABLE_DOCUMENT_VERSIONS = [
   '1.4',
   '1.5',
   '1.6',
+  '1.7',
 ] as const;
 
 export const documentFolderSchema = z.object({
@@ -235,6 +239,8 @@ const notebookContentSchema = z.object({
     description: z.string().max(500),
     /** The Guidance as written, or `null` when the notebook has none. */
     guidance: z.string().nullable(),
+    /** How its notes are drawn and printed (#493), from `1.7`; absent, the default. */
+    style: notebookStyleSchema.optional(),
   }),
   folders: z.array(documentFolderSchema),
   notes: z.array(documentNoteSchema),
