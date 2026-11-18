@@ -2195,9 +2195,14 @@ test.describe('the pages of an account', () => {
         .getByRole('radiogroup', { name: pt ? 'Fonte' : 'Font' })
         .getByRole('radio', { name: pt ? 'Com serifa' : 'Serif', exact: true })
         .click();
-      // The sample shows the choice before anything is saved.
+      // The sample shows the choice before anything is saved, its headings in
+      // the same face as its text.
       await expect(sample).toHaveCSS('text-align', 'justify');
       await expect(sample).toHaveCSS('font-family', /Source Serif 4/);
+      await expect(app.locator('.style-sample .markdown h2').first()).toHaveCSS(
+        'font-family',
+        /Source Serif 4/,
+      );
       await testInfo.attach('style.png', {
         body: await app.screenshot({ animations: 'disabled', fullPage: true }),
         contentType: 'image/png',

@@ -324,7 +324,7 @@
     "unsaved": "Unsaved changes.",
     "undo": "Undo",
     "sampleLabel": "A note in this style",
-    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n| Stage | Status | Amount |\n|---|---|--:|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n"
+    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n| Stage | Status | Amount |\n|---|---|---|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n"
   },
   "common": {
     "loading": "Loading…",

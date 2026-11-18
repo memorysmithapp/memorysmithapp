@@ -2030,9 +2030,11 @@ a:hover {
 /* Every heading of the reading surface takes the text face and the modular
    scale, whether it came out of the Markdown or from the page around it: the
    name of a note, of a folder and of a notebook are all the notebook talking. No
-   rule under any of them, which is how the default theme draws them. */
+   rule under any of them, which is how the default theme draws them. Inside a
+   note the face is the one its notebook's style or a `:::{style}` block
+   chose, which the renderer sets on the note (#493). */
 .content-pane :is(h1, h2, h3, h4, h5, h6) {
-  font-family: var(--sans);
+  font-family: var(--ms-face-heading, var(--sans));
   font-weight: 600;
   line-height: var(--line-height-tight);
   letter-spacing: normal;
