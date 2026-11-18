@@ -386,6 +386,19 @@ export function StyleIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Tables printed at the end of the note, each on a page of its own (#494). */
+export function AppendixIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="5" width="12" height="16" rx="2" />
+      <path d="M7 3h10a2 2 0 0 1 2 2v12" />
+      <path d="M6 10h6" />
+      <path d="M6 14h6" />
+      <path d="M9 10v8" />
+    </svg>
+  );
+}
+
 export function SansIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

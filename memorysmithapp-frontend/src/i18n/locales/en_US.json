@@ -273,6 +273,7 @@
     "toolbar": "Printing",
     "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
     "styleLink": "Change how this notebook prints",
+    "appendixPage": ", page ",
     "download": "Download PDF",
     "downloading": "Making the PDF…",
     "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
@@ -306,13 +307,17 @@
     "orientation": "Orientation",
     "orient": {
       "portrait": "Portrait",
-      "landscape": "Landscape"
+      "landscape": "Landscape",
+      "document": "Document's"
     },
     "printTables": "Wide tables",
     "fit": {
-      "wrap": "Wrap the text",
-      "shrink": "Shrink to fit"
+      "wrap": "Wrap lines",
+      "shrink": "Shrink",
+      "appendices": "As appendices"
     },
+    "appendixOrientation": "Orientation of the appendices",
+    "appendicesHint": "Each table goes to the end of the note, on a page of its own, and a reference to its appendix and page stays in its place.",
     "save": "Save style",
     "saving": "Saving…",
     "saved": "Style saved.",

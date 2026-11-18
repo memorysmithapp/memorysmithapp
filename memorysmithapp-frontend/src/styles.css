@@ -7188,6 +7188,24 @@ button.attachment-thumb:focus-visible {
   visibility: hidden;
   pointer-events: none;
 }
+/* An appendix is drawn at the width of its own page, which turns apart from
+   the document's, so its table is measured where it will be laid (#494). */
+.print-page[data-appendix-orientation='landscape'] .print-source .table-appendix {
+  width: calc(297mm - 32mm);
+}
+.print-page[data-appendix-orientation='portrait'] .print-source .table-appendix {
+  width: calc(210mm - 32mm);
+}
+/* The reference a table leaves in its place: what moved, and where it went. */
+.markdown .table-reference {
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft, transparent);
+  font-style: italic;
+}
+.markdown .table-reference a {
+  color: inherit;
+}
 
 /* The pages, one under the other, each a sheet of paper. */
 .print-preview .pagedjs_pages {
@@ -7271,6 +7289,11 @@ button.attachment-thumb:focus-visible {
 }
 .print-part :is(h1, h2, h3, h4, h5, h6) {
   break-after: avoid;
+}
+/* A table drawn for paper scrolls nothing: the paginator breaks it between
+   rows only when no box around it clips (#494). */
+.print-part .markdown .data-table-scroll {
+  overflow: visible;
 }
 .print-part :is(p, li) {
   orphans: 3;

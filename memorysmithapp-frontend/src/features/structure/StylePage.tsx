@@ -18,6 +18,7 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { NoteContent } from '../../shared/components/NoteContent';
 import { Segmented } from '../../shared/components/Segmented';
 import {
+  AppendixIcon,
   CoverPageIcon,
   EndPageIcon,
   LandscapeIcon,
@@ -198,9 +199,34 @@ export function StylePage() {
                       icon: <ShrinkIcon />,
                       disabled: !maintains,
                     },
+                    {
+                      value: 'appendices',
+                      label: t('style.fit.appendices'),
+                      icon: <AppendixIcon />,
+                      disabled: !maintains,
+                    },
                   ]}
                 />
               </Setting>
+              {draft.printTables === 'appendices' ? (
+                <Setting label={t('style.appendixOrientation')} hint={t('style.appendicesHint')}>
+                  <Segmented<'document' | PrintOrientation>
+                    label={t('style.appendixOrientation')}
+                    value={draft.appendixOrientation ?? 'document'}
+                    onChange={(value) =>
+                      choose('appendixOrientation', value === 'document' ? null : value)
+                    }
+                    options={[
+                      {
+                        value: 'document',
+                        label: t('style.orient.document'),
+                        disabled: !maintains,
+                      },
+                      ...orientations(t, maintains),
+                    ]}
+                  />
+                </Setting>
+              ) : null}
             </fieldset>
 
             {maintains ? (

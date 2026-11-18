@@ -273,6 +273,7 @@
     "toolbar": "Impressão",
     "hint": "Baixar PDF entrega o arquivo pronto; ao imprimir, “Salvar como PDF” também gera um.",
     "styleLink": "Mudar como este caderno imprime",
+    "appendixPage": ", página ",
     "download": "Baixar PDF",
     "downloading": "Gerando PDF…",
     "downloadFailed": "O PDF não pôde ser gerado agora. Tente de novo, ou imprima e escolha “Salvar como PDF”."
@@ -306,13 +307,17 @@
     "orientation": "Orientação",
     "orient": {
       "portrait": "Retrato",
-      "landscape": "Paisagem"
+      "landscape": "Paisagem",
+      "document": "Do documento"
     },
     "printTables": "Tabelas largas",
     "fit": {
-      "wrap": "Quebrar o texto",
-      "shrink": "Reduzir para caber"
+      "wrap": "Quebrar linhas",
+      "shrink": "Reduzir",
+      "appendices": "Como anexos"
     },
+    "appendixOrientation": "Orientação dos anexos",
+    "appendicesHint": "Cada tabela vai para o fim da nota, numa página só dela, e no lugar fica uma referência ao anexo e à página.",
     "save": "Salvar estilo",
     "saving": "Salvando…",
     "saved": "Estilo salvo.",

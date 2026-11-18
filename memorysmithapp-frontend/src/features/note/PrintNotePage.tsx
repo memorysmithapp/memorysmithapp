@@ -107,6 +107,10 @@ export function PrintNotePage() {
   const placement = style.properties;
   const fit = style.printTables === 'shrink' ? 'shrink' : 'wrap';
   const orientation = style.orientation;
+  // Each table at the end, on a page of its own that turns as the style says (#494).
+  const asAppendices = style.printTables === 'appendices';
+  const appendixOrientation = style.appendixOrientation ?? orientation;
+  const pageWord = t('print.appendixPage');
   const maintains = structure.data?.permissions.maintain ?? false;
 
   const failed = !enabled || [structure, names, files, note].some((query) => query.isError);
@@ -154,7 +158,12 @@ export function PrintNotePage() {
     requestAnimationFrame(() => {
       if (!alive) return;
       fitTables(drawnNote, fit);
-      void paginate(drawnNote, target, orientation).then(
+      void paginate(
+        drawnNote,
+        target,
+        orientation,
+        asAppendices ? { orientation: appendixOrientation, pageWord } : null,
+      ).then(
         (total) => alive && setPages(total),
         () => alive && setPages(0),
       );
@@ -162,7 +171,7 @@ export function PrintNotePage() {
     return () => {
       alive = false;
     };
-  }, [drawn, placement, fit, orientation, revision]);
+  }, [drawn, placement, fit, orientation, asAppendices, appendixOrientation, pageWord, revision]);
 
   useEffect(() => () => unpaginate(preview.current), []);
 
@@ -230,7 +239,11 @@ export function PrintNotePage() {
 
   return (
     <NotebookIdProvider notebookId={notebookId}>
-      <div className="print-page" data-orientation={orientation}>
+      <div
+        className="print-page"
+        data-orientation={orientation}
+        {...(asAppendices ? { 'data-appendix-orientation': appendixOrientation } : {})}
+      >
         <div className="print-toolbar" role="toolbar" aria-label={t('print.toolbar')}>
           <p className="print-hint" role={making === 'failed' ? 'alert' : undefined}>
             {making === 'failed' ? t('print.downloadFailed') : t('print.hint')}
@@ -309,6 +322,7 @@ export function PrintNotePage() {
                   invalidates={queryKeys.note(notebookId, noteId)}
                   actions={false}
                   printing
+                  tablesAsAppendices={asAppendices}
                 />
               </article>
               {placement === 'end' && box ? (

@@ -2213,6 +2213,77 @@ test.describe('the pages of an account', () => {
     }
   });
 
+  test('[page:/notebooks/:notebookId/notes/:noteId/print] prints the tables of a note as appendices at its end, each on a page of its own, landscape under a portrait text (#494)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    test.setTimeout(240_000);
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `gastos-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: { item: { type: 'string' }, valor: { type: 'number' } },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: Array.from({ length: 40 }, (_, index) => ({ item: `Item ${index + 1}`, valor: index })),
+    });
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content:
+        '---\nname: With appendices\n---\n\nThe rows of the month.\n\n' +
+        `\`\`\`table\ntable: ${table}\n\`\`\`\n\nAnd a summary:\n\n| Kind | Total |\n|---|--:|\n| Food | 10 |\n`,
+    });
+    const reset = { printTables: 'wrap', appendixOrientation: null, orientation: 'portrait' };
+    await owner.ok('PATCH', `${path}/style`, {
+      ...reset,
+      properties: 'none',
+      printTables: 'appendices',
+      appendixOrientation: 'landscape',
+    });
+    try {
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}/print`));
+      const preview = app.locator('.print-preview');
+      await expect(preview).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+      const pt = words.locale === 'pt-BR';
+      // In each table's place, a reference to its appendix and the page it lands on.
+      const references = preview.locator('.table-reference a');
+      await expect(references).toHaveCount(2);
+      await expect(references.nth(0)).toContainText(
+        pt ? `Ver Anexo 1 — Tabela “${table}”` : `See Appendix 1 — Table “${table}”`,
+      );
+      await expect(references.nth(1)).toContainText(
+        pt ? 'Ver Anexo 2 — Tabela 1' : 'See Appendix 2 — Table 1',
+      );
+      // At the end, one appendix per table, titled, every row of the block.
+      await expect(preview.locator('.table-appendix-title').first()).toContainText(
+        pt ? `Anexo 1 — ${table}` : `Appendix 1 — ${table}`,
+      );
+      await expect(preview.getByText('Item 40', { exact: true })).toHaveCount(1);
+      // The text upright and the appendices sideways, in the preview and on paper.
+      const pages = preview.locator('.pagedjs_page');
+      const first = await pages.first().boundingBox();
+      const last = await pages.last().boundingBox();
+      expect((first?.height ?? 0) > (first?.width ?? 0)).toBe(true);
+      expect((last?.width ?? 0) > (last?.height ?? 0)).toBe(true);
+      await app.emulateMedia({ media: 'print' });
+      const bytes = await app.pdf({ preferCSSPageSize: true });
+      await app.emulateMedia({ media: 'screen' });
+      await testInfo.attach('appendices.pdf', { body: bytes, contentType: 'application/pdf' });
+      const boxes = [
+        ...bytes.toString('latin1').matchAll(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/g),
+      ].map((box) => Number(box[1]) > Number(box[2]));
+      expect(boxes[0]).toBe(false);
+      expect(boxes.at(-1)).toBe(true);
+    } finally {
+      await owner.ok('PATCH', `${path}/style`, { ...reset, properties: 'cover' });
+    }
+  });
+
   test('[page:/notebooks/:notebookId/dashboards/print] draws a dashboard whole and still, in the light theme, for the renderer to capture (#368)', async ({
     app,
     owner,

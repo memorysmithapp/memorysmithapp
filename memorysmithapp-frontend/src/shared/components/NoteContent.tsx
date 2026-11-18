@@ -154,11 +154,9 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
         table,
         filter,
         t('note.tableRows', { count }),
-        t('note.tableRead', {
-          when: new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
-            new Date(readAt),
-          ),
-        }),
+        // The renderer hands the moment already in the reader's words; an
+        // instant it could not format arrives as written, and is said as is.
+        t('note.tableRead', { when: whenRead(readAt, locale) }),
       ]
         .filter(Boolean)
         .join(' · '),
@@ -196,6 +194,14 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     close: t('common.close'),
     cancel: t('common.cancel'),
   };
+}
+
+/** When a table's rows were read, short, whether the renderer formatted it or not. */
+function whenRead(readAt: string, locale: string): string {
+  const instant = new Date(readAt);
+  return /^\d{4}-\d{2}-\d{2}T/.test(readAt) && !Number.isNaN(instant.getTime())
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(instant)
+    : readAt;
 }
 
 /**
@@ -273,8 +279,11 @@ export function NoteContent({
   editing,
   header,
   printing = false,
+  tablesAsAppendices = false,
   noteStyle,
 }: {
+  /** In print, each table at the end of the note as an appendix, a reference in its place (#494). */
+  tablesAsAppendices?: boolean;
   /**
    * The style to draw the note in, over the notebook's: the Style page draws
    * its sample in what is being chosen (#493). Left out, the notebook's.
@@ -523,6 +532,7 @@ export function NoteContent({
         openTableRow={openTableRow}
         {...(drawnStyle ? { noteStyle: drawnStyle } : {})}
         printing={printing}
+        tablesAsAppendices={printing && tablesAsAppendices}
         markdown={editing?.mode === 'edit' ? editing.markdown : text}
         resolve={resolve}
         reaches={reaches}
