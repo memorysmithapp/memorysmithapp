@@ -983,6 +983,10 @@ test.describe('the pages of an account', () => {
     );
     await expect(app.locator('.dash-chart svg')).toBeVisible();
     await expect(app.locator('.dash-lane')).toHaveCount(2);
+    // Nothing on the page changes the dashboard, for its owner either: an
+    // agent deletes it through the connector (#487).
+    await expect(app.locator('.dashboard-actions button')).toHaveCount(2);
+    await expect(app.locator('.dashboard-actions .is-danger')).toHaveCount(0);
     await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
     await app.screenshot({
       animations: 'disabled',

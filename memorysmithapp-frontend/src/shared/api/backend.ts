@@ -437,16 +437,6 @@ export async function getPreview(previewId: string): Promise<PreviewDto> {
   return request<PreviewDto>(`/portability/previews/${previewId}`);
 }
 
-/** Deletes a dashboard for good; its tables are untouched (#368). */
-export async function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
-  await request<void>(
-    `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}`,
-    {
-      method: 'DELETE',
-    },
-  );
-}
-
 /** The files a notebook keeps beside its notes (#166). */
 export async function getNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
   const answer = await request<FileListDto>(`/knowledge/notebooks/${notebookId}/files`);

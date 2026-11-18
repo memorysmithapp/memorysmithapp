@@ -85,7 +85,6 @@ export function PrintDashboardPage() {
           notebookId={notebookId}
           dashboard={dashboard}
           locale={intlLocale(i18n.language)}
-          maintains={false}
           still
           onDrawn={drawn}
           view={view}

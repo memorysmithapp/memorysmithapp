@@ -644,7 +644,6 @@
       "yes": "Sim",
       "no": "Não"
     },
-    "deleting": "Apagando…",
     "carry": {
       "published": "Estas tabelas vão com as linhas, que toda pessoa que entra no MemorySmith.app vai ler: {{tables}}."
     },
@@ -668,10 +667,6 @@
     "moreRows_one": "E mais {{count}} linha.",
     "moreRows_other": "E mais {{count}} linhas.",
     "missingTable": "A tabela de onde isto vinha não existe mais.",
-    "delete": "Apagar painel",
-    "deleteTitle": "Apagar este painel?",
-    "deleteConsequences": "O painel sai para sempre. As tabelas e suas linhas continuam como estão.",
-    "deleteConfirm": "Apagar de vez",
     "downloadImage": "Baixar PNG",
     "drawing": "Desenhando…",
     "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco.",

@@ -15,6 +15,10 @@ issues each entry cites.
 
 - **The Notebook Context lists the folders before their Templates.** The notebook menu, the *Notebook Context* page and the notebook overview show Guidance, Folders, Templates, since a Template belongs to a folder. (#488)
 
+### Removed
+
+- **The Dashboards page only reads.** An open dashboard no longer shows *Delete dashboard*, for its owner either: the page shows what the agent built, and nothing on it changes the dashboard. A dashboard is deleted by asking the agent, through the connector, as it is built and changed, as tables already are. (#487)
+
 ## [0.19.0] - 2026-11-17
 
 ### Added

@@ -116,10 +116,6 @@ export async function dashboardImage(
   throw new Error('TIMED_OUT');
 }
 
-export function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
-  return backend.deleteDashboard(notebookId, dashboard);
-}
-
 export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
   return backend.linkToFile(notebookId, fileId);
 }

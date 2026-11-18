@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type {
   ComponentDataDto,
@@ -11,19 +11,13 @@ import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import {
-  dashboardImage,
-  deleteDashboard,
-  listDashboards,
-  readDashboardData,
-} from '../../shared/api/source';
+import { dashboardImage, listDashboards, readDashboardData } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
 import { dashboardsAddress } from '../../shared/api/note-address';
 import { useLiveInterval } from '../../shared/api/live';
-import { Modal } from '../../shared/components/Modal';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
-import { DashboardIcon, DownloadIcon, TrashIcon } from '../../shared/components/icons';
+import { DashboardIcon, DownloadIcon } from '../../shared/components/icons';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { intlLocale } from '../../i18n/intl-locale';
 import {
@@ -57,8 +51,11 @@ interface Filter {
  * Tables, drawn here and nowhere else. A dashboard keeps no data: it is
  * computed from its tables each time it is read, when the page opens, when the
  * tab is looked at again, when the person asks, and on the interval the agent
- * declared. Nothing is written here but a deletion, for whoever maintains the
- * notebook.
+ * declared.
+ *
+ * Nothing is written here (#487): a dashboard is built, changed and deleted by
+ * an agent, through the connector, as a table is (#462). The page is how a
+ * person sees what the agent built.
  */
 export function DashboardsPage() {
   const { t, i18n } = useTranslation();
@@ -109,13 +106,7 @@ export function DashboardsPage() {
             <SkeletonBar width="70%" height="0.8rem" />
           </SkeletonRegion>
         ) : chosen ? (
-          <DashboardView
-            notebookId={notebookId}
-            dashboard={chosen}
-            locale={locale}
-            maintains={structure.permissions.maintain}
-            onDeleted={() => choose(null)}
-          />
+          <DashboardView notebookId={notebookId} dashboard={chosen} locale={locale} />
         ) : (
           <>
             <p className="page-intro">{t('dashboards.intro')}</p>
@@ -162,8 +153,6 @@ export function DashboardView({
   notebookId,
   dashboard,
   locale,
-  maintains,
-  onDeleted,
   still = false,
   onDrawn,
   view = null,
@@ -171,8 +160,6 @@ export function DashboardView({
   notebookId: string;
   dashboard: NotebookDashboardDto;
   locale: string;
-  maintains: boolean;
-  onDeleted?: (() => void) | undefined;
   /** Drawn for an image (#368): nothing moves, nothing is offered, and it says when it is drawn. */
   still?: boolean;
   onDrawn?: ((root: HTMLElement | null) => void) | undefined;
@@ -204,7 +191,6 @@ export function DashboardView({
   );
   const [cross, setCross] = useState<DashboardCrossFilter | null>(view?.cross ?? null);
   const [pages, setPages] = useState<Record<string, number>>({});
-  const [deleting, setDeleting] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const { i18n } = useTranslation();
@@ -292,15 +278,6 @@ export function DashboardView({
                 word={drawing ? t('dashboards.drawing') : t('dashboards.downloadImage')}
               />
             </button>
-            {maintains && onDeleted ? (
-              <button
-                type="button"
-                className="button is-quiet is-small is-danger"
-                onClick={() => setDeleting(true)}
-              >
-                <ActionWord icon={<TrashIcon />} word={t('dashboards.delete')} />
-              </button>
-            ) : null}
           </div>
         )}
       </header>
@@ -378,15 +355,6 @@ export function DashboardView({
           </section>
         ))}
       </div>
-
-      {deleting && onDeleted ? (
-        <DeleteDashboardDialog
-          notebookId={notebookId}
-          dashboard={dashboard}
-          onClose={() => setDeleting(false)}
-          onDeleted={onDeleted}
-        />
-      ) : null}
     </section>
   );
 }
@@ -575,65 +543,5 @@ function PeriodSlicer({
         {t('dashboards.allPeriods')}
       </button>
     </div>
-  );
-}
-
-function DeleteDashboardDialog({
-  notebookId,
-  dashboard,
-  onClose,
-  onDeleted,
-}: {
-  notebookId: string;
-  dashboard: NotebookDashboardDto;
-  onClose: () => void;
-  onDeleted: () => void;
-}) {
-  const { t } = useTranslation();
-  const client = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-  async function remove(): Promise<void> {
-    setBusy(true);
-    setFailure(null);
-    try {
-      await deleteDashboard(notebookId, dashboard.name);
-      await client.invalidateQueries({ queryKey: queryKeys.notebookDashboards(notebookId) });
-      onDeleted();
-    } catch (error) {
-      setFailure(t(messageKeyOf(error)));
-      setBusy(false);
-    }
-  }
-  return (
-    <Modal
-      open
-      title={t('dashboards.deleteTitle')}
-      subtitle={dashboard.name}
-      onClose={onClose}
-      className="move-dialog folder-delete-dialog"
-    >
-      <div className="folder-delete">
-        <p>{t('dashboards.deleteConsequences')}</p>
-        {failure ? (
-          <p className="move-refusal" role="alert">
-            {failure}
-          </p>
-        ) : null}
-        <div className="ask-dialog-foot">
-          <button type="button" className="button is-quiet" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button is-danger is-filled"
-            disabled={busy}
-            onClick={() => void remove()}
-          >
-            {busy ? t('tables.deleting') : t('dashboards.deleteConfirm')}
-          </button>
-        </div>
-      </div>
-    </Modal>
   );
 }

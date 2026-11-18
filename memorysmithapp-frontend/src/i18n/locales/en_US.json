@@ -641,7 +641,6 @@
       "yes": "Yes",
       "no": "No"
     },
-    "deleting": "Deleting…",
     "carry": {
       "published": "These tables go with their rows, which every person signed in will read: {{tables}}."
     },
@@ -665,10 +664,6 @@
     "moreRows_one": "And {{count}} more row.",
     "moreRows_other": "And {{count}} more rows.",
     "missingTable": "The table this drew from is gone.",
-    "delete": "Delete dashboard",
-    "deleteTitle": "Delete this dashboard?",
-    "deleteConsequences": "The dashboard goes for good. Its tables and their rows stay as they are.",
-    "deleteConfirm": "Delete for good",
     "downloadImage": "Download PNG",
     "drawing": "Drawing…",
     "imageFailed": "The image could not be drawn. Try again in a moment.",
