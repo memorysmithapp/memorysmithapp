@@ -341,8 +341,16 @@ export function NoteContent({
   }).data;
   const drawnStyle = useMemo<NoteStyle | undefined>(() => {
     const style = noteStyle ?? notebookStyle;
+    // The sans face is how every note is drawn without a style, so only the
+    // serif is handed over: a notebook that keeps the default looks exactly as
+    // before, its tags in their own face included.
     return style
-      ? { font: style.font, headings: style.headings, text: style.text, tables: style.tables }
+      ? {
+          ...(style.font === 'serif' ? { font: style.font } : {}),
+          headings: style.headings,
+          text: style.text,
+          tables: style.tables,
+        }
       : undefined;
   }, [noteStyle, notebookStyle]);
   const theme = usePreferences((state) => state.theme);

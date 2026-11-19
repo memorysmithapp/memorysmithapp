@@ -75,6 +75,8 @@
   --val-other: #8b96a8;
   --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
   --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  /* The serif face a notebook's style may choose (#492, #493). */
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   --header-h: 56px;
 }
@@ -2201,6 +2203,20 @@ a:hover {
 .metadata-property-value {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+/* The properties are the note's own words: inside a note, and on the pages of
+   its print, they take the face its style chose, tags included (#493). The
+   renderer sets it on the note; the print sets it on the parts it lays apart
+   from the note. Where no style reaches, nothing changes. */
+.content-pane .metadata-container {
+  font-family: var(--ms-face, inherit);
+}
+.content-pane .metadata-container :is(.prop-tag, .chip) {
+  font-family: var(--ms-face, var(--display));
+}
+.print-part[data-font='serif'] {
+  --ms-face: var(--serif);
+  --ms-face-heading: var(--serif);
 }
 .metadata-property-value a {
   overflow-wrap: anywhere;
@@ -8145,7 +8161,7 @@ button.attachment-thumb:focus-visible {
    small buttons (#491), and the serif face a note's style or a `:::{style}`
    block may choose: Source Serif 4, decided by the owner (#492, #493). */
 .markdown {
-  --markdown-font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --markdown-font-serif: var(--serif);
   --markdown-pager-bg: var(--surface);
   --markdown-pager-color: var(--text);
   --markdown-pager-border: 1px solid var(--border);

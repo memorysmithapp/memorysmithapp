@@ -300,6 +300,7 @@ export function PrintNotePage() {
                 <article
                   key="cover"
                   className="print-part print-properties print-cover content-pane"
+                  data-font={style.font}
                 >
                   {box}
                   {title}
@@ -308,6 +309,7 @@ export function PrintNotePage() {
               <article
                 key="body"
                 className="print-part content-pane"
+                data-font={style.font}
                 data-placement={placement}
                 data-tables={fit}
               >
@@ -326,7 +328,11 @@ export function PrintNotePage() {
                 />
               </article>
               {placement === 'end' && box ? (
-                <article key="end" className="print-part print-properties print-end content-pane">
+                <article
+                  key="end"
+                  className="print-part print-properties print-end content-pane"
+                  data-font={style.font}
+                >
                   <h2>{name}</h2>
                   {box}
                 </article>
