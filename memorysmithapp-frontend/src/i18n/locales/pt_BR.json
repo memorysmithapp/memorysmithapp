@@ -165,21 +165,23 @@
     "modelHint": "O que ele declara como modelo: o objetivo, os parâmetros, o que ele guarda e o histórico",
     "noFolders": "Este caderno ainda não tem pastas.",
     "noteCountSplit": "{{here}} aqui, {{below}} nas subpastas",
-    "hasTemplate": "modelo de pasta",
+    "hasTemplate": "modelo de nota",
     "outlineHint": "A árvore de pastas com a descrição de cada uma. É ela que diz ao agente onde cada nota entra.",
     "openNavigation": "Navegação do caderno",
     "heading": "Contexto do caderno",
-    "contextParts": "Orientação, Modelos de pasta e Pastas",
-    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo de pasta diz como a nota se estrutura.",
+    "contextParts": "Orientação, Pastas e Modelos de nota",
+    "intro": "Como este caderno se descreve, e o que o agente recebe em get_notebook_context: a Orientação diz o que ele é, cada pasta diz o que se guarda nela e o Modelo de nota diz como a nota se estrutura.",
     "guidanceHint": "O que este caderno é e como se escreve nele",
     "noGuidanceWrite": "Este caderno ainda não tem Orientação. Use o lápis para escrever uma: ela orienta todo agente que escreve aqui.",
-    "templates": "Modelos de pasta",
+    "templates": "Modelos de nota",
     "templatesHint_one": "{{count}} pasta com leiaute sugerido",
     "templatesHint_other": "{{count}} pastas com leiaute sugerido",
+    "style": "Estilo",
+    "styleHint": "A fonte e o alinhamento das notas, e como elas são impressas",
     "templatesPageHint_one": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pasta deste caderno declara um, mostrado abaixo; o servidor nunca valida uma nota contra ele.",
     "templatesPageHint_other": "Cada pasta pode declarar um leiaute sugerido para as notas dela. {{count}} pastas deste caderno declaram um, cada um mostrado abaixo; o servidor nunca valida uma nota contra eles.",
-    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo de pasta.",
-    "templateOf": "Modelo de pasta de {{folder}}",
+    "noTemplates": "Nenhuma pasta deste caderno declara um Modelo de nota.",
+    "templateOf": "Modelo de nota da pasta {{folder}}",
     "openFolder": "Abrir pasta",
     "content": "Conteúdo",
     "breadcrumb": "Trilha do contexto do caderno"
@@ -187,9 +189,9 @@
   "folder": {
     "subfolders": "Subpastas",
     "notesHeading": "Notas nesta pasta",
-    "template": "Modelo de pasta",
+    "template": "Modelo de nota",
     "templateCardHint": "Leiaute sugerido para as notas desta pasta",
-    "noTemplateWrite": "Esta pasta ainda não tem Modelo de pasta. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
+    "noTemplateWrite": "Esta pasta ainda não tem Modelo de nota. Use o lápis para escrever um, o leiaute sugerido às notas escritas aqui.",
     "empty": "Ainda não há notas nesta pasta.",
     "noteOrder": "Ordem das notas",
     "noteOrderManual": "Manual",
@@ -210,25 +212,10 @@
     "description": "Descrição",
     "descriptionHint": "É o que orienta o próximo agente que escrever aqui.",
     "count": "{{used}}/{{max}}",
-    "explain": "A pasta mantém as notas, as subpastas e o Modelo de pasta, e todo link continua funcionando.",
+    "explain": "A pasta mantém as notas, as subpastas e o Modelo de nota, e todo link continua funcionando.",
     "save": "Salvar",
     "saving": "Salvando…",
     "nameTaken": "Já existe uma pasta chamada “{{name}}” neste nível. Nada foi alterado."
-  },
-  "folderDelete": {
-    "short": "Apagar",
-    "open": "Apagar esta pasta",
-    "title": "Apagar a pasta",
-    "holds": "Ela guarda {{notes}} e {{folders}}.",
-    "notes_one": "{{count}} nota",
-    "notes_other": "{{count}} notas",
-    "folders_one": "{{count}} subpasta",
-    "folders_other": "{{count}} subpastas",
-    "consequences": "Apagá-la tira tudo isso do caderno na hora, de vez: é destruído logo depois, com todas as revisões, e os links para essas notas ficam pendentes. Nada traz de volta.",
-    "understood": "Entendo que tudo nesta pasta é apagado de vez",
-    "empty": "A pasta está vazia. Apagá-la não tem volta.",
-    "delete": "Apagar a pasta",
-    "deleting": "Apagando…"
   },
   "note": {
     "propertyTrue": "Sim",
@@ -262,10 +249,11 @@
     "changedElsewhereDismiss": "Entendi",
     "tableRows_one": "{{count}} linha",
     "tableRows_other": "{{count}} linhas",
-    "tablePage": "Página {{page}} de {{pages}}",
-    "tablePrevious": "Anterior",
-    "tableNext": "Próxima",
     "tableTotal": "Total",
+    "tableAppendix": "Anexo {{number}} — {{name}}",
+    "tableAppendixReference": "Ver Anexo {{number}} — {{name}}",
+    "tableNamed": "Tabela “{{table}}”",
+    "tableNumbered": "Tabela {{number}}",
     "tableEmpty": "Nenhuma linha atende a este filtro.",
     "tableSortBy": "Ordenar por {{column}}",
     "tableRead": "lido em {{when}}",
@@ -284,25 +272,65 @@
     "print": "Imprimir",
     "toolbar": "Impressão",
     "hint": "Baixar PDF entrega o arquivo pronto; ao imprimir, “Salvar como PDF” também gera um.",
+    "styleLink": "Mudar como este caderno imprime",
+    "appendixPage": ", página ",
+    "download": "Baixar PDF",
+    "downloading": "Gerando PDF…",
+    "downloadFailed": "O PDF não pôde ser gerado agora. Tente de novo, ou imprima e escolha “Salvar como PDF”."
+  },
+  "style": {
+    "intro": "Como todas as notas deste caderno aparecem na tela e na impressão, para todo mundo que as lê. Um trecho de uma nota que precise ser diferente usa um bloco :::{style} na própria nota.",
+    "introReader": "Como todas as notas deste caderno aparecem na tela e na impressão. Só quem mantém o caderno muda o estilo.",
+    "screen": "Na tela e no papel",
+    "print": "Na impressão",
+    "font": "Fonte",
+    "fonts": {
+      "sans": "Sem serifa",
+      "serif": "Com serifa"
+    },
+    "headings": "Títulos",
+    "text": "Texto",
+    "tables": "Tabelas",
+    "tablesHint": "Vale para as colunas que não declaram alinhamento próprio.",
+    "hyphenate": "Hifenização",
+    "hyphenateHint": "Vale para o que está justificado: com hífen, as palavras podem ser partidas no fim da linha.",
+    "hyphens": {
+      "off": "Sem hífen",
+      "on": "Com hífen"
+    },
+    "align": {
+      "left": "Esquerda",
+      "center": "Centro",
+      "right": "Direita",
+      "justify": "Justificado"
+    },
     "properties": "Propriedades",
     "placement": {
       "cover": "Folha de rosto",
       "end": "No final",
       "none": "Nenhuma"
     },
-    "tables": "Tabelas largas",
-    "fit": {
-      "wrap": "Quebrar o texto",
-      "shrink": "Reduzir para caber"
-    },
     "orientation": "Orientação",
     "orient": {
       "portrait": "Retrato",
-      "landscape": "Paisagem"
+      "landscape": "Paisagem",
+      "document": "Do documento"
     },
-    "download": "Baixar PDF",
-    "downloading": "Gerando PDF…",
-    "downloadFailed": "O PDF não pôde ser gerado agora. Tente de novo, ou imprima e escolha “Salvar como PDF”."
+    "printTables": "Tabelas largas",
+    "fit": {
+      "wrap": "Quebrar linhas",
+      "shrink": "Reduzir",
+      "appendices": "Como anexos"
+    },
+    "appendixOrientation": "Orientação dos anexos",
+    "appendicesHint": "Cada tabela vai para o fim da nota, numa página só dela, e no lugar fica uma referência ao anexo e à página.",
+    "save": "Salvar estilo",
+    "saving": "Salvando…",
+    "saved": "Estilo salvo.",
+    "unsaved": "Alterações não salvas.",
+    "undo": "Desfazer",
+    "sampleLabel": "Uma nota neste estilo",
+    "sample": "# Relatório da obra\n\nA reforma do salão começou em março e segue o cronograma aprovado em assembleia. O síndico acompanha cada etapa e envia um resumo mensal a todos os condôminos, com o que foi feito, o que falta e quanto já se gastou.\n\n## Próximos passos\n\n- Trocar o piso até o fim do mês\n- Pintar as paredes depois da vistoria\n\n## Tabelas\n\nUma tabela sem alinhamento próprio segue a escolha de **Tabelas**:\n\n| Etapa | Situação | Valor |\n|---|---|---|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\nUma coluna que fixa o próprio alinhamento na tabela, como `--:` à direita, mantém o dela; as outras seguem o estilo:\n\n| Etapa | Situação | Valor |\n|---|---|--:|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\n## Um trecho com estilo próprio\n\nUm bloco `:::{style}` vale só para o trecho que envolve e vence o estilo do caderno:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nEste parágrafo fica centralizado e sem serifa, qualquer que seja o estilo escolhido ao lado.\n:::\n"
   },
   "common": {
     "loading": "Carregando…",
@@ -328,7 +356,7 @@
     "kindTables": "Tabelas",
     "kindExports": "Exportações guardadas",
     "kindOthers": "Outros",
-    "kindOthersHint": "Orientações e Modelos de pasta",
+    "kindOthersHint": "Orientações e Modelos de nota",
     "byNotebook": "Por caderno",
     "moreNotebooks_one": "Mais {{count}} caderno",
     "moreNotebooks_other": "Mais {{count}} cadernos",
@@ -440,13 +468,13 @@
     "tab": {
       "context": "Contexto",
       "folders": "Pastas",
-      "templates": "Modelos de pasta",
+      "templates": "Modelos de nota",
       "notes": "Notas",
       "conflicts": "Inconsistências",
       "files": "Arquivos",
       "tables": "Tabelas e painéis"
     },
-    "noTemplate": "sem Modelo de pasta",
+    "noTemplate": "sem Modelo de nota",
     "wholeNotebook": "O caderno todo",
     "whatToCarry": {
       "export": "O que vai no arquivo",
@@ -464,16 +492,16 @@
     "onlyChosenFolders": "Só aparecem as pastas escolhidas na aba Pastas.",
     "noFolderChosen": {
       "folders": "Este caderno não tem pasta.",
-      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos de pasta aqui.",
+      "templates": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher Modelos de nota aqui.",
       "notes": "Nenhuma pasta escolhida. Escolha uma na aba Pastas para escolher notas aqui."
     },
     "pathFolder": "caminho",
     "countFolders_zero": "{{count}} pastas",
     "countFolders_one": "{{count}} pasta",
     "countFolders_other": "{{count}} pastas",
-    "countTemplates_zero": "{{count}} Modelos de pasta",
-    "countTemplates_one": "{{count}} Modelo de pasta",
-    "countTemplates_other": "{{count}} Modelos de pasta",
+    "countTemplates_zero": "{{count}} Modelos de nota",
+    "countTemplates_one": "{{count}} Modelo de nota",
+    "countTemplates_other": "{{count}} Modelos de nota",
     "twinsBlock_one": "1 nome é carregado duas vezes na pasta dele.",
     "twinsBlock_other": "{{count}} nomes são carregados duas vezes na pasta deles.",
     "showTwins": "Ver o motivo",
@@ -644,7 +672,6 @@
       "yes": "Sim",
       "no": "Não"
     },
-    "deleting": "Apagando…",
     "carry": {
       "published": "Estas tabelas vão com as linhas, que toda pessoa que entra no MemorySmith.app vai ler: {{tables}}."
     },
@@ -661,6 +688,7 @@
     "components_other": "{{count}} componentes",
     "readAt": "Dados de {{time}}",
     "refresh": "Atualizar",
+    "updated": "O painel foi lido de novo, com valores novos.",
     "allPeriods": "Tudo",
     "compared": "na comparação",
     "ofGoal": "de {{goal}}",
@@ -668,10 +696,6 @@
     "moreRows_one": "E mais {{count}} linha.",
     "moreRows_other": "E mais {{count}} linhas.",
     "missingTable": "A tabela de onde isto vinha não existe mais.",
-    "delete": "Apagar painel",
-    "deleteTitle": "Apagar este painel?",
-    "deleteConsequences": "O painel sai para sempre. As tabelas e suas linhas continuam como estão.",
-    "deleteConfirm": "Apagar de vez",
     "downloadImage": "Baixar PNG",
     "drawing": "Desenhando…",
     "imageFailed": "Não foi possível desenhar a imagem. Tente de novo daqui a pouco.",
@@ -692,7 +716,22 @@
     "pinned": "Fixado: <b>{{value}}</b> · clique numa nota para abri-la, num atributo para fixar suas notas",
     "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este caderno ainda não tem notas para desenhar.",
-    "truncated": "Mostrando as primeiras 2000 notas deste caderno."
+    "truncated": "Mostrando as primeiras 2000 notas deste caderno.",
+    "activity": {
+      "reading": "está lendo {{target}}",
+      "writing": "está gravando {{target}}",
+      "aNote": "uma nota",
+      "newNote": "uma nova nota",
+      "folder": "a pasta {{name}}",
+      "search": "a busca “{{query}}”",
+      "context": "o contexto do caderno",
+      "table": "uma tabela",
+      "dashboard": "um painel",
+      "file": "um arquivo",
+      "notebook": "o caderno",
+      "more_one": "+{{count}} assistente",
+      "more_other": "+{{count}} assistentes"
+    }
   },
   "errors": {
     "validation": "Algo no que foi enviado não é aceito.",
@@ -813,7 +852,7 @@
     "what": {
       "heading": "O que é isto",
       "body": "O MemorySmith é onde você e seus agentes de IA constroem conhecimento juntos. Um caderno tem pastas, uma pasta tem notas em Markdown, e as mesmas notas são lidas e escritas pelos dois lados: por você, nesta interface, e pelo agente, pelo conector. Nada fica preso aqui dentro: cada nota continua sendo texto puro e guarda todo o seu histórico, e cada caderno pode ser exportado por inteiro a qualquer momento.",
-      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo de pasta. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
+      "guidance": "O que torna um caderno daqui diferente é que ele diz como quer ser escrito. A Orientação declara para que o caderno serve e como escrever nele; cada pasta carrega uma descrição e um Modelo de nota. Um agente lê os dois antes de escrever a primeira linha, e é isso que mantém um caderno coerente depois de cem notas, em vez de virar uma pasta de arquivos soltos."
     },
     "interface": {
       "heading": "O que você encontra aqui",
@@ -827,7 +866,7 @@
         "definition": "O painel lateral é a estrutura do caderno, na ordem que o próprio caderno declara. Uma nota mostra suas propriedades e o seu texto, e cada link leva à nota que alcança — ou diz que ainda não alcança nenhuma."
       },
       "guidance": {
-        "term": "Orientação e Modelos de pasta",
+        "term": "Orientação e Modelos de nota",
         "definition": "Podem ser lidos em telas próprias, então você vê as regras que um agente está seguindo antes de ler o que ele escreveu."
       },
       "files": {
@@ -864,12 +903,12 @@
       },
       "transfers": {
         "term": "Transferências",
-        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu; o sino no topo avisa quando uma está em andamento. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de pasta, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
+        "definition": "Exportar um caderno, ou importar um, pelas Transferências no menu; o sino no topo avisa quando uma está em andamento. O que sai é um arquivo .notebook com o caderno — as notas em Markdown, as pastas, a Orientação, os Modelos de nota, as tabelas, os painéis e o Modelo de caderno, e o histórico e os arquivos quando você escolhe — e é esse arquivo que a importação lê."
       }
     },
     "connector": {
       "heading": "Conectando seu assistente de IA",
-      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de pasta de cada pasta. O endereço deste ambiente é:",
+      "body": "Esta é a parte que vale fazer hoje. O MemorySmith responde a ferramentas de IA por um servidor MCP remoto, então o assistente não apenas lê seus cadernos: ele escreve neles, obedecendo à Orientação do caderno e ao Modelo de nota de cada pasta. O endereço deste ambiente é:",
       "claude": {
         "heading": "No Claude",
         "one": "No menu lateral, abra <b>Plugins</b>.",
@@ -983,7 +1022,7 @@
     "attachPurpose": "Anexado pela interface à nota “{{note}}”",
     "attachPurposeUnnamed": "Anexado pela interface a uma nota",
     "attachPurposeGuidance": "Anexado pela interface à Orientação do caderno",
-    "attachPurposeTemplate": "Anexado pela interface ao Modelo de pasta de “{{folder}}”",
+    "attachPurposeTemplate": "Anexado pela interface ao Modelo de nota da pasta “{{folder}}”",
     "attachRefusal": {
       "QUOTA": "Este arquivo tem {{size}}, e o seu plano tem {{room}} livres: apague algo ou peça um plano maior.",
       "EMPTY": "Esse arquivo está vazio.",
@@ -1006,27 +1045,9 @@
     "contextChanged": "Sua nota foi salva, mas {{parts}} mudou desde que você a abriu. Leia o que mudou e ajuste a nota se precisar.",
     "contextPart": {
       "guidance": "a Orientação",
-      "template": "o Modelo de pasta desta pasta",
+      "template": "o Modelo de nota desta pasta",
       "structure": "as pastas do caderno"
     }
-  },
-  "move": {
-    "short": "Mover",
-    "open": "Mover esta nota para outra pasta do caderno",
-    "title": "Mover para outra pasta",
-    "explain": "A nota leva o seu histórico, e todo link para ela continua funcionando: um link encontra uma nota pelo nome, nunca pela pasta.",
-    "folder": "Pasta",
-    "current": "{{folder}} (onde está)",
-    "noOther": "Este caderno não tem outra pasta para onde movê-la.",
-    "where": "Onde na pasta",
-    "atEnd": "No fim",
-    "after": "Depois de {{name}}",
-    "byName": "Esta pasta ordena as notas pelo nome, então a nota aparecerá pelo nome dela.",
-    "move": "Mover",
-    "moving": "Movendo…",
-    "nameTaken": "“{{folder}}” já tem uma nota chamada “{{name}}”, e uma pasta guarda uma nota de cada nome. Nada foi movido.",
-    "openHolder": "Abrir essa nota",
-    "moved": "Movida para {{folder}}."
   },
   "history": {
     "heading": "Histórico desta nota",
@@ -1147,8 +1168,8 @@
     },
     "profileHint": {
       "reader": "Lê e exporta o caderno inteiro, e não escreve nada.",
-      "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos de pasta continuam sendo seus para mudar.",
-      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de pasta. Compartilhar e apagar o caderno continuam com você.",
+      "contentEditor": "Também escreve, move e apaga notas e guarda arquivos. As pastas, a Orientação e os Modelos de nota continuam sendo seus para mudar.",
+      "notebookEditor": "Também cria, edita e apaga pastas, a Orientação e os Modelos de nota. Compartilhar e apagar o caderno continuam com você.",
       "modelReader": "Lê este modelo como está, e o histórico dele, e cria cadernos a partir dele, e nunca abre o caderno em si."
     }
   },
@@ -1264,6 +1285,7 @@
     "alignLeft": "Alinhar à esquerda",
     "alignCenter": "Centralizar",
     "alignRight": "Alinhar à direita",
+    "alignJustify": "Justificar",
     "showMarkdown": "Ver Markdown",
     "copyMarkdown": "Copiar Markdown",
     "sourceTitle": "A nota em Markdown",
@@ -1277,11 +1299,25 @@
     "attachQueued_other": "mais {{count}} arquivos esperando",
     "updating": "Atualizando…",
     "notSaved": "Não salvo",
-    "editUnavailable": "Esta nota mistura quebras de linha, que o editor não consegue manter byte a byte, então ela abre só para leitura."
+    "editUnavailable": "Esta nota mistura quebras de linha, que o editor não consegue manter byte a byte, então ela abre só para leitura.",
+    "style": "Estilo",
+    "styleFont": "Fonte",
+    "styleHeadings": "Títulos",
+    "styleText": "Texto",
+    "styleTables": "Tabelas",
+    "styleNotebook": "O do caderno",
+    "styleSans": "Sem serifa",
+    "styleSerif": "Com serifa",
+    "styleLeft": "À esquerda",
+    "styleCenter": "Centralizado",
+    "styleRight": "À direita",
+    "styleJustify": "Justificado",
+    "styleInsert": "Destacar trecho",
+    "styleApply": "Aplicar"
   },
   "model": {
     "title": "Modelo de caderno",
-    "intro": "Um caderno declarado como Modelo de caderno é copiado em cadernos novos, cada um preenchido com os próprios valores. Não é um Modelo de pasta: o Modelo de pasta é a forma sugerida das notas de uma pasta; o Modelo de caderno é um caderno inteiro.",
+    "intro": "Um caderno declarado como Modelo de caderno é copiado em cadernos novos, cada um preenchido com os próprios valores. Não é um Modelo de nota: o Modelo de nota é a forma sugerida das notas de uma pasta; o Modelo de caderno é um caderno inteiro.",
     "notAModel": "Este caderno não é um Modelo de caderno.",
     "declareHint": "Um Modelo de caderno cria outros cadernos a partir dele. Escreva {{reference}} nas notas onde vai um valor, e declare cada nome abaixo.",
     "objective": "Objetivo",
@@ -1367,6 +1403,7 @@
     "change": {
       "NotebookCreated": "Caderno criado",
       "NotebookRenamed": "Caderno renomeado",
+      "NotebookStyled": "Estilo do caderno definido",
       "GuidanceUpdated": "Orientação escrita",
       "GuidanceDeleted": "Orientação excluída",
       "FolderAdded": "Pasta adicionada",
@@ -1376,8 +1413,8 @@
       "FolderMoved": "Pasta movida",
       "FolderReordered": "Pasta reordenada",
       "FolderRemoved": "Pasta removida",
-      "TemplateUpdated": "Modelo de pasta escrito",
-      "TemplateDeleted": "Modelo de pasta excluído",
+      "TemplateUpdated": "Modelo de nota escrito",
+      "TemplateDeleted": "Modelo de nota excluído",
       "FileKept": "Arquivo guardado",
       "FileDeleted": "Arquivo excluído",
       "TableCreated": "Tabela criada",
@@ -1473,8 +1510,8 @@
     "modelParameters_other": "parâmetros deste Modelo de caderno",
     "guidance": "Orientação escrita",
     "noGuidance": "sem Orientação",
-    "templates_one": "Modelo de pasta",
-    "templates_other": "Modelos de pasta",
+    "templates_one": "Modelo de nota",
+    "templates_other": "Modelos de nota",
     "folders_one": "pasta",
     "folders_other": "pastas",
     "tables_one": "tabela",

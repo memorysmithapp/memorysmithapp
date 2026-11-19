@@ -21,6 +21,10 @@ import {
   type TransferDto,
   type UploadStatusDto,
   type NoteOrder,
+  notebookStyleOf,
+  notebookStylePatchSchema,
+  type NotebookStyle,
+  type NotebookStylePatch,
 } from '@memorysmithapp/contracts';
 import type { DashboardCross } from './gateway.js';
 import { argumentsOf, CATALOG_VERSION, TOOL_CATALOG, toolSignature } from './catalog.js';
@@ -605,6 +609,25 @@ export const UNNAMED_NOTE_NOTICE =
  * read before a long body. It is a field of the one JSON document and never a
  * second content block, so a client reading the answer as JSON keeps reading it.
  */
+/** The JSON a tool answered, or nothing when it answered text. */
+function answerOf(result: ToolResult): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(result.content[0]?.text ?? '') as unknown;
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * How the graph names the person a connector acts for (#495): the first word
+ * of the address the token carries, as a name; the identifier when it has none.
+ */
+function personOf(caller: AgentCaller): string {
+  const local = caller.email?.split('@')[0]?.split(/[._-]/)[0] ?? '';
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : caller.userId.slice(0, 8);
+}
+
 function noteAnswer(note: NoteContent, notices: readonly NoteNotice[] = []): ToolResult {
   // A note with no name already opens with the notice that says so, so the
   // diagnosis does not say it a second time.
@@ -657,6 +680,48 @@ export function sharedBanner(shared: NotebookListing): string {
 }
 
 /** The revisions a note write declares as `context`, closing the notebook context (RN-KNW-061). */
+/**
+ * How the notebook's notes are drawn and printed (#493): what an agent asked
+ * to justify the text or turn the pages finds already set, and changes with
+ * set_style.
+ */
+export function styleSection(style: NotebookStyle): string {
+  const appendix = style.appendixOrientation ?? `${style.orientation}, the document's`;
+  return [
+    '## Style',
+    '',
+    'How every note of this notebook is drawn and printed, for everybody who reads it. ' +
+      'set_style changes it; a passage of one note that differs is a `:::{style}` block in ' +
+      'that note.',
+    '',
+    `- Font: ${style.font}`,
+    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}`,
+    `- Printed: properties ${style.properties === 'none' ? 'not printed' : `on a ${style.properties === 'cover' ? 'cover page' : 'page at the end'}`}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
+  ].join('\n');
+}
+
+/**
+ * The settings set_style names, each one of its values (#493): a setting it
+ * does not have, or a value it cannot take, refuses the call naming them.
+ */
+function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
+  const { notebook: _notebook, ...rest } = args;
+  const parsed = notebookStylePatchSchema.safeParse(rest);
+  if (!parsed.success || Object.keys(rest).length === 0) {
+    throw new GatewayError(
+      'VALIDATION',
+      'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
+        'tables (left, center, right, justify); hyphenate (true, false); properties (cover, end, none); orientation ' +
+        '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
+        '(portrait, landscape, or null).',
+      { given: Object.keys(rest).join(', ') || null },
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(parsed.data).filter(([, value]) => value !== undefined),
+  ) as NotebookStylePatch;
+}
+
 export function contextRevisionsSection(revisions: {
   guidance: string | null;
   structure: string;
@@ -812,7 +877,10 @@ export class McpToolAdapter {
     const outOfCatalogue = this.outOfCatalogue(name, args);
     if (outOfCatalogue) return text(await this.staleList(outOfCatalogue, caller), true);
     try {
-      return await this.dispatch(name, canonicalIdentifiers(args, name), caller);
+      const canonical = canonicalIdentifiers(args, name);
+      return await this.recorded(name, canonical, caller, () =>
+        this.dispatch(name, canonical, caller),
+      );
     } catch (error) {
       if (error instanceof GatewayError) {
         const taken = nameTakenAnswer(error, name);
@@ -822,6 +890,58 @@ export class McpToolAdapter {
         return text(`${error.code}: ${error.message}${details}`, true);
       }
       throw error;
+    }
+  }
+
+  /**
+   * A tool call, and what it did recorded for the notebook's graph (#495,
+   * RN-AGT-072). A read is recorded while it runs, so it adds no wait; a write
+   * once it succeeded, since only its answer names the note it created. The
+   * connector runs in a function that may freeze once it answers, so the
+   * record is awaited before the answer, and a record that fails is dropped:
+   * the graph missing a pulse never fails the tool.
+   */
+  private async recorded(
+    name: string,
+    args: Record<string, unknown>,
+    caller: AgentCaller,
+    run: () => Promise<ToolResult>,
+  ): Promise<ToolResult> {
+    const notebookId = typeof args['notebook'] === 'string' ? args['notebook'] : null;
+    const record = this.gateways.discovery.recordActivity?.bind(this.gateways.discovery);
+    if (!notebookId || !record) return run();
+    const reads =
+      TOOL_CATALOG.find((tool) => tool.name === name)?.annotations.readOnlyHint === true;
+    const base = {
+      tool: name,
+      noteId: typeof args['note'] === 'string' ? args['note'] : undefined,
+      folderId: typeof args['folder'] === 'string' ? args['folder'] : undefined,
+      query: typeof args['query'] === 'string' ? args['query'] : undefined,
+      person: personOf(caller),
+    };
+    // Each record is answered for the moment it starts: a read's runs beside
+    // the tool, and a refusal that arrived before anything awaited it was an
+    // unhandled rejection, which ends the function and answered the agent 500.
+    const pending: Array<Promise<void>> = [];
+    const settle = (recording: Promise<void>) => pending.push(recording.catch(() => undefined));
+    if (reads) settle(record(caller, notebookId, { kind: 'read', ...base }));
+    try {
+      const result = await run();
+      if (!reads && !result.isError) {
+        const answer = answerOf(result);
+        settle(
+          record(caller, notebookId, {
+            kind: 'write',
+            ...base,
+            noteId:
+              base.noteId ?? (typeof answer['noteId'] === 'string' ? answer['noteId'] : undefined),
+            version: typeof answer['version'] === 'number' ? answer['version'] : undefined,
+          }),
+        );
+      }
+      return result;
+    } finally {
+      await Promise.allSettled(pending);
     }
   }
 
@@ -1053,6 +1173,15 @@ export class McpToolAdapter {
         });
         return json(folder);
       }
+
+      case 'set_style':
+        return json({
+          style: await knowledge.setStyle(
+            caller,
+            requireString(args, 'notebook', 'set_style'),
+            styleArgument(args),
+          ),
+        });
 
       case 'set_note_order':
         return json(
@@ -1562,7 +1691,12 @@ export class McpToolAdapter {
         const shared = reach.find(
           (each) => each.ownership === 'shared' && each.notebookId === notebook,
         );
-        const body = [context.trimEnd(), tablesSection(tables), contextRevisionsSection(revisions)]
+        const body = [
+          context.trimEnd(),
+          tablesSection(tables),
+          styleSection(notebookStyleOf(revisions.style)),
+          contextRevisionsSection(revisions),
+        ]
           .filter((part) => part.length > 0)
           .join('\n\n');
         return text(shared ? `${sharedBanner(shared)}\n\n${body}` : body);

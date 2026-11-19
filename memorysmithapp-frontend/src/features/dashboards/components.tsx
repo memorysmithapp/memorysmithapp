@@ -20,6 +20,7 @@ import {
 } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import { NoteContent } from '../../shared/components/NoteContent';
+import { ListPager } from '../../shared/components/ListPager';
 import { queryKeys } from '../../shared/api/query-keys';
 import { ganttScale } from './gantt-scale';
 import { wbsLines, wbsTree } from './wbs';
@@ -187,7 +188,6 @@ export function Chart({
   locale: string;
 }) {
   const { t } = useTranslation();
-  const host = useRef<HTMLDivElement>(null);
   // A funnel reads from the largest stage down, whatever order the groups came in.
   const drawn = useMemo(
     () =>
@@ -196,9 +196,9 @@ export function Chart({
         : groups,
     [type, groups],
   );
-  const keys = drawn.map((group) => group.key ?? t('dashboards.none'));
-  const clicked = useRef(onMark);
-  clicked.current = onMark;
+  // Kept from one render to the next, so a read that brings the same groups
+  // builds the same option and leaves the chart alone (#489).
+  const keys = useMemo(() => drawn.map((group) => group.key ?? t('dashboards.none')), [drawn, t]);
   const option = useMemo(() => {
     const colors = palette();
     const text = token('--text-soft');
@@ -483,39 +483,62 @@ export function Chart({
     };
   }, [type, groups, drawn, measures, options, locale, keys, still, selected, t]);
 
-  useEffect(() => {
-    if (!host.current) return undefined;
-    const chart = echarts.init(host.current, undefined, { renderer: 'svg' });
-    chart.setOption(option as echarts.EChartsCoreOption);
-    chart.on('click', (mark) => {
-      const key = drawn[mark.dataIndex]?.key;
-      if (key !== null && key !== undefined) clicked.current?.(key);
-    });
-    const resize = new ResizeObserver(() => chart.resize());
-    resize.observe(host.current);
-    return () => {
-      resize.disconnect();
-      chart.dispose();
-    };
-  }, [option, drawn]);
-
   if (groups.length === 0) return <p className="dash-empty">{t('dashboards.noRows')}</p>;
-  return <div ref={host} className="dash-chart" role="img" aria-label={measures.join(', ')} />;
+  return (
+    <Plot
+      option={option}
+      label={measures.join(', ')}
+      onClick={
+        onMark
+          ? (index) => {
+              const key = drawn[index]?.key;
+              if (key !== null && key !== undefined) onMark(key);
+            }
+          : undefined
+      }
+    />
+  );
 }
 
-/** A chart that draws what it is given, with nothing to click. */
-function Plot({ option, label }: { option: object; label: string }) {
+/**
+ * A chart that draws what it is given (#489). It is created once, when it is
+ * mounted, and a new option updates it in place: a read that brings new values
+ * moves the marks from the old values to the new ones, and one that brings the
+ * same values changes nothing. Creating it again on each read drew every chart
+ * from zero, and the dashboard blinked each time it was read.
+ */
+function Plot({
+  option,
+  label,
+  onClick,
+}: {
+  option: object;
+  label: string;
+  /** A mark clicked, by the index of its datum; nothing is clickable without it. */
+  onClick?: ((index: number) => void) | undefined;
+}) {
   const host = useRef<HTMLDivElement>(null);
+  const chart = useRef<echarts.ECharts | null>(null);
+  const clicked = useRef(onClick);
+  clicked.current = onClick;
   useEffect(() => {
     if (!host.current) return undefined;
-    const chart = echarts.init(host.current, undefined, { renderer: 'svg' });
-    chart.setOption(option as echarts.EChartsCoreOption);
-    const resize = new ResizeObserver(() => chart.resize());
+    const drawn = echarts.init(host.current, undefined, { renderer: 'svg' });
+    chart.current = drawn;
+    drawn.on('click', (mark) => clicked.current?.(mark.dataIndex));
+    const resize = new ResizeObserver(() => drawn.resize());
     resize.observe(host.current);
     return () => {
       resize.disconnect();
-      chart.dispose();
+      drawn.dispose();
+      chart.current = null;
     };
+  }, []);
+  useEffect(() => {
+    // Merged by position, so each series keeps its marks and moves them to the
+    // new values; replacing the series would draw them from zero again. A
+    // component draws as many series on every read, by its definition.
+    chart.current?.setOption(option as echarts.EChartsCoreOption);
   }, [option]);
   return <div ref={host} className="dash-chart" role="img" aria-label={label} />;
 }
@@ -841,35 +864,7 @@ export function RowsTable({
           </tbody>
         </table>
       </div>
-      {pages > 1 ? (
-        <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
-          <span>
-            {t('tables.showing', {
-              first: (page - 1) * size + 1,
-              last: Math.min(total, page * size),
-              total,
-            })}
-          </span>
-          <span className="tables-grid-page-buttons">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={page <= 1}
-              onClick={() => onPage(page - 1)}
-            >
-              {t('tables.previous')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={page >= pages}
-              onClick={() => onPage(page + 1)}
-            >
-              {t('tables.next')}
-            </button>
-          </span>
-        </nav>
-      ) : null}
+      <ListPager page={page} pages={pages} total={total} size={size} onPage={onPage} />
     </>
   );
 }

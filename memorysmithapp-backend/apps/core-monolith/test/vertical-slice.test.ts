@@ -12,7 +12,12 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTestApp } from './wiring.js';
-import { contentSchema, sessionSchema } from '@memorysmithapp/contracts';
+import {
+  contentSchema,
+  DEFAULT_NOTEBOOK_STYLE,
+  notebookDetailSchema,
+  sessionSchema,
+} from '@memorysmithapp/contracts';
 
 type App = ReturnType<typeof buildTestApp>;
 let harness: App;
@@ -705,5 +710,87 @@ describe('Events reach the outbox for every state change', () => {
     const noteCreated = harness.events.ofType('NoteCreated')[0];
     expect(noteCreated?.contentRef?.sha256).toHaveLength(64);
     expect(noteCreated?.contentRef?.bytes).toBeGreaterThan(0);
+  });
+});
+
+describe("A notebook's style (#493, RN-KNW-092)", () => {
+  it('is the default until it is set, and the detail says it in the declared shape', async () => {
+    const { notebookId } = await seedNotebook();
+    const detail = notebookDetailSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}`)).json(),
+    );
+    expect(detail.style).toEqual(DEFAULT_NOTEBOOK_STYLE);
+  });
+
+  it('changes the settings it names, keeps the others, and records one change', async () => {
+    const { notebookId } = await seedNotebook();
+    const set = await call(`/knowledge/notebooks/${notebookId}/style`, {
+      method: 'PATCH',
+      body: {
+        font: 'serif',
+        text: 'justify',
+        printTables: 'appendices',
+        appendixOrientation: 'landscape',
+        hyphenate: true,
+      },
+    });
+    expect(set.status).toBe(200);
+    const answered = ((await set.json()) as { style: unknown }).style;
+    const expected = {
+      ...DEFAULT_NOTEBOOK_STYLE,
+      font: 'serif',
+      text: 'justify',
+      printTables: 'appendices',
+      appendixOrientation: 'landscape',
+      hyphenate: true,
+    };
+    expect(answered).toEqual(expected);
+
+    const again = await call(`/knowledge/notebooks/${notebookId}/style`, {
+      method: 'PATCH',
+      body: { headings: 'center' },
+    });
+    expect(((await again.json()) as { style: unknown }).style).toEqual({
+      ...expected,
+      headings: 'center',
+    });
+    const detail = notebookDetailSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}`)).json(),
+    );
+    expect(detail.style).toEqual({ ...expected, headings: 'center' });
+
+    // Saying again what it already says writes nothing.
+    const before = harness.events.published.filter((event) => event.type === 'NotebookStyled');
+    expect(before).toHaveLength(2);
+    await call(`/knowledge/notebooks/${notebookId}/style`, {
+      method: 'PATCH',
+      body: { headings: 'center' },
+    });
+    expect(
+      harness.events.published.filter((event) => event.type === 'NotebookStyled'),
+    ).toHaveLength(2);
+  });
+
+  it('refuses a value it cannot take, and a setting it does not have, changing nothing', async () => {
+    const { notebookId } = await seedNotebook();
+    for (const body of [{ text: 'justified' }, { colour: 'blue' }, { orientation: null }]) {
+      const refused = await call(`/knowledge/notebooks/${notebookId}/style`, {
+        method: 'PATCH',
+        body,
+      });
+      expect(refused.status).toBe(400);
+    }
+    const detail = notebookDetailSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}`)).json(),
+    );
+    expect(detail.style).toEqual(DEFAULT_NOTEBOOK_STYLE);
+  });
+
+  it('answers 404 for a notebook the token does not reach (INV-09)', async () => {
+    const missing = await call('/knowledge/notebooks/01J8X2K9QZ3M4N5P6R7S8T9V0A/style', {
+      method: 'PATCH',
+      body: { font: 'serif' },
+    });
+    expect(missing.status).toBe(404);
   });
 });

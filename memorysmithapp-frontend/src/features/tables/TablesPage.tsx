@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { NotebookTableDto, NoteRefDto } from '@memorysmithapp/contracts';
 import { NotebookBar } from '../structure/NotebookBreadcrumb';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
@@ -16,6 +17,8 @@ import { useLiveInterval } from '../../shared/api/live';
 import { formatBytes } from '../../shared/components/StorageBar';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
 import { TableIcon } from '../../shared/components/icons';
+import { ListPager } from '../../shared/components/ListPager';
+import { TableRowDialog, type TableRowField } from '../../shared/components/TableRowDialog';
 import { intlLocale } from '../../i18n/intl-locale';
 import { columnsOf, formatCell, type ColumnView } from './cells';
 
@@ -202,7 +205,13 @@ function TableDetail({
         ))}
       </div>
       {tab === 'data' ? (
-        <TableRows notebookId={notebookId} table={table} columns={columns} locale={locale} />
+        <TableRows
+          key={table.name}
+          notebookId={notebookId}
+          table={table}
+          columns={columns}
+          locale={locale}
+        />
       ) : (
         <TableSchemaView table={table} columns={columns} locale={locale} />
       )}
@@ -245,6 +254,13 @@ function TableRows({
     );
   };
 
+  // The widths come from the first answer and stay for the table (#491).
+  const [widths, setWidths] = useState<Widths | null>(null);
+  const [opened, setOpened] = useState<TableRowField[] | null>(null);
+  if (widths === null && rows.data && rows.data.rows.length > 0) {
+    setWidths(widthsOf(columns, rows.data.rows, locale, t));
+  }
+
   if (rows.isError) return <p className="status">{t(messageKeyOf(rows.error))}</p>;
   if (!rows.data) {
     return (
@@ -256,13 +272,29 @@ function TableRows({
   if (rows.data.total === 0) return <p>{t('tables.empty')}</p>;
 
   const pages = Math.max(1, Math.ceil(rows.data.total / rows.data.pageSize));
-  const first = (rows.data.page - 1) * rows.data.pageSize + 1;
-  const last = Math.min(rows.data.total, rows.data.page * rows.data.pageSize);
+  const open = (row: { values: Record<string, unknown> }) =>
+    setOpened(
+      columns.map((column) => ({
+        name: column.name,
+        value: formatCell(column, row.values[column.name], locale, t),
+      })),
+    );
 
   return (
     <>
       <div className="tables-grid-scroll">
-        <table className="tables-grid">
+        <table
+          className="tables-grid is-fixed"
+          style={widths ? { minWidth: widths.least } : undefined}
+        >
+          <colgroup>
+            {columns.map((column) => (
+              <col
+                key={column.name}
+                style={widths?.of[column.name] ? { width: widths.of[column.name] } : undefined}
+              />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               {columns.map((column) => {
@@ -279,9 +311,10 @@ function TableRows({
                     <button
                       type="button"
                       className="tables-grid-sort"
+                      title={column.name}
                       onClick={() => flip(column.name)}
                     >
-                      {column.name}
+                      <span className="tables-grid-sort-name">{column.name}</span>
                       <span className="tables-grid-arrow" aria-hidden="true">
                         {sorted === 'asc' ? '↑' : sorted === 'desc' ? '↓' : ''}
                       </span>
@@ -293,7 +326,22 @@ function TableRows({
           </thead>
           <tbody>
             {rows.data.rows.map((row) => (
-              <tr key={row.rowId}>
+              <tr
+                key={row.rowId}
+                className="tables-grid-row"
+                tabIndex={0}
+                aria-haspopup="dialog"
+                onClick={() => {
+                  // A click that selected text was reading it, not opening the row.
+                  if (window.getSelection()?.toString()) return;
+                  open(row);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return;
+                  event.preventDefault();
+                  open(row);
+                }}
+              >
                 {columns.map((column) => (
                   <td key={column.name} className={column.numeric ? 'is-numeric' : undefined}>
                     {formatCell(column, row.values[column.name], locale, t)}
@@ -301,32 +349,76 @@ function TableRows({
                 ))}
               </tr>
             ))}
+            {
+              // A shorter last page keeps the height of a full one, so the
+              // pager stays where it was (#491).
+              pages > 1
+                ? Array.from({ length: rows.data.pageSize - rows.data.rows.length }, (_, index) => (
+                    <tr key={`filler-${index}`} className="tables-grid-filler" aria-hidden="true">
+                      <td colSpan={columns.length}>&nbsp;</td>
+                    </tr>
+                  ))
+                : null
+            }
           </tbody>
         </table>
       </div>
-      <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
-        <span>{t('tables.showing', { first, last, total: rows.data.total })}</span>
-        <span className="tables-grid-page-buttons">
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            {t('tables.previous')}
-          </button>
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            disabled={page >= pages}
-            onClick={() => setPage(page + 1)}
-          >
-            {t('tables.next')}
-          </button>
-        </span>
-      </nav>
+      <ListPager
+        page={rows.data.page}
+        pages={pages}
+        total={rows.data.total}
+        size={rows.data.pageSize}
+        onPage={setPage}
+      />
+      {opened ? (
+        <TableRowDialog table={table.name} fields={opened} onClose={() => setOpened(null)} />
+      ) : null}
     </>
   );
+}
+
+/** The widths of a table's columns, fixed once (#491). */
+interface Widths {
+  /** The width of each column that is not text; text columns share the rest. */
+  readonly of: Readonly<Record<string, string>>;
+  /** The least width of the table, below which it scrolls sideways. */
+  readonly least: string;
+}
+
+/** The least width a text column keeps, in `ch`. */
+const TEXT_COLUMN = 16;
+/** The padding of a cell, and the sort arrow of its header, in `ch`. */
+const CELL_SPARE = 4;
+
+/**
+ * A date, a number and a yes or no take what their formatted values of the
+ * first answer need, and their header; text and lists share what is left, so
+ * no page and no order moves a column (#491), as the `table` block of a note
+ * lays its own out.
+ */
+function widthsOf(
+  columns: readonly ColumnView[],
+  rows: readonly { values: Record<string, unknown> }[],
+  locale: string,
+  t: TFunction,
+): Widths {
+  const of: Record<string, string> = {};
+  let fixed = 0;
+  let texts = 0;
+  for (const column of columns) {
+    if (column.type === 'string' || column.type === 'list') {
+      texts += 1;
+      continue;
+    }
+    const need = Math.max(
+      column.name.length,
+      ...rows.map((row) => formatCell(column, row.values[column.name], locale, t).length),
+    );
+    const width = need + CELL_SPARE;
+    of[column.name] = `${width}ch`;
+    fixed += width;
+  }
+  return { of, least: `${fixed + texts * TEXT_COLUMN}ch` };
 }
 
 function TableSchemaView({

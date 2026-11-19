@@ -211,16 +211,16 @@ export function NotebookOverview() {
             attention={!written}
           />
           <Stat
-            icon={<TemplateIcon />}
-            value={templateCount}
-            label={t('overview.templates', { count: templateCount })}
-            to={templatesAddress(notebookId)}
-          />
-          <Stat
             icon={<FolderIcon />}
             value={folderCount}
             label={t('overview.folders', { count: folderCount })}
             to={foldersAddress(notebookId)}
+          />
+          <Stat
+            icon={<TemplateIcon />}
+            value={templateCount}
+            label={t('overview.templates', { count: templateCount })}
+            to={templatesAddress(notebookId)}
           />
           <Stat
             icon={<FileIcon />}

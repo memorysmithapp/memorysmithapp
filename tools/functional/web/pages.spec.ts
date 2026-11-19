@@ -571,7 +571,7 @@ test.describe('the pages of an account', () => {
       .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
     expect(
       leads.filter((href) => !href.startsWith('#')).map((href) => href.split('/').pop()),
-    ).toEqual(['guidance', 'templates', 'folders', 'attachments', 'tables', 'dashboards', 'graph']);
+    ).toEqual(['guidance', 'folders', 'templates', 'attachments', 'tables', 'dashboards', 'graph']);
     const widths = await stats.evaluateAll((cards) =>
       cards.map((card) => Math.round((card as unknown as { offsetWidth: number }).offsetWidth)),
     );
@@ -595,7 +595,7 @@ test.describe('the pages of an account', () => {
     await expect(app).toHaveTitle(`[${state.environment}] ${notebook.name} · MemorySmith`);
   });
 
-  test('[page:/notebooks/:notebookId/context] opens the Context of a notebook: the trail and its three parts', async ({
+  test('[page:/notebooks/:notebookId/context] opens the Context of a notebook: the trail and its four parts (#493)', async ({
     app,
     notebook,
     words,
@@ -604,13 +604,30 @@ test.describe('the pages of an account', () => {
 
     const trail = app.locator('.notebook-bar .notebook-breadcrumb');
     await expect(trail.locator('.crumb.is-last')).toHaveText(words.context);
-    // Three parts of the same weight, each a way into a page of its own (#227).
+    // Parts of the same weight, each a way into a page of its own (#227), the
+    // style of the notebook the last (#493).
     const cards = app.locator('a.context-card');
-    await expect(cards).toHaveCount(3);
+    await expect(cards).toHaveCount(4);
     await expect(cards.filter({ hasText: words.guidance })).toBeVisible();
     await expect(cards.filter({ hasText: words.folders })).toBeVisible();
-    // The sidebar leads to it, and to the overview above it.
+    // The folders come before the Templates that hang on them, here and in
+    // the sidebar (#488).
+    const order = ['guidance', 'folders', 'templates', 'style'];
+    const pageOf = (hrefs: string[]) => hrefs.map((href) => href.split('/').pop());
+    expect(
+      pageOf(
+        await cards.evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? '')),
+      ),
+    ).toEqual(order);
     const sidebar = app.locator('aside#notebook-sidebar');
+    expect(
+      pageOf(
+        await sidebar
+          .locator('#notebook-nav-parts a.nav-row')
+          .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? '')),
+      ),
+    ).toEqual(order);
+    // The sidebar leads to it, and to the overview above it.
     await expect(sidebar.locator('a.nav-row', { hasText: words.context })).toHaveClass(/active/);
     await sidebar.locator('a.nav-row', { hasText: words.overview }).click();
     await expect(app).toHaveURL(notebook.page());
@@ -967,7 +984,49 @@ test.describe('the pages of an account', () => {
     );
     await expect(app.locator('.dash-chart svg')).toBeVisible();
     await expect(app.locator('.dash-lane')).toHaveCount(2);
-    await expect(app.locator('.dash-gantt-row')).toHaveCount(2);
+    // Nothing on the page changes the dashboard, for its owner either: an
+    // agent deletes it through the connector (#487).
+    await expect(app.locator('.dashboard-actions button')).toHaveCount(2);
+    await expect(app.locator('.dashboard-actions .is-danger')).toHaveCount(0);
+    // A read is told in the head, never by the charts (#489). One that brings
+    // the same values leaves the chart drawn as it was, and says nothing.
+    await app.locator('.dash-chart svg').evaluate((svg) => svg.setAttribute('data-kept', 'yes'));
+    const refresh = app.locator('.dashboard-actions button').first();
+    const read = () =>
+      app.waitForResponse(
+        (response) => response.request().method() === 'POST' && response.url().endsWith('/data'),
+      );
+    let landed = read();
+    await refresh.click();
+    await landed;
+    await expect(refresh).toBeEnabled();
+    await expect(app.locator('.dash-chart svg[data-kept="yes"]')).toHaveCount(1);
+    await expect(app.locator('.dashboard-read[data-state="fresh"]')).toHaveCount(0);
+    // One that brings new values moves the marks of the same chart, and the
+    // head says it, to the eye and to a screen reader.
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        {
+          data: '2026-10-20',
+          categoria: 'casa',
+          valor: 49.25,
+          status: 'paga',
+          inicio: '2026-10-20',
+          fim: '2026-10-22',
+        },
+      ],
+    });
+    landed = read();
+    await refresh.click();
+    await landed;
+    await expect(app.locator('.dashboard-read[data-state="fresh"]')).toBeVisible();
+    await expect(app.locator('.dashboard-head [role="status"]')).not.toBeEmpty();
+    await expect(app.locator('.dash-kpi-value')).toHaveText(
+      appLocale === 'pt_BR' ? '1.600' : '1,600',
+    );
+    await expect(app.locator('.dash-chart svg[data-kept="yes"]')).toHaveCount(1);
+    // The row written above has a start and an end, so it is a third bar.
+    await expect(app.locator('.dash-gantt-row')).toHaveCount(3);
     await app.screenshot({
       animations: 'disabled',
       path: test.info().outputPath(`dashboard-${appLocale}.png`),
@@ -1028,10 +1087,14 @@ test.describe('the pages of an account', () => {
       const block = app.locator('.markdown .data-table table');
       await expect(block.locator('tbody tr')).toHaveCount(2);
 
-      // The cells of the block wrap and are ruled as the Markdown table's are,
-      // and its header scrolls with the note instead of sticking (#403).
+      // The cells of the block are ruled as the Markdown table's are, and its
+      // header scrolls with the note instead of sticking (#403). On the screen
+      // a cell of the block holds one line, a longer value ending in an
+      // ellipsis that its row shows whole (#491); the Markdown table wraps.
+      await expect(markdown.locator('td').first()).toHaveCSS('white-space', 'normal');
+      await expect(block.locator('td').first()).toHaveCSS('white-space', 'nowrap');
+      await expect(block.locator('td').first()).toHaveCSS('text-overflow', 'ellipsis');
       for (const cell of [markdown.locator('td').first(), block.locator('td').first()]) {
-        await expect(cell).toHaveCSS('white-space', 'normal');
         await expect(cell).toHaveCSS('border-left-style', 'solid');
       }
       await expect(block.locator('thead th').first()).toHaveCSS('position', 'static');
@@ -1799,292 +1862,458 @@ test.describe('the pages of an account', () => {
     ).toContain('The line typed here. First and after the save.');
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, with its properties on a page of their own, its tables inside the margins and either orientation (#258)', async ({
+  test("[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties on a page of their own, its tables inside the margins and either orientation (#258, #493)", async ({
     app,
     owner,
     notebook,
     words,
   }, testInfo) => {
     test.setTimeout(300_000);
-    const long = 'anIdentifierWithNoPlaceToBreak_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJ';
-    const wide = [
-      '| Field | Kind | Example | Default | Owner | Since | Notes | Status |',
-      '| --- | --- | --- | --- | --- | --- | --- | --- |',
-      `| \`${long}\` | string | \`${long}\` | none | platform team | 0.10.0 | Read by every agent before it writes anything in the notebook | kept |`,
-    ].join('\n');
-    const { noteId } = await owner.ok<{ noteId: string }>(
-      'POST',
-      `/knowledge/notebooks/${notebook.notebookId}/notes`,
-      {
-        folderId: notebook.folderId,
-        content:
-          '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).\n\n' +
-          '> [!warning] Mind this\n> A callout keeps its colour.\n\n```ts\nconst answer = 42;\n```\n\n' +
-          `${wide}\n`,
-      },
-    );
-    // The reader chose the dark theme, and the dialog of the browser is
-    // counted rather than opened.
-    await app.addInitScript(() => {
-      localStorage.setItem(
-        'memorysmith.preferences',
-        JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
-      );
-    });
-    await app.context().addInitScript(() => {
-      const scope = globalThis as unknown as { printed: number; print: () => void };
-      scope.printed = 0;
-      scope.print = () => {
-        scope.printed += 1;
-      };
-    });
-    await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
-    await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
-
-    const opening = app.context().waitForEvent('page');
-    await app.getByRole('link', { name: words.printNote, exact: true }).click();
-    const paper = await opening;
-
-    // The note alone, in a tab of its own, which previews its pages and waits
-    // for the person to print.
-    await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
-    // The note as drawn, off screen, carries the choices; the preview, its pages.
-    const body = paper.locator('.print-source article[data-placement]');
-    const cover = paper.locator('.print-source article.print-cover');
-    const end = paper.locator('.print-source article.print-end');
-    const preview = paper.locator('.print-preview');
-    const pages = preview.locator('.pagedjs_page');
-    await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
-    await expect(preview).toHaveAttribute('data-ready', 'true');
-    await expect(paper).toHaveTitle('On paper');
-    const printed = () =>
-      paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
-    expect(await printed()).toBe(0);
-    await paper.getByRole('button', { name: words.printNote, exact: true }).click();
-    expect(await printed()).toBe(1);
-
-    // Light while it is open, and the choice of the reader is left as it was.
-    await expect(paper.locator('html')).toHaveAttribute('data-theme', 'light');
-    expect(await paper.evaluate(() => localStorage.getItem('memorysmith.preferences'))).toContain(
-      '"dark"',
-    );
-    // The note is drawn on the paper, with no colour of the screen behind it (#425).
-    const behind = await preview.locator('.pagedjs_page .markdown').evaluateAll((notes) =>
-      notes.map(
-        (note) =>
-          (
-            globalThis as unknown as {
-              getComputedStyle(element: object): { backgroundColor: string };
-            }
-          ).getComputedStyle(note).backgroundColor,
-      ),
-    );
-    expect(behind.length).toBeGreaterThan(0);
-    for (const colour of behind) expect(colour).toBe('rgba(0, 0, 0, 0)');
-
-    const groups = paper.getByRole('radiogroup');
-    const [properties, tables, orientation] = [groups.nth(0), groups.nth(1), groups.nth(2)];
-    const status = paper.locator('.print-source .metadata-property-value', { hasText: 'draft' });
-    // A choice lays the pages again; the preview says when they are laid.
-    const laid = async () => {
-      await expect(preview).toHaveAttribute('data-ready', 'true');
-      return pages.count();
+    // How a note prints is its notebook's style, which this case sets and
+    // gives back as it found it (#493).
+    const styled = (style: Record<string, unknown>) =>
+      owner.ok('PATCH', `/knowledge/notebooks/${notebook.notebookId}/style`, style);
+    const DEFAULT = {
+      properties: 'cover',
+      orientation: 'portrait',
+      printTables: 'wrap',
+      appendixOrientation: null,
     };
-    // A table is measured on the note as drawn, at the width of the paper less
-    // its margins, which is the width a page gives it.
-    type Measured = { fits: boolean; size: string };
-    const measure = () =>
-      paper.evaluate((): Measured => {
-        type Box = { scrollWidth: number; parentElement: { clientWidth: number } | null };
-        const scope = globalThis as unknown as {
-          document: { querySelector(selector: string): object | null };
-          getComputedStyle(element: object): { fontSize: string };
-        };
-        const table = scope.document.querySelector('.print-source article[data-placement] table');
-        const box = table as Box | null;
-        return {
-          fits: box !== null && box.scrollWidth <= (box.parentElement?.clientWidth ?? 0) + 1,
-          size: table ? scope.getComputedStyle(table).fontSize : '',
+    await styled(DEFAULT);
+    try {
+      const long =
+        'anIdentifierWithNoPlaceToBreak_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJ';
+      const wide = [
+        '| Field | Kind | Example | Default | Owner | Since | Notes | Status |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- |',
+        `| \`${long}\` | string | \`${long}\` | none | platform team | 0.10.0 | Read by every agent before it writes anything in the notebook | kept |`,
+      ].join('\n');
+      const { noteId } = await owner.ok<{ noteId: string }>(
+        'POST',
+        `/knowledge/notebooks/${notebook.notebookId}/notes`,
+        {
+          folderId: notebook.folderId,
+          content:
+            '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).\n\n' +
+            '> [!warning] Mind this\n> A callout keeps its colour.\n\n```ts\nconst answer = 42;\n```\n\n' +
+            `${wide}\n`,
+        },
+      );
+      // The reader chose the dark theme, and the dialog of the browser is
+      // counted rather than opened.
+      await app.addInitScript(() => {
+        localStorage.setItem(
+          'memorysmith.preferences',
+          JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
+        );
+      });
+      await app.context().addInitScript(() => {
+        const scope = globalThis as unknown as { printed: number; print: () => void };
+        scope.printed = 0;
+        scope.print = () => {
+          scope.printed += 1;
         };
       });
-    // Each page of the preview is pictured, and the PDF is made in print media,
-    // which is the media it is laid out in.
-    const pdfOf = async (name: string) => {
-      const viewport = paper.viewportSize();
-      await paper.setViewportSize({ width: 1400, height: 1400 });
-      for (let index = 0; index < (await pages.count()); index++) {
-        await testInfo.attach(`${name}-${index + 1}.png`, {
-          body: await pages.nth(index).screenshot({
-            animations: 'disabled',
-            style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
-          }),
-          contentType: 'image/png',
-        });
-      }
-      if (viewport) await paper.setViewportSize(viewport);
-      await paper.emulateMedia({ media: 'print' });
-      const bytes = await paper.pdf({ preferCSSPageSize: true });
-      await paper.emulateMedia({ media: 'screen' });
-      await testInfo.attach(`${name}.pdf`, { body: bytes, contentType: 'application/pdf' });
-      const text = bytes.toString('latin1');
-      const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
-      return {
-        width: Number(box?.[1]),
-        height: Number(box?.[2]),
-        pages: (text.match(/\/Type\s*\/Page[^s]/g) ?? []).length,
-      };
-    };
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-    // By default the properties take a cover of their own, opening with them
-    // and the name of the note below, and the text starts on the next page.
-    await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
-    // The drawn note is never seen, so it is read by its elements and not by
-    // the roles a reader would be given; the pages are what is seen.
-    await expect(cover.locator('h1')).toHaveText('On paper');
-    await expect(body.locator('h1')).toHaveCount(0);
-    expect(await laid()).toBe(2);
-    await expect(pages.nth(0)).toContainText('draft');
-    await expect(pages.nth(0)).toContainText('On paper');
-    await expect(pages.nth(0)).not.toContainText('A line with');
-    await expect(pages.nth(1)).toContainText('A line with');
-    // The page scrolls inside itself, so the banner of the environment keeps
-    // the last row of the window and never runs over a page.
-    expect(
-      await paper.evaluate(() => {
-        const scope = globalThis as unknown as {
-          document: { documentElement: { scrollHeight: number } };
-          innerHeight: number;
-        };
-        return scope.document.documentElement.scrollHeight <= scope.innerHeight;
-      }),
-    ).toBe(true);
-    await paper.emulateMedia({ media: 'print' });
-    await expect(paper.locator('.print-toolbar')).toBeHidden();
-    await paper.emulateMedia({ media: 'screen' });
+      const opening = app.context().waitForEvent('page');
+      await app.getByRole('link', { name: words.printNote, exact: true }).click();
+      const paper = await opening;
 
-    // A wide table wraps inside the margins, a short word whole and only what
-    // has no place to break broken, and the Copy button of a block is not on
-    // the paper. The paper is upright A4, 595.28 by 841.89 points as Chromium
-    // rounds them (594.96 by 841.92), and it is the pages of the preview.
-    expect((await measure()).fits).toBe(true);
-    const lines = await paper.evaluate(() => {
-      type Range = { selectNodeContents(node: object): void; getClientRects(): { length: number } };
-      const scope = globalThis as unknown as {
-        document: {
-          querySelectorAll(selector: string): Iterable<{ textContent: string | null }>;
-          createRange(): Range;
-        };
-      };
-      const kind = [...scope.document.querySelectorAll('.print-preview th')].find(
-        (cell) => cell.textContent?.trim() === 'Kind',
+      // The note alone, in a tab of its own, which previews its pages and waits
+      // for the person to print.
+      await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
+      // The note as drawn, off screen, carries the choices; the preview, its pages.
+      const body = paper.locator('.print-source article[data-placement]');
+      const cover = paper.locator('.print-source article.print-cover');
+      const end = paper.locator('.print-source article.print-end');
+      const preview = paper.locator('.print-preview');
+      const pages = preview.locator('.pagedjs_page');
+      await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
+      await expect(preview).toHaveAttribute('data-ready', 'true');
+      await expect(paper).toHaveTitle('On paper');
+      const printed = () =>
+        paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
+      expect(await printed()).toBe(0);
+      await paper.getByRole('button', { name: words.printNote, exact: true }).click();
+      expect(await printed()).toBe(1);
+
+      // Light while it is open, and the choice of the reader is left as it was.
+      await expect(paper.locator('html')).toHaveAttribute('data-theme', 'light');
+      expect(await paper.evaluate(() => localStorage.getItem('memorysmith.preferences'))).toContain(
+        '"dark"',
       );
-      if (!kind) return -1;
-      const range = scope.document.createRange();
-      range.selectNodeContents(kind);
-      return range.getClientRects().length;
+      // The note is drawn on the paper, with no colour of the screen behind it (#425).
+      const behind = await preview.locator('.pagedjs_page .markdown').evaluateAll((notes) =>
+        notes.map(
+          (note) =>
+            (
+              globalThis as unknown as {
+                getComputedStyle(element: object): { backgroundColor: string };
+              }
+            ).getComputedStyle(note).backgroundColor,
+        ),
+      );
+      expect(behind.length).toBeGreaterThan(0);
+      for (const colour of behind) expect(colour).toBe('rgba(0, 0, 0, 0)');
+
+      // The bar offers no choice of its own: the style decides, and whoever
+      // maintains the notebook is pointed at it.
+      await expect(paper.getByRole('radiogroup')).toHaveCount(0);
+      await expect(paper.locator('.print-hint a')).toHaveAttribute('href', /\/style$/);
+      const restyled = async (style: Record<string, unknown>) => {
+        await styled(style);
+        await paper.reload();
+      };
+      const status = paper.locator('.print-source .metadata-property-value', { hasText: 'draft' });
+      // A choice lays the pages again; the preview says when they are laid.
+      const laid = async () => {
+        await expect(preview).toHaveAttribute('data-ready', 'true');
+        return pages.count();
+      };
+      // A table is measured on the note as drawn, at the width of the paper less
+      // its margins, which is the width a page gives it.
+      type Measured = { fits: boolean; size: string };
+      const measure = () =>
+        paper.evaluate((): Measured => {
+          type Box = { scrollWidth: number; parentElement: { clientWidth: number } | null };
+          const scope = globalThis as unknown as {
+            document: { querySelector(selector: string): object | null };
+            getComputedStyle(element: object): { fontSize: string };
+          };
+          const table = scope.document.querySelector('.print-source article[data-placement] table');
+          const box = table as Box | null;
+          return {
+            fits: box !== null && box.scrollWidth <= (box.parentElement?.clientWidth ?? 0) + 1,
+            size: table ? scope.getComputedStyle(table).fontSize : '',
+          };
+        });
+      // Each page of the preview is pictured, and the PDF is made in print media,
+      // which is the media it is laid out in.
+      const pdfOf = async (name: string) => {
+        const viewport = paper.viewportSize();
+        await paper.setViewportSize({ width: 1400, height: 1400 });
+        for (let index = 0; index < (await pages.count()); index++) {
+          await testInfo.attach(`${name}-${index + 1}.png`, {
+            body: await pages.nth(index).screenshot({
+              animations: 'disabled',
+              style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
+            }),
+            contentType: 'image/png',
+          });
+        }
+        if (viewport) await paper.setViewportSize(viewport);
+        await paper.emulateMedia({ media: 'print' });
+        const bytes = await paper.pdf({ preferCSSPageSize: true });
+        await paper.emulateMedia({ media: 'screen' });
+        await testInfo.attach(`${name}.pdf`, { body: bytes, contentType: 'application/pdf' });
+        const text = bytes.toString('latin1');
+        const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
+        return {
+          width: Number(box?.[1]),
+          height: Number(box?.[2]),
+          pages: (text.match(/\/Type\s*\/Page[^s]/g) ?? []).length,
+        };
+      };
+
+      // By default the properties take a cover of their own, opening with them
+      // and the name of the note below, and the text starts on the next page.
+      await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
+      // The drawn note is never seen, so it is read by its elements and not by
+      // the roles a reader would be given; the pages are what is seen.
+      await expect(cover.locator('h1')).toHaveText('On paper');
+      await expect(body.locator('h1')).toHaveCount(0);
+      expect(await laid()).toBe(2);
+      await expect(pages.nth(0)).toContainText('draft');
+      await expect(pages.nth(0)).toContainText('On paper');
+      await expect(pages.nth(0)).not.toContainText('A line with');
+      await expect(pages.nth(1)).toContainText('A line with');
+      // The page scrolls inside itself, so the banner of the environment keeps
+      // the last row of the window and never runs over a page.
+      expect(
+        await paper.evaluate(() => {
+          const scope = globalThis as unknown as {
+            document: { documentElement: { scrollHeight: number } };
+            innerHeight: number;
+          };
+          return scope.document.documentElement.scrollHeight <= scope.innerHeight;
+        }),
+      ).toBe(true);
+      await paper.emulateMedia({ media: 'print' });
+      await expect(paper.locator('.print-toolbar')).toBeHidden();
+      await paper.emulateMedia({ media: 'screen' });
+
+      // A wide table wraps inside the margins, a short word whole and only what
+      // has no place to break broken, and the Copy button of a block is not on
+      // the paper. The paper is upright A4, 595.28 by 841.89 points as Chromium
+      // rounds them (594.96 by 841.92), and it is the pages of the preview.
+      expect((await measure()).fits).toBe(true);
+      const lines = await paper.evaluate(() => {
+        type Range = {
+          selectNodeContents(node: object): void;
+          getClientRects(): { length: number };
+        };
+        const scope = globalThis as unknown as {
+          document: {
+            querySelectorAll(selector: string): Iterable<{ textContent: string | null }>;
+            createRange(): Range;
+          };
+        };
+        const kind = [...scope.document.querySelectorAll('.print-preview th')].find(
+          (cell) => cell.textContent?.trim() === 'Kind',
+        );
+        if (!kind) return -1;
+        const range = scope.document.createRange();
+        range.selectNodeContents(kind);
+        return range.getClientRects().length;
+      });
+      expect(lines).toBe(1);
+      await expect(preview.locator('.copy-action').first()).toBeHidden();
+      const upright = await pdfOf('portrait-cover-wrap');
+      expect(upright.width).toBeCloseTo(595.28, 0);
+      expect(upright.height).toBeCloseTo(841.89, 0);
+      expect(upright.pages).toBe(await pages.count());
+
+      // Or it keeps its lines and shrinks its type until it fits.
+      const wrapped = (await measure()).size;
+      await restyled({ printTables: 'shrink' });
+      await expect(body).toHaveAttribute('data-tables', 'shrink');
+      await laid();
+      const shrunk = await measure();
+      expect(shrunk.fits).toBe(true);
+      expect(parseFloat(shrunk.size)).toBeLessThan(parseFloat(wrapped));
+      await pdfOf('portrait-cover-shrink');
+
+      // The page lies sideways, on A4 just the same, in the preview and on paper.
+      await restyled({ orientation: 'landscape' });
+      await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
+      await laid();
+      const page = await pages.nth(0).boundingBox();
+      expect((page?.width ?? 0) / (page?.height ?? 1)).toBeCloseTo(297 / 210, 1);
+      expect((await measure()).fits).toBe(true);
+      const sideways = await pdfOf('landscape-cover-shrink');
+      expect(sideways.width).toBeCloseTo(841.89, 0);
+      expect(sideways.height).toBeCloseTo(595.28, 0);
+
+      // At the end the properties take the last page; with none they are not printed.
+      await restyled({ properties: 'end' });
+      await expect(cover).toHaveCount(0);
+      await expect(end.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
+      await expect(body.locator('h1')).toHaveText('On paper');
+      expect(await laid()).toBe(2);
+      await expect(pages.nth(1)).toContainText('draft');
+      expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
+      await restyled({ properties: 'none' });
+      await expect(body).toHaveAttribute('data-placement', 'none');
+      await expect(status).toHaveCount(0);
+      expect(await laid()).toBe(1);
+      // The same for everybody: what was set is what the page reads again.
+      await expect(body).toHaveAttribute('data-tables', 'shrink');
+      await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
+
+      // On a phone the pages keep the proportions of A4, scaled to the width of
+      // the screen, and the bar shows its actions as icons, each still named.
+      await restyled({ orientation: 'portrait' });
+      await paper.setViewportSize({ width: 390, height: 844 });
+      await laid();
+      const small = await pages.nth(0).boundingBox();
+      expect(small?.width ?? 0).toBeLessThanOrEqual(390);
+      expect((small?.height ?? 0) / (small?.width ?? 1)).toBeCloseTo(297 / 210, 1);
+      const label = await paper.locator('.print-toolbar .print-action-label').first().boundingBox();
+      expect(label?.width ?? 0).toBeLessThanOrEqual(1);
+      await expect(paper.getByRole('button', { name: words.printNote, exact: true })).toBeVisible();
+      await testInfo.attach('phone.png', {
+        body: await paper.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      await paper.setViewportSize({ width: 1280, height: 720 });
+
+      // On paper: white, nothing but the pages, a link in ink and the callout in colour.
+      await paper.emulateMedia({ media: 'print' });
+      const colours = await paper.evaluate(() => {
+        type Style = {
+          backgroundColor: string;
+          color: string;
+          getPropertyValue(name: string): string;
+        };
+        const scope = globalThis as unknown as {
+          document: { querySelector(selector: string): object | null };
+          getComputedStyle(element: object): Style;
+        };
+        const of = (selector: string) => {
+          const element = scope.document.querySelector(selector);
+          return element ? scope.getComputedStyle(element) : null;
+        };
+        return {
+          body: of('body')?.backgroundColor,
+          link: of('.print-preview .markdown a')?.color,
+          title: of('.print-preview .callout-title')?.color,
+          adjust: of('.print-preview .callout')?.getPropertyValue('print-color-adjust'),
+        };
+      });
+      expect(colours.body).toBe('rgb(255, 255, 255)');
+      expect(colours.link).toBe('rgb(14, 21, 38)');
+      expect(colours.title).not.toBe('rgb(14, 21, 38)');
+      expect(colours.adjust).toBe('exact');
+
+      // And the PDF made by the server, which the browser downloads named after
+      // the note, without its print dialog (#263).
+      await paper.emulateMedia({ media: 'screen' });
+      const downloading = paper.waitForEvent('download', { timeout: 180_000 });
+      await paper.getByRole('button', { name: words.downloadPdf, exact: true }).click();
+      const download = await downloading;
+      expect(download.suggestedFilename()).toBe('On paper.pdf');
+    } finally {
+      await styled(DEFAULT);
+    }
+  });
+
+  test('[page:/notebooks/:notebookId/style] [route:PATCH /knowledge/notebooks/:v/style] sets how every note of the notebook is drawn, seen in a sample before it is saved, and the notes follow, their name above their first heading (#493, #497)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const reset = { font: 'sans', headings: 'left', text: 'left', tables: 'left' };
+    await owner.ok('PATCH', `${path}/style`, reset);
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: Styled ${randomBytes(3).toString('hex')}\n---\n\n# First heading\n\nA paragraph long enough to be set justified when the style says so, and to wrap.\n`,
     });
-    expect(lines).toBe(1);
-    await expect(preview.locator('.copy-action').first()).toBeHidden();
-    const upright = await pdfOf('portrait-cover-wrap');
-    expect(upright.width).toBeCloseTo(595.28, 0);
-    expect(upright.height).toBeCloseTo(841.89, 0);
-    expect(upright.pages).toBe(await pages.count());
+    try {
+      await app.goto(notebook.page('/style'));
+      const pt = words.locale === 'pt-BR';
+      const text = app.getByRole('radiogroup', { name: pt ? 'Texto' : 'Text' });
+      const sample = app.locator('.style-sample .markdown p').first();
+      await expect(sample).toHaveCSS('text-align', 'left');
+      await text
+        .getByRole('radio', { name: pt ? 'Justificado' : 'Justified', exact: true })
+        .click();
+      await app
+        .getByRole('radiogroup', { name: pt ? 'Fonte' : 'Font' })
+        .getByRole('radio', { name: pt ? 'Com serifa' : 'Serif', exact: true })
+        .click();
+      // The sample shows the choice before anything is saved, its headings in
+      // the same face as its text.
+      await expect(sample).toHaveCSS('text-align', 'justify');
+      await expect(sample).toHaveCSS('font-family', /Source Serif 4/);
+      await expect(app.locator('.style-sample .markdown h2').first()).toHaveCSS(
+        'font-family',
+        /Source Serif 4/,
+      );
+      await testInfo.attach('style.png', {
+        body: await app.screenshot({ animations: 'disabled', fullPage: true }),
+        contentType: 'image/png',
+      });
+      await app.getByRole('button', { name: pt ? 'Salvar estilo' : 'Save style' }).click();
+      await expect(app.locator('.style-status')).toHaveText(pt ? 'Estilo salvo.' : 'Style saved.');
+      expect(
+        (await owner.ok<{ style: { text: string; font: string } }>('GET', path)).style,
+      ).toMatchObject({
+        text: 'justify',
+        font: 'serif',
+      });
 
-    // Or it keeps its lines and shrinks its type until it fits.
-    const wrapped = (await measure()).size;
-    await tables.getByRole('radio').nth(1).click();
-    await expect(body).toHaveAttribute('data-tables', 'shrink');
-    await laid();
-    const shrunk = await measure();
-    expect(shrunk.fits).toBe(true);
-    expect(parseFloat(shrunk.size)).toBeLessThan(parseFloat(wrapped));
-    await pdfOf('portrait-cover-shrink');
+      // Every note of the notebook follows, for everybody who reads it.
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
+      const paragraph = app.locator('article.content-pane .markdown p').first();
+      await expect(paragraph).toHaveCSS('text-align', 'justify');
+      await expect(paragraph).toHaveCSS('font-family', /Source Serif 4/);
+      // Justified, it breaks no word with a hyphen unless the style says so (#498).
+      await expect(paragraph).toHaveCSS('hyphens', 'manual');
+      // The name of the note stands a step above its first heading, over a
+      // short rule in ink (#497).
+      const sizes = await app.locator('article.content-pane').evaluate((pane) => {
+        const { getComputedStyle } = globalThis as unknown as {
+          getComputedStyle(element: object, pseudo?: string): { fontSize: string; height: string };
+        };
+        const title = pane.querySelector('.note-title');
+        const first = pane.querySelector('.markdown h1:not(.note-title)');
+        const rule = title ? getComputedStyle(title, '::after') : null;
+        return {
+          title: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
+          heading: first ? parseFloat(getComputedStyle(first).fontSize) : 0,
+          rule: rule?.height ?? '',
+        };
+      });
+      expect(sizes.title).toBeGreaterThan(sizes.heading);
+      expect(sizes.rule).toBe('2px');
+    } finally {
+      await owner.ok('PATCH', `${path}/style`, reset);
+    }
+  });
 
-    // The page lies sideways, on A4 just the same, in the preview and on paper.
-    await orientation.getByRole('radio').nth(1).click();
-    await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
-    await laid();
-    const page = await pages.nth(0).boundingBox();
-    expect((page?.width ?? 0) / (page?.height ?? 1)).toBeCloseTo(297 / 210, 1);
-    expect((await measure()).fits).toBe(true);
-    const sideways = await pdfOf('landscape-cover-shrink');
-    expect(sideways.width).toBeCloseTo(841.89, 0);
-    expect(sideways.height).toBeCloseTo(595.28, 0);
-
-    // At the end the properties take the last page; with none they are not printed.
-    await properties.getByRole('radio').nth(1).click();
-    await expect(cover).toHaveCount(0);
-    await expect(end.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
-    await expect(body.locator('h1')).toHaveText('On paper');
-    expect(await laid()).toBe(2);
-    await expect(pages.nth(1)).toContainText('draft');
-    expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
-    await properties.getByRole('radio').nth(2).click();
-    await expect(status).toHaveCount(0);
-    expect(await laid()).toBe(1);
-
-    // And this browser remembers all three.
-    await paper.reload();
-    await expect(body).toHaveAttribute('data-placement', 'none');
-    await expect(body).toHaveAttribute('data-tables', 'shrink');
-    await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
-
-    // On a phone the pages keep the proportions of A4, scaled to the width of
-    // the screen, and the bar shows its choices as icons, each still named.
-    await orientation.getByRole('radio').nth(0).click();
-    await paper.setViewportSize({ width: 390, height: 844 });
-    await laid();
-    const small = await pages.nth(0).boundingBox();
-    expect(small?.width ?? 0).toBeLessThanOrEqual(390);
-    expect((small?.height ?? 0) / (small?.width ?? 1)).toBeCloseTo(297 / 210, 1);
-    const label = await paper.locator('.print-toolbar .segmented-label').first().boundingBox();
-    expect(label?.width ?? 0).toBeLessThanOrEqual(1);
-    await expect(
-      properties.getByRole('radio', {
-        name: words.locale === 'pt-BR' ? 'Folha de rosto' : 'Cover page',
-      }),
-    ).toBeVisible();
-    await testInfo.attach('phone.png', {
-      body: await paper.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
+  test('[page:/notebooks/:notebookId/notes/:noteId/print] prints the tables of a note as appendices at its end, each on a page of its own, landscape under a portrait text (#494)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    test.setTimeout(240_000);
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const table = `gastos-${randomBytes(3).toString('hex')}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: { item: { type: 'string' }, valor: { type: 'number' } },
+      },
     });
-    await paper.setViewportSize({ width: 1280, height: 720 });
-
-    // On paper: white, nothing but the pages, a link in ink and the callout in colour.
-    await paper.emulateMedia({ media: 'print' });
-    const colours = await paper.evaluate(() => {
-      type Style = {
-        backgroundColor: string;
-        color: string;
-        getPropertyValue(name: string): string;
-      };
-      const scope = globalThis as unknown as {
-        document: { querySelector(selector: string): object | null };
-        getComputedStyle(element: object): Style;
-      };
-      const of = (selector: string) => {
-        const element = scope.document.querySelector(selector);
-        return element ? scope.getComputedStyle(element) : null;
-      };
-      return {
-        body: of('body')?.backgroundColor,
-        link: of('.print-preview .markdown a')?.color,
-        title: of('.print-preview .callout-title')?.color,
-        adjust: of('.print-preview .callout')?.getPropertyValue('print-color-adjust'),
-      };
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: Array.from({ length: 40 }, (_, index) => ({ item: `Item ${index + 1}`, valor: index })),
     });
-    expect(colours.body).toBe('rgb(255, 255, 255)');
-    expect(colours.link).toBe('rgb(14, 21, 38)');
-    expect(colours.title).not.toBe('rgb(14, 21, 38)');
-    expect(colours.adjust).toBe('exact');
-
-    // And the PDF made by the server, which the browser downloads named after
-    // the note, without its print dialog (#263).
-    await paper.emulateMedia({ media: 'screen' });
-    const downloading = paper.waitForEvent('download', { timeout: 180_000 });
-    await paper.getByRole('button', { name: words.downloadPdf, exact: true }).click();
-    const download = await downloading;
-    expect(download.suggestedFilename()).toBe('On paper.pdf');
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content:
+        '---\nname: With appendices\n---\n\nThe rows of the month.\n\n' +
+        `\`\`\`table\ntable: ${table}\n\`\`\`\n\nAnd a summary:\n\n| Kind | Total |\n|---|--:|\n| Food | 10 |\n`,
+    });
+    const reset = { printTables: 'wrap', appendixOrientation: null, orientation: 'portrait' };
+    await owner.ok('PATCH', `${path}/style`, {
+      ...reset,
+      properties: 'none',
+      printTables: 'appendices',
+      appendixOrientation: 'landscape',
+    });
+    try {
+      await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}/print`));
+      const preview = app.locator('.print-preview');
+      await expect(preview).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
+      const pt = words.locale === 'pt-BR';
+      // In each table's place, a reference to its appendix and the page it lands on.
+      const references = preview.locator('.table-reference a');
+      await expect(references).toHaveCount(2);
+      await expect(references.nth(0)).toContainText(
+        pt ? `Ver Anexo 1 — Tabela “${table}”` : `See Appendix 1 — Table “${table}”`,
+      );
+      await expect(references.nth(1)).toContainText(
+        pt ? 'Ver Anexo 2 — Tabela 1' : 'See Appendix 2 — Table 1',
+      );
+      // At the end, one appendix per table, titled, every row of the block.
+      await expect(preview.locator('.table-appendix-title').first()).toContainText(
+        pt ? `Anexo 1 — ${table}` : `Appendix 1 — ${table}`,
+      );
+      await expect(preview.getByText('Item 40', { exact: true })).toHaveCount(1);
+      // The text upright and the appendices sideways, in the preview and on paper.
+      const pages = preview.locator('.pagedjs_page');
+      const first = await pages.first().boundingBox();
+      const last = await pages.last().boundingBox();
+      expect((first?.height ?? 0) > (first?.width ?? 0)).toBe(true);
+      expect((last?.width ?? 0) > (last?.height ?? 0)).toBe(true);
+      await app.emulateMedia({ media: 'print' });
+      const bytes = await app.pdf({ preferCSSPageSize: true });
+      await app.emulateMedia({ media: 'screen' });
+      await testInfo.attach('appendices.pdf', { body: bytes, contentType: 'application/pdf' });
+      const boxes = [
+        ...bytes.toString('latin1').matchAll(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/g),
+      ].map((box) => Number(box[1]) > Number(box[2]));
+      expect(boxes[0]).toBe(false);
+      expect(boxes.at(-1)).toBe(true);
+    } finally {
+      await owner.ok('PATCH', `${path}/style`, { ...reset, properties: 'cover' });
+    }
   });
 
   test('[page:/notebooks/:notebookId/dashboards/print] draws a dashboard whole and still, in the light theme, for the renderer to capture (#368)', async ({
@@ -2493,12 +2722,12 @@ A note to rename.
     await expect(app.locator('.tree-note', { hasText: before })).toHaveCount(0);
   });
 
-  test('[page:/notebooks/:notebookId/notes/:noteId] moves a note to another folder from its bar, with its history, and refuses a folder that holds its name (#265)', async ({
+  test('[page:/notebooks/:notebookId/notes/:noteId] offers no Move, and a note moved through the connector keeps its history (#496)', async ({
     app,
     owner,
     notebook,
     words,
-  }, testInfo) => {
+  }) => {
     // Its own note, written twice, so the history has something to keep.
     const path = `/knowledge/notebooks/${notebook.notebookId}`;
     const name = `Draft ${randomBytes(3).toString('hex')}`;
@@ -2515,26 +2744,20 @@ A note to rename.
       baseRevision: read.revision.versionId,
     });
 
+    // The bar reads and prints; moving is asked of the agent, for the owner too.
     await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
+    await expect(app.getByRole('button', { name: words.historyButton, exact: true })).toBeVisible();
+    await expect(app.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0);
+    await expect(app.getByRole('button', { name: 'Mover', exact: true })).toHaveCount(0);
 
-    // It says beforehand that the links keep working, and only then asks where.
-    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
-    const dialog = app.getByRole('dialog', { name: words.moveHeading });
-    await expect(dialog.getByText(words.moveLinksKeep)).toBeVisible();
-    await dialog.getByLabel(words.moveFolder, { exact: true }).selectOption({ label: 'Concepts' });
-    await testInfo.attach('move-dialog.png', {
-      body: await app.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
-    });
-    await dialog.getByRole('button', { name: words.moveNote, exact: true }).click();
-    await expect(dialog).toHaveCount(0);
-
-    // The same address, the same note, in its new folder, and the tree follows.
+    // Moved the way the connector moves it, the same note in its new folder.
+    const concepts = await owner.ok<{ folders: { folderId: string; name: string }[] }>('GET', path);
+    const toFolderId = concepts.folders.find((folder) => folder.name === 'Concepts')!.folderId;
+    await owner.ok('POST', `${path}/notes/${noteId}/move`, { toFolderId, afterNoteId: null });
+    await app.reload();
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
     await expect(app.getByText('Second take.')).toBeVisible();
-    const moved = await owner.ok<{ folderId: string }>('GET', `${path}/notes/${noteId}`);
-    expect(moved.folderId).not.toBe(notebook.folderId);
 
     // And its history goes with it: both writes, and the move.
     await app.getByRole('button', { name: words.historyButton, exact: true }).click();
@@ -2545,38 +2768,12 @@ A note to rename.
     await expect(history.locator('.history-list li')).toHaveCount(3);
     await app.keyboard.press('Escape');
 
-    // A folder holds one note of each name: Facet is in both, so the one in
-    // Findings cannot join the one in Concepts, and the dialog says so.
-    await app.goto(notebook.page(`/notes/${notebook.facetNoteIds[0].toLowerCase()}`));
-    await app.getByRole('button', { name: words.moveNote, exact: true }).click();
-    const refusing = app.getByRole('dialog', { name: words.moveHeading });
-    await refusing
-      .getByLabel(words.moveFolder, { exact: true })
-      .selectOption({ label: 'Concepts' });
-    await refusing.getByRole('button', { name: words.moveNote, exact: true }).click();
-    await expect(refusing.getByRole('alert')).toContainText(words.moveNameTaken);
-    await testInfo.attach('move-refused.png', {
-      body: await app.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
-    });
-    // Closed by its own button before the window narrows: an Escape may land on
-    // the select that last held the focus, and the dialog would come back as a
-    // sheet over the bar.
-    await refusing.getByRole('button', { name: words.cancel, exact: true }).click();
-    await expect(refusing).toHaveCount(0);
-    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Findings');
-
-    // On a phone it rises as a sheet from the foot of the screen.
-    await app.setViewportSize({ width: 390, height: 844 });
-    await app.locator(`button.bar-button[title="${words.moveNoteTitle}"]`).click();
-    const sheet = app.getByRole('dialog', { name: words.moveHeading });
-    await expect(sheet.getByText(words.moveLinksKeep)).toBeVisible();
-    await testInfo.attach('move-sheet-phone.png', {
-      body: await app.screenshot({ animations: 'disabled' }),
-      contentType: 'image/png',
-    });
-    await app.keyboard.press('Escape');
-    await expect(sheet).toHaveCount(0);
+    // A folder's page offers no Delete either (#496).
+    await app.goto(notebook.page(`/folders/${toFolderId.toLowerCase()}`));
+    await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
+    // Its bar holds Edit alone: the folder is deleted by asking the agent.
+    await expect(app.locator('.notebook-bar .bar-button')).toHaveCount(1);
+    await expect(app.getByRole('button', { name: words.folderEdit, exact: true })).toBeVisible();
   });
 
   test('[page:/notebooks/:notebookId/links/:target] keeps a link to a name nobody carries, and follows one that resolves', async ({

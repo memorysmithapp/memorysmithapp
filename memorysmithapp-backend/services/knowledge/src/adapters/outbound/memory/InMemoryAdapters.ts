@@ -273,6 +273,7 @@ function withSlotReadModel(
     createdBy: notebook.createdBy,
     updatedAt: notebook.updatedAt,
     deletedAt: notebook.deletedAt,
+    style: notebook.style,
   });
 }
 

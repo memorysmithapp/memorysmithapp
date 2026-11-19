@@ -63,8 +63,11 @@ import type {
   ResolvedTarget,
   NotebookGraph,
   AttachmentUse,
+  ActivityEntry,
+  ActivityLog,
+  FacetMove,
 } from '../domain/ports.js';
-import { GRAPH_LIMITS } from '../domain/ports.js';
+import { ACTIVITY_SECONDS, GRAPH_LIMITS } from '../domain/ports.js';
 import { usesOf } from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf, type FacetSnapshot } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
@@ -1724,7 +1727,7 @@ export class DynamoFacetIndex implements FacetIndex {
     notebookId: string,
     noteId: string,
     facets: FacetSnapshot | null,
-  ): Promise<void> {
+  ): Promise<FacetMove> {
     const { changes, rest } = await this.committed(() =>
       this.writePortrait(notebookId, noteId, facets),
     );
@@ -1737,6 +1740,15 @@ export class DynamoFacetIndex implements FacetIndex {
     for (const facet of new Set(changes.map((change) => change.facet))) {
       await this.enforceCardinality(notebookId, facet);
     }
+    // What the graph shows the write changed (#495).
+    return {
+      added: changes
+        .filter((change) => change.delta > 0)
+        .map(({ facet, value }) => ({ facet, value })),
+      removed: changes
+        .filter((change) => change.delta < 0)
+        .map(({ facet, value }) => ({ facet, value })),
+    };
   }
 
   /**
@@ -2358,4 +2370,66 @@ export class DynamoContentIndex implements ContentIndex {
       throw new Error(`The content index left ${pending.length} writes unprocessed`);
     }
   }
+}
+
+/**
+ * What an agent did in a notebook, kept two minutes under the notebook's own
+ * partition (INV-01): `ACT#{ulid}`, so a page reads what came after the last
+ * entry it saw in one query, and the TTL of the table takes it away (#495).
+ */
+export class DynamoActivityLog implements ActivityLog {
+  constructor(
+    private readonly subscriptionId: SubscriptionId,
+    private readonly db: DynamoDBDocumentClient,
+    private readonly tableName: string,
+    private readonly now: () => number = () => Date.now(),
+  ) {}
+
+  async record(notebookId: string, entry: Omit<ActivityEntry, 'id' | 'at'>): Promise<void> {
+    const id = ulid();
+    const at = new Date(this.now());
+    await this.db.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          PK: partition(this.subscriptionId, notebookId),
+          SK: `ACT#${id}`,
+          entity: 'ACTIVITY',
+          ...stripUndefined({ ...entry }),
+          id,
+          at: at.toISOString(),
+          ttl: Math.floor(at.getTime() / 1000) + ACTIVITY_SECONDS,
+        },
+      }),
+    );
+  }
+
+  async since(notebookId: string, after: string | null): Promise<ActivityEntry[]> {
+    const now = this.now();
+    // Without a cursor, every entry still alive: none lives past two minutes.
+    const floor = after ?? '';
+    const answer = await this.db.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
+        ExpressionAttributeValues: {
+          ':pk': partition(this.subscriptionId, notebookId),
+          ':from': `ACT#${floor}`,
+          ':to': 'ACT#~',
+        },
+        Limit: 200,
+      }),
+    );
+    const nowSeconds = Math.floor(now / 1000);
+    return ((answer.Items ?? []) as Array<Record<string, unknown>>)
+      .filter((item) => item['id'] !== after && Number(item['ttl'] ?? 0) > nowSeconds)
+      .map(
+        ({ PK: _pk, SK: _sk, entity: _entity, ttl: _ttl, ...entry }) =>
+          entry as unknown as ActivityEntry,
+      );
+  }
+}
+
+function stripUndefined(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([, each]) => each !== undefined));
 }

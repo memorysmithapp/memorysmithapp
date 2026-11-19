@@ -22,6 +22,8 @@ import type {
   UploadStatusDto,
   TransferDto,
   TransferListDto,
+  NotebookStyle,
+  NotebookStylePatch,
 } from '@memorysmithapp/contracts';
 import * as backend from './backend';
 import { linkTargetAddress, noteAddress } from './note-address';
@@ -114,10 +116,6 @@ export async function dashboardImage(
     }
   }
   throw new Error('TIMED_OUT');
-}
-
-export function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
-  return backend.deleteDashboard(notebookId, dashboard);
 }
 
 export function linkToFile(notebookId: string, fileId: string): Promise<FileLinkDto> {
@@ -408,16 +406,6 @@ export function updateNote(
     .then((note) => note.revision.versionId);
 }
 
-/** A note to another folder of its notebook, keeping its history (RN-KNW-057). */
-export async function moveNote(
-  notebookId: string,
-  noteId: string,
-  toFolderId: string,
-  afterNoteId: string | null,
-): Promise<void> {
-  await backend.moveNote(notebookId, noteId, { toFolderId, afterNoteId });
-}
-
 export function putGuidance(
   notebookId: string,
   content: string,
@@ -441,6 +429,13 @@ export function putTemplate(
  * The two Content Slots that are not notes are deleted on their own, and their
  * parent stays (RN-KNW-045).
  */
+export function setNotebookStyle(
+  notebookId: string,
+  style: NotebookStylePatch,
+): Promise<NotebookStyle> {
+  return backend.setNotebookStyle(notebookId, style);
+}
+
 export function setNoteOrder(
   notebookId: string,
   folderId: string,
@@ -455,10 +450,6 @@ export function updateFolder(
   change: { name?: string; description?: string },
 ): Promise<void> {
   return backend.updateFolder(notebookId, folderId, change);
-}
-
-export function deleteFolder(notebookId: string, folderId: string): Promise<void> {
-  return backend.deleteFolder(notebookId, folderId);
 }
 
 /**

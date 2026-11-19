@@ -1,7 +1,16 @@
 import type { TableRequest } from '@memorysmithapp/markdown-renderer';
 import { answerTableBlock } from '../api/table-block';
-import { useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -19,8 +28,15 @@ import {
   type LinkChoices,
   type NoteMode,
   type NoteStrings,
+  type NoteStyle,
+  type TableRowView,
 } from '@memorysmithapp/markdown-renderer';
-import { FILE_MIME_TYPES, rendersAs, type NotebookFileDto } from '@memorysmithapp/contracts';
+import {
+  FILE_MIME_TYPES,
+  rendersAs,
+  type NotebookFileDto,
+  type NotebookStyle,
+} from '@memorysmithapp/contracts';
 import '@memorysmithapp/markdown-renderer/styles.css';
 import 'katex/dist/katex.min.css';
 import {
@@ -28,6 +44,7 @@ import {
   folderOfNote,
   getNote,
   getNotebookFiles,
+  getNotebookStructure,
   linkToFile,
   noteNamesIn,
   notesReaching,
@@ -43,6 +60,7 @@ import { effectiveTheme, usePreferences } from '../store/preferences';
 import { useWriteStatus } from '../store/write-status';
 import { fileKindKey } from './file-kind';
 import { useTaskWrite, type TaskWriter } from './TaskListWriter';
+import { TableRowDialog } from './TableRowDialog';
 
 /** What the page draws where the renderer draws the frontmatter (#300). */
 const NoteHeader = createContext<ReactNode>(null);
@@ -61,6 +79,15 @@ function NoteHeaderSlot() {
  */
 const READING_THEME = defineTheme({
   name: 'memorysmith',
+  components: { properties: NoteHeaderSlot },
+});
+/**
+ * The same look, for a notebook whose style lets justified text break words
+ * with a hyphen (#498). The plain theme never does: the stylesheet takes the
+ * hyphens away under its name, which the renderer puts on the note's root.
+ */
+const READING_THEME_HYPHENATED = defineTheme({
+  name: 'memorysmith-hyphenated',
   components: { properties: NoteHeaderSlot },
 });
 
@@ -114,11 +141,26 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     no: t('note.propertyFalse'),
     footnotes: t('note.footnotes'),
     footnoteBack: (number) => t('note.footnoteBack', { number }),
-    tableRows: (count) => t('note.tableRows', { count }),
-    tablePage: (page, pages) => t('note.tablePage', { page, pages }),
-    tablePrevious: t('note.tablePrevious'),
-    tableNext: t('note.tableNext'),
+    // The footer of a `table` block reads as the app's own pager (#491).
+    tableShowing: (first, last, total) => t('tables.showing', { first, last, total }),
+    tablePrevious: t('tables.previous'),
+    tableNext: t('tables.next'),
     tableTotal: t('note.tableTotal'),
+    // A table printed as an appendix (#494): a `table` block by its table, a
+    // Markdown table, which has no name, by its place among the note's.
+    tableAppendix: ({ number, table, markdownTable }) =>
+      t('note.tableAppendix', {
+        number,
+        name: table ?? t('note.tableNumbered', { number: markdownTable }),
+      }),
+    tableAppendixReference: ({ number, table, markdownTable }) =>
+      t('note.tableAppendixReference', {
+        number,
+        name:
+          table === null
+            ? t('note.tableNumbered', { number: markdownTable })
+            : t('note.tableNamed', { table }),
+      }),
     tableEmpty: t('note.tableEmpty'),
     tableSortBy: (column) => t('note.tableSortBy', { column }),
     tableProblem: (code, table) => t(`note.tableProblem.${code}`, { table: table ?? '' }),
@@ -127,11 +169,9 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
         table,
         filter,
         t('note.tableRows', { count }),
-        t('note.tableRead', {
-          when: new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
-            new Date(readAt),
-          ),
-        }),
+        // The renderer hands the moment already in the reader's words; an
+        // instant it could not format arrives as written, and is said as is.
+        t('note.tableRead', { when: whenRead(readAt, locale) }),
       ]
         .filter(Boolean)
         .join(' · '),
@@ -169,6 +209,30 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
     close: t('common.close'),
     cancel: t('common.cancel'),
   };
+}
+
+/** When a table's rows were read, short, whether the renderer formatted it or not. */
+function whenRead(readAt: string, locale: string): string {
+  const instant = new Date(readAt);
+  return /^\d{4}-\d{2}-\d{2}T/.test(readAt) && !Number.isNaN(instant.getTime())
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(instant)
+    : readAt;
+}
+
+/**
+ * The style of a notebook on what a page draws apart from the note (#493,
+ * #497): the name on a print's cover, the properties on its last page, the
+ * head of a preview. The renderer sets the same on the note itself; only the
+ * serif face is set, the sans one being how every page is drawn.
+ */
+export function styleOfParts(style: NotebookStyle | undefined): CSSProperties {
+  if (!style) return {};
+  return {
+    '--ms-align-headings': style.headings,
+    ...(style.font === 'serif'
+      ? { '--ms-face': 'var(--serif)', '--ms-face-heading': 'var(--serif)' }
+      : {}),
+  } as CSSProperties;
 }
 
 /**
@@ -246,7 +310,16 @@ export function NoteContent({
   editing,
   header,
   printing = false,
+  tablesAsAppendices = false,
+  noteStyle,
 }: {
+  /** In print, each table at the end of the note as an appendix, a reference in its place (#494). */
+  tablesAsAppendices?: boolean;
+  /**
+   * The style to draw the note in, over the notebook's: the Style page draws
+   * its sample in what is being chosen (#493). Left out, the notebook's.
+   */
+  noteStyle?: NoteStyle & { readonly hyphenate?: boolean };
   /** Drawn for paper: a `table` block carries every row its filter returns (§7.15). */
   printing?: boolean;
   raw: string;
@@ -288,6 +361,30 @@ export function NoteContent({
     (request: TableRequest) => answerTableBlock(notebookId, request),
     [notebookId],
   );
+  // The notebook's style (#493), from the structure every page of the notebook
+  // already reads: the face and the alignments are the note's defaults, which
+  // a `:::{style}` block of the note overrides for its passage.
+  const notebookStyle = useQuery({
+    queryKey: queryKeys.notebookStructure(notebookId),
+    queryFn: () => getNotebookStructure(notebookId),
+    enabled: notebookId !== '' && noteStyle === undefined,
+    select: (structure) => structure.style,
+  }).data;
+  const drawnStyle = useMemo<NoteStyle | undefined>(() => {
+    const style = noteStyle ?? notebookStyle;
+    // The sans face is how every note is drawn without a style, so only the
+    // serif is handed over: a notebook that keeps the default looks exactly as
+    // before, its tags in their own face included.
+    return style
+      ? {
+          ...(style.font === 'serif' ? { font: style.font } : {}),
+          headings: style.headings,
+          text: style.text,
+          tables: style.tables,
+        }
+      : undefined;
+  }, [noteStyle, notebookStyle]);
+  const hyphenated = (noteStyle ?? notebookStyle)?.hyphenate === true;
   const theme = usePreferences((state) => state.theme);
   const paper = usePreferences((state) => state.paper);
   const scheme = effectiveTheme(theme, paper);
@@ -331,6 +428,10 @@ export function NoteContent({
   // change of it, which `t` alone would not.
   const language = i18n.language;
   const strings = useMemo(() => noteStrings(t, intlLocale(language)), [t, language]);
+
+  /** A row of a `table` block shown whole, in the app's own dialog (#491). */
+  const [row, setRow] = useState<TableRowView | null>(null);
+  const openTableRow = useCallback((view: TableRowView) => setRow(view), []);
 
   /**
    * The notes a target no single note answers may lead to, which only
@@ -468,7 +569,10 @@ export function NoteContent({
     <NoteHeader.Provider value={header ?? null}>
       <NoteBody
         queryTable={queryTable}
+        openTableRow={openTableRow}
+        {...(drawnStyle ? { noteStyle: drawnStyle } : {})}
         printing={printing}
+        tablesAsAppendices={printing && tablesAsAppendices}
         markdown={editing?.mode === 'edit' ? editing.markdown : text}
         resolve={resolve}
         reaches={reaches}
@@ -484,7 +588,7 @@ export function NoteContent({
         writable={writable}
         onToggleTask={onToggleTask}
         strings={strings}
-        theme={READING_THEME}
+        theme={hyphenated ? READING_THEME_HYPHENATED : READING_THEME}
         scheme={scheme}
         actions={actions}
         // Icons alone, in reading and in edit mode, the word kept as each
@@ -503,6 +607,16 @@ export function NoteContent({
             }
           : {})}
       />
+      {row ? (
+        <TableRowDialog
+          table={row.table}
+          fields={row.columns.map((column, index) => ({
+            name: column.name,
+            value: row.values[index] ?? '',
+          }))}
+          onClose={() => setRow(null)}
+        />
+      ) : null}
     </NoteHeader.Provider>
   );
 }

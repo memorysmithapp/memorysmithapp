@@ -67,7 +67,6 @@ describe('an action button that carries an icon', () => {
       './Menu.tsx',
       './Sheet.tsx',
       '../../features/dashboard/NotebookActions.tsx',
-      '../../features/note/MoveNote.tsx',
       '../../features/structure/EditFolder.tsx',
       '../../features/portability/ExportChoice.tsx',
       '../../features/sharing/ShareDialog.tsx',

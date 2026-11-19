@@ -320,9 +320,28 @@ export interface FacetStats {
   readonly noteCount: number;
 }
 
+/** A value a note's frontmatter took or gave up, by its property. */
+export interface FacetValue {
+  readonly facet: string;
+  readonly value: string;
+}
+
+/** What a projection changed in a note's portrait: the values it took and those it gave up. */
+export interface FacetMove {
+  readonly added: readonly FacetValue[];
+  readonly removed: readonly FacetValue[];
+}
+
 export interface FacetIndex {
-  /** null means the note was deleted and its portrait must be withdrawn. */
-  replaceFacets(notebookId: string, noteId: string, facets: FacetSnapshot | null): Promise<void>;
+  /**
+   * null means the note was deleted and its portrait must be withdrawn. The
+   * answer is what changed against the portrait it replaced (#495).
+   */
+  replaceFacets(
+    notebookId: string,
+    noteId: string,
+    facets: FacetSnapshot | null,
+  ): Promise<FacetMove>;
   notebookFacetStats(notebookId: string): Promise<FacetStats>;
   /**
    * The portrait of every note of the notebook, keyed by note. The statistics
@@ -374,3 +393,48 @@ export interface ProjectedVersions {
 export interface NoteCatalog {
   listNotes(notebookId: string): Promise<Array<NoteRef & { folderName: string }>>;
 }
+
+/**
+ * What an agent did in a notebook through the connector, and what a write
+ * changed in the frontmatter once projected (#495). Kept two minutes, for the
+ * notebook's graph to show, and never in the trail: a read is not a change
+ * (INV-06).
+ */
+export type ActivityKind = 'read' | 'write' | 'projected';
+
+export interface ActivityWho {
+  /** The person, from the token. */
+  readonly userId: string;
+  /** How the connector named itself, from its binding (RN-AGT-001). */
+  readonly client: string;
+  /** How the connector names its person, for the screen alone. */
+  readonly person: string;
+}
+
+export interface ActivityEntry {
+  /** A ULID: it orders the entries in time, and a page asks for those after one. */
+  readonly id: string;
+  readonly kind: ActivityKind;
+  readonly at: string;
+  /** The tool, for a read or a write. */
+  readonly tool?: string | undefined;
+  readonly noteId?: string | undefined;
+  readonly folderId?: string | undefined;
+  /** The query of a search, as written. */
+  readonly query?: string | undefined;
+  readonly version?: number | undefined;
+  /** Who, for a read or a write; a projection is nobody's. */
+  readonly who?: ActivityWho | undefined;
+  /** What a projection changed in the frontmatter. */
+  readonly added?: readonly FacetValue[] | undefined;
+  readonly removed?: readonly FacetValue[] | undefined;
+}
+
+export interface ActivityLog {
+  record(notebookId: string, entry: Omit<ActivityEntry, 'id' | 'at'>): Promise<void>;
+  /** The entries after `after`, oldest first; with none, those of the last two minutes. */
+  since(notebookId: string, after: string | null): Promise<ActivityEntry[]>;
+}
+
+/** How long an entry is kept: the page asks every few seconds, and nobody reads it later. */
+export const ACTIVITY_SECONDS = 120;

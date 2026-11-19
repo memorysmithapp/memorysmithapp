@@ -5,6 +5,7 @@ import { AppShell } from '../shared/components/AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
 import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
 import { GuidancePanel } from '../features/guidance/GuidancePanel';
+import { StylePage } from '../features/structure/StylePage';
 import { FolderPage } from '../features/structure/FolderPage';
 import { FoldersPage } from '../features/structure/FoldersPage';
 import { NoteRoute } from '../features/structure/NoteRoute';
@@ -154,6 +155,7 @@ export const router = createBrowserRouter([
                   { index: true, element: <NotebookOverview /> },
                   { path: 'context', element: <NotebookContextPage /> },
                   { path: 'guidance', element: <GuidancePanel /> },
+                  { path: 'style', element: <StylePage /> },
                   { path: 'templates', element: <TemplatesPage /> },
                   { path: 'attachments', element: <AttachmentsPage /> },
                   { path: 'tables', element: <TablesPage /> },

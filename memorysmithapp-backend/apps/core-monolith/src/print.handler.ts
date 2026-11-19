@@ -3,7 +3,7 @@
  * function of its own, because it carries a browser.
  *
  * Each message is one note to draw, as the person who asked. A print opens the
- * page the print tab previews, with their session and their choices, and the
+ * page the print tab previews, with their session, laid as the notebook's style says, and the
  * pages it lays are saved as a PDF; a preview opens the preview page with the
  * note, or the draft kept beside it, and what it draws is captured as a PNG.
  * Either is kept under their subscription, beside which nothing else is
@@ -107,7 +107,7 @@ export async function handler(event: QueueEvent): Promise<void> {
     // A print carries no kind: it was the only job this queue knew.
     const isPreview = 'kind' in job && job.kind === 'preview';
     // The line of the job: its kind and its subscription, never the token it
-    // carries, the note it draws or the choices it was asked with.
+    // carries or the note it draws.
     await observe(
       {
         operation: isPreview ? 'preview' : 'print',

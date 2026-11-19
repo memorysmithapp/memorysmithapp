@@ -65,6 +65,7 @@ import { notebookHistoryOf } from '@memorysmithapp/svc-audit/domain';
 import {
   DynamoContentIndex,
   DynamoFacetIndex,
+  DynamoActivityLog,
   DynamoLinkGraph,
   DynamoStructureProjection,
 } from '@memorysmithapp/svc-discovery/adapters/aws';
@@ -369,6 +370,7 @@ export function buildDiscovery(infra: Infrastructure, context: SubscriptionConte
       infra.db,
       infra.discoveryTable,
     ),
+    activity: new DynamoActivityLog(context.subscriptionId, infra.db, infra.discoveryTable),
   };
 }
 

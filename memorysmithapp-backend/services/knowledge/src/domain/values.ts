@@ -167,6 +167,47 @@ export const FolderNoteOrder = {
   },
 };
 
+/**
+ * How a notebook's notes are drawn and printed (#493): the face, the alignment
+ * of headings, text and tables, and the print page's settings. The domain
+ * keeps it as data of the notebook; its values are validated at the edge by
+ * the published schema, and an item written before it carries the default.
+ */
+export type StyleAlignment = 'left' | 'center' | 'right' | 'justify';
+export type StyleOrientation = 'portrait' | 'landscape';
+export interface NotebookStyle {
+  readonly font: 'sans' | 'serif';
+  readonly headings: StyleAlignment;
+  readonly text: StyleAlignment;
+  readonly tables: StyleAlignment;
+  /** Whether justified text breaks words with a hyphen (#498). */
+  readonly hyphenate: boolean;
+  readonly properties: 'cover' | 'end' | 'none';
+  readonly orientation: StyleOrientation;
+  readonly printTables: 'wrap' | 'shrink' | 'appendices';
+  readonly appendixOrientation: StyleOrientation | null;
+}
+
+export const NotebookStyle = {
+  /** How every note was drawn and printed before a notebook had a style. */
+  DEFAULT: {
+    font: 'sans',
+    headings: 'left',
+    text: 'left',
+    tables: 'left',
+    hyphenate: false,
+    properties: 'cover',
+    orientation: 'portrait',
+    printTables: 'wrap',
+    appendixOrientation: null,
+  } as NotebookStyle,
+  same(left: NotebookStyle, right: NotebookStyle): boolean {
+    return (Object.keys(NotebookStyle.DEFAULT) as (keyof NotebookStyle)[]).every(
+      (key) => left[key] === right[key],
+    );
+  },
+};
+
 /** Product limits, declared so they become tests. */
 export const NOTEBOOK_LIMITS = {
   maxFolders: 200,

@@ -244,13 +244,11 @@ export const importUploadSchema = z.object({
 
 /**
  * A note downloaded as a PDF made by the server (#263, RN-PRT-031): the
- * choices of the print tab, and the language the page is drawn in. The answer
- * is the print, which is polled until its file is ready.
+ * language the page is drawn in. How it is laid is the notebook's style
+ * (#493), which the page reads as anyone who prints it does. The answer is
+ * the print, which is polled until its file is ready.
  */
 export const printRequestSchema = z.object({
-  placement: z.enum(['cover', 'end', 'none']).default('cover'),
-  tables: z.enum(['wrap', 'shrink']).default('wrap'),
-  orientation: z.enum(['portrait', 'landscape']).default('portrait'),
   locale: z.enum(['en_US', 'pt_BR']).default('en_US'),
 });
 

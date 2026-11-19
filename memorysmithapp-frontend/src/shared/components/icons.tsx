@@ -233,17 +233,6 @@ export function FolderIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** A note leaving for another folder (#265): a folder, and an arrow into it. */
-export function MoveIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-      <path d="M9 13h6" />
-      <path d="m13 11 2 2-2 2" />
-    </svg>
-  );
-}
-
 /** The Notebook Context: the list an agent is handed. */
 export function ContextIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -379,6 +368,53 @@ export function LandscapeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
       <rect x="2" y="6" width="20" height="12" rx="2" />
+    </svg>
+  );
+}
+
+/* A notebook's style (#493): its face, and how its lines are aligned. */
+
+export function StyleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m3 15 4-11 4 11" />
+      <path d="M4.5 11h5" />
+      <path d="M14 8h7" />
+      <path d="M14 12h7" />
+      <path d="M3 20h18" />
+    </svg>
+  );
+}
+
+/** Tables printed at the end of the note, each on a page of its own (#494). */
+export function AppendixIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="5" width="12" height="16" rx="2" />
+      <path d="M7 3h10a2 2 0 0 1 2 2v12" />
+      <path d="M6 10h6" />
+      <path d="M6 14h6" />
+      <path d="M9 10v8" />
+    </svg>
+  );
+}
+
+export function SansIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m5 20 7-16 7 16" />
+      <path d="M8 14h8" />
+    </svg>
+  );
+}
+
+export function SerifIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="m6 20 6-16 6 16" />
+      <path d="M8.5 14h7" />
+      <path d="M3.5 20h5" />
+      <path d="M15.5 20h5" />
     </svg>
   );
 }

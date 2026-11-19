@@ -28,7 +28,7 @@ import type { ParameterDeclaration } from './NotebookModel.js';
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.6';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.7';
 
 /**
  * One version of a model, as a `1.4` document carried it (#397): its meta and
@@ -222,6 +222,8 @@ export interface NotebookDocument {
     readonly name: string;
     readonly description: string;
     readonly guidance: string | null;
+    /** How its notes are drawn and printed (#493), validated at the edge; absent before `1.7`. */
+    readonly style?: DocumentStyle | undefined;
   };
   readonly folders: ReadonlyArray<{
     readonly folderId: string;
@@ -279,10 +281,18 @@ export interface ExportNote {
   readonly content: string;
 }
 
+/**
+ * A notebook's style as the document carries it (#493): each setting by its
+ * name and value, validated against the published schema at the edge.
+ */
+export type DocumentStyle = Readonly<Record<string, string | boolean | null>>;
+
 export interface ExportInput {
   readonly notebookName: string;
   readonly notebookDescription: string;
   readonly guidance: string | null;
+  /** How its notes are drawn and printed (#493). */
+  readonly style?: DocumentStyle | undefined;
   readonly folders: ExportFolder[];
   readonly notes: ExportNote[];
   /** What the trail says about this notebook, when it was asked for. */
@@ -500,6 +510,7 @@ export function buildNotebookDocument(
       name: input.notebookName,
       description: input.notebookDescription,
       guidance: input.guidance,
+      ...(input.style ? { style: input.style } : {}),
     },
     folders: input.folders.map((folder) => ({
       folderId: folder.folderId,

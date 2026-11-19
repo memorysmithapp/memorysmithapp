@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,10 +10,11 @@ import {
 } from '../../shared/api/source';
 import { getPrint, startPrint } from '../../shared/api/backend';
 import { identifierOf } from '../../shared/api/note-address';
+
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { NoteContent, styleOfParts } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import {
   PropertyValue,
@@ -21,31 +22,10 @@ import {
   propertyLabel,
   propertyType,
 } from '../../shared/components/PropertyValue';
-import { Segmented } from '../../shared/components/Segmented';
-import {
-  orientation as recalledOrientation,
-  propertyPlacement,
-  rememberOrientation,
-  rememberPropertyPlacement,
-  rememberTableFit,
-  tableFit,
-  type Orientation,
-  type PropertyPlacement,
-  type TableFit,
-} from '../../shared/store/print-layout';
+import { DEFAULT_NOTEBOOK_STYLE } from '@memorysmithapp/contracts';
+import { styleAddress } from '../../shared/api/note-address';
 import { useNotebookId } from '../structure/route-ids';
-import {
-  CloseIcon,
-  CoverPageIcon,
-  DownloadIcon,
-  EndPageIcon,
-  LandscapeIcon,
-  NoPropertiesIcon,
-  PortraitIcon,
-  PrinterIcon,
-  ShrinkIcon,
-  WrapTextIcon,
-} from '../../shared/components/icons';
+import { CloseIcon, DownloadIcon, PrinterIcon } from '../../shared/components/icons';
 import { paginate, unpaginate } from './paginate';
 import { whenDrawn } from './drawn';
 
@@ -60,11 +40,14 @@ import { whenDrawn } from './drawn';
  * who asked: one drawing, whoever prints it.
  *
  * The page opens in a tab of its own, outside the frame of the application,
- * with a bar that is never printed: where the properties of the note go, how a
- * wide table fits, which way the sheet lies, and the button that prints. The dialog is not opened by itself — the person
- * chooses first — and the button waits until everything that arrives late has
- * arrived: the names and the files the body resolves against, a picture, a
- * transclusion, a diagram. Printing before that prints a page with holes.
+ * with a bar that is never printed: a hint, *Download PDF* and *Print*. Where
+ * the properties go, how a wide table fits and which way the sheet lies are
+ * the notebook's style (#493), the same for everybody who prints the note, the
+ * Reader of a share included; whoever maintains the notebook is offered the
+ * way to its Style. The dialog is not opened by itself, and the button waits
+ * until everything that arrives late has arrived: the names and the files the
+ * body resolves against, a picture, a transclusion, a diagram. Printing
+ * before that prints a page with holes.
  *
  * **The tab is a preview of the print.** The note is drawn off screen, at the
  * width of the paper less its margins — where a wide table is measured and a
@@ -89,9 +72,6 @@ export function PrintNotePage() {
   const [scale, setScale] = useState(1);
   /** The PDF made by the server, while it is being made, or why it was not (#263). */
   const [making, setMaking] = useState<'idle' | 'working' | 'failed'>('idle');
-  const [placement, setPlacement] = useState<PropertyPlacement>(propertyPlacement);
-  const [fit, setFit] = useState<TableFit>(tableFit);
-  const [orientation, setOrientation] = useState<Orientation>(recalledOrientation);
 
   useEffect(() => {
     setPaper(true);
@@ -121,6 +101,17 @@ export function PrintNotePage() {
     queryFn: () => getNote(notebookId, noteId ?? ''),
     enabled,
   });
+
+  // How the note is laid is the notebook's style (#493).
+  const style = structure.data?.style ?? DEFAULT_NOTEBOOK_STYLE;
+  const placement = style.properties;
+  const fit = style.printTables === 'shrink' ? 'shrink' : 'wrap';
+  const orientation = style.orientation;
+  // Each table at the end, on a page of its own that turns as the style says (#494).
+  const asAppendices = style.printTables === 'appendices';
+  const appendixOrientation = style.appendixOrientation ?? orientation;
+  const pageWord = t('print.appendixPage');
+  const maintains = structure.data?.permissions.maintain ?? false;
 
   const failed = !enabled || [structure, names, files, note].some((query) => query.isError);
   const ready = !failed && [structure, names, files, note].every((query) => query.isSuccess);
@@ -167,7 +158,12 @@ export function PrintNotePage() {
     requestAnimationFrame(() => {
       if (!alive) return;
       fitTables(drawnNote, fit);
-      void paginate(drawnNote, target, orientation).then(
+      void paginate(
+        drawnNote,
+        target,
+        orientation,
+        asAppendices ? { orientation: appendixOrientation, pageWord } : null,
+      ).then(
         (total) => alive && setPages(total),
         () => alive && setPages(0),
       );
@@ -175,7 +171,7 @@ export function PrintNotePage() {
     return () => {
       alive = false;
     };
-  }, [drawn, placement, fit, orientation, revision]);
+  }, [drawn, placement, fit, orientation, asAppendices, appendixOrientation, pageWord, revision]);
 
   useEffect(() => () => unpaginate(preview.current), []);
 
@@ -203,7 +199,7 @@ export function PrintNotePage() {
   const lists = new Set(data?.listProperties ?? []);
 
   const title = data ? (
-    <h1 className={data.name === null ? 'note-unnamed' : undefined}>{name}</h1>
+    <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>{name}</h1>
   ) : null;
   const shown = placement === 'none' ? [] : properties;
   const box =
@@ -211,12 +207,10 @@ export function PrintNotePage() {
       <PropertiesBox properties={shown} lists={lists} notebookId={notebookId} />
     ) : null;
 
-  const choice = (icon: ReactNode, label: string) => ({ icon, label });
-
   /**
    * The PDF made by the server, from this very page as the person sees it
-   * (#263, RN-PRT-031): the print starts with the choices in force, and is
-   * asked for until its file is made, which the browser then downloads. A
+   * (#263, RN-PRT-031), laid as the notebook's style says, as this page is: it
+   * is asked for until its file is made, which the browser then downloads. A
    * device whose print dialog has no PDF printer gets the file all the same.
    */
   async function downloadPdf() {
@@ -224,9 +218,6 @@ export function PrintNotePage() {
     setMaking('working');
     try {
       const started = await startPrint(notebookId, noteId, {
-        placement,
-        tables: fit,
-        orientation,
         locale: i18n.language === 'pt_BR' ? 'pt_BR' : 'en_US',
       });
       const deadline = Date.now() + 3 * 60 * 1000;
@@ -248,65 +239,26 @@ export function PrintNotePage() {
 
   return (
     <NotebookIdProvider notebookId={notebookId}>
-      <div className="print-page" data-orientation={orientation}>
+      <div
+        className="print-page"
+        // The style reaches what the page lays apart from the note — the name
+        // on the cover, the properties on the last page — and the pages the
+        // paginator copies them into, from here (#493, #497).
+        style={styleOfParts(style)}
+        data-orientation={orientation}
+        {...(asAppendices ? { 'data-appendix-orientation': appendixOrientation } : {})}
+      >
         <div className="print-toolbar" role="toolbar" aria-label={t('print.toolbar')}>
-          <div className="print-choice">
-            <span className="print-choice-label" aria-hidden="true">
-              {t('print.properties')}
-            </span>
-            <Segmented
-              label={t('print.properties')}
-              value={placement}
-              onChange={(next) => {
-                setPlacement(next);
-                setPages(null);
-                rememberPropertyPlacement(next);
-              }}
-              options={[
-                { value: 'cover', ...choice(<CoverPageIcon />, t('print.placement.cover')) },
-                { value: 'end', ...choice(<EndPageIcon />, t('print.placement.end')) },
-                { value: 'none', ...choice(<NoPropertiesIcon />, t('print.placement.none')) },
-              ]}
-            />
-          </div>
-          <div className="print-choice">
-            <span className="print-choice-label" aria-hidden="true">
-              {t('print.tables')}
-            </span>
-            <Segmented
-              label={t('print.tables')}
-              value={fit}
-              onChange={(next) => {
-                setFit(next);
-                setPages(null);
-                rememberTableFit(next);
-              }}
-              options={[
-                { value: 'wrap', ...choice(<WrapTextIcon />, t('print.fit.wrap')) },
-                { value: 'shrink', ...choice(<ShrinkIcon />, t('print.fit.shrink')) },
-              ]}
-            />
-          </div>
-          <div className="print-choice">
-            <span className="print-choice-label" aria-hidden="true">
-              {t('print.orientation')}
-            </span>
-            <Segmented
-              label={t('print.orientation')}
-              value={orientation}
-              onChange={(next) => {
-                setOrientation(next);
-                setPages(null);
-                rememberOrientation(next);
-              }}
-              options={[
-                { value: 'portrait', ...choice(<PortraitIcon />, t('print.orient.portrait')) },
-                { value: 'landscape', ...choice(<LandscapeIcon />, t('print.orient.landscape')) },
-              ]}
-            />
-          </div>
           <p className="print-hint" role={making === 'failed' ? 'alert' : undefined}>
             {making === 'failed' ? t('print.downloadFailed') : t('print.hint')}
+            {maintains && making !== 'failed' ? (
+              <>
+                {' '}
+                <a href={styleAddress(notebookId)} target="_blank" rel="noreferrer">
+                  {t('print.styleLink')}
+                </a>
+              </>
+            ) : null}
           </p>
           <div className="print-actions">
             <button
@@ -374,6 +326,7 @@ export function PrintNotePage() {
                   invalidates={queryKeys.note(notebookId, noteId)}
                   actions={false}
                   printing
+                  tablesAsAppendices={asAppendices}
                 />
               </article>
               {placement === 'end' && box ? (
@@ -417,7 +370,7 @@ const SMALLEST_TABLE = 0.6;
  * the last resort: it is what split "Kind" into three lines when it was the
  * first.
  */
-function fitTables(root: HTMLElement | null, fit: TableFit): void {
+function fitTables(root: HTMLElement | null, fit: 'wrap' | 'shrink'): void {
   if (!root) return;
   for (const table of root.querySelectorAll<HTMLTableElement>('table')) {
     table.style.fontSize = '';

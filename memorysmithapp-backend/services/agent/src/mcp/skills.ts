@@ -57,8 +57,12 @@ export const FORMATTING_USES: Readonly<Record<string, string>> = {
   'list-bullet': 'Items with no order among them',
   'task-list': 'What is still to be done, which a person can tick on the page',
   table: 'A comparison, or the same few fields across several items',
+  'table-justified':
+    'A table column of long text set justified; anywhere but MemorySmith the whole table reads as text',
   'table-block': 'Rows the notebook keeps in a Table, shown in a note through a query, paged',
   callout: 'A rule, a warning or a decision a reader must not miss',
+  'style-block':
+    "A passage that differs from the notebook's style, such as a centered title or a justified clause; never HTML",
   'block-quote': 'A passage quoted from a source, word for word',
   mermaid: 'A flow, a sequence or how the parts of something relate, drawn instead of described',
   'math-inline': 'A formula inside a sentence',
@@ -265,6 +269,11 @@ reader, and state each convention once.
   deleting the original, which destroys its history for good.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
   limit of notes: what bounds a notebook is the storage of its subscription.
+- **How its notes look is the notebook's style**, not the guidance: the face,
+  the alignment of headings, text and tables, and how a note prints — where its
+  properties go, which way the page lies, how wide tables fit. When the person
+  says how the notes should look or print, set it once with \`set_style\`, and
+  keep a \`:::{style}\` block for the one passage of a note that differs.
 
 ## Properties and tags
 

@@ -35,6 +35,8 @@ import type {
   FinishedUploadDto,
   FinishingUploadDto,
   NoteOrder,
+  NotebookStyle,
+  NotebookStylePatch,
   PreviewDto,
   TransferDto,
   UploadStatusDto,
@@ -555,7 +557,16 @@ export interface KnowledgeGateway {
   contextRevisions(
     caller: AgentCaller,
     notebookId: string,
-  ): Promise<{ guidance: string | null; structure: string }>;
+  ): Promise<{ guidance: string | null; structure: string; style?: NotebookStyle }>;
+  /**
+   * How the notebook's notes are drawn and printed (#493, RN-KNW-092): the
+   * settings named change, the others keep theirs. Answers the style as it now is.
+   */
+  setStyle(
+    caller: AgentCaller,
+    notebookId: string,
+    style: NotebookStylePatch,
+  ): Promise<NotebookStyle>;
   /** Without an anchor the note goes last in its folder. */
   createNote(
     caller: AgentCaller,
@@ -651,6 +662,23 @@ export interface DiscoveryGateway {
   ): Promise<RelatedNode>;
   backlinks(caller: AgentCaller, notebookId: string, noteId: string): Promise<NoteReference[]>;
   checkNotebook(caller: AgentCaller, notebookId: string): Promise<NotebookCheck>;
+  /**
+   * What the agent read or wrote, for the notebook's graph to show (#495).
+   * Optional: a gateway without it records nothing.
+   */
+  recordActivity?(caller: AgentCaller, notebookId: string, activity: AgentActivity): Promise<void>;
+}
+
+/** One read or write of a tool, as the graph shows it (#495). */
+export interface AgentActivity {
+  readonly kind: 'read' | 'write';
+  readonly tool: string;
+  readonly noteId?: string | undefined;
+  readonly folderId?: string | undefined;
+  readonly query?: string | undefined;
+  readonly version?: number | undefined;
+  /** How the connector names its person, for the screen. */
+  readonly person?: string | undefined;
 }
 
 export interface AuditGateway {

@@ -67,6 +67,7 @@ describe('the pages of the interface', () => {
       '/notebooks/:notebookId',
       '/notebooks/:notebookId/context',
       '/notebooks/:notebookId/guidance',
+      '/notebooks/:notebookId/style',
       '/notebooks/:notebookId/templates',
       '/notebooks/:notebookId/attachments',
       '/notebooks/:notebookId/tables',

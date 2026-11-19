@@ -3,7 +3,7 @@
  * print tab previews, as the person who asked, and saves its pages as a PDF.
  *
  * It draws nothing of its own. The page is the application's — the reading
- * surface, the A4 pages laid by the tab, the choices the person made — so the
+ * surface, the A4 pages laid by the tab as the notebook's style says — so the
  * file and the preview are one drawing, and a change to how a note is printed
  * reaches the PDF with no change here.
  *
@@ -68,16 +68,6 @@ function sessionOf(job: { accessToken: string; locale: string }): Record<string,
       expiresAt: expiryOf(job.accessToken),
     }),
     'memorysmith.locale': LOCALES.has(job.locale) ? job.locale : 'en_US',
-  };
-}
-
-/** What the page finds in the storage of the browser: the session, and the choices. */
-function storageOf(job: PrintJob): Record<string, string> {
-  return {
-    ...sessionOf(job),
-    'memorysmith.printProperties': job.choices.placement,
-    'memorysmith.printTables': job.choices.tables,
-    'memorysmith.printOrientation': job.choices.orientation,
   };
 }
 
@@ -181,7 +171,7 @@ async function openAs(
 }
 
 export async function renderPrint(job: PrintJob, config: RendererConfig): Promise<Rendered> {
-  const { page, diagnostics } = await openAs(config, storageOf(job), null);
+  const { page, diagnostics } = await openAs(config, sessionOf(job), null);
   try {
     const address = `${config.siteOrigin}/notebooks/${job.notebookId.toLowerCase()}/notes/${job.noteId.toLowerCase()}/print`;
     await page.goto(address, { waitUntil: 'domcontentloaded', timeout: 30_000 });

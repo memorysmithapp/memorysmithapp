@@ -86,6 +86,8 @@ export const KNOWLEDGE_EVENT_TYPES = [
   'NotePurged',
   'GuidanceUpdated',
   'GuidanceDeleted',
+  // How the notebook's notes are drawn and printed (#493).
+  'NotebookStyled',
   'FolderAdded',
   'FolderRenamed',
   'FolderDescribed',

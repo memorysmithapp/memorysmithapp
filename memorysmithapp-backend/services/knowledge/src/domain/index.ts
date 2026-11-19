@@ -24,6 +24,7 @@ export {
   RemovalPolicy,
   ShortText,
   NotebookName,
+  NotebookStyle,
   NOTEBOOK_LIMITS,
 } from './values.js';
 export { FolderTreePlacement, type Placement } from './services/FolderTreePlacement.js';

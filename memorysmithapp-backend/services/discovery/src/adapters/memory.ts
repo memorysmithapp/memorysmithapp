@@ -4,6 +4,7 @@
  * of the rules run against.
  */
 
+import { ulid } from '@memorysmithapp/kernel';
 import { usesOf } from '../domain/LinkResolver.js';
 import {
   GRAPH_LIMITS,
@@ -23,6 +24,10 @@ import {
   type NotebookGraph,
   type OutgoingTarget,
   type AttachmentUse,
+  type ActivityEntry,
+  type ActivityLog,
+  type FacetMove,
+  ACTIVITY_SECONDS,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
 import {
@@ -31,7 +36,7 @@ import {
   notebookNames,
   type NotebookNames,
 } from '../domain/LinkResolver.js';
-import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
+import { facetDelta, facetMoveOf, valuesOf } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
 
 /** The versions last projected, in memory, with the same conditional claim. */
@@ -372,7 +377,7 @@ export class InMemoryFacetIndex implements FacetIndex {
     notebookId: string,
     noteId: string,
     facets: FacetSnapshot | null,
-  ): Promise<void> {
+  ): Promise<FacetMove> {
     this.notebook(notebookId);
     const portraits = this.portraits.get(notebookId) as Map<string, FacetSnapshot>;
     const counters = this.counters.get(notebookId) as Map<string, number>;
@@ -405,6 +410,7 @@ export class InMemoryFacetIndex implements FacetIndex {
 
     if (facets === null) portraits.delete(noteId);
     else portraits.set(noteId, facets);
+    return facetMoveOf(before, facets);
   }
 
   async notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>> {
@@ -529,5 +535,32 @@ export class InMemoryContentIndex implements ContentIndex {
 
   async scanNotebook(notebookId: string): Promise<IndexedNote[]> {
     return [...(this.byNotebook.get(notebookId)?.values() ?? [])];
+  }
+}
+
+/** The activity of the notebooks, kept two minutes, in memory (#495). */
+export class InMemoryActivityLog implements ActivityLog {
+  private readonly entries = new Map<string, Array<ActivityEntry & { expires: number }>>();
+
+  constructor(private readonly now: () => number = () => Date.now()) {}
+
+  async record(notebookId: string, entry: Omit<ActivityEntry, 'id' | 'at'>): Promise<void> {
+    const at = this.now();
+    const list = this.entries.get(notebookId) ?? [];
+    list.push({
+      ...Object.fromEntries(Object.entries(entry).filter(([, value]) => value !== undefined)),
+      kind: entry.kind,
+      id: ulid(at),
+      at: new Date(at).toISOString(),
+      expires: at + ACTIVITY_SECONDS * 1000,
+    });
+    this.entries.set(notebookId, list);
+  }
+
+  async since(notebookId: string, after: string | null): Promise<ActivityEntry[]> {
+    const now = this.now();
+    return (this.entries.get(notebookId) ?? [])
+      .filter((entry) => entry.expires > now && (after === null || entry.id > after))
+      .map(({ expires: _expires, ...entry }) => entry);
   }
 }

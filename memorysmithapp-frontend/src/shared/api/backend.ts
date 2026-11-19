@@ -7,6 +7,11 @@
 // call names the notebook it reads with the identifier the address carried and
 // never goes through the listing to find it.
 
+import {
+  notebookStyleOf,
+  type NotebookStyle,
+  type NotebookStylePatch,
+} from '@memorysmithapp/contracts';
 import type {
   NotebookTableUsesDto,
   PreviewDto,
@@ -437,16 +442,6 @@ export async function getPreview(previewId: string): Promise<PreviewDto> {
   return request<PreviewDto>(`/portability/previews/${previewId}`);
 }
 
-/** Deletes a dashboard for good; its tables are untouched (#368). */
-export async function deleteDashboard(notebookId: string, dashboard: string): Promise<void> {
-  await request<void>(
-    `/knowledge/notebooks/${notebookId}/dashboards/${encodeURIComponent(dashboard)}`,
-    {
-      method: 'DELETE',
-    },
-  );
-}
-
 /** The files a notebook keeps beside its notes (#166). */
 export async function getNotebookFiles(notebookId: string): Promise<NotebookFileDto[]> {
   const answer = await request<FileListDto>(`/knowledge/notebooks/${notebookId}/files`);
@@ -485,6 +480,8 @@ export async function getNotebookStructure(notebookId: string): Promise<Notebook
     guidanceRevision: detail.guidance?.revision.versionId ?? null,
     structureRevision: detail.structureRevision,
     permissions: detail.permissions,
+    // An API older than the style answers none, which is the default (#493).
+    style: notebookStyleOf(detail.style),
     effectiveRole: detail.effectiveRole,
     folders: nest(detail.folders, notes),
   };
@@ -595,6 +592,33 @@ export async function getNoteFacets(
  */
 export async function getNotebookGraph(notebookId: string): Promise<NotebookGraphDto> {
   return request<NotebookGraphDto>(`/discovery/notebooks/${notebookId}/graph`);
+}
+
+/** What an agent did in a notebook, or what a write changed once projected (#495). */
+export interface GraphActivityDto {
+  id: string;
+  kind: 'read' | 'write' | 'projected';
+  at: string;
+  tool?: string;
+  noteId?: string;
+  folderId?: string;
+  query?: string;
+  version?: number;
+  who?: { userId: string; client: string; person: string };
+  added?: Array<{ facet: string; value: string }>;
+  removed?: Array<{ facet: string; value: string }>;
+}
+
+/** The activity of a notebook after the entry the graph saw last, oldest first (#495). */
+export async function getNotebookActivity(
+  notebookId: string,
+  after: string | null,
+): Promise<GraphActivityDto[]> {
+  const query = after ? `?after=${encodeURIComponent(after)}` : '';
+  const answer = await request<{ entries: GraphActivityDto[] }>(
+    `/discovery/notebooks/${notebookId}/activity${query}`,
+  );
+  return answer.entries;
 }
 
 /** A short-lived address to upload a `.notebook` file to (RN-PRT-014). */
@@ -785,6 +809,21 @@ export async function setNoteOrder(
 }
 
 /**
+ * Sets how a notebook's notes are drawn and printed (#493): the settings named
+ * change, the others keep theirs, and the answer is the style as it now is.
+ */
+export async function setNotebookStyle(
+  notebookId: string,
+  style: NotebookStylePatch,
+): Promise<NotebookStyle> {
+  const answered = await request<{ style: unknown }>(`/knowledge/notebooks/${notebookId}/style`, {
+    method: 'PATCH',
+    body: style,
+  });
+  return notebookStyleOf(answered.style);
+}
+
+/**
  * Renames a folder or changes its description (#278): one write that changes
  * only what is given, with the folder keeping its identifier, its notes and
  * every address that reaches it (RN-KNW-009, RN-DSC-057).
@@ -858,33 +897,6 @@ export async function updateNote(
     method: 'PUT',
     body: input,
     ...options,
-  });
-}
-
-/**
- * A folder and everything under it (RN-KNW-007, RN-KNW-046): one write that
- * takes it all out of reach at once, and a purge that destroys it after. The
- * policy is always said: CASCADE is what the person confirmed.
- */
-export async function deleteFolder(notebookId: string, folderId: string): Promise<void> {
-  await request<unknown>(`/knowledge/notebooks/${notebookId}/folders/${folderId}?policy=CASCADE`, {
-    method: 'DELETE',
-  });
-}
-
-/**
- * A note to another folder of its notebook (#265, RN-KNW-057): the same note,
- * its identifier and its history with it, last there or right after a note of
- * that folder. It writes no content, so it carries no revision.
- */
-export async function moveNote(
-  notebookId: string,
-  noteId: string,
-  input: { toFolderId: string; afterNoteId: string | null; context?: NoteContextDto },
-): Promise<NoteSummaryDto> {
-  return request<NoteSummaryDto>(`/knowledge/notebooks/${notebookId}/notes/${noteId}/move`, {
-    method: 'POST',
-    body: input,
   });
 }
 

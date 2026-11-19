@@ -264,6 +264,15 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
         // Discovery holds no notebook, so whether the caller may read one is
         // answered by the context that owns it.
         canRead,
+        // The person and the connector of an agent's request, which is what
+        // records an agent's activity for the graph (#495, RN-AGT-001).
+        agent:
+          authorship.ok && authorship.value.agent
+            ? {
+                userId: authorship.value.user.value,
+                client: authorship.value.agent.clientName,
+              }
+            : null,
       });
       // Portability holds no notebook either, and asks the same question — plus
       // one more, because an import WRITES: whoever is importing is who every

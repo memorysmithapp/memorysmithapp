@@ -169,13 +169,15 @@
     "outlineHint": "The folder tree with each folder's description. It is what tells the agent where each note goes.",
     "openNavigation": "Notebook navigation",
     "heading": "Notebook Context",
-    "contextParts": "Guidance, Templates and Folders",
+    "contextParts": "Guidance, Folders and Templates",
     "intro": "How this notebook describes itself, and what the agent receives from get_notebook_context: the Guidance says what the notebook is, each folder says what belongs in it, and the folder Template says how a note is laid out.",
     "guidanceHint": "What this notebook is and how to write in it",
     "noGuidanceWrite": "This notebook has no Guidance yet. Use the pencil to write one: it directs every agent that writes here.",
     "templates": "Templates",
     "templatesHint_one": "{{count}} folder with a suggested layout",
     "templatesHint_other": "{{count}} folders with a suggested layout",
+    "style": "Style",
+    "styleHint": "The font and alignment of the notes, and how they print",
     "noTemplates": "No folder in this notebook declares a Template.",
     "templatesPageHint_one": "Each folder may declare a suggested layout for its notes. {{count}} folder of this notebook declares one, shown below; the server never validates a note against it.",
     "templatesPageHint_other": "Each folder may declare a suggested layout for its notes. {{count}} folders of this notebook declare one, each shown below; the server never validates a note against them.",
@@ -215,21 +217,6 @@
     "saving": "Saving…",
     "nameTaken": "A folder named “{{name}}” already exists at this level. Nothing was changed."
   },
-  "folderDelete": {
-    "short": "Delete",
-    "open": "Delete this folder",
-    "title": "Delete the folder",
-    "holds": "It holds {{notes}} and {{folders}}.",
-    "notes_one": "{{count}} note",
-    "notes_other": "{{count}} notes",
-    "folders_one": "{{count}} subfolder",
-    "folders_other": "{{count}} subfolders",
-    "consequences": "Deleting it takes all of them out of the notebook at once, for good: they are destroyed shortly after, with every revision, and links to those notes become pending. Nothing brings them back.",
-    "understood": "I understand that everything in this folder is deleted for good",
-    "empty": "The folder is empty. Deleting it cannot be undone.",
-    "delete": "Delete the folder",
-    "deleting": "Deleting…"
-  },
   "note": {
     "propertyTrue": "Yes",
     "propertyFalse": "No",
@@ -262,10 +249,11 @@
     "changedElsewhereDismiss": "Got it",
     "tableRows_one": "{{count}} row",
     "tableRows_other": "{{count}} rows",
-    "tablePage": "Page {{page}} of {{pages}}",
-    "tablePrevious": "Previous",
-    "tableNext": "Next",
     "tableTotal": "Total",
+    "tableAppendix": "Appendix {{number}} — {{name}}",
+    "tableAppendixReference": "See Appendix {{number}} — {{name}}",
+    "tableNamed": "Table “{{table}}”",
+    "tableNumbered": "Table {{number}}",
     "tableEmpty": "No row matches this filter.",
     "tableSortBy": "Sort by {{column}}",
     "tableRead": "read {{when}}",
@@ -284,25 +272,65 @@
     "print": "Print",
     "toolbar": "Printing",
     "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
+    "styleLink": "Change how this notebook prints",
+    "appendixPage": ", page ",
+    "download": "Download PDF",
+    "downloading": "Making the PDF…",
+    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+  },
+  "style": {
+    "intro": "How every note of this notebook looks on the screen and on paper, for everybody who reads it. A passage of one note that has to differ uses a :::{style} block in that note.",
+    "introReader": "How every note of this notebook looks on the screen and on paper. Only whoever maintains the notebook changes its style.",
+    "screen": "On the screen and on paper",
+    "print": "When printed",
+    "font": "Font",
+    "fonts": {
+      "sans": "Sans serif",
+      "serif": "Serif"
+    },
+    "headings": "Headings",
+    "text": "Text",
+    "tables": "Tables",
+    "tablesHint": "For the columns that declare no alignment of their own.",
+    "hyphenate": "Hyphenation",
+    "hyphenateHint": "For what is justified: with hyphens, words may be broken at the end of a line.",
+    "hyphens": {
+      "off": "No hyphens",
+      "on": "Hyphens"
+    },
+    "align": {
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "justify": "Justified"
+    },
     "properties": "Properties",
     "placement": {
       "cover": "Cover page",
       "end": "At the end",
       "none": "None"
     },
-    "tables": "Wide tables",
-    "fit": {
-      "wrap": "Wrap the text",
-      "shrink": "Shrink to fit"
-    },
     "orientation": "Orientation",
     "orient": {
       "portrait": "Portrait",
-      "landscape": "Landscape"
+      "landscape": "Landscape",
+      "document": "Document's"
     },
-    "download": "Download PDF",
-    "downloading": "Making the PDF…",
-    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+    "printTables": "Wide tables",
+    "fit": {
+      "wrap": "Wrap lines",
+      "shrink": "Shrink",
+      "appendices": "As appendices"
+    },
+    "appendixOrientation": "Orientation of the appendices",
+    "appendicesHint": "Each table goes to the end of the note, on a page of its own, and a reference to its appendix and page stays in its place.",
+    "save": "Save style",
+    "saving": "Saving…",
+    "saved": "Style saved.",
+    "unsaved": "Unsaved changes.",
+    "undo": "Undo",
+    "sampleLabel": "A note in this style",
+    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n## Tables\n\nA table with no alignment of its own follows the choice of **Tables**:\n\n| Stage | Status | Amount |\n|---|---|---|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\nA column that fixes its own alignment in the table, such as `--:` to the right, keeps it; the other columns follow the style:\n\n| Stage | Status | Amount |\n|---|---|--:|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\n## A passage with a style of its own\n\nA `:::{style}` block holds for the passage it wraps alone, over the notebook's style:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nThis paragraph stays centered and sans serif, whatever style is chosen beside it.\n:::\n"
   },
   "common": {
     "loading": "Loading…",
@@ -641,7 +669,6 @@
       "yes": "Yes",
       "no": "No"
     },
-    "deleting": "Deleting…",
     "carry": {
       "published": "These tables go with their rows, which every person signed in will read: {{tables}}."
     },
@@ -658,6 +685,7 @@
     "components_other": "{{count}} components",
     "readAt": "Data of {{time}}",
     "refresh": "Refresh",
+    "updated": "The dashboard was read again, with new values.",
     "allPeriods": "All",
     "compared": "compared",
     "ofGoal": "of {{goal}}",
@@ -665,10 +693,6 @@
     "moreRows_one": "And {{count}} more row.",
     "moreRows_other": "And {{count}} more rows.",
     "missingTable": "The table this drew from is gone.",
-    "delete": "Delete dashboard",
-    "deleteTitle": "Delete this dashboard?",
-    "deleteConsequences": "The dashboard goes for good. Its tables and their rows stay as they are.",
-    "deleteConfirm": "Delete for good",
     "downloadImage": "Download PNG",
     "drawing": "Drawing…",
     "imageFailed": "The image could not be drawn. Try again in a moment.",
@@ -689,7 +713,22 @@
     "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
     "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
     "empty": "This notebook has no notes to draw yet.",
-    "truncated": "Showing the first 2000 notes of this notebook."
+    "truncated": "Showing the first 2000 notes of this notebook.",
+    "activity": {
+      "reading": "is reading {{target}}",
+      "writing": "is writing {{target}}",
+      "aNote": "a note",
+      "newNote": "a new note",
+      "folder": "the folder {{name}}",
+      "search": "the search “{{query}}”",
+      "context": "the notebook context",
+      "table": "a table",
+      "dashboard": "a dashboard",
+      "file": "a file",
+      "notebook": "the notebook",
+      "more_one": "+{{count}} assistant",
+      "more_other": "+{{count}} assistants"
+    }
   },
   "errors": {
     "validation": "Something in what was sent is not accepted.",
@@ -1007,24 +1046,6 @@
       "structure": "the folders of the notebook"
     }
   },
-  "move": {
-    "short": "Move",
-    "open": "Move this note to another folder of the notebook",
-    "title": "Move to another folder",
-    "explain": "The note keeps its history, and every link to it keeps working: a link finds a note by its name, never by its folder.",
-    "folder": "Folder",
-    "current": "{{folder}} (where it is)",
-    "noOther": "This notebook has no other folder to move it to.",
-    "where": "Where in the folder",
-    "atEnd": "At the end",
-    "after": "After {{name}}",
-    "byName": "This folder orders its notes by name, so the note will appear by its name.",
-    "move": "Move",
-    "moving": "Moving…",
-    "nameTaken": "“{{folder}}” already holds a note named “{{name}}”, and a folder holds one note of each name. Nothing was moved.",
-    "openHolder": "Open that note",
-    "moved": "Moved to {{folder}}."
-  },
   "history": {
     "heading": "History of this note",
     "short": "History",
@@ -1261,6 +1282,7 @@
     "alignLeft": "Align left",
     "alignCenter": "Center",
     "alignRight": "Align right",
+    "alignJustify": "Justify",
     "showMarkdown": "Show Markdown",
     "copyMarkdown": "Copy Markdown",
     "sourceTitle": "The note in Markdown",
@@ -1274,7 +1296,21 @@
     "attachQueued_other": "{{count}} more files waiting",
     "updating": "Updating…",
     "notSaved": "Not saved",
-    "editUnavailable": "This note mixes line endings, which the editor cannot keep byte for byte, so it opens read-only."
+    "editUnavailable": "This note mixes line endings, which the editor cannot keep byte for byte, so it opens read-only.",
+    "style": "Style",
+    "styleFont": "Font",
+    "styleHeadings": "Headings",
+    "styleText": "Text",
+    "styleTables": "Tables",
+    "styleNotebook": "The notebook's",
+    "styleSans": "Sans serif",
+    "styleSerif": "Serif",
+    "styleLeft": "Left",
+    "styleCenter": "Centered",
+    "styleRight": "Right",
+    "styleJustify": "Justified",
+    "styleInsert": "Set apart",
+    "styleApply": "Apply"
   },
   "model": {
     "title": "Model",
@@ -1364,6 +1400,7 @@
     "change": {
       "NotebookCreated": "Notebook created",
       "NotebookRenamed": "Notebook renamed",
+      "NotebookStyled": "Notebook style set",
       "GuidanceUpdated": "Guidance written",
       "GuidanceDeleted": "Guidance deleted",
       "FolderAdded": "Folder added",

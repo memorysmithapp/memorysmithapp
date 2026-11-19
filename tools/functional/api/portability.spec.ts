@@ -78,7 +78,7 @@ async function printed(api: Api, notebookId: string, noteId: string): Promise<Pr
   const started = await api.ok<PrintDto>(
     'POST',
     `/portability/notebooks/${notebookId}/notes/${noteId}/pdf`,
-    { placement: 'end', tables: 'wrap', orientation: 'landscape', locale: 'pt_BR' },
+    { locale: 'pt_BR' },
   );
   expect(started.status).toBe('running');
   return eventually(
@@ -105,7 +105,13 @@ test.describe('a note as a PDF made by the server', () => {
         content: '---\nname: Ata de reunião\nstatus: draft\n---\n\nWhat was decided.\n',
       },
     );
-    const print = await printed(owner, notebook.notebookId, noteId);
+    // How it is laid is the notebook's style (#493): its properties on a page
+    // at the end, the page sideways; given back as it was found.
+    const style = `/knowledge/notebooks/${notebook.notebookId}/style`;
+    await owner.ok('PATCH', style, { properties: 'end', orientation: 'landscape' });
+    const print = await printed(owner, notebook.notebookId, noteId).finally(() =>
+      owner.ok('PATCH', style, { properties: 'cover', orientation: 'portrait' }),
+    );
     expect(print.failure ?? null).toBeNull();
     expect(print.status).toBe('ready');
 
@@ -120,7 +126,7 @@ test.describe('a note as a PDF made by the server', () => {
     const pdf = Buffer.from(await downloaded.arrayBuffer());
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     // The note, and a page of its own for its properties at the end, laid
-    // sideways as it was asked.
+    // sideways as its notebook's style says.
     const text = pdf.toString('latin1');
     const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
     expect(Number(box?.[1])).toBeGreaterThan(Number(box?.[2]));

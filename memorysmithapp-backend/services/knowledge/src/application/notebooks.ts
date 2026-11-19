@@ -28,7 +28,7 @@ import {
 import { composeNotebookContext } from '../domain/services/NotebookContextComposer.js';
 import { Guidance } from '../domain/content-slot/Guidance.js';
 import { Notebook } from '../domain/notebook/Notebook.js';
-import { ShortText, NotebookName } from '../domain/values.js';
+import { ShortText, NotebookName, NotebookStyle } from '../domain/values.js';
 import type {
   ContentSlotRepository,
   ContentStore,
@@ -238,6 +238,35 @@ export class RenameNotebook {
 
     const saved = await this.deps.notebooks.save(notebook.value);
     return saved.ok ? ok() : err(saved.error);
+  }
+}
+
+/**
+ * Sets how the notebook's notes are drawn and printed (#493, RN-KNW-092):
+ * whoever maintains the notebook changes it, as its folders, Guidance and
+ * Templates (RN-KNW-063). The settings not named keep what they were, and
+ * the answer is the style as it now is.
+ */
+export class StyleNotebook {
+  constructor(private readonly deps: NotebookDependencies) {}
+
+  async execute(input: {
+    ctx: RequestContext;
+    notebookId: NotebookId;
+    style: Partial<NotebookStyle>;
+    by: Authorship;
+  }): Promise<Result<NotebookStyle, DomainError>> {
+    const notebook = await loadAuthorized(this.deps, input.ctx, input.notebookId, 'maintain');
+    if (!notebook.ok) return notebook;
+
+    const next: NotebookStyle = { ...notebook.value.style, ...input.style };
+    // A style that says what the notebook already says writes nothing.
+    if (NotebookStyle.same(next, notebook.value.style)) return ok(notebook.value.style);
+    const styled = notebook.value.restyle(next, input.by);
+    if (!styled.ok) return styled;
+
+    const saved = await this.deps.notebooks.save(notebook.value);
+    return saved.ok ? ok(notebook.value.style) : err(saved.error);
   }
 }
 

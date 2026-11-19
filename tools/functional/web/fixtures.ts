@@ -150,16 +150,6 @@ export interface Words {
   readonly noteOrderHint: string;
   readonly noteOrderHintManual: string;
   readonly noteOrderHintAlphabetical: string;
-  /** Moving a note to another folder, from the bar of the note (#265). */
-  readonly moveNote: string;
-  /** Its title, which names the button where the bar shows icons alone. */
-  readonly moveNoteTitle: string;
-  readonly moveHeading: string;
-  readonly moveFolder: string;
-  /** What the dialog says before anything is chosen. */
-  readonly moveLinksKeep: string;
-  /** A destination that holds the name, as the dialog refuses it. */
-  readonly moveNameTaken: string;
   readonly folderEdit: string;
   readonly folderEditHeading: string;
   readonly folderEditName: string;
@@ -236,7 +226,7 @@ export const WORDS: Record<AppLocale, Words> = {
     willCreateFolders: 'folders',
     openGraphControls: 'Open controls',
     closeGraphControls: 'Close controls',
-    willCreateNotes: /\bnotes?\b/,
+    willCreateNotes: /\d+ notes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
     aboutMenu: 'About',
     accountMenu: 'Account menu',
@@ -266,12 +256,6 @@ export const WORDS: Record<AppLocale, Words> = {
       'The notes keep the position they were given in this folder, by you or by an agent.',
     noteOrderHintAlphabetical:
       'The notes follow their names, numbers by value: Minutes 2 comes before Minutes 10. Each keeps its position, which comes back if the order is set to manual again.',
-    moveNote: 'Move',
-    moveNoteTitle: 'Move this note to another folder of the notebook',
-    moveHeading: 'Move to another folder',
-    moveFolder: 'Folder',
-    moveLinksKeep: 'a link finds a note by its name, never by its folder',
-    moveNameTaken: 'already holds a note named',
     folderEdit: 'Edit',
     folderEditHeading: 'Edit the folder',
     folderEditName: 'Name',
@@ -300,7 +284,7 @@ export const WORDS: Record<AppLocale, Words> = {
     you: 'você',
     folders: 'Pastas',
     guidance: 'Orientação',
-    templates: 'Modelos de pasta',
+    templates: 'Modelos de nota',
     graph: 'Grafo do caderno',
     attachments: 'Anexos',
     tables: 'Tabelas',
@@ -313,7 +297,7 @@ export const WORDS: Record<AppLocale, Words> = {
     version: 'MemorySmith.app',
     tryAgain: 'Tentar de novo',
     deleteSlot: 'Apagar',
-    deleteTemplate: 'Apagar o Modelo de pasta',
+    deleteTemplate: 'Apagar o Modelo de nota',
     deleteSlotForGood: 'Apagar de vez',
     notebookField: 'Caderno',
     chooseNotebook: 'Escolher caderno',
@@ -345,7 +329,7 @@ export const WORDS: Record<AppLocale, Words> = {
     willCreateFolders: 'pastas',
     openGraphControls: 'Abrir controles',
     closeGraphControls: 'Fechar controles',
-    willCreateNotes: /\bnotas?\b/,
+    willCreateNotes: /\d+ notas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,
     aboutMenu: 'Sobre',
     accountMenu: 'Menu da conta',
@@ -375,12 +359,6 @@ export const WORDS: Record<AppLocale, Words> = {
       'As notas ficam na posição em que foram colocadas nesta pasta, por você ou por um agente.',
     noteOrderHintAlphabetical:
       'As notas seguem o nome, com os números pelo valor: Ata 2 vem antes de Ata 10. A posição de cada uma fica guardada e volta se a ordem voltar a ser manual.',
-    moveNote: 'Mover',
-    moveNoteTitle: 'Mover esta nota para outra pasta do caderno',
-    moveHeading: 'Mover para outra pasta',
-    moveFolder: 'Pasta',
-    moveLinksKeep: 'um link encontra uma nota pelo nome, nunca pela pasta',
-    moveNameTaken: 'já tem uma nota chamada',
     folderEdit: 'Editar',
     folderEditHeading: 'Editar a pasta',
     folderEditName: 'Nome',

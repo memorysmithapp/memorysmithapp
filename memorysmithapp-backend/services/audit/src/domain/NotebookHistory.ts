@@ -61,6 +61,7 @@ export interface NotebookChange {
 export const HISTORY_CHANGE_TYPES: ReadonlySet<string> = new Set([
   'NotebookCreated',
   'NotebookRenamed',
+  'NotebookStyled',
   'GuidanceUpdated',
   'GuidanceDeleted',
   'FolderAdded',

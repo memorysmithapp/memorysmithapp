@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchIcon } from './icons';
 import { Tabs } from './Tabs';
+import { ListPager } from './ListPager';
 
 /**
  * One searchable picker of a notebook or a model (#432), drawn inside the
@@ -291,36 +292,14 @@ export function SearchPicker<K extends string>({
             </table>
           </div>
         )}
-        {pages > 1 ? (
-          // The pager of the list of a folder, word for word (#438).
-          <nav className="tables-grid-pages" aria-label={t('tables.pages')}>
-            <span>
-              {t('tables.showing', {
-                first: (page - 1) * PICKER_PAGE + 1,
-                last: Math.min(page * PICKER_PAGE, total),
-                total,
-              })}
-            </span>
-            <span className="tables-grid-page-buttons">
-              <button
-                type="button"
-                className="button is-quiet is-small"
-                disabled={page <= 1}
-                onClick={() => turn(page - 1)}
-              >
-                {t('tables.previous')}
-              </button>
-              <button
-                type="button"
-                className="button is-quiet is-small"
-                disabled={page >= pages || (remote !== null && answer.isFetching)}
-                onClick={() => turn(page + 1)}
-              >
-                {t('tables.next')}
-              </button>
-            </span>
-          </nav>
-        ) : null}
+        <ListPager
+          page={page}
+          pages={pages}
+          total={total}
+          size={PICKER_PAGE}
+          onPage={turn}
+          holdNext={remote !== null && answer.isFetching}
+        />
       </div>
     </div>
   );

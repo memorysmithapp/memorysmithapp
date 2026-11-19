@@ -11,6 +11,44 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-18
+
+### Added
+
+- **The notebook's graph opens with no names on it.** A note is named, with its neighbours, when the pointer rests on it, and a value you hold names itself and the note under the pointer; the names the graph used to write of its most linked notes are gone. (#499)
+
+- **The notebook's graph shows what the agents do in it.** While the graph is open, a note an agent reads through the connector is circled by a thin outline that opens from it, and a note it writes by a double outline, with strokes running along its links and what the write changed in its properties written under it, such as `status: aberta → concluída`. Reading a folder lights its notes one after the other, reading the context crosses the notebook as a wave, and a search by `status:aberta` lights the notes that carry it. Each assistant — its connector and its person, such as *Claude · Heitor* — draws in a colour of the graph's own palette that no switched-on attribute is using; a notice at the top left says who is doing what. A note an agent creates appears beside the notes it cites, without the graph rearranging itself. Everybody who reads the notebook sees it; nothing of it enters the history, and with reduced motion nothing moves. (#495)
+
+- **A note can print its tables as appendices at its end.** With *As appendices* in the notebook's *Style*, each table of a printed note, a `table` block or a Markdown table, gives its place to a reference such as *See Appendix 1 — Table “expenses”, page 7*, linked to it, and prints whole at the end, each appendix titled and on a page of its own. The appendices may lie another way than the text — the text upright and the appendices sideways, say — in the same PDF, from the browser and from *Download PDF*. (#494)
+
+- **Justified text breaks no word with a hyphen, unless you ask for it.** A notebook whose *Style* justifies its text or its tables spreads the space between whole words; *Hyphenation*, offered beside it, lets words break at the end of a line with a hyphen, in your language. An agent sets it too, with `set_style`. (#498)
+
+- **The name of a note stands apart from its first heading.** It is drawn a step larger than a `#` heading, over a short rule in the colour of the text, both placed where the notebook's style aligns its headings, on the screen, in print and in a preview. A note that opens with a `#` no longer shows two equal titles stacked. (#497)
+
+- **A notebook keeps a style.** A new part of the Notebook Context, *Style*, sets once how every note of the notebook is drawn and printed, for everybody who reads it, the Reader of a share included: the font (sans serif, or the serif Source Serif 4), the alignment of headings, of text and of the table columns that declare none, and in print where the properties go, which way the page lies and how wide tables fit. A note drawn in the style being chosen shows each choice before it is saved; whoever maintains the notebook changes it, and everybody else sees what it is. A notebook that never set one looks and prints as before. The style travels with an export, an import and a notebook created from a model. An agent reads it in `get_notebook_context` and changes it with the new `set_style`. (#493)
+
+- **A passage of a note can differ from its notebook's style, and a table column can be justified.** A `:::{style}` block sets what it holds in its own face, `sans` or `serif`, and aligns its headings, its text and its tables left, centered, right or justified; justified text hyphenates in your language. `;---;` in a table's delimiter row justifies that column; outside MemorySmith such a table reads as text. Both are drawn on the screen, in the editor and in print, and the editor writes them: *Style* on its toolbar wraps the selection in a block or changes the block the cursor is in, and *Justify* on a table's controls justifies the column. The serif face is Source Serif 4. An agent asked to center a title or justify a passage writes the block, never HTML. (#492)
+
+### Changed
+
+- **A note prints as its notebook's style says, the same for everybody.** The print page no longer offers where the properties go, how tables fit or which way the page lies: it keeps the hint, *Download PDF* and *Print*, and points whoever maintains the notebook to its *Style*. What a browser remembered of those choices is gone. (#493)
+
+- **A table keeps its rows one height and its pager in one place.** On the Tables page and in a `table` block of a note, a cell holds one line and a longer value ends in an ellipsis; a click on a row, or Enter on it, opens the row whole in a dialog, each column's name over its full value, closed by its ×, Escape or a click outside it. A table's columns keep their widths as its pages turn and as it is sorted, and a shorter last page keeps the height of a full one, so the pager never moves. Every pager reads the same — a folder's list, a search, a dashboard's table, the Tables page and the `table` block: which rows of how many on the left, *‹ Previous* and *Next ›* on the right, the arrows alone on a phone. Printing is unchanged: every row whole, every value wrapping. (#491)
+
+- **The Notebook Context lists the folders before their Templates.** The notebook menu, the *Notebook Context* page and the notebook overview show Guidance, Folders, Templates, since a Template belongs to a folder. (#488)
+
+- **In Portuguese, a Template is now a *Modelo de nota*.** It names what it shapes, the notes of a folder, as a *Modelo de caderno* names the notebook it creates; *Modelo de pasta* read as if it created folders. The folder is said where it matters, as in *Modelo de nota da pasta Contas*. Nothing changes in English, in the API or in the connector. (#490)
+
+### Removed
+
+- **A folder's page no longer offers *Delete*, and a note's page no longer offers *Move*.** A folder is deleted, and a note moved to another folder, by asking the agent, through the connector, which does both as before; the note keeps its history, and the history still shows the move. (#496)
+
+- **The Dashboards page only reads.** An open dashboard no longer shows *Delete dashboard*, for its owner either: the page shows what the agent built, and nothing on it changes the dashboard. A dashboard is deleted by asking the agent, through the connector, as it is built and changed, as tables already are. (#487)
+
+### Fixed
+
+- **A dashboard no longer blinks when it is read again.** On its interval, when the tab is looked at again and on *Refresh*, every chart vanished and was drawn again, even when no value had changed. A read that brings the same values now leaves the charts as they are; one that brings new values moves the marks from the old values to the new ones. A dot beside the time pulses while the data is read and turns green for a moment when the read brought new values, which a screen reader also hears. *Refresh* fades only while a read you asked for is running. (#489)
+
 ## [0.19.0] - 2026-11-17
 
 ### Added
@@ -1123,7 +1161,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...v0.18.0

@@ -12,7 +12,7 @@ import { blockOf, isBlockAnchor, sectionOf } from '../../shared/api/transclusion
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { styleOfParts, NoteContent } from '../../shared/components/NoteContent';
 import {
   PropertyValue,
   orderedProperties,
@@ -146,7 +146,7 @@ export function NotePreview({
   if (drawing.kind === 'part') return content;
   return (
     <>
-      <h1 className={drawing.name === null ? 'note-unnamed' : undefined}>
+      <h1 className={drawing.name === null ? 'note-title note-unnamed' : 'note-title'}>
         {drawing.name ?? t('note.unnamed')}
       </h1>
       {drawing.properties.length > 0 ? (
@@ -279,6 +279,7 @@ export function PreviewNotePage() {
         <article
           ref={drawn}
           className="note-preview content-pane"
+          style={styleOfParts(structure.data?.style)}
           data-ready={ready && failure === null ? 'true' : undefined}
           data-failure={failure ?? undefined}
         >

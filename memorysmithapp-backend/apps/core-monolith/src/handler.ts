@@ -69,6 +69,7 @@ import {
   ListNotebooks,
   PutGuidance,
   RenameNotebook,
+  StyleNotebook,
   SetNotebookRoleLimit,
 } from '@memorysmithapp/svc-knowledge/application/notebooks';
 import {
@@ -136,6 +137,8 @@ import {
   ResolveLinkTarget,
   GetFacetStats,
   GetNoteFacets,
+  ReadActivity,
+  RecordActivity,
   RelatedNotes,
   SearchNotes,
   NotebookGraphQuery,
@@ -429,6 +432,7 @@ const knowledgeUseCases: KnowledgeUseCases = {
   listNotebooks: (request) => new ListNotebooks(buildKnowledge(infra, request.subscription)),
   getNotebook: (request) => new GetNotebook(buildKnowledge(infra, request.subscription)),
   renameNotebook: (request) => new RenameNotebook(buildKnowledge(infra, request.subscription)),
+  styleNotebook: (request) => new StyleNotebook(buildKnowledge(infra, request.subscription)),
   // Deleting a notebook takes its shares, both sides (RN-ACC-028).
   deleteNotebook: (request) =>
     new DeleteNotebookAndShares(
@@ -521,6 +525,8 @@ const discoveryUseCases: DiscoveryUseCases = {
   search: (request) => new SearchNotes(discoveryFor(request.subscription)),
   facets: (request) => new GetFacetStats(discoveryFor(request.subscription)),
   noteFacets: (request) => new GetNoteFacets(discoveryFor(request.subscription)),
+  recordActivity: (request) => new RecordActivity(discoveryFor(request.subscription)),
+  readActivity: (request) => new ReadActivity(discoveryFor(request.subscription)),
 };
 
 /**
@@ -536,6 +542,7 @@ function notebookWriterFor(request: KnowledgeRequest): NotebookWriter {
     {
       createNotebook: new CreateNotebook(knowledge),
       putGuidance: new PutGuidance(knowledge),
+      styleNotebook: new StyleNotebook(knowledge),
       createFolder: new CreateFolder(knowledge),
       putTemplate: new PutTemplate(knowledge),
       restoreFolderNumber: new RestoreFolderNumber(knowledge),
@@ -816,6 +823,7 @@ function discoveryFor(context: SubscriptionContext) {
     facets: built.facets,
     content: built.index,
     structure: built.structure,
+    activity: built.activity,
     catalog: new KnowledgeNoteCatalog(buildKnowledge(infra, context)),
     /**
      * One line per search, in the logs of the function (ADR-012). A notebook

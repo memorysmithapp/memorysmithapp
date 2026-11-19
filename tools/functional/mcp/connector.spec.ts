@@ -689,6 +689,29 @@ test.describe('the tools', () => {
     expect(stayed.folderId).toBe(notebook.folderId);
   });
 
+  test('[tool:set_style] sets how the notes of a notebook are drawn and printed, and the context says it (#493)', async ({
+    agent,
+    notebook,
+  }) => {
+    const where = { notebook: notebook.notebookId };
+    try {
+      const set = parsed<{ style: { text: string; font: string; headings: string } }>(
+        await callTool(agent, 'set_style', { ...where, text: 'justify', font: 'serif' }),
+      );
+      // The settings named change; the others keep theirs.
+      expect(set.style).toMatchObject({ text: 'justify', font: 'serif', headings: 'left' });
+      const context = await callTool(agent, 'get_notebook_context', where);
+      expect(context.text).toContain('## Style');
+      expect(context.text).toContain('- Font: serif');
+      expect(context.text).toContain('text: justify');
+
+      const refused = await callTool(agent, 'set_style', { ...where, text: 'justified' });
+      expect(refused.isError).toBe(true);
+    } finally {
+      await callTool(agent, 'set_style', { ...where, text: 'left', font: 'sans' });
+    }
+  });
+
   test('[tool:create_folder] [tool:set_note_order] [tool:list_notes] orders the notes of a folder by name, says so in the context, and refuses to move one there (#262)', async ({
     agent,
     notebook,
