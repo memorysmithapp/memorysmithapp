@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-18
+
 ### Added
 
 - **The notebook's graph opens with no names on it.** A note is named, with its neighbours, when the pointer rests on it, and a value you hold names itself and the note under the pointer; the names the graph used to write of its most linked notes are gone. (#499)
@@ -1159,7 +1161,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.17.0...v0.18.0
