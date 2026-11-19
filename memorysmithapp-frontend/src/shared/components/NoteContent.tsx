@@ -8,6 +8,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -30,7 +31,12 @@ import {
   type NoteStyle,
   type TableRowView,
 } from '@memorysmithapp/markdown-renderer';
-import { FILE_MIME_TYPES, rendersAs, type NotebookFileDto } from '@memorysmithapp/contracts';
+import {
+  FILE_MIME_TYPES,
+  rendersAs,
+  type NotebookFileDto,
+  type NotebookStyle,
+} from '@memorysmithapp/contracts';
 import '@memorysmithapp/markdown-renderer/styles.css';
 import 'katex/dist/katex.min.css';
 import {
@@ -202,6 +208,22 @@ function whenRead(readAt: string, locale: string): string {
   return /^\d{4}-\d{2}-\d{2}T/.test(readAt) && !Number.isNaN(instant.getTime())
     ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(instant)
     : readAt;
+}
+
+/**
+ * The style of a notebook on what a page draws apart from the note (#493,
+ * #497): the name on a print's cover, the properties on its last page, the
+ * head of a preview. The renderer sets the same on the note itself; only the
+ * serif face is set, the sans one being how every page is drawn.
+ */
+export function styleOfParts(style: NotebookStyle | undefined): CSSProperties {
+  if (!style) return {};
+  return {
+    '--ms-align-headings': style.headings,
+    ...(style.font === 'serif'
+      ? { '--ms-face': 'var(--serif)', '--ms-face-heading': 'var(--serif)' }
+      : {}),
+  } as CSSProperties;
 }
 
 /**

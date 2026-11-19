@@ -2169,7 +2169,7 @@ test.describe('the pages of an account', () => {
     }
   });
 
-  test('[page:/notebooks/:notebookId/style] [route:PATCH /knowledge/notebooks/:v/style] sets how every note of the notebook is drawn, seen in a sample before it is saved, and the notes follow (#493)', async ({
+  test('[page:/notebooks/:notebookId/style] [route:PATCH /knowledge/notebooks/:v/style] sets how every note of the notebook is drawn, seen in a sample before it is saved, and the notes follow, their name above their first heading (#493, #497)', async ({
     app,
     owner,
     notebook,
@@ -2180,7 +2180,7 @@ test.describe('the pages of an account', () => {
     await owner.ok('PATCH', `${path}/style`, reset);
     const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
       folderId: notebook.folderId,
-      content: `---\nname: Styled ${randomBytes(3).toString('hex')}\n---\n\nA paragraph long enough to be set justified when the style says so, and to wrap.\n`,
+      content: `---\nname: Styled ${randomBytes(3).toString('hex')}\n---\n\n# First heading\n\nA paragraph long enough to be set justified when the style says so, and to wrap.\n`,
     });
     try {
       await app.goto(notebook.page('/style'));
@@ -2221,6 +2221,23 @@ test.describe('the pages of an account', () => {
       const paragraph = app.locator('article.content-pane .markdown p').first();
       await expect(paragraph).toHaveCSS('text-align', 'justify');
       await expect(paragraph).toHaveCSS('font-family', /Source Serif 4/);
+      // The name of the note stands a step above its first heading, over a
+      // short rule in ink (#497).
+      const sizes = await app.locator('article.content-pane').evaluate((pane) => {
+        const { getComputedStyle } = globalThis as unknown as {
+          getComputedStyle(element: object, pseudo?: string): { fontSize: string; height: string };
+        };
+        const title = pane.querySelector('.note-title');
+        const first = pane.querySelector('.markdown h1:not(.note-title)');
+        const rule = title ? getComputedStyle(title, '::after') : null;
+        return {
+          title: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
+          heading: first ? parseFloat(getComputedStyle(first).fontSize) : 0,
+          rule: rule?.height ?? '',
+        };
+      });
+      expect(sizes.title).toBeGreaterThan(sizes.heading);
+      expect(sizes.rule).toBe('2px');
     } finally {
       await owner.ok('PATCH', `${path}/style`, reset);
     }

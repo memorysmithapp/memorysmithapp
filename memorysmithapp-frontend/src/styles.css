@@ -2021,6 +2021,8 @@ a:hover {
   --list-spacing: 0.075em;
   --line-height-normal: 1.5;
   --line-height-tight: 1.3;
+  /* The name of a note, a step above its first heading (#497). */
+  --title-size: 2.027em;
   --h1-size: 1.802em;
   --h2-size: 1.602em;
   --h3-size: 1.424em;
@@ -2064,9 +2066,30 @@ a:hover {
   color: var(--text-soft);
 }
 
-.content-pane > h1,
-.content-pane .note-title {
+.content-pane > h1 {
   margin-block: 0 0.6rem;
+}
+/* The name of a note stands apart from its first heading (#497): a step
+   larger in the scale, in the face of its headings, and over a short rule in
+   ink — never the blue, which is spent on what is clickable — placed where
+   the style aligns its headings. Justified, which a line of one title cannot
+   show, falls back to the start. */
+.content-pane .note-title {
+  margin-block: 0 1.25rem;
+  font-size: var(--title-size);
+  font-weight: 700;
+  text-align: var(--ms-align-headings, start);
+}
+.content-pane .note-title::after {
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 0.55rem;
+  background: linear-gradient(currentcolor, currentcolor) no-repeat;
+  background-size: 40px 2px;
+  background-position: var(--ms-align-headings, left) 0;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 .content-pane > h2 {
   margin-block: 2rem 0.6rem;
@@ -2206,17 +2229,13 @@ a:hover {
 }
 /* The properties are the note's own words: inside a note, and on the pages of
    its print, they take the face its style chose, tags included (#493). The
-   renderer sets it on the note; the print sets it on the parts it lays apart
-   from the note. Where no style reaches, nothing changes. */
+   renderer sets it on the note; the print and the preview set it on what they
+   draw apart from the note. Where no style reaches, nothing changes. */
 .content-pane .metadata-container {
   font-family: var(--ms-face, inherit);
 }
 .content-pane .metadata-container :is(.prop-tag, .chip) {
   font-family: var(--ms-face, var(--display));
-}
-.print-part[data-font='serif'] {
-  --ms-face: var(--serif);
-  --ms-face-heading: var(--serif);
 }
 .metadata-property-value a {
   overflow-wrap: anywhere;
@@ -8162,6 +8181,7 @@ button.attachment-thumb:focus-visible {
    block may choose: Source Serif 4, decided by the owner (#492, #493). */
 .markdown {
   --markdown-font-serif: var(--serif);
+  --markdown-title-size: var(--title-size);
   --markdown-pager-bg: var(--surface);
   --markdown-pager-color: var(--text);
   --markdown-pager-border: 1px solid var(--border);

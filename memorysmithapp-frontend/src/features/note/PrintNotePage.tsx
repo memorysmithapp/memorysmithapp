@@ -14,7 +14,7 @@ import { identifierOf } from '../../shared/api/note-address';
 import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
-import { NoteContent } from '../../shared/components/NoteContent';
+import { NoteContent, styleOfParts } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
 import {
   PropertyValue,
@@ -199,7 +199,7 @@ export function PrintNotePage() {
   const lists = new Set(data?.listProperties ?? []);
 
   const title = data ? (
-    <h1 className={data.name === null ? 'note-unnamed' : undefined}>{name}</h1>
+    <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>{name}</h1>
   ) : null;
   const shown = placement === 'none' ? [] : properties;
   const box =
@@ -300,7 +300,7 @@ export function PrintNotePage() {
                 <article
                   key="cover"
                   className="print-part print-properties print-cover content-pane"
-                  data-font={style.font}
+                  style={styleOfParts(style)}
                 >
                   {box}
                   {title}
@@ -309,7 +309,7 @@ export function PrintNotePage() {
               <article
                 key="body"
                 className="print-part content-pane"
-                data-font={style.font}
+                style={styleOfParts(style)}
                 data-placement={placement}
                 data-tables={fit}
               >
@@ -331,7 +331,7 @@ export function PrintNotePage() {
                 <article
                   key="end"
                   className="print-part print-properties print-end content-pane"
-                  data-font={style.font}
+                  style={styleOfParts(style)}
                 >
                   <h2>{name}</h2>
                   {box}

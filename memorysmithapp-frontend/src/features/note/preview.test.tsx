@@ -143,7 +143,7 @@ describe('what the page cuts out of a note', () => {
 describe('a draft, drawn by the reading surface of the note page', () => {
   it('draws a whole draft with its name, its properties, its callout and its table', () => {
     const html = draw(DRAFT, null);
-    expect(html).toContain('<h1>Plan limits</h1>');
+    expect(html).toContain('<h1 class="note-title">Plan limits</h1>');
     expect(html).toContain('properties-box');
     expect(html).toContain('draft');
     expect(html).toContain('callout');
@@ -156,7 +156,7 @@ describe('a draft, drawn by the reading surface of the note page', () => {
     const html = draw(DRAFT, 'Limits');
     expect(html).toContain('callout');
     expect(html).toContain('<table');
-    expect(html).not.toContain('<h1>');
+    expect(html).not.toContain('note-title');
     expect(html).not.toContain('Not part of the limits');
     // The frontmatter it keeps is drawn as nothing.
     expect(html).not.toContain('draft');
