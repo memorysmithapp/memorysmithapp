@@ -241,6 +241,10 @@ export function PrintNotePage() {
     <NotebookIdProvider notebookId={notebookId}>
       <div
         className="print-page"
+        // The style reaches what the page lays apart from the note — the name
+        // on the cover, the properties on the last page — and the pages the
+        // paginator copies them into, from here (#493, #497).
+        style={styleOfParts(style)}
         data-orientation={orientation}
         {...(asAppendices ? { 'data-appendix-orientation': appendixOrientation } : {})}
       >
@@ -300,7 +304,6 @@ export function PrintNotePage() {
                 <article
                   key="cover"
                   className="print-part print-properties print-cover content-pane"
-                  style={styleOfParts(style)}
                 >
                   {box}
                   {title}
@@ -309,7 +312,6 @@ export function PrintNotePage() {
               <article
                 key="body"
                 className="print-part content-pane"
-                style={styleOfParts(style)}
                 data-placement={placement}
                 data-tables={fit}
               >
@@ -328,11 +330,7 @@ export function PrintNotePage() {
                 />
               </article>
               {placement === 'end' && box ? (
-                <article
-                  key="end"
-                  className="print-part print-properties print-end content-pane"
-                  style={styleOfParts(style)}
-                >
+                <article key="end" className="print-part print-properties print-end content-pane">
                   <h2>{name}</h2>
                   {box}
                 </article>
