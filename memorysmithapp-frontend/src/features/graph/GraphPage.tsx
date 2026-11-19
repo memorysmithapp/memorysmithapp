@@ -21,7 +21,6 @@ import { folderTrailForNote } from '../structure/trail';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
-import { intlLocale } from '../../i18n/intl-locale';
 import {
   getNotebookActivity,
   getNotebookGraph,
@@ -77,17 +76,6 @@ interface GraphNode extends SimulationNodeDatum {
 
 type GraphLink = SimulationLinkDatum<GraphNode>;
 
-/** A line of the log of what the agents did (#495). */
-interface LogRow {
-  readonly id: string;
-  readonly at: string;
-  readonly who: string;
-  readonly slot: number;
-  readonly kind: 'read' | 'write';
-  readonly target: string;
-  readonly tool: string;
-}
-
 /** How often the page asks, while it is looked at, and once nothing happened for two minutes. */
 const ACTIVITY_EVERY_MS = 3_000;
 const ACTIVITY_QUIET_EVERY_MS = 15_000;
@@ -98,7 +86,6 @@ const ASSISTANT_IDLE_MS = 4_500;
 const ACTIVITY_STEP_MS = 700;
 /** How many assistants the notice names before it says how many more. */
 const ASSISTANTS_SHOWN = 3;
-const LOG_ROWS = 8;
 
 /** A value node is keyed `attribute:value`; the foot writes it `attribute: value`. */
 function pinnedLabel(id: string): string {
@@ -232,7 +219,7 @@ function useTouchOnly(): boolean {
 }
 
 export function GraphPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const touchOnly = useTouchOnly();
   const navigate = useNavigate();
   const notebookId = useNotebookId();
@@ -284,7 +271,6 @@ export function GraphPage() {
   const [reads, setReads] = useState(0);
   /** The assistants working in the notebook now, newest first, and the last activities. */
   const [assistants, setAssistants] = useState<readonly (Assistant & { doing: string })[]>([]);
-  const [log, setLog] = useState<readonly LogRow[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
     nodes: GraphNode[];
@@ -421,7 +407,7 @@ export function GraphPage() {
         notes: graphData.nodes,
         folderName: (folderId) => findFolderName(tree.folders, folderId),
       };
-      const rows: LogRow[] = [];
+      let said = false;
       let readAgain = false;
       const now = performance.now();
       for (const entry of entries) {
@@ -489,20 +475,9 @@ export function GraphPage() {
             duration: plan.kind === 'write' ? 1_700 : lit.length > 1 ? 1_000 : 1_500,
           });
         });
-        rows.push({
-          id: entry.id,
-          at: entry.at,
-          who: assistant.name,
-          slot: held.slot,
-          kind: plan.kind,
-          target,
-          tool: entry.tool ?? '',
-        });
+        said = true;
       }
-      if (rows.length > 0) {
-        publish();
-        setLog((current) => [...rows.reverse(), ...current].slice(0, LOG_ROWS));
-      }
+      if (said) publish();
       state.kick?.();
       if (readAgain) {
         window.clearTimeout(rereading);
@@ -551,7 +526,6 @@ export function GraphPage() {
       window.clearInterval(idle);
       state.marks = [];
       setAssistants([]);
-      setLog([]);
     };
   }, [notebookId, t]);
 
@@ -1384,9 +1358,10 @@ export function GraphPage() {
             ))}
         </div>
         {/*
-          Who is working in the notebook now, and what they did last (#495):
-          one line per assistant in its colour, the newest first, which is the
-          legend of the colours on the drawing; and the last activities.
+          Who is working in the notebook now (#495): one line per assistant in
+          its colour, the newest first, which is the legend of the colours on
+          the drawing. A log of the last activities was taken away by the
+          owner: the drawing and this notice say it.
         */}
         {assistants.length > 0 ? (
           <div className="graph-activity" role="status" aria-live="polite">
@@ -1408,35 +1383,6 @@ export function GraphPage() {
               </p>
             ) : null}
           </div>
-        ) : null}
-        {log.length > 0 ? (
-          <section className="graph-activity-log" aria-label={t('graph.activity.log')}>
-            <h2>{t('graph.activity.log')}</h2>
-            <ol>
-              {log.map((row) => (
-                <li key={row.id} style={{ '--who': slotColor(row.slot) } as CSSProperties}>
-                  <time dateTime={row.at}>
-                    {new Date(row.at).toLocaleTimeString(intlLocale(i18n.language), {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </time>
-                  <span
-                    className={`graph-activity-ring${row.kind === 'write' ? ' is-write' : ''}`}
-                    aria-hidden="true"
-                  />
-                  <span className="graph-activity-what">
-                    <b>{row.who}</b>{' '}
-                    {t(row.kind === 'write' ? 'graph.activity.wrote' : 'graph.activity.read', {
-                      target: row.target,
-                    })}{' '}
-                    <code>{row.tool}</code>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
         ) : null}
         {/*
           There used to be a legend here, a second panel repeating the name of

@@ -720,8 +720,6 @@
     "activity": {
       "reading": "está lendo {{target}}",
       "writing": "está gravando {{target}}",
-      "read": "leu {{target}}",
-      "wrote": "gravou {{target}}",
       "aNote": "uma nota",
       "newNote": "uma nova nota",
       "folder": "a pasta {{name}}",
@@ -732,8 +730,7 @@
       "file": "um arquivo",
       "notebook": "o caderno",
       "more_one": "+{{count}} assistente",
-      "more_other": "+{{count}} assistentes",
-      "log": "Atividade dos assistentes"
+      "more_other": "+{{count}} assistentes"
     }
   },
   "errors": {

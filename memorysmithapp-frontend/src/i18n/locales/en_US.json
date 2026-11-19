@@ -717,8 +717,6 @@
     "activity": {
       "reading": "is reading {{target}}",
       "writing": "is writing {{target}}",
-      "read": "read {{target}}",
-      "wrote": "wrote {{target}}",
       "aNote": "a note",
       "newNote": "a new note",
       "folder": "the folder {{name}}",
@@ -729,8 +727,7 @@
       "file": "a file",
       "notebook": "the notebook",
       "more_one": "+{{count}} assistant",
-      "more_other": "+{{count}} assistants",
-      "log": "Assistants' activity"
+      "more_other": "+{{count}} assistants"
     }
   },
   "errors": {
