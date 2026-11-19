@@ -8176,6 +8176,15 @@ button.attachment-thumb:focus-visible {
   }
 }
 
+/* Justified text breaks no word with a hyphen unless the notebook's style
+   says so (#498): the reading theme takes the hyphens away, and its
+   hyphenated twin, which a notebook that hyphenates draws with, leaves the
+   renderer's in place. */
+.markdown-theme-memorysmith :is(p, li, th, td, dd),
+.markdown-theme-memorysmith .markdown-editor .cm-line {
+  hyphens: manual !important;
+}
+
 /* The pager of a `table` block, drawn by the renderer as the app's own quiet
    small buttons (#491), and the serif face a note's style or a `:::{style}`
    block may choose: Source Serif 4, decided by the owner (#492, #493). */

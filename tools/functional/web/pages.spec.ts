@@ -2221,6 +2221,8 @@ test.describe('the pages of an account', () => {
       const paragraph = app.locator('article.content-pane .markdown p').first();
       await expect(paragraph).toHaveCSS('text-align', 'justify');
       await expect(paragraph).toHaveCSS('font-family', /Source Serif 4/);
+      // Justified, it breaks no word with a hyphen unless the style says so (#498).
+      await expect(paragraph).toHaveCSS('hyphens', 'manual');
       // The name of the note stands a step above its first heading, over a
       // short rule in ink (#497).
       const sizes = await app.locator('article.content-pane').evaluate((pane) => {

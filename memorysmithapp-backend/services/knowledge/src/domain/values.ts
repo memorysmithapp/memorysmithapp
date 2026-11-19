@@ -180,6 +180,8 @@ export interface NotebookStyle {
   readonly headings: StyleAlignment;
   readonly text: StyleAlignment;
   readonly tables: StyleAlignment;
+  /** Whether justified text breaks words with a hyphen (#498). */
+  readonly hyphenate: boolean;
   readonly properties: 'cover' | 'end' | 'none';
   readonly orientation: StyleOrientation;
   readonly printTables: 'wrap' | 'shrink' | 'appendices';
@@ -193,6 +195,7 @@ export const NotebookStyle = {
     headings: 'left',
     text: 'left',
     tables: 'left',
+    hyphenate: false,
     properties: 'cover',
     orientation: 'portrait',
     printTables: 'wrap',

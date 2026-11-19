@@ -292,6 +292,12 @@
     "text": "Texto",
     "tables": "Tabelas",
     "tablesHint": "Vale para as colunas que não declaram alinhamento próprio.",
+    "hyphenate": "Hifenização",
+    "hyphenateHint": "Vale para o que está justificado: com hífen, as palavras podem ser partidas no fim da linha.",
+    "hyphens": {
+      "off": "Sem hífen",
+      "on": "Com hífen"
+    },
     "align": {
       "left": "Esquerda",
       "center": "Centro",

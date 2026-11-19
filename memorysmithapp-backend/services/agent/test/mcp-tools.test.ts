@@ -3556,6 +3556,8 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
       ).content[0]?.text ?? '';
     expect(answer).toContain('## Style');
     expect(answer).toContain('- Font: sans');
+    // Justified text breaks no word unless the style says so (#498).
+    expect(answer).toContain('justified text breaks no word');
     expect(answer).toContain('set_style');
     // Before the revisions, which close the context.
     expect(answer.indexOf('## Style')).toBeLessThan(answer.indexOf('## Context revisions'));

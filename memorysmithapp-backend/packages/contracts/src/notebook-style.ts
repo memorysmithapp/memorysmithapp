@@ -32,6 +32,8 @@ export const notebookStyleSchema = z.object({
   text: z.enum(STYLE_ALIGNMENTS),
   /** The columns of a table that declare no alignment of their own. */
   tables: z.enum(STYLE_ALIGNMENTS),
+  /** Whether justified text breaks words with a hyphen; off by default (#498). */
+  hyphenate: z.boolean(),
   /** Where a printed note's properties go. */
   properties: z.enum(PRINT_PROPERTIES),
   orientation: z.enum(PRINT_ORIENTATIONS),
@@ -52,6 +54,7 @@ export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
   headings: 'left',
   text: 'left',
   tables: 'left',
+  hyphenate: false,
   properties: 'cover',
   orientation: 'portrait',
   printTables: 'wrap',
@@ -72,6 +75,7 @@ export function notebookStyleOf(value: unknown): NotebookStyle {
     headings: pick(STYLE_ALIGNMENTS, 'headings', d.headings),
     text: pick(STYLE_ALIGNMENTS, 'text', d.text),
     tables: pick(STYLE_ALIGNMENTS, 'tables', d.tables),
+    hyphenate: raw['hyphenate'] === true,
     properties: pick(PRINT_PROPERTIES, 'properties', d.properties),
     orientation: pick(PRINT_ORIENTATIONS, 'orientation', d.orientation),
     printTables: pick(PRINT_TABLES, 'printTables', d.printTables),

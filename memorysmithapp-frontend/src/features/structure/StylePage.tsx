@@ -134,6 +134,19 @@ export function StylePage() {
                   options={alignments}
                 />
               </Setting>
+              {draft.text === 'justify' || draft.tables === 'justify' ? (
+                <Setting label={t('style.hyphenate')} hint={t('style.hyphenateHint')}>
+                  <Segmented<'off' | 'on'>
+                    label={t('style.hyphenate')}
+                    value={draft.hyphenate ? 'on' : 'off'}
+                    onChange={(value) => choose('hyphenate', value === 'on')}
+                    options={[
+                      { value: 'off', label: t('style.hyphens.off'), disabled: !maintains },
+                      { value: 'on', label: t('style.hyphens.on'), disabled: !maintains },
+                    ]}
+                  />
+                </Setting>
+              ) : null}
               <Setting label={t('style.tables')} hint={t('style.tablesHint')}>
                 <Segmented<StyleAlignment>
                   label={t('style.tables')}

@@ -731,6 +731,7 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
         text: 'justify',
         printTables: 'appendices',
         appendixOrientation: 'landscape',
+        hyphenate: true,
       },
     });
     expect(set.status).toBe(200);
@@ -741,6 +742,7 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
       text: 'justify',
       printTables: 'appendices',
       appendixOrientation: 'landscape',
+      hyphenate: true,
     };
     expect(answered).toEqual(expected);
 

@@ -106,7 +106,7 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
 
   async setStyle(input: {
     notebookId: string;
-    style: Readonly<Record<string, string | null>>;
+    style: Readonly<Record<string, string | boolean | null>>;
     by: Authorship;
   }): Promise<Result<void, DomainError>> {
     const notebookId = NotebookId.create(input.notebookId);

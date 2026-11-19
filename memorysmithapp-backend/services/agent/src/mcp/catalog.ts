@@ -384,7 +384,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Sets how every note of a notebook is drawn and printed, for everybody who reads it. ' +
       'Pass only the settings to change; the others keep theirs. font is sans or serif. ' +
       'headings, text (paragraphs and lists) and tables (the columns that declare no alignment ' +
-      'of their own) are each left, center, right or justify. properties is where a printed ' +
+      'of their own) are each left, center, right or justify; hyphenate (true or false, false ' +
+      'by default) says whether justified text breaks words with a hyphen. properties is where a printed ' +
       'note shows its properties: cover (a page of their own before the text), end (a page ' +
       'after it) or none. orientation is the printed page, portrait or landscape. printTables ' +
       'is how a printed note fits its tables: wrap their text, shrink them to the page, or ' +
@@ -399,6 +400,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         headings: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
         text: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
         tables: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
+        hyphenate: {
+          type: 'boolean',
+          description: 'Whether justified text breaks words with a hyphen. Off by default.',
+        },
         properties: { type: 'string', enum: ['cover', 'end', 'none'] },
         orientation: { type: 'string', enum: ['portrait', 'landscape'] },
         printTables: { type: 'string', enum: ['wrap', 'shrink', 'appendices'] },

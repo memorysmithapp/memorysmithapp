@@ -292,6 +292,12 @@
     "text": "Text",
     "tables": "Tables",
     "tablesHint": "For the columns that declare no alignment of their own.",
+    "hyphenate": "Hyphenation",
+    "hyphenateHint": "For what is justified: with hyphens, words may be broken at the end of a line.",
+    "hyphens": {
+      "off": "No hyphens",
+      "on": "Hyphens"
+    },
     "align": {
       "left": "Left",
       "center": "Center",

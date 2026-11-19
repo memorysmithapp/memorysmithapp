@@ -81,6 +81,15 @@ const READING_THEME = defineTheme({
   name: 'memorysmith',
   components: { properties: NoteHeaderSlot },
 });
+/**
+ * The same look, for a notebook whose style lets justified text break words
+ * with a hyphen (#498). The plain theme never does: the stylesheet takes the
+ * hyphens away under its name, which the renderer puts on the note's root.
+ */
+const READING_THEME_HYPHENATED = defineTheme({
+  name: 'memorysmith-hyphenated',
+  components: { properties: NoteHeaderSlot },
+});
 
 /** The callout kinds the interface has a word for (#188). */
 const CALLOUT_KINDS = [
@@ -310,7 +319,7 @@ export function NoteContent({
    * The style to draw the note in, over the notebook's: the Style page draws
    * its sample in what is being chosen (#493). Left out, the notebook's.
    */
-  noteStyle?: NoteStyle;
+  noteStyle?: NoteStyle & { readonly hyphenate?: boolean };
   /** Drawn for paper: a `table` block carries every row its filter returns (§7.15). */
   printing?: boolean;
   raw: string;
@@ -375,6 +384,7 @@ export function NoteContent({
         }
       : undefined;
   }, [noteStyle, notebookStyle]);
+  const hyphenated = (noteStyle ?? notebookStyle)?.hyphenate === true;
   const theme = usePreferences((state) => state.theme);
   const paper = usePreferences((state) => state.paper);
   const scheme = effectiveTheme(theme, paper);
@@ -578,7 +588,7 @@ export function NoteContent({
         writable={writable}
         onToggleTask={onToggleTask}
         strings={strings}
-        theme={READING_THEME}
+        theme={hyphenated ? READING_THEME_HYPHENATED : READING_THEME}
         scheme={scheme}
         actions={actions}
         // Icons alone, in reading and in edit mode, the word kept as each

@@ -695,7 +695,7 @@ export function styleSection(style: NotebookStyle): string {
       'that note.',
     '',
     `- Font: ${style.font}`,
-    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}`,
+    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}`,
     `- Printed: properties ${style.properties === 'none' ? 'not printed' : `on a ${style.properties === 'cover' ? 'cover page' : 'page at the end'}`}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
   ].join('\n');
 }
@@ -711,7 +711,7 @@ function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
     throw new GatewayError(
       'VALIDATION',
       'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
-        'tables (left, center, right, justify); properties (cover, end, none); orientation ' +
+        'tables (left, center, right, justify); hyphenate (true, false); properties (cover, end, none); orientation ' +
         '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
         '(portrait, landscape, or null).',
       { given: Object.keys(rest).join(', ') || null },

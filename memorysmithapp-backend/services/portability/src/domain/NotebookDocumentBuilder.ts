@@ -285,7 +285,7 @@ export interface ExportNote {
  * A notebook's style as the document carries it (#493): each setting by its
  * name and value, validated against the published schema at the edge.
  */
-export type DocumentStyle = Readonly<Record<string, string | null>>;
+export type DocumentStyle = Readonly<Record<string, string | boolean | null>>;
 
 export interface ExportInput {
   readonly notebookName: string;
