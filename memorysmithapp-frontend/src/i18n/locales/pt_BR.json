@@ -324,7 +324,7 @@
     "unsaved": "Alterações não salvas.",
     "undo": "Desfazer",
     "sampleLabel": "Uma nota neste estilo",
-    "sample": "# Relatório da obra\n\nA reforma do salão começou em março e segue o cronograma aprovado em assembleia. O síndico acompanha cada etapa e envia um resumo mensal a todos os condôminos, com o que foi feito, o que falta e quanto já se gastou.\n\n## Próximos passos\n\n- Trocar o piso até o fim do mês\n- Pintar as paredes depois da vistoria\n\n| Etapa | Situação | Valor |\n|---|---|---|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n"
+    "sample": "# Relatório da obra\n\nA reforma do salão começou em março e segue o cronograma aprovado em assembleia. O síndico acompanha cada etapa e envia um resumo mensal a todos os condôminos, com o que foi feito, o que falta e quanto já se gastou.\n\n## Próximos passos\n\n- Trocar o piso até o fim do mês\n- Pintar as paredes depois da vistoria\n\n## Tabelas\n\nUma tabela sem alinhamento próprio segue a escolha de **Tabelas**:\n\n| Etapa | Situação | Valor |\n|---|---|---|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\nUma coluna que fixa o próprio alinhamento na tabela, como `--:` à direita, mantém o dela; as outras seguem o estilo:\n\n| Etapa | Situação | Valor |\n|---|---|--:|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\n## Um trecho com estilo próprio\n\nUm bloco `:::{style}` vale só para o trecho que envolve e vence o estilo do caderno:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nEste parágrafo fica centralizado e sem serifa, qualquer que seja o estilo escolhido ao lado.\n:::\n"
   },
   "common": {
     "loading": "Carregando…",

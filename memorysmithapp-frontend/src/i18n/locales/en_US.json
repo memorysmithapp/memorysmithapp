@@ -324,7 +324,7 @@
     "unsaved": "Unsaved changes.",
     "undo": "Undo",
     "sampleLabel": "A note in this style",
-    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n| Stage | Status | Amount |\n|---|---|---|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n"
+    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n## Tables\n\nA table with no alignment of its own follows the choice of **Tables**:\n\n| Stage | Status | Amount |\n|---|---|---|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\nA column that fixes its own alignment in the table, such as `--:` to the right, keeps it; the other columns follow the style:\n\n| Stage | Status | Amount |\n|---|---|--:|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\n## A passage with a style of its own\n\nA `:::{style}` block holds for the passage it wraps alone, over the notebook's style:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nThis paragraph stays centered and sans serif, whatever style is chosen beside it.\n:::\n"
   },
   "common": {
     "loading": "Loading…",
