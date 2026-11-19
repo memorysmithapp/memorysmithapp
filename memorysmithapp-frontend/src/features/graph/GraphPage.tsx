@@ -813,13 +813,15 @@ export function GraphPage() {
         whatever the pointer is on: the highlight stays put and the pointer
         reads the group one node at a time, which is how you look for a note
         among many. A plain hover still names its neighbours, because there the
-        highlight itself is already gone the moment the pointer moves.
+        highlight itself is already gone the moment the pointer moves. With
+        nothing in focus the drawing names nothing (#499): the names it wrote
+        of the most linked notes cluttered the graph it opens on.
       */
       const labelTargets = pinned
         ? [pinned, ...(hovered && hovered !== pinned ? [hovered] : [])]
         : focus
           ? [focus, ...(neighborSet ? [...neighborSet].slice(0, LABELS_HOVERED) : [])]
-          : state.nodes.filter((n) => n.kind === 'note' && n.degree >= 25).slice(0, 12);
+          : [];
       ctx.globalAlpha = 1;
       const fontSize = Math.max(10 / k, 4);
       ctx.font = `${fontSize}px Inter, sans-serif`;
