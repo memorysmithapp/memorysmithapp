@@ -11,8 +11,8 @@
  * browser and on every visit, and nothing is stored.
  */
 
-/** How many colours the list holds: `--graph-1` to `--graph-6` in `styles.css`. */
-export const GRAPH_COLORS = 6;
+/** How many colours the list holds: `--graph-1` to `--graph-12` in `styles.css` (#513). */
+export const GRAPH_COLORS = 12;
 
 /** The position each kind of node takes in the notebook's order; the attributes take the next ones. */
 export const KIND_SLOT = { folder: 0, file: 1, table: 2, dashboard: 3 } as const;
