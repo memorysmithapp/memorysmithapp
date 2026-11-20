@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-20
+
 ### Added
 
 - **The notebook's graph draws its folders, files, tables and dashboards.** Beside the notes, each folder, kept file, table and dashboard of the notebook is a node of its own, with a line from a folder to its notes and subfolders, from a note to each file it embeds and each table it shows, and from a dashboard to the tables it draws from; one nothing reaches is drawn alone. Each kind wears a colour of its own, and so does each attribute switched on in the gear, from one list of twelve colours of distinct hues, yellow among them, whose order every notebook draws once and keeps, so the same notebook shows the same colours on every visit; once the list runs out, the rest is drawn in ink. Clicking a folder, a table or a dashboard opens it (#502, #513). These lines are drawn only: backlinks, related notes and the notebook's health count them as before. When an agent reads or writes a table, a dashboard, a file or a folder through the connector, its node lights as a note does, and the notice names it (#502).
@@ -1176,7 +1178,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1
