@@ -8,14 +8,14 @@
  * queue, in both environments, and read what each alarm would do.
  */
 
-import { App, Stack } from 'aws-cdk-lib';
+import { Stack } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { Alarm, Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { describe, expect, it } from 'vitest';
 import { environmentOf } from '../config/environments.js';
 import { alarmTopicName, guardAlarms } from '../constructs/alarms.js';
 import { readText } from '../commands/lib/repository.js';
-import { ENVIRONMENTS, appFor, stacksOf } from './stacks.js';
+import { ENVIRONMENTS, appFor, stacksOf, testApp } from './stacks.js';
 
 const ADDRESS = 'operator@example.com';
 
@@ -174,7 +174,7 @@ describe('what a delivery chooses', () => {
   });
 
   it('is refused when cdk.json declares it', () => {
-    const app = new App({
+    const app = testApp({
       context: {
         environment: 'staging',
         environments: { staging: { ...ENVIRONMENTS.staging, alarms: true } },

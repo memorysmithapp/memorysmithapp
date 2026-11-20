@@ -65,7 +65,6 @@ import type {
   AttachmentUse,
   ActivityEntry,
   ActivityLog,
-  FacetMove,
 } from '../domain/ports.js';
 import { ACTIVITY_SECONDS, GRAPH_LIMITS } from '../domain/ports.js';
 import { usesOf } from '../domain/LinkResolver.js';
@@ -1727,7 +1726,7 @@ export class DynamoFacetIndex implements FacetIndex {
     notebookId: string,
     noteId: string,
     facets: FacetSnapshot | null,
-  ): Promise<FacetMove> {
+  ): Promise<void> {
     const { changes, rest } = await this.committed(() =>
       this.writePortrait(notebookId, noteId, facets),
     );
@@ -1740,15 +1739,6 @@ export class DynamoFacetIndex implements FacetIndex {
     for (const facet of new Set(changes.map((change) => change.facet))) {
       await this.enforceCardinality(notebookId, facet);
     }
-    // What the graph shows the write changed (#495).
-    return {
-      added: changes
-        .filter((change) => change.delta > 0)
-        .map(({ facet, value }) => ({ facet, value })),
-      removed: changes
-        .filter((change) => change.delta < 0)
-        .map(({ facet, value }) => ({ facet, value })),
-    };
   }
 
   /**

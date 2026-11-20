@@ -1,11 +1,13 @@
 /**
  * The SPA on S3 behind CloudFront with Origin Access Control. The bucket, the
- * distribution and the two records, and nothing that is published into them:
- * that is the release stack, which goes last.
+ * distribution and its record, and nothing that is published into them: that
+ * is the release stack, which goes last.
  *
- * The bucket is private: only the distribution reads it. `www` is a permanent
- * redirect to the apex, and both records are created here, in code, like every
- * other record of the zone.
+ * The bucket is private: only the distribution reads it. The application
+ * answers on the apex alone: `www` belongs to the organization's website,
+ * served from its own repository (#508), and CloudFront refuses one name on
+ * two distributions. The record is created here, in code, like every other
+ * record of the zone.
  */
 
 import { CfnOutput, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
@@ -52,33 +54,14 @@ export class FrontendHostingStack extends Stack {
     new CfnOutput(this, 'SiteBucketName', { value: bucket.bucketName });
 
     /**
-     * Two jobs at the edge, both cheap enough to run on every request.
-     *
-     * `www` answers with a PERMANENT redirect to the apex, so the
-     * site has one address and not two: two addresses split the cache, split
-     * the cookies and turn every absolute link into a coin flip.
-     *
-     * And a single-page app answers every path with index.html, with the
-     * router taking it from there. Rewriting here keeps a deep link working on
+     * A single-page app answers every path with index.html, with the router
+     * taking it from there. Rewriting at the edge keeps a deep link working on
      * a hard refresh without turning the bucket into a website endpoint.
      */
     const rewrite = new CloudFrontFunction(this, 'SpaRewrite', {
       code: FunctionCode.fromInline(`
 function handler(event) {
   var request = event.request;
-  var host = request.headers.host && request.headers.host.value;
-
-  if (host && host.indexOf('www.') === 0) {
-    return {
-      statusCode: 301,
-      statusDescription: 'Moved Permanently',
-      headers: {
-        location: { value: 'https://' + host.slice(4) + request.uri },
-        'cache-control': { value: 'max-age=3600' },
-      },
-    };
-  }
-
   if (!request.uri.includes('.')) request.uri = '/index.html';
   return request;
 }
@@ -96,7 +79,7 @@ function handler(event) {
       defaultRootObject: 'index.html',
       ...(props.certificate
         ? {
-            domainNames: [props.domainName, `www.${props.domainName}`],
+            domainNames: [props.domainName],
             certificate: props.certificate,
           }
         : {}),
@@ -110,16 +93,11 @@ function handler(event) {
 
     const zone = props.hostedZone;
     if (zone) {
-      for (const [id, recordName] of [
-        ['ApexRecord', props.domainName],
-        ['WwwRecord', `www.${props.domainName}`],
-      ] as const) {
-        new ARecord(this, id, {
-          zone,
-          recordName,
-          target: RecordTarget.fromAlias(new CloudFrontTarget(distribution)),
-        });
-      }
+      new ARecord(this, 'ApexRecord', {
+        zone,
+        recordName: props.domainName,
+        target: RecordTarget.fromAlias(new CloudFrontTarget(distribution)),
+      });
     } else {
       // What the next synthesis of the delivery reads back as this host (#342).
       new CfnOutput(this, 'SiteHost', { value: distribution.distributionDomainName });

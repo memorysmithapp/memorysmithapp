@@ -231,17 +231,16 @@ export class ProjectNote {
 
     // 2. Facets, from the frontmatter block and nothing else.
     const facets = extractFacets(markdown);
-    const moved = await this.deps.facets.replaceFacets(event.notebookId, event.noteId, facets);
+    await this.deps.facets.replaceFacets(event.notebookId, event.noteId, facets);
     // The graph re-reads itself when this arrives, so it never reads the
-    // projection a step behind; failing to say it never fails the projection.
+    // projection a step behind; it draws nothing for it, since the write was
+    // drawn already (#504). Failing to say it never fails the projection.
     await this.deps.activity
       ?.record(event.notebookId, {
         kind: 'projected',
         noteId: event.noteId,
         folderId: event.folderId,
         version: event.version,
-        added: moved.added,
-        removed: moved.removed,
       })
       .catch(() => undefined);
 

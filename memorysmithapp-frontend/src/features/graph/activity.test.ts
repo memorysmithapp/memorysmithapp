@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  assistantOf,
-  attributeTerms,
-  captionOf,
-  planOf,
-  slotFor,
-  type GraphContext,
-} from './activity';
+import { assistantOf, attributeTerms, planOf, type GraphContext } from './activity';
 
 const graph: GraphContext = {
   notes: [
@@ -15,6 +8,9 @@ const graph: GraphContext = {
     { id: 'C', name: 'Ata 13', folderId: 'R', facets: { status: ['aberta'] } },
   ],
   folderName: (id) => ({ P: 'Projetos', R: 'Reuniões' })[id] ?? null,
+  tables: [{ id: 'T1', name: 'Gastos' }],
+  dashboards: [{ id: 'D1', name: 'Painel', tables: ['T1'] }],
+  files: [{ id: 'F1', name: 'curva.png' }],
 };
 const who = { userId: 'u1', client: 'Claude', person: 'Heitor' };
 const entry = (rest: Record<string, unknown>) => ({ id: '1', at: '', who, ...rest }) as never;
@@ -38,10 +34,10 @@ describe("what an agent's activity lights on the graph (#495)", () => {
     ).toEqual({ kind: 'newNote' });
   });
 
-  it("lights a folder's notes, and the whole notebook as a wave", () => {
+  it('lights a folder and its notes, and the whole notebook as a wave', () => {
     expect(planOf(entry({ kind: 'read', tool: 'list_notes', folderId: 'R' }), graph)).toMatchObject(
       {
-        notes: ['B', 'C'],
+        notes: ['folder/R', 'B', 'C'],
         target: { kind: 'folder', name: 'Reuniões' },
         wave: false,
       },
@@ -62,36 +58,64 @@ describe("what an agent's activity lights on the graph (#495)", () => {
     ]);
   });
 
-  it('says tables, dashboards and files in the log alone, since they are no nodes', () => {
-    expect(planOf(entry({ kind: 'write', tool: 'insert_rows' }), graph)).toMatchObject({
-      notes: [],
-      target: { kind: 'table' },
+  it('lights the table, the dashboard and the file a tool names, by name or identifier (#502)', () => {
+    expect(
+      planOf(entry({ kind: 'write', tool: 'insert_rows', table: 'gastos' }), graph),
+    ).toMatchObject({ notes: ['table/T1'], target: { kind: 'table', name: 'Gastos' } });
+    expect(planOf(entry({ kind: 'read', tool: 'query_table', table: 't1' }), graph)?.notes).toEqual(
+      ['table/T1'],
+    );
+    // Reading a dashboard reads the tables it draws from.
+    expect(
+      planOf(entry({ kind: 'read', tool: 'read_dashboard', dashboard: 'Painel' }), graph),
+    ).toMatchObject({
+      notes: ['dashboard/D1', 'table/T1'],
+      target: { kind: 'dashboard', name: 'Painel' },
     });
+    expect(planOf(entry({ kind: 'read', tool: 'read_file', fileId: 'F1' }), graph)).toMatchObject({
+      notes: ['file/F1'],
+      target: { kind: 'file', name: 'curva.png' },
+    });
+    expect(planOf(entry({ kind: 'read', tool: 'list_tables' }), graph)?.notes).toEqual([
+      'table/T1',
+    ]);
+    // One the graph does not hold is said, and lights nothing.
+    expect(
+      planOf(entry({ kind: 'read', tool: 'query_table', table: 'Outra' }), graph),
+    ).toMatchObject({ notes: [], target: { kind: 'table' } });
   });
 
-  it('takes a colour no attribute and no assistant holds, and one at random when none is free', () => {
-    expect(slotFor([])).toBe(0);
-    expect(slotFor([0, 2])).toBe(1);
-    expect(slotFor([0, 1, 2], () => 0.9)).toBe(2);
-    expect(slotFor([0, 1, 2], () => 0)).toBe(0);
-  });
-
-  it('names an assistant by its connector and its person, and says what a write changed', () => {
+  it('names an assistant by its connector and its person', () => {
     expect(assistantOf(entry({ kind: 'read' }))).toEqual({
       key: 'u1|Claude',
       name: 'Claude · Heitor',
     });
+  });
+
+  it('lights only the notes a search found, in its order, and the value it names (#506)', () => {
     expect(
-      captionOf(
+      planOf(
         entry({
-          kind: 'projected',
-          added: [
-            { facet: 'status', value: 'concluída' },
-            { facet: 'tags', value: 'urgente' },
-          ],
-          removed: [{ facet: 'status', value: 'aberta' }],
+          kind: 'read',
+          tool: 'search_notes',
+          query: 'status:aberta reunião',
+          noteIds: ['C', 'Z'],
         }),
+        graph,
       ),
-    ).toBe('status: aberta → concluída · tags: + urgente');
+    ).toMatchObject({ notes: ['C'], values: ['status:aberta'], wave: false });
+    expect(
+      planOf(entry({ kind: 'read', tool: 'search_notes', query: 'nada', noteIds: [] }), graph),
+    ).toMatchObject({ notes: [], wave: false, target: { kind: 'search', query: 'nada' } });
+  });
+
+  it('says a listing of tables, dashboards or files as the whole of them', () => {
+    expect(planOf(entry({ kind: 'read', tool: 'list_files' }), graph)).toMatchObject({
+      notes: ['file/F1'],
+      target: { kind: 'files' },
+    });
+    expect(planOf(entry({ kind: 'read', tool: 'list_dashboards' }), graph)?.target).toEqual({
+      kind: 'dashboards',
+    });
   });
 });

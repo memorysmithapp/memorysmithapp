@@ -7,7 +7,6 @@
  * and the CORS that lets the site, and nothing else, read a kept file (#466).
  */
 
-import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import { environmentOf, stackId, type EnvironmentConfig } from '../config/environments.js';
@@ -15,6 +14,7 @@ import { DataStack } from '../stacks/data.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
 import { ApiStack } from '../stacks/api.stack.js';
+import { testApp } from './stacks.js';
 
 const ENVIRONMENTS = {
   staging: {
@@ -31,7 +31,7 @@ const ALL_VIEWER_EXCEPT_HOST_HEADER = 'b689b0a8-53d0-40ab-baf2-68738e2966ac';
 
 function template(): Template {
   // No bundling: this case reads a template, and a Lambda bundle is not one.
-  const app = new App({
+  const app = testApp({
     context: { environment: 'staging', environments: ENVIRONMENTS, 'aws:cdk:bundling-stacks': [] },
   });
   const environment: EnvironmentConfig = environmentOf(app.node);

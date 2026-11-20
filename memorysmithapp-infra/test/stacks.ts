@@ -7,7 +7,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { App, type Stack } from 'aws-cdk-lib';
+import { App, type Stack, type AppProps } from 'aws-cdk-lib';
 import { afterAll } from 'vitest';
 import { environmentOf, stackId, type EnvironmentName } from '../config/environments.js';
 import { guardAlarms } from '../constructs/alarms.js';
@@ -45,6 +45,16 @@ const outdirs: string[] = [];
 afterAll(() => {
   for (const outdir of outdirs.splice(0)) rmSync(outdir, { recursive: true, force: true });
 });
+
+/**
+ * An app as a case builds it, synthesised into a directory of its own that is
+ * removed when the file ends (#512): no test builds its own App.
+ */
+export function testApp(props: AppProps = {}): App {
+  const outdir = mkdtempSync(join(tmpdir(), 'cdk.out-test-'));
+  outdirs.push(outdir);
+  return new App({ ...props, outdir });
+}
 
 export function appFor(name: EnvironmentName, context: Record<string, unknown> = {}): App {
   const outdir = mkdtempSync(join(tmpdir(), 'cdk.out-test-'));

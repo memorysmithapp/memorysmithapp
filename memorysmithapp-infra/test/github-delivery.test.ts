@@ -6,7 +6,6 @@
  * staging.
  */
 
-import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import { environmentOf } from '../config/environments.js';
@@ -15,6 +14,7 @@ import {
   GITHUB_ISSUER,
   GithubDeliveryStack,
 } from '../stacks/github-delivery.stack.js';
+import { testApp } from './stacks.js';
 
 const ENVIRONMENTS = {
   production: {
@@ -34,7 +34,7 @@ const ENVIRONMENTS = {
 };
 
 function synth(): Template {
-  const app = new App({
+  const app = testApp({
     context: { environments: ENVIRONMENTS, alarmEmail: 'operator@example.com' },
   });
   const named = (name: string) =>

@@ -11,6 +11,23 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-20
+
+### Added
+
+- **The notebook's graph draws its folders, files, tables and dashboards.** Beside the notes, each folder, kept file, table and dashboard of the notebook is a node of its own, with a line from a folder to its notes and subfolders, from a note to each file it embeds and each table it shows, and from a dashboard to the tables it draws from; one nothing reaches is drawn alone. Each kind wears a colour of its own, and so does each attribute switched on in the gear, from one list of twelve colours of distinct hues, yellow among them, whose order every notebook draws once and keeps, so the same notebook shows the same colours on every visit; once the list runs out, the rest is drawn in ink. Clicking a folder, a table or a dashboard opens it (#502, #513). These lines are drawn only: backlinks, related notes and the notebook's health count them as before. When an agent reads or writes a table, a dashboard, a file or a folder through the connector, its node lights as a note does, and the notice names it (#502).
+- **The gear of the graph has a Notebook section and a Properties section.** Notebook opens with the notes in their blue, which are always drawn, then switches folders, files, tables and dashboards, on when the graph opens and listing only the kinds the notebook has, each switch filled with its colour while on; Properties switches the attributes, off when it opens. A kind switched off leaves the drawing and keeps its colour for when it comes back (#505, #511).
+- **A `?` under the gear says what the graph shows.** It opens a window with every animation of the agents beside a small drawing that plays it, and every kind of node in the colour it wears in this notebook (#507).
+- **On staging, the graph simulates three agents at work.** A button in the graph's bar, *Simulate agents*, sets Claude · Ana, Grok · Bruno and ChatGPT · Carla working at once in the notebook, each reading and writing what it holds every one to three seconds, drawn and named as real activity is, until *Stop simulation*; nothing is written and nobody else sees it. Production does not offer it (#503).
+
+### Changed
+
+- **Every mark of the agents on the graph is orange.** Whoever the assistant, its reads and writes are drawn in the orange of the activity, and the notice at the top left says who is working; the list of colours is left to the kinds of node and the attributes (#502).
+- **A write is drawn the same way, whatever it changed.** Changing a note's text or one of its properties pulses the note once, with strokes along its lines, and nothing is written under it any more; an edit made in the interface draws nothing (#504, #501).
+- **A search lights the notes it found.** When an agent searches the notebook, the graph lights the notes the search returned, one after the other in its order, instead of a wave across the whole notebook; one that found nothing lights nothing (#506).
+- **The application answers at `memorysmith.app` alone.** `www.memorysmith.app` no longer opens it nor sends to it: the address now belongs to the MemorySmith website. On staging, `www.stg.memorysmith.app` answers nothing, and the application's certificate no longer names `www` (#508, #509).
+- **Listing the files, the tables or the dashboards is said as such.** The notice says "is reading the tables" where it said "a table" (#504).
+
 ## [0.20.0] - 2026-11-18
 
 ### Added
@@ -1161,7 +1178,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.0...v0.18.1

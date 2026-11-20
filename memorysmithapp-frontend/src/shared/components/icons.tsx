@@ -567,3 +567,21 @@ export function MenuLinesIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Starts something that runs until it is stopped: the simulation of the graph (#503). */
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 4.5v15l12-7.5Z" />
+    </svg>
+  );
+}
+
+/** Stops what the play started. */
+export function StopIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="6" y="6" width="12" height="12" rx="1.5" />
+    </svg>
+  );
+}

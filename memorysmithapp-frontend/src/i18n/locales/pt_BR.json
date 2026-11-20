@@ -710,13 +710,15 @@
     "controls": "Controles",
     "openControls": "Abrir controles",
     "closeControls": "Fechar controles",
-    "attributeNodes": "Adicionar",
     "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
     "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
     "pinned": "Fixado: <b>{{value}}</b> · clique numa nota para abri-la, num atributo para fixar suas notas",
     "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este caderno ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste caderno.",
+    "simulate": "Simular agentes",
+    "stopSimulation": "Parar simulação",
+    "summary": "Grafo do caderno: {{notes}} notas, {{folders}} pastas, {{files}} anexos, {{tables}} tabelas, {{dashboards}} painéis",
     "activity": {
       "reading": "está lendo {{target}}",
       "writing": "está gravando {{target}}",
@@ -726,11 +728,65 @@
       "search": "a busca “{{query}}”",
       "context": "o contexto do caderno",
       "table": "uma tabela",
+      "tableNamed": "a tabela “{{name}}”",
       "dashboard": "um painel",
+      "dashboardNamed": "o painel “{{name}}”",
       "file": "um arquivo",
+      "fileNamed": "o arquivo “{{name}}”",
       "notebook": "o caderno",
       "more_one": "+{{count}} assistente",
-      "more_other": "+{{count}} assistentes"
+      "more_other": "+{{count}} assistentes",
+      "files": "os anexos",
+      "tables": "as tabelas",
+      "dashboards": "os painéis"
+    },
+    "notebookSection": "Caderno",
+    "propertiesSection": "Propriedades",
+    "kinds": {
+      "note": "Notas",
+      "folder": "Pastas",
+      "file": "Anexos",
+      "table": "Tabelas",
+      "dashboard": "Painéis"
+    },
+    "help": {
+      "open": "O que o grafo mostra",
+      "title": "O que o grafo mostra",
+      "agents": "O que os agentes fazem",
+      "nodes": "O que são os nós",
+      "read": {
+        "name": "Um contorno abrindo do nó",
+        "meaning": "Um agente leu: uma nota, uma pasta, uma tabela, um painel ou um anexo."
+      },
+      "write": {
+        "name": "Um contorno duplo pulsando, com traços pelas linhas",
+        "meaning": "Um agente gravou, seja o que for que mudou: o texto, uma propriedade, as linhas de uma tabela."
+      },
+      "sequence": {
+        "name": "Nós acendendo um depois do outro",
+        "meaning": "Um agente leu uma pasta e suas notas, ou um painel e suas tabelas, ou fez uma busca, e estas são as notas que ela encontrou."
+      },
+      "wave": {
+        "name": "Uma onda do centro para fora",
+        "meaning": "Um agente leu o caderno como um todo: o contexto, a Orientação ou a verificação."
+      },
+      "notice": {
+        "name": "O aviso no alto, à esquerda",
+        "meaning": "Quem está trabalhando, o assistente e a pessoa por quem ele age, e o que está fazendo agora. Toda marca é laranja, seja qual for o assistente."
+      },
+      "kind": {
+        "noteLabel": "Notas",
+        "note": "Uma nota, sempre azul; cresce com os links que tem.",
+        "folder": "Uma pasta do caderno, ligada às suas notas e subpastas.",
+        "file": "Um anexo do caderno, ligado às notas que o mostram.",
+        "table": "Uma tabela, ligada às notas que a mostram e aos painéis que leem dela.",
+        "dashboard": "Um painel, ligado às tabelas de onde lê.",
+        "property": "Um valor desta propriedade, ligado às notas que o têm.",
+        "propertyOff": "Ligada na engrenagem, uma propriedade desenha seus valores como nós, numa cor própria.",
+        "noneLabel": "Preto",
+        "none": "O que é desenhado quando as cores deste caderno acabam."
+      },
+      "edges": "Só as linhas entre notas são links, as que os backlinks contam. As linhas até uma pasta, um anexo, uma tabela ou um painel mostram onde cada um está."
     }
   },
   "errors": {
@@ -887,7 +943,7 @@
       },
       "graph": {
         "term": "Grafo",
-        "definition": "Cada nota como um ponto e cada link como uma linha, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
+        "definition": "Cada nota como um ponto e cada link como uma linha, com as pastas, os anexos, as tabelas e os painéis do caderno ao lado, cada tipo numa cor própria, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
       },
       "search": {
         "term": "Busca",

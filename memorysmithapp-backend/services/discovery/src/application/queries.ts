@@ -439,6 +439,10 @@ export class RecordActivity {
     noteId?: string | undefined;
     folderId?: string | undefined;
     query?: string | undefined;
+    table?: string | undefined;
+    dashboard?: string | undefined;
+    fileId?: string | undefined;
+    noteIds?: readonly string[] | undefined;
     version?: number | undefined;
   }): Promise<Result<void, DomainError>> {
     if (!input.who) {
@@ -456,6 +460,11 @@ export class RecordActivity {
       noteId: input.noteId,
       folderId: input.folderId,
       query: input.query?.slice(0, 200),
+      // A name or an identifier, as the tool was given it (#502).
+      table: input.table?.slice(0, 120),
+      dashboard: input.dashboard?.slice(0, 120),
+      fileId: input.fileId,
+      noteIds: input.noteIds,
       version: input.version,
       who: input.who,
     });

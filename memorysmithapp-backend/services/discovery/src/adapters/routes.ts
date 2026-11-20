@@ -288,6 +288,16 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
       noteId: id('noteId'),
       folderId: id('folderId'),
       query: text('query'),
+      table: text('table'),
+      dashboard: text('dashboard'),
+      fileId: id('fileId'),
+      // The notes a search returned (#506): identifiers alone, at most fifty.
+      noteIds: Array.isArray(body['noteIds'])
+        ? (body['noteIds'] as unknown[])
+            .map((each) => (typeof each === 'string' ? canonicalUlid(each) : null))
+            .filter((each): each is string => each !== null)
+            .slice(0, 50)
+        : undefined,
       version: typeof body['version'] === 'number' ? body['version'] : undefined,
     });
     return recorded.ok ? c.body(null, 204) : fail(c, recorded.error);

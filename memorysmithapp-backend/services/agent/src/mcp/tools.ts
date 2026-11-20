@@ -610,6 +610,21 @@ export const UNNAMED_NOTE_NOTICE =
  * second content block, so a client reading the answer as JSON keeps reading it.
  */
 /** The JSON a tool answered, or nothing when it answered text. */
+/** The notes a search answered, in its order, as many as the graph lights (#506). */
+const SEARCH_NOTES_RECORDED = 50;
+function notesFound(result: ToolResult): string[] {
+  try {
+    const hits = JSON.parse(result.content[0]?.text ?? '') as unknown;
+    if (!Array.isArray(hits)) return [];
+    return hits
+      .map((hit) => (hit as { noteId?: unknown } | null)?.noteId)
+      .filter((id): id is string => typeof id === 'string')
+      .slice(0, SEARCH_NOTES_RECORDED);
+  } catch {
+    return [];
+  }
+}
+
 function answerOf(result: ToolResult): Record<string, unknown> {
   try {
     const parsed = JSON.parse(result.content[0]?.text ?? '') as unknown;
@@ -896,7 +911,9 @@ export class McpToolAdapter {
   /**
    * A tool call, and what it did recorded for the notebook's graph (#495,
    * RN-AGT-072). A read is recorded while it runs, so it adds no wait; a write
-   * once it succeeded, since only its answer names the note it created. The
+   * once it succeeded, since only its answer names the note it created; and a
+   * search once it answered, with the notes it found, which the graph lights
+   * and nothing else (#506). The
    * connector runs in a function that may freeze once it answers, so the
    * record is awaited before the answer, and a record that fails is dropped:
    * the graph missing a pulse never fails the tool.
@@ -917,6 +934,11 @@ export class McpToolAdapter {
       noteId: typeof args['note'] === 'string' ? args['note'] : undefined,
       folderId: typeof args['folder'] === 'string' ? args['folder'] : undefined,
       query: typeof args['query'] === 'string' ? args['query'] : undefined,
+      // A table and a dashboard are named by their name or their identifier;
+      // the graph matches either (#502).
+      table: typeof args['table'] === 'string' ? args['table'] : undefined,
+      dashboard: typeof args['dashboard'] === 'string' ? args['dashboard'] : undefined,
+      fileId: typeof args['file'] === 'string' ? args['file'] : undefined,
       person: personOf(caller),
     };
     // Each record is answered for the moment it starts: a read's runs beside
@@ -924,9 +946,11 @@ export class McpToolAdapter {
     // unhandled rejection, which ends the function and answered the agent 500.
     const pending: Array<Promise<void>> = [];
     const settle = (recording: Promise<void>) => pending.push(recording.catch(() => undefined));
-    if (reads) settle(record(caller, notebookId, { kind: 'read', ...base }));
+    const searches = name === 'search_notes';
+    if (reads && !searches) settle(record(caller, notebookId, { kind: 'read', ...base }));
+    let result: ToolResult | undefined;
     try {
-      const result = await run();
+      result = await run();
       if (!reads && !result.isError) {
         const answer = answerOf(result);
         settle(
@@ -935,12 +959,30 @@ export class McpToolAdapter {
             ...base,
             noteId:
               base.noteId ?? (typeof answer['noteId'] === 'string' ? answer['noteId'] : undefined),
+            // What a write created is named only by its answer.
+            table:
+              base.table ?? (typeof answer['tableId'] === 'string' ? answer['tableId'] : undefined),
+            dashboard:
+              base.dashboard ??
+              (typeof answer['dashboardId'] === 'string' ? answer['dashboardId'] : undefined),
+            fileId:
+              base.fileId ?? (typeof answer['fileId'] === 'string' ? answer['fileId'] : undefined),
             version: typeof answer['version'] === 'number' ? answer['version'] : undefined,
           }),
         );
       }
       return result;
     } finally {
+      // A search refused, or one that failed, found nothing.
+      if (searches) {
+        settle(
+          record(caller, notebookId, {
+            kind: 'read',
+            ...base,
+            noteIds: result && !result.isError ? notesFound(result) : [],
+          }),
+        );
+      }
       await Promise.allSettled(pending);
     }
   }
