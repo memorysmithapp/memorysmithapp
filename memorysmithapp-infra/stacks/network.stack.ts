@@ -162,6 +162,10 @@ export class NetworkStack extends Stack {
         validation: acm.CertificateValidation.fromDns(zone),
       });
 
+      // It still names `www`, which the site no longer answers (#508): another
+      // certificate would change the value this stack exports while the
+      // hosting stack imports it, which CloudFormation refuses, and a name on a
+      // certificate claims nothing on CloudFront.
       this.siteCertificate = new acm.Certificate(edge, 'SiteCertificate', {
         domainName: zoneName,
         subjectAlternativeNames: [`www.${zoneName}`],

@@ -23,6 +23,7 @@ issues each entry cites.
 - **Every mark of the agents on the graph is orange.** Whoever the assistant, its reads and writes are drawn in the orange of the activity, and the notice at the top left says who is working; the list of colours is left to the kinds of node and the attributes (#502).
 - **A write is drawn the same way, whatever it changed.** Changing a note's text or one of its properties pulses the note once, with strokes along its lines, and nothing is written under it any more; an edit made in the interface draws nothing (#504, #501).
 - **A search lights the notes it found.** When an agent searches the notebook, the graph lights the notes the search returned, one after the other in its order, instead of a wave across the whole notebook; one that found nothing lights nothing (#506).
+- **The application answers at `memorysmith.app` alone.** `www.memorysmith.app` no longer opens it nor sends to it: the address now belongs to the MemorySmith website. On staging, `www.stg.memorysmith.app` answers nothing (#508).
 - **Listing the files, the tables or the dashboards is said as such.** The notice says "is reading the tables" where it said "a table" (#504).
 
 ## [0.20.0] - 2026-11-18
