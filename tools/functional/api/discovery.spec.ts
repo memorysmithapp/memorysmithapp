@@ -354,31 +354,27 @@ test.describe('facets and search', () => {
     );
   });
 
-  test('[route:GET /discovery/notebooks/:v/activity] [route:POST /discovery/notebooks/:v/activity] says what a write changed in the frontmatter, and records no activity of a person (#495)', async ({
+  test('[route:GET /discovery/notebooks/:v/activity] [route:POST /discovery/notebooks/:v/activity] says a write was projected, and records no activity of a person (#495, #504)', async ({
     owner,
     notebook,
   }) => {
     const { alpha } = await writeLinkedNotes(owner, notebook);
-    // The projection of a write says what the note's frontmatter took, for the
-    // graph to show it and to read itself again.
-    await eventually(
+    // The projection of a write names the note, for the graph to read itself
+    // again, and nothing of what it changed: the graph draws a write one way
+    // whatever it changed (#504).
+    const projected = await eventually(
       'the projection of the write',
       () =>
-        owner.ok<{
-          entries: Array<{
-            kind: string;
-            noteId?: string;
-            added?: Array<{ facet: string; value: string }>;
-          }>;
-        }>('GET', `${discovery(notebook)}/activity`),
-      (answer) =>
-        answer.entries.some(
-          (entry) =>
-            entry.kind === 'projected' &&
-            entry.noteId === alpha &&
-            (entry.added ?? []).some((each) => each.facet === 'kind' && each.value === 'claim'),
+        owner.ok<{ entries: Array<{ kind: string; noteId?: string; added?: unknown }> }>(
+          'GET',
+          `${discovery(notebook)}/activity`,
         ),
+      (answer) =>
+        answer.entries.some((entry) => entry.kind === 'projected' && entry.noteId === alpha),
     );
+    expect(
+      projected.entries.find((entry) => entry.kind === 'projected' && entry.noteId === alpha),
+    ).not.toHaveProperty('added');
     // What a person does in the interface is no agent's activity.
     const refused = await owner.call('POST', `${discovery(notebook)}/activity`, {
       kind: 'read',
