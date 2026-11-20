@@ -155,25 +155,3 @@ export function facetDelta(
   apply(after, 1);
   return [...changes.values()].filter((change) => change.delta !== 0);
 }
-
-/**
- * What a write changed in a note's frontmatter, as the graph shows it (#495):
- * the values the note took, and those it gave up, by property.
- */
-export function facetMoveOf(
-  before: FacetSnapshot | null,
-  after: FacetSnapshot | null,
-): {
-  added: Array<{ facet: string; value: string }>;
-  removed: Array<{ facet: string; value: string }>;
-} {
-  const changes = facetDelta(before, after);
-  return {
-    added: changes
-      .filter((change) => change.delta > 0)
-      .map(({ facet, value }) => ({ facet, value })),
-    removed: changes
-      .filter((change) => change.delta < 0)
-      .map(({ facet, value }) => ({ facet, value })),
-  };
-}

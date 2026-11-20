@@ -423,8 +423,7 @@ describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () 
     noteId?: string;
     query?: string;
     who?: { userId: string; client: string; person: string };
-    added?: Array<{ facet: string; value: string }>;
-    removed?: Array<{ facet: string; value: string }>;
+    noteIds?: string[];
   };
   const activityOf = async (notebookId: string, after = ''): Promise<Entry[]> =>
     (
@@ -433,7 +432,7 @@ describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () 
       ).json()) as { entries: Entry[] }
     ).entries;
 
-  it('records what a connector read or wrote, with its person and connector, and what a write changed once projected', async () => {
+  it('records what a connector read or wrote, with its person and connector, and the projection of a write', async () => {
     const where = await place();
     const token = proxyToken('proxy-1', 'jti-1');
     await bind({
@@ -454,7 +453,14 @@ describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () 
     const read = await call(`/discovery/notebooks/${where.notebookId}/activity`, {
       method: 'POST',
       token,
-      body: { kind: 'read', tool: 'search_notes', query: 'status:aberta', person: 'Owner' },
+      body: {
+        kind: 'read',
+        tool: 'search_notes',
+        query: 'status:aberta',
+        // The notes it found, identifiers alone (#506).
+        noteIds: [created.noteId.toLowerCase(), 'not-a-note'],
+        person: 'Owner',
+      },
     });
     expect(read.status).toBe(204);
     const wrote = await call(`/discovery/notebooks/${where.notebookId}/activity`, {
@@ -484,17 +490,14 @@ describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () 
     expect(table.status).toBe(204);
 
     const entries = await activityOf(where.notebookId);
-    // The projection of the creation says what the note's frontmatter took.
-    expect(entries[0]).toMatchObject({
-      kind: 'projected',
-      noteId: created.noteId,
-      added: [{ facet: 'status', value: 'aberta' }],
-      removed: [],
-    });
+    // The projection of the creation names the note, and nothing it changed (#504).
+    expect(entries[0]).toMatchObject({ kind: 'projected', noteId: created.noteId });
+    expect(entries[0]).not.toHaveProperty('added');
     expect(entries[1]).toMatchObject({
       kind: 'read',
       tool: 'search_notes',
       query: 'status:aberta',
+      noteIds: [created.noteId],
       who: { userId: 'user-owner', client: 'Claude', person: 'Owner' },
     });
     expect(entries[2]).toMatchObject({

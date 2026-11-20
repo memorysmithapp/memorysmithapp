@@ -35,7 +35,6 @@ import type { FolderNode } from '../../shared/types/api';
 import { loadedRuntimeConfig } from '../../shared/config/runtime-config';
 import {
   assistantOf,
-  captionOf,
   planOf,
   resourceNodeId,
   type Assistant,
@@ -46,7 +45,8 @@ import {
 } from './activity';
 import { KIND_SLOT, colorOrder, freeAttributeSlot, slotToken } from './graph-colors';
 import { SIMULATED_ASSISTANTS, simulatedDelay, simulatedEvent } from './simulation';
-import { CloseIcon, GearIcon, PlayIcon, StopIcon } from '../../shared/components/icons';
+import { CloseIcon, GearIcon, HelpIcon, PlayIcon, StopIcon } from '../../shared/components/icons';
+import { GraphHelp, type HelpNode } from './GraphHelp';
 import { COLLISION_GAP, linkLength, radiiOf } from './node-scale';
 
 interface GraphFile {
@@ -172,8 +172,6 @@ const MAX_DISCRETE_VALUES = 24;
  */
 const LINK_GAP = 20;
 const HELD_LINK_GAP = 60;
-/** A simulated write's projection lands this long after the write, as a real one does (#503). */
-const SIMULATED_PROJECTION_MS = 900;
 
 /**
  * How many neighbour names a hover writes on the drawing: a glance names a
@@ -342,6 +340,14 @@ export function GraphPage() {
    */
   const [controlsOpen, setControlsOpen] = useState(false);
   /**
+   * The kinds of node switched off in the Notebook section of the gear (#505):
+   * every kind comes on, and the person takes one off. Off, a kind keeps the
+   * colour the notebook reserved for it (RN-DSC-070).
+   */
+  const [hiddenKinds, setHiddenKinds] = useState<ReadonlySet<ResourceKind>>(() => new Set());
+  /** The modal that says what every animation and every node means (#507). */
+  const [helpOpen, setHelpOpen] = useState(false);
+  /**
    * The value held on the drawing, as `attribute:value`, which the foot says
    * (#233). The drawing keeps the node itself; this is only its name, told to
    * React when the pin changes and never on a frame.
@@ -491,11 +497,6 @@ export function GraphPage() {
       string,
       { name: string; lastAt: number; nextAt: number; doing: string }
     >();
-    /**
-     * The notes an agent created: their projection says every property as new,
-     * and saying them all says nothing, so it writes no caption (#501).
-     */
-    const created = new Set<string>();
     const state = stateRef.current;
 
     const publish = () =>
@@ -536,20 +537,9 @@ export function GraphPage() {
       for (const entry of entries) {
         if (entry.kind === 'projected') {
           // The projection holds the write now: the graph is read again, and
-          // what the write changed in the frontmatter is said under the note.
-          // A simulated write changed nothing, and nothing is read again (#503).
+          // draws nothing, since the write was drawn already, whatever it
+          // changed (#504). A simulated write changed nothing (#503).
           if (!simulated) readAgain = true;
-          const fresh = entry.noteId ? created.delete(entry.noteId) : false;
-          const caption = fresh ? undefined : captionOf(entry);
-          if (caption && entry.noteId) {
-            state.marks.push({
-              kind: 'write',
-              nodeId: entry.noteId,
-              start: now + 400,
-              duration: 3_200,
-              caption,
-            });
-          }
           continue;
         }
         const assistant = assistantOf(entry);
@@ -570,9 +560,6 @@ export function GraphPage() {
             target,
           },
         );
-        if (plan.kind === 'write' && entry.tool === 'create_note' && entry.noteId) {
-          created.add(entry.noteId);
-        }
 
         const lit = [...plan.notes, ...plan.values.filter((id) => state.byId.has(id))];
         let far = 1;
@@ -681,12 +668,7 @@ export function GraphPage() {
             Math.random,
             sequence,
           );
-          if (event) {
-            handleRef.current?.(event.entries, true);
-            const projected = event.projected;
-            if (projected)
-              later(SIMULATED_PROJECTION_MS, () => handleRef.current?.([projected], true));
-          }
+          if (event) handleRef.current?.(event.entries, true);
         }
         later(simulatedDelay(Math.random), step);
       };
@@ -799,7 +781,7 @@ export function GraphPage() {
         if (node && node.kind !== 'note') node.degree += 1;
       }
     };
-    const folders = allFolders(structure.folders);
+    const folders = hiddenKinds.has('folder') ? [] : allFolders(structure.folders);
     for (const { folder } of folders) addResource('folder', folder.id, folder.name);
     for (const { folder, parent } of folders) {
       if (parent) {
@@ -812,17 +794,17 @@ export function GraphPage() {
     data.nodes.forEach((note, index) =>
       edge(indexOfResource.get(resourceNodeId('folder', note.folderId)), index),
     );
-    for (const file of data.files) {
+    for (const file of hiddenKinds.has('file') ? [] : data.files) {
       addResource('file', file.id, file.name);
       const at = indexOfResource.get(resourceNodeId('file', file.id));
       for (const noteId of file.notes) edge(indexOfNote.get(noteId), at);
     }
-    for (const table of data.tables) {
+    for (const table of hiddenKinds.has('table') ? [] : data.tables) {
       addResource('table', table.id, table.name);
       const at = indexOfResource.get(resourceNodeId('table', table.id));
       for (const noteId of table.notes) edge(indexOfNote.get(noteId), at);
     }
-    for (const dashboard of data.dashboards) {
+    for (const dashboard of hiddenKinds.has('dashboard') ? [] : data.dashboards) {
       addResource('dashboard', dashboard.id, dashboard.name);
       const at = indexOfResource.get(resourceNodeId('dashboard', dashboard.id));
       for (const tableId of dashboard.tables) {
@@ -875,7 +857,7 @@ export function GraphPage() {
       node.radius = radii[index] ?? node.radius;
     });
     return { nodes, links };
-  }, [data, drawn, dateLike, structure]);
+  }, [data, drawn, dateLike, structure, hiddenKinds]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1097,8 +1079,8 @@ export function GraphPage() {
     /*
       What the agents do, over the drawing (#495). A read is one thin outline
       opening from the note; a write is a double outline pulsing on it, with
-      strokes running out along its links, and what it changed in the
-      frontmatter written under it. Nothing is filled: a filled disc is a node,
+      strokes running out along its links, whatever it changed, and nothing
+      written under it (#504). Nothing is filled: a filled disc is a node,
       and an attribute's value most of all. Every mark is orange, whoever the
       assistant (#502). With reduced motion the marks stand still and fade, and
       nothing runs.
@@ -1151,24 +1133,6 @@ export function GraphPage() {
             ctx.lineTo(nx + dx * head, ny + dy * head);
           }
           ctx.stroke();
-        }
-        if (mark.caption) {
-          const size = Math.max(10.5 / k, 4);
-          ctx.font = `600 ${size}px Inter, sans-serif`;
-          ctx.textBaseline = 'top';
-          ctx.textAlign = 'center';
-          const cy = ny + node.radius + 9 / k;
-          ctx.globalAlpha = p < 0.8 ? 1 : (1 - p) / 0.2;
-          ctx.lineWidth = 3 / k;
-          // One line per property, each bounded (#501).
-          mark.caption.split('\n').forEach((line, index) => {
-            const ly = cy + index * size * 1.25;
-            ctx.strokeStyle = colors.halo;
-            ctx.strokeText(line, nx, ly);
-            ctx.fillStyle = color;
-            ctx.fillText(line, nx, ly);
-          });
-          ctx.textAlign = 'start';
         }
       }
       ctx.globalAlpha = 1;
@@ -1547,7 +1511,68 @@ export function GraphPage() {
     // active token values.
   }, [filtered, navigate, notebookId, theme, order]);
 
-  const hasControls = drawable.length > 0;
+  /** The kinds this notebook has, which the Notebook section offers (#505). */
+  const kinds = useMemo((): ResourceKind[] => {
+    if (!data) return [];
+    const has: Record<ResourceKind, boolean> = {
+      folder: allFolders(structure.folders).length > 0,
+      file: data.files.length > 0,
+      table: data.tables.length > 0,
+      dashboard: data.dashboards.length > 0,
+    };
+    return (['folder', 'file', 'table', 'dashboard'] as const).filter((kind) => has[kind]);
+  }, [data, structure]);
+  const hasControls = kinds.length > 0 || drawable.length > 0;
+
+  function toggleKind(kind: ResourceKind) {
+    setHiddenKinds((current) => {
+      const next = new Set(current);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
+  }
+
+  /** What the help says of the nodes, in the colours this notebook gives them (#507). */
+  const helpNodes = useMemo((): HelpNode[] => {
+    const kindNodes = kinds.map((kind) => ({
+      key: kind,
+      label: t(`graph.kinds.${kind}`),
+      color: slotColor(KIND_SLOT[kind]),
+      meaning: t(`graph.help.kind.${kind}`),
+    }));
+    const properties = drawn.length
+      ? drawn.map((each) => ({
+          key: `property:${each.name}`,
+          label: each.name,
+          color: slotColor(each.slot),
+          meaning: t('graph.help.kind.property'),
+        }))
+      : [
+          {
+            key: 'property',
+            label: t('graph.propertiesSection'),
+            color: null,
+            meaning: t('graph.help.kind.propertyOff'),
+          },
+        ];
+    return [
+      {
+        key: 'note',
+        label: t('graph.help.kind.noteLabel'),
+        color: 'var(--accent)',
+        meaning: t('graph.help.kind.note'),
+      },
+      ...kindNodes,
+      ...properties,
+      {
+        key: 'none',
+        label: t('graph.help.kind.noneLabel'),
+        color: 'var(--graph-none)',
+        meaning: t('graph.help.kind.none'),
+      },
+    ];
+  }, [kinds, drawn, slotColor, t]);
 
   return (
     <div className="graph-page">
@@ -1574,16 +1599,18 @@ export function GraphPage() {
         />
         <div className="graph-overlay">
           {/*
-            Both controls are built from what this notebook declares. A notebook whose
-            notes carry no frontmatter offers neither, because a control that
-            steers nothing is worse than no control, and then the panel that
-            would hold them has nothing to hold either.
+            Both sections are built from what this notebook has (#505): the
+            kinds of node it keeps and the properties its notes declare. A
+            switch that steers nothing is worse than no switch, so a notebook
+            with neither offers no gear.
           */}
           {hasControls &&
             (controlsOpen ? (
               <section className="graph-panel" aria-label={t('graph.controls')}>
                 <header className="graph-panel-head">
-                  <h2>{t('graph.attributeNodes')}</h2>
+                  <h2>
+                    {t(kinds.length > 0 ? 'graph.notebookSection' : 'graph.propertiesSection')}
+                  </h2>
                   <button
                     type="button"
                     className="graph-panel-close"
@@ -1593,32 +1620,67 @@ export function GraphPage() {
                     <CloseIcon />
                   </button>
                 </header>
-                {/*
-                  Whatever THIS notebook declares as discrete, and nothing else.
-                  The backend still does not interpret content: these were
-                  classified by the shape of the value, so a notebook whose notes
-                  carry no frontmatter offers no switch, and the panel with it
-                  never appears.
-                */}
-                <div className="graph-switches">
-                  {drawable.map((attribute) => {
-                    const on = drawn.find((each) => each.name === attribute.name);
-                    return (
-                      <label key={attribute.name} className="graph-switch">
-                        <span
-                          className={`graph-switch-dot${on ? ' is-on' : ''}`}
-                          style={on ? { background: slotColor(on.slot) } : undefined}
-                        />
-                        <span className="graph-switch-name">{attribute.name}</span>
-                        <input
-                          type="checkbox"
-                          role="switch"
-                          checked={on !== undefined}
-                          onChange={() => toggleDrawn(attribute.name)}
-                        />
-                      </label>
-                    );
-                  })}
+                <div className="graph-panel-body">
+                  {/*
+                    The Notebook section: the kinds of node this notebook keeps
+                    besides its notes, on when the graph opens, each switch in
+                    the colour its kind wears while on (#505).
+                  */}
+                  {kinds.length > 0 ? (
+                    <div className="graph-switches">
+                      {kinds.map((kind) => {
+                        const on = !hiddenKinds.has(kind);
+                        return (
+                          <label key={kind} className="graph-switch">
+                            <span
+                              className={`graph-switch-dot${on ? ' is-on' : ''}`}
+                              style={on ? { background: slotColor(KIND_SLOT[kind]) } : undefined}
+                            />
+                            <span className="graph-switch-name">{t(`graph.kinds.${kind}`)}</span>
+                            <input
+                              type="checkbox"
+                              role="switch"
+                              checked={on}
+                              onChange={() => toggleKind(kind)}
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  {/*
+                    The Properties section: whatever THIS notebook declares as
+                    discrete, and nothing else, off when the graph opens. The
+                    backend still does not interpret content: these were
+                    classified by the shape of the value.
+                  */}
+                  {drawable.length > 0 ? (
+                    <>
+                      {kinds.length > 0 ? (
+                        <h2 className="graph-panel-section">{t('graph.propertiesSection')}</h2>
+                      ) : null}
+                      <div className="graph-switches">
+                        {drawable.map((attribute) => {
+                          const on = drawn.find((each) => each.name === attribute.name);
+                          return (
+                            <label key={attribute.name} className="graph-switch">
+                              <span
+                                className={`graph-switch-dot${on ? ' is-on' : ''}`}
+                                style={on ? { background: slotColor(on.slot) } : undefined}
+                              />
+                              <span className="graph-switch-name">{attribute.name}</span>
+                              <input
+                                type="checkbox"
+                                role="switch"
+                                checked={on !== undefined}
+                                onChange={() => toggleDrawn(attribute.name)}
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </section>
             ) : (
@@ -1631,6 +1693,16 @@ export function GraphPage() {
                 <GearIcon />
               </button>
             ))}
+          {/* What every animation and every node means, under the gear (#507). */}
+          <button
+            type="button"
+            className="graph-overlay-button"
+            aria-label={t('graph.help.open')}
+            title={t('graph.help.open')}
+            onClick={() => setHelpOpen(true)}
+          >
+            <HelpIcon />
+          </button>
         </div>
         {/*
           Who is working in the notebook now (#495): one line per assistant,
@@ -1664,6 +1736,7 @@ export function GraphPage() {
           drawing is not the whole notebook, and that moved down here, next to the
           other thing said about the drawing as a whole.
         */}
+        <GraphHelp open={helpOpen} onClose={() => setHelpOpen(false)} nodes={helpNodes} />
         <div className="graph-footer">
           <p>
             {truncated && (

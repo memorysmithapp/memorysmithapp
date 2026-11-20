@@ -608,9 +608,9 @@ export interface GraphActivityDto {
   dashboard?: string;
   fileId?: string;
   version?: number;
+  /** The notes a search returned, in its order (#506). */
+  noteIds?: string[];
   who?: { userId: string; client: string; person: string };
-  added?: Array<{ facet: string; value: string }>;
-  removed?: Array<{ facet: string; value: string }>;
 }
 
 /** The activity of a notebook after the entry the graph saw last, oldest first (#495). */

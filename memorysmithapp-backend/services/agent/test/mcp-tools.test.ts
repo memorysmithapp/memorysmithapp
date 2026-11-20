@@ -3648,6 +3648,48 @@ describe('what an agent does is recorded for the notebook graph (#495, RN-AGT-07
     ]);
   });
 
+  it('records a search once it answered, with the notes it found, and none for one refused (#506)', async () => {
+    const { recorded, discovery } = recording();
+    const hit = (noteId: string) => ({
+      noteId,
+      name: noteId,
+      folderId: '01JBQ2X00000000000000000F1',
+      section: null,
+      excerpt: '',
+      score: 1,
+    });
+    await gateways({
+      discovery,
+      knowledge: {
+        searchNotes: async () => [
+          hit('01JBQ2X00000000000000000N2'),
+          hit('01JBQ2X00000000000000000N1'),
+        ],
+      },
+    }).call('search_notes', { notebook: NOTEBOOK, query: 'reunião' }, caller);
+    expect(recorded.map((each) => each.activity)).toEqual([
+      expect.objectContaining({
+        kind: 'read',
+        tool: 'search_notes',
+        query: 'reunião',
+        noteIds: ['01JBQ2X00000000000000000N2', '01JBQ2X00000000000000000N1'],
+      }),
+    ]);
+
+    recorded.length = 0;
+    await gateways({
+      discovery,
+      knowledge: {
+        searchNotes: async () => {
+          throw new GatewayError('VALIDATION', 'a malformed query');
+        },
+      },
+    }).call('search_notes', { notebook: NOTEBOOK, query: 'status:(' }, caller);
+    expect(recorded.map((each) => each.activity)).toEqual([
+      expect.objectContaining({ kind: 'read', tool: 'search_notes', noteIds: [] }),
+    ]);
+  });
+
   it('records the table, the dashboard and the file a tool names, for the graph to light (#502)', async () => {
     const { recorded, discovery } = recording();
     const missing = async () => {

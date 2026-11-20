@@ -973,6 +973,35 @@ test.describe('the pages of an account', () => {
       contentType: 'image/png',
     });
 
+    // The gear switches the kinds of node, on by default, and the properties (#505).
+    await app.getByRole('button', { name: words.openGraphControls }).click();
+    const tablesSwitch = app.getByRole('switch', { name: words.graphTables });
+    await expect(tablesSwitch).toBeChecked();
+    await tablesSwitch.click();
+    await expect(tablesSwitch).not.toBeChecked();
+    await expect
+      .poll(async () => ((await canvas.getAttribute('aria-label')) ?? '').match(/\d+/g)?.[3])
+      .toBe('0');
+    await testInfo.attach('graph-gear.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await tablesSwitch.click();
+    await expect(tablesSwitch).toBeChecked();
+    await app.getByRole('button', { name: words.closeGraphControls }).click();
+
+    // The help under the gear says what each animation and each node means (#507).
+    await app.getByRole('button', { name: words.graphHelp }).click();
+    const help = app.getByRole('dialog', { name: words.graphHelp });
+    await expect(help).toBeVisible();
+    await expect(help.locator('.graph-help-sample')).toHaveCount(4);
+    await testInfo.attach('graph-help.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+    await app.keyboard.press('Escape');
+    await expect(help).toHaveCount(0);
+
     // Staging alone offers the simulation, and nothing of it reaches the server.
     await app.getByRole('button', { name: words.simulateAgents }).click();
     const working = app.locator('.graph-activity .graph-activity-who');

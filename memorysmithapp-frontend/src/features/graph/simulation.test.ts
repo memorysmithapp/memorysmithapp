@@ -39,12 +39,12 @@ describe('the simulation of several agents (#503)', () => {
           expect(plan!.notes.length + plan!.values.length).toBeGreaterThan(0);
         }
       }
-      const projected = event!.projected;
-      if (projected) {
-        expect(projected.kind).toBe('projected');
-        // The value it moves to is one the notebook already uses.
-        expect(projected.added?.[0]?.value).toMatch(/^(aberta|concluída)$/);
-        expect(projected.removed?.[0]?.value).not.toBe(projected.added?.[0]?.value);
+      for (const entry of event!.entries) {
+        // A search says the notes it found, which the notebook holds (#506).
+        if (entry.tool === 'search_notes') {
+          expect(entry.noteIds?.every((id) => ['A', 'B'].includes(id))).toBe(true);
+        }
+        expect(entry.kind).not.toBe('projected');
       }
     }
     for (const tool of [

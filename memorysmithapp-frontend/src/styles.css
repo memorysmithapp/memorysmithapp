@@ -2347,11 +2347,27 @@ a:hover {
 /* One switch per attribute: each is turned on by itself, and turning a second
    one on does not take the first off the drawing. The track uses --pending,
    which is a mid grey in both themes, so the knob reads in either. */
+/* The two sections of the gear, Notebook and Properties (#505), scroll
+   together under the head when they are longer than the drawing. */
+.graph-panel-body {
+  min-height: 0;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.graph-panel-section {
+  margin: 6px 0 0;
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  font-family: var(--display);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+}
 .graph-switches {
   display: flex;
   flex-direction: column;
-  max-height: 14rem;
-  overflow-y: auto;
 }
 .graph-switch {
   height: 34px;
@@ -9015,4 +9031,156 @@ button.attachment-thumb:focus-visible {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* The help of the notebook graph (#507): every animation beside a drawing
+   that plays it, in the orange of the activity, and every kind of node in
+   its colour. The marks are outlines and strokes, as on the canvas. */
+.graph-help-dialog .ask-dialog-box {
+  width: min(560px, calc(100vw - 2rem));
+}
+.graph-help-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--display);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+}
+.graph-help-section + .graph-help-section {
+  margin-top: 1.25rem;
+}
+.graph-help-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.graph-help-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.graph-help-row b {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.graph-help-row p {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+.graph-help-sample {
+  flex: none;
+  width: 72px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.graph-help-disc {
+  fill: var(--accent);
+}
+.graph-help-edge {
+  stroke: var(--text-soft);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+.graph-help-ring,
+.graph-help-pulse,
+.graph-help-stroke {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.graph-help-stroke {
+  stroke-dasharray: 0.25 1;
+  stroke-dashoffset: 0;
+}
+.graph-help-notice {
+  flex: none;
+  width: 72px;
+  display: flex;
+  justify-content: center;
+}
+.graph-help-row.is-node {
+  gap: 0.75rem;
+}
+.graph-help-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin: 0 4px;
+  border-radius: 50%;
+}
+.graph-help-dot.is-off {
+  border: 1.5px solid var(--border);
+}
+.graph-help-foot {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .graph-help-ring {
+    animation: graph-help-read 1.8s ease-out infinite both;
+  }
+  .graph-help-pulse {
+    animation: graph-help-write 1.8s ease-in-out infinite;
+  }
+  .graph-help-stroke {
+    animation: graph-help-run 1.8s ease-out infinite;
+  }
+}
+@keyframes graph-help-read {
+  0% {
+    transform: scale(0.75);
+    opacity: 1;
+  }
+  70%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+@keyframes graph-help-write {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.12);
+  }
+  50% {
+    transform: scale(0.94);
+  }
+  75% {
+    transform: scale(1.08);
+    opacity: 0.55;
+  }
+}
+@keyframes graph-help-run {
+  0% {
+    stroke-dashoffset: 0.25;
+    opacity: 1;
+  }
+  70% {
+    stroke-dashoffset: -0.8;
+    opacity: 1;
+  }
+  71%,
+  100% {
+    stroke-dashoffset: -0.8;
+    opacity: 0;
+  }
 }

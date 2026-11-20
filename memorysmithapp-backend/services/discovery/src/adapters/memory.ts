@@ -26,7 +26,6 @@ import {
   type AttachmentUse,
   type ActivityEntry,
   type ActivityLog,
-  type FacetMove,
   ACTIVITY_SECONDS,
 } from '../domain/ports.js';
 import type { FacetSnapshot } from '../domain/FacetExtractor.js';
@@ -36,7 +35,7 @@ import {
   notebookNames,
   type NotebookNames,
 } from '../domain/LinkResolver.js';
-import { facetDelta, facetMoveOf, valuesOf } from '../domain/FacetExtractor.js';
+import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
 
 /** The versions last projected, in memory, with the same conditional claim. */
@@ -377,7 +376,7 @@ export class InMemoryFacetIndex implements FacetIndex {
     notebookId: string,
     noteId: string,
     facets: FacetSnapshot | null,
-  ): Promise<FacetMove> {
+  ): Promise<void> {
     this.notebook(notebookId);
     const portraits = this.portraits.get(notebookId) as Map<string, FacetSnapshot>;
     const counters = this.counters.get(notebookId) as Map<string, number>;
@@ -410,7 +409,6 @@ export class InMemoryFacetIndex implements FacetIndex {
 
     if (facets === null) portraits.delete(noteId);
     else portraits.set(noteId, facets);
-    return facetMoveOf(before, facets);
   }
 
   async notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>> {

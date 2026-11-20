@@ -7,7 +7,9 @@ import type { GraphActivityDto } from '../../shared/api/backend';
  * The form says what happened: a read is one thin outline opening from a node,
  * a write a double outline pulsing on it with strokes running along its links.
  * Every mark is orange, whoever the assistant (#502); the notice alone says
- * who. Nothing is ever filled, so no mark of an assistant reads as a node.
+ * who. A write is drawn one way whatever it changed, with nothing written
+ * under the node (#504). Nothing is ever filled, so no mark of an assistant
+ * reads as a node.
  */
 
 /** An assistant: the connector and the person it acts for. */
@@ -22,8 +24,6 @@ export interface Mark {
   readonly nodeId: string;
   start: number;
   readonly duration: number;
-  /** A change of the frontmatter written under the note, one line per property (#501). */
-  readonly caption?: string;
 }
 
 /** What one entry asks of the drawing and the notice. */
@@ -48,6 +48,9 @@ export type Target =
   | { readonly kind: 'table'; readonly name?: string }
   | { readonly kind: 'dashboard'; readonly name?: string }
   | { readonly kind: 'file'; readonly name?: string }
+  | { readonly kind: 'tables' }
+  | { readonly kind: 'dashboards' }
+  | { readonly kind: 'files' }
   | { readonly kind: 'notebook' };
 
 /** The kinds of node that are not notes nor attribute values (#502). */
@@ -161,6 +164,18 @@ export function planOf(entry: GraphActivityDto, graph: GraphContext): Plan | nul
       { kind: 'folder', name: graph.folderName(entry.folderId) ?? '' },
     );
   }
+  if (tool === 'search_notes' && entry.noteIds) {
+    // The notes the search found, in its order, and nothing else (#506); the
+    // value an attribute term names lights too when it is drawn.
+    return {
+      kind,
+      notes: entry.noteIds.filter((id) => byId.has(id)),
+      values: attributeTerms(entry.query ?? '').map((term) => `${term.facet}:${term.value}`),
+      target: { kind: 'search', query: entry.query ?? '' },
+      wave: false,
+    };
+  }
+  // A search recorded before #506 says only its query.
   if (tool === 'search_notes' && entry.query) {
     const terms = attributeTerms(entry.query);
     if (terms.length > 0) {
@@ -202,33 +217,33 @@ export function planOf(entry: GraphActivityDto, graph: GraphContext): Plan | nul
         { kind: 'dashboard', name: dashboard.name },
       );
     }
-    return plan(
-      tool === 'list_dashboards'
-        ? (graph.dashboards ?? []).map((each) => resourceNodeId('dashboard', each.id))
-        : [],
-      { kind: 'dashboard' },
-    );
+    return tool === 'list_dashboards'
+      ? plan(
+          (graph.dashboards ?? []).map((each) => resourceNodeId('dashboard', each.id)),
+          { kind: 'dashboards' },
+        )
+      : plan([], { kind: 'dashboard' });
   }
   if (/table|rows/.test(tool)) {
     const table = named(graph.tables, entry.table);
     if (table)
       return plan([resourceNodeId('table', table.id)], { kind: 'table', name: table.name });
-    return plan(
-      tool === 'list_tables'
-        ? (graph.tables ?? []).map((each) => resourceNodeId('table', each.id))
-        : [],
-      { kind: 'table' },
-    );
+    return tool === 'list_tables'
+      ? plan(
+          (graph.tables ?? []).map((each) => resourceNodeId('table', each.id)),
+          { kind: 'tables' },
+        )
+      : plan([], { kind: 'table' });
   }
   if (/file|upload/.test(tool)) {
     const file = named(graph.files, entry.fileId);
     if (file) return plan([resourceNodeId('file', file.id)], { kind: 'file', name: file.name });
-    return plan(
-      tool === 'list_files'
-        ? (graph.files ?? []).map((each) => resourceNodeId('file', each.id))
-        : [],
-      { kind: 'file' },
-    );
+    return tool === 'list_files'
+      ? plan(
+          (graph.files ?? []).map((each) => resourceNodeId('file', each.id)),
+          { kind: 'files' },
+        )
+      : plan([], { kind: 'file' });
   }
   return plan([], entry.noteId ? one(entry.noteId).target : { kind: 'notebook' });
 }
@@ -238,55 +253,4 @@ export function assistantOf(entry: GraphActivityDto): { key: string; name: strin
   if (!entry.who) return null;
   const { userId, client, person } = entry.who;
   return { key: `${userId}|${client}`, name: person ? `${client} · ${person}` : client };
-}
-
-/** How many properties a caption says, and how many values of each, before `+N` (#501). */
-const CAPTION_PROPERTIES = 2;
-const CAPTION_VALUES = 3;
-/** How many characters a line of a caption holds before it ends in `…` (#501). */
-export const CAPTION_WIDTH = 32;
-
-function bounded(line: string): string {
-  const chars = [...line];
-  return chars.length <= CAPTION_WIDTH ? line : `${chars.slice(0, CAPTION_WIDTH - 1).join('')}…`;
-}
-
-function valuesOf(values: readonly string[]): string {
-  const said = values.slice(0, CAPTION_VALUES).join(', ');
-  return values.length > CAPTION_VALUES ? `${said} +${values.length - CAPTION_VALUES}` : said;
-}
-
-/**
- * The change a projection says a write made to the frontmatter, one line per
- * property: "status: aberta → concluída", "tags: + urgente", "prazo: − 2026-11".
- * It says two properties at most, then `+N`, three values of a property at
- * most, then `+N`, and a line too wide ends in `…` (#501): a caption wider
- * than the drawing around it is no longer read.
- */
-export function captionOf(entry: GraphActivityDto): string | undefined {
-  const by = new Map<string, { from: string[]; to: string[] }>();
-  for (const { facet, value } of entry.removed ?? []) {
-    const change = by.get(facet) ?? { from: [], to: [] };
-    change.from.push(value);
-    by.set(facet, change);
-  }
-  for (const { facet, value } of entry.added ?? []) {
-    const change = by.get(facet) ?? { from: [], to: [] };
-    change.to.push(value);
-    by.set(facet, change);
-  }
-  const changes = [...by];
-  const lines = changes
-    .slice(0, CAPTION_PROPERTIES)
-    .map(([facet, { from, to }]) =>
-      bounded(
-        from.length && to.length
-          ? `${facet}: ${valuesOf(from)} → ${valuesOf(to)}`
-          : to.length
-            ? `${facet}: + ${valuesOf(to)}`
-            : `${facet}: − ${valuesOf(from)}`,
-      ),
-    );
-  if (changes.length > CAPTION_PROPERTIES) lines.push(`+${changes.length - CAPTION_PROPERTIES}`);
-  return lines.length > 0 ? lines.join('\n') : undefined;
 }

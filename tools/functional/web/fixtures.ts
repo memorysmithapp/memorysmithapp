@@ -113,6 +113,9 @@ export interface Words {
   /** The button of the graph's bar that simulates three agents, on staging (#503). */
   readonly simulateAgents: string;
   readonly stopSimulation: string;
+  /** The Tables switch of the gear's Notebook section (#505), and the help under it (#507). */
+  readonly graphTables: string;
+  readonly graphHelp: string;
   readonly willCreateNotes: RegExp;
   readonly pending: (target: string) => string;
   /** The entry of the user menu that reopens the welcome surface (#167). */
@@ -230,6 +233,8 @@ export const WORDS: Record<AppLocale, Words> = {
     openGraphControls: 'Open controls',
     simulateAgents: 'Simulate agents',
     stopSimulation: 'Stop simulation',
+    graphTables: 'Tables',
+    graphHelp: 'What the graph shows',
     closeGraphControls: 'Close controls',
     willCreateNotes: /\d+ notes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
@@ -335,6 +340,8 @@ export const WORDS: Record<AppLocale, Words> = {
     openGraphControls: 'Abrir controles',
     simulateAgents: 'Simular agentes',
     stopSimulation: 'Parar simulação',
+    graphTables: 'Tabelas',
+    graphHelp: 'O que o grafo mostra',
     closeGraphControls: 'Fechar controles',
     willCreateNotes: /\d+ notas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,

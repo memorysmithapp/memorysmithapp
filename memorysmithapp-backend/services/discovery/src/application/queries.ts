@@ -442,6 +442,7 @@ export class RecordActivity {
     table?: string | undefined;
     dashboard?: string | undefined;
     fileId?: string | undefined;
+    noteIds?: readonly string[] | undefined;
     version?: number | undefined;
   }): Promise<Result<void, DomainError>> {
     if (!input.who) {
@@ -463,6 +464,7 @@ export class RecordActivity {
       table: input.table?.slice(0, 120),
       dashboard: input.dashboard?.slice(0, 120),
       fileId: input.fileId,
+      noteIds: input.noteIds,
       version: input.version,
       who: input.who,
     });

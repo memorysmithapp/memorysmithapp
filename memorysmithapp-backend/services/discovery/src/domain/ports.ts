@@ -320,28 +320,9 @@ export interface FacetStats {
   readonly noteCount: number;
 }
 
-/** A value a note's frontmatter took or gave up, by its property. */
-export interface FacetValue {
-  readonly facet: string;
-  readonly value: string;
-}
-
-/** What a projection changed in a note's portrait: the values it took and those it gave up. */
-export interface FacetMove {
-  readonly added: readonly FacetValue[];
-  readonly removed: readonly FacetValue[];
-}
-
 export interface FacetIndex {
-  /**
-   * null means the note was deleted and its portrait must be withdrawn. The
-   * answer is what changed against the portrait it replaced (#495).
-   */
-  replaceFacets(
-    notebookId: string,
-    noteId: string,
-    facets: FacetSnapshot | null,
-  ): Promise<FacetMove>;
+  /** null means the note was deleted and its portrait must be withdrawn. */
+  replaceFacets(notebookId: string, noteId: string, facets: FacetSnapshot | null): Promise<void>;
   notebookFacetStats(notebookId: string): Promise<FacetStats>;
   /**
    * The portrait of every note of the notebook, keyed by note. The statistics
@@ -427,11 +408,10 @@ export interface ActivityEntry {
   readonly dashboard?: string | undefined;
   readonly fileId?: string | undefined;
   readonly version?: number | undefined;
+  /** The notes a search returned, in the order it ranked them (#506). */
+  readonly noteIds?: readonly string[] | undefined;
   /** Who, for a read or a write; a projection is nobody's. */
   readonly who?: ActivityWho | undefined;
-  /** What a projection changed in the frontmatter. */
-  readonly added?: readonly FacetValue[] | undefined;
-  readonly removed?: readonly FacetValue[] | undefined;
 }
 
 export interface ActivityLog {

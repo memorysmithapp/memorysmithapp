@@ -21,10 +21,9 @@ export type SimulatedAssistant = (typeof SIMULATED_ASSISTANTS)[number];
 /** How long an assistant waits between two events, at least and at most. */
 export const SIMULATED_STEP_MS = { min: 1_000, max: 3_000 } as const;
 
-/** What one event of an assistant is: the entries now, and the projection of a write a moment later. */
+/** What one event of an assistant is: the entries it records. */
 export interface SimulatedEvent {
   readonly entries: readonly GraphActivityDto[];
-  readonly projected?: GraphActivityDto;
 }
 
 type Note = GraphContext['notes'][number];
@@ -59,9 +58,8 @@ export function simulatedEvent(
   sequence: number,
   at: Date = new Date(),
 ): SimulatedEvent | null {
-  const id = (n: number) => `simulated-${sequence}-${n}`;
   const entry = (rest: Partial<GraphActivityDto>): GraphActivityDto => ({
-    id: id(0),
+    id: `simulated-${sequence}`,
     at: at.toISOString(),
     kind: 'read',
     who: { ...who },
@@ -97,7 +95,12 @@ export function simulatedEvent(
           ?.name.split(/\s+/)
           .filter((word) => word.length > 3);
         const word = words ? pick(words, random) : undefined;
-        return word ? { entries: [entry({ tool: 'search_notes', query: word })] } : null;
+        if (!word) return null;
+        // What a search by text found: the notes whose name holds the word (#506).
+        const found = notes
+          .filter((note) => note.name.toLowerCase().includes(word.toLowerCase()))
+          .map((note) => note.id);
+        return { entries: [entry({ tool: 'search_notes', query: word, noteIds: found })] };
       },
     },
     {
@@ -107,7 +110,10 @@ export function simulatedEvent(
         const value = facet ? pick(values.get(facet) ?? [], random) : undefined;
         if (!facet || !value) return null;
         const term = /\s/.test(value) ? `${facet}:"${value}"` : `${facet}:${value}`;
-        return { entries: [entry({ tool: 'search_notes', query: term })] };
+        const found = notes
+          .filter((note) => (note.facets[facet] ?? []).includes(value))
+          .map((note) => note.id);
+        return { entries: [entry({ tool: 'search_notes', query: term, noteIds: found })] };
       },
     },
     {
@@ -117,33 +123,11 @@ export function simulatedEvent(
     {
       weight: notes.length ? 3 : 0,
       make: () => {
+        // A write is drawn one way whatever it changed (#504).
         const note = pick(notes, random);
-        if (!note) return null;
-        const write = entry({ kind: 'write', tool: 'update_note', noteId: note.id });
-        // A property the note carries, moved to another value the notebook uses.
-        const facet = pick(
-          Object.keys(note.facets).filter((each) => (values.get(each)?.length ?? 0) > 1),
-          random,
-        );
-        const from = facet ? note.facets[facet]?.[0] : undefined;
-        const to = facet
-          ? pick(
-              (values.get(facet) ?? []).filter((value) => value !== from),
-              random,
-            )
-          : undefined;
-        if (!facet || !from || !to) return { entries: [write] };
-        return {
-          entries: [write],
-          projected: {
-            id: id(1),
-            at: at.toISOString(),
-            kind: 'projected',
-            noteId: note.id,
-            added: [{ facet, value: to }],
-            removed: [{ facet, value: from }],
-          },
-        };
+        return note
+          ? { entries: [entry({ kind: 'write', tool: 'update_note', noteId: note.id })] }
+          : null;
       },
     },
     {

@@ -680,6 +680,8 @@ export interface AgentActivity {
   readonly table?: string | undefined;
   readonly dashboard?: string | undefined;
   readonly fileId?: string | undefined;
+  /** The notes a search returned, in its order (#506). */
+  readonly noteIds?: readonly string[] | undefined;
   readonly version?: number | undefined;
   /** How the connector names its person, for the screen. */
   readonly person?: string | undefined;

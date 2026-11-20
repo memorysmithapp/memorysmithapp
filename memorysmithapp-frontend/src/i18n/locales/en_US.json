@@ -707,7 +707,6 @@
     "controls": "Controls",
     "openControls": "Open controls",
     "closeControls": "Close controls",
-    "attributeNodes": "Add",
     "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
     "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
     "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
@@ -733,7 +732,57 @@
       "fileNamed": "the file “{{name}}”",
       "notebook": "the notebook",
       "more_one": "+{{count}} assistant",
-      "more_other": "+{{count}} assistants"
+      "more_other": "+{{count}} assistants",
+      "files": "the files",
+      "tables": "the tables",
+      "dashboards": "the dashboards"
+    },
+    "notebookSection": "Notebook",
+    "propertiesSection": "Properties",
+    "kinds": {
+      "folder": "Folders",
+      "file": "Files",
+      "table": "Tables",
+      "dashboard": "Dashboards"
+    },
+    "help": {
+      "open": "What the graph shows",
+      "title": "What the graph shows",
+      "agents": "What the agents do",
+      "nodes": "What the nodes are",
+      "read": {
+        "name": "An outline opening from a node",
+        "meaning": "An agent read it: a note, a folder, a table, a dashboard or a file."
+      },
+      "write": {
+        "name": "A double outline pulsing, with strokes along its lines",
+        "meaning": "An agent wrote it, whatever it changed: the text, a property, the rows of a table."
+      },
+      "sequence": {
+        "name": "Nodes lighting one after another",
+        "meaning": "An agent read a folder and its notes, or a dashboard and its tables, or searched, and these are the notes it found."
+      },
+      "wave": {
+        "name": "A wave from the centre out",
+        "meaning": "An agent read the notebook as a whole: its context, its Guidance or its check."
+      },
+      "notice": {
+        "name": "The notice at the top left",
+        "meaning": "Who is working, the assistant and the person it acts for, and what it is doing now. Every mark is orange, whoever the assistant."
+      },
+      "kind": {
+        "noteLabel": "Notes",
+        "note": "A note, always blue; it grows with the links it has.",
+        "folder": "A folder of the notebook, linked to its notes and its subfolders.",
+        "file": "A file the notebook keeps, linked to the notes that show it.",
+        "table": "A table, linked to the notes that show it and the dashboards that draw from it.",
+        "dashboard": "A dashboard, linked to the tables it draws from.",
+        "property": "A value of this property, linked to the notes that carry it.",
+        "propertyOff": "Switched on in the gear, a property draws its values as nodes, in a colour of its own.",
+        "noneLabel": "Ink",
+        "none": "What is drawn once the colours of this notebook run out."
+      },
+      "edges": "Only the lines between notes are links, the ones backlinks count. The lines to a folder, a file, a table or a dashboard show where each one sits."
     }
   },
   "errors": {

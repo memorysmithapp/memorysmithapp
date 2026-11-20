@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  assistantOf,
-  attributeTerms,
-  CAPTION_WIDTH,
-  captionOf,
-  planOf,
-  type GraphContext,
-} from './activity';
+import { assistantOf, attributeTerms, planOf, type GraphContext } from './activity';
 
 const graph: GraphContext = {
   notes: [
@@ -92,56 +85,37 @@ describe("what an agent's activity lights on the graph (#495)", () => {
     ).toMatchObject({ notes: [], target: { kind: 'table' } });
   });
 
-  it('names an assistant by its connector and its person, and says what a write changed', () => {
+  it('names an assistant by its connector and its person', () => {
     expect(assistantOf(entry({ kind: 'read' }))).toEqual({
       key: 'u1|Claude',
       name: 'Claude · Heitor',
     });
-    expect(
-      captionOf(
-        entry({
-          kind: 'projected',
-          added: [
-            { facet: 'status', value: 'concluída' },
-            { facet: 'tags', value: 'urgente' },
-          ],
-          removed: [{ facet: 'status', value: 'aberta' }],
-        }),
-      ),
-    ).toBe('status: aberta → concluída\ntags: + urgente');
   });
 
-  it('bounds the caption: two properties, three values each, and a line ends in … (#501)', () => {
-    const caption = captionOf(
-      entry({
-        kind: 'projected',
-        added: [
-          { facet: 'type', value: 'reading' },
-          ...'abcdefghij'.split('').map((value) => ({ facet: 'tags', value })),
-          { facet: 'status', value: 'open' },
-          { facet: 'created', value: '2026-11-20' },
-        ],
-        removed: [],
-      }),
-    );
-    expect(caption).toBe('type: + reading\ntags: + a, b, c +7\n+2');
-    const long = captionOf(
-      entry({
-        kind: 'projected',
-        added: [{ facet: 'description', value: 'a very long value that keeps going on' }],
-      }),
-    );
-    expect([...(long ?? '')]).toHaveLength(CAPTION_WIDTH);
-    expect(long?.endsWith('…')).toBe(true);
-    // A change of one status is said whole.
+  it('lights only the notes a search found, in its order, and the value it names (#506)', () => {
     expect(
-      captionOf(
+      planOf(
         entry({
-          kind: 'projected',
-          added: [{ facet: 'status', value: 'done' }],
-          removed: [{ facet: 'status', value: 'open' }],
+          kind: 'read',
+          tool: 'search_notes',
+          query: 'status:aberta reunião',
+          noteIds: ['C', 'Z'],
         }),
+        graph,
       ),
-    ).toBe('status: open → done');
+    ).toMatchObject({ notes: ['C'], values: ['status:aberta'], wave: false });
+    expect(
+      planOf(entry({ kind: 'read', tool: 'search_notes', query: 'nada', noteIds: [] }), graph),
+    ).toMatchObject({ notes: [], wave: false, target: { kind: 'search', query: 'nada' } });
+  });
+
+  it('says a listing of tables, dashboards or files as the whole of them', () => {
+    expect(planOf(entry({ kind: 'read', tool: 'list_files' }), graph)).toMatchObject({
+      notes: ['file/F1'],
+      target: { kind: 'files' },
+    });
+    expect(planOf(entry({ kind: 'read', tool: 'list_dashboards' }), graph)?.target).toEqual({
+      kind: 'dashboards',
+    });
   });
 });
