@@ -5,7 +5,7 @@
  * of staging.
  */
 
-import { App } from 'aws-cdk-lib';
+import type { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import {
