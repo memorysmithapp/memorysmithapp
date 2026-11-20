@@ -422,6 +422,10 @@ export interface ActivityEntry {
   readonly folderId?: string | undefined;
   /** The query of a search, as written. */
   readonly query?: string | undefined;
+  /** The table or dashboard a tool named, by name or identifier, and the file (#502). */
+  readonly table?: string | undefined;
+  readonly dashboard?: string | undefined;
+  readonly fileId?: string | undefined;
   readonly version?: number | undefined;
   /** Who, for a read or a write; a projection is nobody's. */
   readonly who?: ActivityWho | undefined;

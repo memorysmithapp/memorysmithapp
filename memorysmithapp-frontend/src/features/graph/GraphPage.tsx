@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import {
@@ -14,7 +14,7 @@ import {
   type SimulationNodeDatum,
 } from 'd3-force';
 import { usePreferences } from '../../shared/store/preferences';
-import { NotebookBar } from '../structure/NotebookBreadcrumb';
+import { BarButton, NotebookBar } from '../structure/NotebookBreadcrumb';
 import { GraphSkeleton } from '../../shared/components/skeletons';
 import { noteAddress } from '../../shared/api/note-address';
 import { folderTrailForNote } from '../structure/trail';
@@ -23,21 +23,30 @@ import { useNotebookId } from '../structure/route-ids';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import {
   getNotebookActivity,
+  getNotebookAttachments,
+  getNotebookFiles,
   getNotebookGraph,
+  getTableUses,
+  listDashboards,
+  listTables,
   type GraphActivityDto,
 } from '../../shared/api/backend';
 import type { FolderNode } from '../../shared/types/api';
+import { loadedRuntimeConfig } from '../../shared/config/runtime-config';
 import {
   assistantOf,
   captionOf,
   planOf,
-  slotFor,
+  resourceNodeId,
   type Assistant,
   type GraphContext,
   type Mark,
+  type ResourceKind,
   type Target,
 } from './activity';
-import { CloseIcon, GearIcon } from '../../shared/components/icons';
+import { KIND_SLOT, colorOrder, freeAttributeSlot, slotToken } from './graph-colors';
+import { SIMULATED_ASSISTANTS, simulatedDelay, simulatedEvent } from './simulation';
+import { CloseIcon, GearIcon, PlayIcon, StopIcon } from '../../shared/components/icons';
 import { COLLISION_GAP, linkLength, radiiOf } from './node-scale';
 
 interface GraphFile {
@@ -48,6 +57,62 @@ interface GraphFile {
     facets: Record<string, string[]>;
   }[];
   edges: [number, number][];
+  /**
+   * What the notebook keeps besides its notes, each drawn as a node of its own
+   * kind with its edges (#502): the files and the notes that embed each, the
+   * tables and the notes that show each, the dashboards and the tables each
+   * draws from. These edges are drawn only: they are no links, and backlinks,
+   * related notes and the notebook's health never count them.
+   */
+  files: { id: string; name: string; notes: string[] }[];
+  tables: { id: string; name: string; notes: string[] }[];
+  dashboards: { id: string; name: string; tables: string[] }[];
+}
+
+/** The tables a dashboard's components draw from, by identifier, whatever names them. */
+function dashboardTables(
+  definition: Record<string, unknown>,
+  tables: readonly { id: string; name: string }[],
+): string[] {
+  const components = Array.isArray(definition['components']) ? definition['components'] : [];
+  const found = new Set<string>();
+  for (const component of components as Array<Record<string, unknown>>) {
+    const source = component?.['source'] as Record<string, unknown> | null | undefined;
+    const given = typeof source?.['table'] === 'string' ? source['table'] : null;
+    if (!given) continue;
+    const match =
+      tables.find((table) => table.id.toUpperCase() === given.toUpperCase()) ??
+      tables.find((table) => sameName(table.name, given));
+    if (match) found.add(match.id);
+  }
+  return [...found];
+}
+
+/** Two names compared as the product compares them: NFC, case folded. */
+function sameName(left: string, right: string): boolean {
+  return left.normalize('NFC').toLowerCase() === right.normalize('NFC').toLowerCase();
+}
+
+/** Every folder of the tree, the parent's identifier beside each. */
+function allFolders(
+  folders: readonly FolderNode[],
+  parent: string | null = null,
+): { folder: FolderNode; parent: string | null }[] {
+  return folders.flatMap((folder) => [
+    { folder, parent },
+    ...allFolders(folder.children, folder.id),
+  ]);
+}
+
+/** What the activity and the simulation place their entries on. */
+function graphContextOf(data: GraphFile, folders: readonly FolderNode[]): GraphContext {
+  return {
+    notes: data.nodes,
+    folderName: (folderId) => findFolderName(folders, folderId),
+    tables: data.tables,
+    dashboards: data.dashboards,
+    files: data.files,
+  };
 }
 
 /**
@@ -65,10 +130,10 @@ interface GraphNode extends SimulationNodeDatum {
   name: string;
   /** Where the note lives, which is what tells two of one name apart. */
   folder: string;
-  kind: 'note' | 'value';
-  /** What this note says about itself; empty on a value node. */
+  kind: 'note' | 'value' | ResourceKind;
+  /** What this note says about itself; empty on any other node. */
   facets: Record<string, string[]>;
-  /** Which colour slot a value node wears; absent on a note. */
+  /** Which colour slot a value or a resource node wears (#502); absent on a note. */
   slot?: number;
   degree: number;
   radius: number;
@@ -80,7 +145,7 @@ type GraphLink = SimulationLinkDatum<GraphNode>;
 const ACTIVITY_EVERY_MS = 3_000;
 const ACTIVITY_QUIET_EVERY_MS = 15_000;
 const ACTIVITY_QUIET_AFTER_MS = 120_000;
-/** An assistant gives its colour back this long after its last activity. */
+/** An assistant leaves the notice this long after its last activity. */
 const ASSISTANT_IDLE_MS = 4_500;
 /** One assistant's activities play one after the other, this far apart. */
 const ACTIVITY_STEP_MS = 700;
@@ -107,12 +172,8 @@ const MAX_DISCRETE_VALUES = 24;
  */
 const LINK_GAP = 20;
 const HELD_LINK_GAP = 60;
-/**
- * Colour slots for the drawn attributes. Three, validated against the note
- * blue and against each other for colour-vision deficiency on both surfaces;
- * a fourth attribute switched on at the same time wears the Other grey.
- */
-const VALUE_SLOTS = 3;
+/** A simulated write's projection lands this long after the write, as a real one does (#503). */
+const SIMULATED_PROJECTION_MS = 900;
 
 /**
  * How many neighbour names a hover writes on the drawing: a glance names a
@@ -187,7 +248,6 @@ function attributesOf(nodes: GraphFile['nodes']): Attribute[] {
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-/** Which CSS custom property paints a given slot. */
 /** The name of a folder anywhere in the tree, or null when the tree holds none. */
 function findFolderName(folders: readonly FolderNode[], folderId: string): string | null {
   for (const folder of folders) {
@@ -198,8 +258,27 @@ function findFolderName(folders: readonly FolderNode[], folderId: string): strin
   return null;
 }
 
-function slotColor(slot: number): string {
-  return slot < VALUE_SLOTS ? `var(--val-${slot + 1})` : 'var(--val-other)';
+/** How many nodes of each kind the drawing holds, which its text alternative says (#502). */
+function countsOf(nodes: readonly GraphNode[]): Record<'notes' | ResourceKindPlural, number> {
+  const count = (kind: GraphNode['kind']) => nodes.filter((node) => node.kind === kind).length;
+  return {
+    notes: count('note'),
+    folders: count('folder'),
+    files: count('file'),
+    tables: count('table'),
+    dashboards: count('dashboard'),
+  };
+}
+type ResourceKindPlural = 'folders' | 'files' | 'tables' | 'dashboards';
+
+/** The sizes of the nodes, a folder, a file, a table and a dashboard measured among their own (#502). */
+function radiiFor(nodes: readonly GraphNode[]): number[] {
+  return radiiOf(
+    nodes.map((node) => ({
+      kind: node.kind === 'note' || node.kind === 'value' ? node.kind : ('resource' as const),
+      degree: node.degree,
+    })),
+  );
 }
 
 /**
@@ -239,6 +318,12 @@ export function GraphPage() {
     [structure, notebookId],
   );
   const theme = usePreferences((s) => s.theme);
+  /** The order this notebook uses the list of colours in, the same on every visit (#502). */
+  const order = useMemo(() => colorOrder(notebookId), [notebookId]);
+  const slotColor = useCallback((slot: number) => `var(${slotToken(slot, order)})`, [order]);
+  /** The simulation of several agents, on staging alone (#503). */
+  const simulates = loadedRuntimeConfig()?.environment === 'staging';
+  const [simulating, setSimulating] = useState(false);
   const [truncated, setTruncated] = useState(false);
   /**
    * The attributes whose values are drawn as nodes, each with the colour slot
@@ -269,8 +354,12 @@ export function GraphPage() {
    * (#495): the drawing keeps where every note stood across the read.
    */
   const [reads, setReads] = useState(0);
-  /** The assistants working in the notebook now, newest first, and the last activities. */
+  /** The assistants working in the notebook now, newest first, and what each is doing. */
   const [assistants, setAssistants] = useState<readonly (Assistant & { doing: string })[]>([]);
+  /** Plays entries as the polling does; the simulation hands its own to it (#503). */
+  const handleRef = useRef<
+    ((entries: readonly GraphActivityDto[], simulated?: boolean) => void) | null
+  >(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<{
     nodes: GraphNode[];
@@ -327,9 +416,17 @@ export function GraphPage() {
    */
   useEffect(() => {
     let live = true;
-    void getNotebookGraph(notebookId)
-      .then((graph) => {
+    // What the notebook keeps besides its notes (#502). A part that fails is
+    // drawn without, never as a graph that could not be read.
+    const files = getNotebookFiles(notebookId).catch(() => []);
+    const attachments = getNotebookAttachments(notebookId).catch(() => []);
+    const tables = listTables(notebookId).catch(() => []);
+    const uses = getTableUses(notebookId).catch(() => []);
+    const dashboards = listDashboards(notebookId).catch(() => []);
+    void Promise.all([getNotebookGraph(notebookId), files, attachments, tables, uses, dashboards])
+      .then(([graph, kept, shown, held, used, boards]) => {
         if (!live) return;
+        const tableList = held.map((table) => ({ id: table.tableId, name: table.name }));
         setData({
           nodes: graph.nodes.map((note) => ({
             // The identifier, because two notes may carry one name and the
@@ -340,6 +437,26 @@ export function GraphPage() {
             facets: note.facets ?? {},
           })),
           edges: graph.edges,
+          files: kept.map((file) => ({
+            id: file.fileId,
+            name: file.name,
+            notes:
+              shown
+                .find((each) => each.name.normalize('NFC') === file.name.normalize('NFC'))
+                ?.notes.map((note) => note.noteId) ?? [],
+          })),
+          tables: tableList.map((table) => ({
+            ...table,
+            notes:
+              used
+                .find((use) => sameName(use.table, table.name))
+                ?.notes.map((note) => note.noteId) ?? [],
+          })),
+          dashboards: boards.map((board) => ({
+            id: board.dashboardId,
+            name: board.name,
+            tables: dashboardTables(board.definition, tableList),
+          })),
         });
         setTruncated(graph.truncated);
       })
@@ -372,17 +489,20 @@ export function GraphPage() {
     let rereading = 0;
     const working = new Map<
       string,
-      { name: string; slot: number; lastAt: number; nextAt: number; doing: string }
+      { name: string; lastAt: number; nextAt: number; doing: string }
     >();
-    /** Which assistant last wrote each note, whose colour the change it made is told in. */
-    const writerOf = new Map<string, number>();
+    /**
+     * The notes an agent created: their projection says every property as new,
+     * and saying them all says nothing, so it writes no caption (#501).
+     */
+    const created = new Set<string>();
     const state = stateRef.current;
 
     const publish = () =>
       setAssistants(
         [...working.entries()]
           .sort(([, a], [, b]) => b.lastAt - a.lastAt)
-          .map(([key, each]) => ({ key, name: each.name, slot: each.slot, doing: each.doing })),
+          .map(([key, each]) => ({ key, name: each.name, doing: each.doing })),
       );
 
     const say = (target: Target): string => {
@@ -395,18 +515,21 @@ export function GraphPage() {
           return t('graph.activity.folder', { name: target.name });
         case 'search':
           return t('graph.activity.search', { query: target.query });
+        case 'table':
+        case 'dashboard':
+        case 'file':
+          return target.name
+            ? t(`graph.activity.${target.kind}Named`, { name: target.name })
+            : t(`graph.activity.${target.kind}`);
         default:
           return t(`graph.activity.${target.kind}`);
       }
     };
 
-    function handle(entries: readonly GraphActivityDto[]) {
-      const { data: graphData, drawn: on, structure: tree } = latest.current;
+    function handle(entries: readonly GraphActivityDto[], simulated = false) {
+      const { data: graphData, structure: tree } = latest.current;
       if (!graphData) return;
-      const graph: GraphContext = {
-        notes: graphData.nodes,
-        folderName: (folderId) => findFolderName(tree.folders, folderId),
-      };
+      const graph: GraphContext = graphContextOf(graphData, tree.folders);
       let said = false;
       let readAgain = false;
       const now = performance.now();
@@ -414,13 +537,14 @@ export function GraphPage() {
         if (entry.kind === 'projected') {
           // The projection holds the write now: the graph is read again, and
           // what the write changed in the frontmatter is said under the note.
-          readAgain = true;
-          const caption = captionOf(entry);
+          // A simulated write changed nothing, and nothing is read again (#503).
+          if (!simulated) readAgain = true;
+          const fresh = entry.noteId ? created.delete(entry.noteId) : false;
+          const caption = fresh ? undefined : captionOf(entry);
           if (caption && entry.noteId) {
             state.marks.push({
               kind: 'write',
               nodeId: entry.noteId,
-              slot: writerOf.get(entry.noteId) ?? -1,
               start: now + 400,
               duration: 3_200,
               caption,
@@ -433,11 +557,7 @@ export function GraphPage() {
         if (!assistant || !plan) continue;
         let held = working.get(assistant.key);
         if (!held) {
-          const taken = [
-            ...on.map((each) => each.slot),
-            ...[...working.values()].map((w) => w.slot),
-          ];
-          held = { name: assistant.name, slot: slotFor(taken), lastAt: 0, nextAt: 0, doing: '' };
+          held = { name: assistant.name, lastAt: 0, nextAt: 0, doing: '' };
           working.set(assistant.key, held);
         }
         const start = Math.max(now, held.nextAt);
@@ -450,7 +570,9 @@ export function GraphPage() {
             target,
           },
         );
-        if (plan.kind === 'write' && entry.noteId) writerOf.set(entry.noteId, held.slot);
+        if (plan.kind === 'write' && entry.tool === 'create_note' && entry.noteId) {
+          created.add(entry.noteId);
+        }
 
         const lit = [...plan.notes, ...plan.values.filter((id) => state.byId.has(id))];
         let far = 1;
@@ -470,7 +592,6 @@ export function GraphPage() {
           state.marks.push({
             kind: plan.kind,
             nodeId: id,
-            slot: held.slot,
             start: start + delay,
             duration: plan.kind === 'write' ? 1_700 : lit.length > 1 ? 1_000 : 1_500,
           });
@@ -484,6 +605,8 @@ export function GraphPage() {
         rereading = window.setTimeout(() => setReads((count) => count + 1), 300);
       }
     }
+
+    handleRef.current = handle;
 
     async function ask() {
       if (stopped) return;
@@ -524,10 +647,55 @@ export function GraphPage() {
       window.clearTimeout(timer);
       window.clearTimeout(rereading);
       window.clearInterval(idle);
+      handleRef.current = null;
       state.marks = [];
       setAssistants([]);
     };
   }, [notebookId, t]);
+
+  /*
+    The simulation of several agents (#503), on staging alone: each assistant
+    draws an event every one to three seconds, all at once, and hands it to the
+    same handler the polling feeds, so the drawing and the notice are exactly
+    what real activity makes. Nothing is sent to the server.
+  */
+  useEffect(() => {
+    if (!simulates || !simulating) return;
+    const timers = new Set<number>();
+    let sequence = 0;
+    const later = (ms: number, run: () => void) => {
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        run();
+      }, ms);
+      timers.add(timer);
+    };
+    for (const who of SIMULATED_ASSISTANTS) {
+      const step = () => {
+        const { data: graphData, structure: tree } = latest.current;
+        if (graphData) {
+          sequence += 1;
+          const event = simulatedEvent(
+            graphContextOf(graphData, tree.folders),
+            who,
+            Math.random,
+            sequence,
+          );
+          if (event) {
+            handleRef.current?.(event.entries, true);
+            const projected = event.projected;
+            if (projected)
+              later(SIMULATED_PROJECTION_MS, () => handleRef.current?.([projected], true));
+          }
+        }
+        later(simulatedDelay(Math.random), step);
+      };
+      later(simulatedDelay(Math.random) / 2, step);
+    }
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  }, [simulates, simulating]);
 
   const attributes = useMemo(() => (data ? attributesOf(data.nodes) : []), [data]);
   /**
@@ -566,12 +734,10 @@ export function GraphPage() {
       if (current.some((each) => each.name === name)) {
         return current.filter((each) => each.name !== name);
       }
-      // The lowest free slot, so switching one off frees its colour for the
-      // next attribute instead of shifting everyone along.
-      const taken = new Set(current.map((each) => each.slot));
-      let slot = 0;
-      while (taken.has(slot)) slot += 1;
-      return [...current, { name, slot }];
+      // The lowest free slot after the kinds of node (#502), so switching one
+      // off frees its colour for the next attribute instead of shifting
+      // everyone along.
+      return [...current, { name, slot: freeAttributeSlot(current.map((each) => each.slot)) }];
     });
   }
 
@@ -599,6 +765,69 @@ export function GraphPage() {
       const to = nodes[target];
       if (from) from.degree += 1;
       if (to) to.degree += 1;
+    }
+
+    /*
+      What the notebook keeps besides its notes, each a node of its own kind in
+      its colour (#502): its folders, with an edge to each note and subfolder,
+      its files and the notes embedding each, its tables and the notes showing
+      each, its dashboards and the tables each draws from. One kept with no
+      edge is drawn alone. These edges are drawn only and size nothing but the
+      resource: a note keeps the size its links give it.
+    */
+    const indexOfNote = new Map(data.nodes.map((note, index) => [note.id, index]));
+    const indexOfResource = new Map<string, number>();
+    const addResource = (kind: ResourceKind, id: string, name: string) => {
+      const key = resourceNodeId(kind, id);
+      indexOfResource.set(key, nodes.length);
+      nodes.push({
+        id: key,
+        name,
+        folder: '',
+        kind,
+        facets: {},
+        slot: KIND_SLOT[kind],
+        degree: 0,
+        radius: 3,
+      });
+    };
+    const edge = (from: number | undefined, to: number | undefined) => {
+      if (from === undefined || to === undefined) return;
+      links.push({ source: from, target: to });
+      for (const at of [from, to]) {
+        const node = nodes[at];
+        if (node && node.kind !== 'note') node.degree += 1;
+      }
+    };
+    const folders = allFolders(structure.folders);
+    for (const { folder } of folders) addResource('folder', folder.id, folder.name);
+    for (const { folder, parent } of folders) {
+      if (parent) {
+        edge(
+          indexOfResource.get(resourceNodeId('folder', parent)),
+          indexOfResource.get(resourceNodeId('folder', folder.id)),
+        );
+      }
+    }
+    data.nodes.forEach((note, index) =>
+      edge(indexOfResource.get(resourceNodeId('folder', note.folderId)), index),
+    );
+    for (const file of data.files) {
+      addResource('file', file.id, file.name);
+      const at = indexOfResource.get(resourceNodeId('file', file.id));
+      for (const noteId of file.notes) edge(indexOfNote.get(noteId), at);
+    }
+    for (const table of data.tables) {
+      addResource('table', table.id, table.name);
+      const at = indexOfResource.get(resourceNodeId('table', table.id));
+      for (const noteId of table.notes) edge(indexOfNote.get(noteId), at);
+    }
+    for (const dashboard of data.dashboards) {
+      addResource('dashboard', dashboard.id, dashboard.name);
+      const at = indexOfResource.get(resourceNodeId('dashboard', dashboard.id));
+      for (const tableId of dashboard.tables) {
+        edge(at, indexOfResource.get(resourceNodeId('table', tableId)));
+      }
     }
 
     // The values of the switched-on attributes, drawn as nodes: this is what
@@ -641,12 +870,12 @@ export function GraphPage() {
     // Both grow with how much they hold, relative to the nodes drawn (#275),
     // and a value node starts larger: it is the thing you aim at to hold its
     // group, and a target has to be hittable.
-    const radii = radiiOf(nodes);
+    const radii = radiiFor(nodes);
     nodes.forEach((node, index) => {
       node.radius = radii[index] ?? node.radius;
     });
     return { nodes, links };
-  }, [data, drawn, dateLike]);
+  }, [data, drawn, dateLike, structure]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -721,19 +950,20 @@ export function GraphPage() {
         edge: cssVar('--text-soft') || '#6f6d64',
         label: cssVar('--text') || '#26251f',
         halo: cssVar('--bg') || '#fafaf8',
-        other: cssVar('--val-other') || '#8b96a8',
+        activity: cssVar('--signal') || '#ff8a2b',
       };
-      // One colour per attribute, whatever its values: a tag node and a month
-      // node say which attribute they came from, not which value they are.
-      const bySlot = [
-        cssVar('--val-1') || '#ff8a2b',
-        cssVar('--val-2') || '#db2777',
-        cssVar('--val-3') || '#008300',
-      ];
-
+      // One colour per kind and per attribute, whatever its values (#502): a
+      // tag node and a month node say which attribute they came from, a table
+      // node that it is a table, not which one.
+      const fills = new Map<number, string>();
       function nodeFill(node: GraphNode): string {
-        if (node.kind !== 'value') return colors.note;
-        return bySlot[node.slot ?? -1] ?? colors.other;
+        if (node.kind === 'note' || node.slot === undefined) return colors.note;
+        let fill = fills.get(node.slot);
+        if (fill === undefined) {
+          fill = cssVar(slotToken(node.slot, order)) || colors.label;
+          fills.set(node.slot, fill);
+        }
+        return fill;
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -793,7 +1023,7 @@ export function GraphPage() {
         ctx.fill();
       }
 
-      drawMarks(bySlot, colors);
+      drawMarks(colors);
 
       // The ring around the pinned node, so the drawing says whether this
       // group is being held or merely pointed at. It is drawn in ink and not
@@ -869,10 +1099,11 @@ export function GraphPage() {
       opening from the note; a write is a double outline pulsing on it, with
       strokes running out along its links, and what it changed in the
       frontmatter written under it. Nothing is filled: a filled disc is a node,
-      and an attribute's value most of all. The colour is the assistant's.
-      With reduced motion the marks stand still and fade, and nothing runs.
+      and an attribute's value most of all. Every mark is orange, whoever the
+      assistant (#502). With reduced motion the marks stand still and fade, and
+      nothing runs.
     */
-    function drawMarks(bySlot: string[], colors: { other: string; halo: string }) {
+    function drawMarks(colors: { activity: string; halo: string }) {
       if (!ctx || state.marks.length === 0) return;
       const now = performance.now();
       state.marks = state.marks.filter((mark) => now < mark.start + mark.duration);
@@ -889,7 +1120,7 @@ export function GraphPage() {
         const p = Math.min(1, (now - mark.start) / mark.duration);
         const nx = node.x ?? 0;
         const ny = node.y ?? 0;
-        const color = bySlot[mark.slot] ?? colors.other;
+        const color = colors.activity;
         ctx.strokeStyle = color;
         if (mark.kind === 'read') {
           ctx.globalAlpha = still ? 1 - p * 0.7 : 1 - p;
@@ -929,10 +1160,14 @@ export function GraphPage() {
           const cy = ny + node.radius + 9 / k;
           ctx.globalAlpha = p < 0.8 ? 1 : (1 - p) / 0.2;
           ctx.lineWidth = 3 / k;
-          ctx.strokeStyle = colors.halo;
-          ctx.strokeText(mark.caption, nx, cy);
-          ctx.fillStyle = color;
-          ctx.fillText(mark.caption, nx, cy);
+          // One line per property, each bounded (#501).
+          mark.caption.split('\n').forEach((line, index) => {
+            const ly = cy + index * size * 1.25;
+            ctx.strokeStyle = colors.halo;
+            ctx.strokeText(line, nx, ly);
+            ctx.fillStyle = color;
+            ctx.fillText(line, nx, ly);
+          });
           ctx.textAlign = 'start';
         }
       }
@@ -1034,11 +1269,34 @@ export function GraphPage() {
 
     /** Sizes these nodes among themselves; the collision reads them again on `sim.nodes`. */
     function sizeAmong(over: GraphNode[]) {
-      const radii = radiiOf(over);
+      const radii = radiiFor(over);
       over.forEach((node, index) => {
         node.radius = radii[index] ?? node.radius;
       });
       collideForce.radius((node) => node.radius + COLLISION_GAP);
+    }
+
+    /**
+     * Where a node leads: a note to the note, a folder to the folder, a table
+     * and a dashboard to their page opened on them, a file to the files (#502).
+     */
+    function addressOf(node: GraphNode): string | null {
+      const id = node.id.slice(node.id.indexOf('/') + 1);
+      const base = `/notebooks/${notebookId}`;
+      switch (node.kind) {
+        case 'note':
+          return addressOfNote(node.id);
+        case 'folder':
+          return `${base}/folders/${id}`;
+        case 'table':
+          return `${base}/tables?table=${encodeURIComponent(node.name)}`;
+        case 'dashboard':
+          return `${base}/dashboards?dashboard=${encodeURIComponent(node.name)}`;
+        case 'file':
+          return `${base}/attachments`;
+        default:
+          return null;
+      }
     }
 
     function toGraphSpace(event: { clientX: number; clientY: number }) {
@@ -1049,10 +1307,10 @@ export function GraphPage() {
 
     /**
      * What is under this point, answering with what the eye says is there.
-     * Value nodes are painted over the notes, so a value under the pointer
-     * wins even when a note's centre sits closer: picking by distance alone
-     * opens a note the person cannot see instead of holding the group they
-     * aimed at. Within one kind, the nearest centre wins.
+     * Value and resource nodes are painted over the notes, so one under the
+     * pointer wins even when a note's centre sits closer: picking by distance
+     * alone opens a note the person cannot see instead of the node they aimed
+     * at. Within one kind, the nearest centre wins.
      */
     function hitTest(gx: number, gy: number): GraphNode | null {
       let best: GraphNode | null = null;
@@ -1064,10 +1322,12 @@ export function GraphPage() {
         const dist = dx * dx + dy * dy;
         const hit = Math.max(node.radius + 4 / state.transform.k, 6 / state.transform.k);
         if (dist >= hit * hit) continue;
+        const rank = (each: GraphNode) =>
+          each.kind === 'value' ? 2 : each.kind === 'note' ? 0 : 1;
         const outranks =
           best === null ||
-          (node.kind === 'value' && best.kind !== 'value') ||
-          (node.kind === best.kind && dist < bestDist);
+          rank(node) > rank(best) ||
+          (rank(node) === rank(best) && dist < bestDist);
         if (!outranks) continue;
         best = node;
         bestDist = dist;
@@ -1137,8 +1397,8 @@ export function GraphPage() {
       const { gx, gy } = toGraphSpace(event);
       const hit = hitTest(gx, gy);
 
-      if (hit?.kind === 'note') {
-        const url = addressOfNote(hit.id);
+      const url = hit ? addressOf(hit) : null;
+      if (hit && hit.kind !== 'value') {
         if (url) void navigate(url);
         return;
       }
@@ -1220,8 +1480,8 @@ export function GraphPage() {
       const { gx, gy } = toGraphSpace(touch);
       const hit = hitTest(gx, gy);
 
-      if (hit?.kind === 'note') {
-        const url = addressOfNote(hit.id);
+      const url = hit ? addressOf(hit) : null;
+      if (hit && hit.kind !== 'value') {
         if (url) void navigate(url);
         return;
       }
@@ -1285,7 +1545,7 @@ export function GraphPage() {
     };
     // The theme dependency re-runs the effect so the canvas repaints with the
     // active token values.
-  }, [filtered, navigate, notebookId, theme]);
+  }, [filtered, navigate, notebookId, theme, order]);
 
   const hasControls = drawable.length > 0;
 
@@ -1293,12 +1553,25 @@ export function GraphPage() {
     <div className="graph-page">
       {/* The trail names the screen (#225). Everything that steers the
           drawing lives over the drawing. */}
-      <NotebookBar crumbs={[{ label: t('graph.heading') }]} />
+      <NotebookBar crumbs={[{ label: t('graph.heading') }]}>
+        {simulates ? (
+          <BarButton
+            icon={simulating ? <StopIcon /> : <PlayIcon />}
+            label={t(simulating ? 'graph.stopSimulation' : 'graph.simulate')}
+            onClick={() => setSimulating((on) => !on)}
+          />
+        ) : null}
+      </NotebookBar>
       <div className="graph-canvas-wrap">
         {failed && <p className="status">{t('errors.unexpected')}</p>}
         {!failed && !filtered && <GraphSkeleton />}
         {filtered?.nodes.length === 0 && <p className="status">{t('graph.empty')}</p>}
-        <canvas ref={canvasRef} />
+        {/* The drawing says in words what it holds, by kind (#502). */}
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label={filtered ? t('graph.summary', countsOf(filtered.nodes)) : undefined}
+        />
         <div className="graph-overlay">
           {/*
             Both controls are built from what this notebook declares. A notebook whose
@@ -1360,19 +1633,15 @@ export function GraphPage() {
             ))}
         </div>
         {/*
-          Who is working in the notebook now (#495): one line per assistant in
-          its colour, the newest first, which is the legend of the colours on
-          the drawing. A log of the last activities was taken away by the
-          owner: the drawing and this notice say it.
+          Who is working in the notebook now (#495): one line per assistant,
+          the newest first, beside the orange every mark of the activity wears
+          (#502). A log of the last activities was taken away by the owner: the
+          drawing and this notice say it.
         */}
         {assistants.length > 0 ? (
           <div className="graph-activity" role="status" aria-live="polite">
             {assistants.slice(0, ASSISTANTS_SHOWN).map((assistant) => (
-              <p
-                key={assistant.key}
-                className="graph-activity-who"
-                style={{ '--who': slotColor(assistant.slot) } as CSSProperties}
-              >
+              <p key={assistant.key} className="graph-activity-who">
                 <span className="graph-activity-ring" aria-hidden="true" />
                 <span>
                   <b>{assistant.name}</b> {assistant.doing}

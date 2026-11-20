@@ -877,6 +877,128 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.closeGraphControls })).toBeVisible();
   });
 
+  test('[page:/notebooks/:notebookId/graph] draws the folders, files, tables and dashboards, and simulates three agents on staging (#502, #503)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }, testInfo) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const hex = randomBytes(3).toString('hex');
+    const table = `grafo-${hex}`;
+    await owner.ok('POST', `${path}/tables`, {
+      name: table,
+      schema: {
+        type: 'object',
+        properties: { categoria: { type: 'string' }, valor: { type: 'number' } },
+      },
+    });
+    await owner.ok('POST', `${path}/tables/${encodeURIComponent(table)}/rows`, {
+      rows: [
+        { categoria: 'mercado', valor: 120 },
+        { categoria: 'casa', valor: 300 },
+      ],
+    });
+    await owner.ok('POST', `${path}/dashboards`, {
+      name: `Painel ${hex}`,
+      definition: {
+        layout: 'header-two-columns',
+        components: [
+          {
+            id: 'total',
+            type: 'kpi',
+            slot: 'header',
+            title: 'Total',
+            source: { table, measure: 'sum(valor)' },
+          },
+        ],
+      },
+    });
+    const file = `grafo-${hex}.png`;
+    await owner.ok('POST', `${path}/files`, {
+      name: file,
+      description: 'Uma figura do grafo',
+      mimeType: 'image/png',
+      contentBase64:
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    });
+    await owner.ok('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: [
+        '---',
+        `name: Grafo ${hex}`,
+        'status: aberta',
+        '---',
+        '',
+        `![Figura](../assets/${file})`,
+        '',
+        '```table',
+        `table: ${table}`,
+        '```',
+        '',
+      ].join('\n'),
+    });
+    await eventually(
+      'the note showing the file and the table',
+      async () => ({
+        files: await owner.ok<{ attachments: Array<{ name: string; notes: unknown[] }> }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/attachments`,
+        ),
+        tables: await owner.ok<{ tables: Array<{ table: string; notes: unknown[] }> }>(
+          'GET',
+          `/discovery/notebooks/${notebook.notebookId}/table-uses`,
+        ),
+      }),
+      ({ files, tables }) =>
+        files.attachments.some((each) => each.name === file && each.notes.length > 0) &&
+        tables.tables.some((each) => each.table === table && each.notes.length > 0),
+    );
+
+    await app.goto(notebook.page('/graph'));
+    const canvas = app.locator('.graph-canvas-wrap canvas');
+    // The drawing says what it holds by kind: notes, folders, files, tables, dashboards.
+    await expect(canvas).toHaveAttribute('aria-label', /\d/);
+    const counts = ((await canvas.getAttribute('aria-label')) ?? '').match(/\d+/g)?.map(Number);
+    expect(counts).toHaveLength(5);
+    const [notes, folders, files, tables, dashboards] = counts ?? [];
+    expect(notes).toBeGreaterThan(0);
+    expect(folders).toBeGreaterThan(0);
+    expect(files).toBeGreaterThan(0);
+    expect(tables).toBeGreaterThan(0);
+    expect(dashboards).toBeGreaterThan(0);
+    await app.waitForTimeout(2_500);
+    await testInfo.attach('graph-kinds.png', {
+      body: await app.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+
+    // Staging alone offers the simulation, and nothing of it reaches the server.
+    await app.getByRole('button', { name: words.simulateAgents }).click();
+    const working = app.locator('.graph-activity .graph-activity-who');
+    await expect(working).toHaveCount(3, { timeout: 15_000 });
+    await expect(app.locator('.graph-activity')).toContainText('Claude · Ana');
+    await expect(app.locator('.graph-activity')).toContainText('Grok · Bruno');
+    await expect(app.locator('.graph-activity')).toContainText('ChatGPT · Carla');
+    for (const at of [1, 2, 3]) {
+      await app.waitForTimeout(1_300);
+      await testInfo.attach(`graph-simulation-${at}.png`, {
+        body: await app.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+    }
+    await app.getByRole('button', { name: words.stopSimulation }).click();
+    await expect(working).toHaveCount(0, { timeout: 15_000 });
+    await expect(app.getByRole('button', { name: words.simulateAgents })).toBeVisible();
+    const activity = await owner.ok<{ entries: Array<{ who?: { userId: string } }> }>(
+      'GET',
+      `/discovery/notebooks/${notebook.notebookId}/activity`,
+    );
+    expect(activity.entries.filter((entry) => entry.who?.userId.startsWith('simulated'))).toEqual(
+      [],
+    );
+  });
+
   test('[page:/notebooks/:notebookId/dashboards] draws a dashboard an agent built over a table, under its period (#368)', async ({
     app,
     owner,

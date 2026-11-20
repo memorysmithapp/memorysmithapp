@@ -717,6 +717,9 @@
     "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
     "empty": "Este caderno ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste caderno.",
+    "simulate": "Simular agentes",
+    "stopSimulation": "Parar simulação",
+    "summary": "Grafo do caderno: {{notes}} notas, {{folders}} pastas, {{files}} anexos, {{tables}} tabelas, {{dashboards}} painéis",
     "activity": {
       "reading": "está lendo {{target}}",
       "writing": "está gravando {{target}}",
@@ -726,8 +729,11 @@
       "search": "a busca “{{query}}”",
       "context": "o contexto do caderno",
       "table": "uma tabela",
+      "tableNamed": "a tabela “{{name}}”",
       "dashboard": "um painel",
+      "dashboardNamed": "o painel “{{name}}”",
       "file": "um arquivo",
+      "fileNamed": "o arquivo “{{name}}”",
       "notebook": "o caderno",
       "more_one": "+{{count}} assistente",
       "more_other": "+{{count}} assistentes"
@@ -887,7 +893,7 @@
       },
       "graph": {
         "term": "Grafo",
-        "definition": "Cada nota como um ponto e cada link como uma linha, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
+        "definition": "Cada nota como um ponto e cada link como uma linha, com as pastas, os anexos, as tabelas e os painéis do caderno ao lado, cada tipo numa cor própria, que é onde uma nota isolada, ou um grupo que ninguém conectou, fica visível."
       },
       "search": {
         "term": "Busca",

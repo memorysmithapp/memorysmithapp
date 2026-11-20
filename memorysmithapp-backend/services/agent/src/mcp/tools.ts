@@ -917,6 +917,11 @@ export class McpToolAdapter {
       noteId: typeof args['note'] === 'string' ? args['note'] : undefined,
       folderId: typeof args['folder'] === 'string' ? args['folder'] : undefined,
       query: typeof args['query'] === 'string' ? args['query'] : undefined,
+      // A table and a dashboard are named by their name or their identifier;
+      // the graph matches either (#502).
+      table: typeof args['table'] === 'string' ? args['table'] : undefined,
+      dashboard: typeof args['dashboard'] === 'string' ? args['dashboard'] : undefined,
+      fileId: typeof args['file'] === 'string' ? args['file'] : undefined,
       person: personOf(caller),
     };
     // Each record is answered for the moment it starts: a read's runs beside
@@ -935,6 +940,14 @@ export class McpToolAdapter {
             ...base,
             noteId:
               base.noteId ?? (typeof answer['noteId'] === 'string' ? answer['noteId'] : undefined),
+            // What a write created is named only by its answer.
+            table:
+              base.table ?? (typeof answer['tableId'] === 'string' ? answer['tableId'] : undefined),
+            dashboard:
+              base.dashboard ??
+              (typeof answer['dashboardId'] === 'string' ? answer['dashboardId'] : undefined),
+            fileId:
+              base.fileId ?? (typeof answer['fileId'] === 'string' ? answer['fileId'] : undefined),
             version: typeof answer['version'] === 'number' ? answer['version'] : undefined,
           }),
         );

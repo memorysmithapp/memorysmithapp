@@ -676,6 +676,10 @@ export interface AgentActivity {
   readonly noteId?: string | undefined;
   readonly folderId?: string | undefined;
   readonly query?: string | undefined;
+  /** The table, dashboard or file the tool named, for the graph to light it (#502). */
+  readonly table?: string | undefined;
+  readonly dashboard?: string | undefined;
+  readonly fileId?: string | undefined;
   readonly version?: number | undefined;
   /** How the connector names its person, for the screen. */
   readonly person?: string | undefined;

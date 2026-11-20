@@ -288,6 +288,9 @@ export function createDiscoveryRoutes(useCases: DiscoveryUseCases): Hono<{ Varia
       noteId: id('noteId'),
       folderId: id('folderId'),
       query: text('query'),
+      table: text('table'),
+      dashboard: text('dashboard'),
+      fileId: id('fileId'),
       version: typeof body['version'] === 'number' ? body['version'] : undefined,
     });
     return recorded.ok ? c.body(null, 204) : fail(c, recorded.error);

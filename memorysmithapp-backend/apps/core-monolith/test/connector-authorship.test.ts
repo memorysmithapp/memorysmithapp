@@ -469,6 +469,19 @@ describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () 
       },
     });
     expect(wrote.status).toBe(204);
+    // A table is named by its name or its identifier, and a file by its identifier (#502).
+    const table = await call(`/discovery/notebooks/${where.notebookId}/activity`, {
+      method: 'POST',
+      token,
+      body: {
+        kind: 'read',
+        tool: 'query_table',
+        table: 'Gastos',
+        fileId: 'not-an-identifier',
+        person: 'Owner',
+      },
+    });
+    expect(table.status).toBe(204);
 
     const entries = await activityOf(where.notebookId);
     // The projection of the creation says what the note's frontmatter took.
@@ -489,8 +502,10 @@ describe("an agent's activity, for the notebook's graph (#495, RN-DSC-068)", () 
       tool: 'update_note',
       noteId: created.noteId,
     });
+    expect(entries[3]).toMatchObject({ kind: 'read', tool: 'query_table', table: 'Gastos' });
+    expect(entries[3]).not.toHaveProperty('fileId');
     // A page that saw an entry asks for what came after it.
-    expect(await activityOf(where.notebookId, entries[1]?.id)).toHaveLength(1);
+    expect(await activityOf(where.notebookId, entries[1]?.id)).toHaveLength(2);
   });
 
   it('is never recorded for the interface, and nothing of it reaches the history (INV-06)', async () => {

@@ -73,6 +73,22 @@
   --val-2: #db2777;
   --val-3: #008300;
   --val-other: #8b96a8;
+  /* The list of colours of the notebook graph (#502): the kinds of node a
+     notebook keeps besides its notes and the attributes switched on share it,
+     and once it runs out everything wears --graph-none, Tinta here and Papel in
+     the dark theme. Outside the brand book by the owner's decision. Measured
+     with CIEDE2000 under normal vision and protanopia, deuteranopia and
+     tritanopia (Machado, severity 1): every pair at least 13.8 apart, and 10.5
+     from the note blue, the orange of the activity and Tinta; each holds 3:1 on
+     the paper and the surface. The hues of the blue and the orange were left
+     out, since those two say a note and an agent. */
+  --graph-1: #b01003;
+  --graph-2: #089772;
+  --graph-3: #a10d7c;
+  --graph-4: #116f42;
+  --graph-5: #fe1363;
+  --graph-6: #a361fb;
+  --graph-none: #0e1526;
   --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
   --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
   /* The serif face a notebook's style may choose (#492, #493). */
@@ -2498,7 +2514,7 @@ a:hover {
   flex: none;
   width: 9px;
   height: 9px;
-  border: 2px solid var(--who, var(--val-other));
+  border: 2px solid var(--signal);
   border-radius: 50%;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -2786,6 +2802,16 @@ body:has(.markdown dialog[open]) .app-main {
   --val-2: #c94f8a;
   --val-3: #29b06a;
   --val-other: #55617a;
+  /* The same hues, lighter, for the dark surfaces (#502): every pair at least
+     7.3 apart under the same four visions, 9.2 from the blue, the orange and
+     Papel, and each 3:1 on the dark background and surface. */
+  --graph-1: #f52311;
+  --graph-2: #29d5a5;
+  --graph-3: #e314b1;
+  --graph-4: #02a05e;
+  --graph-5: #fd617f;
+  --graph-6: #c4a4fe;
+  --graph-none: #edefec;
 }
 
 .symbol-dark {

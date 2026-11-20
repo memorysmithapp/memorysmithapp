@@ -23,11 +23,13 @@ export interface RadiusRange {
   readonly max: number;
 }
 
-export type NodeKind = 'note' | 'value';
+/** A note, an attribute value, or what else the notebook keeps: a folder, a file, a table, a dashboard (#502). */
+export type NodeKind = 'note' | 'value' | 'resource';
 
 export const RADIUS: Readonly<Record<NodeKind, RadiusRange>> = {
   note: { min: 3, max: 13 },
   value: { min: 5, max: 16 },
+  resource: { min: 5, max: 16 },
 };
 
 /**
@@ -85,6 +87,10 @@ export function radiiOf(
     value: radiusScale(
       nodes.filter((node) => node.kind === 'value').map((node) => node.degree),
       RADIUS.value,
+    ),
+    resource: radiusScale(
+      nodes.filter((node) => node.kind === 'resource').map((node) => node.degree),
+      RADIUS.resource,
     ),
   };
   return nodes.map((node) => scales[node.kind](node.degree));

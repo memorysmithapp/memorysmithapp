@@ -110,6 +110,9 @@ export interface Words {
   /** The gear of the graph, and the × of its panel (#220). */
   readonly openGraphControls: string;
   readonly closeGraphControls: string;
+  /** The button of the graph's bar that simulates three agents, on staging (#503). */
+  readonly simulateAgents: string;
+  readonly stopSimulation: string;
   readonly willCreateNotes: RegExp;
   readonly pending: (target: string) => string;
   /** The entry of the user menu that reopens the welcome surface (#167). */
@@ -225,6 +228,8 @@ export const WORDS: Record<AppLocale, Words> = {
     startExport: 'Export',
     willCreateFolders: 'folders',
     openGraphControls: 'Open controls',
+    simulateAgents: 'Simulate agents',
+    stopSimulation: 'Stop simulation',
     closeGraphControls: 'Close controls',
     willCreateNotes: /\d+ notes?\b/,
     pending: (target) => `No note carries the name “${target}” yet.`,
@@ -328,6 +333,8 @@ export const WORDS: Record<AppLocale, Words> = {
     startExport: 'Exportar',
     willCreateFolders: 'pastas',
     openGraphControls: 'Abrir controles',
+    simulateAgents: 'Simular agentes',
+    stopSimulation: 'Parar simulação',
     closeGraphControls: 'Fechar controles',
     willCreateNotes: /\d+ notas?\b/,
     pending: (target) => `Nenhuma nota se chama “${target}” ainda.`,

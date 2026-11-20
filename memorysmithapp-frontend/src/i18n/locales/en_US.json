@@ -714,6 +714,9 @@
     "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
     "empty": "This notebook has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this notebook.",
+    "simulate": "Simulate agents",
+    "stopSimulation": "Stop simulation",
+    "summary": "Notebook graph: {{notes}} notes, {{folders}} folders, {{files}} files, {{tables}} tables, {{dashboards}} dashboards",
     "activity": {
       "reading": "is reading {{target}}",
       "writing": "is writing {{target}}",
@@ -723,8 +726,11 @@
       "search": "the search “{{query}}”",
       "context": "the notebook context",
       "table": "a table",
+      "tableNamed": "the table “{{name}}”",
       "dashboard": "a dashboard",
+      "dashboardNamed": "the dashboard “{{name}}”",
       "file": "a file",
+      "fileNamed": "the file “{{name}}”",
       "notebook": "the notebook",
       "more_one": "+{{count}} assistant",
       "more_other": "+{{count}} assistants"
@@ -884,7 +890,7 @@
       },
       "graph": {
         "term": "Graph",
-        "definition": "Every note as a point and every link as a line, which is where an isolated note, or a cluster nobody connected, becomes visible."
+        "definition": "Every note as a point and every link as a line, with the folders, files, tables and dashboards of the notebook beside them, each kind in a colour of its own, which is where an isolated note, or a cluster nobody connected, becomes visible."
       },
       "search": {
         "term": "Search",

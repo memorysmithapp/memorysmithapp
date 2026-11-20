@@ -3648,6 +3648,39 @@ describe('what an agent does is recorded for the notebook graph (#495, RN-AGT-07
     ]);
   });
 
+  it('records the table, the dashboard and the file a tool names, for the graph to light (#502)', async () => {
+    const { recorded, discovery } = recording();
+    const missing = async () => {
+      throw new GatewayError('NOT_FOUND', 'not found');
+    };
+    const adapter = gateways({
+      discovery,
+      knowledge: {
+        queryTable: missing,
+        readDashboard: missing,
+        readFile: missing,
+        listFiles: missing,
+        fileLink: missing,
+      },
+    });
+    await adapter.call('query_table', { notebook: NOTEBOOK, table: 'Gastos' }, caller);
+    await adapter.call('read_dashboard', { notebook: NOTEBOOK, dashboard: 'Painel' }, caller);
+    await adapter.call(
+      'read_file',
+      { notebook: NOTEBOOK, file: '01jbq2x00000000000000000f9' },
+      caller,
+    );
+    expect(recorded.map((each) => each.activity)).toEqual([
+      expect.objectContaining({ kind: 'read', tool: 'query_table', table: 'Gastos' }),
+      expect.objectContaining({ kind: 'read', tool: 'read_dashboard', dashboard: 'Painel' }),
+      expect.objectContaining({
+        kind: 'read',
+        tool: 'read_file',
+        fileId: '01JBQ2X00000000000000000F9',
+      }),
+    ]);
+  });
+
   it('records a write once it succeeded, naming the note it created, and nothing for one refused', async () => {
     const { recorded, discovery } = recording();
     await gateways({ discovery }).call(

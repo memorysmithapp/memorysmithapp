@@ -11,6 +11,19 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **The notebook's graph draws its folders, files, tables and dashboards.** Beside the notes, each folder, kept file, table and dashboard of the notebook is a node of its own, with a line from a folder to its notes and subfolders, from a note to each file it embeds and each table it shows, and from a dashboard to the tables it draws from; one nothing reaches is drawn alone. Each kind wears a colour of its own, and so does each attribute switched on in the gear, from one list of six colours whose order every notebook draws once and keeps, so the same notebook shows the same colours on every visit; once the list runs out, the rest is drawn in ink. Clicking a folder, a table or a dashboard opens it. These lines are drawn only: backlinks, related notes and the notebook's health count them as before. When an agent reads or writes a table, a dashboard, a file or a folder through the connector, its node lights as a note does, and the notice names it (#502).
+- **On staging, the graph simulates three agents at work.** A button in the graph's bar, *Simulate agents*, sets Claude · Ana, Grok · Bruno and ChatGPT · Carla working at once in the notebook, each reading and writing what it holds every one to three seconds, drawn and named as real activity is, until *Stop simulation*; nothing is written and nobody else sees it. Production does not offer it (#503).
+
+### Changed
+
+- **Every mark of the agents on the graph is orange.** Whoever the assistant, its reads and writes are drawn in the orange of the activity, and the notice at the top left says who is working; the list of colours is left to the kinds of node and the attributes (#502).
+
+### Fixed
+
+- **What a write changed is said in a caption that fits under its note.** It says two properties at most, then how many more, three values of a property at most, then how many more, one line each, and a line too long ends in `…`; a note an agent creates says none, since every property of it is new. A write that changes one status still reads `status: open → done`, whole (#501).
+
 ## [0.20.0] - 2026-11-18
 
 ### Added

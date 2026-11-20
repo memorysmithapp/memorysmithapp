@@ -603,6 +603,10 @@ export interface GraphActivityDto {
   noteId?: string;
   folderId?: string;
   query?: string;
+  /** The table or dashboard a tool named, by name or identifier, and the file (#502). */
+  table?: string;
+  dashboard?: string;
+  fileId?: string;
   version?: number;
   who?: { userId: string; client: string; person: string };
   added?: Array<{ facet: string; value: string }>;
