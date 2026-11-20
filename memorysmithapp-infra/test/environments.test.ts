@@ -17,6 +17,7 @@ import {
 import { DataStack } from '../stacks/data.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
+import { testApp } from './stacks.js';
 
 const ENVIRONMENTS = {
   production: {
@@ -47,7 +48,7 @@ const ENVIRONMENTS = {
 
 function appFor(environment: string): App {
   // No bundling: these cases read templates, and a Lambda bundle is not one.
-  return new App({
+  return testApp({
     context: {
       environment,
       environments: ENVIRONMENTS,
@@ -81,7 +82,7 @@ function stacksOf(app: App, environment: EnvironmentConfig) {
 
 describe('the environment of a synth', () => {
   it('is production when none is named', () => {
-    const app = new App({
+    const app = testApp({
       context: { environments: ENVIRONMENTS, alarmEmail: 'operator@example.com' },
     });
     expect(environmentOf(app.node).name).toBe('production');
@@ -92,7 +93,7 @@ describe('the environment of a synth', () => {
   });
 
   it('refuses an environment whose account is not written down yet', () => {
-    const app = new App({
+    const app = testApp({
       context: {
         environment: 'staging',
         environments: { staging: { ...ENVIRONMENTS.staging, account: '' } },

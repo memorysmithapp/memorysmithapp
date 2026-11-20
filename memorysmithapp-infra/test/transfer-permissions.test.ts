@@ -15,7 +15,6 @@
  * shape is worth exactly as much as the number of principals that hold it.
  */
 
-import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import { environmentOf, stackId, type EnvironmentConfig } from '../config/environments.js';
@@ -24,6 +23,7 @@ import { IdentityStack } from '../stacks/identity.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
 import { ApiStack } from '../stacks/api.stack.js';
 import { ProjectionsStack } from '../stacks/projections.stack.js';
+import { testApp } from './stacks.js';
 
 const ENVIRONMENTS = {
   staging: {
@@ -42,7 +42,7 @@ const TRANSFER_WORKER = 'Builds the archive of an export, and records how far it
 
 function templates(): { api: Template; projections: Template } {
   // No bundling: this case reads a template, and a Lambda bundle is not one.
-  const app = new App({
+  const app = testApp({
     context: { environment: 'staging', environments: ENVIRONMENTS, 'aws:cdk:bundling-stacks': [] },
   });
   const environment: EnvironmentConfig = environmentOf(app.node);

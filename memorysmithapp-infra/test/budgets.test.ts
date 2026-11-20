@@ -6,12 +6,12 @@
  * the budgets a synthesis declares: where, at which limit, alerting whom.
  */
 
-import { App, Stack } from 'aws-cdk-lib';
+import { Stack } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import { environmentOf } from '../config/environments.js';
 import { BUDGETS, CostBudgets } from '../constructs/budgets.js';
-import { ENVIRONMENTS, appFor, stacksOf } from './stacks.js';
+import { ENVIRONMENTS, appFor, stacksOf, testApp } from './stacks.js';
 
 const ADDRESS = 'operator@example.com';
 
@@ -86,7 +86,7 @@ describe('the budgets of production', () => {
 
   it('cannot be declared without an address, nor by staging', () => {
     expect(() => environmentOf(appFor('production').node)).toThrow(/no address to notify/);
-    const app = new App({ context: { environment: 'staging', environments: ENVIRONMENTS } });
+    const app = testApp({ context: { environment: 'staging', environments: ENVIRONMENTS } });
     expect(
       () =>
         new CostBudgets(new Stack(app, 'Loose'), 'Budgets', {

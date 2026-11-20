@@ -10,7 +10,6 @@
  * `handler-environment.test.ts` compares variables.
  */
 
-import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 import { environmentOf, stackId, type EnvironmentConfig } from '../config/environments.js';
@@ -18,6 +17,7 @@ import { readText } from '../commands/lib/repository.js';
 import { DataStack } from '../stacks/data.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
 import { ProjectionsStack } from '../stacks/projections.stack.js';
+import { testApp } from './stacks.js';
 
 const ENVIRONMENTS = {
   staging: {
@@ -38,7 +38,7 @@ function handled(): string[] {
 /** The events the rule in front of the projection queue lets through. */
 function routed(): string[] {
   // No bundling: this case reads a template, and a Lambda bundle is not one.
-  const app = new App({
+  const app = testApp({
     context: { environment: 'staging', environments: ENVIRONMENTS, 'aws:cdk:bundling-stacks': [] },
   });
   const environment: EnvironmentConfig = environmentOf(app.node);

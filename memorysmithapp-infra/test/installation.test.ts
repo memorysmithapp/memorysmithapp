@@ -5,7 +5,7 @@
  * touch.
  */
 
-import { App, Stack } from 'aws-cdk-lib';
+import { Stack } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { readFileSync } from 'node:fs';
@@ -37,7 +37,7 @@ import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
 import { InstallationDeliveryStack } from '../stacks/github-delivery.stack.js';
 import { NetworkStack } from '../stacks/network.stack.js';
-import { appFor, stacksOf } from './stacks.js';
+import { appFor, stacksOf, testApp } from './stacks.js';
 
 const VARIABLES = {
   INSTALLATION: 'acme',
@@ -212,7 +212,7 @@ describe('who a delivery role trusts', () => {
   });
 
   it('declares the role against the provider of the account, which it does not own', () => {
-    const app = new App();
+    const app = testApp();
     const environment = installed(
       { ...VARIABLES, REPOSITORY_HOST: 'gitlab', REPOSITORY: 'acme/notes' },
       { oidcProviderArn: 'arn:aws:iam::222222222222:oidc-provider/gitlab.com' },
