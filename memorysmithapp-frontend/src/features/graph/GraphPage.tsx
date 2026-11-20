@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import {
@@ -1522,7 +1522,6 @@ export function GraphPage() {
     };
     return (['folder', 'file', 'table', 'dashboard'] as const).filter((kind) => has[kind]);
   }, [data, structure]);
-  const hasControls = kinds.length > 0 || drawable.length > 0;
 
   function toggleKind(kind: ResourceKind) {
     setHiddenKinds((current) => {
@@ -1600,99 +1599,107 @@ export function GraphPage() {
         <div className="graph-overlay">
           {/*
             Both sections are built from what this notebook has (#505): the
-            kinds of node it keeps and the properties its notes declare. A
-            switch that steers nothing is worse than no switch, so a notebook
-            with neither offers no gear.
+            kinds of node it keeps and the properties its notes declare, so a
+            switch never steers nothing. The notes are always there to be said,
+            so the gear always is (#511).
           */}
-          {hasControls &&
-            (controlsOpen ? (
-              <section className="graph-panel" aria-label={t('graph.controls')}>
-                <header className="graph-panel-head">
-                  <h2>
-                    {t(kinds.length > 0 ? 'graph.notebookSection' : 'graph.propertiesSection')}
-                  </h2>
-                  <button
-                    type="button"
-                    className="graph-panel-close"
-                    aria-label={t('graph.closeControls')}
-                    onClick={() => setControlsOpen(false)}
-                  >
-                    <CloseIcon />
-                  </button>
-                </header>
-                <div className="graph-panel-body">
-                  {/*
-                    The Notebook section: the kinds of node this notebook keeps
-                    besides its notes, on when the graph opens, each switch in
-                    the colour its kind wears while on (#505).
+          {controlsOpen ? (
+            <section className="graph-panel" aria-label={t('graph.controls')}>
+              <header className="graph-panel-head">
+                <h2>{t('graph.notebookSection')}</h2>
+                <button
+                  type="button"
+                  className="graph-panel-close"
+                  aria-label={t('graph.closeControls')}
+                  onClick={() => setControlsOpen(false)}
+                >
+                  <CloseIcon />
+                </button>
+              </header>
+              <div className="graph-panel-body">
+                {/*
+                    The Notebook section: the notes in their blue, always drawn
+                    and so with no switch (#511), then the kinds of node this
+                    notebook keeps besides them, on when the graph opens (#505).
+                    A switch that is on wears the colour its row brings (#511).
                   */}
-                  {kinds.length > 0 ? (
-                    <div className="graph-switches">
-                      {kinds.map((kind) => {
-                        const on = !hiddenKinds.has(kind);
-                        return (
-                          <label key={kind} className="graph-switch">
-                            <span
-                              className={`graph-switch-dot${on ? ' is-on' : ''}`}
-                              style={on ? { background: slotColor(KIND_SLOT[kind]) } : undefined}
-                            />
-                            <span className="graph-switch-name">{t(`graph.kinds.${kind}`)}</span>
-                            <input
-                              type="checkbox"
-                              role="switch"
-                              checked={on}
-                              onChange={() => toggleKind(kind)}
-                            />
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  {/*
+                <div className="graph-switches">
+                  <div className="graph-switch is-static">
+                    <span
+                      className="graph-switch-dot is-on"
+                      style={{ background: 'var(--accent)' }}
+                    />
+                    <span className="graph-switch-name">{t('graph.kinds.note')}</span>
+                  </div>
+                  {kinds.map((kind) => {
+                    const on = !hiddenKinds.has(kind);
+                    const color = slotColor(KIND_SLOT[kind]);
+                    return (
+                      <label key={kind} className="graph-switch">
+                        <span
+                          className={`graph-switch-dot${on ? ' is-on' : ''}`}
+                          style={on ? { background: color } : undefined}
+                        />
+                        <span className="graph-switch-name">{t(`graph.kinds.${kind}`)}</span>
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={on}
+                          style={{ '--switch-on': color } as CSSProperties}
+                          onChange={() => toggleKind(kind)}
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+                {/*
                     The Properties section: whatever THIS notebook declares as
                     discrete, and nothing else, off when the graph opens. The
                     backend still does not interpret content: these were
                     classified by the shape of the value.
                   */}
-                  {drawable.length > 0 ? (
-                    <>
-                      {kinds.length > 0 ? (
-                        <h2 className="graph-panel-section">{t('graph.propertiesSection')}</h2>
-                      ) : null}
-                      <div className="graph-switches">
-                        {drawable.map((attribute) => {
-                          const on = drawn.find((each) => each.name === attribute.name);
-                          return (
-                            <label key={attribute.name} className="graph-switch">
-                              <span
-                                className={`graph-switch-dot${on ? ' is-on' : ''}`}
-                                style={on ? { background: slotColor(on.slot) } : undefined}
-                              />
-                              <span className="graph-switch-name">{attribute.name}</span>
-                              <input
-                                type="checkbox"
-                                role="switch"
-                                checked={on !== undefined}
-                                onChange={() => toggleDrawn(attribute.name)}
-                              />
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              </section>
-            ) : (
-              <button
-                type="button"
-                className="graph-overlay-button"
-                aria-label={t('graph.openControls')}
-                onClick={() => setControlsOpen(true)}
-              >
-                <GearIcon />
-              </button>
-            ))}
+                {drawable.length > 0 ? (
+                  <>
+                    <h2 className="graph-panel-section">{t('graph.propertiesSection')}</h2>
+                    <div className="graph-switches">
+                      {drawable.map((attribute) => {
+                        const on = drawn.find((each) => each.name === attribute.name);
+                        return (
+                          <label key={attribute.name} className="graph-switch">
+                            <span
+                              className={`graph-switch-dot${on ? ' is-on' : ''}`}
+                              style={on ? { background: slotColor(on.slot) } : undefined}
+                            />
+                            <span className="graph-switch-name">{attribute.name}</span>
+                            <input
+                              type="checkbox"
+                              role="switch"
+                              checked={on !== undefined}
+                              style={
+                                on
+                                  ? ({ '--switch-on': slotColor(on.slot) } as CSSProperties)
+                                  : undefined
+                              }
+                              onChange={() => toggleDrawn(attribute.name)}
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </section>
+          ) : (
+            <button
+              type="button"
+              className="graph-overlay-button"
+              aria-label={t('graph.openControls')}
+              onClick={() => setControlsOpen(true)}
+            >
+              <GearIcon />
+            </button>
+          )}
           {/* What every animation and every node means, under the gear (#507). */}
           <button
             type="button"

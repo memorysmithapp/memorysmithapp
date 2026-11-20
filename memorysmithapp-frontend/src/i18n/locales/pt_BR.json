@@ -743,6 +743,7 @@
     "notebookSection": "Caderno",
     "propertiesSection": "Propriedades",
     "kinds": {
+      "note": "Notas",
       "folder": "Pastas",
       "file": "Anexos",
       "table": "Tabelas",

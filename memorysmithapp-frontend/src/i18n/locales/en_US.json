@@ -740,6 +740,7 @@
     "notebookSection": "Notebook",
     "propertiesSection": "Properties",
     "kinds": {
+      "note": "Notes",
       "folder": "Folders",
       "file": "Files",
       "table": "Tables",

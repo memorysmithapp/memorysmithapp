@@ -2429,8 +2429,16 @@ a:hover {
   background: var(--surface);
   transition: transform 0.15s ease-out;
 }
+/* On, the track wears the colour its row brings to the drawing (#511). */
 .graph-switch input:checked {
-  background: var(--chosen);
+  background: var(--switch-on, var(--chosen));
+}
+/* The notes' row: their colour, and no switch, since notes are always drawn. */
+.graph-switch.is-static {
+  cursor: default;
+}
+.graph-switch.is-static:hover {
+  background: none;
 }
 .graph-switch input:checked::after {
   transform: translateX(12px);

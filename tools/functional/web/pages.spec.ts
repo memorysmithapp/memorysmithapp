@@ -977,6 +977,17 @@ test.describe('the pages of an account', () => {
     await app.getByRole('button', { name: words.openGraphControls }).click();
     const tablesSwitch = app.getByRole('switch', { name: words.graphTables });
     await expect(tablesSwitch).toBeChecked();
+    // The notes come first, in blue, with no switch, and a switch on wears its colour (#511).
+    await expect(app.locator('.graph-panel .graph-switch.is-static')).toHaveText(/^(Notes|Notas)$/);
+    const tablesDot = app
+      .locator('.graph-switch', { has: tablesSwitch })
+      .locator('.graph-switch-dot');
+    await expect(tablesDot).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    const color = await tablesDot.evaluate(
+      (dot) =>
+        (dot.ownerDocument.defaultView?.getComputedStyle(dot).backgroundColor ?? '') as string,
+    );
+    await expect(tablesSwitch).toHaveCSS('background-color', color);
     await tablesSwitch.click();
     await expect(tablesSwitch).not.toBeChecked();
     await expect
