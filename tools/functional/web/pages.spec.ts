@@ -1405,12 +1405,13 @@ test.describe('the pages of an account', () => {
     // The note is a row once Discovery projected what it declares.
     await expect(async () => {
       await app.goto(notebook.page(`/notes/${listId.toLowerCase()}`));
-      await expect(app.locator('main, article').getByText(task).first()).toBeVisible({
+      // In the block's own rows: the sidebar names the task too.
+      await expect(app.locator('.data-table').getByText(task).first()).toBeVisible({
         timeout: 3_000,
       });
     }).toPass({ timeout: 60_000 });
     // In a note, a row opens whole, and the dialog leads to the note it is.
-    await app.locator('main, article').getByText(task).first().click();
+    await app.locator('.data-table').getByText(task).first().click();
     const open = app.locator('.table-row-dialog').getByRole('link', { name: words.openNote });
     await open.click();
     await expect(app).toHaveURL(taskPage);
@@ -2195,10 +2196,8 @@ test.describe('the pages of an account', () => {
       expect(behind.length).toBeGreaterThan(0);
       for (const colour of behind) expect(colour).toBe('rgba(0, 0, 0, 0)');
 
-      // The bar offers no choice of its own: the style decides, and whoever
-      // maintains the notebook is pointed at it.
+      // The page offers no choice of its own: the style decides (#493).
       await expect(paper.getByRole('radiogroup')).toHaveCount(0);
-      await expect(paper.locator('.print-hint a')).toHaveAttribute('href', /\/style$/);
       const restyled = async (style: Record<string, unknown>) => {
         await styled(style);
         await paper.reload();

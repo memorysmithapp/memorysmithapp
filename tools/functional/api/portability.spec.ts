@@ -126,8 +126,9 @@ test.describe('a note as a PDF made by the server', () => {
     );
     // The link the tab of Generate PDF turns into: the browser shows the file
     // and saves it under the note's name (#522).
-    const shown = await fetch(new URL(print.url ?? ''), { method: 'HEAD' });
-    expect(shown.status).toBe(200);
+    // A link signed for GET answers nothing else, so one byte of it is read.
+    const shown = await fetch(new URL(print.url ?? ''), { headers: { range: 'bytes=0-0' } });
+    expect(shown.status).toBe(206);
     expect(shown.headers.get('content-disposition')).toMatch(
       /^inline; filename="Ata de reuniao\.pdf"; filename\*=UTF-8''Ata%20de%20reuni%C3%A3o\.pdf$/,
     );
