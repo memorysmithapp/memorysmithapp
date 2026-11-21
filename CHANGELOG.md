@@ -24,6 +24,7 @@ issues each entry cites.
 ### Fixed
 
 - **The button that collapses a notebook's sidebar stays at its foot.** Only the name of the notebook, its menu and its folders scroll above it, and the scroll bar ends where the button starts, whether the sidebar is open or collapsed to its icons (#519).
+- **The footnotes of a note work in its PDF.** A click on a reference number goes to its note at the end, and the way back returns to the reference, in the PDF downloaded and in the one saved from the print dialog (#520).
 
 ## [0.21.0] - 2026-11-20
 

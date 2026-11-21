@@ -2067,9 +2067,9 @@ test.describe('the pages of an account', () => {
         {
           folderId: notebook.folderId,
           content:
-            '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).\n\n' +
+            '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).[^paper]\n\n' +
             '> [!warning] Mind this\n> A callout keeps its colour.\n\n```ts\nconst answer = 42;\n```\n\n' +
-            `${wide}\n`,
+            `${wide}\n\n[^paper]: A footnote, linked both ways on the paper too.\n`,
         },
       );
       // The reader chose the dark theme, and the dialog of the browser is
@@ -2106,6 +2106,18 @@ test.describe('the pages of an account', () => {
       await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
       await expect(preview).toHaveAttribute('data-ready', 'true');
       await expect(paper).toHaveTitle('On paper');
+      // A footnote and its way back land on the pages, the ones the PDF holds,
+      // and never on the hidden drawing of the same note (#520).
+      const anchors = await preview.evaluate((pagesOf) =>
+        [...pagesOf.querySelectorAll('a[href^="#"]')].map((link) => {
+          const target = pagesOf.ownerDocument.getElementById(
+            decodeURIComponent(link.getAttribute('href')!.slice(1)),
+          );
+          return target !== null && pagesOf.contains(target);
+        }),
+      );
+      expect(anchors.length).toBeGreaterThanOrEqual(2);
+      expect(anchors.every(Boolean)).toBe(true);
       const printed = () =>
         paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
       expect(await printed()).toBe(0);
