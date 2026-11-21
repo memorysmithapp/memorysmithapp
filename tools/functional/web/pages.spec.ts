@@ -2075,7 +2075,7 @@ test.describe('the pages of an account', () => {
     ).toContain('The line typed here. First and after the save.');
   });
 
-  test("[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties on a page of their own, its tables inside the margins and either orientation (#258, #493)", async ({
+  test("[page:/notebooks/:notebookId/notes/:noteId/print] [page:/notebooks/:notebookId/notes/:noteId/pdf] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties on a page of their own, its tables inside the margins and either orientation; Generate PDF opens a tab that becomes the file (#258, #493, #522)", async ({
     app,
     owner,
     notebook,
@@ -2112,31 +2112,22 @@ test.describe('the pages of an account', () => {
             `${wide}\n\n[^paper]: A footnote, linked both ways on the paper too.\n`,
         },
       );
-      // The reader chose the dark theme, and the dialog of the browser is
-      // counted rather than opened.
+      // The reader chose the dark theme.
       await app.addInitScript(() => {
         localStorage.setItem(
           'memorysmith.preferences',
           JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
         );
       });
-      await app.context().addInitScript(() => {
-        const scope = globalThis as unknown as { printed: number; print: () => void };
-        scope.printed = 0;
-        scope.print = () => {
-          scope.printed += 1;
-        };
-      });
       await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
       await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-      const opening = app.context().waitForEvent('page');
-      await app.getByRole('link', { name: words.printNote, exact: true }).click();
-      const paper = await opening;
-
-      // The note alone, in a tab of its own, which previews its pages and waits
-      // for the person to print.
-      await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
+      // The page the server's browser lays the PDF on (#263), which no link of
+      // the interface reaches since #522: opened here as the renderer opens it.
+      const paper = await app.context().newPage();
+      await paper.goto(notebook.page(`/notes/${noteId.toLowerCase()}/print`));
+      // Nothing of a preview is left on it: no bar, no button (#522).
+      await expect(paper.getByRole('button')).toHaveCount(0);
       // The note as drawn, off screen, carries the choices; the preview, its pages.
       const body = paper.locator('.print-source article[data-placement]');
       const cover = paper.locator('.print-source article.print-cover');
@@ -2158,11 +2149,6 @@ test.describe('the pages of an account', () => {
       );
       expect(anchors.length).toBeGreaterThanOrEqual(2);
       expect(anchors.every(Boolean)).toBe(true);
-      const printed = () =>
-        paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
-      expect(await printed()).toBe(0);
-      await paper.getByRole('button', { name: words.printNote, exact: true }).click();
-      expect(await printed()).toBe(1);
 
       // Light while it is open, and the choice of the reader is left as it was.
       await expect(paper.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -2223,7 +2209,7 @@ test.describe('the pages of an account', () => {
           await testInfo.attach(`${name}-${index + 1}.png`, {
             body: await pages.nth(index).screenshot({
               animations: 'disabled',
-              style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
+              style: '.environment-banner { visibility: hidden !important; }',
             }),
             contentType: 'image/png',
           });
@@ -2265,9 +2251,6 @@ test.describe('the pages of an account', () => {
           return scope.document.documentElement.scrollHeight <= scope.innerHeight;
         }),
       ).toBe(true);
-      await paper.emulateMedia({ media: 'print' });
-      await expect(paper.locator('.print-toolbar')).toBeHidden();
-      await paper.emulateMedia({ media: 'screen' });
 
       // A wide table wraps inside the margins, a short word whole and only what
       // has no place to break broken, and the Copy button of a block is not on
@@ -2338,16 +2321,13 @@ test.describe('the pages of an account', () => {
       await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
 
       // On a phone the pages keep the proportions of A4, scaled to the width of
-      // the screen, and the bar shows its actions as icons, each still named.
+      // the screen.
       await restyled({ orientation: 'portrait' });
       await paper.setViewportSize({ width: 390, height: 844 });
       await laid();
       const small = await pages.nth(0).boundingBox();
       expect(small?.width ?? 0).toBeLessThanOrEqual(390);
       expect((small?.height ?? 0) / (small?.width ?? 1)).toBeCloseTo(297 / 210, 1);
-      const label = await paper.locator('.print-toolbar .print-action-label').first().boundingBox();
-      expect(label?.width ?? 0).toBeLessThanOrEqual(1);
-      await expect(paper.getByRole('button', { name: words.printNote, exact: true })).toBeVisible();
       await testInfo.attach('phone.png', {
         body: await paper.screenshot({ animations: 'disabled' }),
         contentType: 'image/png',
@@ -2382,13 +2362,22 @@ test.describe('the pages of an account', () => {
       expect(colours.title).not.toBe('rgb(14, 21, 38)');
       expect(colours.adjust).toBe('exact');
 
-      // And the PDF made by the server, which the browser downloads named after
-      // the note, without its print dialog (#263).
+      // And Generate PDF on the note: a tab that becomes the PDF the server
+      // made, named after the note (#263, #522). A browser with a PDF viewer
+      // shows it; a headless one, which has none, saves it.
       await paper.emulateMedia({ media: 'screen' });
-      const downloading = paper.waitForEvent('download', { timeout: 180_000 });
-      await paper.getByRole('button', { name: words.downloadPdf, exact: true }).click();
-      const download = await downloading;
-      expect(download.suggestedFilename()).toBe('On paper.pdf');
+      const opening = app.context().waitForEvent('page');
+      await app.getByRole('link', { name: words.printNote, exact: true }).click();
+      const tab = await opening;
+      await expect(tab).toHaveURL(new RegExp(`/notes/${noteId}/pdf$`, 'i'));
+      await expect(tab.getByRole('status')).toBeVisible();
+      const reached = await Promise.race([
+        tab
+          .waitForEvent('download', { timeout: 180_000 })
+          .then((download) => download.suggestedFilename()),
+        tab.waitForURL(/\/prints\/[^/]+\.pdf/, { timeout: 180_000 }).then(() => 'shown'),
+      ]);
+      expect(['On paper.pdf', 'shown']).toContain(reached);
     } finally {
       await styled(DEFAULT);
     }

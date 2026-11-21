@@ -267,16 +267,17 @@
     }
   },
   "print": {
-    "short": "Print",
-    "open": "Print the note or save it as a PDF, on an A4 page",
-    "print": "Print",
-    "toolbar": "Printing",
-    "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
-    "styleLink": "Change how this notebook prints",
-    "appendixPage": ", page ",
-    "download": "Download PDF",
-    "downloading": "Making the PDF…",
-    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+    "short": "Generate PDF",
+    "open": "Generate the note's PDF on A4 pages, to print or save from the browser",
+    "appendixPage": ", page "
+  },
+  "pdf": {
+    "title": "Generating PDF…",
+    "making": "Generating the note’s PDF. It opens here as soon as it is ready, and you print or save it from the browser.",
+    "gone": "This note no longer exists, or you no longer have access to it.",
+    "failed": "The PDF could not be generated just now.",
+    "timedOut": "The PDF took longer than expected and did not arrive.",
+    "retry": "Try again"
   },
   "style": {
     "intro": "How every note of this notebook looks on the screen and on paper, for everybody who reads it. A passage of one note that has to differ uses a :::{style} block in that note.",

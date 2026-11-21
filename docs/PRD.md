@@ -94,7 +94,7 @@ The terms as the code names them. In the `pt_BR` locale, and only there, four ar
 
 **A person reads and edits.** On `memorysmith.app` they open the notebook, follow links and backlinks, search, look at the graph and the history, and edit a note on the page that draws it; the note saves as they type.
 
-**A person shares, exports or prints.** They share a notebook read-only with a person of another subscription, export it to Transfers and import it elsewhere, or print a note and download it as a PDF.
+**A person shares, exports or prints.** They share a notebook read-only with a person of another subscription, export it to Transfers and import it elsewhere, or open a note as a PDF to print or save.
 
 ## 7. Features and rules
 
@@ -489,7 +489,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-PRT-028 | An upload in parts is an `agent` transfer seen only by its starter, with no deadline, gone once it becomes a file, and left as failed when its bytes are wrong.                          |                                                                                                      |
 | RN-PRT-029 | A transfer whose notebook is out of reach says it is unavailable, never deleted; an open upload may be linked to another notebook the person writes in.                                  |                                                                                                      |
 | RN-PRT-030 | Said a file request was a `request` transfer holding no bytes, fulfilled by the person's upload under the requested name and notebook. | Removed (v0.19.0): file requests and *Aguardando você* were retired, the open ones discarded with the delivery (#469) |
-| RN-PRT-031 | A note is downloaded as a server-made PDF of the print preview, rendered as the requesting person, kept a day and not counted against storage.                                           |                                                                                                      |
+| RN-PRT-031 | A note is opened as a server-made PDF, laid as its notebook's style says and rendered as the requesting person, in a tab that becomes the file for the browser to print or save, says why when there is none and offers to try again; there is no print preview, and the file is kept a day and not counted against storage.                                           |                                                                                                      |
 | RN-PRT-032 | A note, draft or part is rendered as a PNG for an agent, as the person the connector acts for, kept a day and not counted against storage.                                               |                                                                                                      |
 | RN-PRT-033 | Only the `OWNER` declares a notebook of the subscription as a model, with an objective, a description, an audience, its parameters and an optional credit, and declares it again to change them; whoever reads the notebook reads its model, and editing the model notebook follows the permissions of any notebook. | |
 | RN-PRT-034 | A model declares each parameter once, by a name a reference can carry and no other parameter carries after NFC, with a description, an example, a type (`text`, `list`, `boolean` or `date`) and either `required` or a default valid for its type, which may be empty. | |

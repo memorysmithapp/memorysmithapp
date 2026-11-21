@@ -53,13 +53,24 @@ export type PrintState =
 
 export interface PrintStore {
   state(subscriptionId: string, printId: string): Promise<PrintState>;
-  /** A link to the file, named after the note, answered on the files host. */
-  link(subscriptionId: string, printId: string, name: string, seconds: number): Promise<string>;
+  /**
+   * A link to the file, named after the note, answered on the files host:
+   * `inline` for the browser to show it (#522), `attachment` to download it.
+   */
+  link(
+    subscriptionId: string,
+    printId: string,
+    name: string,
+    seconds: number,
+    disposition: 'inline' | 'attachment',
+  ): Promise<string>;
 }
 
 export interface PrintDto {
   readonly printId: string;
   readonly status: 'running' | 'ready' | 'failed';
+  /** Where the browser shows the file (#522). */
+  readonly url?: string;
   readonly downloadUrl?: string;
   readonly expiresAt?: string;
   readonly failure?: string;
@@ -120,15 +131,16 @@ export class GetPrint {
 
     if (state.status === 'ready') {
       const expiresAt = Instant.fromEpochMillis(this.now() + LINK_SECONDS * 1000);
+      const name = `${state.name}.pdf`;
+      const [url, downloadUrl] = await Promise.all([
+        this.store.link(this.subscriptionId, printId, name, LINK_SECONDS, 'inline'),
+        this.store.link(this.subscriptionId, printId, name, LINK_SECONDS, 'attachment'),
+      ]);
       return ok({
         printId,
         status: 'ready',
-        downloadUrl: await this.store.link(
-          this.subscriptionId,
-          printId,
-          `${state.name}.pdf`,
-          LINK_SECONDS,
-        ),
+        url,
+        downloadUrl,
         expiresAt: expiresAt.ok ? expiresAt.value.toISOString() : new Date().toISOString(),
       });
     }

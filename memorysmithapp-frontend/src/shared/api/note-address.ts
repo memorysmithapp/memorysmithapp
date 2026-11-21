@@ -74,6 +74,11 @@ export function noteAddress(notebookId: string, noteId: string): string {
  * and not a file: the browser prints the page and saves it as a PDF, so no
  * host but the one the person is on ever appears.
  */
+/** The tab that becomes a note's PDF (#522). */
+export function pdfAddress(notebookId: string, noteId: string): string {
+  return `${noteAddress(notebookId, noteId)}/pdf`;
+}
+
 export function printAddress(notebookId: string, noteId: string): string {
   return `${noteAddress(notebookId, noteId)}/print`;
 }

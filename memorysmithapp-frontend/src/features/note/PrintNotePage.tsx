@@ -8,7 +8,6 @@ import {
   getNotebookNames,
   getNotebookStructure,
 } from '../../shared/api/source';
-import { getPrint, startPrint } from '../../shared/api/backend';
 import { identifierOf } from '../../shared/api/note-address';
 
 import { queryKeys } from '../../shared/api/query-keys';
@@ -23,33 +22,30 @@ import {
   propertyType,
 } from '../../shared/components/PropertyValue';
 import { DEFAULT_NOTEBOOK_STYLE } from '@memorysmithapp/contracts';
-import { styleAddress } from '../../shared/api/note-address';
 import { useNotebookId } from '../structure/route-ids';
-import { CloseIcon, DownloadIcon, PrinterIcon } from '../../shared/components/icons';
 import { paginate, unpaginate } from './paginate';
 import { whenDrawn } from './drawn';
 
 /**
- * A note alone, drawn for paper (#258).
+ * A note alone, laid on A4 pages (#258): the page the server's browser opens
+ * to make the note's PDF (#263, RN-PRT-031), and no longer a page of the
+ * interface, which reaches the PDF through *Generate PDF* (#522).
  *
  * **The browser prints, and the product draws the paper.** What is printed is
  * what the reading surface drew — mathematics, diagrams, highlighted code and
  * callouts — where a generator of our own would have had to draw all of them a
- * second time, and every difference would be a defect. Even the PDF the server
- * makes (#263) is THIS page, opened by a browser of the server as the person
- * who asked: one drawing, whoever prints it.
+ * second time, and every difference would be a defect. The server's browser
+ * opens this page as the person who asked: one drawing, whoever prints it.
  *
- * The page opens in a tab of its own, outside the frame of the application,
- * with a bar that is never printed: a hint, *Download PDF* and *Print*. Where
- * the properties go, how a wide table fits and which way the sheet lies are
- * the notebook's style (#493), the same for everybody who prints the note, the
- * Reader of a share included; whoever maintains the notebook is offered the
- * way to its Style. The dialog is not opened by itself, and the button waits
- * until everything that arrives late has arrived: the names and the files the
- * body resolves against, a picture, a transclusion, a diagram. Printing
- * before that prints a page with holes.
+ * Where the properties go, how a wide table fits and which way the sheet lies
+ * are the notebook's style (#493), the same for everybody who prints the note,
+ * the Reader of a share included. The pages are laid once everything that
+ * arrives late has arrived — the names and the files the body resolves
+ * against, a picture, a transclusion, a diagram — and `data-ready` says so to
+ * the renderer, which prints nothing before it: printing before that prints a
+ * page with holes.
  *
- * **The tab is a preview of the print.** The note is drawn off screen, at the
+ * **The page lays the print.** The note is drawn off screen, at the
  * width of the paper less its margins — where a wide table is measured and a
  * diagram drawn — and then laid into A4 pages (paginate.ts), which are what the
  * tab shows and what the printer gets. On a phone the pages keep their size and
@@ -59,7 +55,7 @@ import { whenDrawn } from './drawn';
  * theme on while it is open and gives the choice back when it closes.
  */
 export function PrintNotePage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const notebookId = useNotebookId();
   const noteId = identifierOf(useParams().noteId);
   const setPaper = usePreferences((s) => s.setPaper);
@@ -70,8 +66,6 @@ export function PrintNotePage() {
   /** The pages of the choices in force, or null while they are being laid. */
   const [pages, setPages] = useState<number | null>(null);
   const [scale, setScale] = useState(1);
-  /** The PDF made by the server, while it is being made, or why it was not (#263). */
-  const [making, setMaking] = useState<'idle' | 'working' | 'failed'>('idle');
 
   useEffect(() => {
     setPaper(true);
@@ -111,7 +105,6 @@ export function PrintNotePage() {
   const asAppendices = style.printTables === 'appendices';
   const appendixOrientation = style.appendixOrientation ?? orientation;
   const pageWord = t('print.appendixPage');
-  const maintains = structure.data?.permissions.maintain ?? false;
 
   const failed = !enabled || [structure, names, files, note].some((query) => query.isError);
   const ready = !failed && [structure, names, files, note].every((query) => query.isSuccess);
@@ -207,36 +200,6 @@ export function PrintNotePage() {
       <PropertiesBox properties={shown} lists={lists} notebookId={notebookId} />
     ) : null;
 
-  /**
-   * The PDF made by the server, from this very page as the person sees it
-   * (#263, RN-PRT-031), laid as the notebook's style says, as this page is: it
-   * is asked for until its file is made, which the browser then downloads. A
-   * device whose print dialog has no PDF printer gets the file all the same.
-   */
-  async function downloadPdf() {
-    if (!noteId || making === 'working') return;
-    setMaking('working');
-    try {
-      const started = await startPrint(notebookId, noteId, {
-        locale: i18n.language === 'pt_BR' ? 'pt_BR' : 'en_US',
-      });
-      const deadline = Date.now() + 3 * 60 * 1000;
-      while (Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const print = await getPrint(started.printId);
-        if (print.status === 'ready' && print.downloadUrl) {
-          window.location.assign(print.downloadUrl);
-          setMaking('idle');
-          return;
-        }
-        if (print.status === 'failed') break;
-      }
-      setMaking('failed');
-    } catch {
-      setMaking('failed');
-    }
-  }
-
   return (
     <NotebookIdProvider notebookId={notebookId}>
       <div
@@ -248,53 +211,6 @@ export function PrintNotePage() {
         data-orientation={orientation}
         {...(asAppendices ? { 'data-appendix-orientation': appendixOrientation } : {})}
       >
-        <div className="print-toolbar" role="toolbar" aria-label={t('print.toolbar')}>
-          <p className="print-hint" role={making === 'failed' ? 'alert' : undefined}>
-            {making === 'failed' ? t('print.downloadFailed') : t('print.hint')}
-            {maintains && making !== 'failed' ? (
-              <>
-                {' '}
-                <a href={styleAddress(notebookId)} target="_blank" rel="noreferrer">
-                  {t('print.styleLink')}
-                </a>
-              </>
-            ) : null}
-          </p>
-          <div className="print-actions">
-            <button
-              type="button"
-              className="button is-quiet"
-              title={t('common.close')}
-              onClick={() => window.close()}
-            >
-              <CloseIcon />
-              <span className="print-action-label">{t('common.close')}</span>
-            </button>
-            <button
-              type="button"
-              className="button is-quiet"
-              title={making === 'working' ? t('print.downloading') : t('print.download')}
-              disabled={pages === null || pages === 0 || making === 'working'}
-              onClick={() => void downloadPdf()}
-            >
-              <DownloadIcon />
-              <span className="print-action-label">
-                {making === 'working' ? t('print.downloading') : t('print.download')}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="button is-primary"
-              title={t('print.print')}
-              disabled={pages === null || pages === 0}
-              onClick={() => window.print()}
-            >
-              <PrinterIcon />
-              <span className="print-action-label">{t('print.print')}</span>
-            </button>
-          </div>
-        </div>
-
         {/* The note as the reading surface draws it, at the width of the
             paper less its margins: what the pages are laid from, never seen. */}
         <div className="print-source" ref={source} aria-hidden="true">

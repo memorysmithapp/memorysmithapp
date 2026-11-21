@@ -51,6 +51,9 @@ describe('a print is polled until its file is made', () => {
     const ready = await get.execute(printId.toLowerCase());
     expect(ready.ok && ready.value.status).toBe('ready');
     expect(ready.ok && ready.value.downloadUrl).toContain(encodeURIComponent('Ata de reunião.pdf'));
+    expect(ready.ok && ready.value.downloadUrl).toContain('as=attachment');
+    // The browser shows it from `url` (#522).
+    expect(ready.ok && ready.value.url).toContain('as=inline');
     expect(ready.ok && ready.value.expiresAt).toBeTruthy();
   });
 

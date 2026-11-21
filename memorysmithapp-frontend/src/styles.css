@@ -7200,34 +7200,6 @@ button.attachment-thumb:focus-visible {
   --sheet-height: 210mm;
 }
 
-.print-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 0.5rem 0.75rem;
-  max-width: var(--sheet-width);
-  margin: 0 auto;
-  padding: 0.75rem 0;
-  background: var(--bg);
-}
-/* The bar holds a hint and the actions: how the note is laid is the
-   notebook's style (#493), which whoever maintains it reaches from the hint. */
-.print-hint {
-  flex: 1 1 18rem;
-  align-self: center;
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 0.875rem;
-}
-.print-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
 /* The style of a notebook (#493): its settings beside a note drawn in them,
    one under the other on a narrow screen. */
 .style-layout {
@@ -7316,32 +7288,9 @@ button.attachment-thumb:focus-visible {
     position: static;
   }
 }
-.print-actions .button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-/* A phone keeps every action, as icons: each still has its name, for the
-   tooltip and for a screen reader. */
 @media (max-width: 720px) {
   .print-page {
     padding: 0 0.5rem 2rem;
-  }
-  .print-toolbar {
-    justify-content: center;
-    align-items: center;
-  }
-  .print-hint {
-    display: none;
-  }
-  .print-toolbar .print-action-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 }
 
@@ -7539,7 +7488,6 @@ button.attachment-thumb:focus-visible {
     overflow: visible;
     padding: 0;
   }
-  .print-toolbar,
   .print-source,
   .print-waiting,
   .environment-banner {

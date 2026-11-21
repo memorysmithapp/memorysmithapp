@@ -255,7 +255,11 @@ export const printRequestSchema = z.object({
 export const printSchema = z.object({
   printId: ulidSchema,
   status: z.enum(['running', 'ready', 'failed']),
-  /** Issued when it is ready, at the moment it is asked for, and never stored. */
+  /**
+   * Issued when it is ready, at the moment it is asked for, and never stored:
+   * `url` for the browser to show the file (#522), `downloadUrl` to save it.
+   */
+  url: z.string().url().optional(),
   downloadUrl: z.string().url().optional(),
   expiresAt: instantSchema.optional(),
   /** Why there is no file: NOT_FOUND, SESSION, TIMED_OUT or FAILED. */

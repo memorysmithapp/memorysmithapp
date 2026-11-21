@@ -314,6 +314,14 @@ export function answeredOn(signed: string, publicOrigin: string | null): string 
  * it — *Ata de reunião.pdf* is saved as *Ata de reunião.pdf*.
  */
 export function attachmentNamed(name: string): string {
+  return dispositionNamed('attachment', name);
+}
+
+/**
+ * The same header for a file the browser shows rather than saves (#522): a
+ * PDF opened in a tab keeps the note's name when it is saved from there.
+ */
+export function dispositionNamed(kind: 'inline' | 'attachment', name: string): string {
   const plain = name
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
@@ -323,7 +331,7 @@ export function attachmentNamed(name: string): string {
     /['()*]/g,
     (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
-  return `attachment; filename="${plain}"; filename*=UTF-8''${encoded}`;
+  return `${kind}; filename="${plain}"; filename*=UTF-8''${encoded}`;
 }
 
 function filenameOf(key: string): string {

@@ -457,7 +457,7 @@ The records ADR-001 to ADR-018 are **reconstructed**: taken before this document
 
 ### ADR-018 PDFs and previews are the app's own page, opened by a server Chromium
 
-- **Context:** a PDF must match what the print tab lays out, and an agent's preview what the person reads.
+- **Context:** a PDF must match what the print page lays out, and an agent's preview what the person reads. Since #522 the print page is opened only by this renderer: the interface reaches a note's PDF and never the page.
 - **Decision:** a worker on `mv-print` opens the application's print or preview page in Chromium with the caller's access token, and refuses every request outside the app, its API, the files host and the fonts. It alone runs on x86_64.
 - **Rationale:** one renderer for the screen, the print, the PDF and the preview; the caller's token means the page reads exactly what that person may read. The Chromium binary exists only for x86_64, and filtering egress keeps a note's image address from reaching the function's network.
 - **Consequences:** prints and previews expire in a day and never count toward storage; a message is never retried.

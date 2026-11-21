@@ -151,7 +151,6 @@ export interface Words {
   /** The action of the bar of a note that opens it on paper (#258). */
   readonly printNote: string;
   /** The button of the print tab that downloads the PDF the server makes (#263). */
-  readonly downloadPdf: string;
   readonly conflict: string;
   /** The (i) beside the order of the notes of a folder, and what it says of each order (#273). */
   readonly noteOrderHint: string;
@@ -260,8 +259,7 @@ export const WORDS: Record<AppLocale, Words> = {
     editSession: 'Edited',
     historyHeading: 'History of this note',
     historyButton: 'History',
-    printNote: 'Print',
-    downloadPdf: 'Download PDF',
+    printNote: 'Generate PDF',
     conflict: 'Somebody else wrote this note',
     noteOrderHint: 'What the order of the notes does',
     noteOrderHintManual:
@@ -368,8 +366,7 @@ export const WORDS: Record<AppLocale, Words> = {
     editSession: 'Editada',
     historyHeading: 'Histórico desta nota',
     historyButton: 'Histórico',
-    printNote: 'Imprimir',
-    downloadPdf: 'Baixar PDF',
+    printNote: 'Gerar PDF',
     conflict: 'Outra pessoa escreveu nesta nota',
     noteOrderHint: 'O que a ordem das notas faz',
     noteOrderHintManual:
