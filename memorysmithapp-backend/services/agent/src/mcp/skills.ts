@@ -1160,6 +1160,14 @@ Read \`get_notebook_context\`: it names the tables the notebook already has,
 with their columns. Rows go into the table that is already there for them;
 \`list_tables\` gives each schema whole.
 
+**What the notes already say is not a table to keep.** Every notebook has
+\`system-notes\`, one row per note with its name, folder, last update, how
+many links reach it and leave it, and one column per attribute of its
+frontmatter. A count of notes by status, the due dates of the tasks, the
+notes nobody links to: query it, and never create a table that repeats the
+frontmatter, which drifts the moment one is written without the other. It is
+read only, and no table may be named with the prefix \`system-\`.
+
 ## Where the rows come from
 
 Whichever way they come, **the person sees the columns before the table
@@ -1260,6 +1268,11 @@ notebook.
 \`list_tables\` gives each table with its columns and types: a dashboard can
 only draw what they hold. \`list_dashboards\` says whether one already shows
 the data, which you then change with \`update_dashboard\` instead of copying.
+
+A panel about the notes themselves — notes by status, by folder, by month of a
+date in their frontmatter, a Kanban of the tasks, the notes with no backlink —
+draws from \`system-notes\`, the table every notebook has with one row per
+note. Filter it by \`folder\` when only one folder's notes belong.
 
 ## The definition
 

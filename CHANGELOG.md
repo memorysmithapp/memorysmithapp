@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **Every notebook has a system table of its notes, `system-notes`.** It holds one row per note: its name, folder, last update, how many links reach it and how many it makes, and one column per attribute its notes declare in their frontmatter, each typed by how the notes wrote it. A dashboard and a note's `table` block draw from it as from any table, so a panel of notes by status, of the due dates of the tasks or of the notes nobody links to needs no table repeating the frontmatter; filter it by `folder` for one folder's notes. It follows the notes once they are projected, holds the 10,000 most recently written, and counts in neither the 50 tables nor the space of the subscription. Nothing writes, alters or deletes it, an export leaves it out, and no table may be named with the prefix `system-`. The Tables page marks it as a system table, and the connector says so in `list_tables` and in the context of the notebook (#517).
+
 ### Changed
 
 - **A click or a tap on a node of the graph holds it, and a second one opens it.** The first click or tap on a note, a folder, a table, a dashboard or a file keeps its lines lit and names it, a note with its folder, and its neighbors, until another node is chosen or the empty canvas is clicked; a second one on it, or *Open* at the foot of the graph, opens it, so a double click opens too. On a phone or a tablet, where there is no hover, this is how a note is ever named or its links seen; with a mouse the highlight no longer goes away when the pointer moves to a neighbor. A note chosen inside an attribute's held group keeps the group on the drawing (#515).

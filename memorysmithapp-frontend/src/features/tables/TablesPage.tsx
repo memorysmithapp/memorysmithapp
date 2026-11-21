@@ -35,6 +35,7 @@ const PAGE_SIZE = 25;
  */
 export function TablesPage() {
   const { t, i18n } = useTranslation();
+  const descriptionOf = useDescriptionOf();
   const locale = intlLocale(i18n.language);
   const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
@@ -130,10 +131,11 @@ export function TablesPage() {
                           <span className="table-row-meta">
                             {t('tables.columns', { count: columnsOf(table).length })} ·{' '}
                             {t('tables.rows', { count: table.rows })} ·{' '}
-                            {formatBytes(table.bytes, locale)}
+                            {/* The system table holds no bytes: it is the notes, read (#517). */}
+                            {table.system ? t('tables.system') : formatBytes(table.bytes, locale)}
                           </span>
-                          {table.description ? (
-                            <span className="table-row-desc">{table.description}</span>
+                          {descriptionOf(table) ? (
+                            <span className="table-row-desc">{descriptionOf(table)}</span>
                           ) : null}
                         </span>
                       </button>
@@ -151,6 +153,15 @@ export function TablesPage() {
 
 type Tab = 'data' | 'schema';
 
+/**
+ * What a table is for, in the reader's language for the system table, whose
+ * description the server writes the same in every notebook (#517).
+ */
+function useDescriptionOf(): (table: NotebookTableDto) => string {
+  const { t } = useTranslation();
+  return (table) => (table.system ? t('tables.systemDescription') : table.description);
+}
+
 function TableDetail({
   notebookId,
   table,
@@ -163,6 +174,7 @@ function TableDetail({
   notes: readonly NoteRefDto[];
 }) {
   const { t } = useTranslation();
+  const descriptionOf = useDescriptionOf();
   const [tab, setTab] = useState<Tab>('data');
   const columns = columnsOf(table);
 
@@ -171,8 +183,11 @@ function TableDetail({
       <header className="table-detail-head">
         <div>
           <h1 className="table-detail-name">{table.name}</h1>
-          {table.description ? <p className="table-detail-desc">{table.description}</p> : null}
+          {descriptionOf(table) ? (
+            <p className="table-detail-desc">{descriptionOf(table)}</p>
+          ) : null}
           <p className="table-detail-meta">
+            {table.system ? `${t('tables.system')} · ` : ''}
             {t('tables.rows', { count: table.rows })} ·{' '}
             {t('tables.columns', { count: columns.length })}
             {table.key ? ` · ${t('tables.keyIs', { columns: table.key.join(', ') })}` : ''}

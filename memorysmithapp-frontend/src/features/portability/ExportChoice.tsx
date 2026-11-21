@@ -151,10 +151,13 @@ export function ExportChoice({
     queryFn: () => listTables(notebookId),
     enabled: open && notebookId !== '',
   });
-  const offeredTables = (tables.data ?? []).map((table) => ({
-    name: table.name,
-    rows: table.rows,
-  }));
+  // The system table travels as nothing: the notebook that receives the notes has its own (#517).
+  const offeredTables = (tables.data ?? [])
+    .filter((table) => !table.system)
+    .map((table) => ({
+      name: table.name,
+      rows: table.rows,
+    }));
   const dashboards = useQuery({
     queryKey: queryKeys.notebookDashboards(notebookId),
     queryFn: () => listDashboards(notebookId),

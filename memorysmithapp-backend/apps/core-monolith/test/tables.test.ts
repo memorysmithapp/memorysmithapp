@@ -107,7 +107,11 @@ describe('a notebook keeps tables', () => {
     const listed = tableListSchema.parse(
       await (await call(`/knowledge/notebooks/${notebookId}/tables`)).json(),
     );
-    expect(listed.tables).toHaveLength(1);
+    // The table it created, then the system table every notebook has (#517).
+    expect(listed.tables.map((each) => [each.name, each.system])).toEqual([
+      ['expenses', false],
+      ['system-notes', true],
+    ]);
     const [table] = listed.tables;
     expect(table?.name).toBe('expenses');
     expect(table?.schema['required']).toEqual(['date', 'description', 'amount']);
@@ -421,8 +425,9 @@ describe('rows from a file the notebook keeps', () => {
       Situação: { type: 'string' },
     });
     expect(
-      tableListSchema.parse(await (await call(`/knowledge/notebooks/${notebookId}/tables`)).json())
-        .tables,
+      tableListSchema
+        .parse(await (await call(`/knowledge/notebooks/${notebookId}/tables`)).json())
+        .tables.filter((table) => !table.system),
     ).toHaveLength(0);
 
     await call(`/knowledge/notebooks/${notebookId}/tables`, {
@@ -555,8 +560,10 @@ describe('the tables of a notebook in a transfer (RN-PRT-057)', () => {
     const back = tableListSchema.parse(
       await (await call(`/knowledge/notebooks/${job.notebookId}/tables`)).json(),
     );
+    // The system table did not travel: the notebook that received the notes has its own.
     expect(back.tables.map((table) => [table.name, table.key])).toEqual([
       ['expenses', ['date', 'description']],
+      ['system-notes', ['note']],
     ]);
     const page = await query(job.notebookId, 'expenses', {
       sort: [{ column: 'date', direction: 'asc' }],
@@ -600,7 +607,7 @@ describe('the tables of a notebook in a transfer (RN-PRT-057)', () => {
     const back = tableListSchema.parse(
       await (await call(`/knowledge/notebooks/${job.notebookId}/tables`)).json(),
     );
-    expect(back.tables.map((table) => table.name)).toEqual(['expenses']);
+    expect(back.tables.map((table) => table.name)).toEqual(['expenses', 'system-notes']);
     expect((await query(job.notebookId, 'expenses')).total).toBe(0);
     // The notebook the transfer came from is as it was.
     expect((await query(notebookId, 'expenses')).total).toBe(1);

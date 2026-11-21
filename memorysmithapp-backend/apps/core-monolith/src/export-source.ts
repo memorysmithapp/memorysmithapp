@@ -21,6 +21,7 @@ import type {
   DashboardRepository,
 } from '@memorysmithapp/svc-knowledge/domain';
 import {
+  isSystemTable,
   NotebookStyle,
   presentCell,
   presentDefinition,
@@ -100,9 +101,13 @@ export class KnowledgeExportSource implements ExportSource {
     const guidanceSlot = await this.knowledge.slots.findGuidance(parsed.value);
     const lastNumbers = await this.knowledge.numbers.lastIssued(parsed.value);
     const kept = await this.knowledge.files.list(parsed.value);
-    const tables = await this.knowledge.tables.list(parsed.value);
+    const listed = await this.knowledge.tables.list(parsed.value);
+    // The system table travels as nothing: the notebook that receives the
+    // notes has its own, built from them, and a dashboard drawn from it names
+    // it as any other table (#517).
+    const tables = listed.filter((table) => !isSystemTable(table));
     const dashboards = await this.knowledge.dashboards.list(parsed.value);
-    const shapes = tables.map((table) => ({
+    const shapes = listed.map((table) => ({
       tableId: table.id.value,
       name: table.name,
       columns: table.columns,

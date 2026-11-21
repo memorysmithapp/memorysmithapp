@@ -1705,8 +1705,9 @@ describe('the path an agent takes passes through the method of its task', () => 
       await instructions(),
     ].join('\n');
     // A skill is the one thing served in backticks with a hyphen in its name.
-    // The access names of a share are values an answer carries, not skills.
-    const values = new Set(['content-editor', 'notebook-editor']);
+    // The access names of a share are values an answer carries, not skills,
+    // and so is the name of the system table (#517).
+    const values = new Set(['content-editor', 'notebook-editor', 'system-notes']);
     const cited = [...served.matchAll(/`([a-z0-9]+(?:-[a-z0-9]+)+)`/g)]
       .map((match) => match[1])
       .filter((name) => !values.has(name ?? ''));

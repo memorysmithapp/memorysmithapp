@@ -284,6 +284,8 @@ import { createApp } from '../src/app.js';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { Email, StorageQuota } from '@memorysmithapp/svc-access/domain/values';
 import { noSubscription, SubscriptionUsageReport } from '../src/usage.js';
+import { SystemAwareTableRepository } from '@memorysmithapp/svc-knowledge/application/system-tables';
+import { DiscoveryNoteProjections } from '../src/note-projections.js';
 
 export class RecordingEventPublisher implements EventPublisher {
   readonly published: DomainEvent[] = [];
@@ -409,26 +411,36 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     return made;
   };
 
-  const knowledgeRepos = (context: SubscriptionContext) => ({
-    notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
-    notes: new InMemoryNoteRepository(context, knowledgeDb, events),
-    slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
-    numbers: new InMemoryFolderNumbers(context, knowledgeDb),
-    content: new InMemoryContentStore(context, knowledgeDb),
-    // The files of a notebook and their bytes (#166), each in a map of its own
-    // per subscription, which is what the partition of the table is.
-    files: fileRepositoryOf(context),
-    fileStore: fileStoreOf(context),
-    // The same list production injects, from the same published table (#166).
-    fileTypes: FILE_TYPE_CATALOGUE,
-    // The Tables of a notebook and their rows (#366), kept between calls too.
-    tables: tableRepositoryOf(context),
-    sheets: new SpreadsheetReader(),
-    dashboards: dashboardRepositoryOf(context),
-    storage,
-    // The same list production injects, from the same specification (RN-AGT-025).
-    reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
-  });
+  const knowledgeRepos = (context: SubscriptionContext) => {
+    const notebooks = new InMemoryNotebookRepository(context, knowledgeDb, events);
+    const notes = new InMemoryNoteRepository(context, knowledgeDb, events);
+    return {
+      notebooks,
+      notes,
+      slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
+      numbers: new InMemoryFolderNumbers(context, knowledgeDb),
+      content: new InMemoryContentStore(context, knowledgeDb),
+      // The files of a notebook and their bytes (#166), each in a map of its own
+      // per subscription, which is what the partition of the table is.
+      files: fileRepositoryOf(context),
+      fileStore: fileStoreOf(context),
+      // The same list production injects, from the same published table (#166).
+      fileTypes: FILE_TYPE_CATALOGUE,
+      // The Tables of a notebook and their rows (#366), kept between calls too.
+      // Beside them the system table, over the same Discovery the harness
+      // projects into, as production wires it (#517).
+      tables: new SystemAwareTableRepository(tableRepositoryOf(context), {
+        notebooks,
+        notes,
+        projections: new DiscoveryNoteProjections(discovery),
+      }),
+      sheets: new SpreadsheetReader(),
+      dashboards: dashboardRepositoryOf(context),
+      storage,
+      // The same list production injects, from the same specification (RN-AGT-025).
+      reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
+    };
+  };
 
   /** The shares of notebooks between subscriptions, over the same module production uses. */
   const accounts = new InMemoryAccountLookup();

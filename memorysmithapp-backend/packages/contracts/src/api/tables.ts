@@ -25,6 +25,12 @@ export const notebookTableSchema = z.object({
   bytes: z.number().int().nonnegative(),
   updatedAt: instantSchema,
   authorship: authorshipSchema,
+  /**
+   * A system table (#517): read from the notes of the notebook, the same in
+   * every notebook, and written, altered and deleted by nothing. Absent from
+   * an answer older than it.
+   */
+  system: z.boolean().optional(),
 });
 
 export const tableListSchema = z.object({ tables: z.array(notebookTableSchema) });

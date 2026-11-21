@@ -36,6 +36,7 @@ import type { ContentSlot } from '../content-slot/ContentSlot.js';
 import type { Guidance } from '../content-slot/Guidance.js';
 import type { Template } from '../content-slot/Template.js';
 import type { NoteOrder } from '../services/NotePlacement.js';
+import type { NoteFacet } from '../table/SystemTable.js';
 
 export interface NotebookRepository {
   /**
@@ -303,6 +304,19 @@ export interface TableRepository {
    * the locked table, so a change made meanwhile refuses the move.
    */
   replaceRows(next: Table, rows: readonly Row[]): Promise<Result<void, DomainError>>;
+}
+
+/**
+ * What Discovery projected of the notes of a notebook, which the system table
+ * reads (#517): the portrait of each note, by attribute, and how many links
+ * reach it and leave it. Knowledge holds no copy of it; the composition root
+ * answers it from Discovery, the context that projects it.
+ */
+export interface NoteProjections {
+  read(notebook: NotebookId): Promise<{
+    readonly facets: ReadonlyMap<string, Readonly<Record<string, NoteFacet>>>;
+    readonly degrees: ReadonlyMap<string, { readonly backlinks: number; readonly links: number }>;
+  }>;
 }
 
 /**

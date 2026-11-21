@@ -14,6 +14,7 @@ interface Table {
   schema: Record<string, unknown>;
   key: string[] | null;
   rows: number;
+  system?: boolean;
 }
 
 interface Page {
@@ -36,6 +37,44 @@ const EXPENSES = {
 };
 
 test.describe('the tables of a notebook', () => {
+  test('[route:GET /knowledge/notebooks/:v/tables] [route:POST /knowledge/notebooks/:v/tables/:t/query] has a system table of its notes, read from them and written by nothing (#517)', async ({
+    owner,
+    notebook,
+  }) => {
+    const note = await owner.ok<{ noteId: string }>(
+      'POST',
+      `/knowledge/notebooks/${notebook.notebookId}/notes`,
+      {
+        folderId: notebook.folderId,
+        content: `---\nname: ${unique('Tarefa')}\nstatus: open\ndue: 2026-12-01\n---\n\nUma tarefa.`,
+      },
+    );
+    const listed = await owner.ok<{ tables: Table[] }>('GET', tablesPath(notebook));
+    expect(listed.tables.find((table) => table.name === 'system-notes')).toMatchObject({
+      system: true,
+      key: ['note'],
+    });
+
+    const system = `${tablesPath(notebook)}/system-notes`;
+    const row = await eventually(
+      'the note is a row of the system table, with its frontmatter',
+      () => owner.ok<Page>('POST', `${system}/query`, { where: 'status:open', pageSize: 100 }),
+      (page) => page.rows.some((each) => each.rowId === note.noteId),
+    );
+    expect(row.rows.find((each) => each.rowId === note.noteId)?.values).toMatchObject({
+      status: 'open',
+      due: '2026-12-01',
+    });
+
+    const refused = await owner.call('POST', `${system}/rows`, { rows: [{ name: 'x' }] });
+    expect(refused.status).toBe(400);
+    expect((await owner.call('DELETE', system)).status).toBe(400);
+    const prefixed = await owner.call('POST', tablesPath(notebook), {
+      name: unique('system-mine').replace(/\s+/g, '-'),
+      schema: EXPENSES,
+    });
+    expect(prefixed.status).toBe(400);
+  });
   test('[route:POST /knowledge/notebooks/:v/tables] [route:GET /knowledge/notebooks/:v/tables] [route:GET /knowledge/notebooks/:v/tables/:t] creates a table from JSON Schema, lists it and reads it by name', async ({
     owner,
     notebook,

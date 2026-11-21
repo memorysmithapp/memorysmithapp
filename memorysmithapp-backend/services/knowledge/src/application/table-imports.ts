@@ -32,6 +32,7 @@ import { inferColumns, proposedSchema, columnNameOf } from '../domain/table/Sche
 import { sameColumnName, TABLE_LIMITS } from '../domain/table/TableSchema.js';
 import type { Table } from '../domain/table/Table.js';
 import { loadAuthorized } from './notebooks.js';
+import { isSystemTable, refuseSystemTable } from '../domain/table/SystemTable.js';
 import { InsertRows, resolveTable, rowsChecked, type TableDependencies } from './tables.js';
 
 export interface TableImportDependencies extends TableDependencies {
@@ -122,6 +123,7 @@ export class ImportTableRows {
 
     const table = await resolveTable(this.deps, input.notebookId, input.table as string);
     if (!table.ok) return table;
+    if (isSystemTable(table.value)) return refuseSystemTable(table.value);
     const rows = rowsOf(table.value, sheet);
     if (!rows.ok) return rows;
 

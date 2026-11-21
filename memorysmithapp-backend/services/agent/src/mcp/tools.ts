@@ -373,6 +373,7 @@ function tablesSection(
     schema: Record<string, unknown>;
     key: string[] | null;
     rows: number;
+    system?: boolean | undefined;
   }>,
 ): string {
   if (tables.length === 0) return '';
@@ -380,7 +381,10 @@ function tablesSection(
     const columns = Object.keys((table.schema['properties'] as Record<string, unknown>) ?? {});
     const key = table.key ? `; key ${table.key.join(', ')}` : '';
     const about = table.description ? ` \u2014 ${table.description}` : '';
-    return `- **${table.name}**${about} (${table.rows} rows; columns ${columns.join(', ')}${key})`;
+    // The system table is read and never written (#517): saying so here saves
+    // the agent a refused write.
+    const kind = table.system ? 'system table, read only; ' : '';
+    return `- **${table.name}**${about} (${kind}${table.rows} rows; columns ${columns.join(', ')}${key})`;
   });
   return [
     '## Tables',

@@ -36,6 +36,7 @@ import {
   type RowPage,
 } from '../domain/table/RowQuery.js';
 import { Table, type TableChange } from '../domain/table/Table.js';
+import { isSystemTable, refuseSystemTable } from '../domain/table/SystemTable.js';
 import { aggregate, type AggregateGroup, readAggregate } from '../domain/table/RowAggregate.js';
 import {
   cellOf,
@@ -104,7 +105,10 @@ export class CreateTable {
     const read = readSchema(input.schema);
     if (!read.ok) return read;
 
-    const existing = await this.deps.tables.list(input.notebookId);
+    // The system table counts in no limit: nobody created it (#517).
+    const existing = (await this.deps.tables.list(input.notebookId)).filter(
+      (table) => !isSystemTable(table),
+    );
     if (existing.length >= TABLE_LIMITS.tablesPerNotebook) {
       return err(
         DomainError.limitExceeded(
@@ -194,6 +198,7 @@ export class AlterTable {
     if (!notebook.ok) return notebook;
     const table = await resolveTable(this.deps, input.notebookId, input.table);
     if (!table.ok) return table;
+    if (isSystemTable(table.value)) return refuseSystemTable(table.value);
 
     const renamed = input.changes.findLast((change) => change.op === 'rename-table');
     if (renamed && renamed.op === 'rename-table') {
@@ -266,6 +271,7 @@ export class DeleteTable {
     if (!notebook.ok) return notebook;
     const table = await resolveTable(this.deps, input.notebookId, input.table);
     if (!table.ok) return table;
+    if (isSystemTable(table.value)) return refuseSystemTable(table.value);
 
     // Counted from the rows themselves, so the bytes that leave the count are
     // the bytes the table holds, whatever the relay has caught up with.
@@ -436,6 +442,7 @@ async function writable(
   if (!notebook.ok) return notebook;
   const table = await resolveTable(deps, notebookId, reference);
   if (!table.ok) return table;
+  if (isSystemTable(table.value)) return refuseSystemTable(table.value);
   if (table.value.isLocked(Instant.now())) {
     return err(
       DomainError.conflict('The table is being altered: write its rows again in a moment'),

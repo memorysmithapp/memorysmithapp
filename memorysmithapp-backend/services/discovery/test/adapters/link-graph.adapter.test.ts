@@ -691,3 +691,38 @@ describe('DynamoLinkGraph: reading the note answers what reading the notebook an
     await new DynamoFacetIndex(subscription, db, table).removeNotebook(notebookId);
   });
 });
+
+describe('the system table reads the notes as Discovery projected them (#517)', () => {
+  it('counts the links of every note, and gives each portrait with the form its values were written in', async () => {
+    const subscription = SubscriptionId.generate();
+    const notebookId = NotebookId.generate().value;
+    const graph = new DynamoLinkGraph(subscription, db, table);
+    const facets = new DynamoFacetIndex(subscription, db, table);
+
+    await graph.replaceOutgoing(notebookId, note('n2', 'Plano'), []);
+    await graph.replaceOutgoing(notebookId, note('n3', 'Ana'), []);
+    await graph.replaceOutgoing(notebookId, note('n1', 'Compra'), [
+      { name: 'Plano', anchor: null },
+      { name: 'Ana', anchor: null },
+    ]);
+    await graph.replaceOutgoing(notebookId, note('n2', 'Plano'), [{ name: 'Ana', anchor: null }]);
+    expect(Object.fromEntries(await graph.degrees(notebookId))).toEqual({
+      n1: { backlinks: 0, links: 2 },
+      n2: { backlinks: 1, links: 1 },
+      n3: { backlinks: 2, links: 0 },
+    });
+
+    await facets.replaceFacets(notebookId, 'n1', {
+      status: { facet: 'status', kind: 'enum', values: ['open'] },
+      due: { facet: 'due', kind: 'date', values: ['2026-12-01'] },
+    });
+    const portraits = await facets.notebookPortraits(notebookId);
+    expect(portraits.get('n1')).toEqual({
+      status: { facet: 'status', kind: 'enum', values: ['open'] },
+      due: { facet: 'due', kind: 'date', values: ['2026-12-01'] },
+    });
+
+    await graph.removeNotebook(notebookId);
+    await facets.removeNotebook(notebookId);
+  });
+});

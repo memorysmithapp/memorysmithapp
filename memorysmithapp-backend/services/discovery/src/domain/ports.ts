@@ -213,6 +213,12 @@ export interface LinkGraph {
   pending(notebookId: string): Promise<PendingLink[]>;
   /** Every note and every edge of the notebook, for the graph view. */
   wholeGraph(notebookId: string): Promise<NotebookGraph>;
+  /**
+   * How many links reach each note and how many it makes, for every note with
+   * one, with no ceiling: the system table counts every note (#517), where the
+   * graph view stops at its own.
+   */
+  degrees(notebookId: string): Promise<Map<string, { backlinks: number; links: number }>>;
   orphans(notebookId: string, allNotes: NoteRef[]): Promise<NoteRef[]>;
   /**
    * The files the notebook keeps that no note names (#253, RN-DSC-064): kept,
@@ -330,6 +336,11 @@ export interface FacetIndex {
    * say", which is the question the graph view asks in order to color a node.
    */
   notebookNoteFacets(notebookId: string): Promise<Map<string, Record<string, string[]>>>;
+  /**
+   * The same portraits with the form each value was written in, which the
+   * system table types its columns by (#517).
+   */
+  notebookPortraits(notebookId: string): Promise<Map<string, FacetSnapshot>>;
   /**
    * Every portrait, every counter and every definition of the notebook, gone in
    * one sweep. A counter of a notebook that no longer exists is not worth

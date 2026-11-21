@@ -70,6 +70,7 @@ import { ACTIVITY_SECONDS, GRAPH_LIMITS } from '../domain/ports.js';
 import { usesOf } from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf, type FacetSnapshot } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
+import { countDegrees } from '../domain/Degrees.js';
 
 type Item = Record<string, unknown>;
 
@@ -1590,6 +1591,16 @@ export class DynamoLinkGraph implements LinkGraph {
    * because the projector never needs them and a port is what a caller needs.
    */
 
+  /** One prefix query of the outgoing edges, counted at both ends (#517). */
+  async degrees(notebookId: string): Promise<Map<string, { backlinks: number; links: number }>> {
+    return countDegrees(
+      (await this.query(notebookId, 'OUT#')).map((item) => ({
+        fromNoteId: String(item['fromNoteId']),
+        toNoteId: String(item['toNoteId']),
+      })),
+    );
+  }
+
   /** Every edge the notebook holds right now, for the before and after of a run. */
   async currentEdges(notebookId: string): Promise<Array<{ from: string; to: string }>> {
     return (await this.query(notebookId, 'OUT#')).map((item) => ({
@@ -1890,6 +1901,16 @@ export class DynamoFacetIndex implements FacetIndex {
       portraits.map((item) => [
         String(item['noteId']),
         valuesOf((item['facets'] as FacetSnapshot | undefined) ?? {}),
+      ]),
+    );
+  }
+
+  async notebookPortraits(notebookId: string): Promise<Map<string, FacetSnapshot>> {
+    const portraits = await this.query(notebookId, 'FACET#');
+    return new Map(
+      portraits.map((item) => [
+        String(item['noteId']),
+        (item['facets'] as FacetSnapshot | undefined) ?? {},
       ]),
     );
   }
