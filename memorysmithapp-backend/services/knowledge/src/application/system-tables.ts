@@ -8,9 +8,10 @@
  * a query, a dashboard, a `table` block and the connector see the same rows
  * without one of them knowing it is a view.
  *
- * It is built once per request: the repository is built per request, and a
- * dashboard that asks for the schema, then the table, then its rows reads the
- * notes once.
+ * A build is kept for a moment, `keepMs`: a dashboard that asks for the
+ * schema, then the table, then its rows within one request reads the notes
+ * once, while a worker that holds the repository for a whole import sees the
+ * notes it wrote once Discovery projected them.
  */
 
 import {
@@ -45,20 +46,24 @@ export interface SystemTableSources {
 }
 
 export class SystemAwareTableRepository implements TableRepository {
-  private readonly built = new Map<string, Promise<{ table: Table; rows: Row[] } | null>>();
+  private readonly built = new Map<
+    string,
+    { at: number; build: Promise<{ table: Table; rows: Row[] } | null> }
+  >();
 
   constructor(
     private readonly stored: TableRepository,
     private readonly sources: SystemTableSources,
+    private readonly keepMs = 2_000,
   ) {}
 
   private system(notebook: NotebookId): Promise<{ table: Table; rows: Row[] } | null> {
-    let found = this.built.get(notebook.value);
-    if (!found) {
-      found = this.build(notebook);
-      this.built.set(notebook.value, found);
-    }
-    return found;
+    const now = Date.now();
+    const found = this.built.get(notebook.value);
+    if (found && now - found.at < this.keepMs) return found.build;
+    const build = this.build(notebook);
+    this.built.set(notebook.value, { at: now, build });
+    return build;
   }
 
   private async build(notebook: NotebookId): Promise<{ table: Table; rows: Row[] } | null> {

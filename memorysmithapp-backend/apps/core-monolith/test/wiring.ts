@@ -429,11 +429,13 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
       // The Tables of a notebook and their rows (#366), kept between calls too.
       // Beside them the system table, over the same Discovery the harness
       // projects into, as production wires it (#517).
-      tables: new SystemAwareTableRepository(tableRepositoryOf(context), {
-        notebooks,
-        notes,
-        projections: new DiscoveryNoteProjections(discovery),
-      }),
+      // Built again on every read: the harness projects by hand, between
+      // calls that come quicker than the moment production keeps a build.
+      tables: new SystemAwareTableRepository(
+        tableRepositoryOf(context),
+        { notebooks, notes, projections: new DiscoveryNoteProjections(discovery) },
+        0,
+      ),
       sheets: new SpreadsheetReader(),
       dashboards: dashboardRepositoryOf(context),
       storage,
@@ -687,6 +689,21 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
   });
   const projectStructure = new ProjectStructure(discovery.structure);
+  /** Projects every note the writes so far published, as the bus would (#517). */
+  const projectWrittenNotes = async (): Promise<void> => {
+    for (const event of events.published) {
+      if (event.type !== 'NoteCreated' && event.type !== 'NoteUpdated') continue;
+      const payload = event.payload as Record<string, unknown>;
+      await projectNote.onWritten({
+        notebookId: String(payload['notebookId']),
+        noteId: String(payload['noteId']),
+        folderId: String(payload['folderId']),
+        contentRef: event.contentRef
+          ? { contentId: event.contentRef.contentId.value, versionId: event.contentRef.versionId }
+          : null,
+      });
+    }
+  };
 
   const discoveryUseCases: DiscoveryUseCases = {
     related: () => new RelatedNotes(discoveryDeps),
@@ -1133,6 +1150,11 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.ctx,
         request.subscription.subscriptionId,
         knowledgeRepos(request.subscription).content,
+        // The wait for the projection, which the harness lands itself (#517).
+        async (attempt) => {
+          await projectWrittenNotes();
+          return attempt <= 2;
+        },
       ),
     /** What an upload in parts becomes a file with, over the same use cases (RN-PRT-027). */
     fileKeeperFor: (request) =>

@@ -1272,7 +1272,10 @@ the data, which you then change with \`update_dashboard\` instead of copying.
 A panel about the notes themselves — notes by status, by folder, by month of a
 date in their frontmatter, a Kanban of the tasks, the notes with no backlink —
 draws from \`system-notes\`, the table every notebook has with one row per
-note. Filter it by \`folder\` when only one folder's notes belong.
+note. Filter it by \`folder\` when only one folder's notes belong. Its column
+of an attribute appears a few seconds after the first note declaring it is
+written: a definition naming it before then is refused naming the column, and
+is accepted when tried again.
 
 ## The definition
 

@@ -109,13 +109,17 @@ const infra: Infrastructure = {
   // the subscription is read here, from the same place the API reads it.
   accessTable: required('ACCESS_TABLE'),
   /**
-   * The worker touches the PROJECTIONS through nothing: they are fed by the
-   * events its writes publish. The trail it does touch, in both directions: an
-   * export may carry it (RN-PRT-022) and an import brings it back
-   * (RN-PRT-023).
+   * The trail it touches in both directions: an export may carry it
+   * (RN-PRT-022) and an import brings it back (RN-PRT-023).
    */
   auditTable: required('AUDIT_TABLE'),
-  discoveryTable: '',
+  /**
+   * The projections it writes through nothing: they are fed by the events its
+   * writes publish. It reads them for the system table alone (#517): an export
+   * names it in a dashboard drawn from it, and an import checks such a
+   * dashboard against the notes it just wrote, once projected.
+   */
+  discoveryTable: required('DISCOVERY_TABLE'),
   portabilityTable: required('PORTABILITY_TABLE'),
   contentBucket: required('CONTENT_BUCKET'),
 };

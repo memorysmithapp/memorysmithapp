@@ -241,6 +241,59 @@ describe('the system table of a notebook (#517)', () => {
     });
   });
 
+  it("travels as nothing, and a dashboard drawn from it comes back drawn from the new notebook's own", async () => {
+    const created = await call(`/knowledge/notebooks/${notebookId}/dashboards`, {
+      method: 'POST',
+      body: {
+        name: 'Andamento',
+        definition: {
+          components: [
+            {
+              id: 'by-status',
+              type: 'bar',
+              source: { table: 'system-notes', group: 'status', measures: ['count()'] },
+            },
+          ],
+        },
+      },
+    });
+    expect(created.status).toBe(201);
+
+    const started = await call(`/portability/notebooks/${notebookId}/export`, {
+      method: 'POST',
+      body: {},
+    });
+    const { transferId } = (await started.json()) as { transferId: string };
+    const copied = await call('/portability/imports/from-export', {
+      method: 'POST',
+      body: { transferId },
+    });
+    const { uploadKey } = (await copied.json()) as { uploadKey: string };
+    const applied = await call('/portability/imports/apply', {
+      method: 'POST',
+      body: { uploadKey, name: 'Projeto, de volta' },
+    });
+    const { transferId: job } = (await applied.json()) as { transferId: string };
+    const done = (await (await call(`/portability/transfers/${job}`)).json()) as {
+      status: string;
+      notebookId: string;
+      failure: string | null;
+    };
+    expect(done).toMatchObject({ status: 'ready', failure: null });
+
+    const back = tableListSchema.parse(
+      await (await call(`/knowledge/notebooks/${done.notebookId}/tables`)).json(),
+    );
+    expect(back.tables.map((table) => table.name)).toEqual(['system-notes']);
+    const data = (await (
+      await call(`/knowledge/notebooks/${done.notebookId}/dashboards/Andamento/data`, {
+        method: 'POST',
+        body: {},
+      })
+    ).json()) as { components: Array<Record<string, unknown>> };
+    expect(data.components[0]).toMatchObject({ status: 'ok' });
+  });
+
   it('is written, altered and deleted by nothing, and no table takes its prefix', async () => {
     const refused = async (path: string, method: string, body: unknown) => {
       const answer = await call(path, { method, body });

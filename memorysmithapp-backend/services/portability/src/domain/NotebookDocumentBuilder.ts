@@ -192,6 +192,9 @@ export function tablesOfDashboard(dashboard: DocumentDashboard): string[] {
  * its rows or with its schema alone. One that lost a table cannot be read
  * where it lands, so it stays behind.
  */
+/** The names the system tables of every notebook keep for themselves (RN-KNW-094). */
+const SYSTEM_TABLE_PREFIX = 'system-';
+
 export function dashboardsCarried(
   dashboards: readonly DocumentDashboard[],
   tables: ReadonlyArray<{ readonly name: string }>,
@@ -203,9 +206,12 @@ export function dashboardsCarried(
       source?: { table?: string | null };
     }>;
     if (components.some((each) => each.source && !each.source.table)) return false;
-    return tablesOfDashboard(dashboard).every((name) =>
-      kept.has(name.normalize('NFC').toLowerCase()),
-    );
+    // A system table never travels and is always there: the notebook that
+    // receives the notes has its own (#517, RN-KNW-094).
+    return tablesOfDashboard(dashboard).every((name) => {
+      const folded = name.normalize('NFC').toLowerCase();
+      return kept.has(folded) || folded.startsWith(SYSTEM_TABLE_PREFIX);
+    });
   });
 }
 

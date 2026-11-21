@@ -56,10 +56,14 @@ test.describe('the tables of a notebook', () => {
     });
 
     const system = `${tablesPath(notebook)}/system-notes`;
+    // A column of an attribute exists once a note declaring it is projected:
+    // until then a filter naming it is refused, as a filter of any table
+    // naming a column it lacks, so the row is awaited unfiltered.
     const row = await eventually(
       'the note is a row of the system table, with its frontmatter',
-      () => owner.ok<Page>('POST', `${system}/query`, { where: 'status:open', pageSize: 100 }),
-      (page) => page.rows.some((each) => each.rowId === note.noteId),
+      () => owner.ok<Page>('POST', `${system}/query`, { all: true }),
+      (page) =>
+        page.rows.some((each) => each.rowId === note.noteId && each.values['status'] === 'open'),
     );
     expect(row.rows.find((each) => each.rowId === note.noteId)?.values).toMatchObject({
       status: 'open',

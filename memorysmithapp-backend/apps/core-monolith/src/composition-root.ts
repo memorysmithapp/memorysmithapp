@@ -269,18 +269,21 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     // the rows in one of the table's own.
     // Beside them, the system table (#517, ADR-031): a view of the notes,
     // built from what Discovery projected of them under the same subscription,
-    // and written by nothing.
-    tables: new SystemAwareTableRepository(
-      new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
-      {
-        notebooks,
-        notes,
-        projections: new DiscoveryNoteProjections({
-          graph: new DynamoLinkGraph(context.subscriptionId, infra.db, infra.discoveryTable),
-          facets: new DynamoFacetIndex(context.subscriptionId, infra.db, infra.discoveryTable),
-        }),
-      },
-    ),
+    // and written by nothing. A deployable that reaches no Discovery table, the
+    // public catalog, sees the stored tables alone.
+    tables: infra.discoveryTable
+      ? new SystemAwareTableRepository(
+          new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
+          {
+            notebooks,
+            notes,
+            projections: new DiscoveryNoteProjections({
+              graph: new DynamoLinkGraph(context.subscriptionId, infra.db, infra.discoveryTable),
+              facets: new DynamoFacetIndex(context.subscriptionId, infra.db, infra.discoveryTable),
+            }),
+          },
+        )
+      : new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
     // What reads the rows of a CSV or an Excel file the notebook keeps.
     sheets: SPREADSHEETS,
     // The dashboards drawn from the tables (#368).

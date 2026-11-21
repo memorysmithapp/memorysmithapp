@@ -36,6 +36,7 @@ import {
 import type { CreateTable, InsertRows } from '@memorysmithapp/svc-knowledge/application/tables';
 import type { CreateDashboard } from '@memorysmithapp/svc-knowledge/application/dashboards';
 import type { ContentStore, RequestContext } from '@memorysmithapp/svc-knowledge/domain';
+import { SYSTEM_NOTES_ID } from '@memorysmithapp/svc-knowledge/domain';
 
 export interface KnowledgeWriteUseCases {
   readonly createNotebook: CreateNotebook;
@@ -66,6 +67,11 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
     private readonly subscriptionId: SubscriptionId,
     /** Where a revision of the past is stored, when a history comes back. */
     private readonly content: ContentStore,
+    /**
+     * Waits before the next try of a dashboard drawn from the system table,
+     * and answers whether to try again (#517); see `createDashboard`.
+     */
+    private readonly awaitProjection: (attempt: number) => Promise<boolean> = waitForProjection,
   ) {}
 
   async createNotebook(input: {
@@ -273,15 +279,27 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
   }): Promise<Result<void, DomainError>> {
     const notebookId = NotebookId.create(input.notebookId);
     if (!notebookId.ok) return notebookId;
-    const created = await this.useCases.createDashboard.execute({
-      ctx: this.ctx,
-      notebookId: notebookId.value,
-      name: input.name,
-      description: input.description,
-      definition: input.definition,
-      by: input.by,
-    });
-    return created.ok ? ok() : created;
+    /*
+      A dashboard drawn from the system table names columns the notes declare,
+      and the notes of this import were written a moment ago: until Discovery
+      projects them, the system table has none of their attributes, and the
+      definition is refused for a column it will have in seconds (#517). It is
+      tried again while the projection lands, and the last refusal is the
+      answer once the wait is over.
+    */
+    for (let attempt = 1; ; attempt += 1) {
+      const created = await this.useCases.createDashboard.execute({
+        ctx: this.ctx,
+        notebookId: notebookId.value,
+        name: input.name,
+        description: input.description,
+        definition: input.definition,
+        by: input.by,
+      });
+      if (created.ok) return ok();
+      const waiting = created.error.code === 'VALIDATION' && drawsFromSystemTable(input.definition);
+      if (!waiting || !(await this.awaitProjection(attempt))) return created;
+    }
   }
 
   async insertRows(input: {
@@ -387,4 +405,28 @@ export class KnowledgeNotebookWriter implements NotebookWriter {
     });
     return deleted.ok ? ok() : deleted;
   }
+}
+
+/** Whether a definition draws from a system table (RN-KNW-094). */
+function drawsFromSystemTable(definition: Record<string, unknown>): boolean {
+  const components = (definition['components'] ?? []) as Array<{
+    source?: { table?: unknown } | null;
+  }>;
+  return components.some((each) => {
+    const table = each?.source?.table;
+    return (
+      typeof table === 'string' &&
+      (table.trim().toLowerCase().startsWith('system-') || table.toUpperCase() === SYSTEM_NOTES_ID)
+    );
+  });
+}
+
+/** Up to about a minute in all, the time a projection is given to land. */
+const PROJECTION_WAITS_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 15_000, 15_000];
+
+async function waitForProjection(attempt: number): Promise<boolean> {
+  const wait = PROJECTION_WAITS_MS[attempt - 1];
+  if (wait === undefined) return false;
+  await new Promise((resolve) => setTimeout(resolve, wait));
+  return true;
 }
