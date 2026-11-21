@@ -710,10 +710,13 @@
     "controls": "Controles",
     "openControls": "Abrir controles",
     "closeControls": "Fechar controles",
-    "hint": "Role para ampliar · arraste para mover · clique numa nota para abri-la, num atributo para fixar suas notas",
-    "hintTouch": "Pince para ampliar · arraste para mover · toque numa nota para abri-la, num atributo para fixar suas notas",
-    "pinned": "Fixado: <b>{{value}}</b> · clique numa nota para abri-la, num atributo para fixar suas notas",
-    "pinnedTouch": "Fixado: <b>{{value}}</b> · toque numa nota para abri-la, num atributo para fixar suas notas",
+    "hint": "Role para ampliar · arraste para mover · clique num nó para ver suas ligações, de novo para abri-lo",
+    "hintTouch": "Pince para ampliar · arraste para mover · toque num nó para ver suas ligações, de novo para abri-lo",
+    "pinned": "Fixado: <b>{{value}}</b> · clique nele de novo para soltar, numa nota para ver suas ligações",
+    "pinnedTouch": "Fixado: <b>{{value}}</b> · toque nele de novo para soltar, numa nota para ver suas ligações",
+    "focused": "<b>{{value}}</b> · clique de novo para abrir, no espaço vazio para soltar",
+    "focusedTouch": "<b>{{value}}</b> · toque de novo para abrir, no espaço vazio para soltar",
+    "open": "Abrir",
     "empty": "Este caderno ainda não tem notas para desenhar.",
     "truncated": "Mostrando as primeiras 2000 notas deste caderno.",
     "simulate": "Simular agentes",
@@ -786,7 +789,8 @@
         "noneLabel": "Preto",
         "none": "O que é desenhado quando as cores deste caderno acabam."
       },
-      "edges": "Só as linhas entre notas são links, as que os backlinks contam. As linhas até uma pasta, um anexo, uma tabela ou um painel mostram onde cada um está."
+      "edges": "Só as linhas entre notas são links, as que os backlinks contam. As linhas até uma pasta, um anexo, uma tabela ou um painel mostram onde cada um está.",
+      "hold": "O primeiro clique ou toque num nó o fixa: suas linhas ficam acesas e seus vizinhos são nomeados. O segundo, ou Abrir no rodapé, o abre; no valor de um atributo, solta o grupo."
     }
   },
   "errors": {

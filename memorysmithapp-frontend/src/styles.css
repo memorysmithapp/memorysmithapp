@@ -2469,6 +2469,8 @@ a:hover {
   right: 12px;
   bottom: 12px;
   display: flex;
+  align-items: flex-end;
+  gap: 8px;
   pointer-events: none;
 }
 .graph-footer p {
@@ -2485,6 +2487,12 @@ a:hover {
 .graph-footer b {
   font-weight: 600;
   color: var(--text);
+}
+/* Open beside what is held (#515): the foot lets the drawing through, the
+   button does not. */
+.graph-footer .graph-footer-open {
+  flex: none;
+  pointer-events: auto;
 }
 @media (max-width: 860px) {
   .graph-footer {

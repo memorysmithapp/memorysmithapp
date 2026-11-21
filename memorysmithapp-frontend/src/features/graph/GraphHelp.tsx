@@ -178,6 +178,8 @@ export function GraphHelp({
           ))}
         </ul>
         <p className="graph-help-foot">{t('graph.help.edges')}</p>
+        {/* How a node is held and opened, the same with a mouse and a finger (#515). */}
+        <p className="graph-help-foot">{t('graph.help.hold')}</p>
       </section>
     </Modal>
   );

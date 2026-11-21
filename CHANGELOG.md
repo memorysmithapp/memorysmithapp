@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **A click or a tap on a node of the graph holds it, and a second one opens it.** The first click or tap on a note, a folder, a table, a dashboard or a file keeps its lines lit and names it, a note with its folder, and its neighbors, until another node is chosen or the empty canvas is clicked; a second one on it, or *Open* at the foot of the graph, opens it, so a double click opens too. On a phone or a tablet, where there is no hover, this is how a note is ever named or its links seen; with a mouse the highlight no longer goes away when the pointer moves to a neighbor. A note chosen inside an attribute's held group keeps the group on the drawing (#515).
+
 ## [0.21.0] - 2026-11-20
 
 ### Added

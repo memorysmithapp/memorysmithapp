@@ -707,10 +707,13 @@
     "controls": "Controls",
     "openControls": "Open controls",
     "closeControls": "Close controls",
-    "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
-    "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
-    "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
-    "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
+    "hint": "Scroll to zoom · drag to pan · click a node to see its links, again to open it",
+    "hintTouch": "Pinch to zoom · drag to pan · tap a node to see its links, again to open it",
+    "pinned": "Held: <b>{{value}}</b> · click it again to let go, a note to see its links",
+    "pinnedTouch": "Held: <b>{{value}}</b> · tap it again to let go, a note to see its links",
+    "focused": "<b>{{value}}</b> · click it again to open it, empty space to let go",
+    "focusedTouch": "<b>{{value}}</b> · tap it again to open it, empty space to let go",
+    "open": "Open",
     "empty": "This notebook has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this notebook.",
     "simulate": "Simulate agents",
@@ -783,7 +786,8 @@
         "noneLabel": "Ink",
         "none": "What is drawn once the colours of this notebook run out."
       },
-      "edges": "Only the lines between notes are links, the ones backlinks count. The lines to a folder, a file, a table or a dashboard show where each one sits."
+      "edges": "Only the lines between notes are links, the ones backlinks count. The lines to a folder, a file, a table or a dashboard show where each one sits.",
+      "hold": "A first click or tap on a node holds it: its lines stay lit and its neighbors are named. A second one, or Open at the foot, opens it; on an attribute's value it lets the group go."
     }
   },
   "errors": {
