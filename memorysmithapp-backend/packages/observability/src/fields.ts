@@ -139,6 +139,11 @@ export function sanitize(input: Readonly<Record<string, unknown>>): OperationLin
   if (typeof agentClient === 'string' && agentClient.length > 0) {
     line['agentClient'] = agentClient.replace(CONTROL, ' ').slice(0, 200);
   }
+  // A family a function of ours named, never the user agent (#526).
+  const webClient = input['webClient'];
+  if (typeof webClient === 'string' && /^[a-z]+-[a-z]+$/.test(webClient)) {
+    line['webClient'] = webClient;
+  }
   const status = input['status'];
   if (typeof status === 'number' && Number.isInteger(status) && status >= 100 && status < 600) {
     line['status'] = status;

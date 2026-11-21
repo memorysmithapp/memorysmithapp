@@ -1,6 +1,7 @@
 /** The browser a load of the web app came from, as a family (#526). */
 
 import { describe, expect, it } from 'vitest';
+import { sanitize } from '../src/fields.js';
 import { webClientOf } from '../src/web-client.js';
 
 describe('the browser of a load of the web app (#526)', () => {
@@ -40,5 +41,17 @@ describe('the browser of a load of the web app (#526)', () => {
 
   it('says it does not know when there is no user agent', () => {
     expect(webClientOf(undefined)).toBe('unknown');
+  });
+});
+
+describe('the family on the line of an operation (#526)', () => {
+  it('is written, and a user agent handed in its place is not', () => {
+    const base = { operation: 'GET /access/session', outcome: 'ok', durationMs: 1 } as const;
+    expect(sanitize({ ...base, webClient: 'samsung-android' })['webClient']).toBe(
+      'samsung-android',
+    );
+    expect(
+      sanitize({ ...base, webClient: 'Mozilla/5.0 (Linux; Android 14; SM-S918B)' })['webClient'],
+    ).toBeUndefined();
   });
 });
