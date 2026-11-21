@@ -257,8 +257,7 @@ describe('a domain of its own, outside us-east-1', () => {
   });
 
   it('declares the certificates AWS binds to us-east-1 there, and the others here', () => {
-    // Five until #510 deletes the site certificate that also named www (#509).
-    Template.fromStack(edge).resourceCountIs('AWS::CertificateManager::Certificate', 5);
+    Template.fromStack(edge).resourceCountIs('AWS::CertificateManager::Certificate', 4);
     Template.fromStack(network).resourceCountIs('AWS::CertificateManager::Certificate', 2);
   });
 
