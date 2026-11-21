@@ -280,7 +280,7 @@ Without `--apply`, a maintenance job only reports.
 
 ### 5.5 Observability
 
-Every function writes one JSON line per operation, with identifiers only and never a name, a path or a body, and one correlation id follows a call from the connector through the core, the relay, the projector and the trail (`packages/observability`). Both HTTP APIs keep access logs. Every log group the stacks declare keeps a month.
+Every function writes one JSON line per operation, with identifiers only and never a name, a path or a body (the line of `GET /access/session`, which every load of the web app makes, also names the browser as a family, `chrome-android` or `embedded-ios`, and never its user agent), and one correlation id follows a call from the connector through the core, the relay, the projector and the trail (`packages/observability`). Both HTTP APIs keep access logs. Every log group the stacks declare keeps a month.
 
 When a delivery turns tracing on, every function is traced through X-Ray (`ServiceLambda` sets active tracing; otherwise it disables it and `POWERTOOLS_TRACE_ENABLED`), at the rate Lambda samples and no function can change: one request a second and 5% of the rest. Each operation opens a subsegment of its own, annotated with the identifiers of its line and its business flow (`flow`, `operation`, `outcome`, `correlationId`, `subscriptionId`, `channel`, `agentClient`), and the Tracer captures HTTPS and `fetch`, so the calls to AWS show under it. The trace breaks in two places, and the correlation id links across both: at the HTTP API between the connector and the core, which opens no trace of its own, and at the DynamoDB streams the relays read, which carry none. A search by `annotation.correlationId` returns the whole story of one call.
 

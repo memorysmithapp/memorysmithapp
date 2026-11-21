@@ -1023,6 +1023,13 @@
       "grok": {
         "one": "Grok's code reaches the address above as it comes: there is no setting to change."
       }
+    },
+    "install": {
+      "heading": "On a phone or tablet",
+      "body": "MemorySmith can sit on the home screen as an app, which opens straight away, with no browser bar.",
+      "android": "On Android, open memorysmith.app in Chrome, tap the ⋮ menu and choose “Install app”. The app uses Chrome’s sign-in and opens the MemorySmith links you tap in other apps.",
+      "iphone": "On iPhone and iPad, open it in Safari, tap Share and choose “Add to Home Screen”.",
+      "session": "Each browser keeps its own sign-in. An icon made from another browser, such as Samsung Internet, opens there and asks you to sign in again. Install it from the browser you sign in to MemorySmith with."
     }
   },
   "profile": {

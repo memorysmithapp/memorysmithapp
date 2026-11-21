@@ -28,6 +28,7 @@ issues each entry cites.
 
 - **The button that collapses a notebook's sidebar stays at its foot.** Only the name of the notebook, its menu and its folders scroll above it, and the scroll bar ends where the button starts, whether the sidebar is open or collapsed to its icons (#519).
 - **A person using the product is no longer sent back to sign in when renewing the session fails for a moment.** The session is renewed a few minutes before it would expire, once at a time for every open tab, and a passing failure of the sign-in provider is tried again instead of ending the session; only a session the provider says is over, or one it keeps failing to renew for a quarter of an hour, returns the person to sign in (#525).
+- **MemorySmith installs as an app on Android.** From Chrome, *Install app* puts it on the home screen as an app that opens without the browser bar, uses Chrome's sign-in and opens the MemorySmith links tapped in other apps; installed, it asks the browser to keep its session's storage. About says how to install it on Android and on iPhone, and that an icon made from another browser keeps that browser's sign-in (#526).
 - **The footnotes of a note work in its PDF.** A click on a reference number goes to its note at the end, and the way back returns to the reference, in the PDF downloaded and in the one saved from the print dialog (#520).
 
 ## [0.21.0] - 2026-11-20

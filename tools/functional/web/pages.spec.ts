@@ -498,6 +498,32 @@ test.describe('the pages of an account', () => {
       `uploads.${new URL(state.surfaces.site).host}`,
     );
     await expect(app.locator('#about-files-panel li')).toHaveCount(3);
+
+    // Installable from a phone's browser (#526): the page names its manifest,
+    // which the site serves as one, with the icons an installed app needs.
+    const manifest = await app.evaluate(
+      () =>
+        (
+          globalThis as unknown as {
+            document: { querySelector(s: string): { href: string } | null };
+          }
+        ).document.querySelector('link[rel="manifest"]')?.href ?? '',
+    );
+    const served = await fetch(manifest);
+    // Served as JSON: the site's upload types a file by its extension.
+    expect(served.headers.get('content-type')).toContain('json');
+    const declared = (await served.json()) as {
+      display: string;
+      start_url: string;
+      icons: Array<{ sizes: string }>;
+    };
+    expect(declared.display).toBe('standalone');
+    expect(declared.start_url).toBe('/');
+    expect(declared.icons.map((icon) => icon.sizes)).toEqual(['192x192', '512x512']);
+    for (const icon of declared.icons) {
+      const src = new URL((icon as unknown as { src: string }).src, state.surfaces.site).toString();
+      expect((await fetch(src)).headers.get('content-type')).toBe('image/png');
+    }
     // Every screen the interface serves, each named once (#401).
     await expect(app.locator('.about-list > div')).toHaveCount(12);
     // And the foot says which version this is, beside the way in.

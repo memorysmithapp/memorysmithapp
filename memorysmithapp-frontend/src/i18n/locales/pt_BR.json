@@ -1026,6 +1026,13 @@
       "grok": {
         "one": "O código do Grok alcança o endereço acima como vem: não há configuração para mudar."
       }
+    },
+    "install": {
+      "heading": "No celular e no tablet",
+      "body": "O MemorySmith pode ficar na tela inicial como um app, que abre direto, sem a barra do navegador.",
+      "android": "No Android, abra memorysmith.app no Chrome, toque no menu ⋮ e escolha “Instalar app”. O app usa o mesmo login do Chrome e abre os links do MemorySmith que você tocar em outros apps.",
+      "iphone": "No iPhone e no iPad, abra no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”.",
+      "session": "Cada navegador guarda o seu próprio login. Um ícone criado por outro navegador, como o Samsung Internet, abre nele e pede para entrar de novo. Instale pelo navegador que você usa para entrar no MemorySmith."
     }
   },
   "profile": {

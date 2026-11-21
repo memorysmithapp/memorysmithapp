@@ -95,3 +95,20 @@ export function keepSessionAlive(config: AuthConfig): () => void {
     window.removeEventListener('focus', check);
   };
 }
+
+/**
+ * Asks the browser to keep this site's storage, where the session lives, when
+ * the product runs as an installed app (#526): a browser under storage
+ * pressure clears what it was not asked to keep, and the person is asked to
+ * sign in again. Chrome decides on its own and asks nobody; a browser tab is
+ * left as it is, since Firefox would ask the person.
+ */
+export function keepSessionStorage(): void {
+  try {
+    const installed = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
+    if (installed && navigator.storage?.persist)
+      void navigator.storage.persist().catch(() => false);
+  } catch {
+    // A browser that cannot say is left as it is.
+  }
+}

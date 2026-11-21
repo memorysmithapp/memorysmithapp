@@ -31,6 +31,7 @@ export const OPERATION_FIELDS = [
   'userId',
   'channel',
   'agentClient',
+  'webClient',
   'status',
   'eventId',
   'errorName',
@@ -73,6 +74,11 @@ export interface OperationLine {
   readonly channel?: Channel;
   /** The `clientName` of the Authorship, when an agent wrote through a connector. */
   readonly agentClient?: string;
+  /**
+   * Which browser opened the web app, as a family and never the user agent
+   * itself, on the line of the call each load of the app makes (#526).
+   */
+  readonly webClient?: string;
   /** The HTTP status answered, on a line of an HTTP API. */
   readonly status?: number;
   /** The event a worker handled. */
