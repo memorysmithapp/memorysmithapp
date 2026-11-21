@@ -234,11 +234,22 @@ test.describe('the pages of an account', () => {
     await expect(sidebar).toBeVisible();
     // The way back to the notebooks is the menu above, and only it (#422).
     await expect(sidebar.locator('a[href="/notebooks"]')).toHaveCount(0);
-    await sidebar.locator('button.sidebar-fold').click();
+    // Only what is above the fold scrolls (#519): scrolled to its end, the
+    // fold has not moved, and the column itself never scrolls.
+    const fold = sidebar.locator('button.sidebar-fold');
+    const resting = (await fold.boundingBox())?.y;
+    await sidebar.locator('.sidebar-scroll').evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    expect((await fold.boundingBox())?.y).toBe(resting);
+    expect(await sidebar.evaluate((el) => el.scrollHeight <= el.clientHeight)).toBe(true);
+    await fold.click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
     // Folded, the icons fit the column, so no scroll bar is drawn beside them (#422).
-    expect(await sidebar.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    expect(
+      await sidebar.locator('.sidebar-scroll').evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
     await app.reload();
     await expect(app.locator('aside#notebook-sidebar')).toHaveClass(/is-collapsed/);
     await testInfo.attach('shell-notebook-folded.png', {

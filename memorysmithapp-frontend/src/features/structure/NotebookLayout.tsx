@@ -121,24 +121,28 @@ export function NotebookLayout() {
               className={`notebook-sidebar${collapsed ? ' is-collapsed' : ''}`}
               id="notebook-sidebar"
             >
-              <div className="sidebar-head">
-                {/* The way to the Context is its own entry below and the first
+              {/* Only what is above the fold scrolls, so the fold stays at
+                  the foot and the scroll bar ends above it (#519). */}
+              <div className="sidebar-scroll">
+                <div className="sidebar-head">
+                  {/* The way to the Context is its own entry below and the first
                     crumb of the bar, so the name is only the name (#228); the
                     way back to Notebooks and Models is the menu of the product,
                     above, and only it (#422). */}
-                <h2 className="sidebar-notebook">
-                  {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
-                </h2>
-              </div>
-              <NotebookNav notebookId={notebookId} />
-              <div className="sidebar-content">
-                <hr className="sidebar-rule" />
-                <p className="sidebar-caption">{t('structure.content')}</p>
-                {data ? (
-                  <FolderTree notebookId={notebookId} folders={data.folders} />
-                ) : (
-                  <FolderTreeSkeleton />
-                )}
+                  <h2 className="sidebar-notebook">
+                    {data ? data.notebook.name : <SkeletonBar width="10rem" height="1.4rem" />}
+                  </h2>
+                </div>
+                <NotebookNav notebookId={notebookId} />
+                <div className="sidebar-content">
+                  <hr className="sidebar-rule" />
+                  <p className="sidebar-caption">{t('structure.content')}</p>
+                  {data ? (
+                    <FolderTree notebookId={notebookId} folders={data.folders} />
+                  ) : (
+                    <FolderTreeSkeleton />
+                  )}
+                </div>
               </div>
               <SidebarFold />
             </aside>
