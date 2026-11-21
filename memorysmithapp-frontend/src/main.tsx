@@ -7,6 +7,7 @@ import { router } from './app/router';
 import { configureHttp } from './shared/api/http';
 import { endExpiredSession } from './app/session-expiry';
 import { authConfig } from './shared/auth/session';
+import { keepSessionAlive } from './shared/auth/renewal';
 import { loadRuntimeConfig } from './shared/config/runtime-config';
 import { documentTitleOf, withEnvironment } from './shared/components/document-title';
 import './i18n';
@@ -30,6 +31,8 @@ loadRuntimeConfig()
       auth: authConfig(),
       onUnauthenticated: endExpiredSession,
     });
+    // The access token is renewed ahead of its hour, once for every tab (#525).
+    keepSessionAlive(authConfig());
     document.title = withEnvironment(documentTitleOf(), config.environment);
 
     createRoot(container).render(

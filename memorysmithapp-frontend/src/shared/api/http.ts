@@ -5,7 +5,8 @@
 // (RN-SUB-002), which is why nothing below takes one.
 
 import { apiErrorFrom, ApiError } from './error-mapper';
-import { readTokens, refresh, type AuthConfig } from '../auth/oauth';
+import { readTokens, type AuthConfig } from '../auth/oauth';
+import { renew } from '../auth/renewal';
 
 export interface HttpConfig {
   readonly origin: string;
@@ -23,6 +24,9 @@ export interface HttpConfig {
 
 let config: HttpConfig | null = null;
 
+/** How long past the end of its token a renewal that keeps failing is waited for (#525). */
+const GIVE_UP_AFTER_MS = 15 * 60_000;
+
 export function configureHttp(next: HttpConfig): void {
   config = next;
 }
@@ -38,7 +42,19 @@ async function bearer(): Promise<string | null> {
   // while it is in flight.
   if (tokens.expiresAt - Date.now() > 60_000) return tokens.accessToken;
   if (!config) return tokens.accessToken;
-  return (await refresh(config.auth))?.accessToken ?? null;
+  try {
+    return (await renew(config.auth, 60_000))?.accessToken ?? null;
+  } catch {
+    // The provider could not renew it now (#525): the session is not gone. A
+    // token still alive is used; one already dead fails the request as the
+    // network does, and the next one tries again. A renewal that kept failing
+    // for a quarter of an hour past the end of the token is no passing
+    // failure, and the session ends as one that is gone.
+    const now = Date.now();
+    if (tokens.expiresAt > now) return tokens.accessToken;
+    if (now - tokens.expiresAt > GIVE_UP_AFTER_MS) return null;
+    throw new ApiError('OFFLINE', 'The session could not be renewed just now', 0);
+  }
 }
 
 export async function request<T>(

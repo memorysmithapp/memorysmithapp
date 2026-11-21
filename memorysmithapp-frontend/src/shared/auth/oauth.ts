@@ -113,23 +113,50 @@ export async function completeSignIn(config: AuthConfig, code: string): Promise<
   return store(await response.json());
 }
 
-/** Refreshes silently. Rotation is handled by the provider, not by us. */
+/**
+ * A refresh the provider could not answer now (#525): the network, a 5xx, a
+ * 429, a trigger that failed. The session is not gone, and nothing may end it
+ * for this.
+ */
+export class RefreshUnavailable extends Error {
+  constructor(reason: string) {
+    super(`The session could not be renewed just now: ${reason}`);
+    this.name = 'RefreshUnavailable';
+  }
+}
+
+/**
+ * Refreshes silently. Rotation is handled by the provider, not by us.
+ *
+ * It answers `null` only when the session is really gone: no refresh token
+ * held, or the provider saying `invalid_grant` — revoked, expired, or a user
+ * disabled. Anything else throws `RefreshUnavailable` (#525): every non-OK
+ * answer used to read as a dead session, so one 5xx in a burst of refreshes
+ * sent a person who was using the product back to sign in.
+ */
 export async function refresh(config: AuthConfig): Promise<Tokens | null> {
   const current = readTokens();
   if (!current?.refreshToken) return null;
 
-  const response = await fetch(`${config.domain}/oauth2/token`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: config.clientId,
-      refresh_token: current.refreshToken,
-    }),
-  });
-  if (!response.ok) return null;
+  let response: Response;
+  try {
+    response = await fetch(`${config.domain}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: config.clientId,
+        refresh_token: current.refreshToken,
+      }),
+    });
+  } catch {
+    throw new RefreshUnavailable('the provider could not be reached');
+  }
+  if (response.ok) return store(await response.json());
 
-  return store(await response.json());
+  const answer = (await response.json().catch(() => null)) as { error?: unknown } | null;
+  if (response.status === 400 && answer?.error === 'invalid_grant') return null;
+  throw new RefreshUnavailable(`the provider answered ${response.status}`);
 }
 
 export function readTokens(): Tokens | null {
