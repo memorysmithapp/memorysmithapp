@@ -495,6 +495,33 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
   ...FILE_CHECKS,
   ...MODEL_CHECKS,
 
+  /*
+    A panel about the notes is drawn from `system-notes`, the table every
+    notebook has with one row per note (#517, #523), and never from a table
+    that copies what the notes declare.
+  */
+  'drew-from-system-notes': (input) => {
+    const uses = input.transcript.toolUses;
+    const drawn = uses.filter(
+      (use) => use.tool === 'create_dashboard' || use.tool === 'update_dashboard',
+    );
+    if (drawn.length === 0)
+      return outcome('drew-from-system-notes', false, 'no dashboard was created');
+    const fromNotes = drawn.some((use) =>
+      JSON.stringify(use.input).toLowerCase().includes('system-notes'),
+    );
+    const copied = uses.some((use) => use.tool === 'create_table');
+    return outcome(
+      'drew-from-system-notes',
+      fromNotes && !copied,
+      !fromNotes
+        ? 'the dashboard does not draw from system-notes'
+        : copied
+          ? 'a table was created to repeat what the notes declare'
+          : '',
+    );
+  },
+
   'wrote-after-acceptance': (input) => {
     const write = input.transcript.toolUses.find((use) => WRITES.has(use.tool));
     if (!write) return outcome('wrote-after-acceptance', false, 'nothing was written');

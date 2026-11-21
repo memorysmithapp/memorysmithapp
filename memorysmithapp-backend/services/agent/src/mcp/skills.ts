@@ -278,7 +278,9 @@ reader, and state each convention once.
 ## Properties and tags
 
 The frontmatter is where a note is classified, and every key in it becomes a
-filter of the search, \`key:value\`, and a count on the curation panel.
+filter of the search, \`key:value\`, a count on the curation panel, and a column
+of \`system-notes\`, the table every notebook has with one row per note, which
+dashboards and the \`table\` blocks of notes draw from.
 
 - **Declare what someone will filter or count.** An explanation, a source or a
   path is prose, and prose belongs in the body, where the search reads it: the
@@ -288,6 +290,12 @@ filter of the search, \`key:value\`, and a count on the curation panel.
 - **Write a list in brackets even when it holds one value.** The written form
   decides what an attribute is, and one key written both ways becomes two
   attributes that never add up.
+- **Keep one form per key across every note**, because the form also types the
+  key's column in \`system-notes\`: a deadline written \`2026-09-14\` in every
+  note is a date column a panel of deadlines orders and groups by month; one
+  note writing it \`14/09\` makes the whole column text, and the panel stops
+  working. A key that is a number in every note is a number column a panel adds
+  up. Write the form into the template, so every note starts with it.
 - **Give the notebook a state property**, such as \`status\` with the values the
   guidance declares, so that "what is still a draft" has an answer.
 - **Write dates as \`2026-09-14\`**: a date is searched by year, month or day, and
@@ -889,6 +897,28 @@ embeds a note. How the file gets there — whole, at the size the person gave it
 by URL when you can run a command with network — is the skill
 \`keep-files\`.
 
+## Listing notes by what they declare
+
+A note that lists other notes by what their frontmatter says — the open tasks
+with their deadlines, the drafts of a folder, the notes of one client — does
+not keep the list by hand, which is stale at the next edit of any of them. It
+writes a \`table\` block over \`system-notes\`, the table every notebook has
+with one row per note and one column per key of the frontmatter, and the list
+follows the notes:
+
+\`\`\`\`markdown
+\`\`\`table
+table: system-notes
+columns: name, status, due
+where: folder:Tasks -status:done
+sort: due asc
+\`\`\`
+\`\`\`\`
+
+The block and its keys are in the skill \`keep-tables\`. A map of content,
+which links notes because of what they mean and not because of a key they
+share, stays a list of links.
+
 ## Moving a note to another folder
 
 A note changes folder with \`move_note\`, and never by \`create_note\` in the new
@@ -1247,6 +1277,20 @@ Only \`table\` is required. \`where\` is the language of \`query_table\`, \`sort
 is columns each with \`asc\` or \`desc\`, \`page\` goes up to 100 rows, and
 \`total\` sums a number column that is drawn, over every row the filter
 returns. The answer of a write says, as \`notices\`, what the block got wrong.
+
+The notes themselves are shown the same way, from \`system-notes\`: a note that
+lists the tasks not done yet, nearest deadline first, is
+
+\`\`\`\`markdown
+\`\`\`table
+table: system-notes
+columns: name, status, due, folder
+where: -status:done
+sort: due asc
+\`\`\`
+\`\`\`\`
+
+and it is as current as the notes, with nobody keeping it.
 A table renamed does not rewrite the notes that name it: find them with the
 *Tables* page and update them.
 `;
@@ -1417,12 +1461,12 @@ export const SKILLS: readonly Skill[] = [
   },
   {
     name: KEEP_TABLES_SKILL,
-    task: 'Keep structured data in a Table — from a CSV, an Excel file or what is on the screen — and read it back',
+    task: 'Keep structured data in a Table — from a CSV, an Excel file or what is on the screen — and read it back, or read what the notes declare from system-notes',
     body: KEEP_TABLES,
   },
   {
     name: BUILD_DASHBOARDS_SKILL,
-    task: 'Build a dashboard over the tables of a notebook — indicators, charts, a Gantt, a Kanban — from what the person asks',
+    task: 'Build a dashboard over the tables of a notebook, or over its notes themselves — indicators, charts, a Gantt, a Kanban — from what the person asks',
     body: BUILD_DASHBOARDS,
   },
   {

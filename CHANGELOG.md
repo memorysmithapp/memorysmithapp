@@ -20,6 +20,7 @@ issues each entry cites.
 ### Changed
 
 - **A click or a tap on a node of the graph holds it, and a second one opens it.** The first click or tap on a note, a folder, a table, a dashboard or a file keeps its lines lit and names it, a note with its folder, and its neighbors, until another node is chosen or the empty canvas is clicked; a second one on it, or *Open* at the foot of the graph, opens it, so a double click opens too. On a phone or a tablet, where there is no hover, this is how a note is ever named or its links seen; with a mouse the highlight no longer goes away when the pointer moves to a neighbor. A note chosen inside an attribute's held group keeps the group on the drawing (#515).
+- **The assistant reaches for `system-notes` when the question is about the notes.** Asked for a panel of the notes by status, a count of the drafts or a note listing the open tasks, it draws from the notes' own table instead of searching the text or copying the notes into a new table: the skills it reads first say so, a note that lists notes writes a `table` block over `system-notes`, and designing a notebook says that the form of each frontmatter key also types its column there (#523).
 
 ### Fixed
 

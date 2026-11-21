@@ -995,7 +995,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '`aggregate` adds the rows the filter keeps up: { "group": "date:month", "measures": ' +
       '["sum(amount)", "count()"] } answers `groups`, each with its key and the value of each ' +
       'measure; a sum is exact. Group by a column or by a period of a date (day, week, month, ' +
-      'quarter, year).',
+      'quarter, year). Questions about the notes themselves are answered here too, from ' +
+      '`system-notes`, one row per note with a column per key of their frontmatter: how many ' +
+      'notes are in each status is { "group": "status", "measures": ["count()"] }, and the tasks ' +
+      'due this month are `due:2026-11 -status:done`. search_notes reads the body, not the ' +
+      'frontmatter, and counts nothing.',
     inputSchema: object(
       {
         notebook: notebookArgument,

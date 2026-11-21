@@ -1,0 +1,23 @@
+{
+  "id": "AE-12",
+  "title": "A panel of the notes themselves, asked without the word table",
+  "exercises": "Whether the assistant finds `system-notes` (#517, #523) from a request about the notes: a panel of the tasks by what their frontmatter declares, drawn from the table every notebook has with one row per note, and never from a table that copies the notes.",
+  "skills": ["build-dashboards"],
+  "turns": 6,
+  "checks": ["whoami-before-first-write", "drew-from-system-notes", "no-duplicate-writes"],
+  "rubric": [
+    "The executor builds the panel from the notes as they are, through `system-notes`, and creates no table repeating their status, area or deadline.",
+    "The panel answers what the person asked: how many tasks are in each status, and which are not done with their deadlines, the nearest first.",
+    "The person never sees or is asked about the definition of the dashboard, nor about tables: the executor speaks of what it will show.",
+    "It closes by saying where the person finds the panel and that it follows the notes as they change."
+  ],
+  "variants": [
+    {
+      "id": "pt_BR",
+      "person": "joana",
+      "request": "Tenho um caderno com as minhas tarefas, uma por nota. Queria um painel para ver de relance quantas estão a fazer, fazendo e feitas, e o que ainda não terminei com os prazos. Consegue montar?",
+      "persona": "persona-pt_BR.md",
+      "setup": { "kind": "tree", "path": "tools/agent-eval/fixtures/tarefas" }
+    }
+  ]
+}
