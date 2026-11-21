@@ -37,6 +37,7 @@ import {
 } from '../domain/LinkResolver.js';
 import { facetDelta, valuesOf } from '../domain/FacetExtractor.js';
 import type { StructureProjection, NotebookStructure } from '../application/projections.js';
+import { countDegrees } from '../domain/Degrees.js';
 
 /** The versions last projected, in memory, with the same conditional claim. */
 export class InMemoryProjectedVersions implements ProjectedVersions {
@@ -354,6 +355,10 @@ export class InMemoryLinkGraph implements LinkGraph {
 
     return { nodes, edges, pending, truncated };
   }
+
+  async degrees(notebookId: string): Promise<Map<string, { backlinks: number; links: number }>> {
+    return countDegrees(this.resolved(notebookId).edges);
+  }
 }
 
 /** The cardinality ceiling that detects free text (RN-DSC-024). */
@@ -415,6 +420,11 @@ export class InMemoryFacetIndex implements FacetIndex {
     this.notebook(notebookId);
     const portraits = this.portraits.get(notebookId) as Map<string, FacetSnapshot>;
     return new Map([...portraits].map(([noteId, snapshot]) => [noteId, valuesOf(snapshot)]));
+  }
+
+  async notebookPortraits(notebookId: string): Promise<Map<string, FacetSnapshot>> {
+    this.notebook(notebookId);
+    return new Map(this.portraits.get(notebookId) as Map<string, FacetSnapshot>);
   }
 
   async removeNotebook(notebookId: string): Promise<void> {

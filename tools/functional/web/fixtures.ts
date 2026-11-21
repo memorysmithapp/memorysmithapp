@@ -55,6 +55,7 @@ export interface Words {
   readonly tableData: string;
   readonly tableSchema: string;
   readonly deleteTable: string;
+  readonly openNote: string;
   readonly notesInFolder: string;
   readonly notFound: string;
   readonly version: string;
@@ -150,7 +151,6 @@ export interface Words {
   /** The action of the bar of a note that opens it on paper (#258). */
   readonly printNote: string;
   /** The button of the print tab that downloads the PDF the server makes (#263). */
-  readonly downloadPdf: string;
   readonly conflict: string;
   /** The (i) beside the order of the notes of a folder, and what it says of each order (#273). */
   readonly noteOrderHint: string;
@@ -195,6 +195,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tableData: 'Data',
     tableSchema: 'Schema',
     deleteTable: 'Delete table',
+    openNote: 'Open note',
     notesInFolder: 'Notes in this folder',
     notFound: 'Not found.',
     version: 'MemorySmith.app',
@@ -258,8 +259,7 @@ export const WORDS: Record<AppLocale, Words> = {
     editSession: 'Edited',
     historyHeading: 'History of this note',
     historyButton: 'History',
-    printNote: 'Print',
-    downloadPdf: 'Download PDF',
+    printNote: 'Generate PDF',
     conflict: 'Somebody else wrote this note',
     noteOrderHint: 'What the order of the notes does',
     noteOrderHintManual:
@@ -302,6 +302,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tableData: 'Dados',
     tableSchema: 'Schema',
     deleteTable: 'Apagar tabela',
+    openNote: 'Abrir nota',
     notesInFolder: 'Notas nesta pasta',
     notFound: 'Não encontrado.',
     version: 'MemorySmith.app',
@@ -365,8 +366,7 @@ export const WORDS: Record<AppLocale, Words> = {
     editSession: 'Editada',
     historyHeading: 'Histórico desta nota',
     historyButton: 'Histórico',
-    printNote: 'Imprimir',
-    downloadPdf: 'Baixar PDF',
+    printNote: 'Gerar PDF',
     conflict: 'Outra pessoa escreveu nesta nota',
     noteOrderHint: 'O que a ordem das notas faz',
     noteOrderHintManual:

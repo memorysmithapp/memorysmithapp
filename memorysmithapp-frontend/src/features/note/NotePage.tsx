@@ -24,7 +24,7 @@ import { useNoteEditSession } from './edit-session';
 import { newSessionId } from './note-saves';
 import { folderTrailForNote } from '../structure/trail';
 import { BarButton, BarLink, NotebookBar, folderCrumbs } from '../structure/NotebookBreadcrumb';
-import { printAddress } from '../../shared/api/note-address';
+import { pdfAddress } from '../../shared/api/note-address';
 import type { NotebookOutletContext } from '../structure/NotebookLayout';
 import { useNotebookId } from '../structure/route-ids';
 
@@ -211,13 +211,13 @@ export function NotePage({ noteId }: { noteId: string }) {
           title={t('history.heading')}
           onClick={() => setHistoryOpen(true)}
         />
-        {/* The note alone, on paper, in a tab of its own (#258): every role
-            that reads it prints it. */}
+        {/* The note's PDF, in a tab of its own that becomes the file (#522):
+            every role that reads it prints it, from the browser's viewer. */}
         <BarLink
           icon={<PrinterIcon />}
           label={t('print.short')}
           title={t('print.open')}
-          to={printAddress(notebookId, noteId)}
+          to={pdfAddress(notebookId, noteId)}
         />
       </NotebookBar>
       <article className="content-pane is-wide">

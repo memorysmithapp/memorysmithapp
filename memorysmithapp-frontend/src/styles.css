@@ -486,14 +486,13 @@ a:hover {
 }
 
 /* The last row of a notebook's sidebar folds it to its icons, or opens it
-   again (#414). The foot of the column holds it, across the whole width and over what
-   scrolls under it. It is also the room #196 kept at the foot: the address a
+   again (#414). The foot of the column holds it, across the whole width, out
+   of what scrolls: it never moves, and the scroll bar of the column ends
+   above it (#519). It is also the room #196 kept at the foot: the address a
    desktop browser draws in the bottom-left corner covers the foot, never the
    last row of the tree. */
 .sidebar-foot {
-  position: sticky;
-  bottom: 0;
-  margin: auto -20px 0;
+  flex: none;
   padding: 8px 12px 14px;
   border-top: 1px solid var(--border);
   background: var(--surface);
@@ -534,16 +533,16 @@ a:hover {
    the icons (#422). A short window still scrolls the column, with no bar. */
 .notebook-sidebar.is-collapsed {
   width: 64px;
+}
+.is-collapsed .sidebar-scroll {
   padding-inline: 0;
   align-items: center;
   scrollbar-width: none;
 }
-.notebook-sidebar.is-collapsed::-webkit-scrollbar {
+.is-collapsed .sidebar-scroll::-webkit-scrollbar {
   display: none;
 }
 .is-collapsed .sidebar-foot {
-  align-self: stretch;
-  margin-inline: 0;
   padding-inline: 0;
   display: flex;
   justify-content: center;
@@ -1307,17 +1306,11 @@ a:hover {
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
   border-right: 1px solid var(--border);
   background: var(--surface);
-  /* No padding at the foot: the foot of the column is the row that folds it
-     (#414), and that row is the room #196 asked for, so the address a desktop
-     browser draws in the bottom-left corner covers it and never the last
-     folder of the tree. */
-  padding: 20px 20px 0;
-  /* The column scrolls down a long tree, and never sideways (#422). */
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* The column holds what scrolls and, under it, the row that folds it
+     (#414); the column itself never scrolls (#519). */
+  overflow: hidden;
   max-height: 100%;
   position: sticky;
   top: 0;
@@ -1326,8 +1319,21 @@ a:hover {
      reading if the column is. */
   z-index: 20;
 }
-/* A long tree scrolls the column; nothing in it is squeezed to fit. */
-.notebook-sidebar > * {
+/* What scrolls in the column: its name, its menu and a long tree, down and
+   never sideways (#422). It ends where the foot starts, so its scroll bar
+   never runs past the fold (#519). */
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 20px 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* A long tree scrolls; nothing in it is squeezed to fit. */
+.sidebar-scroll > * {
   flex-shrink: 0;
 }
 .sidebar-head {
@@ -2469,6 +2475,8 @@ a:hover {
   right: 12px;
   bottom: 12px;
   display: flex;
+  align-items: flex-end;
+  gap: 8px;
   pointer-events: none;
 }
 .graph-footer p {
@@ -2485,6 +2493,12 @@ a:hover {
 .graph-footer b {
   font-weight: 600;
   color: var(--text);
+}
+/* Open beside what is held (#515): the foot lets the drawing through, the
+   button does not. */
+.graph-footer .graph-footer-open {
+  flex: none;
+  pointer-events: auto;
 }
 @media (max-width: 860px) {
   .graph-footer {
@@ -7186,34 +7200,6 @@ button.attachment-thumb:focus-visible {
   --sheet-height: 210mm;
 }
 
-.print-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 0.5rem 0.75rem;
-  max-width: var(--sheet-width);
-  margin: 0 auto;
-  padding: 0.75rem 0;
-  background: var(--bg);
-}
-/* The bar holds a hint and the actions: how the note is laid is the
-   notebook's style (#493), which whoever maintains it reaches from the hint. */
-.print-hint {
-  flex: 1 1 18rem;
-  align-self: center;
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 0.875rem;
-}
-.print-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
 /* The style of a notebook (#493): its settings beside a note drawn in them,
    one under the other on a narrow screen. */
 .style-layout {
@@ -7302,32 +7288,9 @@ button.attachment-thumb:focus-visible {
     position: static;
   }
 }
-.print-actions .button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-/* A phone keeps every action, as icons: each still has its name, for the
-   tooltip and for a screen reader. */
 @media (max-width: 720px) {
   .print-page {
     padding: 0 0.5rem 2rem;
-  }
-  .print-toolbar {
-    justify-content: center;
-    align-items: center;
-  }
-  .print-hint {
-    display: none;
-  }
-  .print-toolbar .print-action-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 }
 
@@ -7525,7 +7488,6 @@ button.attachment-thumb:focus-visible {
     overflow: visible;
     padding: 0;
   }
-  .print-toolbar,
   .print-source,
   .print-waiting,
   .environment-banner {

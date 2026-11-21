@@ -37,6 +37,7 @@ import type { TableUsage } from '../../../domain/ports/index.js';
 import type { Row } from '../../../domain/table/Row.js';
 import type { Table } from '../../../domain/table/Table.js';
 import { presentCell, tableSchema } from '../../../domain/table/TableSchema.js';
+import { isSystemTable } from '../../../domain/table/SystemTable.js';
 
 /**
  * What a route of a table reads off the request, which the knowledge request
@@ -75,6 +76,7 @@ export function tableToDto(table: Table, usage: TableUsage): NotebookTableDto {
     bytes: usage.bytes,
     updatedAt: table.updatedBy.at.toISOString(),
     authorship: table.updatedBy.toJSON(),
+    system: isSystemTable(table),
   };
 }
 

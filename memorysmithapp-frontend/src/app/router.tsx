@@ -33,6 +33,7 @@ const DashboardsPage = lazy(() =>
 );
 import { LinkTargetPage } from '../features/note/LinkTargetPage';
 import { PrintNotePage } from '../features/note/PrintNotePage';
+import { GeneratePdfPage } from '../features/note/GeneratePdfPage';
 import { PreviewNotePage } from '../features/note/PreviewNotePage';
 import { NotebookLayout } from '../features/structure/NotebookLayout';
 import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
@@ -94,9 +95,12 @@ export const router = createBrowserRouter([
           // Drawn as the sign-in screen, outside the frame of the application,
           // because the secret of the account is typed there too (#214).
           { path: '/profile/password', element: <PasswordPage /> },
-          // A note alone, drawn for paper, in a tab of its own (#258): outside
-          // the frame of the application, because nothing of it is printed.
+          // A note laid on A4 pages, opened by the renderer of the server to
+          // make its PDF (#263) and never from the interface (#522).
           { path: '/notebooks/:notebookId/notes/:noteId/print', element: <PrintNotePage /> },
+          // The tab that becomes a note's PDF (#522), outside the frame of the
+          // application, as the file it turns into is.
+          { path: '/notebooks/:notebookId/notes/:noteId/pdf', element: <GeneratePdfPage /> },
           // A note or a draft drawn for an agent to see, opened by the renderer
           // of the server and never from the interface (#260): outside the
           // frame of the application, at the reading width.

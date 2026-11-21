@@ -198,6 +198,20 @@ describe('the log of the core API', () => {
     expect(JSON.stringify(capture.lines)).not.toContain(WRITTEN[1]);
   });
 
+  it('names the browser of a load of the web app as a family, never its user agent (#526)', async () => {
+    const agent =
+      'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36';
+    expect((await call('/access/session', { headers: { 'user-agent': agent } })).status).toBe(200);
+    expect(capture.lines).toHaveLength(1);
+    expect(capture.lines[0]).toMatchObject({
+      operation: 'GET /access/session',
+      channel: 'web',
+      webClient: 'samsung-android',
+    });
+    expect(JSON.stringify(capture.lines)).not.toContain('SM-S918B');
+    expect(outsideTheAllowList(capture.lines)).toEqual([]);
+  });
+
   it('writes a refused session too, with no identity it could not establish', async () => {
     const response = await call('/knowledge/notebooks', { token: 'nobody' });
     expect(response.status).toBeGreaterThanOrEqual(400);

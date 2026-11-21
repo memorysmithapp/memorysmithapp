@@ -284,6 +284,8 @@ import { createApp } from '../src/app.js';
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { Email, StorageQuota } from '@memorysmithapp/svc-access/domain/values';
 import { noSubscription, SubscriptionUsageReport } from '../src/usage.js';
+import { SystemAwareTableRepository } from '@memorysmithapp/svc-knowledge/application/system-tables';
+import { DiscoveryNoteProjections } from '../src/note-projections.js';
 
 export class RecordingEventPublisher implements EventPublisher {
   readonly published: DomainEvent[] = [];
@@ -409,26 +411,38 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     return made;
   };
 
-  const knowledgeRepos = (context: SubscriptionContext) => ({
-    notebooks: new InMemoryNotebookRepository(context, knowledgeDb, events),
-    notes: new InMemoryNoteRepository(context, knowledgeDb, events),
-    slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
-    numbers: new InMemoryFolderNumbers(context, knowledgeDb),
-    content: new InMemoryContentStore(context, knowledgeDb),
-    // The files of a notebook and their bytes (#166), each in a map of its own
-    // per subscription, which is what the partition of the table is.
-    files: fileRepositoryOf(context),
-    fileStore: fileStoreOf(context),
-    // The same list production injects, from the same published table (#166).
-    fileTypes: FILE_TYPE_CATALOGUE,
-    // The Tables of a notebook and their rows (#366), kept between calls too.
-    tables: tableRepositoryOf(context),
-    sheets: new SpreadsheetReader(),
-    dashboards: dashboardRepositoryOf(context),
-    storage,
-    // The same list production injects, from the same specification (RN-AGT-025).
-    reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
-  });
+  const knowledgeRepos = (context: SubscriptionContext) => {
+    const notebooks = new InMemoryNotebookRepository(context, knowledgeDb, events);
+    const notes = new InMemoryNoteRepository(context, knowledgeDb, events);
+    return {
+      notebooks,
+      notes,
+      slots: new InMemoryContentSlotRepository(context, knowledgeDb, events),
+      numbers: new InMemoryFolderNumbers(context, knowledgeDb),
+      content: new InMemoryContentStore(context, knowledgeDb),
+      // The files of a notebook and their bytes (#166), each in a map of its own
+      // per subscription, which is what the partition of the table is.
+      files: fileRepositoryOf(context),
+      fileStore: fileStoreOf(context),
+      // The same list production injects, from the same published table (#166).
+      fileTypes: FILE_TYPE_CATALOGUE,
+      // The Tables of a notebook and their rows (#366), kept between calls too.
+      // Beside them the system table, over the same Discovery the harness
+      // projects into, as production wires it (#517).
+      // Built again on every read: the harness projects by hand, between
+      // calls that come quicker than the moment production keeps a build.
+      tables: new SystemAwareTableRepository(
+        tableRepositoryOf(context),
+        { notebooks, notes, projections: new DiscoveryNoteProjections(discovery) },
+        0,
+      ),
+      sheets: new SpreadsheetReader(),
+      dashboards: dashboardRepositoryOf(context),
+      storage,
+      // The same list production injects, from the same specification (RN-AGT-025).
+      reservedVocabulary: RESERVED_FRONTMATTER_KEYS,
+    };
+  };
 
   /** The shares of notebooks between subscriptions, over the same module production uses. */
   const accounts = new InMemoryAccountLookup();
@@ -675,6 +689,21 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
     },
   });
   const projectStructure = new ProjectStructure(discovery.structure);
+  /** Projects every note the writes so far published, as the bus would (#517). */
+  const projectWrittenNotes = async (): Promise<void> => {
+    for (const event of events.published) {
+      if (event.type !== 'NoteCreated' && event.type !== 'NoteUpdated') continue;
+      const payload = event.payload as Record<string, unknown>;
+      await projectNote.onWritten({
+        notebookId: String(payload['notebookId']),
+        noteId: String(payload['noteId']),
+        folderId: String(payload['folderId']),
+        contentRef: event.contentRef
+          ? { contentId: event.contentRef.contentId.value, versionId: event.contentRef.versionId }
+          : null,
+      });
+    }
+  };
 
   const discoveryUseCases: DiscoveryUseCases = {
     related: () => new RelatedNotes(discoveryDeps),
@@ -1121,6 +1150,11 @@ export function buildTestApp(deployment: Deployment = TEST_DEPLOYMENT) {
         request.ctx,
         request.subscription.subscriptionId,
         knowledgeRepos(request.subscription).content,
+        // The wait for the projection, which the harness lands itself (#517).
+        async (attempt) => {
+          await projectWrittenNotes();
+          return attempt <= 2;
+        },
       ),
     /** What an upload in parts becomes a file with, over the same use cases (RN-PRT-027). */
     fileKeeperFor: (request) =>

@@ -40,6 +40,8 @@ export const CHECK_NAMES = [
   'model-declared',
   'model-keeps-no-source-term',
   'source-untouched',
+  // A panel about the notes draws from the notes' own table (#523).
+  'drew-from-system-notes',
 ] as const;
 
 export type CheckName = (typeof CHECK_NAMES)[number];

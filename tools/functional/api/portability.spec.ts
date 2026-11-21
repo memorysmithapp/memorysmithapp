@@ -69,6 +69,7 @@ async function importedFrom(api: Api, uploadKey: string, name: string): Promise<
 interface PrintDto {
   printId: string;
   status: 'running' | 'ready' | 'failed';
+  url?: string;
   downloadUrl?: string;
   failure?: string;
 }
@@ -122,6 +123,14 @@ test.describe('a note as a PDF made by the server', () => {
     expect(downloaded.headers.get('content-type')).toBe('application/pdf');
     expect(downloaded.headers.get('content-disposition')).toMatch(
       /^attachment; filename="Ata de reuniao\.pdf"; filename\*=UTF-8''Ata%20de%20reuni%C3%A3o\.pdf$/,
+    );
+    // The link the tab of Generate PDF turns into: the browser shows the file
+    // and saves it under the note's name (#522).
+    // A link signed for GET answers nothing else, so one byte of it is read.
+    const shown = await fetch(new URL(print.url ?? ''), { headers: { range: 'bytes=0-0' } });
+    expect(shown.status).toBe(206);
+    expect(shown.headers.get('content-disposition')).toMatch(
+      /^inline; filename="Ata de reuniao\.pdf"; filename\*=UTF-8''Ata%20de%20reuni%C3%A3o\.pdf$/,
     );
     const pdf = Buffer.from(await downloaded.arrayBuffer());
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');

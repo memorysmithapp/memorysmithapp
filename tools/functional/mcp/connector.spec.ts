@@ -169,6 +169,12 @@ test.describe('the tools', () => {
     expect(skill.text.length).toBeGreaterThan(200);
     expect(wrong.isError).toBe(true);
     expect(wrong.text).toContain('write-notes');
+    // The skills read first teach the table of the notes (#523): a list of
+    // notes is a block over it, and a key's form types its column.
+    expect(skill.text).toContain('system-notes');
+    expect((await callTool(agent, 'get_skill', { name: 'write-notes' })).text).toContain(
+      'table: system-notes',
+    );
   });
 
   test('[tool:create_notebook] [tool:list_notebooks] [tool:delete_notebook] creates a notebook once, finds it listed, and takes it out of every listing', async ({

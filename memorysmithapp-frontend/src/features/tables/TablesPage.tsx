@@ -35,6 +35,7 @@ const PAGE_SIZE = 25;
  */
 export function TablesPage() {
   const { t, i18n } = useTranslation();
+  const descriptionOf = useDescriptionOf();
   const locale = intlLocale(i18n.language);
   const notebookId = useNotebookId();
   const { structure } = useOutletContext<NotebookOutletContext>();
@@ -130,10 +131,11 @@ export function TablesPage() {
                           <span className="table-row-meta">
                             {t('tables.columns', { count: columnsOf(table).length })} ·{' '}
                             {t('tables.rows', { count: table.rows })} ·{' '}
-                            {formatBytes(table.bytes, locale)}
+                            {/* The system table holds no bytes: it is the notes, read (#517). */}
+                            {table.system ? t('tables.system') : formatBytes(table.bytes, locale)}
                           </span>
-                          {table.description ? (
-                            <span className="table-row-desc">{table.description}</span>
+                          {descriptionOf(table) ? (
+                            <span className="table-row-desc">{descriptionOf(table)}</span>
                           ) : null}
                         </span>
                       </button>
@@ -151,6 +153,15 @@ export function TablesPage() {
 
 type Tab = 'data' | 'schema';
 
+/**
+ * What a table is for, in the reader's language for the system table, whose
+ * description the server writes the same in every notebook (#517).
+ */
+function useDescriptionOf(): (table: NotebookTableDto) => string {
+  const { t } = useTranslation();
+  return (table) => (table.system ? t('tables.systemDescription') : table.description);
+}
+
 function TableDetail({
   notebookId,
   table,
@@ -163,6 +174,7 @@ function TableDetail({
   notes: readonly NoteRefDto[];
 }) {
   const { t } = useTranslation();
+  const descriptionOf = useDescriptionOf();
   const [tab, setTab] = useState<Tab>('data');
   const columns = columnsOf(table);
 
@@ -171,8 +183,11 @@ function TableDetail({
       <header className="table-detail-head">
         <div>
           <h1 className="table-detail-name">{table.name}</h1>
-          {table.description ? <p className="table-detail-desc">{table.description}</p> : null}
+          {descriptionOf(table) ? (
+            <p className="table-detail-desc">{descriptionOf(table)}</p>
+          ) : null}
           <p className="table-detail-meta">
+            {table.system ? `${t('tables.system')} · ` : ''}
             {t('tables.rows', { count: table.rows })} ·{' '}
             {t('tables.columns', { count: columns.length })}
             {table.key ? ` · ${t('tables.keyIs', { columns: table.key.join(', ') })}` : ''}
@@ -256,7 +271,7 @@ function TableRows({
 
   // The widths come from the first answer and stay for the table (#491).
   const [widths, setWidths] = useState<Widths | null>(null);
-  const [opened, setOpened] = useState<TableRowField[] | null>(null);
+  const [opened, setOpened] = useState<{ fields: TableRowField[]; rowId: string } | null>(null);
   if (widths === null && rows.data && rows.data.rows.length > 0) {
     setWidths(widthsOf(columns, rows.data.rows, locale, t));
   }
@@ -272,13 +287,14 @@ function TableRows({
   if (rows.data.total === 0) return <p>{t('tables.empty')}</p>;
 
   const pages = Math.max(1, Math.ceil(rows.data.total / rows.data.pageSize));
-  const open = (row: { values: Record<string, unknown> }) =>
-    setOpened(
-      columns.map((column) => ({
+  const open = (row: { rowId: string; values: Record<string, unknown> }) =>
+    setOpened({
+      rowId: row.rowId,
+      fields: columns.map((column) => ({
         name: column.name,
         value: formatCell(column, row.values[column.name], locale, t),
       })),
-    );
+    });
 
   return (
     <>
@@ -371,7 +387,13 @@ function TableRows({
         onPage={setPage}
       />
       {opened ? (
-        <TableRowDialog table={table.name} fields={opened} onClose={() => setOpened(null)} />
+        <TableRowDialog
+          table={table.name}
+          fields={opened.fields}
+          // A row of the system table is a note, under its own identifier (#524).
+          note={table.system ? noteAddress(notebookId, opened.rowId) : null}
+          onClose={() => setOpened(null)}
+        />
       ) : null}
     </>
   );

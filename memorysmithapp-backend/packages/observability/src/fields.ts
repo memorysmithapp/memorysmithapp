@@ -31,6 +31,7 @@ export const OPERATION_FIELDS = [
   'userId',
   'channel',
   'agentClient',
+  'webClient',
   'status',
   'eventId',
   'errorName',
@@ -73,6 +74,11 @@ export interface OperationLine {
   readonly channel?: Channel;
   /** The `clientName` of the Authorship, when an agent wrote through a connector. */
   readonly agentClient?: string;
+  /**
+   * Which browser opened the web app, as a family and never the user agent
+   * itself, on the line of the call each load of the app makes (#526).
+   */
+  readonly webClient?: string;
   /** The HTTP status answered, on a line of an HTTP API. */
   readonly status?: number;
   /** The event a worker handled. */
@@ -132,6 +138,11 @@ export function sanitize(input: Readonly<Record<string, unknown>>): OperationLin
   const agentClient = input['agentClient'];
   if (typeof agentClient === 'string' && agentClient.length > 0) {
     line['agentClient'] = agentClient.replace(CONTROL, ' ').slice(0, 200);
+  }
+  // A family a function of ours named, never the user agent (#526).
+  const webClient = input['webClient'];
+  if (typeof webClient === 'string' && /^[a-z]+-[a-z]+$/.test(webClient)) {
+    line['webClient'] = webClient;
   }
   const status = input['status'];
   if (typeof status === 'number' && Number.isInteger(status) && status >= 100 && status < 600) {

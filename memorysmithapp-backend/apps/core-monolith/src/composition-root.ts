@@ -53,6 +53,7 @@ import { DynamoNotebookRepository } from '@memorysmithapp/svc-knowledge/adapters
 import { S3ContentStore } from '@memorysmithapp/svc-knowledge/adapters/content';
 import { DynamoFileRepository } from '@memorysmithapp/svc-knowledge/adapters/files';
 import { DynamoTableRepository } from '@memorysmithapp/svc-knowledge/adapters/tables';
+import { SystemAwareTableRepository } from '@memorysmithapp/svc-knowledge/application/system-tables';
 import { SpreadsheetReader } from '@memorysmithapp/svc-knowledge/adapters/sheets';
 import { DynamoDashboardRepository } from '@memorysmithapp/svc-knowledge/adapters/dashboards';
 import { S3FileStore } from '@memorysmithapp/svc-knowledge/adapters/file-store';
@@ -80,6 +81,7 @@ import type { SubscriptionUsageQuery } from '@memorysmithapp/svc-access/adapters
 import { ReadStorageUsage } from '@memorysmithapp/svc-knowledge/application/usage';
 import { noSubscription, SubscriptionUsageReport } from './usage.js';
 import { KnowledgeSharedNotebooks, modelLicencesOf } from './shares.js';
+import { DiscoveryNoteProjections } from './note-projections.js';
 
 export interface Infrastructure {
   readonly db: DynamoDBDocumentClient;
@@ -246,9 +248,11 @@ export const FILE_TYPE_CATALOGUE: FileTypes = {
 const SPREADSHEETS = new SpreadsheetReader();
 
 export function buildKnowledge(infra: Infrastructure, context: SubscriptionContext) {
+  const notebooks = new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable);
+  const notes = new DynamoNoteRepository(context, infra.db, infra.knowledgeTable);
   return {
-    notebooks: new DynamoNotebookRepository(context, infra.db, infra.knowledgeTable),
-    notes: new DynamoNoteRepository(context, infra.db, infra.knowledgeTable),
+    notebooks,
+    notes,
     // The Guidance of a notebook and the Template of a folder, each an
     // aggregate of its own and locked on its own item (RN-KNW-044).
     slots: new DynamoContentSlotRepository(context, infra.db, infra.knowledgeTable),
@@ -263,7 +267,23 @@ export function buildKnowledge(infra: Infrastructure, context: SubscriptionConte
     fileTypes: FILE_TYPE_CATALOGUE,
     // A schema and its rows (#366): the schema in the notebook's partition,
     // the rows in one of the table's own.
-    tables: new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
+    // Beside them, the system table (#517, ADR-031): a view of the notes,
+    // built from what Discovery projected of them under the same subscription,
+    // and written by nothing. A deployable that reaches no Discovery table, the
+    // public catalog, sees the stored tables alone.
+    tables: infra.discoveryTable
+      ? new SystemAwareTableRepository(
+          new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
+          {
+            notebooks,
+            notes,
+            projections: new DiscoveryNoteProjections({
+              graph: new DynamoLinkGraph(context.subscriptionId, infra.db, infra.discoveryTable),
+              facets: new DynamoFacetIndex(context.subscriptionId, infra.db, infra.discoveryTable),
+            }),
+          },
+        )
+      : new DynamoTableRepository(context, infra.db, infra.knowledgeTable),
     // What reads the rows of a CSV or an Excel file the notebook keeps.
     sheets: SPREADSHEETS,
     // The dashboards drawn from the tables (#368).

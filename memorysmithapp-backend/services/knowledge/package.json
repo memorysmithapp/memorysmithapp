@@ -1,6 +1,6 @@
 {
   "name": "@memorysmithapp/svc-knowledge",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": true,
   "type": "module",
   "description": "Knowledge bounded context, the core domain: notebooks, guidance, folders, order, templates and notes.",
@@ -45,6 +45,7 @@
     "./application/notes": "./src/application/notes.ts",
     "./application/files": "./src/application/files.ts",
     "./application/tables": "./src/application/tables.ts",
+    "./application/system-tables": "./src/application/system-tables.ts",
     "./application/table-imports": "./src/application/table-imports.ts",
     "./application/dashboards": "./src/application/dashboards.ts",
     "./adapters/dashboards": "./src/adapters/outbound/dynamodb/DynamoDashboardRepository.ts",

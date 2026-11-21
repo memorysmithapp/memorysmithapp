@@ -156,8 +156,14 @@ export class InMemoryPrintStore implements PrintStore {
   async state(subscriptionId: string, printId: string): Promise<PrintState> {
     return this.states.get(`${subscriptionId}/${printId}`) ?? { status: 'running' };
   }
-  async link(subscriptionId: string, printId: string, name: string, seconds: number) {
-    return `https://files.example.test/s/${subscriptionId}/prints/${printId}.pdf?name=${encodeURIComponent(name)}&ttl=${seconds}`;
+  async link(
+    subscriptionId: string,
+    printId: string,
+    name: string,
+    seconds: number,
+    disposition: 'inline' | 'attachment',
+  ) {
+    return `https://files.example.test/s/${subscriptionId}/prints/${printId}.pdf?name=${encodeURIComponent(name)}&ttl=${seconds}&as=${disposition}`;
   }
 }
 

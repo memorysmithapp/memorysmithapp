@@ -57,6 +57,14 @@ export function checkTableName(raw: string): Result<string, DomainError> {
   if (UNADDRESSABLE.test(name)) {
     return err(DomainError.validation('A table name holds no #, [, ], |, backtick or line break'));
   }
+  // The system tables keep this namespace for themselves (#517, RN-KNW-094).
+  if (name.toLowerCase().startsWith('system-')) {
+    return err(
+      DomainError.validation(
+        'A table name does not start with "system-": the system tables keep it',
+      ),
+    );
+  }
   return ok(name);
 }
 

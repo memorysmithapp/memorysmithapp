@@ -48,7 +48,7 @@ import {
   createPublicCatalogRoutes,
   type PublicCatalogUseCases,
 } from '@memorysmithapp/svc-portability/adapters/catalog-http';
-import { annotate, type Channel } from '@memorysmithapp/observability';
+import { annotate, type Channel, webClientOf } from '@memorysmithapp/observability';
 import { operationErrorHandler, operationLog } from '@memorysmithapp/observability/hono';
 
 export interface AppDependencies {
@@ -214,6 +214,12 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
     const session = await authenticate(deps.verifier, c.req.header('authorization'));
     if (!session.ok) return fail(c, session.error);
     annotateCaller(deps, session.value);
+    // Each load of the web app asks for its session once: its line says which
+    // browser opened it, as a family, so a person asked to sign in again can
+    // be told apart from one moving between browsers (#526).
+    if (c.req.method === 'GET' && c.req.path === '/access/session') {
+      annotate({ webClient: webClientOf(c.req.header('user-agent')) });
+    }
     c.set('access', session.value);
     await next();
   });

@@ -20,7 +20,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { PrintState, PrintStore } from '../application/Prints.js';
-import { answeredOn, attachmentNamed, UPLOAD_LIFECYCLE_TAG } from './s3.js';
+import { answeredOn, dispositionNamed, UPLOAD_LIFECYCLE_TAG } from './s3.js';
 
 export function printKey(subscriptionId: string, printId: string, ending: 'pdf' | 'failed') {
   return `s/${subscriptionId}/prints/${printId}.${ending}`;
@@ -69,13 +69,19 @@ export class S3PrintStore implements PrintStore {
     return { status: 'running' };
   }
 
-  async link(subscriptionId: string, printId: string, name: string, seconds: number) {
+  async link(
+    subscriptionId: string,
+    printId: string,
+    name: string,
+    seconds: number,
+    disposition: 'inline' | 'attachment',
+  ) {
     const signed = await getSignedUrl(
       this.s3,
       new GetObjectCommand({
         Bucket: this.bucket,
         Key: printKey(subscriptionId, printId, 'pdf'),
-        ResponseContentDisposition: attachmentNamed(name),
+        ResponseContentDisposition: dispositionNamed(disposition, name),
         ResponseContentType: 'application/pdf',
       }),
       { expiresIn: seconds },

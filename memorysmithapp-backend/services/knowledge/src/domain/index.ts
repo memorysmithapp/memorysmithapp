@@ -34,7 +34,13 @@ export { Table, type TableChange } from './table/Table.js';
 export type { Row } from './table/Row.js';
 export { presentCell, tableSchema, type Column } from './table/TableSchema.js';
 export { presentDefinition } from './dashboard/DashboardDefinition.js';
-export type { FileTypes } from './ports/index.js';
+export type { FileTypes, NoteProjections } from './ports/index.js';
+export {
+  isSystemTable,
+  SYSTEM_NOTES_ID,
+  SYSTEM_NOTES_NAME,
+  type NoteFacet,
+} from './table/SystemTable.js';
 export {
   composeNotebookContext,
   type NotebookContextInput,

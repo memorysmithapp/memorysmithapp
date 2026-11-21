@@ -234,11 +234,22 @@ test.describe('the pages of an account', () => {
     await expect(sidebar).toBeVisible();
     // The way back to the notebooks is the menu above, and only it (#422).
     await expect(sidebar.locator('a[href="/notebooks"]')).toHaveCount(0);
-    await sidebar.locator('button.sidebar-fold').click();
+    // Only what is above the fold scrolls (#519): scrolled to its end, the
+    // fold has not moved, and the column itself never scrolls.
+    const fold = sidebar.locator('button.sidebar-fold');
+    const resting = (await fold.boundingBox())?.y;
+    await sidebar.locator('.sidebar-scroll').evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    expect((await fold.boundingBox())?.y).toBe(resting);
+    expect(await sidebar.evaluate((el) => el.scrollHeight <= el.clientHeight)).toBe(true);
+    await fold.click();
     await expect(sidebar).toHaveClass(/is-collapsed/);
     expect((await sidebar.boundingBox())?.width ?? 0).toBeLessThanOrEqual(64);
     // Folded, the icons fit the column, so no scroll bar is drawn beside them (#422).
-    expect(await sidebar.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    expect(
+      await sidebar.locator('.sidebar-scroll').evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
     await app.reload();
     await expect(app.locator('aside#notebook-sidebar')).toHaveClass(/is-collapsed/);
     await testInfo.attach('shell-notebook-folded.png', {
@@ -487,6 +498,32 @@ test.describe('the pages of an account', () => {
       `uploads.${new URL(state.surfaces.site).host}`,
     );
     await expect(app.locator('#about-files-panel li')).toHaveCount(3);
+
+    // Installable from a phone's browser (#526): the page names its manifest,
+    // which the site serves as one, with the icons an installed app needs.
+    const manifest = await app.evaluate(
+      () =>
+        (
+          globalThis as unknown as {
+            document: { querySelector(s: string): { href: string } | null };
+          }
+        ).document.querySelector('link[rel="manifest"]')?.href ?? '',
+    );
+    const served = await fetch(manifest);
+    // Served as JSON: the site's upload types a file by its extension.
+    expect(served.headers.get('content-type')).toContain('json');
+    const declared = (await served.json()) as {
+      display: string;
+      start_url: string;
+      icons: Array<{ sizes: string }>;
+    };
+    expect(declared.display).toBe('standalone');
+    expect(declared.start_url).toBe('/');
+    expect(declared.icons.map((icon) => icon.sizes)).toEqual(['192x192', '512x512']);
+    for (const icon of declared.icons) {
+      const src = new URL((icon as unknown as { src: string }).src, state.surfaces.site).toString();
+      expect((await fetch(src)).headers.get('content-type')).toBe('image/png');
+    }
     // Every screen the interface serves, each named once (#401).
     await expect(app.locator('.about-list > div')).toHaveCount(12);
     // And the foot says which version this is, beside the way in.
@@ -1346,6 +1383,47 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.deleteTable })).toHaveCount(0);
   });
 
+  test('[page:/notebooks/:notebookId/tables] a row of system-notes leads to its note, from a table block and from the Tables page (#524)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const task = `Tarefa ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${task}\nsituacao: aberta\n---\n\nUma tarefa.\n`,
+    });
+    const list = `Lista ${randomBytes(3).toString('hex')}`;
+    const { noteId: listId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${list}\n---\n\n\`\`\`table\ntable: system-notes\ncolumns: name, situacao\nwhere: situacao:aberta\n\`\`\`\n`,
+    });
+    const taskPage = new RegExp(`/notes/${noteId}$`, 'i');
+
+    // The note is a row once Discovery projected what it declares.
+    await expect(async () => {
+      await app.goto(notebook.page(`/notes/${listId.toLowerCase()}`));
+      // In the block's own rows: the sidebar names the task too.
+      await expect(app.locator('.data-table').getByText(task).first()).toBeVisible({
+        timeout: 3_000,
+      });
+    }).toPass({ timeout: 60_000 });
+    // In a note, a row opens whole, and the dialog leads to the note it is.
+    await app.locator('.data-table').getByText(task).first().click();
+    const open = app.locator('.table-row-dialog').getByRole('link', { name: words.openNote });
+    await open.click();
+    await expect(app).toHaveURL(taskPage);
+
+    // On the Tables page, the same.
+    await app.goto(notebook.page('/tables'));
+    await app.locator('.table-row', { hasText: 'system-notes' }).click();
+    await app.locator('table.tables-grid tbody tr', { hasText: task }).click();
+    await app.locator('.table-row-dialog').getByRole('link', { name: words.openNote }).click();
+    await expect(app).toHaveURL(taskPage);
+  });
+
   test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
     app,
     owner,
@@ -2024,7 +2102,7 @@ test.describe('the pages of an account', () => {
     ).toContain('The line typed here. First and after the save.');
   });
 
-  test("[page:/notebooks/:notebookId/notes/:noteId/print] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties on a page of their own, its tables inside the margins and either orientation (#258, #493)", async ({
+  test("[page:/notebooks/:notebookId/notes/:noteId/print] [page:/notebooks/:notebookId/notes/:noteId/pdf] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties on a page of their own, its tables inside the margins and either orientation; Generate PDF opens a tab that becomes the file (#258, #493, #522)", async ({
     app,
     owner,
     notebook,
@@ -2056,36 +2134,27 @@ test.describe('the pages of an account', () => {
         {
           folderId: notebook.folderId,
           content:
-            '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).\n\n' +
+            '---\nname: On paper\nstatus: draft\n---\n\nA line with a [link](https://example.org).[^paper]\n\n' +
             '> [!warning] Mind this\n> A callout keeps its colour.\n\n```ts\nconst answer = 42;\n```\n\n' +
-            `${wide}\n`,
+            `${wide}\n\n[^paper]: A footnote, linked both ways on the paper too.\n`,
         },
       );
-      // The reader chose the dark theme, and the dialog of the browser is
-      // counted rather than opened.
+      // The reader chose the dark theme.
       await app.addInitScript(() => {
         localStorage.setItem(
           'memorysmith.preferences',
           JSON.stringify({ state: { theme: 'dark' }, version: 0 }),
         );
       });
-      await app.context().addInitScript(() => {
-        const scope = globalThis as unknown as { printed: number; print: () => void };
-        scope.printed = 0;
-        scope.print = () => {
-          scope.printed += 1;
-        };
-      });
       await app.goto(notebook.page(`/notes/${noteId.toLowerCase()}`));
       await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-      const opening = app.context().waitForEvent('page');
-      await app.getByRole('link', { name: words.printNote, exact: true }).click();
-      const paper = await opening;
-
-      // The note alone, in a tab of its own, which previews its pages and waits
-      // for the person to print.
-      await expect(paper).toHaveURL(new RegExp(`/notes/${noteId}/print$`, 'i'));
+      // The page the server's browser lays the PDF on (#263), which no link of
+      // the interface reaches since #522: opened here as the renderer opens it.
+      const paper = await app.context().newPage();
+      await paper.goto(notebook.page(`/notes/${noteId.toLowerCase()}/print`));
+      // Nothing of a preview is left on it: no bar, no button (#522).
+      await expect(paper.getByRole('button')).toHaveCount(0);
       // The note as drawn, off screen, carries the choices; the preview, its pages.
       const body = paper.locator('.print-source article[data-placement]');
       const cover = paper.locator('.print-source article.print-cover');
@@ -2095,11 +2164,18 @@ test.describe('the pages of an account', () => {
       await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
       await expect(preview).toHaveAttribute('data-ready', 'true');
       await expect(paper).toHaveTitle('On paper');
-      const printed = () =>
-        paper.evaluate(() => (globalThis as unknown as { printed: number }).printed);
-      expect(await printed()).toBe(0);
-      await paper.getByRole('button', { name: words.printNote, exact: true }).click();
-      expect(await printed()).toBe(1);
+      // A footnote and its way back land on the pages, the ones the PDF holds,
+      // and never on the hidden drawing of the same note (#520).
+      const anchors = await preview.evaluate((pagesOf) =>
+        [...pagesOf.querySelectorAll('a[href^="#"]')].map((link) => {
+          const target = pagesOf.ownerDocument.getElementById(
+            decodeURIComponent(link.getAttribute('href')!.slice(1)),
+          );
+          return target !== null && pagesOf.contains(target);
+        }),
+      );
+      expect(anchors.length).toBeGreaterThanOrEqual(2);
+      expect(anchors.every(Boolean)).toBe(true);
 
       // Light while it is open, and the choice of the reader is left as it was.
       await expect(paper.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -2120,10 +2196,8 @@ test.describe('the pages of an account', () => {
       expect(behind.length).toBeGreaterThan(0);
       for (const colour of behind) expect(colour).toBe('rgba(0, 0, 0, 0)');
 
-      // The bar offers no choice of its own: the style decides, and whoever
-      // maintains the notebook is pointed at it.
+      // The page offers no choice of its own: the style decides (#493).
       await expect(paper.getByRole('radiogroup')).toHaveCount(0);
-      await expect(paper.locator('.print-hint a')).toHaveAttribute('href', /\/style$/);
       const restyled = async (style: Record<string, unknown>) => {
         await styled(style);
         await paper.reload();
@@ -2160,7 +2234,7 @@ test.describe('the pages of an account', () => {
           await testInfo.attach(`${name}-${index + 1}.png`, {
             body: await pages.nth(index).screenshot({
               animations: 'disabled',
-              style: '.print-toolbar, .environment-banner { visibility: hidden !important; }',
+              style: '.environment-banner { visibility: hidden !important; }',
             }),
             contentType: 'image/png',
           });
@@ -2202,9 +2276,6 @@ test.describe('the pages of an account', () => {
           return scope.document.documentElement.scrollHeight <= scope.innerHeight;
         }),
       ).toBe(true);
-      await paper.emulateMedia({ media: 'print' });
-      await expect(paper.locator('.print-toolbar')).toBeHidden();
-      await paper.emulateMedia({ media: 'screen' });
 
       // A wide table wraps inside the margins, a short word whole and only what
       // has no place to break broken, and the Copy button of a block is not on
@@ -2275,16 +2346,13 @@ test.describe('the pages of an account', () => {
       await expect(paper.locator('.print-page')).toHaveAttribute('data-orientation', 'landscape');
 
       // On a phone the pages keep the proportions of A4, scaled to the width of
-      // the screen, and the bar shows its actions as icons, each still named.
+      // the screen.
       await restyled({ orientation: 'portrait' });
       await paper.setViewportSize({ width: 390, height: 844 });
       await laid();
       const small = await pages.nth(0).boundingBox();
       expect(small?.width ?? 0).toBeLessThanOrEqual(390);
       expect((small?.height ?? 0) / (small?.width ?? 1)).toBeCloseTo(297 / 210, 1);
-      const label = await paper.locator('.print-toolbar .print-action-label').first().boundingBox();
-      expect(label?.width ?? 0).toBeLessThanOrEqual(1);
-      await expect(paper.getByRole('button', { name: words.printNote, exact: true })).toBeVisible();
       await testInfo.attach('phone.png', {
         body: await paper.screenshot({ animations: 'disabled' }),
         contentType: 'image/png',
@@ -2319,13 +2387,27 @@ test.describe('the pages of an account', () => {
       expect(colours.title).not.toBe('rgb(14, 21, 38)');
       expect(colours.adjust).toBe('exact');
 
-      // And the PDF made by the server, which the browser downloads named after
-      // the note, without its print dialog (#263).
+      // And Generate PDF on the note: a tab that becomes the PDF the server
+      // made, named after the note (#263, #522). A browser with a PDF viewer
+      // shows it; a headless one, which has none, saves it.
       await paper.emulateMedia({ media: 'screen' });
-      const downloading = paper.waitForEvent('download', { timeout: 180_000 });
-      await paper.getByRole('button', { name: words.downloadPdf, exact: true }).click();
-      const download = await downloading;
-      expect(download.suggestedFilename()).toBe('On paper.pdf');
+      const opening = app.context().waitForEvent('page');
+      await app.getByRole('link', { name: words.printNote, exact: true }).click();
+      const tab = await opening;
+      await expect(tab).toHaveURL(new RegExp(`/notes/${noteId}/pdf$`, 'i'));
+      await expect(tab.getByRole('status')).toBeVisible();
+      const reached = await Promise.race([
+        tab
+          .waitForEvent('download', { timeout: 180_000 })
+          .then((download) => download.suggestedFilename()),
+        // A navigation that turns into a download is aborted: then the
+        // download above answers, and this one never does.
+        tab.waitForURL(/\/prints\/[^/]+\.pdf/, { timeout: 180_000 }).then(
+          () => 'shown',
+          () => new Promise<string>(() => undefined),
+        ),
+      ]);
+      expect(['On paper.pdf', 'shown']).toContain(reached);
     } finally {
       await styled(DEFAULT);
     }

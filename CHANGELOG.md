@@ -11,6 +11,26 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-21
+
+### Added
+
+- **Every notebook has a system table of its notes, `system-notes`.** It holds one row per note: its name, folder, last update, how many links reach it and how many it makes, and one column per attribute its notes declare in their frontmatter, each typed by how the notes wrote it. A dashboard and a note's `table` block draw from it as from any table, so a panel of notes by status, of the due dates of the tasks or of the notes nobody links to needs no table repeating the frontmatter; filter it by `folder` for one folder's notes. It follows the notes once they are projected, holds the 10,000 most recently written, and counts in neither the 50 tables nor the space of the subscription. Nothing writes, alters or deletes it, an export leaves it out, and no table may be named with the prefix `system-`. The Tables page marks it as a system table, and the connector says so in `list_tables` and in the context of the notebook (#517).
+
+### Changed
+
+- **A click or a tap on a node of the graph holds it, and a second one opens it.** The first click or tap on a note, a folder, a table, a dashboard or a file keeps its lines lit and names it, a note with its folder, and its neighbors, until another node is chosen or the empty canvas is clicked; a second one on it, or *Open* at the foot of the graph, opens it, so a double click opens too. On a phone or a tablet, where there is no hover, this is how a note is ever named or its links seen; with a mouse the highlight no longer goes away when the pointer moves to a neighbor. A note chosen inside an attribute's held group keeps the group on the drawing (#515).
+- **The assistant reaches for `system-notes` when the question is about the notes.** Asked for a panel of the notes by status, a count of the drafts or a note listing the open tasks, it draws from the notes' own table instead of searching the text or copying the notes into a new table: the skills it reads first say so, a note that lists notes writes a `table` block over `system-notes`, and designing a notebook says that the form of each frontmatter key also types its column there (#523).
+- **A row of `system-notes` opens its note.** A row opened from a `table` block of a note or from the Tables page offers *Open note*, and on a dashboard drawn from `system-notes` the first column of a table, the title of a Kanban card and the title of a timeline entry lead to the note (#524).
+- **Generate PDF opens the note's PDF in a tab, with no print preview first.** The note's *Print* became *Generate PDF*: one click opens a tab that says the PDF is being made and then becomes the file, laid as the notebook's style says, for the browser to print or save under the note's name. When there is no file, the tab says why — the note is gone, the PDF failed or took too long — and offers to try again. The preview tab, with its *Download PDF* and *Print*, is gone (#522).
+
+### Fixed
+
+- **The button that collapses a notebook's sidebar stays at its foot.** Only the name of the notebook, its menu and its folders scroll above it, and the scroll bar ends where the button starts, whether the sidebar is open or collapsed to its icons (#519).
+- **A person using the product is no longer sent back to sign in when renewing the session fails for a moment.** The session is renewed a few minutes before it would expire, once at a time for every open tab, and a passing failure of the sign-in provider is tried again instead of ending the session; only a session the provider says is over, or one it keeps failing to renew for a quarter of an hour, returns the person to sign in (#525).
+- **MemorySmith installs as an app on Android.** From Chrome, *Install app* puts it on the home screen as an app that opens without the browser bar, uses Chrome's sign-in and opens the MemorySmith links tapped in other apps; installed, it asks the browser to keep its session's storage. About says how to install it on Android and on iPhone, and that an icon made from another browser keeps that browser's sign-in (#526).
+- **The footnotes of a note work in its PDF.** A click on a reference number goes to its note at the end, and the way back returns to the reference, in the PDF downloaded and in the one saved from the print dialog (#520).
+
 ## [0.21.0] - 2026-11-20
 
 ### Added
@@ -1178,7 +1198,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0

@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "MemorySmith",
+  "short_name": "MemorySmith",
+  "description": "Self-describing knowledge notebooks in Markdown, served to AI tools.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edefec",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/symbol-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/symbol-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -96,6 +96,52 @@ function turnAppendixSheet(appendices: Appendices | null): void {
 `;
   document.head.appendChild(sheet);
 }
+/** What the copy laid into the pages puts before every id of the note (#520). */
+export const PRINTED_ID = 'printed-';
+
+/** The attributes that name other elements by their ids, one or several. */
+const ID_REFERENCES = ['aria-describedby', 'aria-labelledby'] as const;
+
+/**
+ * Gives the copy laid into the pages ids of its own (#520), and points every
+ * link inside it that reaches one of them at the renamed one.
+ *
+ * The drawn note stays in the document, hidden from the print, with the same
+ * ids; it comes first, and Chromium links a `#fragment` to the first element
+ * of that id. So a footnote, a way back from one, or a heading named by a
+ * link pointed at the hidden note, and the PDF got no destination for it.
+ * Renamed, the ids of the pages are the only ones of their names, and each
+ * link of the PDF lands on the page that shows its target. A link to anything
+ * outside the note is left as it was.
+ */
+export function separateIds(content: ParentNode): void {
+  const ids = new Set<string>();
+  for (const element of content.querySelectorAll('[id]')) {
+    ids.add(element.id);
+    element.id = PRINTED_ID + element.id;
+  }
+  if (ids.size === 0) return;
+  for (const link of content.querySelectorAll('a[href^="#"]')) {
+    const fragment = link.getAttribute('href')?.slice(1) ?? '';
+    if (ids.has(fragmentId(fragment))) link.setAttribute('href', `#${PRINTED_ID}${fragment}`);
+  }
+  for (const name of ID_REFERENCES) {
+    for (const element of content.querySelectorAll(`[${name}]`)) {
+      const named = (element.getAttribute(name) ?? '').split(/\s+/).filter(Boolean);
+      element.setAttribute(name, named.map((id) => (ids.has(id) ? PRINTED_ID + id : id)).join(' '));
+    }
+  }
+}
+
+/** The id a fragment names, as the browser reads it: percent-decoded. */
+function fragmentId(fragment: string): string {
+  try {
+    return decodeURIComponent(fragment);
+  } catch {
+    return fragment;
+  }
+}
+
 let queue: Promise<unknown> = Promise.resolve();
 
 /**
@@ -119,6 +165,7 @@ export function paginate(
 
     const content = document.createDocumentFragment();
     for (const part of source.children) content.appendChild(part.cloneNode(true));
+    separateIds(content);
 
     const previewer = new Previewer();
     laid = previewer;

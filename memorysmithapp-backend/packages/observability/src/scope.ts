@@ -27,6 +27,7 @@ export type Annotations = Partial<
     | 'userId'
     | 'channel'
     | 'agentClient'
+    | 'webClient'
     | 'eventId'
     | 'errorName'
     | 'errorCode'

@@ -617,6 +617,8 @@ export class ApiStack extends Stack {
         // An export may carry the history of the notebook (RN-PRT-022), and an
         // import brings one back (RN-PRT-023).
         AUDIT_TABLE: props.data.auditTable.table.tableName,
+        // Read for the system table alone, which a dashboard may draw from (#517).
+        DISCOVERY_TABLE: props.data.discoveryTable.table.tableName,
         CONTENT_BUCKET: props.data.contentBucket.bucketName,
       },
       // A notebook of thousands of notes is read note by note from the object
@@ -637,6 +639,8 @@ export class ApiStack extends Stack {
     props.data.portabilityTable.table.grantReadWriteData(transfers.function);
     // Read alone: the worker resolves a role and never changes one.
     props.data.accessTable.table.grantReadData(transfers.function);
+    // Read alone: the projections are written by the projector, from events (#517).
+    props.data.discoveryTable.table.grantReadData(transfers.function);
     props.data.contentBucket.grantRead(transfers.function);
     props.data.contentBucket.grantPut(transfers.function);
     /**

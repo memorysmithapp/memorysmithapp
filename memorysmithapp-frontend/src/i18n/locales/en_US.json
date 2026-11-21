@@ -267,16 +267,17 @@
     }
   },
   "print": {
-    "short": "Print",
-    "open": "Print the note or save it as a PDF, on an A4 page",
-    "print": "Print",
-    "toolbar": "Printing",
-    "hint": "Download PDF hands you the file; when printing, “Save as PDF” makes one too.",
-    "styleLink": "Change how this notebook prints",
-    "appendixPage": ", page ",
-    "download": "Download PDF",
-    "downloading": "Making the PDF…",
-    "downloadFailed": "The PDF could not be made just now. Try again, or print and choose “Save as PDF”."
+    "short": "Generate PDF",
+    "open": "Generate the note's PDF on A4 pages, to print or save from the browser",
+    "appendixPage": ", page "
+  },
+  "pdf": {
+    "title": "Generating PDF…",
+    "making": "Generating the note’s PDF. It opens here as soon as it is ready, and you print or save it from the browser.",
+    "gone": "This note no longer exists, or you no longer have access to it.",
+    "failed": "The PDF could not be generated just now.",
+    "timedOut": "The PDF took longer than expected and did not arrive.",
+    "retry": "Try again"
   },
   "style": {
     "intro": "How every note of this notebook looks on the screen and on paper, for everybody who reads it. A passage of one note that has to differ uses a :::{style} block in that note.",
@@ -628,6 +629,9 @@
     }
   },
   "tables": {
+    "system": "System table",
+    "systemDescription": "The notes of this notebook, one row each: what each declares in its frontmatter and how many links reach it and leave it. Read from the notes, it follows them and nothing writes it.",
+    "openNote": "Open note",
     "heading": "Tables",
     "navLabel": "Tables",
     "intro": "The structured data this notebook keeps: rows an agent writes, read here page by page.",
@@ -707,10 +711,13 @@
     "controls": "Controls",
     "openControls": "Open controls",
     "closeControls": "Close controls",
-    "hint": "Scroll to zoom · drag to pan · click a note to open it, an attribute to hold its notes",
-    "hintTouch": "Pinch to zoom · drag to pan · tap a note to open it, an attribute to hold its notes",
-    "pinned": "Held: <b>{{value}}</b> · click a note to open it, an attribute to hold its notes",
-    "pinnedTouch": "Held: <b>{{value}}</b> · tap a note to open it, an attribute to hold its notes",
+    "hint": "Scroll to zoom · drag to pan · click a node to see its links, again to open it",
+    "hintTouch": "Pinch to zoom · drag to pan · tap a node to see its links, again to open it",
+    "pinned": "Held: <b>{{value}}</b> · click it again to let go, a note to see its links",
+    "pinnedTouch": "Held: <b>{{value}}</b> · tap it again to let go, a note to see its links",
+    "focused": "<b>{{value}}</b> · click it again to open it, empty space to let go",
+    "focusedTouch": "<b>{{value}}</b> · tap it again to open it, empty space to let go",
+    "open": "Open",
     "empty": "This notebook has no notes to draw yet.",
     "truncated": "Showing the first 2000 notes of this notebook.",
     "simulate": "Simulate agents",
@@ -783,7 +790,8 @@
         "noneLabel": "Ink",
         "none": "What is drawn once the colours of this notebook run out."
       },
-      "edges": "Only the lines between notes are links, the ones backlinks count. The lines to a folder, a file, a table or a dashboard show where each one sits."
+      "edges": "Only the lines between notes are links, the ones backlinks count. The lines to a folder, a file, a table or a dashboard show where each one sits.",
+      "hold": "A first click or tap on a node holds it: its lines stay lit and its neighbors are named. A second one, or Open at the foot, opens it; on an attribute's value it lets the group go."
     }
   },
   "errors": {
@@ -1015,6 +1023,13 @@
       "grok": {
         "one": "Grok's code reaches the address above as it comes: there is no setting to change."
       }
+    },
+    "install": {
+      "heading": "On a phone or tablet",
+      "body": "MemorySmith can sit on the home screen as an app, which opens straight away, with no browser bar.",
+      "android": "On Android, open memorysmith.app in Chrome, tap the ⋮ menu and choose “Install app”. The app uses Chrome’s sign-in and opens the MemorySmith links you tap in other apps.",
+      "iphone": "On iPhone and iPad, open it in Safari, tap Share and choose “Add to Home Screen”.",
+      "session": "Each browser keeps its own sign-in. An icon made from another browser, such as Samsung Internet, opens there and asks you to sign in again. Install it from the browser you sign in to MemorySmith with."
     }
   },
   "profile": {

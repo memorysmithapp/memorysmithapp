@@ -75,8 +75,12 @@ export class FrontendReleaseStack extends Stack {
        * configuration do NOT: their names stay put across releases, so caching
        * them would pin every visitor to the release they happened to load first.
        */
+      // The manifest keeps its name across releases too (#526), so it is the
+      // entry's: an installed app reads it again to learn its name and icons.
       new BucketDeployment(this, 'SiteAssets', {
-        sources: [Source.asset(frontendDist, { exclude: ['index.html', 'config.json'] })],
+        sources: [
+          Source.asset(frontendDist, { exclude: ['index.html', 'config.json', 'manifest.json'] }),
+        ],
         destinationBucket: props.bucket,
         cacheControl: [CacheControl.fromString('public, max-age=31536000, immutable')],
         prune: false,

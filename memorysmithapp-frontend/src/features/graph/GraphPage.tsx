@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   forceCenter,
@@ -174,11 +174,11 @@ const LINK_GAP = 20;
 const HELD_LINK_GAP = 60;
 
 /**
- * How many neighbour names a hover writes on the drawing: a glance names a
- * handful. It is a ceiling and not a promise, since names that would land on
- * one another are dropped rather than piled up.
+ * How many neighbour names a hover or a held node writes on the drawing: a
+ * glance names a handful. It is a ceiling and not a promise, since names that
+ * would land on one another are dropped rather than piled up.
  *
- * A pinned group writes no such list. Holding a group is the moment you go
+ * A held value writes no such list. Holding a group is the moment you go
  * looking through it, and eighty names frozen over eighty crowded nodes is a
  * wall to read, not a group to browse. There the pointer names one node at a
  * time: the one under it.
@@ -348,11 +348,16 @@ export function GraphPage() {
   /** The modal that says what every animation and every node means (#507). */
   const [helpOpen, setHelpOpen] = useState(false);
   /**
-   * The value held on the drawing, as `attribute:value`, which the foot says
-   * (#233). The drawing keeps the node itself; this is only its name, told to
-   * React when the pin changes and never on a frame.
+   * The node held on the drawing, which the foot says (#233) with an Open
+   * beside it when it leads somewhere (#515). The drawing keeps the node
+   * itself; this is only what the foot needs, told to React when the hold
+   * changes and never on a frame.
    */
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [held, setHeld] = useState<{
+    label: string;
+    value: boolean;
+    url: string | null;
+  } | null>(null);
   const [data, setData] = useState<GraphFile | null>(null);
   const [failed, setFailed] = useState(false);
   /**
@@ -375,17 +380,24 @@ export function GraphPage() {
     transform: { x: number; y: number; k: number };
     hovered: GraphNode | null;
     /**
-     * The value node whose group is held on the drawing. Hovering shows a
-     * group for as long as the pointer stays on it, which is exactly as long
-     * as it takes to move the pointer off it and lose it: the moment you go
-     * for one of the notes it named, it is gone. Pinning is that same
-     * highlight, kept, so the group can be read and one of its notes clicked.
-     * While something is pinned the drawing stops answering to hover, because
-     * a highlight that still follows the pointer is not held at all.
+     * The node held on the drawing, of any kind (#515). Hovering shows a
+     * node's links for as long as the pointer stays on it, which is exactly as
+     * long as it takes to move the pointer off it and lose it: the moment you
+     * go for one of the neighbours it named, it is gone, and a finger has no
+     * hover at all. Holding is that same highlight, kept, so the links can be
+     * read; the first click or tap holds, a second one on the held node opens
+     * it. While something is held the drawing stops answering to hover,
+     * because a highlight that still follows the pointer is not held at all.
      */
     pinned: GraphNode | null;
     /**
-     * What is on the drawing at all: the held node and its group, or null for
+     * The value whose group is on the drawing, or null for the whole notebook.
+     * Holding a value holds its group; holding a note of that group then keeps
+     * the group and focuses the note inside it.
+     */
+    scope: GraphNode | null;
+    /**
+     * What is on the drawing at all: the held value and its group, or null for
      * the whole notebook. A node outside it is not drawn, and is not under the
      * pointer either, which is the difference between hiding something and
      * merely fading it.
@@ -406,6 +418,7 @@ export function GraphPage() {
     transform: { x: 0, y: 0, k: 1 },
     hovered: null,
     pinned: null,
+    scope: null,
     shown: null,
     redraw: null,
     byId: new Map(),
@@ -885,6 +898,7 @@ export function GraphPage() {
     */
     const previous = new Map(state.nodes.map((node) => [node.id, node]));
     const pinnedBefore = state.pinned?.id ?? null;
+    const scopeBefore = state.scope?.id ?? null;
     const nodes: GraphNode[] = filtered.nodes.map((n) => {
       const was = previous.get(n.id);
       return was?.x !== undefined && was.y !== undefined
@@ -914,10 +928,11 @@ export function GraphPage() {
       };
     }
     state.hovered = null;
-    // The nodes were just rebuilt, so a pin from the previous drawing points
+    // The nodes were just rebuilt, so a hold from the previous drawing points
     // at an object that is no longer on it; it is held again below when the
-    // value is still there.
+    // node is still there.
     state.pinned = null;
+    state.scope = null;
     state.shown = null;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -953,8 +968,8 @@ export function GraphPage() {
       ctx.translate(x, y);
       ctx.scale(k, k);
 
-      // A pin outranks the pointer: while one is held, moving the mouse across
-      // the drawing never changes WHICH group is lit, which is the whole point
+      // A hold outranks the pointer: while one is held, moving the mouse across
+      // the drawing never changes WHICH node is lit, which is the whole point
       // of holding it. The pointer keeps one job, naming what is under it.
       const pinned = state.pinned;
       const hovered = state.hovered;
@@ -987,6 +1002,8 @@ export function GraphPage() {
           const s = link.source as GraphNode;
           const tN = link.target as GraphNode;
           if (s !== focus && tN !== focus) continue;
+          // A note focused inside a held group reaches only what is drawn.
+          if (shown && (!shown.has(s) || !shown.has(tN))) continue;
           ctx.moveTo(s.x ?? 0, s.y ?? 0);
           ctx.lineTo(tN.x ?? 0, tN.y ?? 0);
         }
@@ -1021,19 +1038,20 @@ export function GraphPage() {
       }
 
       /*
-        Who gets named. With a group held, only the value that holds it and
-        whatever the pointer is on: the highlight stays put and the pointer
-        reads the group one node at a time, which is how you look for a note
-        among many. A plain hover still names its neighbours, because there the
-        highlight itself is already gone the moment the pointer moves. With
+        Who gets named. With a value held, only the value and whatever the
+        pointer is on: the highlight stays put and the pointer reads the group
+        one node at a time, which is how you look for a note among many. Any
+        other node, hovered or held, names itself and its neighbours (#515):
+        on a touch screen holding is the only way a note is ever named. With
         nothing in focus the drawing names nothing (#499): the names it wrote
         of the most linked notes cluttered the graph it opens on.
       */
-      const labelTargets = pinned
-        ? [pinned, ...(hovered && hovered !== pinned ? [hovered] : [])]
-        : focus
-          ? [focus, ...(neighborSet ? [...neighborSet].slice(0, LABELS_HOVERED) : [])]
-          : [];
+      const under = hovered && hovered !== focus ? [hovered] : [];
+      const labelTargets = !focus
+        ? []
+        : focus.kind === 'value' && focus === pinned
+          ? [focus, ...under]
+          : [focus, ...(neighborSet ? [...neighborSet].slice(0, LABELS_HOVERED) : []), ...under];
       ctx.globalAlpha = 1;
       const fontSize = Math.max(10 / k, 4);
       ctx.font = `${fontSize}px Inter, sans-serif`;
@@ -1048,6 +1066,8 @@ export function GraphPage() {
       */
       const written: { x0: number; y0: number; x1: number; y1: number }[] = [];
       for (const node of labelTargets) {
+        // A neighbour outside the held group is not on the drawing to name.
+        if (shown && !shown.has(node)) continue;
         // The focused node names the folder it lives in, which is what makes
         // two nodes carrying one name distinguishable without clicking
         // either of them (RN-DSC-047).
@@ -1198,7 +1218,7 @@ export function GraphPage() {
      * out far enough to pick one note out of it.
      */
     function rescope() {
-      const held = state.pinned;
+      const held = state.scope;
       if (held) {
         const group = state.neighbors.get(held) ?? new Set<GraphNode>();
         const shown = new Set<GraphNode>([held, ...group]);
@@ -1350,31 +1370,67 @@ export function GraphPage() {
       draw();
     }
     /**
-     * What a click means, in the three cases there are. A note is a document
-     * and opens. A value node is a grouping and holds its notes on the drawing,
-     * or lets them go if it was already the one being held. Empty canvas is how
-     * you let go without aiming at anything.
+     * What the foot says of a held node: a note with its folder, a value as
+     * `attribute: value`, and where an Open beside it leads (#515).
      */
+    function heldOf(node: GraphNode) {
+      const value = node.kind === 'value';
+      return {
+        label: value
+          ? pinnedLabel(node.id)
+          : node.kind === 'note' && node.folder
+            ? `${node.name} · ${node.folder}`
+            : node.name,
+        value,
+        url: value ? null : addressOf(node),
+      };
+    }
+    /**
+     * Holds this node, or lets go with null. A value brings its group onto the
+     * drawing; a node of that group keeps the group and is focused inside it;
+     * anything else is focused over the whole notebook.
+     */
+    function hold(next: GraphNode | null) {
+      const scope =
+        next?.kind === 'value' ? next : next && state.shown?.has(next) ? state.scope : null;
+      state.pinned = next;
+      setHeld(next ? heldOf(next) : null);
+      if (scope === state.scope) {
+        draw();
+        return;
+      }
+      state.scope = scope;
+      rescope();
+    }
+    /**
+     * What a click or a tap means (#515), the same for the mouse and the
+     * finger. The first one on a node holds it, so its links and its
+     * neighbours' names stay on the drawing; a second one on the held node
+     * opens it, which makes a double click open too. A value has nothing to
+     * open, so the second one lets its group go. Another node moves the hold
+     * to it, and empty canvas is how you let go without aiming at anything.
+     */
+    function press(hit: GraphNode | null) {
+      if (hit && hit === state.pinned) {
+        if (hit.kind === 'value') {
+          hold(null);
+          return;
+        }
+        const url = addressOf(hit);
+        if (url) void navigate(url);
+        return;
+      }
+      if (hit === state.pinned) return;
+      hold(hit);
+    }
     function onUp(event: MouseEvent) {
       dragging = false;
       if (moved) return;
       const { gx, gy } = toGraphSpace(event);
-      const hit = hitTest(gx, gy);
-
-      const url = hit ? addressOf(hit) : null;
-      if (hit && hit.kind !== 'value') {
-        if (url) void navigate(url);
-        return;
-      }
-
-      const next = hit?.kind === 'value' && hit !== state.pinned ? hit : null;
-      if (next === state.pinned) return;
-      state.pinned = next;
-      setPinnedId(next?.id ?? null);
-      rescope();
+      press(hitTest(gx, gy));
     }
-    /** The pointer leaving takes the hover with it, and never the pin: the
-        held group survives the trip to the panel and back. */
+    /** The pointer leaving takes the hover with it, and never the hold: the
+        held node survives the trip to the panel and back. */
     function onLeave() {
       dragging = false;
       if (!state.hovered) return;
@@ -1384,8 +1440,10 @@ export function GraphPage() {
 
     /**
      * Touch. One finger drags the graph, two pinch it, and a finger that lands
-     * and lifts without travelling is a tap that opens the note under it. There
-     * is no hover to keep: a finger is either touching or it is not.
+     * and lifts without travelling is a tap, which means what a click means.
+     * There is no hover to keep: a finger is either touching or it is not, so
+     * holding is the ONLY way a touch screen ever sees a node's links and
+     * names (#515).
      */
     let panningTouch = false;
     let pinchGap = 0;
@@ -1441,32 +1499,28 @@ export function GraphPage() {
       if (!wasTap) return;
       const touch = event.changedTouches[0];
       if (!touch) return;
+      // The browser follows a tap with a click of its own, which would land on
+      // the node just held and open it: the tap is the only press there is.
+      event.preventDefault();
       const { gx, gy } = toGraphSpace(touch);
-      const hit = hitTest(gx, gy);
-
-      const url = hit ? addressOf(hit) : null;
-      if (hit && hit.kind !== 'value') {
-        if (url) void navigate(url);
-        return;
-      }
-
-      // A tap means what a click means. It matters more here: without a
-      // pointer there is no hover at all, so holding the group is the ONLY way
-      // a touch device ever sees which notes an attribute value gathers.
-      const next = hit?.kind === 'value' && hit !== state.pinned ? hit : null;
-      if (next === state.pinned) return;
-      state.pinned = next;
-      setPinnedId(next?.id ?? null);
-      rescope();
+      press(hitTest(gx, gy));
     }
 
-    // A value held before the read again is held again, if it is still there.
-    const heldAgain = pinnedBefore ? state.byId.get(pinnedBefore) : undefined;
-    if (heldAgain?.kind === 'value') {
-      state.pinned = heldAgain;
+    // What was held before the read again is held again, if it is still
+    // there: the group of a value first, then the node focused inside it.
+    const scopeAgain = scopeBefore ? state.byId.get(scopeBefore) : undefined;
+    const pinnedAgain = pinnedBefore ? state.byId.get(pinnedBefore) : undefined;
+    if (scopeAgain?.kind === 'value') {
+      state.scope = scopeAgain;
       rescope();
+    }
+    // `rescope` may have set what is shown, which the narrowing above cannot see.
+    const shownAgain = state.shown as Set<GraphNode> | null;
+    if (pinnedAgain && (!shownAgain || shownAgain.has(pinnedAgain))) {
+      state.pinned = pinnedAgain;
+      setHeld(heldOf(pinnedAgain));
     } else {
-      setPinnedId(null);
+      setHeld(null);
     }
     if (state.marks.length > 0) state.kick();
 
@@ -1752,16 +1806,31 @@ export function GraphPage() {
                 <br />
               </>
             )}
-            {pinnedId ? (
+            {held ? (
               <Trans
-                i18nKey={touchOnly ? 'graph.pinnedTouch' : 'graph.pinned'}
-                values={{ value: pinnedLabel(pinnedId) }}
+                i18nKey={
+                  held.value
+                    ? touchOnly
+                      ? 'graph.pinnedTouch'
+                      : 'graph.pinned'
+                    : touchOnly
+                      ? 'graph.focusedTouch'
+                      : 'graph.focused'
+                }
+                values={{ value: held.label }}
                 components={{ b: <b /> }}
               />
             ) : (
               t(touchOnly ? 'graph.hintTouch' : 'graph.hint')
             )}
           </p>
+          {/* The second step said as a button, so opening a held node does
+              not depend on knowing that a second click or tap opens it (#515). */}
+          {held?.url ? (
+            <Link className="button is-primary is-small graph-footer-open" to={held.url}>
+              {t('graph.open')}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

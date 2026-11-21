@@ -25,6 +25,7 @@ export {
   type Outcome,
 } from './fields.js';
 export { writeOperation } from './logger.js';
+export { webClientOf } from './web-client.js';
 export {
   CORRELATION_HEADER,
   annotate,

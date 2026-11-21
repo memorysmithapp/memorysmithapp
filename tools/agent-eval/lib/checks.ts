@@ -91,6 +91,19 @@ export const WRITES: ReadonlySet<string> = new Set([
   'publish_model',
   'withdraw_model',
   'create_notebook_from_community_model',
+  // Tables, dashboards and the style of a notebook (#366, #368, #493): AE-11
+  // and AE-12 wrote with them and their writes counted as none (#523).
+  'create_table',
+  'alter_table',
+  'delete_table',
+  'insert_rows',
+  'update_rows',
+  'delete_rows',
+  'import_table',
+  'create_dashboard',
+  'update_dashboard',
+  'delete_dashboard',
+  'set_style',
 ]);
 
 const RESERVED = new Set<string>(RESERVED_FRONTMATTER_KEYS);
@@ -494,6 +507,33 @@ const CHECKS: Record<CheckName, (input: CheckInput) => CheckOutcome> = {
 
   ...FILE_CHECKS,
   ...MODEL_CHECKS,
+
+  /*
+    A panel about the notes is drawn from `system-notes`, the table every
+    notebook has with one row per note (#517, #523), and never from a table
+    that copies what the notes declare.
+  */
+  'drew-from-system-notes': (input) => {
+    const uses = input.transcript.toolUses;
+    const drawn = uses.filter(
+      (use) => use.tool === 'create_dashboard' || use.tool === 'update_dashboard',
+    );
+    if (drawn.length === 0)
+      return outcome('drew-from-system-notes', false, 'no dashboard was created');
+    const fromNotes = drawn.some((use) =>
+      JSON.stringify(use.input).toLowerCase().includes('system-notes'),
+    );
+    const copied = uses.some((use) => use.tool === 'create_table');
+    return outcome(
+      'drew-from-system-notes',
+      fromNotes && !copied,
+      !fromNotes
+        ? 'the dashboard does not draw from system-notes'
+        : copied
+          ? 'a table was created to repeat what the notes declare'
+          : '',
+    );
+  },
 
   'wrote-after-acceptance': (input) => {
     const write = input.transcript.toolUses.find((use) => WRITES.has(use.tool));

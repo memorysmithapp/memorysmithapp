@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import * as echarts from 'echarts/core';
 import {
   BarChart,
@@ -56,6 +57,18 @@ export interface ComponentDefinition {
 type Groups = Array<{ key: string | null; values: Array<number | string | null> }>;
 type Rows = Array<{ rowId: string; values: Record<string, unknown> }>;
 type Columns = Array<{ name: string; type: string }>;
+
+/**
+ * Where a row leads, when a row is a note: a component drawn from
+ * `system-notes` leads to the note each row is (#524). Absent, a row leads
+ * nowhere, as a row of any other table.
+ */
+export type NoteOf = ((rowId: string) => string) | undefined;
+
+/** The text of a row, leading to its note when it is one. */
+function Led({ to, children }: { to: string | undefined; children: React.ReactNode }) {
+  return to ? <Link to={to}>{children}</Link> : <>{children}</>;
+}
 
 /**
  * The colours of a chart, from the tokens of the brand (styles.css), read when
@@ -724,10 +737,12 @@ export function Timeline({
   rows,
   options,
   locale,
+  noteOf,
 }: {
   rows: Rows;
   options: Record<string, unknown>;
   locale: string;
+  noteOf?: NoteOf;
 }) {
   const { t } = useTranslation();
   const date = String(options['date']);
@@ -748,7 +763,9 @@ export function Timeline({
               {day.format(new Date(when.length === 10 ? `${when}T00:00:00Z` : when))}
             </time>
             <span className="dash-timeline-title">
-              {String(row.values[String(options['title'])] ?? '')}
+              <Led to={noteOf?.(row.rowId)}>
+                {String(row.values[String(options['title'])] ?? '')}
+              </Led>
             </span>
             {group !== undefined ? <span className="dash-card-mark">{String(group)}</span> : null}
             {detail !== undefined ? (
@@ -794,6 +811,7 @@ export function RowsTable({
   page,
   onPage,
   locale,
+  noteOf,
 }: {
   columns: Columns;
   rows: Rows;
@@ -802,6 +820,7 @@ export function RowsTable({
   page: number;
   onPage: (page: number) => void;
   locale: string;
+  noteOf?: NoteOf;
 }) {
   const { t } = useTranslation();
   const rules = Array.isArray(options['rules'])
@@ -841,7 +860,7 @@ export function RowsTable({
           <tbody>
             {rows.map((row) => (
               <tr key={row.rowId}>
-                {columns.map((column) => {
+                {columns.map((column, index) => {
                   const value = row.values[column.name];
                   const range = ranges.get(column.name);
                   const styled =
@@ -855,7 +874,9 @@ export function RowsTable({
                       style={styled.style}
                     >
                       {styled.icon ? <span className="dash-rule-icon">{styled.icon} </span> : null}
-                      {cellText(column, value, locale, t)}
+                      <Led to={index === 0 ? noteOf?.(row.rowId) : undefined}>
+                        {cellText(column, value, locale, t)}
+                      </Led>
                     </td>
                   );
                 })}
@@ -1095,10 +1116,12 @@ export function Kanban({
   rows,
   total,
   options,
+  noteOf,
 }: {
   rows: Rows;
   total: number;
   options: Record<string, unknown>;
+  noteOf?: NoteOf;
 }) {
   const { t } = useTranslation();
   const lane = String(options['lane']);
@@ -1134,7 +1157,9 @@ export function Kanban({
                     style={mark ? { borderLeftColor: shades.get(mark) } : undefined}
                   >
                     <span className="dash-card-title">
-                      {String(row.values[String(options['card'])] ?? '')}
+                      <Led to={noteOf?.(row.rowId)}>
+                        {String(row.values[String(options['card'])] ?? '')}
+                      </Led>
                     </span>
                     {options['detail'] ? (
                       <span className="dash-card-detail">

@@ -33,28 +33,28 @@ describe('the hosting of the application (#508)', () => {
       expect(records).toHaveLength(1);
       expect(JSON.stringify(template.toJSON())).not.toContain(`www.${network.siteDomainName}`);
 
-      // It serves with the certificate of the apex alone (#509) ...
-      const certificates = Template.fromStack(network).findResources(
-        'AWS::CertificateManager::Certificate',
+      // It serves with the one certificate of the site, naming the apex alone
+      // (#509), and the network stack exports no other certificate for it: the
+      // one that also named www is gone (#510).
+      const networkTemplate = Template.fromStack(network);
+      const certificates = networkTemplate.findResources('AWS::CertificateManager::Certificate');
+      const site = Object.entries(certificates).filter(([id]) => id.startsWith('Site'));
+      expect(site.map(([id]) => id.replace(/[0-9A-F]{8}$/, ''))).toEqual(['SiteApexCertificate']);
+      expect(site[0]?.[1].Properties.DomainName).toBe(network.siteDomainName);
+      expect(site[0]?.[1].Properties.SubjectAlternativeNames).toBeUndefined();
+      expect(JSON.stringify(template.toJSON())).toContain(site[0]?.[0]);
+      expect(JSON.stringify(networkTemplate.toJSON())).not.toContain(
+        `www.${network.siteDomainName}`,
       );
-      const apex = Object.entries(certificates).find(([id]) =>
-        id.startsWith('SiteApexCertificate'),
-      );
-      const named = Object.entries(certificates).find(([id]) => id.startsWith('SiteCertificate'));
-      expect(apex?.[1].Properties.SubjectAlternativeNames).toBeUndefined();
-      expect(JSON.stringify(template.toJSON())).toContain(apex?.[0]);
-      expect(JSON.stringify(template.toJSON())).not.toContain(named?.[0]);
-      // ... while the network stack still exports the one that named www, until #510.
-      const outputs = Object.values(Template.fromStack(network).toJSON().Outputs ?? {}) as Array<{
+      const outputs = Object.values(networkTemplate.toJSON().Outputs ?? {}) as Array<{
         Value?: unknown;
         Export?: unknown;
       }>;
-      expect(
-        outputs.some(
-          (output) =>
-            output.Export && JSON.stringify(output.Value) === JSON.stringify({ Ref: named?.[0] }),
-        ),
-      ).toBe(true);
+      const exported = outputs
+        .filter((output) => output.Export)
+        .map((output) => (output.Value as { Ref?: string } | undefined)?.Ref)
+        .filter((ref) => ref !== undefined && ref in certificates);
+      expect(exported).toEqual([site[0]?.[0]]);
     });
   }
 });

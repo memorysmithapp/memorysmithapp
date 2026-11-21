@@ -168,18 +168,6 @@ export class NetworkStack extends Stack {
         domainName: zoneName,
         validation: acm.CertificateValidation.fromDns(zone),
       });
-      /*
-        The certificate that also named `www`, kept one version more and used
-        by nothing (#509): the hosting stack imported its ARN, and an export
-        still imported can neither change nor go in the delivery that stops
-        importing it. Here it keeps its export; v0.22.0 deletes both (#510).
-      */
-      const named = new acm.Certificate(edge, 'SiteCertificate', {
-        domainName: zoneName,
-        subjectAlternativeNames: [`www.${zoneName}`],
-        validation: acm.CertificateValidation.fromDns(zone),
-      });
-      if (edge === this) this.exportValue(named.certificateArn);
       this.hostedZone = zone;
     }
 

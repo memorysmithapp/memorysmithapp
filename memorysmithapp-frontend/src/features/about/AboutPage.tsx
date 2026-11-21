@@ -229,6 +229,19 @@ export function AboutPage() {
         <p>{t('about.agent.skills')}</p>
       </section>
 
+      {/* Installed from the browser whose session it keeps (#526): a shortcut
+          made from another browser opens there, signed out. */}
+      <section className="about-section">
+        <h2>{t('about.install.heading')}</h2>
+        <p>{t('about.install.body')}</p>
+        <ul className="about-asks">
+          {(['android', 'iphone'] as const).map((device) => (
+            <li key={device}>{t(`about.install.${device}`)}</li>
+          ))}
+        </ul>
+        <p className="about-note">{t('about.install.session')}</p>
+      </section>
+
       <footer className="about-footer">
         <span className="about-version">
           {t('app.version', { version: config?.version ?? '' })}

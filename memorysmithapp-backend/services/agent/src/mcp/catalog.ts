@@ -897,7 +897,13 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Every Table the notebook keeps: its name, what it is for, its schema in JSON Schema, its ' +
       'key and how many rows it holds. Read it before creating a table, so rows go where a table ' +
       'for them already is, and before writing rows, so they fit the schema. The count of rows ' +
-      'is kept as the rows are written and may take a moment to show the last write.',
+      'is kept as the rows are written and may take a moment to show the last write. Every ' +
+      'notebook also has `system-notes`, marked `system: true`: one row per note, with its ' +
+      'name, folder, last update, backlink and link counts and one column per attribute its ' +
+      'notes declare in their frontmatter. Query it and draw dashboards and `table` blocks from ' +
+      'it as from any table, to report on the notes themselves without keeping a table that ' +
+      'repeats them; it follows the notes once they are projected, and nothing writes, alters ' +
+      'or deletes it. No table may be named with the prefix `system-`.',
     inputSchema: object({ notebook: notebookArgument }, ['notebook']),
     annotations: { readOnlyHint: true },
   },
@@ -989,7 +995,11 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       '`aggregate` adds the rows the filter keeps up: { "group": "date:month", "measures": ' +
       '["sum(amount)", "count()"] } answers `groups`, each with its key and the value of each ' +
       'measure; a sum is exact. Group by a column or by a period of a date (day, week, month, ' +
-      'quarter, year).',
+      'quarter, year). Questions about the notes themselves are answered here too, from ' +
+      '`system-notes`, one row per note with a column per key of their frontmatter: how many ' +
+      'notes are in each status is { "group": "status", "measures": ["count()"] }, and the tasks ' +
+      'due this month are `due:2026-11 -status:done`. search_notes reads the body, not the ' +
+      'frontmatter, and counts nothing.',
     inputSchema: object(
       {
         notebook: notebookArgument,
