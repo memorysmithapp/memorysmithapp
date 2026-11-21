@@ -421,6 +421,20 @@ describe('a panel about the notes (#523)', () => {
     expect(drawn?.passed).toBe(true);
   });
 
+  it('counts a dashboard as a write, so whoami has to come before it', () => {
+    const transcript = emptyTranscript();
+    transcript.toolUses.push({ tool: 'create_dashboard', input: {}, turn: 1 });
+    const [outcome] = runChecks(['whoami-before-first-write'], {
+      transcript,
+      before: [],
+      after: [],
+      finalText: '',
+      absent: [],
+      leaks: [],
+    });
+    expect(outcome?.passed).toBe(false);
+  });
+
   it('fails when a table repeats the notes, or when there is no dashboard', () => {
     const copied = run(
       { tool: 'create_table', input: { name: 'tarefas' } },

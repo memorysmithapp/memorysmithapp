@@ -91,6 +91,19 @@ export const WRITES: ReadonlySet<string> = new Set([
   'publish_model',
   'withdraw_model',
   'create_notebook_from_community_model',
+  // Tables, dashboards and the style of a notebook (#366, #368, #493): AE-11
+  // and AE-12 wrote with them and their writes counted as none (#523).
+  'create_table',
+  'alter_table',
+  'delete_table',
+  'insert_rows',
+  'update_rows',
+  'delete_rows',
+  'import_table',
+  'create_dashboard',
+  'update_dashboard',
+  'delete_dashboard',
+  'set_style',
 ]);
 
 const RESERVED = new Set<string>(RESERVED_FRONTMATTER_KEYS);
