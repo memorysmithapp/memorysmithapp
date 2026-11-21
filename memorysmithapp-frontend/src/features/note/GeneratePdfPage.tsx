@@ -64,7 +64,7 @@ export function GeneratePdfPage() {
             return;
           }
           if (print.status === 'failed') {
-            if (alive) setFailure(print.failure === 'NOT_FOUND' ? 'gone' : 'failed');
+            if (alive) setFailure(failureOf(print.failure));
             return;
           }
         }
@@ -117,4 +117,11 @@ export function GeneratePdfPage() {
       </div>
     </div>
   );
+}
+
+/** What the tab says of a print that failed, by why the server says it did. */
+function failureOf(reason: string | undefined): Failure {
+  if (reason === 'NOT_FOUND') return 'gone';
+  if (reason === 'TIMED_OUT') return 'timedOut';
+  return 'failed';
 }
