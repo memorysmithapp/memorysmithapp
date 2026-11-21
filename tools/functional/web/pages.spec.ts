@@ -2400,7 +2400,12 @@ test.describe('the pages of an account', () => {
         tab
           .waitForEvent('download', { timeout: 180_000 })
           .then((download) => download.suggestedFilename()),
-        tab.waitForURL(/\/prints\/[^/]+\.pdf/, { timeout: 180_000 }).then(() => 'shown'),
+        // A navigation that turns into a download is aborted: then the
+        // download above answers, and this one never does.
+        tab.waitForURL(/\/prints\/[^/]+\.pdf/, { timeout: 180_000 }).then(
+          () => 'shown',
+          () => new Promise<string>(() => undefined),
+        ),
       ]);
       expect(['On paper.pdf', 'shown']).toContain(reached);
     } finally {
