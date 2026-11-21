@@ -55,6 +55,7 @@ export interface Words {
   readonly tableData: string;
   readonly tableSchema: string;
   readonly deleteTable: string;
+  readonly openNote: string;
   readonly notesInFolder: string;
   readonly notFound: string;
   readonly version: string;
@@ -195,6 +196,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tableData: 'Data',
     tableSchema: 'Schema',
     deleteTable: 'Delete table',
+    openNote: 'Open note',
     notesInFolder: 'Notes in this folder',
     notFound: 'Not found.',
     version: 'MemorySmith.app',
@@ -302,6 +304,7 @@ export const WORDS: Record<AppLocale, Words> = {
     tableData: 'Dados',
     tableSchema: 'Schema',
     deleteTable: 'Apagar tabela',
+    openNote: 'Abrir nota',
     notesInFolder: 'Notas nesta pasta',
     notFound: 'Não encontrado.',
     version: 'MemorySmith.app',

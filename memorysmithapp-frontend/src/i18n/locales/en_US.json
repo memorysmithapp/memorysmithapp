@@ -630,6 +630,7 @@
   "tables": {
     "system": "System table",
     "systemDescription": "The notes of this notebook, one row each: what each declares in its frontmatter and how many links reach it and leave it. Read from the notes, it follows them and nothing writes it.",
+    "openNote": "Open note",
     "heading": "Tables",
     "navLabel": "Tables",
     "intro": "The structured data this notebook keeps: rows an agent writes, read here page by page.",

@@ -633,6 +633,7 @@
   "tables": {
     "system": "Tabela de sistema",
     "systemDescription": "As notas deste caderno, uma por linha: o que cada uma declara no frontmatter e quantos links chegam a ela e saem dela. Lida das notas, ela as acompanha e nada a escreve.",
+    "openNote": "Abrir nota",
     "heading": "Tabelas",
     "navLabel": "Tabelas",
     "intro": "Os dados estruturados que este caderno guarda: linhas que um agente escreve, lidas aqui página por página.",

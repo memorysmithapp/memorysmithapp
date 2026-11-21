@@ -53,6 +53,7 @@ import {
   resolveNoteUrl,
 } from '../api/source';
 import { isAttachmentName } from '../api/attachment';
+import { namesSystemNotesTable } from '@memorysmithapp/contracts';
 import { identifierOf, linkTargetAddress, noteAddress } from '../api/note-address';
 import { queryKeys, type InterfaceQueryKey } from '../api/query-keys';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -614,6 +615,11 @@ export function NoteContent({
             name: column.name,
             value: row.values[index] ?? '',
           }))}
+          note={
+            namesSystemNotesTable(row.table) && typeof row.row['note'] === 'string'
+              ? noteAddress(notebookId, row.row['note'])
+              : null
+          }
           onClose={() => setRow(null)}
         />
       ) : null}

@@ -35,6 +35,17 @@ export const notebookTableSchema = z.object({
 
 export const tableListSchema = z.object({ tables: z.array(notebookTableSchema) });
 
+/**
+ * The name of the system table of the notes (#517), the same in every notebook:
+ * each of its rows is a note, and its row identifier is the note's (#524).
+ */
+export const SYSTEM_NOTES_TABLE = 'system-notes';
+
+/** Whether a reference by name is the system table of the notes, compared as a table name is. */
+export function namesSystemNotesTable(name: string): boolean {
+  return name.normalize('NFC').trim().toLowerCase() === SYSTEM_NOTES_TABLE;
+}
+
 export const createTableRequestSchema = z.object({
   name: z.string().min(1).max(64),
   description: z.string().max(500).default(''),

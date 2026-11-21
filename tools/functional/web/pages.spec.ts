@@ -1357,6 +1357,46 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.deleteTable })).toHaveCount(0);
   });
 
+  test('[page:/notebooks/:notebookId/tables] a row of system-notes leads to its note, from a table block and from the Tables page (#524)', async ({
+    app,
+    owner,
+    notebook,
+    words,
+  }) => {
+    const path = `/knowledge/notebooks/${notebook.notebookId}`;
+    const task = `Tarefa ${randomBytes(3).toString('hex')}`;
+    const { noteId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${task}\nsituacao: aberta\n---\n\nUma tarefa.\n`,
+    });
+    const list = `Lista ${randomBytes(3).toString('hex')}`;
+    const { noteId: listId } = await owner.ok<{ noteId: string }>('POST', `${path}/notes`, {
+      folderId: notebook.folderId,
+      content: `---\nname: ${list}\n---\n\n\`\`\`table\ntable: system-notes\ncolumns: name, situacao\nwhere: situacao:aberta\n\`\`\`\n`,
+    });
+    const taskPage = new RegExp(`/notes/${noteId}$`, 'i');
+
+    // The note is a row once Discovery projected what it declares.
+    await expect(async () => {
+      await app.goto(notebook.page(`/notes/${listId.toLowerCase()}`));
+      await expect(app.locator('main, article').getByText(task).first()).toBeVisible({
+        timeout: 3_000,
+      });
+    }).toPass({ timeout: 60_000 });
+    // In a note, a row opens whole, and the dialog leads to the note it is.
+    await app.locator('main, article').getByText(task).first().click();
+    const open = app.locator('.table-row-dialog').getByRole('link', { name: words.openNote });
+    await open.click();
+    await expect(app).toHaveURL(taskPage);
+
+    // On the Tables page, the same.
+    await app.goto(notebook.page('/tables'));
+    await app.locator('.table-row', { hasText: 'system-notes' }).click();
+    await app.locator('table.tables-grid tbody tr', { hasText: task }).click();
+    await app.locator('.table-row-dialog').getByRole('link', { name: words.openNote }).click();
+    await expect(app).toHaveURL(taskPage);
+  });
+
   test('[page:/notebooks/:notebookId/attachments] lists the files of a notebook with the notes that show each (#307)', async ({
     app,
     owner,

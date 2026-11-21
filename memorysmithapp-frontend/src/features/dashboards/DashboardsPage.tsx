@@ -14,7 +14,8 @@ import { useDocumentTitle } from '../../shared/components/document-title';
 import { dashboardImage, listDashboards, readDashboardData } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
 import { queryKeys } from '../../shared/api/query-keys';
-import { dashboardsAddress } from '../../shared/api/note-address';
+import { namesSystemNotesTable } from '@memorysmithapp/contracts';
+import { dashboardsAddress, noteAddress } from '../../shared/api/note-address';
 import { useLiveInterval } from '../../shared/api/live';
 import { SkeletonBar, SkeletonRegion } from '../../shared/components/Skeleton';
 import { DashboardIcon, DownloadIcon } from '../../shared/components/icons';
@@ -444,6 +445,13 @@ function ComponentBody({
   if (data.status === 'refused')
     return <p className="dash-problem">{String(data.message ?? '')}</p>;
   const answer = data as Record<string, unknown>;
+  // A row of `system-notes` is a note and leads to it, except on a dashboard
+  // drawn still, for a picture or a print (#524).
+  const table = component.source?.table;
+  const noteOf =
+    !still && table && namesSystemNotesTable(table)
+      ? (rowId: string) => noteAddress(notebookId, rowId)
+      : undefined;
   switch (component.type) {
     case 'kpi':
       return <Kpi data={answer as never} options={component.options} locale={locale} />;
@@ -492,6 +500,7 @@ function ComponentBody({
           rows={(answer['rows'] as never) ?? NONE}
           options={component.options}
           locale={locale}
+          noteOf={noteOf}
         />
       );
     case 'wbs':
@@ -508,6 +517,7 @@ function ComponentBody({
           page={page}
           onPage={onPage}
           locale={locale}
+          noteOf={noteOf}
         />
       );
     case 'gantt':
@@ -524,6 +534,7 @@ function ComponentBody({
           rows={(answer['rows'] as never) ?? NONE}
           total={Number(answer['total'] ?? 0)}
           options={component.options}
+          noteOf={noteOf}
         />
       );
     default:

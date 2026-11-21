@@ -271,7 +271,7 @@ function TableRows({
 
   // The widths come from the first answer and stay for the table (#491).
   const [widths, setWidths] = useState<Widths | null>(null);
-  const [opened, setOpened] = useState<TableRowField[] | null>(null);
+  const [opened, setOpened] = useState<{ fields: TableRowField[]; rowId: string } | null>(null);
   if (widths === null && rows.data && rows.data.rows.length > 0) {
     setWidths(widthsOf(columns, rows.data.rows, locale, t));
   }
@@ -287,13 +287,14 @@ function TableRows({
   if (rows.data.total === 0) return <p>{t('tables.empty')}</p>;
 
   const pages = Math.max(1, Math.ceil(rows.data.total / rows.data.pageSize));
-  const open = (row: { values: Record<string, unknown> }) =>
-    setOpened(
-      columns.map((column) => ({
+  const open = (row: { rowId: string; values: Record<string, unknown> }) =>
+    setOpened({
+      rowId: row.rowId,
+      fields: columns.map((column) => ({
         name: column.name,
         value: formatCell(column, row.values[column.name], locale, t),
       })),
-    );
+    });
 
   return (
     <>
@@ -386,7 +387,13 @@ function TableRows({
         onPage={setPage}
       />
       {opened ? (
-        <TableRowDialog table={table.name} fields={opened} onClose={() => setOpened(null)} />
+        <TableRowDialog
+          table={table.name}
+          fields={opened.fields}
+          // A row of the system table is a note, under its own identifier (#524).
+          note={table.system ? noteAddress(notebookId, opened.rowId) : null}
+          onClose={() => setOpened(null)}
+        />
       ) : null}
     </>
   );

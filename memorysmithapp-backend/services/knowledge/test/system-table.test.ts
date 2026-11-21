@@ -5,11 +5,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { Instant, NotebookId, SubscriptionId, ulid } from '@memorysmithapp/kernel';
+import { namesSystemNotesTable, SYSTEM_NOTES_TABLE } from '@memorysmithapp/contracts';
 import { checkTableName } from '../src/domain/table/Table.js';
 import {
   isSystemName,
   namesSystemNotes,
   type NoteFacts,
+  SYSTEM_NOTES_NAME,
   SYSTEM_NOTES_ID,
   systemNotesTable,
 } from '../src/domain/table/SystemTable.js';
@@ -112,5 +114,16 @@ describe('the system table of a notebook (#517)', () => {
     expect(checkTableName('system-notes').ok).toBe(false);
     expect(checkTableName('SYSTEM-mine').ok).toBe(false);
     expect(checkTableName('my-system-notes').ok).toBe(true);
+  });
+});
+
+describe('the name the interface knows it by (#524)', () => {
+  it('is the name Knowledge gives it, compared the same way', () => {
+    expect(SYSTEM_NOTES_TABLE).toBe(SYSTEM_NOTES_NAME);
+    for (const name of ['system-notes', ' System-Notes ', 'SYSTEM-NOTES']) {
+      expect(namesSystemNotesTable(name)).toBe(namesSystemNotes(name));
+      expect(namesSystemNotesTable(name)).toBe(true);
+    }
+    expect(namesSystemNotesTable('system-note')).toBe(false);
   });
 });
