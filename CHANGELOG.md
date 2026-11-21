@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-21
+
 ### Added
 
 - **Every notebook has a system table of its notes, `system-notes`.** It holds one row per note: its name, folder, last update, how many links reach it and how many it makes, and one column per attribute its notes declare in their frontmatter, each typed by how the notes wrote it. A dashboard and a note's `table` block draw from it as from any table, so a panel of notes by status, of the due dates of the tasks or of the notes nobody links to needs no table repeating the frontmatter; filter it by `folder` for one folder's notes. It follows the notes once they are projected, holds the 10,000 most recently written, and counts in neither the 50 tables nor the space of the subscription. Nothing writes, alters or deletes it, an export leaves it out, and no table may be named with the prefix `system-`. The Tables page marks it as a system table, and the connector says so in `list_tables` and in the context of the notebook (#517).
@@ -1186,7 +1188,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.18.1...v0.19.0
