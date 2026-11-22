@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A chart of a dashboard fits its card.** A chart drawn while its card was wider — a dashboard opened in a narrow window and then widened, or the image `preview_dashboard` and *Download PNG* draw — kept that width and spilled out of its card, showing one bar of three or a donut cut off; it now follows the card's width whenever it changes (#528).
+
 ## [0.22.0] - 2026-11-21
 
 ### Added

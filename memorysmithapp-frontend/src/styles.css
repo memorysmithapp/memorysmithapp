@@ -8356,6 +8356,9 @@ button.attachment-thumb:focus-visible {
   background: var(--surface);
   padding: 14px 16px;
   display: grid;
+  /* A column that never grows past the card: a chart drawn while the card was
+     wider would otherwise hold it at that width, and spill out of it (#528). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-content: start;
 }
