@@ -283,7 +283,15 @@
     "gone": "Esta nota não existe mais, ou você não tem mais acesso a ela.",
     "failed": "Não foi possível gerar o PDF agora.",
     "timedOut": "O PDF demorou mais do que o esperado e não ficou pronto.",
-    "retry": "Tentar de novo"
+    "retry": "Tentar de novo",
+    "steps": {
+      "asking": "Pedindo o PDF",
+      "laying": "Montando as páginas",
+      "opening": "Abrindo o PDF"
+    },
+    "elapsed_one": "Há {{count}} segundo",
+    "elapsed_other": "Há {{count}} segundos",
+    "upTo": "uma nota longa pode levar até 3 minutos."
   },
   "style": {
     "intro": "Como todas as notas deste caderno aparecem na tela e na impressão, para todo mundo que as lê. Um trecho de uma nota que precise ser diferente usa um bloco :::{style} na própria nota.",

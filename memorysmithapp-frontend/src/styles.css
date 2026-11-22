@@ -2195,6 +2195,84 @@ a:hover {
 /* Not a card: in those editors the properties sit in the flow of the page,
    under the title and above the prose, parted from it by a single rule. A card
    here would read as an aside, which is the one thing they are not. */
+/* The steps of a PDF on its way, the one it is on marked (#538). */
+.pdf-steps {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  text-align: start;
+}
+.pdf-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-soft);
+}
+.pdf-steps li::before {
+  content: '';
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+.pdf-steps li[data-state='done']::before {
+  background: currentColor;
+}
+.pdf-steps li[data-state='current'] {
+  color: var(--text);
+  font-weight: 600;
+}
+.pdf-steps li[data-state='current']::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.pdf-steps li[data-state='stopped'] {
+  color: var(--danger);
+}
+/* A bar that moves without saying how far: the server tells no share. */
+.pdf-bar {
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  height: 4px;
+  margin-top: 1rem;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.pdf-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  border-radius: inherit;
+  background: var(--accent);
+  animation: pdf-bar 1.4s ease-in-out infinite;
+}
+@keyframes pdf-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdf-bar::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+.pdf-elapsed {
+  margin: 0.5rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+
 /* The caption of a table and of a figure is centred under it, whatever the
    alignment the notebook's style or a style block gives the text (#540). */
 .markdown p.table-caption,

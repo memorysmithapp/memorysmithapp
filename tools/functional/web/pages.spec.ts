@@ -2404,6 +2404,8 @@ test.describe('the pages of an account', () => {
       const tab = await opening;
       await expect(tab).toHaveURL(new RegExp(`/notes/${noteId}/pdf$`, 'i'));
       await expect(tab.getByRole('status')).toBeVisible();
+      // While it waits, the tab marks the step the PDF is on, and the time (#538).
+      await expect(tab.locator('.pdf-steps li[aria-current="step"]')).toBeVisible();
       const reached = await Promise.race([
         tab
           .waitForEvent('download', { timeout: 180_000 })

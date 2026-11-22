@@ -283,7 +283,15 @@
     "gone": "This note no longer exists, or you no longer have access to it.",
     "failed": "The PDF could not be generated just now.",
     "timedOut": "The PDF took longer than expected and did not arrive.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "steps": {
+      "asking": "Asking for the PDF",
+      "laying": "Laying out the pages",
+      "opening": "Opening the PDF"
+    },
+    "elapsed_one": "{{count}} second so far",
+    "elapsed_other": "{{count}} seconds so far",
+    "upTo": "a long note can take up to 3 minutes."
   },
   "style": {
     "intro": "How every note of this notebook looks on the screen and on paper, for everybody who reads it. A passage of one note that has to differ uses a :::{style} block in that note.",
