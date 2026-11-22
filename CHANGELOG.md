@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-22
+
 ### Added
 
 - **A note can carry a table of contents.** A ` ```contents ` block draws the note's headings as links, nested by level, and can list its figures, its tables and its attachments, where the block stands or at the start or the end, on the screen, in print or both; a link to `#deliberações` leads to that heading in the same note. Printed, each entry says the page it lands on. A notebook's style can give a contents to every note that writes no block, under *Contents* on the Style page or with `set_style`. A table is captioned by a `Table: …` line after it, which names it in a contents and on its appendix, and a `table` block takes a `title`; in the editor, a *Caption* field under every table writes that line and takes it out. The editor inserts and changes both blocks from its toolbar, and the skill `write-notes` teaches them (#521).
@@ -1220,7 +1222,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0
