@@ -2195,6 +2195,90 @@ a:hover {
 /* Not a card: in those editors the properties sit in the flow of the page,
    under the title and above the prose, parted from it by a single rule. A card
    here would read as an aside, which is the one thing they are not. */
+/* The steps of a PDF on its way, the one it is on marked (#538). */
+.pdf-steps {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  text-align: start;
+}
+.pdf-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-soft);
+}
+.pdf-steps li::before {
+  content: '';
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+.pdf-steps li[data-state='done']::before {
+  background: currentColor;
+}
+.pdf-steps li[data-state='current'] {
+  color: var(--text);
+  font-weight: 600;
+}
+.pdf-steps li[data-state='current']::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.pdf-steps li[data-state='stopped'] {
+  color: var(--danger);
+}
+/* A bar that moves without saying how far: the server tells no share. */
+.pdf-bar {
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  height: 4px;
+  margin-top: 1rem;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.pdf-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  border-radius: inherit;
+  background: var(--accent);
+  animation: pdf-bar 1.4s ease-in-out infinite;
+}
+@keyframes pdf-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdf-bar::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+.pdf-elapsed {
+  margin: 0.5rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+}
+
+/* The caption of a table and of a figure is centred under it, whatever the
+   alignment the notebook's style or a style block gives the text (#540). */
+.markdown p.table-caption,
+.markdown .figure-caption {
+  text-align: center;
+}
 .properties-box {
   margin: 0 0 1.5rem;
   padding: 0 0 0.85rem;
@@ -7246,6 +7330,32 @@ button.attachment-thumb:focus-visible {
   color: var(--text-soft);
   font-size: 0.78rem;
 }
+/* A list a contents draws, ticked, its headings by their levels (#521). */
+.style-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.style-check select {
+  margin-left: auto;
+}
+/* A setting typed rather than chosen (#530) reads as the settings around it. */
+.style-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+.style-field .field-label {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+.style-field .field-hint {
+  margin: 0;
+  font-size: 0.78rem;
+}
 /* A reader sees what is chosen, as it is, and cannot change it. */
 .style-page .segmented > button[aria-checked='true']:disabled {
   opacity: 1;
@@ -7417,23 +7527,15 @@ button.attachment-thumb:focus-visible {
   widows: 3;
 }
 
-/* The properties on a page of their own: the cover opens with them and the
-   name of the note stands in the middle of what is left of the page; at the
-   end, the name heads them. */
-.print-properties {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+/* The properties where the renderer places them (#530): at the end they open
+   a page of their own, under their heading when the style or the note's block
+   gives one. */
+.print-part .note-properties {
+  margin-block: 1rem 1.5rem;
+  break-inside: avoid;
 }
-.print-cover {
-  min-height: calc(var(--sheet-height) - 38mm - 6mm);
-}
-.print-cover h1 {
-  margin-block: auto;
-  text-align: center;
-}
-.print-properties .properties-box {
-  margin: 0;
+.print-part .properties-title {
+  margin: 0 0 0.75rem;
 }
 
 /* A wide table is never cut at the margin. It is a table again rather than
@@ -8356,6 +8458,9 @@ button.attachment-thumb:focus-visible {
   background: var(--surface);
   padding: 14px 16px;
   display: grid;
+  /* A column that never grows past the card: a chart drawn while the card was
+     wider would otherwise hold it at that width, and spill out of it (#528). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-content: start;
 }

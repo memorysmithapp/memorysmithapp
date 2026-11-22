@@ -13,12 +13,7 @@ import { queryKeys } from '../../shared/api/query-keys';
 import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
 import { styleOfParts, NoteContent } from '../../shared/components/NoteContent';
-import {
-  PropertyValue,
-  orderedProperties,
-  propertyLabel,
-  propertyType,
-} from '../../shared/components/PropertyValue';
+import { orderedProperties } from '../../shared/components/PropertyValue';
 import { useNotebookId } from '../structure/route-ids';
 import { whenDrawn } from './drawn';
 
@@ -131,7 +126,10 @@ export function NotePreview({
       <p className="embed-missing">{t('note.embedSectionMissing', { section: drawing.part })}</p>
     );
   }
-  const content = (
+  // A whole note is drawn as its page draws it: the renderer places its name
+  // and its properties, as its `properties` block or the notebook's style
+  // says (#530); a part is drawn alone, as a transclusion of it is.
+  return (
     <NoteContent
       raw={drawing.raw}
       notebookId={notebookId}
@@ -141,39 +139,21 @@ export function NotePreview({
       write={() => Promise.reject(new Error('A preview writes nothing.'))}
       invalidates={invalidates}
       actions={false}
+      {...(drawing.kind === 'whole'
+        ? {
+            header: {
+              title: (
+                <h1 className={drawing.name === null ? 'note-title note-unnamed' : 'note-title'}>
+                  {drawing.name ?? t('note.unnamed')}
+                </h1>
+              ),
+              properties: drawing.properties,
+              lists: drawing.lists,
+              notebookId,
+            },
+          }
+        : {})}
     />
-  );
-  if (drawing.kind === 'part') return content;
-  return (
-    <>
-      <h1 className={drawing.name === null ? 'note-title note-unnamed' : 'note-title'}>
-        {drawing.name ?? t('note.unnamed')}
-      </h1>
-      {drawing.properties.length > 0 ? (
-        <details className="properties-box" open>
-          <summary>{t('note.properties')}</summary>
-          <div className="metadata-container">
-            {drawing.properties.map(([key, value]) => (
-              <div
-                className="metadata-property"
-                data-property-type={propertyType(value, drawing.lists.has(key))}
-                key={key}
-              >
-                <span className="metadata-property-key">{propertyLabel(key, t)}</span>
-                <span className="metadata-property-value">
-                  <PropertyValue
-                    value={value}
-                    list={drawing.lists.has(key)}
-                    notebookId={notebookId}
-                  />
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      ) : null}
-      {content}
-    </>
   );
 }
 

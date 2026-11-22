@@ -6,10 +6,10 @@ import {
   sameNotebookStyle,
   type NotebookStyle,
   type PrintOrientation,
-  type PrintProperties,
   type PrintTables,
   type StyleAlignment,
   type StyleFont,
+  type StyleNumbering,
 } from '@memorysmithapp/contracts';
 import { setNotebookStyle } from '../../shared/api/source';
 import { messageKeyOf } from '../../shared/api/error-mapper';
@@ -33,6 +33,17 @@ import type { NotebookStructure } from '../../shared/types/api';
 import { NotebookBar, contextCrumbs } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
+import {
+  CONTENTS_LISTS,
+  contentsForm,
+  contentsOfForm,
+  keysOf,
+  propertiesForm,
+  propertiesOfForm,
+  type ContentsForm,
+  type PropertiesForm,
+  type Where,
+} from './style-settings';
 
 /**
  * The style of a notebook (#493, RN-KNW-092): how every note in it is drawn
@@ -57,6 +68,10 @@ export function StylePage() {
   const [draft, setDraft] = useState<NotebookStyle>(structure.style);
   const [savedAt, setSavedAt] = useState<NotebookStyle | null>(null);
   const changed = !sameNotebookStyle(draft, structure.style);
+  /** The keys drawn, as typed: a comma between two keys, none for all of them (#530). */
+  const [keysText, setKeysText] = useState(() => keysTextOf(structure.style));
+  const properties = propertiesForm(draft.properties);
+  const contents = contentsForm(draft.contents);
 
   const save = useMutation({
     mutationFn: (style: NotebookStyle) => setNotebookStyle(notebookId, style),
@@ -66,6 +81,7 @@ export function StylePage() {
       );
       void client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) });
       setDraft(style);
+      setKeysText(keysTextOf(style));
       setSavedAt(style);
     },
   });
@@ -73,6 +89,23 @@ export function StylePage() {
   const choose = <K extends keyof NotebookStyle>(key: K, value: NotebookStyle[K]) => {
     setSavedAt(null);
     setDraft((current) => ({ ...current, [key]: value }));
+  };
+  /** A change of the properties (#530) or of the contents (#521), kept in the renderer's structure. */
+  const setProperties = (change: Partial<PropertiesForm>) =>
+    choose('properties', propertiesOfForm({ ...properties, ...change }, draft.properties));
+  const setContents = (change: Partial<ContentsForm>) =>
+    choose('contents', contentsOfForm({ ...contents, ...change }, draft.contents));
+  const where = (prefix: string, order: readonly Where[], icons?: Record<Where, ReactNode>) =>
+    order.map((value) => ({
+      value,
+      label: t(`${prefix}.${value}`),
+      ...(icons ? { icon: icons[value] } : {}),
+      disabled: !maintains,
+    }));
+  const placeIcons: Record<Where, ReactNode> = {
+    start: <CoverPageIcon />,
+    end: <EndPageIcon />,
+    none: <NoPropertiesIcon />,
   };
 
   const align = (value: StyleAlignment) => ({
@@ -126,6 +159,18 @@ export function StylePage() {
                   options={alignments}
                 />
               </Setting>
+              <Setting label={t('style.numbering')}>
+                <Segmented<StyleNumbering>
+                  label={t('style.numbering')}
+                  value={draft.numbering}
+                  onChange={(value) => choose('numbering', value)}
+                  options={(['none', 'decimal'] as const).map((value) => ({
+                    value,
+                    label: t(`style.numberings.${value}`),
+                    disabled: !maintains,
+                  }))}
+                />
+              </Setting>
               <Setting label={t('style.text')}>
                 <Segmented<StyleAlignment>
                   label={t('style.text')}
@@ -158,34 +203,142 @@ export function StylePage() {
             </fieldset>
 
             <fieldset className="style-group">
-              <legend>{t('style.print')}</legend>
-              <Setting label={t('style.properties')}>
-                <Segmented<PrintProperties>
-                  label={t('style.properties')}
-                  value={draft.properties}
-                  onChange={(value) => choose('properties', value)}
-                  options={[
-                    {
-                      value: 'cover',
-                      label: t('style.placement.cover'),
-                      icon: <CoverPageIcon />,
-                      disabled: !maintains,
-                    },
-                    {
-                      value: 'end',
-                      label: t('style.placement.end'),
-                      icon: <EndPageIcon />,
-                      disabled: !maintains,
-                    },
-                    {
-                      value: 'none',
-                      label: t('style.placement.none'),
-                      icon: <NoPropertiesIcon />,
-                      disabled: !maintains,
-                    },
-                  ]}
+              <legend>{t('style.properties')}</legend>
+              <p className="style-setting-hint">{t('style.propertiesHint')}</p>
+              <Setting label={t('style.onScreen')}>
+                <Segmented<Where>
+                  label={`${t('style.properties')} · ${t('style.onScreen')}`}
+                  value={properties.screen}
+                  onChange={(value) => setProperties({ screen: value })}
+                  options={where('style.placement', ['start', 'end', 'none'], placeIcons)}
                 />
               </Setting>
+              <Setting label={t('style.inPrint')}>
+                <Segmented<Where>
+                  label={`${t('style.properties')} · ${t('style.inPrint')}`}
+                  value={properties.print}
+                  onChange={(value) => setProperties({ print: value })}
+                  options={where('style.placement', ['start', 'end', 'none'], placeIcons)}
+                />
+              </Setting>
+              {properties.screen === 'none' && properties.print === 'none' ? null : (
+                <>
+                  <label className="field style-field">
+                    <span className="field-label">{t('style.propertyKeys')}</span>
+                    <input
+                      type="text"
+                      value={keysText}
+                      disabled={!maintains}
+                      placeholder={t('style.propertyKeysAll')}
+                      onChange={(event) => {
+                        setKeysText(event.target.value);
+                        setProperties({ keys: keysOf(event.target.value) });
+                      }}
+                    />
+                    <span className="field-hint">{t('style.propertyKeysHint')}</span>
+                  </label>
+                  <label className="field style-field">
+                    <span className="field-label">{t('style.propertiesTitle')}</span>
+                    <input
+                      type="text"
+                      value={properties.title ?? ''}
+                      maxLength={120}
+                      disabled={!maintains}
+                      onChange={(event) =>
+                        setProperties({
+                          title: event.target.value.trim() === '' ? null : event.target.value,
+                        })
+                      }
+                    />
+                    <span className="field-hint">{t('style.propertiesTitleHint')}</span>
+                  </label>
+                  {properties.screen === 'none' ? null : (
+                    <Setting label={t('style.fold')}>
+                      <Segmented<'open' | 'closed'>
+                        label={t('style.fold')}
+                        value={properties.fold}
+                        onChange={(value) => setProperties({ fold: value })}
+                        options={(['open', 'closed'] as const).map((value) => ({
+                          value,
+                          label: t(`style.folds.${value}`),
+                          disabled: !maintains,
+                        }))}
+                      />
+                    </Setting>
+                  )}
+                </>
+              )}
+            </fieldset>
+
+            <fieldset className="style-group">
+              <legend>{t('style.contents')}</legend>
+              <p className="style-setting-hint">{t('style.contentsHint')}</p>
+              <Setting label={t('style.onScreen')}>
+                <Segmented<Where>
+                  label={`${t('style.contents')} · ${t('style.onScreen')}`}
+                  value={contents.screen}
+                  onChange={(value) => setContents({ screen: value })}
+                  options={where('style.contentsPlacement', ['none', 'start', 'end'])}
+                />
+              </Setting>
+              <Setting label={t('style.inPrint')}>
+                <Segmented<Where>
+                  label={`${t('style.contents')} · ${t('style.inPrint')}`}
+                  value={contents.print}
+                  onChange={(value) => setContents({ print: value })}
+                  options={where('style.contentsPlacement', ['none', 'start', 'end'])}
+                />
+              </Setting>
+              {contents.screen === 'none' && contents.print === 'none' ? null : (
+                <div className="style-setting">
+                  <span className="style-setting-label">{t('style.contentsLists')}</span>
+                  {CONTENTS_LISTS.map((list) => (
+                    <label className="style-check" key={list}>
+                      <input
+                        type="checkbox"
+                        checked={contents.lists[list]}
+                        disabled={!maintains}
+                        onChange={(event) =>
+                          setContents({
+                            lists: { ...contents.lists, [list]: event.target.checked },
+                          })
+                        }
+                      />
+                      {t(`style.lists.${list}`)}
+                      {list === 'headings' && contents.lists.headings ? (
+                        <select
+                          aria-label={t('style.contentsDepth')}
+                          value={contents.depth}
+                          disabled={!maintains}
+                          onChange={(event) => setContents({ depth: Number(event.target.value) })}
+                        >
+                          {[1, 2, 3, 4, 5, 6].map((depth) => (
+                            <option key={depth} value={depth}>
+                              {t('style.depth', { count: depth })}
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
+                    </label>
+                  ))}
+                  <p className="style-setting-hint">{t('style.contentsPagesHint')}</p>
+                  {contents.print === 'none' ? null : (
+                    <label className="style-check">
+                      <input
+                        type="checkbox"
+                        checked={draft.contentsPages}
+                        disabled={!maintains}
+                        onChange={(event) => choose('contentsPages', event.target.checked)}
+                      />
+                      {t('style.contentsOwnPages')}
+                    </label>
+                  )}
+                </div>
+              )}
+            </fieldset>
+
+            <fieldset className="style-group">
+              <legend>{t('style.print')}</legend>
               <Setting label={t('style.orientation')}>
                 <Segmented<PrintOrientation>
                   label={t('style.orientation')}
@@ -260,6 +413,7 @@ export function StylePage() {
                   onClick={() => {
                     setSavedAt(null);
                     setDraft(structure.style);
+                    setKeysText(keysTextOf(structure.style));
                   }}
                 >
                   {t('style.undo')}
@@ -312,6 +466,11 @@ function orientations(
       disabled: !maintains,
     },
   ];
+}
+
+/** The keys a style prints, as the field shows them. */
+function keysTextOf(style: NotebookStyle): string {
+  return propertiesForm(style.properties).keys?.join(', ') ?? '';
 }
 
 /** One setting: its name over its choices, and what it means when it needs saying. */

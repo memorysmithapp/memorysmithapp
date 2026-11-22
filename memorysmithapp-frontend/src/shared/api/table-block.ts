@@ -4,8 +4,9 @@ import type {
   TableRow,
   TableValue,
 } from '@memorysmithapp/markdown-renderer';
-import { tableColumnsOf } from '@memorysmithapp/contracts';
+import { namesSystemNotesTable, tableColumnsOf } from '@memorysmithapp/contracts';
 import { ApiError } from './error-mapper';
+import { noteAddress } from './note-address';
 import { queryTable } from './source';
 
 /**
@@ -25,7 +26,8 @@ function valueOf(value: unknown): TableValue {
  * Answers a `table` block of a note (#366, §7.15): the page it asks for, or
  * every row when a note is printed, the row count, the total over the whole
  * filter and the columns. A table the notebook does not keep answers `null`,
- * which the renderer draws as pending.
+ * which the renderer draws as pending. A row of `system-notes` is a note, and
+ * leads to it from its first column (#531).
  */
 export async function answerTableBlock(
   notebookId: string,
@@ -47,9 +49,18 @@ export async function answerTableBlock(
       Object.fromEntries(columns.map((column) => [column.name, valueOf(row.values[column.name])])),
     );
     const total = answer.groups?.[0]?.values[0] ?? null;
+    const notes = namesSystemNotesTable(answer.table.name);
     return {
       schema: { name: answer.table.name, columns },
       rows,
+      ...(notes
+        ? {
+            links: answer.rows.map((row) => {
+              const note = row.values['note'];
+              return noteAddress(notebookId, typeof note === 'string' ? note : row.rowId);
+            }),
+          }
+        : {}),
       count: answer.total,
       total: total === null ? null : (valueOf(total) as string),
       readAt: new Date().toISOString(),

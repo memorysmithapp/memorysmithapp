@@ -45,7 +45,7 @@ import { parameterDeclarationSchema } from './models.js';
  * its bodies are written in: that notation follows the version of the product
  * that wrote it (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.7';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.8';
 
 /**
  * The versions this build can read. `1.1` added the history an export may
@@ -58,7 +58,9 @@ export const NOTEBOOK_DOCUMENT_VERSION = '1.7';
  * file out of the document into an entry of its own in the archive (#481): a
  * file of a `1.5` document still carries them base64, and is read as it was.
  * `1.7` added the notebook's style (#493): an older document has none, and
- * the notebook it creates has the default.
+ * the notebook it creates has the default. `1.8` writes how its notes draw
+ * their properties as an object (#530): the `cover`, `end` or `none` of a
+ * `1.7` document is read as the place it became.
  */
 export const READABLE_DOCUMENT_VERSIONS = [
   '1.0',
@@ -69,6 +71,7 @@ export const READABLE_DOCUMENT_VERSIONS = [
   '1.5',
   '1.6',
   '1.7',
+  '1.8',
 ] as const;
 
 export const documentFolderSchema = z.object({

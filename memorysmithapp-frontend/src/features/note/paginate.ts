@@ -22,18 +22,39 @@ import type { PrintOrientation as Orientation } from '@memorysmithapp/contracts'
 export const PAGE_MARGINS = '18mm 16mm 20mm';
 
 /**
- * The rules only the paginator reads: the page box, and the breaks between the
- * parts — the cover on a page of its own, the properties at the end on one of
- * theirs. A block kept whole and a heading never alone at the foot of a page
- * are read from the stylesheet of the application, which applies to the copy.
+ * The rules only the paginator reads: the page box, the break before the
+ * properties at the end, on a page of their own, and the page each entry of a
+ * contents lands on, at its right (#521), a dotted line leading to it (#539),
+ * and, when the style asks, a page for each list of a contents and for what
+ * follows it (#542). A block kept whole and a heading never alone at the foot
+ * of a page are read from the stylesheet of the application, which applies to
+ * the copy.
  */
-function pageRules(orientation: Orientation, appendices: Appendices | null): string {
+function pageRules(
+  orientation: Orientation,
+  appendices: Appendices | null,
+  contentsPages: boolean,
+): string {
   return `
 @page { size: A4 ${orientation}; margin: ${PAGE_MARGINS}; }
-.print-cover { break-after: page; }
 .print-end { break-before: page; }
+.contents-entry { display: flex; align-items: baseline; gap: 0.25em; }
+.contents-entry::before { content: ""; order: 1; flex: 1; min-width: 1em; border-bottom: 1px dotted currentColor; opacity: 0.6; }
+.contents-entry::after { content: target-counter(attr(href url), page); order: 2; }
+${contentsPages ? CONTENTS_PAGES : ''}
 ${appendices ? appendixRules(appendices) : ''}`;
 }
+
+/**
+ * Each list of a contents on a page of its own, and the text after the
+ * contents on the next (#542): a break before every list but the first, and
+ * before whatever follows the contents, so a contents at the end of the note
+ * leaves no blank page after it.
+ */
+const CONTENTS_PAGES = `
+.contents-list + .contents-list { break-before: page; }
+nav.contents + * { break-before: page; }
+`;
 
 /**
  * Tables printed as appendices at the end of the note (#494): each appendix on
@@ -142,6 +163,81 @@ function fragmentId(fragment: string): string {
   }
 }
 
+/** What `isTableTitle` reads of an element: enough to tell a title from a paragraph of text. */
+export interface TitleCandidate {
+  readonly tagName: string;
+  readonly textContent: string | null;
+  readonly children: ArrayLike<{ readonly tagName: string; readonly textContent: string | null }>;
+}
+
+/**
+ * Whether an element stands as the title of the table right after it (#537):
+ * a heading, or a paragraph that is only bold or italic words, as a person
+ * writes `**Orçamento 2027**` over a table.
+ */
+export function isTableTitle(element: TitleCandidate): boolean {
+  if (/^H[1-6]$/.test(element.tagName)) return true;
+  if (element.tagName !== 'P') return false;
+  const text = (element.textContent ?? '').trim();
+  if (text === '' || element.children.length !== 1) return false;
+  const only = element.children[0];
+  return (
+    only !== undefined &&
+    ['STRONG', 'B', 'EM', 'I'].includes(only.tagName) &&
+    (only.textContent ?? '').trim() === text
+  );
+}
+
+/** The note's body: the inner `.markdown` the renderer lays the blocks in. */
+function isBody(element: Element | null): boolean {
+  return (
+    element !== null &&
+    element.classList.contains('markdown') &&
+    element.parentElement?.closest('.markdown') !== null
+  );
+}
+
+/**
+ * The block of the note an overflow starts at: its ancestor right under the
+ * note's body, or, when it starts between two blocks — in the body itself or
+ * in the blank text between them — the block that comes next.
+ */
+function blockAt(overflow: Range): Element | null {
+  let node: Node | null = overflow.startContainer;
+  if (node instanceof Element && isBody(node)) node = node.childNodes[overflow.startOffset] ?? null;
+  while (node && !(node instanceof Element) && isBody(node.parentElement)) node = node.nextSibling;
+  let element: Element | null = node instanceof Element ? node : (node?.parentElement ?? null);
+  while (element && !isBody(element.parentElement)) element = element.parentElement;
+  return element;
+}
+
+/**
+ * Where a page breaks when it would leave a table's head at its foot (#537):
+ * the overflow starts at a table's block, or inside it, before any row of its
+ * body ended on the page — so its header, or the title right above it, would
+ * stand alone there. The break moves before the table, and before its title
+ * when it has one, so they go to the next page with the first rows. A table
+ * or a title that opens its page stays: moving it would only move the same
+ * break along.
+ */
+export function keepTitleWithTable(overflow: Range): Range | undefined {
+  const block = blockAt(overflow);
+  const table = block?.matches('table') ? block : block?.querySelector('table');
+  if (!block || !table) return undefined;
+  // A row of the body is on the page only when it ends before the overflow:
+  // an overflow inside the first row leaves the header alone under the title.
+  const firstRow = table.querySelector('tbody tr');
+  if (firstRow && overflow.comparePoint(firstRow, firstRow.childNodes.length) < 0) return undefined;
+  const title = block.previousElementSibling;
+  const moved = title && isTableTitle(title) ? title : block;
+  if (!moved.previousElementSibling) return undefined;
+  const range = overflow.cloneRange();
+  range.setStartBefore(moved);
+  return range;
+}
+
+let handlersRegistered = false;
+
 let queue: Promise<unknown> = Promise.resolve();
 
 /**
@@ -155,11 +251,24 @@ export function paginate(
   target: HTMLElement,
   orientation: Orientation,
   appendices: Appendices | null = null,
+  contentsPages = false,
 ): Promise<number> {
   const run = queue.then(async () => {
-    const { Previewer } = (await import('pagedjs')) as unknown as {
+    const { Previewer, Handler, registerHandlers } = (await import('pagedjs')) as unknown as {
       Previewer: new () => Previewer;
+      Handler: new (...args: unknown[]) => object;
+      registerHandlers: (...handlers: unknown[]) => void;
     };
+    if (!handlersRegistered) {
+      // A table's title never ends a page above the table's rows (#537).
+      class KeepTitleWithTable extends Handler {
+        onOverflow(overflow: Range | undefined): Range | undefined {
+          return overflow ? keepTitleWithTable(overflow) : undefined;
+        }
+      }
+      registerHandlers(KeepTitleWithTable);
+      handlersRegistered = true;
+    }
     laid?.polisher.destroy();
     target.replaceChildren();
 
@@ -172,7 +281,7 @@ export function paginate(
     turnAppendixSheet(null);
     const flow = await previewer.preview(
       content,
-      [{ [window.location.href]: pageRules(orientation, appendices) }],
+      [{ [window.location.href]: pageRules(orientation, appendices, contentsPages) }],
       target,
     );
     turnAppendixSheet(appendices);

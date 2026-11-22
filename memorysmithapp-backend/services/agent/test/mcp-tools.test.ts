@@ -8,7 +8,12 @@ import {
   toolSignature,
 } from '../src/mcp/catalog.js';
 import { clientKind } from '../src/mcp/refresh.js';
-import { historyAnswer, McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
+import {
+  historyAnswer,
+  McpToolAdapter,
+  styleSection,
+  UNNAMED_NOTE_NOTICE,
+} from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import {
@@ -1322,6 +1327,23 @@ describe('skills: the method, indexed by whoami', () => {
     // The syntax comes from the specification, and not from this file.
     const mermaid = RECOGNISED_NOTATION.find((entry) => entry.id === 'mermaid');
     expect(body).toContain(mermaid?.syntax ?? 'mermaid');
+  });
+
+  it('leaves the numbers of the headings and the contents to the style, and the notes written before to the person (#536)', () => {
+    const notes = skillNamed('write-notes')?.body ?? '';
+    expect(notes).toContain(
+      'Never number a heading by hand, and never write a contents as a list.',
+    );
+    expect(notes).toContain('`set_style` (`numbering`, `contents`)');
+    expect(notes).toContain('a contents\nin one note is a `contents` block');
+    expect(notes).toContain('never strip those numbers\non your own');
+    expect(notes).toContain('remove them only when the person\nasks');
+    const design = skillNamed('design-notebook')?.body ?? '';
+    expect(design).toContain('whether the headings are numbered');
+    expect(design).toContain(
+      'Never write numbers into the headings of a guidance or a\n  template',
+    );
+    expect(design).toContain('with no number of yours: numbering them is the style');
   });
 
   it('builds the notation skill from the declaration, never beside it', async () => {
@@ -3584,6 +3606,52 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
     expect(JSON.parse(result.content[0]?.text ?? '{}')).toEqual({
       style: { ...DEFAULT_NOTEBOOK_STYLE, text: 'justify' },
     });
+  });
+
+  it('sets the properties, the contents and the numbering of every note, and says them in the context (#530, #521, #535)', async () => {
+    const asked: unknown[] = [];
+    const adapter = gateways({
+      knowledge: {
+        setStyle: async (_caller: unknown, _notebook: string, style: Record<string, unknown>) => {
+          asked.push(style);
+          return { ...DEFAULT_NOTEBOOK_STYLE, ...style };
+        },
+      },
+    });
+    const properties = { print: { place: 'end', keys: ['status', 'data'], title: 'Registro' } };
+    const contents = { headings: { depth: 2 }, print: { place: 'start' }, screen: 'none' };
+    const result = await adapter.call(
+      'set_style',
+      { notebook: '01JBQ2X00000000000000000V1', properties, contents, numbering: 'decimal' },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(asked).toEqual([{ properties, contents, numbering: 'decimal' }]);
+    // An agent whose list of tools is older still says cover, end or none.
+    await adapter.call(
+      'set_style',
+      { notebook: '01JBQ2X00000000000000000V1', properties: 'none' },
+      caller,
+    );
+    expect(asked[1]).toEqual({ properties: { print: 'none' } });
+
+    const styled = styleSection({
+      ...DEFAULT_NOTEBOOK_STYLE,
+      properties: properties as never,
+      contents: contents as never,
+      numbering: 'decimal',
+    });
+    expect(styled).toContain(JSON.stringify(properties));
+    expect(styled).toContain(JSON.stringify(contents));
+    expect(styled).toContain('headings numbered 1, 1.1, 1.2');
+    const plain = styleSection(DEFAULT_NOTEBOOK_STYLE);
+    expect(plain).toContain('every key at the top, on the screen and in print');
+    expect(plain).toContain("none, only a note's own `contents` block draws one");
+    expect(plain).toContain('headings not numbered');
+    expect(plain).not.toContain('opens a page');
+    expect(
+      styleSection({ ...DEFAULT_NOTEBOOK_STYLE, contents: contents as never, contentsPages: true }),
+    ).toContain('printed, each list of a contents opens a page, and so does the text after it');
   });
 
   it('refuses a value it cannot take, a setting it does not have, and a call that names none', async () => {

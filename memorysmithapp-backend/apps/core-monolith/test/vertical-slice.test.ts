@@ -786,6 +786,71 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
     expect(detail.style).toEqual(DEFAULT_NOTEBOOK_STYLE);
   });
 
+  it('keeps how every note draws its properties and its contents and numbers its headings, and reads a word of before as what it became (#530, #521, #535)', async () => {
+    const { notebookId } = await seedNotebook();
+    const style = `/knowledge/notebooks/${notebookId}/style`;
+    const set = async (body: Record<string, unknown>) => call(style, { method: 'PATCH', body });
+    const answered = async (body: Record<string, unknown>) =>
+      ((await (await set(body)).json()) as { style: Record<string, unknown> }).style;
+
+    // The structure of a block, trimmed, a null left out.
+    expect(
+      (
+        await answered({
+          properties: {
+            keys: [' status ', 'data'],
+            title: ' Registro ',
+            fold: 'closed',
+            screen: 'none',
+            print: { place: 'end', title: null },
+          },
+        })
+      )['properties'],
+    ).toEqual({
+      keys: ['status', 'data'],
+      title: 'Registro',
+      fold: 'closed',
+      screen: 'none',
+      print: { place: 'end' },
+    });
+    const contents = {
+      headings: { depth: 2 },
+      figures: {},
+      print: { place: 'start' },
+      screen: 'none',
+    };
+    expect((await answered({ contents }))['contents']).toEqual(contents);
+    expect((await answered({ contents: null }))['contents']).toBeNull();
+    expect((await answered({ numbering: 'decimal' }))['numbering']).toBe('decimal');
+    expect((await answered({ contentsPages: true }))['contentsPages']).toBe(true);
+    // A client of before #530 still writes cover, end or none.
+    expect((await answered({ properties: 'cover' }))['properties']).toEqual({});
+    expect((await answered({ properties: 'end' }))['properties']).toEqual({
+      print: { place: 'end' },
+    });
+    expect((await answered({ properties: 'none' }))['properties']).toEqual({ print: 'none' });
+
+    for (const body of [
+      { properties: { place: 'middle' } },
+      { properties: { keys: [] } },
+      { properties: { keys: Array.from({ length: 51 }, (_, i) => `k${i}`) } },
+      { properties: { title: 'x'.repeat(121) } },
+      { properties: { print: 'never' } },
+      { properties: 'middle' },
+      { contents: { tables: { depth: 2 } } },
+      { contents: { headings: { depth: 7 } } },
+      { numbering: 'roman' },
+      { contentsPages: 'yes' },
+    ]) {
+      expect((await set(body)).status).toBe(400);
+    }
+    const detail = notebookDetailSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}`)).json(),
+    );
+    expect(detail.style.properties).toEqual({ print: 'none' });
+    expect(detail.style.numbering).toBe('decimal');
+  });
+
   it('answers 404 for a notebook the token does not reach (INV-09)', async () => {
     const missing = await call('/knowledge/notebooks/01J8X2K9QZ3M4N5P6R7S8T9V0A/style', {
       method: 'PATCH',

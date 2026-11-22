@@ -714,8 +714,18 @@ export function styleSection(style: NotebookStyle): string {
       'that note.',
     '',
     `- Font: ${style.font}`,
-    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}`,
-    `- Printed: properties ${style.properties === 'none' ? 'not printed' : `on a ${style.properties === 'cover' ? 'cover page' : 'page at the end'}`}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
+    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}; headings ${style.numbering === 'decimal' ? 'numbered 1, 1.1, 1.2' : 'not numbered'}`,
+    `- Properties: ${
+      Object.keys(style.properties).length === 0
+        ? 'every key at the top, on the screen and in print'
+        : `\`${JSON.stringify(style.properties)}\``
+    }; a note's own \`properties\` block wins over it`,
+    `- Contents: ${
+      style.contents === null
+        ? "none, only a note's own `contents` block draws one"
+        : `\`${JSON.stringify(style.contents)}\`, for every note that writes no \`contents\` block`
+    }${style.contentsPages ? '; printed, each list of a contents opens a page, and so does the text after it' : ''}`,
+    `- Printed: ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
   ].join('\n');
 }
 
@@ -730,7 +740,8 @@ function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
     throw new GatewayError(
       'VALIDATION',
       'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
-        'tables (left, center, right, justify); hyphenate (true, false); properties (cover, end, none); orientation ' +
+        'tables (left, center, right, justify); hyphenate (true, false); numbering (none, decimal); contentsPages (true, false); properties and contents (the ' +
+        'host settings of the properties and contents blocks, as write-notes teaches them); orientation ' +
         '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
         '(portrait, landscape, or null).',
       { given: Object.keys(rest).join(', ') || null },

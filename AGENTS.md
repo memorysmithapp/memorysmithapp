@@ -47,7 +47,9 @@ One line each; the reason lives where the link points.
 - `main` is protected: every change reaches it through a pull request. Never push to `main`; never use `--admin`, *Bypass rules*, `--no-verify` or an equivalent ([SDLC §1](docs/SDLC.md#1-the-life-cycle-of-a-change)).
 - A blocked merge means **stop and report**, never work around it ([SDLC §7](docs/SDLC.md#7-a-blocked-merge)).
 - An issue before implementing. An opinion asked for, or "open the issue", means register and ask; implement only on an explicit go-ahead from the owner, which puts the issue in a milestone ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
-- A gap that reaches other repositories of the organization is registered at its origin, with a sub-issue in each repository it reaches, without asking whether to open them ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
+- A cycle is planned from every open issue: review them all with the owner before implementing, and recommend including them; leaving one out is the owner's call, with a reason ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
+- Nothing delivers to an environment, staging included, without the owner's go-ahead in the session; a go-ahead to implement is not one to deliver, and pushing a branch needs none ([SDLC §8](docs/SDLC.md#8-tests-and-review)).
+- Each repository stands on its own: a problem found in another repository is registered there, as one issue, with no sub-issues elsewhere; comparing with the template is this repository's own work, in its own cycle ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).
 - Anything deployed lands on the `release/vX.Y.Z` of its issue's milestone, never on `main` from a `feat/` or `fix/` branch ([SDLC §3](docs/SDLC.md#3-branches)).
 - Nobody tags by hand, and nobody delivers production from a workstation ([SDLC §10](docs/SDLC.md#10-release)).
 - A document never describes the future: if it is in a document, it is true now ([SDLC §2](docs/SDLC.md#2-issues-and-milestones)).

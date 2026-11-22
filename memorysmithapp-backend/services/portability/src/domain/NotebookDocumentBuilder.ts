@@ -28,7 +28,7 @@ import type { ParameterDeclaration } from './NotebookModel.js';
  * through that schema, so what reaches the archive is what the specification
  * of the format describes and nothing else (RN-PRT-011).
  */
-export const NOTEBOOK_DOCUMENT_VERSION = '1.7';
+export const NOTEBOOK_DOCUMENT_VERSION = '1.8';
 
 /**
  * One version of a model, as a `1.4` document carried it (#397): its meta and
@@ -291,7 +291,7 @@ export interface ExportNote {
  * A notebook's style as the document carries it (#493): each setting by its
  * name and value, validated against the published schema at the edge.
  */
-export type DocumentStyle = Readonly<Record<string, string | boolean | null>>;
+export type DocumentStyle = Readonly<Record<string, unknown>>;
 
 export interface ExportInput {
   readonly notebookName: string;

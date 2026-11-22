@@ -264,7 +264,13 @@
       "table-column-unknown": "Este bloco cita uma coluna que a tabela {{table}} não tem.",
       "table-filter-invalid": "O filtro deste bloco não pode ser lido.",
       "table-pending": "Este caderno não tem uma tabela chamada {{table}}."
-    }
+    },
+    "contentsHeadings": "Sumário",
+    "contentsFigures": "Figuras",
+    "contentsTables": "Tabelas",
+    "contentsAttachments": "Anexos",
+    "figureNumber": "Figura {{number}}",
+    "tableNumber": "Tabela {{number}}"
   },
   "print": {
     "short": "Gerar PDF",
@@ -277,7 +283,15 @@
     "gone": "Esta nota não existe mais, ou você não tem mais acesso a ela.",
     "failed": "Não foi possível gerar o PDF agora.",
     "timedOut": "O PDF demorou mais do que o esperado e não ficou pronto.",
-    "retry": "Tentar de novo"
+    "retry": "Tentar de novo",
+    "steps": {
+      "asking": "Pedindo o PDF",
+      "laying": "Montando as páginas",
+      "opening": "Abrindo o PDF"
+    },
+    "elapsed_one": "Há {{count}} segundo",
+    "elapsed_other": "Há {{count}} segundos",
+    "upTo": "uma nota longa pode levar até 3 minutos."
   },
   "style": {
     "intro": "Como todas as notas deste caderno aparecem na tela e na impressão, para todo mundo que as lê. Um trecho de uma nota que precise ser diferente usa um bloco :::{style} na própria nota.",
@@ -306,8 +320,13 @@
       "justify": "Justificado"
     },
     "properties": "Propriedades",
+    "propertyKeys": "Chaves",
+    "propertyKeysAll": "Todas",
+    "propertyKeysHint": "Nesta ordem, separadas por vírgula. Vazio desenha todas; a chave que uma nota não tiver fica de fora.",
+    "propertiesTitle": "Título",
+    "propertiesTitleHint": "Acima das propriedades. Vazio: “Propriedades” na tela, nenhum na impressão.",
     "placement": {
-      "cover": "Folha de rosto",
+      "start": "Abaixo do título",
       "end": "No final",
       "none": "Nenhuma"
     },
@@ -331,7 +350,39 @@
     "unsaved": "Alterações não salvas.",
     "undo": "Desfazer",
     "sampleLabel": "Uma nota neste estilo",
-    "sample": "# Relatório da obra\n\nA reforma do salão começou em março e segue o cronograma aprovado em assembleia. O síndico acompanha cada etapa e envia um resumo mensal a todos os condôminos, com o que foi feito, o que falta e quanto já se gastou.\n\n## Próximos passos\n\n- Trocar o piso até o fim do mês\n- Pintar as paredes depois da vistoria\n\n## Tabelas\n\nUma tabela sem alinhamento próprio segue a escolha de **Tabelas**:\n\n| Etapa | Situação | Valor |\n|---|---|---|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\nUma coluna que fixa o próprio alinhamento na tabela, como `--:` à direita, mantém o dela; as outras seguem o estilo:\n\n| Etapa | Situação | Valor |\n|---|---|--:|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\n## Um trecho com estilo próprio\n\nUm bloco `:::{style}` vale só para o trecho que envolve e vence o estilo do caderno:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nEste parágrafo fica centralizado e sem serifa, qualquer que seja o estilo escolhido ao lado.\n:::\n"
+    "sample": "# Relatório da obra\n\nA reforma do salão começou em março e segue o cronograma aprovado em assembleia. O síndico acompanha cada etapa e envia um resumo mensal a todos os condôminos, com o que foi feito, o que falta e quanto já se gastou.\n\n## Próximos passos\n\n- Trocar o piso até o fim do mês\n- Pintar as paredes depois da vistoria\n\n## Tabelas\n\nUma tabela sem alinhamento próprio segue a escolha de **Tabelas**:\n\n| Etapa | Situação | Valor |\n|---|---|---|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\nUma coluna que fixa o próprio alinhamento na tabela, como `--:` à direita, mantém o dela; as outras seguem o estilo:\n\n| Etapa | Situação | Valor |\n|---|---|--:|\n| Piso | Em andamento | 12.400,00 |\n| Pintura | A começar | 6.800,00 |\n\n## Um trecho com estilo próprio\n\nUm bloco `:::{style}` vale só para o trecho que envolve e vence o estilo do caderno:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nEste parágrafo fica centralizado e sem serifa, qualquer que seja o estilo escolhido ao lado.\n:::\n",
+    "onScreen": "Na tela",
+    "inPrint": "Na impressão",
+    "propertiesHint": "Para toda nota que não tem um bloco de propriedades; a nota que tem um desenha o seu.",
+    "fold": "Na tela começam",
+    "folds": {
+      "open": "Abertas",
+      "closed": "Recolhidas"
+    },
+    "contents": "Sumário",
+    "contentsHint": "O sumário de toda nota que não tem um bloco de sumário; a nota que tem um desenha o seu.",
+    "contentsPlacement": {
+      "none": "Nenhum",
+      "start": "No início",
+      "end": "No fim"
+    },
+    "contentsLists": "O que lista",
+    "lists": {
+      "headings": "Títulos",
+      "figures": "Figuras",
+      "tables": "Tabelas",
+      "attachments": "Anexos"
+    },
+    "contentsDepth": "Níveis de títulos",
+    "depth_one": "{{count}} nível",
+    "depth_other": "{{count}} níveis",
+    "contentsPagesHint": "Na impressão, cada entrada diz a página em que está.",
+    "numbering": "Numeração dos títulos",
+    "numberings": {
+      "none": "Nenhuma",
+      "decimal": "1, 1.1, 1.2"
+    },
+    "contentsOwnPages": "Na impressão, cada lista numa página, e o texto na seguinte"
   },
   "common": {
     "loading": "Carregando…",
@@ -1384,7 +1435,42 @@
     "styleRight": "À direita",
     "styleJustify": "Justificado",
     "styleInsert": "Destacar trecho",
-    "styleApply": "Aplicar"
+    "styleApply": "Aplicar",
+    "styleNumbering": "Numeração",
+    "styleNumberingNone": "Nenhuma",
+    "styleNumberingDecimal": "1, 1.1, 1.2",
+    "contents": "Sumário",
+    "contentsTitle": "Título",
+    "contentsDepth": "Níveis",
+    "contentsPlace": "Onde",
+    "contentsScreen": "Na tela",
+    "contentsPrint": "Na impressão",
+    "contentsNotebook": "O do caderno",
+    "contentsHere": "Onde está escrito",
+    "contentsStart": "No início",
+    "contentsEnd": "No fim",
+    "contentsSame": "Como acima",
+    "contentsNone": "Não desenhado",
+    "contentsOwn": "Próprio",
+    "contentsInsert": "Inserir",
+    "contentsApply": "Aplicar",
+    "propertiesBlock": "Propriedades",
+    "propertiesKeys": "Chaves",
+    "propertiesAllKeys": "Todas as chaves, as reservadas primeiro",
+    "propertiesFold": "Recolhidas",
+    "propertiesOpen": "Abertas",
+    "propertiesClosed": "Recolhidas",
+    "propertiesMoveUp": "Subir {{key}}",
+    "propertiesElsewhere": "Propriedades: {{where}}",
+    "propertiesElsewhereNone": "Propriedades: não desenhadas",
+    "contentsElsewhere": "Sumário: {{where}}",
+    "contentsElsewhereNone": "Sumário: não desenhado",
+    "elsewhereHere": "aqui",
+    "elsewhereStart": "no início",
+    "elsewhereEnd": "no fim",
+    "elsewhereScreen": "{{at}} na tela",
+    "elsewherePrint": "{{at}} na impressão",
+    "tableCaption": "Legenda"
   },
   "model": {
     "title": "Modelo de caderno",

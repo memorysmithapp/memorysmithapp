@@ -15,12 +15,7 @@ import { usePreferences } from '../../shared/store/preferences';
 import { NotebookIdProvider } from '../../shared/components/notebook-id';
 import { NoteContent, styleOfParts } from '../../shared/components/NoteContent';
 import { NoteSkeleton } from '../../shared/components/skeletons';
-import {
-  PropertyValue,
-  orderedProperties,
-  propertyLabel,
-  propertyType,
-} from '../../shared/components/PropertyValue';
+import { orderedProperties } from '../../shared/components/PropertyValue';
 import { DEFAULT_NOTEBOOK_STYLE } from '@memorysmithapp/contracts';
 import { useNotebookId } from '../structure/route-ids';
 import { paginate, unpaginate } from './paginate';
@@ -98,7 +93,15 @@ export function PrintNotePage() {
 
   // How the note is laid is the notebook's style (#493).
   const style = structure.data?.style ?? DEFAULT_NOTEBOOK_STYLE;
-  const placement = style.properties;
+  // Where the notebook prints the properties of a note with no block of its
+  // own (#530): what the drawn note says it is laid by, and laid again when it changes.
+  const printedProperties =
+    style.properties.print === 'none'
+      ? 'none'
+      : (style.properties.print?.place ?? style.properties.place ?? 'start');
+  const drawingKey = JSON.stringify([style.properties, style.contents]);
+  // Each list of a contents on a page of its own, as the style asks (#542).
+  const contentsPages = style.contentsPages;
   const fit = style.printTables === 'shrink' ? 'shrink' : 'wrap';
   const orientation = style.orientation;
   // Each table at the end, on a page of its own that turns as the style says (#494).
@@ -151,11 +154,13 @@ export function PrintNotePage() {
     requestAnimationFrame(() => {
       if (!alive) return;
       fitTables(drawnNote, fit);
+      markPropertiesAtTheEnd(drawnNote);
       void paginate(
         drawnNote,
         target,
         orientation,
         asAppendices ? { orientation: appendixOrientation, pageWord } : null,
+        contentsPages,
       ).then(
         (total) => alive && setPages(total),
         () => alive && setPages(0),
@@ -164,7 +169,17 @@ export function PrintNotePage() {
     return () => {
       alive = false;
     };
-  }, [drawn, placement, fit, orientation, asAppendices, appendixOrientation, pageWord, revision]);
+  }, [
+    drawn,
+    drawingKey,
+    contentsPages,
+    fit,
+    orientation,
+    asAppendices,
+    appendixOrientation,
+    pageWord,
+    revision,
+  ]);
 
   useEffect(() => () => unpaginate(preview.current), []);
 
@@ -191,21 +206,24 @@ export function PrintNotePage() {
     : [];
   const lists = new Set(data?.listProperties ?? []);
 
-  const title = data ? (
-    <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>{name}</h1>
-  ) : null;
-  const shown = placement === 'none' ? [] : properties;
-  const box =
-    shown.length > 0 ? (
-      <PropertiesBox properties={shown} lists={lists} notebookId={notebookId} />
-    ) : null;
+  // The renderer places the name and the properties, as the note's
+  // `properties` block, else the notebook's style, says for print (#530).
+  const header = {
+    title: data ? (
+      <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>{name}</h1>
+    ) : null,
+    properties,
+    lists,
+    notebookId,
+    still: true,
+  };
 
   return (
     <NotebookIdProvider notebookId={notebookId}>
       <div
         className="print-page"
-        // The style reaches what the page lays apart from the note — the name
-        // on the cover, the properties on the last page — and the pages the
+        // The style reaches what the page lays apart from the note — the
+        // properties on the last page — and the pages the
         // paginator copies them into, from here (#493, #497).
         style={styleOfParts(style)}
         data-orientation={orientation}
@@ -216,22 +234,12 @@ export function PrintNotePage() {
         <div className="print-source" ref={source} aria-hidden="true">
           {data && ready ? (
             <>
-              {placement === 'cover' && box ? (
-                <article
-                  key="cover"
-                  className="print-part print-properties print-cover content-pane"
-                >
-                  {box}
-                  {title}
-                </article>
-              ) : null}
               <article
                 key="body"
                 className="print-part content-pane"
-                data-placement={placement}
+                data-placement={printedProperties}
                 data-tables={fit}
               >
-                {placement === 'cover' && box ? null : title}
                 <NoteContent
                   raw={data.raw}
                   notebookId={notebookId}
@@ -243,14 +251,9 @@ export function PrintNotePage() {
                   actions={false}
                   printing
                   tablesAsAppendices={asAppendices}
+                  header={header}
                 />
               </article>
-              {placement === 'end' && box ? (
-                <article key="end" className="print-part print-properties print-end content-pane">
-                  <h2>{name}</h2>
-                  {box}
-                </article>
-              ) : null}
             </>
           ) : null}
         </div>
@@ -309,33 +312,17 @@ function fitTables(root: HTMLElement | null, fit: 'wrap' | 'shrink'): void {
   }
 }
 
-/** The properties of a note as the reading surface draws them, open and still. */
-function PropertiesBox({
-  properties,
-  lists,
-  notebookId,
-}: {
-  properties: ReadonlyArray<readonly [string, string]>;
-  lists: Set<string>;
-  notebookId: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="properties-box">
-      <div className="metadata-container">
-        {properties.map(([key, value]) => (
-          <div
-            className="metadata-property"
-            data-property-type={propertyType(value, lists.has(key))}
-            key={key}
-          >
-            <span className="metadata-property-key">{propertyLabel(key, t)}</span>
-            <span className="metadata-property-value">
-              <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+/**
+ * The properties the renderer drew at the end of the note (#530) open a page
+ * of their own, as a colophon: they are what is left after the body, its
+ * footnotes and its appendices aside.
+ */
+function markPropertiesAtTheEnd(root: HTMLElement | null): void {
+  if (!root) return;
+  for (const part of root.querySelectorAll<HTMLElement>('.note-properties')) {
+    let next = part.nextElementSibling;
+    while (next && !next.textContent?.trim()) next = next.nextElementSibling;
+    const last = next === null || next.matches('.footnotes, .table-appendix, [role="status"]');
+    part.classList.toggle('print-end', last && part.previousElementSibling !== null);
+  }
 }

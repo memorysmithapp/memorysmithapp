@@ -11,6 +11,30 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-22
+
+### Added
+
+- **A note can carry a table of contents.** A ` ```contents ` block draws the note's headings as links, nested by level, and can list its figures, its tables and its attachments, where the block stands or at the start or the end, on the screen, in print or both; a link to `#deliberações` leads to that heading in the same note. Printed, each entry says the page it lands on. A notebook's style can give a contents to every note that writes no block, under *Contents* on the Style page or with `set_style`. A table is captioned by a `Table: …` line after it, which names it in a contents and on its appendix, and a `table` block takes a `title`; in the editor, a *Caption* field under every table writes that line and takes it out. The editor inserts and changes both blocks from its toolbar, and the skill `write-notes` teaches them (#521).
+- **A printed contents leads each entry to its page with a dotted line.** Printed and in the PDF, a dotted line runs from the end of each entry to the page it lands on, at every level and in every list of the contents (#539).
+- **A printed contents can give each of its lists a page.** *In print, each list on a page of its own, and the text on the next*, under *Contents* on the Style page, or `contentsPages` with `set_style`: printed and in the PDF, the list of headings, of figures, of tables and of attachments each open a page, and the note's text starts on a new one after the contents; a contents at the end leaves no blank page after it. Off by default (#542).
+- **The caption of a table and of a figure is centred under it.** On the screen and on paper, with its number, whatever alignment the notebook's style or a `:::{style}` block gives the text (#540).
+- **The Generate PDF tab shows how far the PDF has come.** While it waits, the tab lists the steps — asking for the PDF, laying out the pages, opening the PDF — marks the one it is on, moves a bar and counts the seconds since the request, saying that a long note can take up to 3 minutes; a screen reader hears each step as it starts. When there is no PDF, it marks the step where it stopped, says why and offers to try again (#538).
+- **A notebook's style numbers the headings of its notes.** *Heading numbers* on the Style page, or `numbering: decimal` with `set_style`, numbers every heading 1, 1.1, 1.2, on the screen, in edit mode, in print and in a contents, never writing the number into the note; a `:::{style}` block of a note says otherwise for its passage (#535).
+- **A `table` block over `system-notes` leads from each row to its note.** The name in the first column is a link to the note, on the screen and in the printed PDF; a click elsewhere on the row still opens it whole (#531).
+- **A dashboard's table heads its columns in the person's words.** The agent gives each column the table shows a heading of its own in `options.names`, as `{ "name": "Tarefa", "situacao": "Situação" }`, so a panel of tasks over `system-notes` reads *Tarefa* and *Situação* instead of the frontmatter keys, with nothing changed in the table or in the notes; a column with no heading keeps its own name. A heading written beside the column in `options.columns` is refused saying where it goes, and the skill `build-dashboards` teaches it (#527).
+
+### Changed
+
+- **The assistant leaves the numbers of the headings and the contents to the notebook's style.** The skills `write-notes` and `design-notebook` tell it never to number a heading by hand nor write a contents as a list: asked for numbered headings or a contents in every note, it sets the style, and one note's contents is a ` ```contents ` block. A note already written with numbers keeps them until the person changes it: the assistant never strips them on its own and, finding them drawn twice, says so and offers to remove them (#536).
+- **A notebook's style says how its notes draw their properties, on the screen and in print.** Which keys and in which order — every key, the reserved ones first, by default — under what title, open or folded on the screen, and, for each medium, at the top under the name, at the end, or not at all; printed at the end, they open a page of their own. A note that writes a ` ```properties ` block draws its own instead, where the block stands or where it says. The Style page sets them under *Properties*, an agent with `set_style`, and the notebook context says them. The cover page is gone: a notebook that printed its properties on one now prints them at the top, and one that said *at the end* or *none* keeps it. An export carries the setting, and an archive written before is read as it was set (#530).
+
+### Fixed
+
+- **A contents shows no list with nothing in it.** *Figures*, *Tables* or *Attachments* no longer stand over an empty list when the note has none, and a contents with no entry at all is not shown, on the screen and in print (#541).
+- **A table's title, or its header, never ends a printed page above the table.** Printed and in the PDF, neither a heading or a line of bold words right above a table, a `table` block included, nor the table's own header row stays at the foot of a page with the rows on the next: when no row of the table fits under them, they go to the next page with the first rows (#537).
+- **A chart of a dashboard fits its card.** A chart drawn while its card was wider — a dashboard opened in a narrow window and then widened, or the image `preview_dashboard` and *Download PNG* draw — kept that width and spilled out of its card, showing one bar of three or a donut cut off; it now follows the card's width whenever it changes (#528).
+
 ## [0.22.0] - 2026-11-21
 
 ### Added
@@ -1198,7 +1222,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.19.0...v0.20.0

@@ -182,11 +182,25 @@ export interface NotebookStyle {
   readonly tables: StyleAlignment;
   /** Whether justified text breaks words with a hyphen (#498). */
   readonly hyphenate: boolean;
-  readonly properties: 'cover' | 'end' | 'none';
+  /** How the headings are numbered (#535). */
+  readonly numbering: 'none' | 'decimal';
+  /** How a note draws its properties when it writes no block (#530, RN-KNW-096). */
+  readonly properties: DrawingSettings;
+  /** The contents a note draws when it writes none, or none (#521, RN-KNW-097). */
+  readonly contents: DrawingSettings | null;
+  /** In print, each list of a contents opens a page, and so does what follows it (#542). */
+  readonly contentsPages: boolean;
   readonly orientation: StyleOrientation;
   readonly printTables: 'wrap' | 'shrink' | 'appendices';
   readonly appendixOrientation: StyleOrientation | null;
 }
+
+/**
+ * The renderer's host settings of a `properties` or a `contents` block
+ * (#530, #521): data of the notebook, in the structure the specification
+ * gives them, validated at the edge by the published schema.
+ */
+export type DrawingSettings = { readonly [key: string]: unknown };
 
 export const NotebookStyle = {
   /** How every note was drawn and printed before a notebook had a style. */
@@ -196,14 +210,19 @@ export const NotebookStyle = {
     text: 'left',
     tables: 'left',
     hyphenate: false,
-    properties: 'cover',
+    numbering: 'none',
+    properties: {},
+    contents: null,
+    contentsPages: false,
     orientation: 'portrait',
     printTables: 'wrap',
     appendixOrientation: null,
   } as NotebookStyle,
   same(left: NotebookStyle, right: NotebookStyle): boolean {
-    return (Object.keys(NotebookStyle.DEFAULT) as (keyof NotebookStyle)[]).every(
-      (key) => left[key] === right[key],
+    return (Object.keys(NotebookStyle.DEFAULT) as (keyof NotebookStyle)[]).every((key) =>
+      typeof left[key] === 'object' || typeof right[key] === 'object'
+        ? JSON.stringify(left[key]) === JSON.stringify(right[key])
+        : left[key] === right[key],
     );
   },
 };

@@ -22,7 +22,7 @@ const entry = { entry: 'files/1/foto.png', size: 12, sha256: 'a'.repeat(64) };
 
 describe('a file of the document', () => {
   it('is written as 1.7 and read back to 1.0', () => {
-    expect(NOTEBOOK_DOCUMENT_VERSION).toBe('1.7');
+    expect(NOTEBOOK_DOCUMENT_VERSION).toBe('1.8');
     expect(READABLE_DOCUMENT_VERSIONS).toContain('1.5');
   });
 

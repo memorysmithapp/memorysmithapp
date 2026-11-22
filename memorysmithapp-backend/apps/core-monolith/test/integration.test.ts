@@ -981,7 +981,7 @@ describe('Portability answers over the API', () => {
       folders: unknown[];
       notebook: { guidance: string | null };
     };
-    expect(document.documentVersion).toBe('1.7');
+    expect(document.documentVersion).toBe('1.8');
     expect(document.history).toBeUndefined();
     expect(document.notes).toEqual([]);
     expect(document.folders).toEqual([]);
@@ -1172,13 +1172,16 @@ describe('Portability answers over the API', () => {
     expect(await listed(job.notebookId, imported.folders[0]?.folderId)).toEqual(byName);
   });
 
-  it("carries the notebook's style through an export, and an import writes it (#493)", async () => {
+  it("carries the notebook's style through an export, and an import writes it (#493, #530, #521, #535)", async () => {
     const { notebookId } = await seed();
     const style = {
       font: 'serif',
       text: 'justify',
       printTables: 'appendices',
       orientation: 'landscape',
+      properties: { print: { place: 'end', keys: ['status', 'data'], title: 'Registro' } },
+      contents: { headings: { depth: 2 }, print: { place: 'start' }, screen: 'none' },
+      numbering: 'decimal',
     };
     await call(`/knowledge/notebooks/${notebookId}/style`, { method: 'PATCH', body: style });
 

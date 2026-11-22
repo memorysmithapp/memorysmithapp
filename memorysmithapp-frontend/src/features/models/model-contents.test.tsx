@@ -82,7 +82,10 @@ describe('a model as it stands (#431)', () => {
     expect(html).toContain('class="template-card model-part"');
     expect(html).not.toContain('<pre class="model-source">');
     // A parameter stays visible, drawn as one.
-    expect(html).toContain('<h1>Minutes of <span class="parameter" data-parameter="condominium"');
+    // A heading carries its slug since specification v0.13.0 (§3.3).
+    expect(html).toMatch(
+      /<h1[^>]*>Minutes of <span class="parameter" data-parameter="condominium"/,
+    );
     expect(html).toMatch(
       /The first assembly of <span class="parameter" data-parameter="condominium"/,
     );

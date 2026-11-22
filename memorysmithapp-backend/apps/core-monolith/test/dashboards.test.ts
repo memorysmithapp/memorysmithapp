@@ -200,6 +200,58 @@ describe('a dashboard of a notebook', () => {
     ).toContain('writes 3 as a measure: a measure is a text');
   });
 
+  it('heads the columns of a table as the agent names them, and points a heading misplaced to options.names (#527)', async () => {
+    const table = (options: Record<string, unknown>) => ({
+      components: [{ id: 'linhas', type: 'table', source: { table: 'gastos' }, options }],
+    });
+    const created = await call(dashboards(), {
+      method: 'POST',
+      body: {
+        name: 'Contas',
+        definition: table({
+          columns: ['Categoria', 'valor', 'status'],
+          names: { categoria: ' Categoria do gasto ', Status: 'Situação' },
+        }),
+      },
+    });
+    expect(created.status).toBe(201);
+    const kept = notebookDashboardSchema.parse(await created.json());
+    // Kept by the column's own name, trimmed, so the heading finds its column.
+    expect(
+      (kept.definition['components'] as Array<{ options: Record<string, unknown> }>)[0]?.options[
+        'names'
+      ],
+    ).toEqual({ categoria: 'Categoria do gasto', status: 'Situação' });
+    // The table is untouched: its rows keep the columns' own names.
+    const read = await data('Contas');
+    expect(read.components[0]).toMatchObject({
+      kind: 'rows',
+      columns: [
+        { name: 'categoria', type: 'string' },
+        { name: 'valor', type: 'number' },
+        { name: 'status', type: 'string' },
+      ],
+    });
+
+    const refused = async (options: Record<string, unknown>) => {
+      const answer = await call(dashboards(), {
+        method: 'POST',
+        body: { name: 'Errado', definition: table(options) },
+      });
+      expect(answer.status).toBe(400);
+      return ((await answer.json()) as { message: string }).message;
+    };
+    const misplaced = await refused({ columns: [{ column: 'categoria', label: 'Categoria' }] });
+    expect(misplaced).toContain('options.names');
+    expect(misplaced).not.toContain('[object Object]');
+    expect(await refused({ columns: ['valor'], names: { categoria: 'Categoria' } })).toContain(
+      'not a column it shows',
+    );
+    expect(await refused({ names: { loja: 'Loja' } })).toContain('"loja"');
+    expect(await refused({ names: { valor: '' } })).toContain('a text of up to 120');
+    expect(await refused({ names: ['Categoria'] })).toContain('options.names');
+  });
+
   it('keeps drawing a table renamed, and says in place of its components when it is gone', async () => {
     await call(dashboards(), { method: 'POST', body: { name: 'Mês', definition: DEFINITION } });
     await call(`/knowledge/notebooks/${notebookId}/tables/gastos`, {
