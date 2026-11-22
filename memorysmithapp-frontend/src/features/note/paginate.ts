@@ -143,6 +143,76 @@ function fragmentId(fragment: string): string {
   }
 }
 
+/** What `isTableTitle` reads of an element: enough to tell a title from a paragraph of text. */
+export interface TitleCandidate {
+  readonly tagName: string;
+  readonly textContent: string | null;
+  readonly children: ArrayLike<{ readonly tagName: string; readonly textContent: string | null }>;
+}
+
+/**
+ * Whether an element stands as the title of the table right after it (#537):
+ * a heading, or a paragraph that is only bold or italic words, as a person
+ * writes `**Orçamento 2027**` over a table.
+ */
+export function isTableTitle(element: TitleCandidate): boolean {
+  if (/^H[1-6]$/.test(element.tagName)) return true;
+  if (element.tagName !== 'P') return false;
+  const text = (element.textContent ?? '').trim();
+  if (text === '' || element.children.length !== 1) return false;
+  const only = element.children[0];
+  return (
+    only !== undefined &&
+    ['STRONG', 'B', 'EM', 'I'].includes(only.tagName) &&
+    (only.textContent ?? '').trim() === text
+  );
+}
+
+/** The note's body: the inner `.markdown` the renderer lays the blocks in. */
+function isBody(element: Element | null): boolean {
+  return (
+    element !== null &&
+    element.classList.contains('markdown') &&
+    element.parentElement?.closest('.markdown') !== null
+  );
+}
+
+/**
+ * The block of the note an overflow starts at: its ancestor right under the
+ * note's body, or, when it starts between two blocks — in the body itself or
+ * in the blank text between them — the block that comes next.
+ */
+function blockAt(overflow: Range): Element | null {
+  let node: Node | null = overflow.startContainer;
+  if (node instanceof Element && isBody(node)) node = node.childNodes[overflow.startOffset] ?? null;
+  while (node && !(node instanceof Element) && isBody(node.parentElement)) node = node.nextSibling;
+  let element: Element | null = node instanceof Element ? node : (node?.parentElement ?? null);
+  while (element && !isBody(element.parentElement)) element = element.parentElement;
+  return element;
+}
+
+/**
+ * Where a page breaks when it would leave a table's title at its foot (#537):
+ * the overflow starts inside a table, or at the block that holds it, before
+ * any row of its body made it onto the page, and the block before is the
+ * table's title, which then goes to the next page with the table. A title
+ * that opens its page stays: moving it would only move the same break along.
+ */
+export function keepTitleWithTable(overflow: Range): Range | undefined {
+  const block = blockAt(overflow);
+  const table = block?.matches('table') ? block : block?.querySelector('table');
+  if (!block || !table) return undefined;
+  const firstRow = table.querySelector('tbody tr');
+  if (firstRow && overflow.comparePoint(firstRow, 0) < 0) return undefined;
+  const title = block.previousElementSibling;
+  if (!title || !isTableTitle(title) || !title.previousElementSibling) return undefined;
+  const moved = overflow.cloneRange();
+  moved.setStartBefore(title);
+  return moved;
+}
+
+let handlersRegistered = false;
+
 let queue: Promise<unknown> = Promise.resolve();
 
 /**
@@ -158,9 +228,21 @@ export function paginate(
   appendices: Appendices | null = null,
 ): Promise<number> {
   const run = queue.then(async () => {
-    const { Previewer } = (await import('pagedjs')) as unknown as {
+    const { Previewer, Handler, registerHandlers } = (await import('pagedjs')) as unknown as {
       Previewer: new () => Previewer;
+      Handler: new (...args: unknown[]) => object;
+      registerHandlers: (...handlers: unknown[]) => void;
     };
+    if (!handlersRegistered) {
+      // A table's title never ends a page above the table's rows (#537).
+      class KeepTitleWithTable extends Handler {
+        onOverflow(overflow: Range | undefined): Range | undefined {
+          return overflow ? keepTitleWithTable(overflow) : undefined;
+        }
+      }
+      registerHandlers(KeepTitleWithTable);
+      handlersRegistered = true;
+    }
     laid?.polisher.destroy();
     target.replaceChildren();
 
