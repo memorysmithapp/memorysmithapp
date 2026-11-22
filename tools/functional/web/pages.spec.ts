@@ -1383,7 +1383,7 @@ test.describe('the pages of an account', () => {
     await expect(app.getByRole('button', { name: words.deleteTable })).toHaveCount(0);
   });
 
-  test('[page:/notebooks/:notebookId/tables] a row of system-notes leads to its note, from a table block and from the Tables page (#524)', async ({
+  test('[page:/notebooks/:notebookId/tables] a row of system-notes leads to its note, from the link and the row of a table block and from the Tables page (#524, #531)', async ({
     app,
     owner,
     notebook,
@@ -1410,8 +1410,13 @@ test.describe('the pages of an account', () => {
         timeout: 3_000,
       });
     }).toPass({ timeout: 60_000 });
-    // In a note, a row opens whole, and the dialog leads to the note it is.
-    await app.locator('.data-table').getByText(task).first().click();
+    // In a note, the name is a link to the note it is (#531)…
+    const row = () => app.locator('.data-table tbody tr', { hasText: task }).first();
+    await row().getByRole('link', { name: task }).click();
+    await expect(app).toHaveURL(taskPage);
+    // …and a click elsewhere on the row opens it whole, its dialog leading there too (#524).
+    await app.goBack();
+    await row().getByText('aberta', { exact: true }).click();
     const open = app.locator('.table-row-dialog').getByRole('link', { name: words.openNote });
     await open.click();
     await expect(app).toHaveURL(taskPage);
