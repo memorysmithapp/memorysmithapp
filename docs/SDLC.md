@@ -26,7 +26,7 @@ How a change travels in this repository, from a need to production. It does not 
 | 3 | **Triage** | Comments on the issue | One of three outcomes: accepted into a milestone, kept open without one, or closed as *not planned* with the reason |
 | 4 | **Branch** | The `release/vX.Y.Z` of the issue's milestone, or a single-purpose branch for what [§3](#3-branches) allows | Work starts, and only on an explicit go-ahead from the owner, which puts the issue in a milestone |
 | 5 | **Commits** | The branch | Code, test, document and changelog move together |
-| 6 | **Staging** | The workflow *Staging*, started by hand on the branch | The branch is delivered to staging and exercised there |
+| 6 | **Staging** | The workflow *Staging*, started by hand on the branch, on the owner's go-ahead | The branch is delivered to staging and exercised there |
 | 7 | **Pull request** | GitHub | The single PR of the branch, reviewed and merged by a maintainer |
 | 8 | **Merge** | `main` | What is in the documents is true on `main` |
 | 9 | **Production** | The workflow *Production* | The merged commit is delivered, then tagged and released |
@@ -68,6 +68,8 @@ Each is created with `gh label create <label> --color <color> --description "<de
 **An issue before implementing.** When the owner asks for an opinion, or says "open the issue", the answer is to register the issue and ask; implementation starts only on an explicit go-ahead.
 
 **The go-ahead puts the issue in a milestone**, the version that will carry it, and work starts on the branch [§3](#3-branches) assigns it: for anything deployed, that milestone's `release/vX.Y.Z`, created from `main` if it does not exist yet. An issue whose change reaches `main` by a single-purpose branch takes the milestone of the next version, the one whose cut carries its `[Unreleased]` entry: while a `release/vX.Y.Z` is open, that release's, since its branch brings `main` in before its cut ([§3](#3-branches)); otherwise the version after the last released one.
+
+**A cycle is planned from every open issue.** Before the work of a cycle starts, the agent reviews every open issue of the repository with the owner, not only the ones the request names: it says what each one is, which ones touch what is about to be built, and recommends including them. Leaving an issue out of the cycle is the owner's decision, taken with a reason, such as a dependency not released or a decision still open; it is never the agent's default. A go-ahead to work issues puts each of them in the milestone at once, those waiting on another repository included. Otherwise an issue already registered is forgotten, and the owner plans the version without it.
 
 **A milestone per version declares its scope.** An issue in milestone `vX.Y.Z` is accepted for that cycle; one without a milestone has not been decided yet. A larger piece of work is one parent issue with **sub-issues** for its parts, in the order they are built.
 
@@ -217,7 +219,7 @@ Only on the pull request of a release. Like the staging validation, it informs t
 
 **What CI checks.** The workflow *CI* runs on every pull request and every push to a `release/` branch, and its job *Quality* is the required status check of `main`. It runs, in order: `pnpm quality` (the checks of the documents and the version, in `scripts/quality.mjs`) and their tests, `pnpm lint`, `pnpm format`, `pnpm typecheck`, `pnpm depcruise` (the dependency rules of [`ARCHITECTURE.md` §3](ARCHITECTURE.md#3-invariants-and-their-mechanisms)), every unit suite, and the build of the frontend.
 
-**What staging adds.** The workflow *Staging* delivers a branch to staging and closes with the smoke; on request it also runs the adapter tests against the real services and the functional suite, a browser driving the deployed product. A defect found there becomes a case of the suite before it is fixed.
+**What staging adds.** The workflow *Staging* is dispatched only on the owner's go-ahead in the session: a go-ahead to implement is not one to deliver, a go-ahead to deliver one change does not carry to the next, and the owner may be holding staging for a reason of their own, such as a release of another repository that has to go with it. Pushing a branch, which runs CI, needs none. The workflow delivers a branch to staging and closes with the smoke; on request it also runs the adapter tests against the real services and the functional suite, a browser driving the deployed product. A defect found there becomes a case of the suite before it is fixed.
 
 **The agent evaluation.** Before the pull request of a release is merged, a round of the agent evaluation (`pnpm tools agent-eval`, in `tools/agent-eval/`) runs against staging, and its scorecard is posted in the pull request of the release ([§6.4](#64-agent-evaluation)). Like the staging validation, it informs the merge and never blocks it. A case changes only in a commit of its own, never inside the round that reads it.
 
