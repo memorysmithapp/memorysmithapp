@@ -24,15 +24,16 @@ export const PAGE_MARGINS = '18mm 16mm 20mm';
 /**
  * The rules only the paginator reads: the page box, the break before the
  * properties at the end, on a page of their own, and the page each entry of a
- * contents lands on, at its right (#521). A block kept whole and a heading never alone at the foot of a page
+ * contents lands on, at its right (#521), a dotted line leading to it (#539). A block kept whole and a heading never alone at the foot of a page
  * are read from the stylesheet of the application, which applies to the copy.
  */
 function pageRules(orientation: Orientation, appendices: Appendices | null): string {
   return `
 @page { size: A4 ${orientation}; margin: ${PAGE_MARGINS}; }
 .print-end { break-before: page; }
-.contents-entry { display: flex; gap: 0.5em; }
-.contents-entry::after { content: target-counter(attr(href url), page); margin-left: auto; }
+.contents-entry { display: flex; align-items: baseline; gap: 0.25em; }
+.contents-entry::before { content: ""; order: 1; flex: 1; min-width: 1em; border-bottom: 1px dotted currentColor; opacity: 0.6; }
+.contents-entry::after { content: target-counter(attr(href url), page); order: 2; }
 ${appendices ? appendixRules(appendices) : ''}`;
 }
 
