@@ -25,6 +25,7 @@ import { DEFAULT_NOTEBOOK_STYLE } from '@memorysmithapp/contracts';
 import { useNotebookId } from '../structure/route-ids';
 import { paginate, unpaginate } from './paginate';
 import { whenDrawn } from './drawn';
+import { printedProperties } from './printed-properties';
 
 /**
  * A note alone, laid on A4 pages (#258): the page the server's browser opens
@@ -98,7 +99,7 @@ export function PrintNotePage() {
 
   // How the note is laid is the notebook's style (#493).
   const style = structure.data?.style ?? DEFAULT_NOTEBOOK_STYLE;
-  const placement = style.properties;
+  const placementKey = JSON.stringify(style.properties);
   const fit = style.printTables === 'shrink' ? 'shrink' : 'wrap';
   const orientation = style.orientation;
   // Each table at the end, on a page of its own that turns as the style says (#494).
@@ -164,7 +165,16 @@ export function PrintNotePage() {
     return () => {
       alive = false;
     };
-  }, [drawn, placement, fit, orientation, asAppendices, appendixOrientation, pageWord, revision]);
+  }, [
+    drawn,
+    placementKey,
+    fit,
+    orientation,
+    asAppendices,
+    appendixOrientation,
+    pageWord,
+    revision,
+  ]);
 
   useEffect(() => () => unpaginate(preview.current), []);
 
@@ -194,7 +204,8 @@ export function PrintNotePage() {
   const title = data ? (
     <h1 className={data.name === null ? 'note-title note-unnamed' : 'note-title'}>{name}</h1>
   ) : null;
-  const shown = placement === 'none' ? [] : properties;
+  // Where the properties go, which of them and under which heading (#530).
+  const { place: placement, shown, heading } = printedProperties(properties, style.properties);
   const box =
     shown.length > 0 ? (
       <PropertiesBox properties={shown} lists={lists} notebookId={notebookId} />
@@ -204,8 +215,8 @@ export function PrintNotePage() {
     <NotebookIdProvider notebookId={notebookId}>
       <div
         className="print-page"
-        // The style reaches what the page lays apart from the note — the name
-        // on the cover, the properties on the last page — and the pages the
+        // The style reaches what the page lays apart from the note — the
+        // properties on the last page — and the pages the
         // paginator copies them into, from here (#493, #497).
         style={styleOfParts(style)}
         data-orientation={orientation}
@@ -216,22 +227,19 @@ export function PrintNotePage() {
         <div className="print-source" ref={source} aria-hidden="true">
           {data && ready ? (
             <>
-              {placement === 'cover' && box ? (
-                <article
-                  key="cover"
-                  className="print-part print-properties print-cover content-pane"
-                >
-                  {box}
-                  {title}
-                </article>
-              ) : null}
               <article
                 key="body"
                 className="print-part content-pane"
                 data-placement={placement}
                 data-tables={fit}
               >
-                {placement === 'cover' && box ? null : title}
+                {title}
+                {placement === 'start' && box ? (
+                  <section className="print-properties print-start">
+                    {heading ? <h2>{heading}</h2> : null}
+                    {box}
+                  </section>
+                ) : null}
                 <NoteContent
                   raw={data.raw}
                   notebookId={notebookId}
@@ -247,7 +255,7 @@ export function PrintNotePage() {
               </article>
               {placement === 'end' && box ? (
                 <article key="end" className="print-part print-properties print-end content-pane">
-                  <h2>{name}</h2>
+                  <h2>{heading ?? name}</h2>
                   {box}
                 </article>
               ) : null}

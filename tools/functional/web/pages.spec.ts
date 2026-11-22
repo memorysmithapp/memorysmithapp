@@ -2102,7 +2102,7 @@ test.describe('the pages of an account', () => {
     ).toContain('The line typed here. First and after the save.');
   });
 
-  test("[page:/notebooks/:notebookId/notes/:noteId/print] [page:/notebooks/:notebookId/notes/:noteId/pdf] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties on a page of their own, its tables inside the margins and either orientation; Generate PDF opens a tab that becomes the file (#258, #493, #522)", async ({
+  test("[page:/notebooks/:notebookId/notes/:noteId/print] [page:/notebooks/:notebookId/notes/:noteId/pdf] prints a note alone on A4, white whatever the theme, laid as its notebook's style says: its properties below its title or on a page of their own, only the keys it names under its heading, its tables inside the margins and either orientation; Generate PDF opens a tab that becomes the file (#258, #493, #522, #530)", async ({
     app,
     owner,
     notebook,
@@ -2114,7 +2114,7 @@ test.describe('the pages of an account', () => {
     const styled = (style: Record<string, unknown>) =>
       owner.ok('PATCH', `/knowledge/notebooks/${notebook.notebookId}/style`, style);
     const DEFAULT = {
-      properties: 'cover',
+      properties: { print: { place: 'start', keys: null, title: null } },
       orientation: 'portrait',
       printTables: 'wrap',
       appendixOrientation: null,
@@ -2157,7 +2157,7 @@ test.describe('the pages of an account', () => {
       await expect(paper.getByRole('button')).toHaveCount(0);
       // The note as drawn, off screen, carries the choices; the preview, its pages.
       const body = paper.locator('.print-source article[data-placement]');
-      const cover = paper.locator('.print-source article.print-cover');
+      const start = paper.locator('.print-source .print-start');
       const end = paper.locator('.print-source article.print-end');
       const preview = paper.locator('.print-preview');
       const pages = preview.locator('.pagedjs_page');
@@ -2253,18 +2253,17 @@ test.describe('the pages of an account', () => {
         };
       };
 
-      // By default the properties take a cover of their own, opening with them
-      // and the name of the note below, and the text starts on the next page.
-      await expect(cover.locator('> :first-child')).toHaveClass(/properties-box/);
-      // The drawn note is never seen, so it is read by its elements and not by
-      // the roles a reader would be given; the pages are what is seen.
-      await expect(cover.locator('h1')).toHaveText('On paper');
-      await expect(body.locator('h1')).toHaveCount(0);
-      expect(await laid()).toBe(2);
-      await expect(pages.nth(0)).toContainText('draft');
+      // By default the properties stand below the title, every one of them,
+      // and the text follows on the same page (#530). The drawn note is never
+      // seen, so it is read by its elements and not by the roles a reader
+      // would be given; the pages are what is seen.
+      await expect(body.locator('h1')).toHaveText('On paper');
+      await expect(body.locator('> :nth-child(2)')).toHaveClass(/print-start/);
+      await expect(start.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
+      await laid();
       await expect(pages.nth(0)).toContainText('On paper');
-      await expect(pages.nth(0)).not.toContainText('A line with');
-      await expect(pages.nth(1)).toContainText('A line with');
+      await expect(pages.nth(0)).toContainText('draft');
+      await expect(pages.nth(0)).toContainText('A line with');
       // The page scrolls inside itself, so the banner of the environment keeps
       // the last row of the window and never runs over a page.
       expect(
@@ -2303,7 +2302,7 @@ test.describe('the pages of an account', () => {
       });
       expect(lines).toBe(1);
       await expect(preview.locator('.copy-action').first()).toBeHidden();
-      const upright = await pdfOf('portrait-cover-wrap');
+      const upright = await pdfOf('portrait-start-wrap');
       expect(upright.width).toBeCloseTo(595.28, 0);
       expect(upright.height).toBeCloseTo(841.89, 0);
       expect(upright.pages).toBe(await pages.count());
@@ -2316,7 +2315,7 @@ test.describe('the pages of an account', () => {
       const shrunk = await measure();
       expect(shrunk.fits).toBe(true);
       expect(parseFloat(shrunk.size)).toBeLessThan(parseFloat(wrapped));
-      await pdfOf('portrait-cover-shrink');
+      await pdfOf('portrait-start-shrink');
 
       // The page lies sideways, on A4 just the same, in the preview and on paper.
       await restyled({ orientation: 'landscape' });
@@ -2325,19 +2324,23 @@ test.describe('the pages of an account', () => {
       const page = await pages.nth(0).boundingBox();
       expect((page?.width ?? 0) / (page?.height ?? 1)).toBeCloseTo(297 / 210, 1);
       expect((await measure()).fits).toBe(true);
-      const sideways = await pdfOf('landscape-cover-shrink');
+      const sideways = await pdfOf('landscape-start-shrink');
       expect(sideways.width).toBeCloseTo(841.89, 0);
       expect(sideways.height).toBeCloseTo(595.28, 0);
 
-      // At the end the properties take the last page; with none they are not printed.
-      await restyled({ properties: 'end' });
-      await expect(cover).toHaveCount(0);
+      // At the end the properties take the last page, only the keys named, under
+      // the heading given; with none they are not printed (#530).
+      await restyled({
+        properties: { print: { place: 'end', keys: ['status', 'prazo'], title: 'Registro' } },
+      });
+      await expect(start).toHaveCount(0);
+      await expect(end.locator('h2')).toHaveText('Registro');
       await expect(end.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
       await expect(body.locator('h1')).toHaveText('On paper');
       expect(await laid()).toBe(2);
       await expect(pages.nth(1)).toContainText('draft');
       expect((await pdfOf('landscape-end-shrink')).pages).toBe(2);
-      await restyled({ properties: 'none' });
+      await restyled({ properties: { print: 'none' } });
       await expect(body).toHaveAttribute('data-placement', 'none');
       await expect(status).toHaveCount(0);
       expect(await laid()).toBe(1);
@@ -2517,7 +2520,7 @@ test.describe('the pages of an account', () => {
     const reset = { printTables: 'wrap', appendixOrientation: null, orientation: 'portrait' };
     await owner.ok('PATCH', `${path}/style`, {
       ...reset,
-      properties: 'none',
+      properties: { print: 'none' },
       printTables: 'appendices',
       appendixOrientation: 'landscape',
     });
@@ -2556,7 +2559,10 @@ test.describe('the pages of an account', () => {
       expect(boxes[0]).toBe(false);
       expect(boxes.at(-1)).toBe(true);
     } finally {
-      await owner.ok('PATCH', `${path}/style`, { ...reset, properties: 'cover' });
+      await owner.ok('PATCH', `${path}/style`, {
+        ...reset,
+        properties: { print: { place: 'start', keys: null, title: null } },
+      });
     }
   });
 

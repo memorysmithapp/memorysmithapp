@@ -256,7 +256,7 @@ export function createKnowledgeRoutes(useCases: KnowledgeUseCases): Hono<{ Varia
       return fail(
         c,
         DomainError.validation(
-          "A style takes font (sans, serif); headings, text and tables (left, center, right, justify); hyphenate (true, false); properties (cover, end, none); orientation (portrait, landscape); printTables (wrap, shrink, appendices); and appendixOrientation (portrait, landscape, or null for the document's)",
+          "A style takes font (sans, serif); headings, text and tables (left, center, right, justify); hyphenate (true, false); properties ({ print: 'none' } or { print: { place: start or end, keys: up to 50 keys or null, title: up to 120 characters or null } }); orientation (portrait, landscape); printTables (wrap, shrink, appendices); and appendixOrientation (portrait, landscape, or null for the document's)",
           { issues: parsed.error.issues.map((issue) => issue.path.join('.')).join(', ') },
         ),
       );

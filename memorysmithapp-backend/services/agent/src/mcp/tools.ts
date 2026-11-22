@@ -715,8 +715,17 @@ export function styleSection(style: NotebookStyle): string {
     '',
     `- Font: ${style.font}`,
     `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}`,
-    `- Printed: properties ${style.properties === 'none' ? 'not printed' : `on a ${style.properties === 'cover' ? 'cover page' : 'page at the end'}`}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
+    `- Printed: properties ${printedProperties(style.properties)}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
   ].join('\n');
+}
+
+/** Where a printed note draws its properties, which keys and under which heading (#530). */
+function printedProperties(properties: NotebookStyle['properties']): string {
+  const print = properties.print;
+  if (print === 'none') return 'not printed';
+  const where = print.place === 'end' ? 'on a page at the end' : 'below the title';
+  const keys = print.keys ? `only ${print.keys.join(', ')}` : 'every key';
+  return `${where}, ${keys}${print.title ? `, headed "${print.title}"` : ''}`;
 }
 
 /**
@@ -730,7 +739,8 @@ function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
     throw new GatewayError(
       'VALIDATION',
       'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
-        'tables (left, center, right, justify); hyphenate (true, false); properties (cover, end, none); orientation ' +
+        'tables (left, center, right, justify); hyphenate (true, false); properties ({ "print": "none" } or ' +
+        '{ "print": { "place": "start" or "end", "keys": [...] or null, "title": text or null } }); orientation ' +
         '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
         '(portrait, landscape, or null).',
       { given: Object.keys(rest).join(', ') || null },

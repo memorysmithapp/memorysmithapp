@@ -8,7 +8,12 @@ import {
   toolSignature,
 } from '../src/mcp/catalog.js';
 import { clientKind } from '../src/mcp/refresh.js';
-import { historyAnswer, McpToolAdapter, UNNAMED_NOTE_NOTICE } from '../src/mcp/tools.js';
+import {
+  historyAnswer,
+  McpToolAdapter,
+  styleSection,
+  UNNAMED_NOTE_NOTICE,
+} from '../src/mcp/tools.js';
 import { GatewayError, type AgentCaller } from '../src/mcp/gateway.js';
 import { handleMcpRequest } from '../src/mcp.js';
 import {
@@ -3584,6 +3589,41 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
     expect(JSON.parse(result.content[0]?.text ?? '{}')).toEqual({
       style: { ...DEFAULT_NOTEBOOK_STYLE, text: 'justify' },
     });
+  });
+
+  it('sets how a printed note shows its properties, and says it in the context (#530)', async () => {
+    const asked: unknown[] = [];
+    const adapter = gateways({
+      knowledge: {
+        setStyle: async (_caller: unknown, _notebook: string, style: Record<string, unknown>) => {
+          asked.push(style);
+          return { ...DEFAULT_NOTEBOOK_STYLE, ...style };
+        },
+      },
+    });
+    const properties = { print: { place: 'end', keys: ['status', 'data'], title: 'Registro' } };
+    const result = await adapter.call(
+      'set_style',
+      { notebook: '01JBQ2X00000000000000000V1', properties },
+      caller,
+    );
+    expect(result.isError).toBe(false);
+    expect(asked).toEqual([{ properties }]);
+    // An agent whose list of tools is older still says cover, end or none.
+    await adapter.call(
+      'set_style',
+      { notebook: '01JBQ2X00000000000000000V1', properties: 'none' },
+      caller,
+    );
+    expect(asked[1]).toEqual({ properties: { print: 'none' } });
+
+    expect(styleSection({ ...DEFAULT_NOTEBOOK_STYLE, properties: properties as never })).toContain(
+      'properties on a page at the end, only status, data, headed "Registro"',
+    );
+    expect(styleSection(DEFAULT_NOTEBOOK_STYLE)).toContain('properties below the title, every key');
+    expect(styleSection({ ...DEFAULT_NOTEBOOK_STYLE, properties: { print: 'none' } })).toContain(
+      'properties not printed',
+    );
   });
 
   it('refuses a value it cannot take, a setting it does not have, and a call that names none', async () => {

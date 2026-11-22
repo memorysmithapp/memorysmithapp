@@ -15,6 +15,10 @@ issues each entry cites.
 
 - **A dashboard's table heads its columns in the person's words.** The agent gives each column the table shows a heading of its own in `options.names`, as `{ "name": "Tarefa", "situacao": "Situação" }`, so a panel of tasks over `system-notes` reads *Tarefa* and *Situação* instead of the frontmatter keys, with nothing changed in the table or in the notes; a column with no heading keeps its own name. A heading written beside the column in `options.columns` is refused saying where it goes, and the skill `build-dashboards` teaches it (#527).
 
+### Changed
+
+- **A notebook's style says which properties a printed note shows, where and under what heading.** Below the title, on a page of their own at the end, or none; every key, the reserved ones first, or only the keys the style lists, in that order, a key a note lacks simply left out; and a heading over them, the note's name opening the last page when it gives none. The Style page sets them under *When printed*, an agent with `set_style`, and the notebook context says them. The cover page is gone: a notebook that printed its properties on one now prints them below the title, and one that said *at the end* or *none* keeps it. An export carries the setting, and an archive written before is read as it was set (#530).
+
 ### Fixed
 
 - **A chart of a dashboard fits its card.** A chart drawn while its card was wider — a dashboard opened in a narrow window and then widened, or the image `preview_dashboard` and *Download PNG* draw — kept that width and spilled out of its card, showing one bar of three or a donut cut off; it now follows the card's width whenever it changes (#528).

@@ -786,6 +786,45 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
     expect(detail.style).toEqual(DEFAULT_NOTEBOOK_STYLE);
   });
 
+  it('prints the properties where, which and under what heading it says, and reads a word of before as its place (#530, RN-KNW-096)', async () => {
+    const { notebookId } = await seedNotebook();
+    const style = `/knowledge/notebooks/${notebookId}/style`;
+    const set = async (properties: unknown) =>
+      call(style, { method: 'PATCH', body: { properties } });
+    const answered = async (properties: unknown) =>
+      ((await (await set(properties)).json()) as { style: { properties: unknown } }).style
+        .properties;
+
+    // Keys and heading trimmed; what it leaves out is null.
+    expect(
+      await answered({ print: { place: 'end', keys: [' status ', 'data'], title: ' Registro ' } }),
+    ).toEqual({ print: { place: 'end', keys: ['status', 'data'], title: 'Registro' } });
+    expect(await answered({ print: { place: 'start' } })).toEqual({
+      print: { place: 'start', keys: null, title: null },
+    });
+    expect(await answered({ print: 'none' })).toEqual({ print: 'none' });
+    // A client of before #530 still writes cover, end or none.
+    expect(await answered('cover')).toEqual(DEFAULT_NOTEBOOK_STYLE.properties);
+    expect(await answered('end')).toEqual({ print: { place: 'end', keys: null, title: null } });
+    expect(await answered('none')).toEqual({ print: 'none' });
+
+    for (const properties of [
+      { print: { place: 'cover' } },
+      { print: { place: 'end', keys: [] } },
+      { print: { place: 'end', keys: Array.from({ length: 51 }, (_, i) => `k${i}`) } },
+      { print: { place: 'end', title: 'x'.repeat(121) } },
+      { print: { place: 'end', fold: 'open' } },
+      { screen: 'none', print: 'none' },
+      'middle',
+    ]) {
+      expect((await set(properties)).status).toBe(400);
+    }
+    const detail = notebookDetailSchema.parse(
+      await (await call(`/knowledge/notebooks/${notebookId}`)).json(),
+    );
+    expect(detail.style.properties).toEqual({ print: 'none' });
+  });
+
   it('answers 404 for a notebook the token does not reach (INV-09)', async () => {
     const missing = await call('/knowledge/notebooks/01J8X2K9QZ3M4N5P6R7S8T9V0A/style', {
       method: 'PATCH',

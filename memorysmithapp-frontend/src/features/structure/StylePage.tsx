@@ -6,8 +6,8 @@ import {
   sameNotebookStyle,
   type NotebookStyle,
   type PrintOrientation,
-  type PrintProperties,
   type PrintTables,
+  type PropertiesPlace,
   type StyleAlignment,
   type StyleFont,
 } from '@memorysmithapp/contracts';
@@ -33,6 +33,7 @@ import type { NotebookStructure } from '../../shared/types/api';
 import { NotebookBar, contextCrumbs } from './NotebookBreadcrumb';
 import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
+import { keysOf } from '../note/printed-properties';
 
 /**
  * The style of a notebook (#493, RN-KNW-092): how every note in it is drawn
@@ -57,6 +58,9 @@ export function StylePage() {
   const [draft, setDraft] = useState<NotebookStyle>(structure.style);
   const [savedAt, setSavedAt] = useState<NotebookStyle | null>(null);
   const changed = !sameNotebookStyle(draft, structure.style);
+  /** The keys printed, as typed: a comma between two keys, none for all of them (#530). */
+  const [keysText, setKeysText] = useState(() => keysTextOf(structure.style));
+  const print = draft.properties.print;
 
   const save = useMutation({
     mutationFn: (style: NotebookStyle) => setNotebookStyle(notebookId, style),
@@ -66,6 +70,7 @@ export function StylePage() {
       );
       void client.invalidateQueries({ queryKey: queryKeys.notebookStructure(notebookId) });
       setDraft(style);
+      setKeysText(keysTextOf(style));
       setSavedAt(style);
     },
   });
@@ -73,6 +78,22 @@ export function StylePage() {
   const choose = <K extends keyof NotebookStyle>(key: K, value: NotebookStyle[K]) => {
     setSavedAt(null);
     setDraft((current) => ({ ...current, [key]: value }));
+  };
+  /** Where the properties print, keeping the keys and the heading already chosen. */
+  const place = (value: PropertiesPlace | 'none') =>
+    choose('properties', {
+      print:
+        value === 'none'
+          ? 'none'
+          : {
+              place: value,
+              keys: print === 'none' ? null : print.keys,
+              title: print === 'none' ? null : print.title,
+            },
+    });
+  const printed = (change: { keys?: string[] | null; title?: string | null }) => {
+    if (print === 'none') return;
+    choose('properties', { print: { ...print, ...change } });
   };
 
   const align = (value: StyleAlignment) => ({
@@ -160,14 +181,14 @@ export function StylePage() {
             <fieldset className="style-group">
               <legend>{t('style.print')}</legend>
               <Setting label={t('style.properties')}>
-                <Segmented<PrintProperties>
+                <Segmented<PropertiesPlace | 'none'>
                   label={t('style.properties')}
-                  value={draft.properties}
-                  onChange={(value) => choose('properties', value)}
+                  value={print === 'none' ? 'none' : print.place}
+                  onChange={place}
                   options={[
                     {
-                      value: 'cover',
-                      label: t('style.placement.cover'),
+                      value: 'start',
+                      label: t('style.placement.start'),
                       icon: <CoverPageIcon />,
                       disabled: !maintains,
                     },
@@ -186,6 +207,39 @@ export function StylePage() {
                   ]}
                 />
               </Setting>
+              {print === 'none' ? null : (
+                <>
+                  <label className="field style-field">
+                    <span className="field-label">{t('style.propertyKeys')}</span>
+                    <input
+                      type="text"
+                      value={keysText}
+                      disabled={!maintains}
+                      placeholder={t('style.propertyKeysAll')}
+                      onChange={(event) => {
+                        setKeysText(event.target.value);
+                        printed({ keys: keysOf(event.target.value) });
+                      }}
+                    />
+                    <span className="field-hint">{t('style.propertyKeysHint')}</span>
+                  </label>
+                  <label className="field style-field">
+                    <span className="field-label">{t('style.propertiesTitle')}</span>
+                    <input
+                      type="text"
+                      value={print.title ?? ''}
+                      maxLength={120}
+                      disabled={!maintains}
+                      onChange={(event) =>
+                        printed({
+                          title: event.target.value.trim() === '' ? null : event.target.value,
+                        })
+                      }
+                    />
+                    <span className="field-hint">{t('style.propertiesTitleHint')}</span>
+                  </label>
+                </>
+              )}
               <Setting label={t('style.orientation')}>
                 <Segmented<PrintOrientation>
                   label={t('style.orientation')}
@@ -260,6 +314,7 @@ export function StylePage() {
                   onClick={() => {
                     setSavedAt(null);
                     setDraft(structure.style);
+                    setKeysText(keysTextOf(structure.style));
                   }}
                 >
                   {t('style.undo')}
@@ -312,6 +367,12 @@ function orientations(
       disabled: !maintains,
     },
   ];
+}
+
+/** The keys a style prints, as the field shows them. */
+function keysTextOf(style: NotebookStyle): string {
+  const print = style.properties.print;
+  return print === 'none' || !print.keys ? '' : print.keys.join(', ');
 }
 
 /** One setting: its name over its choices, and what it means when it needs saying. */

@@ -385,9 +385,13 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Pass only the settings to change; the others keep theirs. font is sans or serif. ' +
       'headings, text (paragraphs and lists) and tables (the columns that declare no alignment ' +
       'of their own) are each left, center, right or justify; hyphenate (true or false, false ' +
-      'by default) says whether justified text breaks words with a hyphen. properties is where a printed ' +
-      'note shows its properties: cover (a page of their own before the text), end (a page ' +
-      'after it) or none. orientation is the printed page, portrait or landscape. printTables ' +
+      'by default) says whether justified text breaks words with a hyphen. properties is how a ' +
+      'printed note shows its properties, replaced whole: { "print": "none" } prints none, and ' +
+      '{ "print": { "place", "keys", "title" } } prints them below the title (place start, the ' +
+      'default) or on a page at the end (end), only the keys listed and in their order (null ' +
+      'for every key), under a heading (null for none), as { "print": { "place": "end", ' +
+      '"keys": ["status", "data"], "title": "Registro" } }. orientation is the printed page, ' +
+      'portrait or landscape. printTables ' +
       'is how a printed note fits its tables: wrap their text, shrink them to the page, or ' +
       'appendices (each table printed whole at the end of the note, a reference in its place). ' +
       'appendixOrientation is the orientation of those appendices, or null for the ' +
@@ -404,7 +408,24 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'boolean',
           description: 'Whether justified text breaks words with a hyphen. Off by default.',
         },
-        properties: { type: 'string', enum: ['cover', 'end', 'none'] },
+        properties: {
+          type: 'object',
+          description: 'How a printed note shows its properties (#530), replaced whole.',
+          properties: {
+            print: {
+              type: ['string', 'object'],
+              description:
+                '"none", or { "place": "start" or "end", "keys": the keys in their order or ' +
+                'null for every key, "title": the heading or null }.',
+              properties: {
+                place: { type: 'string', enum: ['start', 'end'] },
+                keys: { type: ['array', 'null'], items: { type: 'string' } },
+                title: { type: ['string', 'null'] },
+              },
+            },
+          },
+          required: ['print'],
+        },
         orientation: { type: 'string', enum: ['portrait', 'landscape'] },
         printTables: { type: 'string', enum: ['wrap', 'shrink', 'appendices'] },
         appendixOrientation: {

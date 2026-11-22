@@ -306,8 +306,13 @@
       "justify": "Justified"
     },
     "properties": "Properties",
+    "propertyKeys": "Keys printed",
+    "propertyKeysAll": "All of them",
+    "propertyKeysHint": "In this order, a comma between two. Empty prints every key; a key a note lacks is left out.",
+    "propertiesTitle": "Heading",
+    "propertiesTitleHint": "Over the properties. Empty: none below the title, the note's name at the end.",
     "placement": {
-      "cover": "Cover page",
+      "start": "Below the title",
       "end": "At the end",
       "none": "None"
     },

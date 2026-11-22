@@ -109,9 +109,15 @@ test.describe('a note as a PDF made by the server', () => {
     // How it is laid is the notebook's style (#493): its properties on a page
     // at the end, the page sideways; given back as it was found.
     const style = `/knowledge/notebooks/${notebook.notebookId}/style`;
-    await owner.ok('PATCH', style, { properties: 'end', orientation: 'landscape' });
+    await owner.ok('PATCH', style, {
+      properties: { print: { place: 'end', keys: null, title: null } },
+      orientation: 'landscape',
+    });
     const print = await printed(owner, notebook.notebookId, noteId).finally(() =>
-      owner.ok('PATCH', style, { properties: 'cover', orientation: 'portrait' }),
+      owner.ok('PATCH', style, {
+        properties: { print: { place: 'start', keys: null, title: null } },
+        orientation: 'portrait',
+      }),
     );
     expect(print.failure ?? null).toBeNull();
     expect(print.status).toBe('ready');

@@ -22,15 +22,13 @@ import type { PrintOrientation as Orientation } from '@memorysmithapp/contracts'
 export const PAGE_MARGINS = '18mm 16mm 20mm';
 
 /**
- * The rules only the paginator reads: the page box, and the breaks between the
- * parts — the cover on a page of its own, the properties at the end on one of
- * theirs. A block kept whole and a heading never alone at the foot of a page
+ * The rules only the paginator reads: the page box, and the break before the
+ * properties at the end, on a page of their own. A block kept whole and a heading never alone at the foot of a page
  * are read from the stylesheet of the application, which applies to the copy.
  */
 function pageRules(orientation: Orientation, appendices: Appendices | null): string {
   return `
 @page { size: A4 ${orientation}; margin: ${PAGE_MARGINS}; }
-.print-cover { break-after: page; }
 .print-end { break-before: page; }
 ${appendices ? appendixRules(appendices) : ''}`;
 }

@@ -182,10 +182,22 @@ export interface NotebookStyle {
   readonly tables: StyleAlignment;
   /** Whether justified text breaks words with a hyphen (#498). */
   readonly hyphenate: boolean;
-  readonly properties: 'cover' | 'end' | 'none';
+  /** How a printed note draws its properties (#530, RN-KNW-096). */
+  readonly properties: NotebookProperties;
   readonly orientation: StyleOrientation;
   readonly printTables: 'wrap' | 'shrink' | 'appendices';
   readonly appendixOrientation: StyleOrientation | null;
+}
+
+/** Where a printed note's properties go, which keys and under which heading (#530). */
+export interface NotebookProperties {
+  readonly print:
+    | 'none'
+    | {
+        readonly place: 'start' | 'end';
+        readonly keys: string[] | null;
+        readonly title: string | null;
+      };
 }
 
 export const NotebookStyle = {
@@ -196,14 +208,16 @@ export const NotebookStyle = {
     text: 'left',
     tables: 'left',
     hyphenate: false,
-    properties: 'cover',
+    properties: { print: { place: 'start', keys: null, title: null } },
     orientation: 'portrait',
     printTables: 'wrap',
     appendixOrientation: null,
   } as NotebookStyle,
   same(left: NotebookStyle, right: NotebookStyle): boolean {
-    return (Object.keys(NotebookStyle.DEFAULT) as (keyof NotebookStyle)[]).every(
-      (key) => left[key] === right[key],
+    return (Object.keys(NotebookStyle.DEFAULT) as (keyof NotebookStyle)[]).every((key) =>
+      key === 'properties'
+        ? JSON.stringify(left.properties) === JSON.stringify(right.properties)
+        : left[key] === right[key],
     );
   },
 };

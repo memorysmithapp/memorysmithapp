@@ -306,8 +306,13 @@
       "justify": "Justificado"
     },
     "properties": "Propriedades",
+    "propertyKeys": "Chaves impressas",
+    "propertyKeysAll": "Todas",
+    "propertyKeysHint": "Nesta ordem, separadas por vírgula. Vazio imprime todas; a chave que uma nota não tiver fica de fora.",
+    "propertiesTitle": "Título",
+    "propertiesTitleHint": "Acima das propriedades. Vazio: nenhum abaixo do título, o nome da nota no final.",
     "placement": {
-      "cover": "Folha de rosto",
+      "start": "Abaixo do título",
       "end": "No final",
       "none": "Nenhuma"
     },
