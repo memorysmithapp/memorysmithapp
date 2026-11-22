@@ -20,6 +20,7 @@ issues each entry cites.
 
 ### Changed
 
+- **The assistant leaves the numbers of the headings and the contents to the notebook's style.** The skills `write-notes` and `design-notebook` tell it never to number a heading by hand nor write a contents as a list: asked for numbered headings or a contents in every note, it sets the style, and one note's contents is a ` ```contents ` block. A note already written with numbers keeps them until the person changes it: the assistant never strips them on its own and, finding them drawn twice, says so and offers to remove them (#536).
 - **A notebook's style says how its notes draw their properties, on the screen and in print.** Which keys and in which order — every key, the reserved ones first, by default — under what title, open or folded on the screen, and, for each medium, at the top under the name, at the end, or not at all; printed at the end, they open a page of their own. A note that writes a ` ```properties ` block draws its own instead, where the block stands or where it says. The Style page sets them under *Properties*, an agent with `set_style`, and the notebook context says them. The cover page is gone: a notebook that printed its properties on one now prints them at the top, and one that said *at the end* or *none* keeps it. An export carries the setting, and an archive written before is read as it was set (#530).
 
 ### Fixed

@@ -276,10 +276,14 @@ reader, and state each convention once.
 - **The limits:** six levels deep and 200 folders in a notebook. There is no
   limit of notes: what bounds a notebook is the storage of its subscription.
 - **How its notes look is the notebook's style**, not the guidance: the face,
-  the alignment of headings, text and tables, and how a note prints — where its
-  properties go, which way the page lies, how wide tables fit. When the person
-  says how the notes should look or print, set it once with \`set_style\`, and
-  keep a \`:::{style}\` block for the one passage of a note that differs.
+  the alignment of headings, text and tables, whether the headings are numbered
+  1, 1.1, 1.2, which properties every note shows and where, the contents every
+  note carries, and how a note prints — which way the page lies, how wide tables
+  fit. When the person says how the notes should look or print, set it once with
+  \`set_style\`, and keep a \`:::{style}\` block for the one passage of a note
+  that differs. Never write numbers into the headings of a guidance or a
+  template, nor a contents as a list: the style draws both, and what a template
+  writes, every note of its folder copies.
 
 ## Properties and tags
 
@@ -346,7 +350,7 @@ holds.
   frontmatter of the template, and a key that is not in it is a key the folder
   does not have.
 - **Show the body with headings from \`#\`**, in the order a note of this folder is
-  read.
+  read, and with no number of yours: numbering them is the style's.
 - **Show the formatting the material calls for** — the table of a comparison, the
   callout of a rule — so that the tenth note looks like the first.
 - **Make every placeholder look like one**, and say what to remove when a part
@@ -751,6 +755,22 @@ Below the frontmatter comes the body, and **its headings are the structure of
 the note, starting at \`#\`**: \`# The general rule of direct contracting\` is its
 first level and \`## Article 75\` its second. A heading is searchable text and it
 is what a link anchor points at: \`[[Lei 14.133#Article 75]]\`.
+
+**Never number a heading by hand, and never write a contents as a list.**
+Whether the headings are numbered is the notebook's style: the notebook context
+says it, and when it says *numbered 1, 1.1, 1.2* the page numbers every heading,
+in reading, in print and in a contents — a number you write is drawn twice, as
+\`1 1. Contexto\`. A person who asks for numbered headings, or for a contents in
+every note, is asking for \`set_style\` (\`numbering\`, \`contents\`); a contents
+in one note is a \`contents\` block, which follows the note as its headings
+change, where a list of links goes stale with the first one renamed. A heading
+named for what it is keeps its name: \`## Article 75\`, \`## Fase 2\`.
+
+The notes already written with numbers in their headings, or with a contents by
+hand, stay as they are until the person changes them: never strip those numbers
+on your own. When you find them doubled in a notebook whose style numbers the
+headings, say so and offer to remove them, and remove them only when the person
+asks.
 
 A link finds a note by its name **exactly**, case for case after Unicode
 normalisation: \`[[Lei 14.133]]\` finds the note named \`Lei 14.133\`, and

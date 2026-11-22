@@ -1329,6 +1329,23 @@ describe('skills: the method, indexed by whoami', () => {
     expect(body).toContain(mermaid?.syntax ?? 'mermaid');
   });
 
+  it('leaves the numbers of the headings and the contents to the style, and the notes written before to the person (#536)', () => {
+    const notes = skillNamed('write-notes')?.body ?? '';
+    expect(notes).toContain(
+      'Never number a heading by hand, and never write a contents as a list.',
+    );
+    expect(notes).toContain('`set_style` (`numbering`, `contents`)');
+    expect(notes).toContain('a contents\nin one note is a `contents` block');
+    expect(notes).toContain('never strip those numbers\non your own');
+    expect(notes).toContain('remove them only when the person\nasks');
+    const design = skillNamed('design-notebook')?.body ?? '';
+    expect(design).toContain('whether the headings are numbered');
+    expect(design).toContain(
+      'Never write numbers into the headings of a guidance or a\n  template',
+    );
+    expect(design).toContain('with no number of yours: numbering them is the style');
+  });
+
   it('builds the notation skill from the declaration, never beside it', async () => {
     const body = skillNamed('write-notes')?.body ?? '';
 

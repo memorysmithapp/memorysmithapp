@@ -458,6 +458,7 @@ Business rules are coded `RN-{AREA}-{NNN}`, append-only: a code is never renumbe
 | RN-AGT-070 | The upload host answers `GET /probe` with `200` and a fixed body, at the edge and with no request reaching storage or a function, and `whoami` names its address and body as the check an agent's code makes before opening an upload; any other answer means the agent's sandbox cannot send there. | |
 | RN-AGT-071 | `get_notebook_context` states the notebook's style, and `set_style` changes the settings it names and keeps the others, refusing a setting or a value the style does not have; a passage of one note is styled in that note, never through the notebook's style. | |
 | RN-AGT-072 | Every tool that names a notebook records what it did there for the notebook's graph (RN-DSC-068), a read while it runs, a search once it answered with the notes it returned in its order, up to fifty, and a write once it succeeded, with the note, folder, query, table, dashboard or file it named, or the one a write created; a record that fails never fails the tool. |  |
+| RN-AGT-073 | The skills tell an agent never to number a heading nor write a contents as a list by hand: the numbering and the contents of every note are the notebook's style (RN-KNW-097, RN-KNW-098) and one note's contents a `contents` block, and a template writes its headings with no number. The notes written before keep their numbers until the person changes them: the agent never strips them on its own, and, finding them drawn twice, says so and removes them only when the person asks. |  |
 
 ### Portability
 
