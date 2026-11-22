@@ -194,7 +194,7 @@ const OPTION_NAMES: Readonly<Record<ComponentType, readonly string[]>> = {
   ],
   line: ['format', 'currency', 'decimals', 'legend', 'labels', 'names', 'smooth'],
   area: ['format', 'currency', 'decimals', 'legend', 'labels', 'names', 'smooth', 'stacked'],
-  table: ['columns', 'sort', 'pageSize', 'rules'],
+  table: ['columns', 'names', 'sort', 'pageSize', 'rules'],
   gantt: ['title', 'start', 'end', 'progress', 'group'],
   kanban: ['lane', 'card', 'detail', 'color', 'lanes'],
   text: ['markdown'],
@@ -565,17 +565,50 @@ function readComponent(
     const lane = readGrouping(table.columns, String(options['lane']));
     if (!lane.ok) return invalid(`${named}: ${lane.error.message}`);
   }
+  let kept: Record<string, unknown> = options;
   if (kind === 'table') {
     const columns = options['columns'];
+    // A heading the agent writes beside the column, where it does not belong, is pointed to options.names (#527).
+    const byName = `${named} lists in options.columns the name of each column it shows, a text; the heading a column is shown under goes in options.names, as { "situacao": "Situação" }`;
     if (columns !== undefined) {
-      if (!Array.isArray(columns)) return invalid(`${named} lists its columns by name`);
+      if (!Array.isArray(columns)) return invalid(byName);
       for (const name of columns) {
-        if (!table.columns.some((column) => sameColumnName(column.name, String(name)))) {
-          return invalid(
-            `${named} shows "${String(name)}", which "${table.name}" has no column called`,
-          );
+        if (typeof name !== 'string') return invalid(byName);
+        if (!table.columns.some((column) => sameColumnName(column.name, name))) {
+          return invalid(`${named} shows "${name}", which "${table.name}" has no column called`);
         }
       }
+    }
+    const names = options['names'];
+    if (names !== undefined) {
+      const shown = Array.isArray(columns)
+        ? table.columns.filter((column) =>
+            (columns as string[]).some((name) => sameColumnName(column.name, name)),
+          )
+        : table.columns;
+      if (!isRecord(names)) {
+        return invalid(
+          `${named} names in options.names the heading of each column it shows, as { "situacao": "Situação" }`,
+        );
+      }
+      // Kept by the column's own name, so the heading finds its column however the agent wrote it.
+      const headings: Record<string, string> = {};
+      for (const [name, heading] of Object.entries(names)) {
+        const column = shown.find((each) => sameColumnName(each.name, name));
+        if (!column) {
+          return invalid(
+            `${named} names the heading of "${name}", which is not a column it shows of "${table.name}"`,
+          );
+        }
+        const said = typeof heading === 'string' ? heading.normalize('NFC').trim() : '';
+        if (said === '' || said.length > DASHBOARD_LIMITS.nameLength) {
+          return invalid(
+            `${named} heads "${name}" with a text of up to ${DASHBOARD_LIMITS.nameLength} characters`,
+          );
+        }
+        headings[column.name] = said;
+      }
+      kept = { ...options, names: headings };
     }
     const rules = options['rules'];
     if (rules !== undefined) {
@@ -603,7 +636,7 @@ function readComponent(
     slot,
     grid,
     source: { table: table.tableId, where: filter, group, measures },
-    options,
+    options: kept,
   });
 }
 

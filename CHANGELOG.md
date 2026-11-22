@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Added
+
+- **A dashboard's table heads its columns in the person's words.** The agent gives each column the table shows a heading of its own in `options.names`, as `{ "name": "Tarefa", "situacao": "Situação" }`, so a panel of tasks over `system-notes` reads *Tarefa* and *Situação* instead of the frontmatter keys, with nothing changed in the table or in the notes; a column with no heading keeps its own name. A heading written beside the column in `options.columns` is refused saying where it goes, and the skill `build-dashboards` teaches it (#527).
+
 ### Fixed
 
 - **A chart of a dashboard fits its card.** A chart drawn while its card was wider — a dashboard opened in a narrow window and then widened, or the image `preview_dashboard` and *Download PNG* draw — kept that width and spilled out of its card, showing one bar of three or a donut cut off; it now follows the card's width whenever it changes (#528).

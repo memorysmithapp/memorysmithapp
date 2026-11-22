@@ -1362,7 +1362,8 @@ is accepted when tried again.
 - **pie**, **donut**: one measure by group. **bar**: measures by group,
   \`options.stacked\`, \`percent\`, \`horizontal\`. **line**, **area**: a measure
   over a period, \`options.smooth\`.
-- **table**: rows; \`options.columns\`, \`sort\`, \`pageSize\`, and \`rules\` to
+- **table**: rows; \`options.columns\`, the names of the columns it shows,
+  \`names\`, the heading of each, \`sort\`, \`pageSize\`, and \`rules\` to
   format a number column as a \`bar\`, a colour \`scale\` or \`icons\`.
 - **gantt**: \`options.title\`, \`start\`, \`end\`, and \`progress\` (0 to 100) and
   \`group\` when the table has them.
@@ -1401,7 +1402,11 @@ same thing.
 
 A legend reads the name of the column measured. \`options.names\` says it in the
 person's words, \`{ "sum(receita)": "Receita" }\`: write it on any chart of
-several measures.
+several measures. A table heads each column with the column's name as the table
+writes it — over \`system-notes\`, the frontmatter key, \`name\` or \`situacao\` —
+and \`options.names\` heads it in the person's words, \`{ "name": "Tarefa",
+"situacao": "Situação" }\`: nothing in the table or in the notes changes, so
+never rename a key in the notes for a heading.
 
 Every value can be formatted: \`options.format\` as \`number\`, \`currency\` with
 \`currency\`, or \`percent\`, and \`decimals\`.

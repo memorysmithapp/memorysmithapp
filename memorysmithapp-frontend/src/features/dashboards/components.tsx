@@ -134,6 +134,14 @@ export function measureName(
   return column || count;
 }
 
+/** What a table's column is headed with: the name the agent gave it, or the column's own (#527). */
+export function columnHeading(column: string, options: Record<string, unknown>): string {
+  const names = options['names'];
+  if (names === null || typeof names !== 'object' || Array.isArray(names)) return column;
+  const heading = (names as Record<string, unknown>)[column];
+  return typeof heading === 'string' && heading.length > 0 ? heading : column;
+}
+
 export function Kpi({
   data,
   options,
@@ -852,7 +860,7 @@ export function RowsTable({
                   scope="col"
                   className={numeric(column) ? 'is-numeric' : undefined}
                 >
-                  {column.name}
+                  {columnHeading(column.name, options)}
                 </th>
               ))}
             </tr>
