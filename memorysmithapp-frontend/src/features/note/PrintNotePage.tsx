@@ -100,6 +100,8 @@ export function PrintNotePage() {
       ? 'none'
       : (style.properties.print?.place ?? style.properties.place ?? 'start');
   const drawingKey = JSON.stringify([style.properties, style.contents]);
+  // Each list of a contents on a page of its own, as the style asks (#542).
+  const contentsPages = style.contentsPages;
   const fit = style.printTables === 'shrink' ? 'shrink' : 'wrap';
   const orientation = style.orientation;
   // Each table at the end, on a page of its own that turns as the style says (#494).
@@ -158,6 +160,7 @@ export function PrintNotePage() {
         target,
         orientation,
         asAppendices ? { orientation: appendixOrientation, pageWord } : null,
+        contentsPages,
       ).then(
         (total) => alive && setPages(total),
         () => alive && setPages(0),
@@ -166,7 +169,17 @@ export function PrintNotePage() {
     return () => {
       alive = false;
     };
-  }, [drawn, drawingKey, fit, orientation, asAppendices, appendixOrientation, pageWord, revision]);
+  }, [
+    drawn,
+    drawingKey,
+    contentsPages,
+    fit,
+    orientation,
+    asAppendices,
+    appendixOrientation,
+    pageWord,
+    revision,
+  ]);
 
   useEffect(() => () => unpaginate(preview.current), []);
 

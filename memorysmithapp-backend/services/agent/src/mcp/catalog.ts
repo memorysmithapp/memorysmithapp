@@ -395,7 +395,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'every key at the top. contents is the table of contents every note draws when it writes no ' +
       'contents block: headings (title, depth 1 to 6), figures, tables and attachments (title), ' +
       'place, and screen and print groups, as { "print": { "place": "start", "headings": {} } }; ' +
-      'null draws none. Both are replaced whole, in the shape of their blocks, which write-notes ' +
+      'null draws none; contentsPages (true or false, false by default) makes each list of the ' +
+      'printed contents open a page, and the text after it start a new one. Both are replaced whole, in the shape of their blocks, which write-notes ' +
       'teaches. orientation is the printed page, ' +
       'portrait or landscape. printTables ' +
       'is how a printed note fits its tables: wrap their text, shrink them to the page, or ' +
@@ -420,6 +421,10 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           description:
             'How every note draws its properties when it writes no properties block (#530), ' +
             'replaced whole: keys, title, fold, place, and screen and print groups or "none".',
+        },
+        contentsPages: {
+          type: 'boolean',
+          description: 'In print, each list of the contents opens a page, and so does what follows it.',
         },
         contents: {
           type: ['object', 'null'],

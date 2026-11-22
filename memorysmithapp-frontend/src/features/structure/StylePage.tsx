@@ -322,6 +322,17 @@ export function StylePage() {
                     </label>
                   ))}
                   <p className="style-setting-hint">{t('style.contentsPagesHint')}</p>
+                  {contents.print === 'none' ? null : (
+                    <label className="style-check">
+                      <input
+                        type="checkbox"
+                        checked={draft.contentsPages}
+                        disabled={!maintains}
+                        onChange={(event) => choose('contentsPages', event.target.checked)}
+                      />
+                      {t('style.contentsOwnPages')}
+                    </label>
+                  )}
                 </div>
               )}
             </fieldset>

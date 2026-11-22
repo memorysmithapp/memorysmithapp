@@ -19,6 +19,10 @@ describe("a notebook's properties setting", () => {
     expect(DEFAULT_NOTEBOOK_STYLE.properties).toEqual({});
     expect(DEFAULT_NOTEBOOK_STYLE.contents).toBeNull();
     expect(DEFAULT_NOTEBOOK_STYLE.numbering).toBe('none');
+    expect(DEFAULT_NOTEBOOK_STYLE.contentsPages).toBe(false);
+    // A style stored before #542 prints its contents as it did (#542).
+    expect(notebookStyleOf({ font: 'serif' }).contentsPages).toBe(false);
+    expect(notebookStyleOf({ contentsPages: true }).contentsPages).toBe(true);
   });
 
   it('reads cover, end and none of before #530 as what each became', () => {

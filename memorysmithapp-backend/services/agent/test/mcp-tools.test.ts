@@ -3648,6 +3648,10 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
     expect(plain).toContain('every key at the top, on the screen and in print');
     expect(plain).toContain("none, only a note's own `contents` block draws one");
     expect(plain).toContain('headings not numbered');
+    expect(plain).not.toContain('opens a page');
+    expect(
+      styleSection({ ...DEFAULT_NOTEBOOK_STYLE, contents: contents as never, contentsPages: true }),
+    ).toContain('printed, each list of a contents opens a page, and so does the text after it');
   });
 
   it('refuses a value it cannot take, a setting it does not have, and a call that names none', async () => {

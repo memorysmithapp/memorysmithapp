@@ -156,6 +156,8 @@ export const notebookStyleSchema = z.object({
   properties: notebookPropertiesSchema,
   /** The contents a note draws when it writes none; null, none (#521). */
   contents: notebookContentsSchema.nullable(),
+  /** In print, each list of a contents opens a page, and so does what follows it (#542). */
+  contentsPages: z.boolean(),
   orientation: z.enum(PRINT_ORIENTATIONS),
   /** How a printed note fits its tables: wrapping, shrunk, or as appendices at its end (#494). */
   printTables: z.enum(PRINT_TABLES),
@@ -178,6 +180,7 @@ export const DEFAULT_NOTEBOOK_STYLE: NotebookStyle = {
   numbering: 'none',
   properties: {},
   contents: null,
+  contentsPages: false,
   orientation: 'portrait',
   printTables: 'wrap',
   appendixOrientation: null,
@@ -201,6 +204,7 @@ export function notebookStyleOf(value: unknown): NotebookStyle {
     numbering: pick(STYLE_NUMBERINGS, 'numbering', d.numbering),
     properties: propertiesOf(raw['properties']),
     contents: contentsOf(raw['contents']),
+    contentsPages: raw['contentsPages'] === true,
     orientation: pick(PRINT_ORIENTATIONS, 'orientation', d.orientation),
     printTables: pick(PRINT_TABLES, 'printTables', d.printTables),
     appendixOrientation:

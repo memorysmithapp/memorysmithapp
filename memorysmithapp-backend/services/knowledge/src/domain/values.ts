@@ -188,6 +188,8 @@ export interface NotebookStyle {
   readonly properties: DrawingSettings;
   /** The contents a note draws when it writes none, or none (#521, RN-KNW-097). */
   readonly contents: DrawingSettings | null;
+  /** In print, each list of a contents opens a page, and so does what follows it (#542). */
+  readonly contentsPages: boolean;
   readonly orientation: StyleOrientation;
   readonly printTables: 'wrap' | 'shrink' | 'appendices';
   readonly appendixOrientation: StyleOrientation | null;
@@ -211,6 +213,7 @@ export const NotebookStyle = {
     numbering: 'none',
     properties: {},
     contents: null,
+    contentsPages: false,
     orientation: 'portrait',
     printTables: 'wrap',
     appendixOrientation: null,

@@ -822,6 +822,7 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
     expect((await answered({ contents }))['contents']).toEqual(contents);
     expect((await answered({ contents: null }))['contents']).toBeNull();
     expect((await answered({ numbering: 'decimal' }))['numbering']).toBe('decimal');
+    expect((await answered({ contentsPages: true }))['contentsPages']).toBe(true);
     // A client of before #530 still writes cover, end or none.
     expect((await answered({ properties: 'cover' }))['properties']).toEqual({});
     expect((await answered({ properties: 'end' }))['properties']).toEqual({
@@ -839,6 +840,7 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
       { contents: { tables: { depth: 2 } } },
       { contents: { headings: { depth: 7 } } },
       { numbering: 'roman' },
+      { contentsPages: 'yes' },
     ]) {
       expect((await set(body)).status).toBe(400);
     }

@@ -724,7 +724,7 @@ export function styleSection(style: NotebookStyle): string {
       style.contents === null
         ? "none, only a note's own `contents` block draws one"
         : `\`${JSON.stringify(style.contents)}\`, for every note that writes no \`contents\` block`
-    }`,
+    }${style.contentsPages ? '; printed, each list of a contents opens a page, and so does the text after it' : ''}`,
     `- Printed: ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
   ].join('\n');
 }
@@ -740,7 +740,7 @@ function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
     throw new GatewayError(
       'VALIDATION',
       'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
-        'tables (left, center, right, justify); hyphenate (true, false); numbering (none, decimal); properties and contents (the ' +
+        'tables (left, center, right, justify); hyphenate (true, false); numbering (none, decimal); contentsPages (true, false); properties and contents (the ' +
         'host settings of the properties and contents blocks, as write-notes teaches them); orientation ' +
         '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
         '(portrait, landscape, or null).',

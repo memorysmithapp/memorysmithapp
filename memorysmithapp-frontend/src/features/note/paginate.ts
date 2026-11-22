@@ -24,18 +24,37 @@ export const PAGE_MARGINS = '18mm 16mm 20mm';
 /**
  * The rules only the paginator reads: the page box, the break before the
  * properties at the end, on a page of their own, and the page each entry of a
- * contents lands on, at its right (#521), a dotted line leading to it (#539). A block kept whole and a heading never alone at the foot of a page
- * are read from the stylesheet of the application, which applies to the copy.
+ * contents lands on, at its right (#521), a dotted line leading to it (#539),
+ * and, when the style asks, a page for each list of a contents and for what
+ * follows it (#542). A block kept whole and a heading never alone at the foot
+ * of a page are read from the stylesheet of the application, which applies to
+ * the copy.
  */
-function pageRules(orientation: Orientation, appendices: Appendices | null): string {
+function pageRules(
+  orientation: Orientation,
+  appendices: Appendices | null,
+  contentsPages: boolean,
+): string {
   return `
 @page { size: A4 ${orientation}; margin: ${PAGE_MARGINS}; }
 .print-end { break-before: page; }
 .contents-entry { display: flex; align-items: baseline; gap: 0.25em; }
 .contents-entry::before { content: ""; order: 1; flex: 1; min-width: 1em; border-bottom: 1px dotted currentColor; opacity: 0.6; }
 .contents-entry::after { content: target-counter(attr(href url), page); order: 2; }
+${contentsPages ? CONTENTS_PAGES : ''}
 ${appendices ? appendixRules(appendices) : ''}`;
 }
+
+/**
+ * Each list of a contents on a page of its own, and the text after the
+ * contents on the next (#542): a break before every list but the first, and
+ * before whatever follows the contents, so a contents at the end of the note
+ * leaves no blank page after it.
+ */
+const CONTENTS_PAGES = `
+.contents-list + .contents-list { break-before: page; }
+nav.contents + * { break-before: page; }
+`;
 
 /**
  * Tables printed as appendices at the end of the note (#494): each appendix on
@@ -232,6 +251,7 @@ export function paginate(
   target: HTMLElement,
   orientation: Orientation,
   appendices: Appendices | null = null,
+  contentsPages = false,
 ): Promise<number> {
   const run = queue.then(async () => {
     const { Previewer, Handler, registerHandlers } = (await import('pagedjs')) as unknown as {
@@ -261,7 +281,7 @@ export function paginate(
     turnAppendixSheet(null);
     const flow = await previewer.preview(
       content,
-      [{ [window.location.href]: pageRules(orientation, appendices) }],
+      [{ [window.location.href]: pageRules(orientation, appendices, contentsPages) }],
       target,
     );
     turnAppendixSheet(appendices);

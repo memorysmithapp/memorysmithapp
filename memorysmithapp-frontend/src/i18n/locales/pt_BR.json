@@ -381,7 +381,8 @@
     "numberings": {
       "none": "Nenhuma",
       "decimal": "1, 1.1, 1.2"
-    }
+    },
+    "contentsOwnPages": "Na impressão, cada lista numa página, e o texto na seguinte"
   },
   "common": {
     "loading": "Carregando…",
