@@ -110,12 +110,12 @@ test.describe('a note as a PDF made by the server', () => {
     // at the end, the page sideways; given back as it was found.
     const style = `/knowledge/notebooks/${notebook.notebookId}/style`;
     await owner.ok('PATCH', style, {
-      properties: { print: { place: 'end', keys: null, title: null } },
+      properties: { print: { place: 'end' } },
       orientation: 'landscape',
     });
     const print = await printed(owner, notebook.notebookId, noteId).finally(() =>
       owner.ok('PATCH', style, {
-        properties: { print: { place: 'start', keys: null, title: null } },
+        properties: {},
         orientation: 'portrait',
       }),
     );

@@ -29,6 +29,9 @@ import {
   type NoteMode,
   type NoteStrings,
   type NoteStyle,
+  type ContentsSettings,
+  type PropertiesSettings,
+  type PropertiesSlotProps,
   type TableRowView,
 } from '@memorysmithapp/markdown-renderer';
 import {
@@ -61,13 +64,43 @@ import { effectiveTheme, usePreferences } from '../store/preferences';
 import { useWriteStatus } from '../store/write-status';
 import { fileKindKey } from './file-kind';
 import { useTaskWrite, type TaskWriter } from './TaskListWriter';
+import { chosenProperties, PropertiesBox, type NoteHeaderParts } from './PropertiesBox';
 import { TableRowDialog } from './TableRowDialog';
 
 /** What the page draws where the renderer draws the frontmatter (#300). */
-const NoteHeader = createContext<ReactNode>(null);
+const NoteHeader = createContext<NoteHeaderParts | null>(null);
 
-function NoteHeaderSlot() {
-  return <>{useContext(NoteHeader)}</>;
+/**
+ * The frontmatter, where the renderer draws it (#300, #530): the part it asks
+ * for — the name and the properties at the top, the name alone, or the
+ * properties alone where a `properties` block or the notebook's style put
+ * them — of only the keys it chose, under the title and folded as they say.
+ * A surface that gives no parts draws none, as a Guidance or a Template.
+ */
+function NoteHeaderSlot({ part = 'whole', entries, title, fold }: PropertiesSlotProps) {
+  const parts = useContext(NoteHeader);
+  if (!parts) return null;
+  const box = (
+    <PropertiesBox
+      properties={chosenProperties(
+        parts.properties,
+        entries.map((entry) => entry.key),
+      )}
+      lists={parts.lists}
+      notebookId={parts.notebookId}
+      title={title}
+      fold={fold}
+      still={parts.still ?? false}
+    />
+  );
+  if (part === 'name') return <>{parts.title}</>;
+  if (part === 'entries') return <div className="note-properties">{box}</div>;
+  return (
+    <>
+      {parts.title}
+      {box}
+    </>
+  );
 }
 
 /**
@@ -162,6 +195,13 @@ export function noteStrings(t: TFunction, locale: string): NoteStrings {
             ? t('note.tableNumbered', { number: markdownTable })
             : t('note.tableNamed', { table }),
       }),
+    // A contents' lists, and a figure and a table by their number (§7.17, #521).
+    contentsHeadings: t('note.contentsHeadings'),
+    contentsFigures: t('note.contentsFigures'),
+    contentsTables: t('note.contentsTables'),
+    contentsAttachments: t('note.contentsAttachments'),
+    figureNumber: (number) => t('note.figureNumber', { number }),
+    tableNumber: (number) => t('note.tableNumber', { number }),
     tableEmpty: t('note.tableEmpty'),
     tableSortBy: (column) => t('note.tableSortBy', { column }),
     tableProblem: (code, table) => t(`note.tableProblem.${code}`, { table: table ?? '' }),
@@ -255,7 +295,38 @@ export function editorWords(t: TFunction): EditorWords {
     attachQueued: (count: number) => t('noteEditor.attachQueued', { count }),
     imageOutOfRange: (min: number, max: number, unit: string) =>
       t('noteEditor.imageOutOfRange', { min, max, unit }),
+    // A `properties` and a `contents` block in edit mode where they draw
+    // nothing on the screen say where they are drawn (§7.17, §7.18).
+    propertiesMoveUp: (key: string) => t('noteEditor.propertiesMoveUp', { key }),
+    propertiesElsewhere: (where) => elsewhere(t, 'properties', where),
+    contentsElsewhere: (where) => elsewhere(t, 'contents', where),
   };
+}
+
+/** Where a block that draws nothing here is drawn, on the screen and in print, in the reader's words. */
+function elsewhere(
+  t: TFunction,
+  block: 'properties' | 'contents',
+  where: {
+    readonly screen: 'here' | 'start' | 'end' | null;
+    readonly print: 'here' | 'start' | 'end' | null;
+  },
+): string {
+  const at = (place: 'here' | 'start' | 'end') =>
+    t(
+      place === 'here'
+        ? 'noteEditor.elsewhereHere'
+        : place === 'start'
+          ? 'noteEditor.elsewhereStart'
+          : 'noteEditor.elsewhereEnd',
+    );
+  const parts = [
+    where.screen ? t('noteEditor.elsewhereScreen', { at: at(where.screen) }) : null,
+    where.print ? t('noteEditor.elsewherePrint', { at: at(where.print) }) : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length === 0
+    ? t(`noteEditor.${block}ElsewhereNone`)
+    : t(`noteEditor.${block}Elsewhere`, { where: parts.join(', ') });
 }
 
 /** The keys of the editor's words, which every locale carries (#300). */
@@ -351,8 +422,8 @@ export function NoteContent({
   actions?: boolean;
   /** The editor, where the page offers one (#300). */
   editing?: NoteEditing;
-  /** The name and the properties the page draws under the corner of the note, in reading. */
-  header?: ReactNode;
+  /** The name and the properties of the note, which the renderer places (#300, #530). */
+  header?: NoteHeaderParts;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -382,10 +453,17 @@ export function NoteContent({
           headings: style.headings,
           text: style.text,
           tables: style.tables,
+          // The headings numbered 1, 1.1, 1.2, as the notebook's style says (#535).
+          ...(style.numbering === 'decimal' ? { numbering: style.numbering } : {}),
         }
       : undefined;
   }, [noteStyle, notebookStyle]);
   const hyphenated = (noteStyle ?? notebookStyle)?.hyphenate === true;
+  // How a note with no `properties` or `contents` block draws its properties
+  // and its contents, and the defaults of one that writes a block (#530,
+  // #521): the notebook's style, in the renderer's own structure.
+  const hostProperties = notebookStyle?.properties as PropertiesSettings | undefined;
+  const hostContents = (notebookStyle?.contents ?? undefined) as ContentsSettings | undefined;
   const theme = usePreferences((state) => state.theme);
   const paper = usePreferences((state) => state.paper);
   const scheme = effectiveTheme(theme, paper);
@@ -572,6 +650,8 @@ export function NoteContent({
         queryTable={queryTable}
         openTableRow={openTableRow}
         {...(drawnStyle ? { noteStyle: drawnStyle } : {})}
+        {...(hostProperties ? { properties: hostProperties } : {})}
+        {...(hostContents ? { contents: hostContents } : {})}
         printing={printing}
         tablesAsAppendices={printing && tablesAsAppendices}
         markdown={editing?.mode === 'edit' ? editing.markdown : text}

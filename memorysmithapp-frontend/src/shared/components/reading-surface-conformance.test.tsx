@@ -254,6 +254,32 @@ const EXPECTED: Record<string, (html: string) => void> = {
     // carries for the browser (#492).
     expect(html).toMatch(/class="style-block"[^>]*lang="[a-z]{2}-[A-Z]{2}"/);
   },
+  'contents-block': (html) => {
+    // The note's outline as links to its headings, nested by level (§7.17):
+    // the fence and its settings leave the page, and a contents the block
+    // draws only in print is marked so the screen does not show it (#521).
+    expect(html).toContain('class="contents"');
+    expect(html).toContain('data-media="print"');
+    expect(html).toContain('href="#user-content-abertura"');
+    expect(html).toMatch(/id="user-content-abertura"/);
+    expect(html).not.toContain('```contents');
+    expect(html).not.toContain('depth: 2');
+  },
+  'properties-block': (html) => {
+    // How the properties are drawn, the block itself drawn as nothing
+    // (§7.18). This surface gives no page parts, as a Guidance does not, so
+    // the chosen properties are drawn by the page, and here nothing is (#530).
+    expect(html).toContain('Resumo da reunião.');
+    expect(html).not.toContain('```properties');
+    expect(html).not.toContain('keys: responsavel');
+  },
+  'table-caption': (html) => {
+    // Pandoc's caption, under its table and without its keyword (§7.17).
+    expect(html).toContain('<table');
+    expect(html).toContain('class="table-caption"');
+    expect(html).toContain('Previsão de despesas para 2027');
+    expect(html).not.toContain('Table:');
+  },
   strikethrough: (html) => {
     // Two tildes and only two. The example carries both halves on one line
     // since specification v0.4.0, which is the point: `~~revoked~~` is struck and
@@ -346,7 +372,8 @@ describe('a rejected notation is rendered as what it is: text', () => {
   it('does not read a heading as a tag either', () => {
     const html = render('# Direct contracting\n\nThe rule.\n');
 
-    expect(html).toContain('<h1>Direct contracting</h1>');
+    // A heading carries its slug since specification v0.13.0 (§3.3).
+    expect(html).toMatch(/<h1[^>]*>Direct contracting<\/h1>/);
     expect(html).not.toContain('#');
   });
 
@@ -552,7 +579,7 @@ describe('a base notation that means something different here', () => {
     // correct in their place. Only the first line of the file opens a head.
     const html = render('Serra Gaucha\n---\n\nThe rest.\n');
 
-    expect(html).toContain('<h2>Serra Gaucha</h2>');
+    expect(html).toMatch(/<h2[^>]*>Serra Gaucha<\/h2>/);
     expect(html).not.toContain('<hr');
   });
 

@@ -786,43 +786,67 @@ describe("A notebook's style (#493, RN-KNW-092)", () => {
     expect(detail.style).toEqual(DEFAULT_NOTEBOOK_STYLE);
   });
 
-  it('prints the properties where, which and under what heading it says, and reads a word of before as its place (#530, RN-KNW-096)', async () => {
+  it('keeps how every note draws its properties and its contents and numbers its headings, and reads a word of before as what it became (#530, #521, #535)', async () => {
     const { notebookId } = await seedNotebook();
     const style = `/knowledge/notebooks/${notebookId}/style`;
-    const set = async (properties: unknown) =>
-      call(style, { method: 'PATCH', body: { properties } });
-    const answered = async (properties: unknown) =>
-      ((await (await set(properties)).json()) as { style: { properties: unknown } }).style
-        .properties;
+    const set = async (body: Record<string, unknown>) => call(style, { method: 'PATCH', body });
+    const answered = async (body: Record<string, unknown>) =>
+      ((await (await set(body)).json()) as { style: Record<string, unknown> }).style;
 
-    // Keys and heading trimmed; what it leaves out is null.
+    // The structure of a block, trimmed, a null left out.
     expect(
-      await answered({ print: { place: 'end', keys: [' status ', 'data'], title: ' Registro ' } }),
-    ).toEqual({ print: { place: 'end', keys: ['status', 'data'], title: 'Registro' } });
-    expect(await answered({ print: { place: 'start' } })).toEqual({
-      print: { place: 'start', keys: null, title: null },
+      (
+        await answered({
+          properties: {
+            keys: [' status ', 'data'],
+            title: ' Registro ',
+            fold: 'closed',
+            screen: 'none',
+            print: { place: 'end', title: null },
+          },
+        })
+      )['properties'],
+    ).toEqual({
+      keys: ['status', 'data'],
+      title: 'Registro',
+      fold: 'closed',
+      screen: 'none',
+      print: { place: 'end' },
     });
-    expect(await answered({ print: 'none' })).toEqual({ print: 'none' });
+    const contents = {
+      headings: { depth: 2 },
+      figures: {},
+      print: { place: 'start' },
+      screen: 'none',
+    };
+    expect((await answered({ contents }))['contents']).toEqual(contents);
+    expect((await answered({ contents: null }))['contents']).toBeNull();
+    expect((await answered({ numbering: 'decimal' }))['numbering']).toBe('decimal');
     // A client of before #530 still writes cover, end or none.
-    expect(await answered('cover')).toEqual(DEFAULT_NOTEBOOK_STYLE.properties);
-    expect(await answered('end')).toEqual({ print: { place: 'end', keys: null, title: null } });
-    expect(await answered('none')).toEqual({ print: 'none' });
+    expect((await answered({ properties: 'cover' }))['properties']).toEqual({});
+    expect((await answered({ properties: 'end' }))['properties']).toEqual({
+      print: { place: 'end' },
+    });
+    expect((await answered({ properties: 'none' }))['properties']).toEqual({ print: 'none' });
 
-    for (const properties of [
-      { print: { place: 'cover' } },
-      { print: { place: 'end', keys: [] } },
-      { print: { place: 'end', keys: Array.from({ length: 51 }, (_, i) => `k${i}`) } },
-      { print: { place: 'end', title: 'x'.repeat(121) } },
-      { print: { place: 'end', fold: 'open' } },
-      { screen: 'none', print: 'none' },
-      'middle',
+    for (const body of [
+      { properties: { place: 'middle' } },
+      { properties: { keys: [] } },
+      { properties: { keys: Array.from({ length: 51 }, (_, i) => `k${i}`) } },
+      { properties: { title: 'x'.repeat(121) } },
+      { properties: { print: 'never' } },
+      { properties: 'middle' },
+      { contents: { tables: { depth: 2 } } },
+      { contents: { headings: { depth: 7 } } },
+      { numbering: 'roman' },
     ]) {
-      expect((await set(properties)).status).toBe(400);
+      expect((await set(body)).status).toBe(400);
     }
     const detail = notebookDetailSchema.parse(
       await (await call(`/knowledge/notebooks/${notebookId}`)).json(),
     );
     expect(detail.style.properties).toEqual({ print: 'none' });
+    expect(detail.style.numbering).toBe('decimal');
   });
 
   it('answers 404 for a notebook the token does not reach (INV-09)', async () => {

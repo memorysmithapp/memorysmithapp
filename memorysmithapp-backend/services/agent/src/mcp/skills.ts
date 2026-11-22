@@ -80,6 +80,12 @@ export const FORMATTING_USES: Readonly<Record<string, string>> = {
   footnote: 'A source a text of prose cites without breaking the sentence, listed at the end',
   image: 'A figure the text refers to, with a description of what it shows',
   'image-dimensions': 'A figure that has to fit: its width, or its width and height',
+  'contents-block':
+    'A long note read by its sections, or printed with the page of each heading, figure and table; a notebook whose every note needs one sets it in its style instead',
+  'properties-block':
+    "A note whose properties are drawn apart from the notebook's choice: only some keys, under a title of their own, or at its end as a colophon",
+  'table-caption':
+    'A table cited by its title, listed in a contents and printed above its appendix',
 };
 
 /**

@@ -18,7 +18,7 @@ import type { NotebookFile } from '../../../domain/file/NotebookFile.js';
 import type { Notebook } from '../../../domain/notebook/Notebook.js';
 import type { Folder } from '../../../domain/notebook/Folder.js';
 import type { NoteListing } from '../../../application/notes.js';
-import { compareByName } from '@memorysmithapp/contracts';
+import { compareByName, notebookStyleOf } from '@memorysmithapp/contracts';
 
 export function folderToDto(folder: Folder, notebook: Notebook): FolderDto {
   return {
@@ -61,7 +61,8 @@ export function notebookToDetail(
     guidance: guidance ? { content: guidance.content, revision: guidance.ref.toJSON() } : null,
     structureRevision: String(notebook.version),
     permissions: { ...permissions },
-    style: { ...notebook.style },
+    // Read through the published schema, as every reader of the style does (#530).
+    style: notebookStyleOf(notebook.style),
   };
 }
 

@@ -385,12 +385,18 @@ const DEFINITIONS: readonly ToolDefinition[] = [
       'Pass only the settings to change; the others keep theirs. font is sans or serif. ' +
       'headings, text (paragraphs and lists) and tables (the columns that declare no alignment ' +
       'of their own) are each left, center, right or justify; hyphenate (true or false, false ' +
-      'by default) says whether justified text breaks words with a hyphen. properties is how a ' +
-      'printed note shows its properties, replaced whole: { "print": "none" } prints none, and ' +
-      '{ "print": { "place", "keys", "title" } } prints them below the title (place start, the ' +
-      'default) or on a page at the end (end), only the keys listed and in their order (null ' +
-      'for every key), under a heading (null for none), as { "print": { "place": "end", ' +
-      '"keys": ["status", "data"], "title": "Registro" } }. orientation is the printed page, ' +
+      'by default) says whether justified text breaks words with a hyphen. numbering is none (the ' +
+      'default) or decimal, which numbers the headings of every note 1, 1.1, 1.2, a :::{style} ' +
+      'block saying otherwise for its passage. properties is how every ' +
+      'note draws its properties when it writes no properties block, and the defaults of one that ' +
+      'does: keys (in their order; absent, every key), title, fold (open or closed) and place ' +
+      '(start or end), with screen and print groups for one medium or "none" there, as ' +
+      '{ "print": { "place": "end", "keys": ["status", "data"], "title": "Registro" } }; {} draws ' +
+      'every key at the top. contents is the table of contents every note draws when it writes no ' +
+      'contents block: headings (title, depth 1 to 6), figures, tables and attachments (title), ' +
+      'place, and screen and print groups, as { "print": { "place": "start", "headings": {} } }; ' +
+      'null draws none. Both are replaced whole, in the shape of their blocks, which write-notes ' +
+      'teaches. orientation is the printed page, ' +
       'portrait or landscape. printTables ' +
       'is how a printed note fits its tables: wrap their text, shrink them to the page, or ' +
       'appendices (each table printed whole at the end of the note, a reference in its place). ' +
@@ -408,23 +414,19 @@ const DEFINITIONS: readonly ToolDefinition[] = [
           type: 'boolean',
           description: 'Whether justified text breaks words with a hyphen. Off by default.',
         },
+        numbering: { type: 'string', enum: ['none', 'decimal'] },
         properties: {
           type: 'object',
-          description: 'How a printed note shows its properties (#530), replaced whole.',
-          properties: {
-            print: {
-              type: ['string', 'object'],
-              description:
-                '"none", or { "place": "start" or "end", "keys": the keys in their order or ' +
-                'null for every key, "title": the heading or null }.',
-              properties: {
-                place: { type: 'string', enum: ['start', 'end'] },
-                keys: { type: ['array', 'null'], items: { type: 'string' } },
-                title: { type: ['string', 'null'] },
-              },
-            },
-          },
-          required: ['print'],
+          description:
+            'How every note draws its properties when it writes no properties block (#530), ' +
+            'replaced whole: keys, title, fold, place, and screen and print groups or "none".',
+        },
+        contents: {
+          type: ['object', 'null'],
+          description:
+            'The contents every note draws when it writes no contents block (#521), replaced ' +
+            'whole: headings, figures, tables, attachments, place, and screen and print groups ' +
+            'or "none"; null for none.',
         },
         orientation: { type: 'string', enum: ['portrait', 'landscape'] },
         printTables: { type: 'string', enum: ['wrap', 'shrink', 'appendices'] },

@@ -2114,7 +2114,9 @@ test.describe('the pages of an account', () => {
     const styled = (style: Record<string, unknown>) =>
       owner.ok('PATCH', `/knowledge/notebooks/${notebook.notebookId}/style`, style);
     const DEFAULT = {
-      properties: { print: { place: 'start', keys: null, title: null } },
+      properties: {},
+      contents: null,
+      numbering: 'none',
       orientation: 'portrait',
       printTables: 'wrap',
       appendixOrientation: null,
@@ -2157,8 +2159,7 @@ test.describe('the pages of an account', () => {
       await expect(paper.getByRole('button')).toHaveCount(0);
       // The note as drawn, off screen, carries the choices; the preview, its pages.
       const body = paper.locator('.print-source article[data-placement]');
-      const start = paper.locator('.print-source .print-start');
-      const end = paper.locator('.print-source article.print-end');
+      const end = paper.locator('.print-source .note-properties.print-end');
       const preview = paper.locator('.print-preview');
       const pages = preview.locator('.pagedjs_page');
       await expect(paper.locator('#notebook-sidebar, .notebook-bar')).toHaveCount(0);
@@ -2258,8 +2259,8 @@ test.describe('the pages of an account', () => {
       // seen, so it is read by its elements and not by the roles a reader
       // would be given; the pages are what is seen.
       await expect(body.locator('h1')).toHaveText('On paper');
-      await expect(body.locator('> :nth-child(2)')).toHaveClass(/print-start/);
-      await expect(start.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
+      await expect(status).toHaveCount(1);
+      await expect(end).toHaveCount(0);
       await laid();
       await expect(pages.nth(0)).toContainText('On paper');
       await expect(pages.nth(0)).toContainText('draft');
@@ -2333,8 +2334,7 @@ test.describe('the pages of an account', () => {
       await restyled({
         properties: { print: { place: 'end', keys: ['status', 'prazo'], title: 'Registro' } },
       });
-      await expect(start).toHaveCount(0);
-      await expect(end.locator('h2')).toHaveText('Registro');
+      await expect(end.locator('.properties-title')).toHaveText('Registro');
       await expect(end.locator('.metadata-property-value', { hasText: 'draft' })).toHaveCount(1);
       await expect(body.locator('h1')).toHaveText('On paper');
       expect(await laid()).toBe(2);
@@ -2561,7 +2561,7 @@ test.describe('the pages of an account', () => {
     } finally {
       await owner.ok('PATCH', `${path}/style`, {
         ...reset,
-        properties: { print: { place: 'start', keys: null, title: null } },
+        properties: {},
       });
     }
   });

@@ -264,7 +264,13 @@
       "table-column-unknown": "This block names a column the table {{table}} does not have.",
       "table-filter-invalid": "The filter of this block cannot be read.",
       "table-pending": "This notebook keeps no table called {{table}}."
-    }
+    },
+    "contentsHeadings": "Contents",
+    "contentsFigures": "Figures",
+    "contentsTables": "Tables",
+    "contentsAttachments": "Attachments",
+    "figureNumber": "Figure {{number}}",
+    "tableNumber": "Table {{number}}"
   },
   "print": {
     "short": "Generate PDF",
@@ -306,11 +312,11 @@
       "justify": "Justified"
     },
     "properties": "Properties",
-    "propertyKeys": "Keys printed",
+    "propertyKeys": "Keys",
     "propertyKeysAll": "All of them",
-    "propertyKeysHint": "In this order, a comma between two. Empty prints every key; a key a note lacks is left out.",
+    "propertyKeysHint": "In this order, a comma between two. Empty draws every key; a key a note lacks is left out.",
     "propertiesTitle": "Heading",
-    "propertiesTitleHint": "Over the properties. Empty: none below the title, the note's name at the end.",
+    "propertiesTitleHint": "Over the properties. Empty: “Properties” on the screen, none in print.",
     "placement": {
       "start": "Below the title",
       "end": "At the end",
@@ -336,7 +342,38 @@
     "unsaved": "Unsaved changes.",
     "undo": "Undo",
     "sampleLabel": "A note in this style",
-    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n## Tables\n\nA table with no alignment of its own follows the choice of **Tables**:\n\n| Stage | Status | Amount |\n|---|---|---|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\nA column that fixes its own alignment in the table, such as `--:` to the right, keeps it; the other columns follow the style:\n\n| Stage | Status | Amount |\n|---|---|--:|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\n## A passage with a style of its own\n\nA `:::{style}` block holds for the passage it wraps alone, over the notebook's style:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nThis paragraph stays centered and sans serif, whatever style is chosen beside it.\n:::\n"
+    "sample": "# Renovation report\n\nThe renovation of the hall started in March and follows the schedule the meeting approved. The building manager follows every stage and sends all residents a monthly summary of what was done, what is left and how much has been spent.\n\n## Next steps\n\n- Replace the floor by the end of the month\n- Paint the walls after the inspection\n\n## Tables\n\nA table with no alignment of its own follows the choice of **Tables**:\n\n| Stage | Status | Amount |\n|---|---|---|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\nA column that fixes its own alignment in the table, such as `--:` to the right, keeps it; the other columns follow the style:\n\n| Stage | Status | Amount |\n|---|---|--:|\n| Floor | In progress | 12,400.00 |\n| Painting | Not started | 6,800.00 |\n\n## A passage with a style of its own\n\nA `:::{style}` block holds for the passage it wraps alone, over the notebook's style:\n\n:::{style}\n---\nfont: sans\ntext: center\n---\nThis paragraph stays centered and sans serif, whatever style is chosen beside it.\n:::\n",
+    "onScreen": "On the screen",
+    "inPrint": "In print",
+    "propertiesHint": "For every note that writes no properties block; a note that writes one draws its own.",
+    "fold": "On the screen they start",
+    "folds": {
+      "open": "Open",
+      "closed": "Folded"
+    },
+    "contents": "Contents",
+    "contentsHint": "The table of contents of every note that writes no contents block; a note that writes one draws its own.",
+    "contentsPlacement": {
+      "none": "None",
+      "start": "At the start",
+      "end": "At the end"
+    },
+    "contentsLists": "What it lists",
+    "lists": {
+      "headings": "Headings",
+      "figures": "Figures",
+      "tables": "Tables",
+      "attachments": "Attachments"
+    },
+    "contentsDepth": "Heading levels",
+    "depth_one": "{{count}} level",
+    "depth_other": "{{count}} levels",
+    "contentsPagesHint": "In print, each entry says the page it lands on.",
+    "numbering": "Heading numbers",
+    "numberings": {
+      "none": "None",
+      "decimal": "1, 1.1, 1.2"
+    }
   },
   "common": {
     "loading": "Loading…",
@@ -1386,7 +1423,42 @@
     "styleRight": "Right",
     "styleJustify": "Justified",
     "styleInsert": "Set apart",
-    "styleApply": "Apply"
+    "styleApply": "Apply",
+    "styleNumbering": "Numbering",
+    "styleNumberingNone": "None",
+    "styleNumberingDecimal": "1, 1.1, 1.2",
+    "contents": "Contents",
+    "contentsTitle": "Title",
+    "contentsDepth": "Levels",
+    "contentsPlace": "Where",
+    "contentsScreen": "On the screen",
+    "contentsPrint": "In print",
+    "contentsNotebook": "The notebook's",
+    "contentsHere": "Where it is written",
+    "contentsStart": "At the start",
+    "contentsEnd": "At the end",
+    "contentsSame": "As above",
+    "contentsNone": "Not drawn",
+    "contentsOwn": "Its own",
+    "contentsInsert": "Insert",
+    "contentsApply": "Apply",
+    "propertiesBlock": "Properties",
+    "propertiesKeys": "Keys",
+    "propertiesAllKeys": "Every key, the reserved ones first",
+    "propertiesFold": "Folded",
+    "propertiesOpen": "Open",
+    "propertiesClosed": "Closed",
+    "propertiesMoveUp": "Move {{key}} up",
+    "propertiesElsewhere": "Properties: {{where}}",
+    "propertiesElsewhereNone": "Properties: not drawn",
+    "contentsElsewhere": "Contents: {{where}}",
+    "contentsElsewhereNone": "Contents: not drawn",
+    "elsewhereHere": "here",
+    "elsewhereStart": "at the start",
+    "elsewhereEnd": "at the end",
+    "elsewhereScreen": "{{at}} on the screen",
+    "elsewherePrint": "{{at}} in print",
+    "tableCaption": "Caption"
   },
   "model": {
     "title": "Model",

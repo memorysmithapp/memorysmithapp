@@ -11,12 +11,7 @@ import { NoteSkeleton } from '../../shared/components/skeletons';
 import { useDocumentTitle } from '../../shared/components/document-title';
 import { updateNote } from '../../shared/api/source';
 
-import {
-  PropertyValue,
-  orderedProperties,
-  propertyLabel,
-  propertyType,
-} from '../../shared/components/PropertyValue';
+import { orderedProperties } from '../../shared/components/PropertyValue';
 import { HistoryIcon, PrinterIcon } from '../../shared/components/icons';
 import { NoteHistoryDialog } from './NoteHistory';
 import { queryKeys } from '../../shared/api/query-keys';
@@ -152,7 +147,7 @@ export function NotePage({ noteId }: { noteId: string }) {
   );
   const lists = new Set(data.listProperties);
 
-  const header = (
+  const title = (
     <>
       {/**
        * The frame draws the name of the note, ALWAYS, and every heading of
@@ -176,28 +171,17 @@ export function NotePage({ noteId }: { noteId: string }) {
           </button>
         </p>
       )}
-
-      {reading && properties.length > 0 && (
-        <details className="properties-box" open>
-          <summary>{t('note.properties')}</summary>
-          <div className="metadata-container">
-            {properties.map(([key, value]) => (
-              <div
-                className="metadata-property"
-                data-property-type={propertyType(value, lists.has(key))}
-                key={key}
-              >
-                <span className="metadata-property-key">{propertyLabel(key, t)}</span>
-                <span className="metadata-property-value">
-                  <PropertyValue value={value} list={lists.has(key)} notebookId={notebookId} />
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
     </>
   );
+  // The renderer places the name and the properties, as a note's `properties`
+  // block or the notebook's style says (#530); in edit mode the editor draws
+  // the name as its title field and the properties as a form.
+  const header = {
+    title,
+    properties: reading ? properties : [],
+    lists,
+    notebookId,
+  };
 
   return (
     <>

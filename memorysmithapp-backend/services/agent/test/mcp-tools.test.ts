@@ -3591,7 +3591,7 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
     });
   });
 
-  it('sets how a printed note shows its properties, and says it in the context (#530)', async () => {
+  it('sets the properties, the contents and the numbering of every note, and says them in the context (#530, #521, #535)', async () => {
     const asked: unknown[] = [];
     const adapter = gateways({
       knowledge: {
@@ -3602,13 +3602,14 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
       },
     });
     const properties = { print: { place: 'end', keys: ['status', 'data'], title: 'Registro' } };
+    const contents = { headings: { depth: 2 }, print: { place: 'start' }, screen: 'none' };
     const result = await adapter.call(
       'set_style',
-      { notebook: '01JBQ2X00000000000000000V1', properties },
+      { notebook: '01JBQ2X00000000000000000V1', properties, contents, numbering: 'decimal' },
       caller,
     );
     expect(result.isError).toBe(false);
-    expect(asked).toEqual([{ properties }]);
+    expect(asked).toEqual([{ properties, contents, numbering: 'decimal' }]);
     // An agent whose list of tools is older still says cover, end or none.
     await adapter.call(
       'set_style',
@@ -3617,13 +3618,19 @@ describe("the notebook's style through the connector (#493, RN-AGT-071)", () => 
     );
     expect(asked[1]).toEqual({ properties: { print: 'none' } });
 
-    expect(styleSection({ ...DEFAULT_NOTEBOOK_STYLE, properties: properties as never })).toContain(
-      'properties on a page at the end, only status, data, headed "Registro"',
-    );
-    expect(styleSection(DEFAULT_NOTEBOOK_STYLE)).toContain('properties below the title, every key');
-    expect(styleSection({ ...DEFAULT_NOTEBOOK_STYLE, properties: { print: 'none' } })).toContain(
-      'properties not printed',
-    );
+    const styled = styleSection({
+      ...DEFAULT_NOTEBOOK_STYLE,
+      properties: properties as never,
+      contents: contents as never,
+      numbering: 'decimal',
+    });
+    expect(styled).toContain(JSON.stringify(properties));
+    expect(styled).toContain(JSON.stringify(contents));
+    expect(styled).toContain('headings numbered 1, 1.1, 1.2');
+    const plain = styleSection(DEFAULT_NOTEBOOK_STYLE);
+    expect(plain).toContain('every key at the top, on the screen and in print');
+    expect(plain).toContain("none, only a note's own `contents` block draws one");
+    expect(plain).toContain('headings not numbered');
   });
 
   it('refuses a value it cannot take, a setting it does not have, and a call that names none', async () => {

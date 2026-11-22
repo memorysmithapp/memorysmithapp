@@ -7246,6 +7246,16 @@ button.attachment-thumb:focus-visible {
   color: var(--text-soft);
   font-size: 0.78rem;
 }
+/* A list a contents draws, ticked, its headings by their levels (#521). */
+.style-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.style-check select {
+  margin-left: auto;
+}
 /* A setting typed rather than chosen (#530) reads as the settings around it. */
 .style-field {
   display: flex;
@@ -7433,23 +7443,15 @@ button.attachment-thumb:focus-visible {
   widows: 3;
 }
 
-/* The properties below the title, or at the end on a page of their own that
-   their heading, or the name of the note, opens (#530). */
-.print-properties {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-.print-start {
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+/* The properties where the renderer places them (#530): at the end they open
+   a page of their own, under their heading when the style or the note's block
+   gives one. */
+.print-part .note-properties {
+  margin-block: 1rem 1.5rem;
   break-inside: avoid;
 }
-.print-start h2 {
-  margin: 0;
-}
-.print-properties .properties-box {
-  margin: 0;
+.print-part .properties-title {
+  margin: 0 0 0.75rem;
 }
 
 /* A wide table is never cut at the margin. It is a table again rather than

@@ -182,23 +182,23 @@ export interface NotebookStyle {
   readonly tables: StyleAlignment;
   /** Whether justified text breaks words with a hyphen (#498). */
   readonly hyphenate: boolean;
-  /** How a printed note draws its properties (#530, RN-KNW-096). */
-  readonly properties: NotebookProperties;
+  /** How the headings are numbered (#535). */
+  readonly numbering: 'none' | 'decimal';
+  /** How a note draws its properties when it writes no block (#530, RN-KNW-096). */
+  readonly properties: DrawingSettings;
+  /** The contents a note draws when it writes none, or none (#521, RN-KNW-097). */
+  readonly contents: DrawingSettings | null;
   readonly orientation: StyleOrientation;
   readonly printTables: 'wrap' | 'shrink' | 'appendices';
   readonly appendixOrientation: StyleOrientation | null;
 }
 
-/** Where a printed note's properties go, which keys and under which heading (#530). */
-export interface NotebookProperties {
-  readonly print:
-    | 'none'
-    | {
-        readonly place: 'start' | 'end';
-        readonly keys: string[] | null;
-        readonly title: string | null;
-      };
-}
+/**
+ * The renderer's host settings of a `properties` or a `contents` block
+ * (#530, #521): data of the notebook, in the structure the specification
+ * gives them, validated at the edge by the published schema.
+ */
+export type DrawingSettings = { readonly [key: string]: unknown };
 
 export const NotebookStyle = {
   /** How every note was drawn and printed before a notebook had a style. */
@@ -208,15 +208,17 @@ export const NotebookStyle = {
     text: 'left',
     tables: 'left',
     hyphenate: false,
-    properties: { print: { place: 'start', keys: null, title: null } },
+    numbering: 'none',
+    properties: {},
+    contents: null,
     orientation: 'portrait',
     printTables: 'wrap',
     appendixOrientation: null,
   } as NotebookStyle,
   same(left: NotebookStyle, right: NotebookStyle): boolean {
     return (Object.keys(NotebookStyle.DEFAULT) as (keyof NotebookStyle)[]).every((key) =>
-      key === 'properties'
-        ? JSON.stringify(left.properties) === JSON.stringify(right.properties)
+      typeof left[key] === 'object' || typeof right[key] === 'object'
+        ? JSON.stringify(left[key]) === JSON.stringify(right[key])
         : left[key] === right[key],
     );
   },

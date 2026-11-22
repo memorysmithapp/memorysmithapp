@@ -714,18 +714,19 @@ export function styleSection(style: NotebookStyle): string {
       'that note.',
     '',
     `- Font: ${style.font}`,
-    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}`,
-    `- Printed: properties ${printedProperties(style.properties)}, ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
+    `- Headings: ${style.headings}; text: ${style.text}; tables: ${style.tables}; justified text ${style.hyphenate ? 'hyphenates' : 'breaks no word'}; headings ${style.numbering === 'decimal' ? 'numbered 1, 1.1, 1.2' : 'not numbered'}`,
+    `- Properties: ${
+      Object.keys(style.properties).length === 0
+        ? 'every key at the top, on the screen and in print'
+        : `\`${JSON.stringify(style.properties)}\``
+    }; a note's own \`properties\` block wins over it`,
+    `- Contents: ${
+      style.contents === null
+        ? "none, only a note's own `contents` block draws one"
+        : `\`${JSON.stringify(style.contents)}\`, for every note that writes no \`contents\` block`
+    }`,
+    `- Printed: ${style.orientation}, tables ${style.printTables === 'appendices' ? `as appendices at the end (${appendix})` : style.printTables === 'shrink' ? 'shrunk to the page' : 'wrapping their text'}`,
   ].join('\n');
-}
-
-/** Where a printed note draws its properties, which keys and under which heading (#530). */
-function printedProperties(properties: NotebookStyle['properties']): string {
-  const print = properties.print;
-  if (print === 'none') return 'not printed';
-  const where = print.place === 'end' ? 'on a page at the end' : 'below the title';
-  const keys = print.keys ? `only ${print.keys.join(', ')}` : 'every key';
-  return `${where}, ${keys}${print.title ? `, headed "${print.title}"` : ''}`;
 }
 
 /**
@@ -739,8 +740,8 @@ function styleArgument(args: Record<string, unknown>): NotebookStylePatch {
     throw new GatewayError(
       'VALIDATION',
       'set_style takes the notebook and at least one of: font (sans, serif); headings, text, ' +
-        'tables (left, center, right, justify); hyphenate (true, false); properties ({ "print": "none" } or ' +
-        '{ "print": { "place": "start" or "end", "keys": [...] or null, "title": text or null } }); orientation ' +
+        'tables (left, center, right, justify); hyphenate (true, false); numbering (none, decimal); properties and contents (the ' +
+        'host settings of the properties and contents blocks, as write-notes teaches them); orientation ' +
         '(portrait, landscape); printTables (wrap, shrink, appendices); appendixOrientation ' +
         '(portrait, landscape, or null).',
       { given: Object.keys(rest).join(', ') || null },
