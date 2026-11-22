@@ -193,23 +193,28 @@ function blockAt(overflow: Range): Element | null {
 }
 
 /**
- * Where a page breaks when it would leave a table's title at its foot (#537):
- * the overflow starts inside a table, or at the block that holds it, before
- * any row of its body made it onto the page, and the block before is the
- * table's title, which then goes to the next page with the table. A title
- * that opens its page stays: moving it would only move the same break along.
+ * Where a page breaks when it would leave a table's head at its foot (#537):
+ * the overflow starts at a table's block, or inside it, before any row of its
+ * body ended on the page — so its header, or the title right above it, would
+ * stand alone there. The break moves before the table, and before its title
+ * when it has one, so they go to the next page with the first rows. A table
+ * or a title that opens its page stays: moving it would only move the same
+ * break along.
  */
 export function keepTitleWithTable(overflow: Range): Range | undefined {
   const block = blockAt(overflow);
   const table = block?.matches('table') ? block : block?.querySelector('table');
   if (!block || !table) return undefined;
+  // A row of the body is on the page only when it ends before the overflow:
+  // an overflow inside the first row leaves the header alone under the title.
   const firstRow = table.querySelector('tbody tr');
-  if (firstRow && overflow.comparePoint(firstRow, 0) < 0) return undefined;
+  if (firstRow && overflow.comparePoint(firstRow, firstRow.childNodes.length) < 0) return undefined;
   const title = block.previousElementSibling;
-  if (!title || !isTableTitle(title) || !title.previousElementSibling) return undefined;
-  const moved = overflow.cloneRange();
-  moved.setStartBefore(title);
-  return moved;
+  const moved = title && isTableTitle(title) ? title : block;
+  if (!moved.previousElementSibling) return undefined;
+  const range = overflow.cloneRange();
+  range.setStartBefore(moved);
+  return range;
 }
 
 let handlersRegistered = false;

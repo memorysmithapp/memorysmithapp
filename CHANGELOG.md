@@ -29,7 +29,7 @@ issues each entry cites.
 ### Fixed
 
 - **A contents shows no list with nothing in it.** *Figures*, *Tables* or *Attachments* no longer stand over an empty list when the note has none, and a contents with no entry at all is not shown, on the screen and in print (#541).
-- **A table's title never ends a printed page above the table.** Printed and in the PDF, a heading or a line of bold words right above a table, a `table` block included, no longer stays at the foot of a page with the table's rows on the next: when the table's first rows do not fit under it, the title goes to the next page with them (#537).
+- **A table's title, or its header, never ends a printed page above the table.** Printed and in the PDF, neither a heading or a line of bold words right above a table, a `table` block included, nor the table's own header row stays at the foot of a page with the rows on the next: when no row of the table fits under them, they go to the next page with the first rows (#537).
 - **A chart of a dashboard fits its card.** A chart drawn while its card was wider — a dashboard opened in a narrow window and then widened, or the image `preview_dashboard` and *Download PNG* draw — kept that width and spilled out of its card, showing one bar of three or a donut cut off; it now follows the card's width whenever it changes (#528).
 
 ## [0.22.0] - 2026-11-21
