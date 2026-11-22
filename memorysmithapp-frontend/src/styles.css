@@ -2195,6 +2195,20 @@ a:hover {
 /* Not a card: in those editors the properties sit in the flow of the page,
    under the title and above the prose, parted from it by a single rule. A card
    here would read as an aside, which is the one thing they are not. */
+/* The caption of a table and of a figure is centred under it, whatever the
+   alignment the notebook's style or a style block gives the text (#540). */
+.markdown p.table-caption,
+.markdown .figure-caption {
+  text-align: center;
+}
+/* A contents shows no list with nothing to list, and nothing when no list has
+   an entry (#541), on the screen and in print: the renderer draws their titles
+   over empty lists (memorysmithapp-markdown#181). */
+.markdown .contents .contents-list:not(:has(.contents-entry)),
+.markdown .contents:not(:has(.contents-entry)) {
+  display: none;
+}
+
 .properties-box {
   margin: 0 0 1.5rem;
   padding: 0 0 0.85rem;
