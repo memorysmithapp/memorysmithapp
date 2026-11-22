@@ -424,7 +424,8 @@ const DEFINITIONS: readonly ToolDefinition[] = [
         },
         contentsPages: {
           type: 'boolean',
-          description: 'In print, each list of the contents opens a page, and so does what follows it.',
+          description:
+            'In print, each list of the contents opens a page, and so does what follows it.',
         },
         contents: {
           type: ['object', 'null'],
