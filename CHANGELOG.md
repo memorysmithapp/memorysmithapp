@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The interface opens faster.** Each screen now brings what it draws when it opens, instead of every screen arriving with the first one: what the browser downloads before the sign-in or Home draws fell from 526 kB to 233 kB, and its stylesheet from 46 kB to 25 kB (gzip). The note renderer, formulas, diagrams, charts and the graph arrive only on the screens that show them (#547).
+
 ### Fixed
 
 - **A notebook's card says when any of its notes last changed.** On the Notebooks page, and to an agent listing notebooks, *updated* moved only when the notebook itself changed (its name, its folders), so a notebook whose note was edited today still showed the day the notebook last changed, unlike *Recently changed* inside it. It now gives the later of the two, moved by creating, editing, moving, reordering or deleting a note. A notebook whose notes haven't changed since this fix shows the date it showed before until one does (#546).
