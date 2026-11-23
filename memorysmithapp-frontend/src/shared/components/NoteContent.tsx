@@ -3,6 +3,7 @@ import { answerTableBlock } from '../api/table-block';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
+  use,
   useCallback,
   useContext,
   useEffect,
@@ -58,6 +59,7 @@ import { namesSystemNotesTable } from '@memorysmithapp/contracts';
 import { identifierOf, linkTargetAddress, noteAddress } from '../api/note-address';
 import { queryKeys, type InterfaceQueryKey } from '../api/query-keys';
 import { intlLocale } from '../../i18n/intl-locale';
+import { readingStyles } from '../lib/reading-styles';
 import { effectiveTheme, usePreferences } from '../store/preferences';
 import { useWriteStatus } from '../store/write-status';
 import { fileKindKey } from './file-kind';
@@ -423,6 +425,8 @@ export function NoteContent({
   /** The name and the properties of the note, which the renderer places (#300, #530). */
   header?: NoteHeaderParts;
 }) {
+  // The renderer's and KaTeX's stylesheets, before the first note draws (#547).
+  use(readingStyles());
   const client = useQueryClient();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
