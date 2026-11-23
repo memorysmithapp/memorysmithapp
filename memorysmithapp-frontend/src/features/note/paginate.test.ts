@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { PRINTED_ID, separateIds } from './paginate';
+import { pageRules, PRINTED_ID, separateIds } from './paginate';
 
 /** An element as `separateIds` reads it: its attributes, nothing else. */
 class Element {
@@ -76,5 +76,25 @@ describe('separateIds (#520)', () => {
 
     expect(elsewhere.getAttribute('href')).toBe('#somewhere-else');
     expect(named.getAttribute('aria-labelledby')).toBe(`${PRINTED_ID}intro outside`);
+  });
+});
+
+describe('the page rules of a contents (#545)', () => {
+  const rules = pageRules('portrait', null, false);
+  /** The declarations of the rule whose selector is exactly this one. */
+  const ruleOf = (selector: string) =>
+    rules
+      .split('\n')
+      .find((line) => line.startsWith(`${selector} {`))
+      ?.slice(selector.length) ?? '';
+
+  it('lines the dotted line and the page up with the last line of an entry', () => {
+    expect(ruleOf('.contents-entry')).toContain('align-items: last baseline');
+  });
+
+  it('never breaks the number of an entry, nor lets it shrink', () => {
+    const number = ruleOf('.contents-entry > .contents-number');
+    expect(number).toContain('flex: none');
+    expect(number).toContain('white-space: nowrap');
   });
 });

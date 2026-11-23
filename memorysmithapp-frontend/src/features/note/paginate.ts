@@ -30,15 +30,19 @@ export const PAGE_MARGINS = '18mm 16mm 20mm';
  * of a page are read from the stylesheet of the application, which applies to
  * the copy.
  */
-function pageRules(
+export function pageRules(
   orientation: Orientation,
   appendices: Appendices | null,
   contentsPages: boolean,
 ): string {
+  // An entry of two lines or more lines its dotted line and its page up with
+  // its LAST line, where the text ends, and its number (Tabela 11, 2.4) never
+  // shrinks into two lines of its own (#545).
   return `
 @page { size: A4 ${orientation}; margin: ${PAGE_MARGINS}; }
 .print-end { break-before: page; }
-.contents-entry { display: flex; align-items: baseline; gap: 0.25em; }
+.contents-entry { display: flex; align-items: last baseline; gap: 0.25em; }
+.contents-entry > .contents-number { flex: none; white-space: nowrap; }
 .contents-entry::before { content: ""; order: 1; flex: 1; min-width: 1em; border-bottom: 1px dotted currentColor; opacity: 0.6; }
 .contents-entry::after { content: target-counter(attr(href url), page); order: 2; }
 ${contentsPages ? CONTENTS_PAGES : ''}
