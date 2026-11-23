@@ -37,7 +37,7 @@ beforeEach(async () => {
   });
 });
 
-function call(
+async function call(
   path: string,
   init: { method?: string; body?: unknown; token?: string; tag?: string } = {},
 ): Promise<Response> {
