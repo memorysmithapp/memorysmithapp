@@ -132,6 +132,12 @@ a {
 a:hover {
   text-decoration: underline;
 }
+/* A link dressed as a button is a button, and a button never underlines: the
+   class alone loses to `a:hover` above (#544). */
+a.button:hover,
+a.bar-button:hover {
+  text-decoration: none;
+}
 
 /* The window, and nothing taller (#158).
  *

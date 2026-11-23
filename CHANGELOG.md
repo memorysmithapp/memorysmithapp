@@ -15,6 +15,8 @@ issues each entry cites.
 
 - **A notebook's card says when any of its notes last changed.** On the Notebooks page, and to an agent listing notebooks, *updated* moved only when the notebook itself changed (its name, its folders), so a notebook whose note was edited today still showed the day the notebook last changed, unlike *Recently changed* inside it. It now gives the later of the two, moved by creating, editing, moving, reordering or deleting a note. A notebook whose notes haven't changed since this fix shows the date it showed before until one does (#546).
 - **A printed contents entry of two lines ends on its last line.** Printed and in the PDF, an entry whose text takes more than one line, a long table caption above all, put its dotted line and its page beside the first line, and broke its number, *Tabela* over *11*. The dotted line and the page now sit on the last line, and the number stays whole, the text wrapping beside it (#545).
+- **A button never underlines.** *Generate PDF* on a note, and the buttons that open a note or a notebook from the graph, a table row and the transfers, and *Change password* on the profile, underlined their label under the pointer, unlike every other button (#544).
+- **The sign-in's return and the PDF tab show the brand whole.** They drew the word *MemorySmith.app* alone; they now show the symbol of the current theme over it, as the sign-in does (#544).
 
 ## [0.23.0] - 2026-11-22
 

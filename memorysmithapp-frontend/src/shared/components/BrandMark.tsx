@@ -14,3 +14,21 @@ export function BrandMark() {
     </>
   );
 }
+
+/**
+ * The brand at the head of a screen that stands outside the shell: the sign-in,
+ * the page the sign-in returns to and the tab that generates a PDF. The symbol
+ * of the current theme over the wordmark, the way the sign-in drew it, so no
+ * such screen shows the word alone (#544).
+ */
+export function BrandHeading() {
+  return (
+    <>
+      <img src="/symbol.svg" alt="" className="login-symbol symbol-light" />
+      <img src="/symbol-dark.svg" alt="" className="login-symbol symbol-dark" />
+      <h1 className="brand-word">
+        MemorySmith<span className="brand-suffix">.app</span>
+      </h1>
+    </>
+  );
+}
