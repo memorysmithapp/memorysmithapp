@@ -11,6 +11,7 @@ import { NotebookCard } from './NotebookCard';
 import { OwnershipMark } from '../sharing/OwnershipMark';
 import { ShareDialog } from '../sharing/ShareDialog';
 import { isOpenUpload, useTransfers } from '../portability/transfers';
+import { Button } from '../../shared/components/Button';
 
 type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
 
@@ -186,24 +187,25 @@ export function NotebookActions({
             ) : null}
           </p>
           <div className="notebook-card-confirm-actions">
-            <button
-              type="button"
-              className="button is-quiet is-small"
+            <Button
+              variant="quiet"
+              small
               disabled={phase === 'deleting'}
               onClick={() => setPhase('idle')}
             >
               {t('dashboard.card.keep')}
-            </button>
-            <button
-              type="button"
-              className="button is-danger is-filled is-small"
+            </Button>
+            <Button
+              variant="danger"
+              confirming
+              small
               disabled={phase === 'deleting'}
               onClick={() => void confirmed()}
             >
               {phase === 'deleting'
                 ? t('dashboard.card.deleting')
                 : t('dashboard.card.deleteForGood')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : undefined}

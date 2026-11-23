@@ -29,6 +29,7 @@ import {
 import { queryKeys } from '../../shared/api/query-keys';
 import { RowsSkeleton } from '../../shared/components/skeletons';
 import { SearchPicker } from '../../shared/components/SearchPicker';
+import { Button } from '../../shared/components/Button';
 
 /**
  * What an export carries, asked in the dialog both sides share (#160).
@@ -199,12 +200,11 @@ export function ExportChoice({
       actions={
         choosing ? (
           <>
-            <button type="button" className="button is-quiet" onClick={() => setChoosing(false)}>
+            <Button variant="quiet" onClick={() => setChoosing(false)}>
               {t('newNotebook.back')}
-            </button>
-            <button
-              type="button"
-              className="button is-primary"
+            </Button>
+            <Button
+              variant="primary"
               disabled={pending === null}
               onClick={() => {
                 if (pending !== null && pending !== notebookId) onChooseNotebook(pending);
@@ -212,7 +212,7 @@ export function ExportChoice({
               }}
             >
               {t('newNotebook.select')}
-            </button>
+            </Button>
           </>
         ) : (
           <>
@@ -230,12 +230,11 @@ export function ExportChoice({
                 {t('portability.tables.blocked', { count: broken.length })}
               </p>
             ) : null}
-            <button type="button" className="button is-quiet" onClick={onClose}>
+            <Button variant="quiet" onClick={onClose}>
               {t('portability.cancel')}
-            </button>
-            <button
-              type="button"
-              className="button is-primary"
+            </Button>
+            <Button
+              variant="primary"
               disabled={notebooks.length === 0 || notebookId === '' || broken.length > 0}
               onClick={() =>
                 onConfirm(
@@ -245,7 +244,7 @@ export function ExportChoice({
               }
             >
               {t('portability.startExport')}
-            </button>
+            </Button>
           </>
         )
       }
@@ -286,16 +285,16 @@ export function ExportChoice({
             ) : (
               <span className="hint">{t('portability.noNotebook')}</span>
             )}
-            <button
-              type="button"
-              className="button is-quiet is-small"
+            <Button
+              variant="quiet"
+              small
               onClick={() => {
                 setPending(notebookId === '' ? null : notebookId);
                 setChoosing(true);
               }}
             >
               {t('portability.chooseNotebook')}
-            </button>
+            </Button>
           </div>
         </div>
       )}

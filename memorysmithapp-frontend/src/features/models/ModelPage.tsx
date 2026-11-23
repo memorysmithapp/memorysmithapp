@@ -25,6 +25,7 @@ import { ModelHistoryPanel } from './ModelHistory';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { CloseIcon, UploadIcon } from '../../shared/components/icons';
 import { ModelSkeleton } from '../../shared/components/skeletons';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The model of a notebook (#353): what a notebook declared as a model says of
@@ -235,14 +236,13 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
           <p>
             {t('model.publishedAs', { author: published.author, language: published.language })}
           </p>
-          <button
-            type="button"
-            className="button is-quiet"
+          <Button
+            variant="quiet"
             disabled={busy}
             onClick={() => void act(() => withdrawModel(notebookId))}
           >
             <ActionWord icon={<CloseIcon />} word={t('model.withdraw')} wide />
-          </button>
+          </Button>
         </>
       ) : (
         <>
@@ -275,16 +275,15 @@ function Publication({ notebookId, model }: { notebookId: string; model: Noteboo
               {t('sharing.dialog.acceptLicence')}
             </label>
           ) : null}
-          <button
-            type="button"
-            className="button is-primary"
+          <Button
+            variant="primary"
             disabled={busy || (needsLicence && !accepted)}
             onClick={() =>
               void act(() => publishModel(notebookId, { language, acceptLicence: accepted }))
             }
           >
             <ActionWord icon={<UploadIcon />} word={t('model.publish')} wide />
-          </button>
+          </Button>
         </>
       )}
       {failure ? (

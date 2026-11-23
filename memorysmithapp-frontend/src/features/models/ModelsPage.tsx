@@ -20,6 +20,7 @@ import { ShelfCorner } from '../dashboard/ShelfCorner';
 import { PageHeading } from '../../shared/components/PageHeading';
 import { ShelfCard, formatDay } from '../dashboard/NotebookCard';
 import { ShelfSkeleton } from '../../shared/components/skeletons';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The notebook models a person reads, in one place (#418, RN-PRT-084): theirs,
@@ -67,14 +68,13 @@ export function ModelsPage() {
         count={models?.length}
         help={{ page: 'models', text: t('models.help') }}
         action={
-          <button
-            type="button"
+          <Button
             // The quiet button every page head uses, as Transfers does (#422).
-            className="button is-quiet"
+            variant="quiet"
             onClick={() => setCreating(true)}
           >
             <ActionWord icon={<PlusIcon />} word={t('models.new')} />
-          </button>
+          </Button>
         }
       />
 

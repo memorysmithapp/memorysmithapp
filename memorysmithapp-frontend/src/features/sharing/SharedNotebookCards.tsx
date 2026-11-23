@@ -12,6 +12,7 @@ import { CardGraphDrawing } from '../dashboard/card-graphs';
 import { NotebookCard } from '../dashboard/NotebookCard';
 import { OwnershipMark } from './OwnershipMark';
 import { profileKey, sharesChanged } from './shares';
+import { Button } from '../../shared/components/Button';
 
 /**
  * A notebook shared with me and accepted, as a card of Home (#256): what a
@@ -157,22 +158,12 @@ export function AcceptedShareCard({
             <span>{t('sharing.card.notifyOwner', { owner: share.ownerEmail })}</span>
           </label>
           <div className="notebook-card-confirm-actions">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={busy}
-              onClick={() => setLeaving(false)}
-            >
+            <Button variant="quiet" small disabled={busy} onClick={() => setLeaving(false)}>
               {t('sharing.card.stay')}
-            </button>
-            <button
-              type="button"
-              className="button is-danger is-filled is-small"
-              disabled={busy}
-              onClick={() => void leave()}
-            >
+            </Button>
+            <Button variant="danger" confirming small disabled={busy} onClick={() => void leave()}>
               {t('sharing.card.leaveForGood')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : share.pendingProfile ? (
@@ -191,22 +182,22 @@ export function AcceptedShareCard({
               })}
           </p>
           <div className="notebook-card-confirm-actions">
-            <button
-              type="button"
-              className="button is-quiet is-small"
+            <Button
+              variant="quiet"
+              small
               disabled={busy}
               onClick={() => void answerIncrease(false)}
             >
               {t('sharing.reject')}
-            </button>
-            <button
-              type="button"
-              className="button is-primary is-small"
+            </Button>
+            <Button
+              variant="primary"
+              small
               disabled={busy}
               onClick={() => void answerIncrease(true)}
             >
               {t('sharing.accept')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : undefined}
@@ -256,22 +247,12 @@ export function PendingShareCard({ share }: { share: IncomingShareDto }) {
       <footer>
         <span className="notebook-card-meta">{failure ?? t('sharing.card.waiting')}</span>
         <span className="notebook-card-answer">
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            disabled={busy}
-            onClick={() => void answer(false)}
-          >
+          <Button variant="quiet" small disabled={busy} onClick={() => void answer(false)}>
             {t('sharing.reject')}
-          </button>
-          <button
-            type="button"
-            className="button is-primary is-small"
-            disabled={busy}
-            onClick={() => void answer(true)}
-          >
+          </Button>
+          <Button variant="primary" small disabled={busy} onClick={() => void answer(true)}>
             {t('sharing.accept')}
-          </button>
+          </Button>
         </span>
       </footer>
       <div className="notebook-card-corner">

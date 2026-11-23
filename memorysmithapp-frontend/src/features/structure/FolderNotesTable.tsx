@@ -13,6 +13,7 @@ import type { NoteSummary } from '../../shared/types/api';
 import { formatDay } from '../dashboard/NotebookCard';
 import { nextSort, sortNotes, type Sort, type SortKey } from './folder-notes';
 import { authorLabel, byAgent } from './note-author';
+import { Button } from '../../shared/components/Button';
 
 /** How many notes a page of the table holds. */
 export const PAGE_SIZE = 50;
@@ -144,13 +145,9 @@ export function FolderNotesTable({
           </label>
         ) : null}
         {sort.key !== 'order' ? (
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            onClick={() => setSort({ key: 'order', direction: 'asc' })}
-          >
+          <Button variant="quiet" small onClick={() => setSort({ key: 'order', direction: 'asc' })}>
             {t('folderTable.folderOrder')}
-          </button>
+          </Button>
         ) : null}
       </div>
       <div className="tables-grid-scroll">

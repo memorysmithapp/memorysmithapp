@@ -36,6 +36,7 @@ import {
   Timeline,
   Wbs,
 } from './components';
+import { Button } from '../../shared/components/Button';
 
 /** What a component without an answer draws from, the same array on every render (#489). */
 const NONE = Object.freeze([]) as never;
@@ -306,25 +307,15 @@ export function DashboardView({
             <span className="visually-hidden" role="status">
               {fresh ? t('dashboards.updated') : ''}
             </span>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => void refresh()}
-              disabled={asked}
-            >
+            <Button variant="quiet" small onClick={() => void refresh()} disabled={asked}>
               {t('dashboards.refresh')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={drawing}
-              onClick={() => void download()}
-            >
+            </Button>
+            <Button variant="quiet" small disabled={drawing} onClick={() => void download()}>
               <ActionWord
                 icon={<DownloadIcon />}
                 word={drawing ? t('dashboards.drawing') : t('dashboards.downloadImage')}
               />
-            </button>
+            </Button>
           </div>
         )}
       </header>
@@ -350,13 +341,9 @@ export function DashboardView({
         <p className="dashboard-cross" role="status">
           {t('dashboards.crossFilter', { key: cross.key })}
           {still ? null : (
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => mark(cross.component, cross.key)}
-            >
+            <Button variant="quiet" small onClick={() => mark(cross.component, cross.key)}>
               {t('dashboards.clearFilter')}
-            </button>
+            </Button>
           )}
         </p>
       ) : null}
@@ -595,14 +582,9 @@ function PeriodSlicer({
           onChange={(event) => onChange(event.target.value || null)}
         />
       )}
-      <button
-        type="button"
-        className="button is-quiet is-small"
-        disabled={value === null}
-        onClick={() => onChange(null)}
-      >
+      <Button variant="quiet" small disabled={value === null} onClick={() => onChange(null)}>
         {t('dashboards.allPeriods')}
-      </button>
+      </Button>
     </div>
   );
 }

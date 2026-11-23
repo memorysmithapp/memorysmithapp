@@ -22,6 +22,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from '../../shared/components/icons';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The parts of a model, one tab each (#400): what it holds as it stands, and
@@ -244,22 +245,18 @@ export function ModelAbout({
 
   const saveButton = barSlot ? (
     // In the bar, outside the form: it submits it by its id.
-    <button
+    <Button
       type="submit"
       form="model-about"
-      className="bar-button"
+      variant="bar"
       disabled={busy || about.objective.trim().length === 0}
     >
       <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} />
-    </button>
+    </Button>
   ) : (
-    <button
-      type="submit"
-      className="button is-primary"
-      disabled={busy || about.objective.trim().length === 0}
-    >
+    <Button type="submit" variant="primary" disabled={busy || about.objective.trim().length === 0}>
       <ActionWord icon={<CheckIcon />} word={busy ? t('model.saving') : t('model.save')} wide />
-    </button>
+    </Button>
   );
 
   return (
@@ -379,16 +376,15 @@ export function ModelParameters({
     <section className="model-parameters">
       <div className="model-parameters-head">
         <p className="hint">{t('model.parametersHint')}</p>
-        <button
-          type="button"
-          className="button is-quiet"
+        <Button
+          variant="quiet"
           onClick={() => {
             setFailure(null);
             setEditing({ index: null, draft: emptyParameter() });
           }}
         >
           <ActionWord icon={<PlusIcon />} word={t('model.addParameter')} wide />
-        </button>
+        </Button>
       </div>
       {model.parameters.length === 0 ? (
         <p className="hint">{t('model.noParameters')}</p>
@@ -405,9 +401,9 @@ export function ModelParameters({
               <span className="parameter-line-type">{t(`model.type.${parameter.type}`)}</span>
               <span className="parameter-line-requirement">{requirementOf(parameter, t)}</span>
               <span className="parameter-line-actions">
-                <button
-                  type="button"
-                  className="button is-quiet is-small"
+                <Button
+                  variant="quiet"
+                  small
                   aria-label={t('model.editParameterOf', { name: parameter.name })}
                   onClick={() => {
                     setFailure(null);
@@ -415,10 +411,10 @@ export function ModelParameters({
                   }}
                 >
                   <ActionWord icon={<PencilIcon />} word={t('model.editParameter')} />
-                </button>
-                <button
-                  type="button"
-                  className="button is-quiet is-small"
+                </Button>
+                <Button
+                  variant="quiet"
+                  small
                   aria-label={t('model.removeParameterOf', { name: parameter.name })}
                   onClick={() => {
                     setFailure(null);
@@ -426,7 +422,7 @@ export function ModelParameters({
                   }}
                 >
                   <ActionWord icon={<TrashIcon />} word={t('model.removeParameter')} />
-                </button>
+                </Button>
               </span>
             </li>
           ))}
@@ -448,12 +444,11 @@ export function ModelParameters({
           className="parameter-modal"
           actions={
             <>
-              <button type="button" className="button is-quiet" onClick={() => setEditing(null)}>
+              <Button variant="quiet" onClick={() => setEditing(null)}>
                 <ActionWord icon={<CloseIcon />} word={t('common.cancel')} wide />
-              </button>
-              <button
-                type="button"
-                className="button is-primary"
+              </Button>
+              <Button
+                variant="primary"
                 disabled={busy || problem !== null}
                 onClick={() => {
                   const next =
@@ -470,7 +465,7 @@ export function ModelParameters({
                   word={busy ? t('model.saving') : t('model.save')}
                   wide
                 />
-              </button>
+              </Button>
             </>
           }
         >
@@ -494,12 +489,11 @@ export function ModelParameters({
           onClose={() => setRemoving(null)}
           actions={
             <>
-              <button type="button" className="button is-quiet" onClick={() => setRemoving(null)}>
+              <Button variant="quiet" onClick={() => setRemoving(null)}>
                 <ActionWord icon={<CloseIcon />} word={t('common.cancel')} wide />
-              </button>
-              <button
-                type="button"
-                className="button is-danger"
+              </Button>
+              <Button
+                variant="danger"
                 disabled={busy}
                 onClick={() => {
                   void write(drafts.filter((_each, at) => at !== removing)).then((done) => {
@@ -512,7 +506,7 @@ export function ModelParameters({
                   word={busy ? t('model.saving') : t('model.removeParameter')}
                   wide
                 />
-              </button>
+              </Button>
             </>
           }
         >

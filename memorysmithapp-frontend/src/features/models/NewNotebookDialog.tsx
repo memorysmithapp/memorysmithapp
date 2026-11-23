@@ -34,6 +34,7 @@ import {
 import { missingRequired } from './model-form';
 import { aboutOf, AboutFields, declarationOf, type AboutDraft } from './ModelParts';
 import { FieldsSkeleton } from '../../shared/components/skeletons';
+import { Button } from '../../shared/components/Button';
 
 /**
  * A new notebook from Home (#359): blank, with a name and a line saying what it
@@ -139,12 +140,12 @@ export function NewModelDialog({ open, onClose }: { open: boolean; onClose: () =
           </p>
         ) : null}
         <div className="ask-dialog-foot">
-          <button type="button" className="button is-quiet" onClick={onClose}>
+          <Button variant="quiet" onClick={onClose}>
             <ActionWord icon={<CloseIcon />} word={t('common.cancel')} wide />
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className="button is-primary"
+            variant="primary"
             disabled={busy || !name.trim() || !about.objective.trim()}
           >
             <ActionWord
@@ -152,7 +153,7 @@ export function NewModelDialog({ open, onClose }: { open: boolean; onClose: () =
               word={busy ? t('model.saving') : t('model.declare')}
               wide
             />
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
@@ -198,12 +199,12 @@ function BlankNotebook({ onClose }: { onClose: () => void }) {
         </p>
       ) : null}
       <div className="ask-dialog-foot">
-        <button type="button" className="button is-quiet" onClick={onClose}>
+        <Button variant="quiet" onClick={onClose}>
           {t('common.cancel')}
-        </button>
-        <button type="submit" className="button is-primary" disabled={busy || !name.trim()}>
+        </Button>
+        <Button type="submit" variant="primary" disabled={busy || !name.trim()}>
           {busy ? t('newNotebook.creating') : t('newNotebook.create')}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -271,17 +272,12 @@ export function FromModel({
           onPick={(origin, item) => setPending({ origin, item })}
         />
         <div className="ask-dialog-foot">
-          <button type="button" className="button is-quiet" onClick={() => setChoosing(false)}>
+          <Button variant="quiet" onClick={() => setChoosing(false)}>
             {t('newNotebook.back')}
-          </button>
-          <button
-            type="button"
-            className="button is-primary"
-            disabled={pending === null}
-            onClick={select}
-          >
+          </Button>
+          <Button variant="primary" disabled={pending === null} onClick={select}>
             {t('newNotebook.select')}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -312,16 +308,16 @@ export function FromModel({
           ) : (
             <span className="hint">{t('newNotebook.noModel')}</span>
           )}
-          <button
-            type="button"
-            className="button is-quiet is-small"
+          <Button
+            variant="quiet"
+            small
             onClick={() => {
               setPending(picked);
               setChoosing(true);
             }}
           >
             {t('newNotebook.chooseModel')}
-          </button>
+          </Button>
         </div>
         {model ? <span className="field-hint">{model.objective}</span> : null}
       </div>
@@ -346,12 +342,12 @@ export function FromModel({
         </p>
       ) : null}
       <div className="ask-dialog-foot">
-        <button type="button" className="button is-quiet" onClick={onClose}>
+        <Button variant="quiet" onClick={onClose}>
           {t('common.cancel')}
-        </button>
-        <button type="submit" className="button is-primary" disabled={creation.busy || !ready}>
+        </Button>
+        <Button type="submit" variant="primary" disabled={creation.busy || !ready}>
           {creation.busy ? t('newNotebook.creating') : t('newNotebook.create')}
-        </button>
+        </Button>
       </div>
     </form>
   );

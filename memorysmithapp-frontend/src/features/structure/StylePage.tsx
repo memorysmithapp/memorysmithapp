@@ -44,6 +44,7 @@ import {
   type PropertiesForm,
   type Where,
 } from './style-settings';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The style of a notebook (#493, RN-KNW-092): how every note in it is drawn
@@ -406,9 +407,8 @@ export function StylePage() {
                         ? t('style.unsaved')
                         : ''}
                 </p>
-                <button
-                  type="button"
-                  className="button is-quiet"
+                <Button
+                  variant="quiet"
                   disabled={!changed || save.isPending}
                   onClick={() => {
                     setSavedAt(null);
@@ -417,14 +417,10 @@ export function StylePage() {
                   }}
                 >
                   {t('style.undo')}
-                </button>
-                <button
-                  type="submit"
-                  className="button is-primary"
-                  disabled={!changed || save.isPending}
-                >
+                </Button>
+                <Button type="submit" variant="primary" disabled={!changed || save.isPending}>
                   {save.isPending ? t('style.saving') : t('style.save')}
-                </button>
+                </Button>
               </div>
             ) : null}
           </form>

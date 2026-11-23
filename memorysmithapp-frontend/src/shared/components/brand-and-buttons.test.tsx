@@ -14,8 +14,14 @@ const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'u
 
 describe('a link dressed as a button (#544)', () => {
   it('never underlines, though every other link does', () => {
-    expect(css).toMatch(/\na:hover \{\s*text-decoration: underline;/);
-    expect(css).toMatch(/a\.button:hover,\s*a\.bar-button:hover \{\s*text-decoration: none;/);
+    // Every link underlines from the layer of the elements, below the layer of
+    // the button, which never does: the layers decide, not specificity.
+    expect(css).toMatch(/@layer tokens, base, primitives;/);
+    const base = css.slice(css.indexOf('@layer base {'), css.indexOf('@layer primitives {'));
+    expect(base).toMatch(/\n {2}a:hover \{\s*text-decoration: underline;/);
+    const primitives = css.slice(css.indexOf('@layer primitives {'));
+    expect(primitives).toMatch(/\n {2}\.button \{[^}]*text-decoration: none;/);
+    expect(css).not.toContain('bar-button');
   });
 });
 

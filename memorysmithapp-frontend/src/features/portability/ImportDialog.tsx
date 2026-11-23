@@ -55,6 +55,7 @@ import {
 import { useRefreshTransfers, useTransfers } from './transfers';
 import { queryKeys } from '../../shared/api/query-keys';
 import { ActionWord } from '../../shared/components/ActionWord';
+import { Button } from '../../shared/components/Button';
 
 /**
  * What an import writes, asked in the dialog both sides share (#160).
@@ -381,24 +382,18 @@ export function ImportDialog({
               </p>
             )
           )}
-          <button
-            type="button"
-            className="button is-quiet"
+          <Button
+            variant="quiet"
             onClick={() => {
               reset();
               onClose();
             }}
           >
             {t('portability.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button is-primary"
-            disabled={!ready}
-            onClick={() => void begin()}
-          >
+          </Button>
+          <Button variant="primary" disabled={!ready} onClick={() => void begin()}>
             {t('portability.import')}
-          </button>
+          </Button>
         </>
       }
     >
@@ -493,22 +488,18 @@ export function ImportDialog({
               </span>
               {/* Choosing another goes back to where the choice is made,
                   from the device or from the kept exports alike. */}
-              <button type="button" className="button is-quiet is-small" onClick={startOver}>
+              <Button variant="quiet" small onClick={startOver}>
                 <ActionWord icon={<UploadIcon />} word={t('portability.changeFile')} />
-              </button>
+              </Button>
             </>
           ) : (
             <>
               <span className="import-drop-hint">
                 {file ? file.name : t('portability.dropHint')}
               </span>
-              <button
-                type="button"
-                className="button is-quiet"
-                onClick={() => input.current?.click()}
-              >
+              <Button variant="quiet" onClick={() => input.current?.click()}>
                 <ActionWord icon={<UploadIcon />} word={t('portability.chooseFile')} />
-              </button>
+              </Button>
             </>
           )}
         </div>

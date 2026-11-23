@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+
 import { useTranslation } from 'react-i18next';
 import { Avatar, type AvatarSource } from '../../shared/components/Avatar';
 import { Segmented } from '../../shared/components/Segmented';
@@ -11,6 +11,7 @@ import { ApiError } from '../../shared/api/error-mapper';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { CheckIcon } from '../../shared/components/icons';
 import { PageHeading } from '../../shared/components/PageHeading';
+import { Button, ButtonLink, buttonClass } from '../../shared/components/Button';
 
 const SOURCES: AvatarSource[] = ['gravatar', 'initials', 'upload'];
 
@@ -118,7 +119,7 @@ export function ProfilePage() {
                 }))}
               />
             </div>
-            <label className="button is-quiet is-small profile-upload">
+            <label className={buttonClass({ small: true, className: 'profile-upload' })}>
               <input
                 type="file"
                 accept="image/*"
@@ -158,9 +159,8 @@ export function ProfilePage() {
       {failure ? <p className="profile-failure">{failure}</p> : null}
 
       <div className="profile-actions">
-        <button
-          type="button"
-          className="button is-primary"
+        <Button
+          variant="primary"
           disabled={saving || name.trim().length === 0}
           onClick={() => void save()}
         >
@@ -169,12 +169,12 @@ export function ProfilePage() {
             word={saved ? t('profile.saved') : t('profile.save')}
             wide
           />
-        </button>
+        </Button>
         {/* The organization's provider holds the password of a federated account (#395). */}
         {session?.federated ? null : (
-          <Link className="button is-quiet" to="/profile/password" state={{ from: '/profile' }}>
+          <ButtonLink variant="quiet" to="/profile/password" state={{ from: '/profile' }}>
             {t('password.heading')}
-          </Link>
+          </ButtonLink>
         )}
       </div>
     </article>

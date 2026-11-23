@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Modal } from './Modal';
+import { ButtonLink } from './Button';
 
 /** One value of a row shown whole: its column's name and the value as the grid formats it. */
 export interface TableRowField {
@@ -38,9 +38,9 @@ export function TableRowDialog({
       className="table-row-dialog"
       actions={
         note ? (
-          <Link to={note} className="button is-primary" onClick={onClose}>
+          <ButtonLink to={note} variant="primary" onClick={onClose}>
             {t('tables.openNote')}
-          </Link>
+          </ButtonLink>
         ) : undefined
       }
     >

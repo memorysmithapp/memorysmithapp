@@ -5,6 +5,7 @@ import { authConfig, type WithoutSubscription } from '../../shared/auth/session'
 import { ActionWord } from '../../shared/components/ActionWord';
 import { SignInIcon } from '../../shared/components/icons';
 import { BrandHeading } from '../../shared/components/BrandMark';
+import { Button } from '../../shared/components/Button';
 
 /**
  * Marks that this browser already handed itself over to the identity
@@ -177,13 +178,9 @@ export function LoginPage() {
                   : t('auth.handingOver')}
           </p>
           {withoutSubscription || expired || handedOver ? (
-            <button
-              type="button"
-              className="button is-primary is-wide"
-              onClick={() => void beginSignIn(authConfig())}
-            >
+            <Button variant="primary" wide onClick={() => void beginSignIn(authConfig())}>
               <ActionWord icon={<SignInIcon />} word={t('auth.signIn')} wide />
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>

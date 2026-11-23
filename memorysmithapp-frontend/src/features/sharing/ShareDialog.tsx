@@ -15,6 +15,7 @@ import { Modal } from '../../shared/components/Modal';
 import { Segmented } from '../../shared/components/Segmented';
 import { profileKey, profilesFor, sharesChanged } from './shares';
 import { RowsSkeleton } from '../../shared/components/skeletons';
+import { Button } from '../../shared/components/Button';
 
 /**
  * Sharing a notebook with a person who holds another subscription (#256,
@@ -157,13 +158,9 @@ export function ShareDialog({
           </div>
         ) : null}
         <div className="share-form-actions">
-          <button
-            type="submit"
-            className="button is-primary"
-            disabled={busy || !email.trim() || blocked}
-          >
+          <Button type="submit" variant="primary" disabled={busy || !email.trim() || blocked}>
             {busy ? t('sharing.dialog.sharing') : t('sharing.dialog.share')}
-          </button>
+          </Button>
         </div>
         {sent ? (
           <p className="share-sent" role="status">
@@ -213,15 +210,11 @@ export function ShareDialog({
                     })}
                   </span>
                 ) : null}
-                <button
-                  type="button"
-                  className="button is-quiet is-small"
-                  onClick={() => void revoke(share)}
-                >
+                <Button variant="quiet" small onClick={() => void revoke(share)}>
                   {share.state === 'pending' || share.state === 'accepted'
                     ? t('sharing.dialog.revoke')
                     : t('sharing.dialog.remove')}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

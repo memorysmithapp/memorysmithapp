@@ -21,6 +21,7 @@ import {
 } from './original';
 import { keepOriginal, OriginalRefusal, type KeepOriginalPhase } from './keep-original';
 import { checkPorts, keepOriginalPorts } from './original-ports';
+import { Button } from '../../shared/components/Button';
 
 type State =
   | { step: 'pick' }
@@ -163,32 +164,27 @@ export function CheckOriginal({
       );
       if (report.identical) {
         actions = (
-          <button type="button" className="button is-primary" onClick={onClose}>
+          <Button variant="primary" onClick={onClose}>
             {t('common.close')}
-          </button>
+          </Button>
         );
       } else if (writable) {
         const file = state.file;
         actions = (
           <>
-            <button type="button" className="button" disabled={busy} onClick={onClose}>
+            <Button variant="quiet" disabled={busy} onClick={onClose}>
               {t('attachments.check.keepNo')}
-            </button>
-            <button
-              type="button"
-              className="button is-primary"
-              disabled={busy}
-              onClick={() => void keep(file, report)}
-            >
+            </Button>
+            <Button variant="primary" disabled={busy} onClick={() => void keep(file, report)}>
               {t('attachments.check.keepYes')}
-            </button>
+            </Button>
           </>
         );
       } else {
         actions = (
-          <button type="button" className="button" onClick={onClose}>
+          <Button variant="quiet" onClick={onClose}>
             {t('common.close')}
-          </button>
+          </Button>
         );
       }
       break;
@@ -203,9 +199,9 @@ export function CheckOriginal({
         </p>
       );
       actions = (
-        <button type="button" className="button is-primary" onClick={onClose}>
+        <Button variant="primary" onClick={onClose}>
           {t('common.close')}
-        </button>
+        </Button>
       );
       break;
     case 'failed': {
@@ -216,17 +212,13 @@ export function CheckOriginal({
         </p>
       );
       actions = retry ? (
-        <button
-          type="button"
-          className="button is-primary"
-          onClick={() => void keep(retry.file, retry.report)}
-        >
+        <Button variant="primary" onClick={() => void keep(retry.file, retry.report)}>
           {t('attachments.check.retry')}
-        </button>
+        </Button>
       ) : (
-        <button type="button" className="button" onClick={() => setState({ step: 'pick' })}>
+        <Button variant="quiet" onClick={() => setState({ step: 'pick' })}>
           {t('attachments.check.pickAgain')}
-        </button>
+        </Button>
       );
       break;
     }

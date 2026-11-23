@@ -21,6 +21,7 @@ import { CopyButton } from '../../shared/components/CopyButton';
 import { CheckIcon, DownloadIcon, FileIcon } from '../../shared/components/icons';
 import { intlLocale } from '../../i18n/intl-locale';
 import { CheckOriginal, shortHash } from './CheckOriginal';
+import { Button, buttonClass } from '../../shared/components/Button';
 
 /**
  * The files a notebook keeps, together (#307, RN-DSC-066).
@@ -199,7 +200,7 @@ function AttachmentRow({
         <span className="attachment-hash">
           <span className="attachment-hash-label">SHA-256</span>
           <code title={file.sha256}>{shortHash(file.sha256)}</code>
-          <CopyButton text={() => file.sha256} className="is-quiet attachment-hash-copy" />
+          <CopyButton text={() => file.sha256} className="attachment-hash-copy" />
         </span>
         {file.description ? <span className="attachment-desc">{file.description}</span> : null}
         <div className="attachment-notes">
@@ -230,19 +231,20 @@ function AttachmentRow({
         </div>
       </div>
       <div className="attachment-actions">
-        <button
-          type="button"
-          className="button is-quiet is-small attachment-check"
+        <Button
+          variant="quiet"
+          small
+          className="attachment-check"
           title={checkLabel}
           aria-label={`${checkLabel}: ${file.name}`}
           onClick={onCheck}
         >
           <CheckIcon />
           <span className="attachment-download-label">{checkLabel}</span>
-        </button>
+        </Button>
         {link.data ? (
           <a
-            className="button is-quiet is-small attachment-download"
+            className={buttonClass({ small: true, className: 'attachment-download' })}
             href={link.data.downloadUrl}
             download={file.name}
             title={download}

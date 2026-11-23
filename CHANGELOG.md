@@ -14,6 +14,7 @@ issues each entry cites.
 ### Changed
 
 - **The interface opens faster.** Each screen now brings what it draws when it opens, instead of every screen arriving with the first one: the code the browser downloads before the sign-in or Home draws fell from 526 kB to 234 kB (gzip). The note renderer, formulas, diagrams, charts and the graph arrive only on the screens that show them (#547).
+- **Every screen draws with the same values and the same button.** Colours, type sizes and corners now come from one set of values from the brand book, in both themes, and a button looks the same everywhere, whether it is a button or a link: the buttons of a note's bar are the same button as the rest, set tighter. Some text moved by a pixel or two, most cards have slightly rounder corners, an error under a form and the dots of the save state now take the colours of the dark theme, and a button without a style of its own (in the check of a file's original) now has an edge like its neighbours (#544).
 - **An open notebook no longer downloads itself again every half minute.** The structure, the notes, the files and the names it checks every 30 seconds come back empty when nothing changed, instead of whole, so a large notebook left open costs almost nothing; a change made elsewhere still reaches the screen at the next check (#547).
 
 ### Fixed

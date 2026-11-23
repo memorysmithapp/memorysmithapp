@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from './Button';
 
 /** How many rows a page of a list shows, as a folder's list does (#438, #446, #447). */
 export const LIST_PAGE = 20;
@@ -54,9 +55,9 @@ export function ListPager({
         })}
       </span>
       <span className="tables-grid-page-buttons">
-        <button
-          type="button"
-          className="button is-quiet is-small"
+        <Button
+          variant="quiet"
+          small
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
           aria-label={t('tables.previous')}
@@ -65,10 +66,10 @@ export function ListPager({
           <span className="pager-word" aria-hidden="true">
             {t('tables.previous')}
           </span>
-        </button>
-        <button
-          type="button"
-          className="button is-quiet is-small"
+        </Button>
+        <Button
+          variant="quiet"
+          small
           disabled={page >= pages || holdNext}
           onClick={() => onPage(page + 1)}
           aria-label={t('tables.next')}
@@ -77,7 +78,7 @@ export function ListPager({
             {t('tables.next')}
           </span>
           <span aria-hidden="true">›</span>
-        </button>
+        </Button>
       </span>
     </nav>
   );

@@ -14,6 +14,7 @@ import {
   folderChanged,
   folderRefusal,
 } from './edit-folder';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The name and the description of a folder (#278, RN-KNW-058), from the bar
@@ -87,16 +88,12 @@ export function EditFolderForm({
         </p>
       ) : null}
       <div className="ask-dialog-foot">
-        <button type="button" className="button is-quiet" onClick={onCancel}>
+        <Button variant="quiet" onClick={onCancel}>
           {t('common.cancel')}
-        </button>
-        <button
-          type="submit"
-          className="button is-primary"
-          disabled={busy || empty || tooLong || unchanged}
-        >
+        </Button>
+        <Button type="submit" variant="primary" disabled={busy || empty || tooLong || unchanged}>
           {busy ? t('folderEdit.saving') : t('folderEdit.save')}
-        </button>
+        </Button>
       </div>
     </form>
   );

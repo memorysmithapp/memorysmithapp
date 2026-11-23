@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   forceCenter,
@@ -48,6 +48,7 @@ import { SIMULATED_ASSISTANTS, simulatedDelay, simulatedEvent } from './simulati
 import { CloseIcon, GearIcon, HelpIcon, PlayIcon, StopIcon } from '../../shared/components/icons';
 import { GraphHelp, type HelpNode } from './GraphHelp';
 import { COLLISION_GAP, linkLength, radiiOf } from './node-scale';
+import { ButtonLink } from '../../shared/components/Button';
 
 interface GraphFile {
   nodes: {
@@ -1827,9 +1828,9 @@ export function GraphPage() {
           {/* The second step said as a button, so opening a held node does
               not depend on knowing that a second click or tap opens it (#515). */}
           {held?.url ? (
-            <Link className="button is-primary is-small graph-footer-open" to={held.url}>
+            <ButtonLink variant="primary" small className="graph-footer-open" to={held.url}>
               {t('graph.open')}
-            </Link>
+            </ButtonLink>
           ) : null}
         </div>
       </div>

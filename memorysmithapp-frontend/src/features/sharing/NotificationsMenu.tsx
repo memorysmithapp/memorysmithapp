@@ -14,6 +14,7 @@ import { BellIcon, CheckIcon, CloseIcon } from '../../shared/components/icons';
 import { sharesChanged, useNotifications } from './shares';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { TransferNotice, useTransfersStatus } from '../portability/TransfersStatus';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The notifications of the person, beside the user menu (#256, RN-ACC-029):
@@ -142,32 +143,27 @@ function Notice({ notice }: { notice: NotificationDto }) {
       <div className="notification-actions">
         {notice.kind === 'shared' || notice.kind === 'increase' ? (
           <>
-            <button
-              type="button"
-              className="button is-quiet is-small"
+            <Button
+              variant="quiet"
+              small
               disabled={busy}
               onClick={() => void act(() => answer(false))}
             >
               <ActionWord icon={<CloseIcon />} word={t('sharing.reject')} />
-            </button>
-            <button
-              type="button"
-              className="button is-primary is-small"
+            </Button>
+            <Button
+              variant="primary"
+              small
               disabled={busy}
               onClick={() => void act(() => answer(true))}
             >
               <ActionWord icon={<CheckIcon />} word={t('sharing.accept')} />
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            disabled={busy}
-            onClick={() => void act(dismiss)}
-          >
+          <Button variant="quiet" small disabled={busy} onClick={() => void act(dismiss)}>
             <ActionWord icon={<CloseIcon />} word={t('notifications.dismiss')} />
-          </button>
+          </Button>
         )}
       </div>
     </div>

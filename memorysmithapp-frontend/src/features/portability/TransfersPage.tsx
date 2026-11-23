@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+
 import { useQuery } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { intlLocale } from '../../i18n/intl-locale';
@@ -47,6 +47,7 @@ import {
 import { RowsSkeleton } from '../../shared/components/skeletons';
 import { PageHeading } from '../../shared/components/PageHeading';
 import { ListPager, useListPage } from '../../shared/components/ListPager';
+import { Button, ButtonLink } from '../../shared/components/Button';
 
 type Filter = 'all' | 'export' | 'import' | 'agent';
 
@@ -304,14 +305,9 @@ function TransferRow({
         {/* An import that runs can be stopped, and stopping takes it back down
             whole (RN-PRT-018). An export cannot: it writes nothing but its file. */}
         {transfer.status === 'running' && transfer.kind === 'import' && !transfer.cancelling && (
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            disabled={busy}
-            onClick={() => void cancel()}
-          >
+          <Button variant="quiet" small disabled={busy} onClick={() => void cancel()}>
             <ActionWord icon={<CloseIcon />} word={t('transfers.cancelImport')} />
-          </button>
+          </Button>
         )}
         {/* An import ends in a notebook, so its row is where it is opened —
             while that notebook is one the person sees (RN-PRT-029). */}
@@ -319,46 +315,38 @@ function TransferRow({
           transfer.kind === 'import' &&
           transfer.notebookId !== null &&
           !unavailable && (
-            <Link className="button is-quiet is-small" to={notebookAddress(transfer.notebookId)}>
+            <ButtonLink variant="quiet" small to={notebookAddress(transfer.notebookId)}>
               <ActionWord icon={<ChevronRightIcon />} word={t('portability.openNotebook')} />
-            </Link>
+            </ButtonLink>
           )}
         {readyExport && (
-          <button
-            type="button"
-            className="button is-quiet is-small"
-            onClick={() => void saveArchive(transfer.transferId)}
-          >
+          <Button variant="quiet" small onClick={() => void saveArchive(transfer.transferId)}>
             <ActionWord icon={<DownloadIcon />} word={t('transfers.download')} />
-          </button>
+          </Button>
         )}
         {readyExport && (
-          <button type="button" className="button is-quiet is-small" onClick={onImport}>
+          <Button variant="quiet" small onClick={onImport}>
             <ActionWord icon={<UploadIcon />} word={t('transfers.importKept')} />
-          </button>
+          </Button>
         )}
         {/* An upload whose notebook is unavailable finishes in another one,
             and nothing but the record moves (RN-PRT-029). */}
         {isOpenUpload(transfer) && unavailable && !linking && !asking && (
-          <button
-            type="button"
-            className="button is-quiet is-small"
+          <Button
+            variant="quiet"
+            small
             onClick={() => {
               setTarget(writable[0]?.id ?? '');
               setLinking(true);
             }}
           >
             <ActionWord icon={<LinkIcon />} word={t('transfers.link')} />
-          </button>
+          </Button>
         )}
         {deletable && !asking && !linking && (
-          <button
-            type="button"
-            className="button is-danger is-small"
-            onClick={() => setAsking(true)}
-          >
+          <Button variant="danger" small onClick={() => setAsking(true)}>
             <ActionWord icon={<TrashIcon />} word={t('transfers.delete')} />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -373,22 +361,12 @@ function TransferRow({
             <strong>{t(ask)}</strong> {consequence}
           </p>
           <div className="transfers-confirm-actions">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={busy}
-              onClick={() => setAsking(false)}
-            >
+            <Button variant="quiet" small disabled={busy} onClick={() => setAsking(false)}>
               {t('transfers.keep')}
-            </button>
-            <button
-              type="button"
-              className="button is-danger is-filled is-small"
-              disabled={busy}
-              onClick={() => void remove()}
-            >
+            </Button>
+            <Button variant="danger" confirming small disabled={busy} onClick={() => void remove()}>
               {t('transfers.deleteForGood')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -414,23 +392,18 @@ function TransferRow({
             </div>
           )}
           <div className="transfers-confirm-actions">
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              disabled={busy}
-              onClick={() => setLinking(false)}
-            >
+            <Button variant="quiet" small disabled={busy} onClick={() => setLinking(false)}>
               {t('transfers.keep')}
-            </button>
+            </Button>
             {writable.length > 0 && (
-              <button
-                type="button"
-                className="button is-primary is-small"
+              <Button
+                variant="primary"
+                small
                 disabled={busy || !target}
                 onClick={() => void link()}
               >
                 {t('transfers.linkConfirm')}
-              </button>
+              </Button>
             )}
           </div>
         </div>

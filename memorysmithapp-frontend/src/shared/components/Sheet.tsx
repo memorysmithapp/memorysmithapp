@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from './Button';
 
 /** How far the handle has to travel down before letting go closes the sheet. */
 const CLOSE_AFTER_PX = 80;
@@ -78,9 +79,9 @@ export function Sheet({
         {title ? <p className="sheet-title">{title}</p> : null}
         {children}
         {closeLabel ? (
-          <button type="button" className="button is-quiet is-wide sheet-close" onClick={onClose}>
+          <Button variant="quiet" wide className="sheet-close" onClick={onClose}>
             {closeLabel}
-          </button>
+          </Button>
         ) : null}
       </div>
     </>

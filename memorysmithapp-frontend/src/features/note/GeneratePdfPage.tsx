@@ -6,6 +6,7 @@ import { ApiError } from '../../shared/api/error-mapper';
 import { identifierOf } from '../../shared/api/note-address';
 import { useNotebookId } from '../structure/route-ids';
 import { BrandHeading } from '../../shared/components/BrandMark';
+import { Button } from '../../shared/components/Button';
 
 /** How often the print is asked about while the server makes it. */
 const POLL_MILLIS = 1500;
@@ -148,13 +149,9 @@ export function GeneratePdfPage() {
               {t(`pdf.${failure}`)}
             </p>
             {failure === 'gone' ? null : (
-              <button
-                type="button"
-                className="button is-primary"
-                onClick={() => setAttempt((count) => count + 1)}
-              >
+              <Button variant="primary" onClick={() => setAttempt((count) => count + 1)}>
                 {t('pdf.retry')}
-              </button>
+              </Button>
             )}
           </>
         )}
