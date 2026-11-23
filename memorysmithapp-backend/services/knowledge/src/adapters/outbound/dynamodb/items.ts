@@ -151,7 +151,9 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
     else if (sk === 'FSTAT') {
       notebookNoteCount = Number(item['noteCount'] ?? 0);
       // Absent until a note of the notebook changes after #546 shipped.
-      const at = item['contentChangedAt'] ? Instant.fromISO(String(item['contentChangedAt'])) : null;
+      const at = item['contentChangedAt']
+        ? Instant.fromISO(String(item['contentChangedAt']))
+        : null;
       contentChangedAt = at?.ok ? at.value : null;
     } else if (sk.startsWith('FSTAT#')) {
       noteCounts.set(sk.slice('FSTAT#'.length), Number(item['noteCount'] ?? 0));
