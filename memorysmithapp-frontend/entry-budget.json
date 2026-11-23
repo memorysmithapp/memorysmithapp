@@ -1,5 +1,5 @@
 {
   "$comment": "The most the entry of the interface may weigh, gzip, in kB (#547). Raise it only on purpose, saying why in the commit.",
   "js": 260,
-  "css": 30
+  "css": 50
 }

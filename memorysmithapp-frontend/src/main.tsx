@@ -11,6 +11,12 @@ import { keepSessionAlive, keepSessionStorage } from './shared/auth/renewal';
 import { loadRuntimeConfig } from './shared/config/runtime-config';
 import { documentTitleOf, withEnvironment } from './shared/components/document-title';
 import './i18n';
+// The stylesheets of the renderer and of KaTeX come BEFORE the application's,
+// in the entry: the application overrides rules of theirs with the same
+// specificity, so the order is the cascade. Loaded with the note, after it,
+// they won, and a printed note drew the colour of the screen behind it (#547).
+import '@memorysmithapp/markdown-renderer/styles.css';
+import 'katex/dist/katex.min.css';
 import './styles.css';
 
 const container = document.getElementById('root');

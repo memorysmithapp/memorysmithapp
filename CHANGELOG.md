@@ -13,7 +13,7 @@ issues each entry cites.
 
 ### Changed
 
-- **The interface opens faster.** Each screen now brings what it draws when it opens, instead of every screen arriving with the first one: what the browser downloads before the sign-in or Home draws fell from 526 kB to 233 kB, and its stylesheet from 46 kB to 25 kB (gzip). The note renderer, formulas, diagrams, charts and the graph arrive only on the screens that show them (#547).
+- **The interface opens faster.** Each screen now brings what it draws when it opens, instead of every screen arriving with the first one: the code the browser downloads before the sign-in or Home draws fell from 526 kB to 234 kB (gzip). The note renderer, formulas, diagrams, charts and the graph arrive only on the screens that show them (#547).
 - **An open notebook no longer downloads itself again every half minute.** The structure, the notes, the files and the names it checks every 30 seconds come back empty when nothing changed, instead of whole, so a large notebook left open costs almost nothing; a change made elsewhere still reaches the screen at the next check (#547).
 
 ### Fixed

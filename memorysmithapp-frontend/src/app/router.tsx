@@ -4,7 +4,10 @@ import { AppShell } from '../shared/components/AppShell';
 // The sign-in is the first screen of most visits, and the root layout already
 // imports from it: it stays in the entry.
 import { LoginPage } from '../features/auth/LoginPage';
-import { lazyPage } from './lazy-page';
+import { lazyPage } from '../shared/lib/lazy-page';
+// Where the reading stopped is remembered by this route the moment it opens, so
+// it never waits for the note it draws, which arrives on its own (#547).
+import { NoteRoute } from '../features/structure/NoteRoute';
 import {
   communityModelAddress,
   identifierOf,
@@ -28,9 +31,6 @@ const FolderPage = lazyPage(() =>
 );
 const FoldersPage = lazyPage(() =>
   import('../features/structure/FoldersPage').then((module) => module.FoldersPage),
-);
-const NoteRoute = lazyPage(() =>
-  import('../features/structure/NoteRoute').then((module) => module.NoteRoute),
 );
 const NotebookOverview = lazyPage(() =>
   import('../features/structure/NotebookOverview').then((module) => module.NotebookOverview),

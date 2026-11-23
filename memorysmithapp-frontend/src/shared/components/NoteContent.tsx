@@ -40,8 +40,6 @@ import {
   type NotebookFileDto,
   type NotebookStyle,
 } from '@memorysmithapp/contracts';
-import '@memorysmithapp/markdown-renderer/styles.css';
-import 'katex/dist/katex.min.css';
 import {
   fileKept,
   folderOfNote,
