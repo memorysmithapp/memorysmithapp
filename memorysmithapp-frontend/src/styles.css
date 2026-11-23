@@ -519,7 +519,6 @@ a.bar-button:hover {
   cursor: pointer;
 }
 .sidebar-fold:hover {
-  background: var(--hover);
   color: var(--text);
 }
 .sidebar-fold:focus-visible {
@@ -1447,7 +1446,7 @@ a.bar-button:hover {
   cursor: pointer;
 }
 .nav-fold:hover {
-  background: var(--hover);
+  color: var(--text);
 }
 .nav-fold svg {
   transition: transform 120ms ease;
@@ -1677,7 +1676,6 @@ a.bar-button:hover {
   cursor: pointer;
 }
 .bar-button:hover {
-  background: var(--bg);
   border-color: var(--text-soft);
 }
 .bar-button:focus-visible {
@@ -1823,7 +1821,9 @@ a.bar-button:hover {
   color: var(--text-soft);
   cursor: pointer;
 }
-.hint-trigger:hover,
+.hint-trigger:hover {
+  color: var(--text);
+}
 .hint-trigger[aria-expanded='true'] {
   background: var(--hover);
   color: var(--text);
@@ -2399,7 +2399,6 @@ a.bar-button:hover {
 }
 /* A quiet button of the Controles (#233): the cursor darkens it, never blue. */
 .graph-overlay-button:hover {
-  background: var(--bg);
   border-color: var(--text-soft);
 }
 /* The panel is the menu of the Controles. */
@@ -2443,7 +2442,6 @@ a.bar-button:hover {
   cursor: pointer;
 }
 .graph-panel-close:hover {
-  background: var(--hover);
   color: var(--text);
 }
 /* One switch per attribute: each is turned on by itself, and turning a second
@@ -2850,7 +2848,7 @@ body:has(.markdown dialog[open]) .app-main {
   cursor: pointer;
 }
 .link-choice-cancel:hover {
-  background: var(--border);
+  color: var(--text);
 }
 
 /* On a phone it rises from the bottom, within reach of a thumb. */
@@ -3345,7 +3343,10 @@ input[type='radio'] {
   border-color: transparent;
   background: none;
 }
-.icon-button:hover:not(:disabled),
+/* A button never fills under the pointer (#544); an open trigger does. */
+.icon-button:hover:not(:disabled) {
+  color: var(--text);
+}
 .icon-button[aria-expanded='true'] {
   background: var(--hover);
 }
@@ -3392,7 +3393,6 @@ input[type='radio'] {
   cursor: not-allowed;
 }
 .segmented > button:hover:not([aria-checked='true']):not(:disabled) {
-  background: var(--hover);
   color: var(--text);
 }
 .segmented > button[aria-checked='true'] {
@@ -3627,9 +3627,6 @@ input[type='radio'] {
   background: var(--accent);
   color: var(--on-accent);
 }
-.button.is-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
 
 /* Everything beside it: the surface, with an edge. */
 .button.is-quiet {
@@ -3638,25 +3635,20 @@ input[type='radio'] {
   border-color: var(--border);
 }
 .button.is-quiet:hover:not(:disabled) {
-  background: var(--bg);
   border-color: var(--text-soft);
 }
 
-/* What destroys says so before it is pressed, and fills only under the hand. */
+/* What destroys says so in its label, and never fills (#544): the red reaches
+   its edge only under the hand, and in a confirmation, where the question has
+   already been asked. */
 .button.is-danger {
   background: var(--surface);
   color: var(--danger);
-  border-color: var(--danger);
+  border-color: var(--border);
 }
-.button.is-danger:hover:not(:disabled) {
-  background: var(--danger);
-  color: var(--on-danger);
-}
-
-/* In a confirmation the red is filled: the question has already been asked. */
+.button.is-danger:hover:not(:disabled),
 .button.is-danger.is-filled {
-  background: var(--danger);
-  color: var(--on-danger);
+  border-color: var(--danger);
 }
 /* A link that does something on the page rather than going somewhere. */
 .link-button {
