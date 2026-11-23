@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { pageRules, PRINTED_ID, separateIds } from './paginate';
+import { type ContentsMeasure, hangContents, pageRules, PRINTED_ID, separateIds } from './paginate';
 
 /** An element as `separateIds` reads it: its attributes, nothing else. */
 class Element {
@@ -88,13 +88,62 @@ describe('the page rules of a contents (#545)', () => {
       .find((line) => line.startsWith(`${selector} {`))
       ?.slice(selector.length) ?? '';
 
-  it('lines the dotted line and the page up with the last line of an entry', () => {
-    expect(ruleOf('.contents-entry')).toContain('align-items: last baseline');
+  it('keeps the number on the first line, in a column, and every line of the text under its first word', () => {
+    const number = ruleOf('.contents-entry > .contents-number');
+    expect(number).toContain('display: inline-block');
+    expect(number).toContain('min-width: var(--contents-number');
+    expect(number).toContain('white-space: nowrap');
+    const item = ruleOf('.contents-item');
+    expect(item).toContain('padding-inline-start: var(--contents-indent');
+    expect(item).toContain('text-indent: calc(-1 * var(--contents-indent');
+    // A justified note never stretches the words of an entry.
+    expect(item).toContain('text-align: left');
+    // The entry flows as text, so its last word is where its last line ends.
+    expect(ruleOf('.contents-entry')).not.toContain('display: flex');
   });
 
-  it('never breaks the number of an entry, nor lets it shrink', () => {
-    const number = ruleOf('.contents-entry > .contents-number');
-    expect(number).toContain('flex: none');
-    expect(number).toContain('white-space: nowrap');
+  it('leads the dotted line from the last word to the page, at the right of the last line', () => {
+    const leader = ruleOf('.contents-entry::before');
+    expect(leader).toContain('left: 100%');
+    expect(leader).toContain('dotted');
+    const page = ruleOf('.contents-entry::after');
+    expect(page).toContain('target-counter(attr(href url), page)');
+    expect(page).toContain('float: right');
+  });
+});
+
+describe('hangContents (#545)', () => {
+  /** A list of entries as the measure reads it, and its copy as the rules read it. */
+  function lists(numbers: number[][]) {
+    const drawn = numbers.map((widths) => ({
+      querySelectorAll: () => widths.map((width) => ({ width })),
+    }));
+    const copies = numbers.map(() => {
+      const set = new Map<string, string>();
+      return { set, style: { setProperty: (name: string, value: string) => set.set(name, value) } };
+    });
+    return {
+      drawn: { querySelectorAll: () => drawn } as unknown as ParentNode,
+      copy: { querySelectorAll: () => copies } as unknown as ParentNode,
+      copies,
+    };
+  }
+  const measure: ContentsMeasure = {
+    number: (element) => (element as unknown as { width: number }).width,
+    gap: () => 4.2,
+  };
+
+  it('gives each level the width of its widest number, and the text the column and the space', () => {
+    const { drawn, copy, copies } = lists([[52.3, 60.1], [18]]);
+    hangContents(drawn, copy, measure);
+    expect(copies[0]?.set.get('--contents-number')).toBe('67px');
+    expect(copies[0]?.set.get('--contents-indent')).toBe('72px');
+    expect(copies[1]?.set.get('--contents-number')).toBe('24px');
+  });
+
+  it('leaves a list with no numbers with no column', () => {
+    const { drawn, copy, copies } = lists([[]]);
+    hangContents(drawn, copy, measure);
+    expect(copies[0]?.set.size).toBe(0);
   });
 });
