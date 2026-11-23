@@ -18,7 +18,7 @@ type Phase = 'idle' | 'confirming' | 'deleting' | 'failed';
  * A notebook card with what can be done to the notebook from it (#199): export
  * it, and — for its owner — share and delete it; the card of a model is the
  * card of a notebook too, and carries the same (#418). Both sit behind a `⋯` in the corner, so
- * the card still says only "Abrir caderno".
+ * the rest of the card still only opens the notebook.
  *
  * Deleting is definitive (RN-KNW-033), and it asks on the card itself, in the
  * pattern the product already uses for Guidance, Templates and exports: the

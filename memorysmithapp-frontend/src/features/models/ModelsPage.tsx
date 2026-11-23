@@ -112,7 +112,6 @@ export function ModelsPage() {
                 // model reaches no notebook, only the model (#355).
                 to={own ? notebookAddress(model.notebookId) : sharedModelAddress(model.notebookId)}
                 openLabel={t('models.open')}
-                openShort={t('notebooks.openShort')}
                 corner={parts.corner}
               >
                 {parts.children}

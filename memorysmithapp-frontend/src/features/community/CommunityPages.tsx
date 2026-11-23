@@ -116,7 +116,6 @@ export function CommunityPage() {
                   })}
                   to={to}
                   openLabel={t('models.open')}
-                  openShort={t('notebooks.openShort')}
                   corner={
                     <ShelfCorner
                       title={model.name}

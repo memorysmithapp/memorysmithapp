@@ -884,13 +884,7 @@ a.bar-button:hover {
   font-size: 0.69rem;
   color: var(--text-soft);
 }
-.notebook-open {
-  flex-shrink: 0;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.8125rem;
-  color: var(--accent);
-}
+/* The card's way in shows no word; its stretched box is what is clicked (#549). */
 .notebook-open::after {
   content: '';
   position: absolute;

@@ -154,7 +154,6 @@
     "noteCount_other": "{{count}} notas",
     "updatedAt": "atualizado em {{date}}",
     "open": "Abrir caderno",
-    "openShort": "Abrir",
     "help": "Seus cadernos e os compartilhados com você, em ordem alfabética. O ícone no canto diz de quem é cada um; o ⋯ exporta, compartilha ou apaga. Um caderno novo começa em branco ou a partir de um modelo."
   },
   "structure": {
