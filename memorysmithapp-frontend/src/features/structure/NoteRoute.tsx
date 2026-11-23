@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { NotePage } from '../note/NotePage';
@@ -36,7 +36,7 @@ export function NoteRoute() {
     ? (trail[trail.length - 1]?.notes.find((note) => note.id === noteId)?.name ?? null)
     : null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!noteId || !inTree) return;
     rememberNote(personId, notebookId, noteId);
     rememberRecent(personId, notebookId, noteId, name);

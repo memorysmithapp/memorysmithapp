@@ -7474,6 +7474,7 @@ button.attachment-thumb:focus-visible {
 }
 /* The note is drawn on the paper: the reading theme paints its container
    with the colour of the screen, which a white sheet has no use for (#425). */
+.print-preview .markdown,
 .print-part .markdown {
   background: none;
 }
