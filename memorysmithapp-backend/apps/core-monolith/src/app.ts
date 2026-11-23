@@ -12,6 +12,7 @@
  */
 
 import { Hono, type Context, type Next } from 'hono';
+import { etag } from 'hono/etag';
 import { type DomainError, httpStatusFor } from '@memorysmithapp/kernel';
 import { DEPLOYMENT_HEADERS, type Deployment, type HealthDto } from '@memorysmithapp/contracts';
 import { authenticate, type TokenVerifier } from '@memorysmithapp/svc-access/adapters/auth';
@@ -173,6 +174,32 @@ export function createApp(deps: AppDependencies): Hono<{ Variables: Variables }>
     c.res.headers.set(DEPLOYMENT_HEADERS.environment, deps.deployment.environment);
     c.res.headers.set(DEPLOYMENT_HEADERS.version, deps.deployment.version);
   });
+
+  /**
+   * The reads an open notebook repeats every half minute (#547): its
+   * structure, its notes, its files and its names. Each answer carries the tag
+   * of its body, the browser sends it back on the next read, and an answer
+   * that did not change goes back as a `304` with no body, so a poll of a
+   * notebook nobody touched transfers nothing. Every read is still
+   * authenticated and authorized first: the tag only spares the bytes, and
+   * `no-cache` has the browser ask every time, never answering from its cache
+   * alone. `Vary: Authorization` keeps one session's copy from another's.
+   */
+  const tagged = etag();
+  const revalidated = async (c: Context, next: Next) => {
+    await tagged(c, next);
+    if (c.req.method !== 'GET' || !(c.res.ok || c.res.status === 304)) return;
+    c.res.headers.set('Cache-Control', 'private, no-cache');
+    c.res.headers.set('Vary', 'Authorization');
+  };
+  for (const path of [
+    '/knowledge/notebooks/:notebookId',
+    '/knowledge/notebooks/:notebookId/notes',
+    '/knowledge/notebooks/:notebookId/files',
+    '/discovery/notebooks/:notebookId/names',
+  ]) {
+    app.use(path, revalidated);
+  }
 
   app.get('/health', (c) =>
     c.json({
