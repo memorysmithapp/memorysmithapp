@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A notebook's card says when any of its notes last changed.** On the Notebooks page, and to an agent listing notebooks, *updated* moved only when the notebook itself changed (its name, its folders), so a notebook whose note was edited today still showed the day the notebook last changed, unlike *Recently changed* inside it. It now gives the later of the two, moved by creating, editing, moving, reordering or deleting a note. A notebook whose notes haven't changed since this fix shows the date it showed before until one does (#546).
+
 ## [0.23.0] - 2026-11-22
 
 ### Added

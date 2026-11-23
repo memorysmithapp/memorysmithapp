@@ -121,17 +121,19 @@ export class DynamoNotebookRepository implements NotebookRepository {
       }),
     );
     const items = (response.Items ?? []) as Item[];
-    const counts = new Map<string, number>();
+    // The counter item travels whole: it carries the note count and when a
+    // note of the notebook last changed (#546).
+    const stats = new Map<string, Item>();
     for (const item of items) {
       const sk = String(item['GSI1SK'] ?? '');
-      if (sk.startsWith('NBSTAT#'))
-        counts.set(String(item['notebookId']), Number(item['noteCount'] ?? 0));
+      if (sk.startsWith('NBSTAT#')) stats.set(String(item['notebookId']), item);
     }
     const notebooks: Notebook[] = [];
     for (const item of items) {
       if (!String(item['GSI1SK'] ?? '').startsWith('NOTEBOOK#')) continue;
+      const stat = stats.get(String(item['notebookId']));
       const notebook = parseNotebook(
-        [item, { SK: 'FSTAT', noteCount: counts.get(String(item['notebookId'])) ?? 0 }],
+        [item, { noteCount: 0, ...stat, SK: 'FSTAT' }],
         this.sub.subscriptionId,
       );
       if (notebook) {

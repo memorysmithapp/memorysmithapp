@@ -34,16 +34,38 @@ const outboxItem = {
   },
 };
 
-/** Captures what the relay would have sent, without touching AWS. */
-function fakes() {
+/** An Update the relay sent on its own, outside the counters' transaction. */
+interface SingleUpdate {
+  input: {
+    Key: Record<string, unknown>;
+    UpdateExpression: string;
+    ConditionExpression: string;
+    ExpressionAttributeValues: Record<string, unknown>;
+  };
+}
+
+/**
+ * Captures what the relay would have sent, without touching AWS: the counters'
+ * transactions in `dbCalls`, and the date a notebook's notes last changed,
+ * written on its own (#546), in `changedCalls`.
+ */
+function fakes(onChanged?: () => unknown) {
   const busCalls: unknown[] = [];
   const dbCalls: unknown[] = [];
+  const changedCalls: SingleUpdate[] = [];
   return {
     busCalls,
     dbCalls,
+    changedCalls,
     relay: new OutboxRelay({
       bus: { send: async (command: unknown) => busCalls.push(command) } as never,
-      db: { send: async (command: unknown) => dbCalls.push(command) } as never,
+      db: {
+        send: async (command: { input: Record<string, unknown> }) => {
+          if ('TransactItems' in command.input) return dbCalls.push(command);
+          changedCalls.push(command as unknown as SingleUpdate);
+          return onChanged?.();
+        },
+      } as never,
       tableName: 'mv-knowledge',
       busName: 'mv-events',
       source: 'memorysmith.knowledge',
@@ -193,6 +215,58 @@ describe('OutboxRelay', () => {
     );
     expect(sizes).toEqual([10, 10, 5]);
     expect(dbCalls).toHaveLength(25);
+  });
+
+  describe('when a note of the notebook last changed (#546)', () => {
+    const edited = {
+      ...outboxItem,
+      type: 'NoteUpdated',
+      payload: { notebookId: NOTEBOOK, noteId: NOTE, folderId: FOLDER, name: 'Lei 14.133' },
+    };
+
+    it('is recorded on the counter item by an edit, which moves no counter', async () => {
+      const { relay, changedCalls } = fakes();
+      await relay.process([edited]);
+
+      expect(changedCalls).toHaveLength(1);
+      const { input } = changedCalls[0]!;
+      expect(input.Key).toEqual({ PK: outboxItem.PK, SK: 'FSTAT' });
+      expect(input.UpdateExpression).toBe('SET contentChangedAt = :at');
+      expect(input.ExpressionAttributeValues[':at']).toBe(outboxItem.occurredAt);
+      // Never backwards, and never on a counter item that is gone.
+      expect(input.ConditionExpression).toContain('contentChangedAt < :at');
+      expect(input.ConditionExpression).toContain('attribute_exists(PK)');
+    });
+
+    it('is written once per notebook of a batch, at its latest event', async () => {
+      const { relay, changedCalls } = fakes();
+      const batch = Array.from({ length: 12 }, (_unused, index) => {
+        const eventId = `01JBQ2X00000000000000000${String(index).padStart(2, '0')}`;
+        const occurredAt = `2026-11-23T10:${String(index).padStart(2, '0')}:00.000Z`;
+        return { ...edited, SK: `EVENT#${eventId}`, eventId, occurredAt };
+      });
+
+      await relay.process(batch.reverse());
+
+      expect(changedCalls).toHaveLength(1);
+      expect(changedCalls[0]?.input.ExpressionAttributeValues[':at']).toBe(
+        '2026-11-23T10:11:00.000Z',
+      );
+    });
+
+    it('takes a refused condition as a date already as late, and fails on anything else', async () => {
+      const stale = fakes(() => {
+        throw Object.assign(new Error('The conditional request failed'), {
+          name: 'ConditionalCheckFailedException',
+        });
+      });
+      await expect(stale.relay.process([edited])).resolves.toEqual({ published: 1 });
+
+      const failing = fakes(() => {
+        throw Object.assign(new Error('Throttled'), { name: 'ThrottlingException' });
+      });
+      await expect(failing.relay.process([edited])).rejects.toThrow('Throttled');
+    });
   });
 
   it('fails the batch when the bus refuses an event, so the stream delivers it again', async () => {

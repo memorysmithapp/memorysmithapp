@@ -142,13 +142,18 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
   const limits = new Map<string, NotebookRoleLimit>();
   const templatedFolderIds = new Set<string>();
   let notebookNoteCount = 0;
+  let contentChangedAt: Instant | null = null;
   let hasGuidance = false;
 
   for (const item of items) {
     const sk = String(item['SK']);
     if (sk.startsWith('FOLDER#')) folders.push(parseFolder(item));
-    else if (sk === 'FSTAT') notebookNoteCount = Number(item['noteCount'] ?? 0);
-    else if (sk.startsWith('FSTAT#')) {
+    else if (sk === 'FSTAT') {
+      notebookNoteCount = Number(item['noteCount'] ?? 0);
+      // Absent until a note of the notebook changes after #546 shipped.
+      const at = item['contentChangedAt'] ? Instant.fromISO(String(item['contentChangedAt'])) : null;
+      contentChangedAt = at?.ok ? at.value : null;
+    } else if (sk.startsWith('FSTAT#')) {
       noteCounts.set(sk.slice('FSTAT#'.length), Number(item['noteCount'] ?? 0));
     } else if (sk.startsWith('FTPL#')) {
       // The Template items of the notebook. They are aggregates of their own
@@ -179,6 +184,7 @@ export function parseNotebook(items: Item[], subscriptionId: SubscriptionId): No
     deletedAt: meta['deletedAt'] ? unwrapOrThrow(Instant.fromISO(String(meta['deletedAt']))) : null,
     // A notebook written before it had a style carries the default (#493).
     style: notebookStyleOf(meta['style']),
+    contentChangedAt,
   });
 }
 

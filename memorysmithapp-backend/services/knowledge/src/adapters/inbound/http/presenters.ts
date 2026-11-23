@@ -42,7 +42,9 @@ export function notebookToSummary(notebook: Notebook, role: Role): NotebookSumma
     description: notebook.description.value,
     noteCount: notebook.noteCount,
     hasGuidance: notebook.hasGuidance,
-    updatedAt: notebook.updatedAt.toISOString(),
+    // A note write never touches the notebook (INV-10): what a person reads as
+    // "updated" includes the notes the relay saw change (#546).
+    updatedAt: notebook.lastChangedAt.toISOString(),
     effectiveRole: role.name,
   };
 }

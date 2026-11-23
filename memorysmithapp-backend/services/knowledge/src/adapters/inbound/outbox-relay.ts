@@ -22,7 +22,11 @@ import {
   PutEventsCommand,
   type PutEventsRequestEntry,
 } from '@aws-sdk/client-eventbridge';
-import { TransactWriteCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import {
+  TransactWriteCommand,
+  UpdateCommand,
+  type DynamoDBDocumentClient,
+} from '@aws-sdk/lib-dynamodb';
 import { parseEvent } from '@memorysmithapp/contracts';
 import { Instant } from '@memorysmithapp/kernel';
 import {
@@ -52,6 +56,15 @@ export interface RelayDependencies {
 }
 
 const SEEN_TTL_DAYS = 7;
+
+/** The events that change a note of a notebook, and so when it last changed (#546). */
+const CONTENT_EVENTS = new Set([
+  'NoteCreated',
+  'NoteUpdated',
+  'NoteMoved',
+  'NoteDeleted',
+  'NoteReordered',
+]);
 
 /**
  * What one PutEvents call accepts: ten entries, and a request under its size
@@ -223,7 +236,47 @@ export class OutboxRelay {
       await this.applyCounters(String(item['PK']), envelope, notes, bytes, folders, usage);
     }
 
+    // When a note of each notebook last changed (#546), once per notebook of
+    // the batch, at the latest event it holds.
+    const changed = new Map<string, string>();
+    for (const [index, envelope] of envelopes.entries()) {
+      if (!CONTENT_EVENTS.has(envelope.type)) continue;
+      const partition = String((events[index] as Record<string, unknown>)['PK']);
+      const seen = changed.get(partition);
+      if (!seen || envelope.occurredAt > seen) changed.set(partition, envelope.occurredAt);
+    }
+    for (const [partition, at] of changed) await this.markContentChanged(partition, at);
+
     return { published: envelopes.length };
+  }
+
+  /**
+   * Records on the notebook's counter item when a note of it last changed.
+   * The note transaction never writes the notebook (INV-10), so without this
+   * the Notebooks page showed the day the notebook itself last changed, days
+   * behind a note changed since (#546).
+   *
+   * The write is its own, outside the counters' transaction, and conditional:
+   * a replayed or late event never moves the date back, and a notebook whose
+   * counter item is gone (deleted, purged) gets no item recreated.
+   */
+  private async markContentChanged(partition: string, at: string): Promise<void> {
+    try {
+      await this.deps.db.send(
+        new UpdateCommand({
+          TableName: this.deps.tableName,
+          Key: { PK: partition, SK: 'FSTAT' },
+          UpdateExpression: 'SET contentChangedAt = :at',
+          ConditionExpression:
+            'attribute_exists(PK) AND (attribute_not_exists(contentChangedAt) OR contentChangedAt < :at)',
+          ExpressionAttributeValues: { ':at': at },
+        }),
+      );
+    } catch (error) {
+      if ((error as { name?: string } | null)?.name !== 'ConditionalCheckFailedException') {
+        throw error;
+      }
+    }
   }
 
   /**
