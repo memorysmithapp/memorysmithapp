@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-23
+
 ### Changed
 
 - **The interface opens faster.** Each screen now brings what it draws when it opens, instead of every screen arriving with the first one: the code the browser downloads before the sign-in or Home draws fell from 526 kB to 234 kB (gzip), and its styles from 45 kB to 25 kB. The note renderer and its styles, formulas, diagrams, charts and the graph arrive only on the screens that show them (#547).
@@ -1237,7 +1239,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0
