@@ -596,3 +596,43 @@ test.describe('the files of a notebook', () => {
     });
   });
 });
+
+test.describe('a notebook nobody changed (#547)', () => {
+  test('[route:GET /knowledge/notebooks/:v] [route:GET /knowledge/notebooks/:v/notes] [route:GET /knowledge/notebooks/:v/files] [route:GET /discovery/notebooks/:v/names] answers its poll with a 304 and no body, and the next change with the whole', async ({
+    owner,
+    other,
+    notebook,
+  }) => {
+    const reads = [
+      notebookPath(notebook),
+      notesPath(notebook),
+      `${notebookPath(notebook)}/files`,
+      `/discovery/notebooks/${notebook.notebookId}/names`,
+    ];
+    for (const path of reads) {
+      const first = await owner.call('GET', path);
+      expect(first.status, path).toBe(200);
+      const tag = first.headers.get('etag');
+      expect(tag, `${path} carries the tag of its body`).toBeTruthy();
+      expect(first.headers.get('cache-control')).toBe('private, no-cache');
+
+      const again = await owner.call('GET', path, undefined, { 'if-none-match': tag! });
+      expect(again.status, `${path} unchanged`).toBe(304);
+      expect(again.body, `${path} sends no body`).toBe('');
+
+      // Another subscription never learns the notebook is there, unchanged (INV-09).
+      const stranger = await other.call('GET', path, undefined, { 'if-none-match': tag! });
+      expect(stranger.status, `${path} to another subscription`).toBe(404);
+    }
+
+    // A change answers the next poll with the whole body again.
+    const before = await owner.call('GET', notebookPath(notebook));
+    const renamed = unique('Revalidated');
+    await owner.ok('PATCH', notebookPath(notebook), { name: renamed });
+    const after = await owner.call('GET', notebookPath(notebook), undefined, {
+      'if-none-match': before.headers.get('etag')!,
+    });
+    expect(after.status).toBe(200);
+    expect(after.body).toMatchObject({ name: renamed });
+  });
+});
