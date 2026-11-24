@@ -33,6 +33,8 @@ let decideLogin: (marks: {
   denied: WithoutSubscription | null;
   ended: boolean;
   already: boolean;
+  signedOut?: boolean;
+  direct?: boolean;
 }) => { kind: string; state?: WithoutSubscription };
 
 beforeAll(async () => {
@@ -46,13 +48,14 @@ describe('a screen with nothing to say hands the browser over', () => {
     });
   });
 
-  it('hands over after signing out, which leaves no mark of its own', () => {
-    // Signing out lowers the handover guard and marks nothing else, so it
-    // reaches this screen exactly as a first arrival does. That identity IS
-    // the change: the two doors now behave the same because they are one.
-    expect(decideLogin({ denied: null, ended: false, already: false })).toEqual({
-      kind: 'handover',
-    });
+  it('hands over after signing out where the password is offered', () => {
+    // Signing out lowers the handover guard, and its mark is read only where
+    // the installation signs in through its provider alone: elsewhere it
+    // reaches this screen exactly as a first arrival does, and the handover
+    // lands on a credentials form.
+    expect(
+      decideLogin({ denied: null, ended: false, already: false, signedOut: true, direct: false }),
+    ).toEqual({ kind: 'handover' });
   });
 });
 
@@ -66,6 +69,16 @@ describe('a screen with something to say stops and says it', () => {
       });
     },
   );
+
+  it('stops after signing out where the provider alone signs in, whose session is still open (#562)', () => {
+    expect(
+      decideLogin({ denied: null, ended: false, already: false, signedOut: true, direct: true }),
+    ).toEqual({ kind: 'signedOut' });
+    // A first arrival on the same installation still hands over.
+    expect(decideLogin({ denied: null, ended: false, already: false, direct: true })).toEqual({
+      kind: 'handover',
+    });
+  });
 
   it('stops for a session that ended on its own', () => {
     expect(decideLogin({ denied: null, ended: true, already: false })).toEqual({ kind: 'expired' });

@@ -15,7 +15,7 @@ import {
 import { signOut as endHostedSession } from '../auth/oauth';
 import { loadedRuntimeConfig } from '../config/runtime-config';
 import { gravatarDisplayName } from '../auth/gravatar';
-import { clearHandover } from '../../features/auth/LoginPage';
+import { markSignedOut } from '../../features/auth/LoginPage';
 import { Avatar, type AvatarSource } from './Avatar';
 import { StorageBar } from './StorageBar';
 import { ChevronRightIcon, MonitorIcon, MoonIcon, SignOutIcon, SunIcon } from './icons';
@@ -112,10 +112,12 @@ export function UserMenu() {
    *
    * Lowering the handover guard is what makes signing out start a fresh
    * attempt: the sign-in screen hands the browser to the provider without
-   * asking, and it may only do that on a first arrival.
+   * asking, and it may only do that on a first arrival. The mark of the
+   * sign-out stops it instead where the installation signs in through its
+   * provider alone, whose session would sign the person straight back (#562).
    */
   function handleSignOut() {
-    clearHandover();
+    markSignedOut();
     endHostedSession(authConfig());
   }
 
