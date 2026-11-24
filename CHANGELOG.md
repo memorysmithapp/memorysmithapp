@@ -13,7 +13,7 @@ issues each entry cites.
 
 ### Added
 
-- **A person of Microsoft Entra ID arrives with the photo of the directory.** On the first sign-in through an organization's Entra ID, MemorySmith asks Microsoft Graph for the person's photo with the installation's own credential and shows it on every screen. Until the organization grants the app the permission `ProfilePhoto.Read.All`, and with any other provider, the person shows their initials, never Gravatar; the sign-in takes the same time either way (#561).
+- **A person of Microsoft Entra ID arrives with the photo of the directory.** On every sign-in through an organization's Entra ID, MemorySmith asks Microsoft Graph for the person's photo with the installation's own credential and shows it on every screen, so a photo changed or removed in Entra ID arrives with the next sign-in. Until the organization grants the app the permission `ProfilePhoto.Read.All`, and with any other provider, the person shows their initials, never Gravatar; a moment when Graph does not answer keeps the photo shown before, and never stops a sign-in (#561).
 
 ### Changed
 

@@ -27,12 +27,8 @@ import {
   type UserId,
 } from '@memorysmithapp/kernel';
 import { Subscription } from '../domain/subscription/Subscription.js';
-import { ACCESS_LIMITS, AvatarSource, Email, type StorageQuota } from '../domain/values.js';
-import type {
-  AvatarRepository,
-  PictureTypes,
-  SubscriptionOnboarding,
-} from '../domain/ports/index.js';
+import { Email, type StorageQuota } from '../domain/values.js';
+import type { SubscriptionOnboarding } from '../domain/ports/index.js';
 
 /** What a person of the provider finds on their first sign-in. */
 export type FirstSignIn = 'request' | 'prepared' | 'automatic';
@@ -57,34 +53,6 @@ export interface FederatedAccounts {
   /** Links the identity of the provider to the account, for good. */
   link(account: PoolAccount, provider: string, providerUserId: string): Promise<void>;
   setName(account: PoolAccount, name: string): Promise<void>;
-}
-
-/** A picture as the organization's directory keeps it. */
-export interface DirectoryPicture {
-  readonly mime: string;
-  readonly bytes: Uint8Array;
-}
-
-/**
- * The organization's directory, asked for the picture it keeps of a person
- * (#561). It answers null for whatever keeps it from answering, a missing
- * permission and a timeout included, and never throws: a picture is never a
- * reason to refuse a sign-in.
- */
-export interface DirectoryPictures {
-  pictureOf(email: Email): Promise<DirectoryPicture | null>;
-}
-
-/**
- * Where the face of a federated person is kept: the avatars of the subscription
- * they own, since a picture is data of the membership (RN-ACC-022), the
- * directory, when the installation has one to ask, and what a picture is
- * allowed to be.
- */
-export interface FederatedFaces {
-  avatarsOf(owner: UserId, subscription: SubscriptionId): AvatarRepository;
-  readonly directory: DirectoryPictures | null;
-  readonly types: PictureTypes;
 }
 
 export interface FederationPolicy {
@@ -113,7 +81,6 @@ export class FederatedSignIn {
     private readonly accounts: FederatedAccounts,
     private readonly onboarding: SubscriptionOnboarding,
     private readonly policy: FederationPolicy,
-    private readonly faces: FederatedFaces | null = null,
   ) {}
 
   async execute(
@@ -176,44 +143,10 @@ export class FederatedSignIn {
       if (!given.ok) return given;
     }
 
-    if (this.faces) {
-      const owned = await this.onboarding.ownedBy(account.userId);
-      if (owned) await this.face(this.faces, account.userId, owned, email.value);
-    }
-
     // Last, so that a failure above leaves an account the next attempt finds
     // and links, instead of a linked identity nothing ever completes.
     await this.accounts.link(account, input.provider, input.providerUserId);
     return ok({ userId: account.userId, created });
-  }
-
-  /**
-   * The face of a federated person, set once in the subscription they own
-   * (RN-ACC-046, #561): the picture the organization's directory keeps, or
-   * their initials, never Gravatar, which would send gravatar.com the hash of
-   * a corporate address (RN-DSC-040). A face already kept there stays.
-   */
-  private async face(
-    faces: FederatedFaces,
-    owner: UserId,
-    subscription: SubscriptionId,
-    email: Email,
-  ): Promise<void> {
-    const avatars = faces.avatarsOf(owner, subscription);
-    if (await avatars.find(owner)) return;
-    const found = (await faces.directory?.pictureOf(email)) ?? null;
-    const usable =
-      found !== null &&
-      found.bytes.length > 0 &&
-      found.bytes.length <= ACCESS_LIMITS.avatarMaxBytes &&
-      faces.types.accepted.includes(found.mime) &&
-      faces.types.supports(found.mime, found.bytes);
-    await avatars.save(
-      owner,
-      usable
-        ? { source: AvatarSource.UPLOAD, picture: found.bytes, mime: found.mime }
-        : { source: AvatarSource.INITIALS, picture: null, mime: null },
-    );
   }
 
   /**

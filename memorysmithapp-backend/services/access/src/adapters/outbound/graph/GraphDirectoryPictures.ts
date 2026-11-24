@@ -1,6 +1,6 @@
 /**
  * The photo Microsoft Entra ID keeps of a person, asked of Microsoft Graph
- * with the app's own credential (#561).
+ * with the app's own credential on every sign-in (#561).
  *
  * The OIDC token carries no picture and Cognito keeps the provider's tokens to
  * itself, so the person's own token never reaches Graph: the app asks as
@@ -8,13 +8,14 @@
  * keeps for the provider. What lets it read a photo is the application
  * permission `ProfilePhoto.Read.All` with admin consent, which the
  * organization grants in Entra ID; until it does, Graph refuses and the
- * person gets their initials.
+ * answer is unknown.
  *
- * It answers null for every failure and never throws, within a budget well
- * inside the five seconds the pool gives the trigger.
+ * Only a 404 of the photo says the person has none; every other failure is
+ * unknown, and it never throws, within a budget well inside the five seconds
+ * the pool gives the trigger.
  */
 
-import type { DirectoryPicture, DirectoryPictures } from '../../../application/federation.js';
+import type { DirectoryAnswer, DirectoryPictures } from '../../../application/federated-face.js';
 import type { Email } from '../../../domain/values.js';
 
 /** The side Graph is asked for first: the closest it keeps to `avatarSide`. */
@@ -34,19 +35,19 @@ export class GraphDirectoryPictures implements DirectoryPictures {
     private readonly fetchFn: typeof fetch = fetch,
   ) {}
 
-  async pictureOf(email: Email): Promise<DirectoryPicture | null> {
+  async pictureOf(email: Email): Promise<DirectoryAnswer> {
     try {
       const signal = AbortSignal.timeout(this.budgetMs);
       const token = await this.token(signal);
-      if (!token) return null;
+      if (!token) return { kind: 'unknown' };
       const user = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(email.value)}`;
       // The size closest to what the interface draws, and the photo as it was
       // kept when that size is not one of its own; a refusal is not retried.
       const sized = await this.photo(`${user}/photos/${SIDE}/$value`, token, signal);
-      if (sized.status !== 404) return sized.picture;
-      return (await this.photo(`${user}/photo/$value`, token, signal)).picture;
+      if (sized.kind !== 'none') return sized;
+      return await this.photo(`${user}/photo/$value`, token, signal);
     } catch {
-      return null;
+      return { kind: 'unknown' };
     }
   }
 
@@ -70,21 +71,17 @@ export class GraphDirectoryPictures implements DirectoryPictures {
     return typeof body.access_token === 'string' ? body.access_token : null;
   }
 
-  private async photo(
-    url: string,
-    token: string,
-    signal: AbortSignal,
-  ): Promise<{ status: number; picture: DirectoryPicture | null }> {
+  private async photo(url: string, token: string, signal: AbortSignal): Promise<DirectoryAnswer> {
     const response = await this.fetchFn(url, {
       signal,
       headers: { authorization: `Bearer ${token}` },
     });
-    if (!response.ok) return { status: response.status, picture: null };
+    if (response.status === 404) return { kind: 'none' };
+    if (!response.ok) return { kind: 'unknown' };
     const mime = (response.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
     return {
-      status: response.status,
+      kind: 'picture',
       picture: { mime, bytes: new Uint8Array(await response.arrayBuffer()) },
     };
   }
 }
-

@@ -386,20 +386,24 @@ describe("the organization's identity provider (#395)", () => {
       },
     });
   });
-  it('asks Microsoft Entra ID for the photo of a first sign-in, and no other provider (#561)', () => {
-    const fn = (template: Template) =>
-      Object.values(template.findResources('AWS::Lambda::Function')).find((each) =>
-        JSON.stringify(each).includes('FIRST_SIGN_IN'),
-      ) as { Properties: { Environment: { Variables: Record<string, unknown> } } };
+  it('takes the face of a federated person on every sign-in, from Entra ID alone (#561)', () => {
+    const tokenTrigger = (template: Template) =>
+      (
+        Object.values(template.findResources('AWS::Lambda::Function')).find((each) =>
+          JSON.stringify(each).includes('subscription_status into every token'),
+        ) as { Properties: { Environment: { Variables: Record<string, unknown> } } }
+      ).Properties.Environment.Variables;
 
-    const other = fn(identityOf(PROVIDER).template).Properties.Environment.Variables;
+    const other = tokenTrigger(identityOf(PROVIDER).template);
+    expect(other['FACES']).toBe('on');
     expect(Object.keys(other).filter((key) => key.startsWith('PICTURES_'))).toEqual([]);
 
     const entra = identityOf({
       ...PROVIDER,
       IDP_ISSUER: 'https://login.microsoftonline.com/tenant-1/v2.0',
     });
-    expect(fn(entra.template).Properties.Environment.Variables).toMatchObject({
+    expect(tokenTrigger(entra.template)).toMatchObject({
+      FACES: 'on',
       PICTURES_TENANT: 'tenant-1',
       PICTURES_CLIENT_ID: PROVIDER.IDP_CLIENT_ID,
       PICTURES_SECRET_ID: 'memorysmith-idp-client-secret-acme-staging',
@@ -411,6 +415,11 @@ describe("the organization's identity provider (#395)", () => {
         ]),
       },
     });
+  });
+
+  it('leaves the token trigger of an installation with no provider as it was', () => {
+    const variables = identityOf(VARIABLES).template.findResources('AWS::Lambda::Function');
+    expect(JSON.stringify(variables)).not.toContain('FACES');
   });
 
   it('knows an issuer of Entra ID by its tenant', () => {

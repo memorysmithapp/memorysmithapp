@@ -20,6 +20,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import type { CfnFunction, IFunction } from 'aws-cdk-lib/aws-lambda';
+import type { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import type { Construct } from 'constructs';
@@ -246,7 +247,7 @@ export class IdentityStack extends Stack {
     }
     this.mailFunction = relay?.sender ?? null;
 
-    const federation = this.federate(props);
+    const federation = this.federate(props, preTokenGeneration);
     this.directProvider =
       props.environment.identityProvider?.signIn === 'idp'
         ? props.environment.identityProvider.name
@@ -618,7 +619,10 @@ export class IdentityStack extends Stack {
    * first sign-in (#395, ADR-026). Nothing here exists unless the
    * installation declares a provider, so the project's own pool is untouched.
    */
-  private federate(props: IdentityStackProps): {
+  private federate(
+    props: IdentityStackProps,
+    preTokenGeneration: NodejsFunction,
+  ): {
     provider: cognito.UserPoolIdentityProviderOidc;
     admitted: cognito.UserPoolClientIdentityProvider[];
   } | null {
@@ -676,27 +680,30 @@ export class IdentityStack extends Stack {
         EMAIL_CLAIM: declared.emailClaim,
         REQUIRE_VERIFIED: String(requireVerified),
         QUOTA: declared.quota ?? '1GB',
-        // Entra ID is asked for the person's photo with the app's own
-        // credential, the secret the provider already signs in with (#561).
-        ...(tenant
-          ? {
-              PICTURES_TENANT: tenant,
-              PICTURES_CLIENT_ID: declared.clientId,
-              PICTURES_SECRET_ID: identityProviderSecretName(props.environment),
-            }
-          : {}),
       },
     }).function;
     this.userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUp);
-    // `automatic` writes the subscription and its link, and every mode writes
-    // the first face of a person who owns one (RN-ACC-046).
-    props.accessTable.grantReadWriteData(preSignUp);
+    // `automatic` writes the subscription and its link; the others only read.
+    if (declared.firstSignIn === 'automatic') props.accessTable.grantReadWriteData(preSignUp);
+
+    // The face of a federated person, taken again on every sign-in by the
+    // trigger that issues the token (RN-ACC-046, #561): Entra ID is asked for
+    // the photo with the app's own credential, the secret the provider
+    // already signs in with, and any other provider gives the initials.
+    preTokenGeneration.addEnvironment('FACES', 'on');
+    props.accessTable.grantReadWriteData(preTokenGeneration);
     if (tenant) {
+      preTokenGeneration.addEnvironment('PICTURES_TENANT', tenant);
+      preTokenGeneration.addEnvironment('PICTURES_CLIENT_ID', declared.clientId);
+      preTokenGeneration.addEnvironment(
+        'PICTURES_SECRET_ID',
+        identityProviderSecretName(props.environment),
+      );
       Secret.fromSecretNameV2(
         this,
         'OrganizationProviderSecret',
         identityProviderSecretName(props.environment),
-      ).grantRead(preSignUp);
+      ).grantRead(preTokenGeneration);
     }
 
     // A policy of its own, not of the function's role: the pool names the
