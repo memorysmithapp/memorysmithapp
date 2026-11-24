@@ -43,6 +43,7 @@ import {
   TableIcon,
   TemplateIcon,
 } from '../../shared/components/icons';
+import { Button } from '../../shared/components/Button';
 
 /**
  * What a transfer carries, chosen the same way on both sides (#156, #161).
@@ -757,9 +758,9 @@ function ConflictsPanel({
                 <span>{t('portability.nameTakenWhy')}</span>
               </span>
               {onFixName && (
-                <button type="button" className="button is-quiet is-small" onClick={onFixName}>
+                <Button variant="quiet" small onClick={onFixName}>
                   <ActionWord icon={<PencilIcon />} word={t('portability.changeName')} />
-                </button>
+                </Button>
               )}
             </li>
           )}
@@ -773,13 +774,9 @@ function ConflictsPanel({
                 </span>
               </span>
               {onFindNote && (
-                <button
-                  type="button"
-                  className="button is-quiet is-small"
-                  onClick={() => onFindNote(twin.name)}
-                >
+                <Button variant="quiet" small onClick={() => onFindNote(twin.name)}>
                   <ActionWord icon={<SearchIcon />} word={t('portability.findTwin')} />
-                </button>
+                </Button>
               )}
             </li>
           ))}

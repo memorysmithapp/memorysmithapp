@@ -4,6 +4,8 @@ import { beginSignIn } from '../../shared/auth/oauth';
 import { authConfig, type WithoutSubscription } from '../../shared/auth/session';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { SignInIcon } from '../../shared/components/icons';
+import { BrandHeading } from '../../shared/components/BrandMark';
+import { Button } from '../../shared/components/Button';
 
 /**
  * Marks that this browser already handed itself over to the identity
@@ -162,11 +164,7 @@ export function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <img src="/symbol.svg" alt="" className="login-symbol symbol-light" />
-        <img src="/symbol-dark.svg" alt="" className="login-symbol symbol-dark" />
-        <h1 className="brand-word">
-          MemorySmith<span className="brand-suffix">.app</span>
-        </h1>
+        <BrandHeading />
         <p className="login-tagline">{t('app.tagline')}</p>
 
         <div className="login-form">
@@ -180,13 +178,9 @@ export function LoginPage() {
                   : t('auth.handingOver')}
           </p>
           {withoutSubscription || expired || handedOver ? (
-            <button
-              type="button"
-              className="button is-primary is-wide"
-              onClick={() => void beginSignIn(authConfig())}
-            >
+            <Button variant="primary" wide onClick={() => void beginSignIn(authConfig())}>
               <ActionWord icon={<SignInIcon />} word={t('auth.signIn')} wide />
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>

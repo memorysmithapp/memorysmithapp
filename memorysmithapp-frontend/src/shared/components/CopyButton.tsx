@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '../lib/clipboard';
+import { Button } from './Button';
 import { CheckIcon, CopyIcon } from './icons';
 
 /**
@@ -37,9 +38,9 @@ export function CopyButton({
   }
 
   return (
-    <button
-      type="button"
-      className={`button is-small copy-action ${className}`.trim()}
+    <Button
+      small
+      className={`copy-action ${className}`.trim()}
       onClick={() => void copy()}
       disabled={disabled}
       aria-label={t('note.copy')}
@@ -47,6 +48,6 @@ export function CopyButton({
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
       <span className="copy-action-label">{copied ? t('note.copied') : t('note.copy')}</span>
-    </button>
+    </Button>
   );
 }

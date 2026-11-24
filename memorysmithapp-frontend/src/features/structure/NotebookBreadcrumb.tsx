@@ -17,6 +17,7 @@ import type { NotebookOutletContext } from './NotebookLayout';
 import { useNotebookId } from './route-ids';
 import { useIsModel } from '../../shared/api/is-model';
 import { ActionWord } from '../../shared/components/ActionWord';
+import { Button, ButtonLink } from '../../shared/components/Button';
 
 export interface Crumb {
   label: string;
@@ -273,9 +274,9 @@ export function BarButton({
   ref?: Ref<HTMLButtonElement>;
 }) {
   return (
-    <button ref={ref} type="button" className="bar-button" onClick={onClick} title={title ?? label}>
+    <Button ref={ref} variant="bar" onClick={onClick} title={title ?? label}>
       <ActionWord icon={icon} word={label} />
-    </button>
+    </Button>
   );
 }
 
@@ -296,8 +297,8 @@ export function BarLink({
   to: string;
 }) {
   return (
-    <Link to={to} target="_blank" className="bar-button" title={title ?? label}>
+    <ButtonLink to={to} target="_blank" variant="bar" title={title ?? label}>
       <ActionWord icon={icon} word={label} />
-    </Link>
+    </ButtonLink>
   );
 }

@@ -30,7 +30,7 @@ export const PAGE_MARGINS = '18mm 16mm 20mm';
  * of a page are read from the stylesheet of the application, which applies to
  * the copy.
  */
-function pageRules(
+export function pageRules(
   orientation: Orientation,
   appendices: Appendices | null,
   contentsPages: boolean,
@@ -38,11 +38,85 @@ function pageRules(
   return `
 @page { size: A4 ${orientation}; margin: ${PAGE_MARGINS}; }
 .print-end { break-before: page; }
-.contents-entry { display: flex; align-items: baseline; gap: 0.25em; }
-.contents-entry::before { content: ""; order: 1; flex: 1; min-width: 1em; border-bottom: 1px dotted currentColor; opacity: 0.6; }
-.contents-entry::after { content: target-counter(attr(href url), page); order: 2; }
+${CONTENTS_ENTRIES}
 ${contentsPages ? CONTENTS_PAGES : ''}
 ${appendices ? appendixRules(appendices) : ''}`;
+}
+
+/**
+ * An entry of a contents as a printed table of contents reads (#545): its
+ * number on the first line, in a column as wide as the widest number of its
+ * level, the text beside it and every line of it under its first word, left
+ * aligned whatever the note's alignment; the dotted line from the last word of
+ * the last line to the page, at the right in a column of its own.
+ *
+ * The entry is inline, so its text flows as text: the dotted line hangs off
+ * the end of its last line (`left: 100%` of an inline is where its last line
+ * ends) and is cut at the page column by its item, and the page is a float of
+ * no width on that last line, over the dotted line. The widths of the number
+ * column come from the drawn note (`hangContents`); with none, an entry has no
+ * column and wraps under its start.
+ */
+const CONTENTS_ENTRIES = `
+.contents-item { overflow: hidden; text-align: left; hyphens: manual; padding-inline-start: var(--contents-indent, 0px); text-indent: calc(-1 * var(--contents-indent, 0px)); padding-inline-end: 2.5em; }
+.contents-item .contents-entries { text-indent: 0; clear: right; margin-inline-end: -2.5em; }
+.contents-entry { position: relative; }
+.contents-entry > .contents-number { display: inline-block; min-width: var(--contents-number, 0px); text-indent: 0; white-space: nowrap; }
+.contents-entry::before { content: ""; position: absolute; left: 100%; bottom: 0.3em; width: 100vw; margin-left: 0.25em; border-bottom: 1px dotted currentColor; opacity: 0.6; }
+.contents-entry::after { content: target-counter(attr(href url), page); float: right; width: 2.5em; margin-right: -2.5em; text-align: right; text-indent: 0; background: #fff; position: relative; z-index: 1; }
+`;
+
+/** What `hangContents` reads of a laid-out entry, in pixels. */
+export interface ContentsMeasure {
+  /** The width of an entry's number. */
+  number(element: Element): number;
+  /** The width of the space between a number and its text. */
+  gap(element: Element): number;
+}
+
+const SPACE_FALLBACK = 4;
+
+const laidOut: ContentsMeasure = {
+  number: (element) => element.getBoundingClientRect().width,
+  gap: (element) => {
+    const space = element.nextSibling;
+    if (!space || space.nodeType !== Node.TEXT_NODE || !space.textContent) return SPACE_FALLBACK;
+    const range = document.createRange();
+    range.setStart(space, 0);
+    range.setEnd(space, 1);
+    return range.getBoundingClientRect().width || SPACE_FALLBACK;
+  },
+};
+
+/** Room between the number column and the text, beyond the space between them. */
+const NUMBER_ROOM = 6;
+
+/**
+ * Gives each level of each contents of the copy the width of its number
+ * column, measured on the drawn note, which is laid out at the width of the
+ * paper (#545): a stylesheet cannot size a column to its widest cell when the
+ * cells are not in one box. The copy is a deep clone, so its lists come in the
+ * same order as the drawn ones.
+ */
+export function hangContents(
+  drawn: ParentNode,
+  copy: ParentNode,
+  measure: ContentsMeasure = laidOut,
+): void {
+  const copies = [...copy.querySelectorAll('.contents-entries')];
+  [...drawn.querySelectorAll('.contents-entries')].forEach((list, index) => {
+    const numbers = [
+      ...list.querySelectorAll(':scope > .contents-item > .contents-entry > .contents-number'),
+    ];
+    const target = copies[index] as HTMLElement | undefined;
+    if (!target || numbers.length === 0) return;
+    const column = Math.ceil(Math.max(...numbers.map(measure.number))) + NUMBER_ROOM;
+    target.style.setProperty('--contents-number', `${column}px`);
+    target.style.setProperty(
+      '--contents-indent',
+      `${column + Math.ceil(measure.gap(numbers[0] as Element))}px`,
+    );
+  });
 }
 
 /**
@@ -275,6 +349,7 @@ export function paginate(
     const content = document.createDocumentFragment();
     for (const part of source.children) content.appendChild(part.cloneNode(true));
     separateIds(content);
+    hangContents(source, content);
 
     const previewer = new Previewer();
     laid = previewer;

@@ -154,7 +154,6 @@
     "noteCount_other": "{{count}} notes",
     "updatedAt": "updated {{date}}",
     "open": "Open notebook",
-    "openShort": "Open",
     "help": "Your notebooks and the ones shared with you, by name. The icon in a corner says whose each one is; ⋯ exports, shares or deletes it. A new notebook starts blank or from a model."
   },
   "structure": {

@@ -1,45 +1,13 @@
-import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '../shared/components/AppShell';
+// The sign-in is the first screen of most visits, and the root layout already
+// imports from it: it stays in the entry.
 import { LoginPage } from '../features/auth/LoginPage';
-import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
-import { GuidancePanel } from '../features/guidance/GuidancePanel';
-import { StylePage } from '../features/structure/StylePage';
-import { FolderPage } from '../features/structure/FolderPage';
-import { FoldersPage } from '../features/structure/FoldersPage';
+import { lazyPage } from '../shared/lib/lazy-page';
+// Where the reading stopped is remembered by this route the moment it opens, so
+// it never waits for the note it draws, which arrives on its own (#547).
 import { NoteRoute } from '../features/structure/NoteRoute';
-import { NotebookOverview } from '../features/structure/NotebookOverview';
-import { NotebookContextPage } from '../features/structure/NotebookContextPage';
-import { TemplatesPage } from '../features/structure/TemplatesPage';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
-import { AboutPage, WelcomeGate } from '../features/about/AboutPage';
-import { ProfilePage } from '../features/profile/ProfilePage';
-import { PasswordPage } from '../features/profile/PasswordPage';
-import { TransfersPage } from '../features/portability/TransfersPage';
-import { GraphPage } from '../features/graph/GraphPage';
-import { AttachmentsPage } from '../features/attachments/AttachmentsPage';
-import { TablesPage } from '../features/tables/TablesPage';
-// The charts weigh, so the page that draws them arrives when it is opened (#368).
-const PrintDashboardPage = lazy(() =>
-  import('../features/dashboards/PrintDashboardPage').then((module) => ({
-    default: module.PrintDashboardPage,
-  })),
-);
-const DashboardsPage = lazy(() =>
-  import('../features/dashboards/DashboardsPage').then((module) => ({
-    default: module.DashboardsPage,
-  })),
-);
-import { LinkTargetPage } from '../features/note/LinkTargetPage';
-import { PrintNotePage } from '../features/note/PrintNotePage';
-import { GeneratePdfPage } from '../features/note/GeneratePdfPage';
-import { PreviewNotePage } from '../features/note/PreviewNotePage';
-import { NotebookLayout } from '../features/structure/NotebookLayout';
-import { ModelPage, SharedModelPage } from '../features/models/ModelPage';
-import { ModelsPage } from '../features/models/ModelsPage';
-import { NotebooksPage } from '../features/dashboard/NotebooksPage';
-import { CommunityModelPage, CommunityPage } from '../features/community/CommunityPages';
 import {
   communityModelAddress,
   identifierOf,
@@ -47,6 +15,98 @@ import {
   sharedModelAddress,
 } from '../shared/api/note-address';
 import { RequireSession, RootLayout } from './RootLayout';
+
+// Every other page arrives when it is opened (#547; the charts first, #368).
+const AuthCallbackPage = lazyPage(() =>
+  import('../features/auth/AuthCallbackPage').then((module) => module.AuthCallbackPage),
+);
+const GuidancePanel = lazyPage(() =>
+  import('../features/guidance/GuidancePanel').then((module) => module.GuidancePanel),
+);
+const StylePage = lazyPage(() =>
+  import('../features/structure/StylePage').then((module) => module.StylePage),
+);
+const FolderPage = lazyPage(() =>
+  import('../features/structure/FolderPage').then((module) => module.FolderPage),
+);
+const FoldersPage = lazyPage(() =>
+  import('../features/structure/FoldersPage').then((module) => module.FoldersPage),
+);
+const NotebookOverview = lazyPage(() =>
+  import('../features/structure/NotebookOverview').then((module) => module.NotebookOverview),
+);
+const NotebookContextPage = lazyPage(() =>
+  import('../features/structure/NotebookContextPage').then((module) => module.NotebookContextPage),
+);
+const TemplatesPage = lazyPage(() =>
+  import('../features/structure/TemplatesPage').then((module) => module.TemplatesPage),
+);
+const DashboardPage = lazyPage(() =>
+  import('../features/dashboard/DashboardPage').then((module) => module.DashboardPage),
+);
+const AboutPage = lazyPage(() =>
+  import('../features/about/AboutPage').then((module) => module.AboutPage),
+);
+const WelcomeGate = lazyPage(() =>
+  import('../features/about/AboutPage').then((module) => module.WelcomeGate),
+);
+const ProfilePage = lazyPage(() =>
+  import('../features/profile/ProfilePage').then((module) => module.ProfilePage),
+);
+const PasswordPage = lazyPage(() =>
+  import('../features/profile/PasswordPage').then((module) => module.PasswordPage),
+);
+const TransfersPage = lazyPage(() =>
+  import('../features/portability/TransfersPage').then((module) => module.TransfersPage),
+);
+const GraphPage = lazyPage(() =>
+  import('../features/graph/GraphPage').then((module) => module.GraphPage),
+);
+const AttachmentsPage = lazyPage(() =>
+  import('../features/attachments/AttachmentsPage').then((module) => module.AttachmentsPage),
+);
+const TablesPage = lazyPage(() =>
+  import('../features/tables/TablesPage').then((module) => module.TablesPage),
+);
+const PrintDashboardPage = lazyPage(() =>
+  import('../features/dashboards/PrintDashboardPage').then((module) => module.PrintDashboardPage),
+);
+const DashboardsPage = lazyPage(() =>
+  import('../features/dashboards/DashboardsPage').then((module) => module.DashboardsPage),
+);
+const LinkTargetPage = lazyPage(() =>
+  import('../features/note/LinkTargetPage').then((module) => module.LinkTargetPage),
+);
+const PrintNotePage = lazyPage(() =>
+  import('../features/note/PrintNotePage').then((module) => module.PrintNotePage),
+);
+const GeneratePdfPage = lazyPage(() =>
+  import('../features/note/GeneratePdfPage').then((module) => module.GeneratePdfPage),
+);
+const PreviewNotePage = lazyPage(() =>
+  import('../features/note/PreviewNotePage').then((module) => module.PreviewNotePage),
+);
+const NotebookLayout = lazyPage(() =>
+  import('../features/structure/NotebookLayout').then((module) => module.NotebookLayout),
+);
+const ModelPage = lazyPage(() =>
+  import('../features/models/ModelPage').then((module) => module.ModelPage),
+);
+const SharedModelPage = lazyPage(() =>
+  import('../features/models/ModelPage').then((module) => module.SharedModelPage),
+);
+const ModelsPage = lazyPage(() =>
+  import('../features/models/ModelsPage').then((module) => module.ModelsPage),
+);
+const NotebooksPage = lazyPage(() =>
+  import('../features/dashboard/NotebooksPage').then((module) => module.NotebooksPage),
+);
+const CommunityModelPage = lazyPage(() =>
+  import('../features/community/CommunityPages').then((module) => module.CommunityModelPage),
+);
+const CommunityPage = lazyPage(() =>
+  import('../features/community/CommunityPages').then((module) => module.CommunityPage),
+);
 
 /**
  * Anything under a notebook that no route names, an address saved before 0.6.0
@@ -108,11 +168,7 @@ export const router = createBrowserRouter([
           // A dashboard drawn whole for its image, opened by the same renderer (#368).
           {
             path: '/notebooks/:notebookId/dashboards/print',
-            element: (
-              <Suspense fallback={null}>
-                <PrintDashboardPage />
-              </Suspense>
-            ),
+            element: <PrintDashboardPage />,
           },
           {
             element: <AppShell />,
@@ -165,11 +221,7 @@ export const router = createBrowserRouter([
                   { path: 'tables', element: <TablesPage /> },
                   {
                     path: 'dashboards',
-                    element: (
-                      <Suspense fallback={null}>
-                        <DashboardsPage />
-                      </Suspense>
-                    ),
+                    element: <DashboardsPage />,
                   },
                   { path: 'graph', element: <GraphPage /> },
                   { path: 'model', element: <ModelPage /> },

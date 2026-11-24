@@ -11,6 +11,23 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-23
+
+### Changed
+
+- **The interface opens faster.** Each screen now brings what it draws when it opens, instead of every screen arriving with the first one: the code the browser downloads before the sign-in or Home draws fell from 526 kB to 234 kB (gzip), and its styles from 45 kB to 25 kB. The note renderer and its styles, formulas, diagrams, charts and the graph arrive only on the screens that show them (#547).
+- **Every screen draws with the same values and the same button.** Colours, type sizes and corners now come from one set of values from the brand book, in both themes, and a button looks the same everywhere, whether it is a button or a link: the buttons of a note's bar are the same button as the rest, set tighter. Some text moved by a pixel or two, most cards have slightly rounder corners, an error under a form and the dots of the save state now take the colours of the dark theme, and a button without a style of its own (in the check of a file's original) now has an edge like its neighbours (#544).
+- **An open notebook no longer downloads itself again every half minute.** The structure, the notes, the files and the names it checks every 30 seconds come back empty when nothing changed, instead of whole, so a large notebook left open costs almost nothing; a change made elsewhere still reaches the screen at the next check (#547).
+
+### Fixed
+
+- **A card no longer shows *Open notebook*.** The cards of notebooks, models and community models ended with an *Open notebook →* (*Open the model →*) link, though a click anywhere on the card already opens it. The label is gone from sight; the card still opens on a click, and a screen reader still hears what it opens (#549).
+- **A notebook's card says when any of its notes last changed.** On the Notebooks page, and to an agent listing notebooks, *updated* moved only when the notebook itself changed (its name, its folders), so a notebook whose note was edited today still showed the day the notebook last changed, unlike *Recently changed* inside it. It now gives the later of the two, moved by creating, editing, moving, reordering or deleting a note. A notebook whose notes haven't changed since this fix shows the date it showed before until one does (#546).
+- **A printed contents reads as a table of contents, an entry of two lines included.** Printed and in the PDF, an entry whose text takes more than one line, a long table caption above all, put its dotted line and its page beside the first line and broke its number, *Tabela* over *11*. Each entry now has its number on the first line, in a column as wide as the widest number of its list, its text beside it and every line of it under its first word, left-aligned in a justified note too, and the dotted line from its last word to its page (#545).
+- **A button never underlines.** *Generate PDF* on a note, and the buttons that open a note or a notebook from the graph, a table row and the transfers, and *Change password* on the profile, underlined their label under the pointer, unlike every other button (#544).
+- **A button no longer fills under the pointer, and *Delete* is no longer a block of red.** Hovering a button darkened or tinted its background, the blue one included, and a delete button filled entirely with red, as it did in every confirmation. Now the pointer only darkens a button's edge or its label, and a delete button keeps the red in its label, reaching its edge under the pointer and in a confirmation (#550).
+- **The sign-in's return and the PDF tab show the brand whole.** They drew the word *MemorySmith.app* alone; they now show the symbol of the current theme over it, as the sign-in does (#544).
+
 ## [0.23.0] - 2026-11-22
 
 ### Added
@@ -1222,7 +1239,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.20.0...v0.21.0

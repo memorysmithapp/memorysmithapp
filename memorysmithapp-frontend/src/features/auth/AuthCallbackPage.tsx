@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { completeSignIn, readableFailure } from '../../shared/auth/oauth';
 import { clearHandover } from './LoginPage';
 import { authConfig, useLiveSession } from '../../shared/auth/session';
+import { BrandHeading } from '../../shared/components/BrandMark';
 
 export function AuthCallbackPage() {
   const { t } = useTranslation();
@@ -48,9 +49,7 @@ export function AuthCallbackPage() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <h1 className="brand-word">
-          MemorySmith<span className="brand-suffix">.app</span>
-        </h1>
+        <BrandHeading />
         <p className="login-note">{failure ?? t('auth.completing')}</p>
         {failure ? (
           <button type="button" className="primary" onClick={() => void navigate('/login')}>

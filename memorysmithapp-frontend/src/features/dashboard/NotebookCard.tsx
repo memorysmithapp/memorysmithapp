@@ -17,12 +17,12 @@ export function formatDay(iso: string, locale: string): string {
 
 /**
  * The card of a shelf (#418): a strip of the brand on top, the drawing, the
- * name, what it is, and a footer with what it holds and the way in. Notebooks,
+ * name, what it is, and a footer with what it holds. Notebooks,
  * models and community models are the same card, so the three pages read as
  * one product.
  *
  * The whole card opens what it shows, through the one link of its footer
- * stretched over it, so a control in a corner of the card (the `⋯` of #199)
+ * stretched over it, which shows no word of its own (#549), so a control in a corner of the card (the `⋯` of #199)
  * is a control of its own and not a button inside a link.
  */
 export function ShelfCard({
@@ -34,7 +34,6 @@ export function ShelfCard({
   shortMeta,
   to,
   openLabel,
-  openShort,
   strip,
   corner,
   children,
@@ -49,8 +48,8 @@ export function ShelfCard({
   meta: ReactNode;
   shortMeta?: ReactNode;
   to: string;
+  /** What the link says to whoever hears it; the card shows no such word (#549). */
   openLabel: string;
-  openShort: string;
   /** The strip on top: the brand, or the red of a card that is asking. */
   strip: 'blue' | 'orange' | 'danger';
   /** What sits in the top-right corner: the actions of the card. */
@@ -73,9 +72,9 @@ export function ShelfCard({
               <span className={shortMeta ? 'is-long' : undefined}>{meta}</span>
               {shortMeta ? <span className="is-short">{shortMeta}</span> : null}
             </span>
+            {/* The whole card is the way in, so the link shows no word of its own (#549). */}
             <Link to={to} className="notebook-open">
-              <span className="is-long">{openLabel}</span>
-              <span className="is-short">{openShort}</span> →
+              <span className="visually-hidden">{`${openLabel}: ${name}`}</span>
             </Link>
           </footer>
         </>
@@ -121,7 +120,6 @@ export function NotebookCard({
       shortMeta={`${notes} · ${day}`}
       to={to ?? notebookAddress(notebook.id)}
       openLabel={t('notebooks.open')}
-      openShort={t('notebooks.openShort')}
       strip={strip}
       corner={corner}
     >

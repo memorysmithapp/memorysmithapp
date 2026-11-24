@@ -11,6 +11,8 @@ import { keepSessionAlive, keepSessionStorage } from './shared/auth/renewal';
 import { loadRuntimeConfig } from './shared/config/runtime-config';
 import { documentTitleOf, withEnvironment } from './shared/components/document-title';
 import './i18n';
+// The stylesheets of the renderer and of KaTeX are not here: the first note a
+// screen draws places them before this one (shared/lib/reading-styles.ts).
 import './styles.css';
 
 const container = document.getElementById('root');

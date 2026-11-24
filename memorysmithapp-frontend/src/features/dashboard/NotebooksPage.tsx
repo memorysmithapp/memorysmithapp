@@ -20,6 +20,7 @@ import { useIncomingShares, useOwnShares } from '../sharing/shares';
 import { AcceptedShareCard, PendingShareCard } from '../sharing/SharedNotebookCards';
 import type { IncomingShareDto } from '@memorysmithapp/contracts';
 import type { NotebookSummary } from '../../shared/types/api';
+import { Button } from '../../shared/components/Button';
 
 /** One card of the row: a notebook of mine, or one shared with me (#256). */
 type Entry =
@@ -113,14 +114,13 @@ export function NotebooksPage() {
         action={
           // A notebook, blank or from a model (#359); a new model starts on
           // the page of the models (#418).
-          <button
-            type="button"
+          <Button
             // The quiet button every page head uses, as Transfers does (#422).
-            className="button is-quiet"
+            variant="quiet"
             onClick={() => setCreating(true)}
           >
             <ActionWord icon={<PlusIcon />} word={t('newNotebook.open')} />
-          </button>
+          </Button>
         }
       />
       <div className="shelf-grid">

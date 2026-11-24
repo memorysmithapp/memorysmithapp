@@ -9,6 +9,7 @@ import { selectionOf, type Chosen } from './import-selection';
 import { queryKeys } from '../../shared/api/query-keys';
 import { ActionWord } from '../../shared/components/ActionWord';
 import { DownloadIcon, UploadIcon } from '../../shared/components/icons';
+import { Button } from '../../shared/components/Button';
 
 /** Which of the two transfers is being decided, or none. */
 export type Starting = 'export' | 'import' | null;
@@ -58,12 +59,12 @@ export function TransferActions({ onStart }: { onStart: (starting: Starting) => 
 
   return (
     <div className="transfers-start">
-      <button type="button" className="button is-quiet" onClick={() => onStart('export')}>
+      <Button variant="quiet" onClick={() => onStart('export')}>
         <ActionWord icon={<DownloadIcon />} word={t('transfers.newExport')} wide />
-      </button>
-      <button type="button" className="button is-quiet" onClick={() => onStart('import')}>
+      </Button>
+      <Button variant="quiet" onClick={() => onStart('import')}>
         <ActionWord icon={<UploadIcon />} word={t('transfers.newImport')} wide />
-      </button>
+      </Button>
     </div>
   );
 }

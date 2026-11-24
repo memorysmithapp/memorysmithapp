@@ -188,7 +188,7 @@ module.exports = {
           '(^|/)(babel|webpack|vite|vitest|playwright)[.](config|adapters[.]config)[.](js|cjs|mjs|ts|json)$',
           '(^|/)[.]dependency-cruiser[.]cjs$',
           '(^|/)(handler|lambda|relay[.]handler|pre-token-generation|custom-message)[.]ts$',
-          '(^|/)eslint[.]config[.](js|cjs|mjs|ts)$',
+          '(^|/)(eslint|stylelint)[.]config[.](js|cjs|mjs|ts)$',
         ],
       },
       to: {},

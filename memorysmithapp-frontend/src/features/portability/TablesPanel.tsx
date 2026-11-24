@@ -9,6 +9,7 @@ import {
   type TableCarry,
   type TablesChoice,
 } from './tables-choice';
+import { Button } from '../../shared/components/Button';
 
 /**
  * The tab of tables and dashboards (#399), item by item, as every other tab of
@@ -54,20 +55,12 @@ export function TablesPanel({
         <section className="tables-panel-group">
           <div className="tables-panel-head">
             <h3>{t('portability.tables.tables')}</h3>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => allTables(true)}
-            >
+            <Button variant="quiet" small onClick={() => allTables(true)}>
               {t('portability.tables.all')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => allTables(false)}
-            >
+            </Button>
+            <Button variant="quiet" small onClick={() => allTables(false)}>
               {t('portability.tables.none')}
-            </button>
+            </Button>
           </div>
           <ul className="chooser-list" role="list">
             {tables.map((table) => {
@@ -121,20 +114,12 @@ export function TablesPanel({
         <section className="tables-panel-group">
           <div className="tables-panel-head">
             <h3>{t('portability.tables.dashboards')}</h3>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => allDashboards(true)}
-            >
+            <Button variant="quiet" small onClick={() => allDashboards(true)}>
               {t('portability.tables.all')}
-            </button>
-            <button
-              type="button"
-              className="button is-quiet is-small"
-              onClick={() => allDashboards(false)}
-            >
+            </Button>
+            <Button variant="quiet" small onClick={() => allDashboards(false)}>
               {t('portability.tables.none')}
-            </button>
+            </Button>
           </div>
           <ul className="chooser-list" role="list">
             {dashboards.map((dashboard) => {

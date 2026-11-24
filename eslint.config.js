@@ -49,6 +49,23 @@ export default tseslint.config(
     },
   },
   {
+    // A button is drawn by Button or ButtonLink, or by buttonClass where the
+    // element has to be another (#544, ADR-032): its classes written by hand
+    // were how a link dressed as a button came to underline.
+    files: ['memorysmithapp-frontend/src/**/*.tsx'],
+    ignores: ['**/*.test.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "JSXAttribute[name.name='className'] :matches(Literal, TemplateElement)[value=/(^|\\s|\\{)(button|bar-button)(\\s|$)/]",
+          message: 'Draw a button with Button, ButtonLink or buttonClass (#544).',
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.cjs'],
     languageOptions: {
       sourceType: 'commonjs',

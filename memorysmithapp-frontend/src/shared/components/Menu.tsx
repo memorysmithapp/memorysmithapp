@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from './Button';
 
 /**
  * The menu of the Controles (#201): opened from a `⋯` or from the avatar,
@@ -179,9 +180,9 @@ export function Menu({
           <span className="sheet-handle" aria-hidden="true" />
           {title ? <p className="sheet-title">{title}</p> : null}
           {children}
-          <button type="button" className="button is-quiet is-wide sheet-close" onClick={onClose}>
+          <Button variant="quiet" wide className="sheet-close" onClick={onClose}>
             {closeLabel ?? t('common.cancel')}
-          </button>
+          </Button>
         </div>
       </>
     );

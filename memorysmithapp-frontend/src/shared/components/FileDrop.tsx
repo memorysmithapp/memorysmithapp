@@ -2,6 +2,7 @@ import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionWord } from './ActionWord';
 import { UploadIcon } from './icons';
+import { Button } from './Button';
 
 /**
  * Where a person gives a file (#253, RN-KNW-055), in any of the three ways a
@@ -54,14 +55,9 @@ export function FileDrop({
       }}
     >
       <p className="file-drop-hint">{t('fileDrop.hint')}</p>
-      <button
-        type="button"
-        className="button is-primary is-small"
-        disabled={disabled}
-        onClick={() => picker.current?.click()}
-      >
+      <Button variant="primary" small disabled={disabled} onClick={() => picker.current?.click()}>
         <ActionWord icon={<UploadIcon />} word={t('fileDrop.choose')} />
-      </button>
+      </Button>
       <input
         ref={picker}
         type="file"

@@ -5,6 +5,8 @@ import { getPrint, startPrint } from '../../shared/api/backend';
 import { ApiError } from '../../shared/api/error-mapper';
 import { identifierOf } from '../../shared/api/note-address';
 import { useNotebookId } from '../structure/route-ids';
+import { BrandHeading } from '../../shared/components/BrandMark';
+import { Button } from '../../shared/components/Button';
 
 /** How often the print is asked about while the server makes it. */
 const POLL_MILLIS = 1500;
@@ -116,9 +118,7 @@ export function GeneratePdfPage() {
   return (
     <div className="login-screen pdf-screen">
       <div className="login-card" aria-busy={failure === null}>
-        <h1 className="brand-word">
-          MemorySmith<span className="brand-suffix">.app</span>
-        </h1>
+        <BrandHeading />
         {failure === null ? <p className="login-note">{t('pdf.making')}</p> : null}
         <ol className="pdf-steps">
           {STEPS.map((each, index) => {
@@ -149,13 +149,9 @@ export function GeneratePdfPage() {
               {t(`pdf.${failure}`)}
             </p>
             {failure === 'gone' ? null : (
-              <button
-                type="button"
-                className="button is-primary"
-                onClick={() => setAttempt((count) => count + 1)}
-              >
+              <Button variant="primary" onClick={() => setAttempt((count) => count + 1)}>
                 {t('pdf.retry')}
-              </button>
+              </Button>
             )}
           </>
         )}

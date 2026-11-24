@@ -86,6 +86,13 @@ export class Notebook {
     private _style: NotebookStyle = NotebookStyle.DEFAULT,
   ) {}
 
+  /**
+   * When a note of the notebook last changed. A note transaction never writes
+   * the notebook (INV-10), so the relay records it outside that transaction,
+   * the way it keeps the counters (ADR-010): read model, never maintained here.
+   */
+  private _contentChangedAt: Instant | null = null;
+
   static create(input: {
     id: NotebookId;
     subscriptionId: SubscriptionId;
@@ -146,8 +153,10 @@ export class Notebook {
     updatedAt: Instant;
     deletedAt: Instant | null;
     style?: NotebookStyle | undefined;
+    /** When a note of it last changed, as the relay recorded it (#546). */
+    contentChangedAt?: Instant | null | undefined;
   }): Notebook {
-    return new Notebook(
+    const notebook = new Notebook(
       input.id,
       input.subscriptionId,
       input.name,
@@ -165,6 +174,8 @@ export class Notebook {
       input.deletedAt,
       input.style ?? NotebookStyle.DEFAULT,
     );
+    notebook._contentChangedAt = input.contentChangedAt ?? null;
+    return notebook;
   }
 
   // ---- Reads ---------------------------------------------------------------
@@ -209,6 +220,11 @@ export class Notebook {
   }
   get updatedAt(): Instant {
     return this._updatedAt;
+  }
+  /** When the notebook or any of its notes last changed, whichever is later (#546). */
+  get lastChangedAt(): Instant {
+    const content = this._contentChangedAt;
+    return content?.isAfter(this._updatedAt) ? content : this._updatedAt;
   }
   get deletedAt(): Instant | null {
     return this._deletedAt;

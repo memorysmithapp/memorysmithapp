@@ -6,6 +6,7 @@ import { markTransferRead } from '../../shared/api/source';
 import { KindMark, TransferState, TransferTitle, failureOf } from './TransferParts';
 import { CheckIcon } from '../../shared/components/icons';
 import { ActionWord } from '../../shared/components/ActionWord';
+import { Button } from '../../shared/components/Button';
 
 /**
  * Transfers, on the bell of the header (#418, #450): the edge of the button
@@ -120,9 +121,9 @@ export function TransferNotice({
       </div>
       {running ? null : (
         <div className="notification-actions">
-          <button type="button" className="button is-quiet is-small" onClick={onRead}>
+          <Button variant="quiet" small onClick={onRead}>
             <ActionWord icon={<CheckIcon />} word={t('notifications.markRead')} />
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { NotePage } from '../note/NotePage';
 import { identifierOf } from '../../shared/api/note-address';
 import { rememberNote } from '../../shared/store/last-note';
 import { rememberRecent } from '../../shared/store/recent-notes';
@@ -9,6 +8,14 @@ import { useLiveSession } from '../../shared/auth/session';
 import { folderTrailForNote } from './trail';
 import { useNotebookId } from './route-ids';
 import type { NotebookOutletContext } from './NotebookLayout';
+import { lazyPage } from '../../shared/lib/lazy-page';
+
+/**
+ * The note itself, with its editor, arrives when it is opened (#547); this route
+ * does not wait for it, so where the reading stopped is remembered the moment
+ * the address names the note, however long the note takes to arrive.
+ */
+const NotePage = lazyPage(() => import('../note/NotePage').then((module) => module.NotePage));
 
 /**
  * A note, addressed by its identifier alone (RN-DSC-045).
