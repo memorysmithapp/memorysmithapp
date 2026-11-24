@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { completeSignIn, readableFailure } from '../../shared/auth/oauth';
-import { clearHandover } from './LoginPage';
+import { clearHandover, clearSignedOut } from './LoginPage';
 import { authConfig, useLiveSession } from '../../shared/auth/session';
 import { BrandHeading } from '../../shared/components/BrandMark';
 
@@ -36,8 +36,10 @@ export function AuthCallbackPage() {
 
     completeSignIn(authConfig(), code)
       .then(async () => {
-        // The handover worked, so the loop guard has nothing left to guard.
+        // The handover worked, so the loop guard has nothing left to guard,
+        // and a sign-out the person made before is over (#562).
         clearHandover();
+        clearSignedOut();
         await load();
         void navigate('/', { replace: true });
       })

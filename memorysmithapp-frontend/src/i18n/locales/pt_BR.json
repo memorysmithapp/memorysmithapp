@@ -34,7 +34,7 @@
     "handingOver": "Levando você à página de entrada...",
     "handoverFailed": "A entrada não foi concluída. Tente de novo.",
     "sessionExpired": "Sua sessão expirou e foi encerrada aqui. Entrar de novo retoma exatamente de onde você parou: nada foi perdido.",
-    "signedOut": "Você saiu do MemorySmith. A sua conta da organização continua conectada neste navegador, então entrar de novo não pede senha.",
+    "signedOut": "Você saiu do MemorySmith. A sua conta da organização pode continuar conectada neste navegador e, nesse caso, entrar de novo não pede senha.",
     "noneSubscription": "Esta conta ainda não alcança nenhuma assinatura. A assinatura é o que guarda os seus cadernos, e enquanto não há cobrança automática ela é liberada à mão.",
     "pendingSubscription": "Sua assinatura está aguardando autorização. A liberação é manual nesta fase, e o produto abre assim que ela for aprovada.",
     "blockedSubscription": "Esta assinatura não está ativa no momento. Nada foi perdido: os dados continuam exatamente onde estão e voltam a ser alcançáveis assim que o acesso for restabelecido."

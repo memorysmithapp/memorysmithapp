@@ -40,6 +40,11 @@ const EXPIRED_KEY = 'memorysmith.signin.expired';
  * through its provider alone reads (#562): there the handover goes straight
  * to the provider, whose own session MemorySmith does not end, and handing
  * the browser over on arrival would sign the same account straight back in.
+ *
+ * It lives in localStorage, unlike the other marks: a sign-out holds until the
+ * person signs in again, across a closed browser too, since the provider's
+ * session usually outlives the browser and would otherwise sign them back in
+ * on their next visit. Only a sign-in that completes clears it.
  */
 const SIGNED_OUT_KEY = 'memorysmith.signin.signedOut';
 
@@ -66,9 +71,18 @@ export function clearHandover(): void {
 export function markSignedOut(): void {
   clearHandover();
   try {
-    sessionStorage.setItem(SIGNED_OUT_KEY, 'yes');
+    localStorage.setItem(SIGNED_OUT_KEY, 'yes');
   } catch {
     // Without storage the sign-out still happens; only the stop is lost.
+  }
+}
+
+/** Forgets the sign-out, once a sign-in completed (#562). */
+export function clearSignedOut(): void {
+  try {
+    localStorage.removeItem(SIGNED_OUT_KEY);
+  } catch {
+    // Nothing was kept, so there is nothing to forget.
   }
 }
 
@@ -164,14 +178,17 @@ export function LoginPage() {
     let already = false;
     let ended = false;
     let left = false;
+    const direct = Boolean(authConfig().identityProvider);
     let denied: WithoutSubscription | null = null;
     try {
       denied = sessionStorage.getItem(WITHOUT_SUBSCRIPTION_KEY) as WithoutSubscription | null;
       sessionStorage.removeItem(WITHOUT_SUBSCRIPTION_KEY);
       ended = sessionStorage.getItem(EXPIRED_KEY) === 'yes';
       sessionStorage.removeItem(EXPIRED_KEY);
-      left = sessionStorage.getItem(SIGNED_OUT_KEY) === 'yes';
-      sessionStorage.removeItem(SIGNED_OUT_KEY);
+      // Kept until a sign-in completes, and read only where the provider
+      // alone signs in; anywhere else it is forgotten on arrival.
+      left = localStorage.getItem(SIGNED_OUT_KEY) === 'yes';
+      if (!direct) localStorage.removeItem(SIGNED_OUT_KEY);
       already = sessionStorage.getItem(HANDOVER_KEY) === 'yes';
       // Armed on the way out, and on the sign-out path too: `clearHandover()`
       // lowered it when the person left, so a handover that comes back with no
@@ -185,7 +202,7 @@ export function LoginPage() {
       ended,
       already,
       signedOut: left,
-      direct: Boolean(authConfig().identityProvider),
+      direct,
     });
     // `withoutSubscription`: handing the browser back would sign the same
     // account straight in and show it the door again, and the person would
