@@ -1263,9 +1263,10 @@
   font-size: var(--text-3xs);
   color: var(--text-soft);
 }
-/* The card's way in shows no word; its stretched box is what is clicked (#549). */
-.notebook-open::after {
-  content: '';
+/* The card's way in shows no word (#549): the link itself is stretched over
+   the card, so what is clicked is the link, with a box of its own, and the
+   corner's controls stay above it. */
+.notebook-open {
   position: absolute;
   inset: 0;
 }
