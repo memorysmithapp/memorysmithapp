@@ -1762,7 +1762,7 @@ test.describe('the pages of an account', () => {
 
     // On a phone it rises as a sheet from the foot of the screen.
     await app.setViewportSize({ width: 390, height: 844 });
-    await app.locator('.notebook-bar button.bar-button').first().click();
+    await app.locator('.notebook-bar button.button.is-bar').first().click();
     const sheet = app.getByRole('dialog', { name: words.folderEditHeading });
     await expect(sheet.getByLabel(words.folderEditDescription, { exact: true })).toBeVisible();
     await testInfo.attach('folder-edit-sheet-phone.png', {
@@ -3029,7 +3029,7 @@ A note to rename.
     await app.goto(notebook.page(`/folders/${toFolderId.toLowerCase()}`));
     await expect(app.locator('.notebook-breadcrumb .crumb.is-last')).toHaveText('Concepts');
     // Its bar holds Edit alone: the folder is deleted by asking the agent.
-    await expect(app.locator('.notebook-bar .bar-button')).toHaveCount(1);
+    await expect(app.locator('.notebook-bar .button.is-bar')).toHaveCount(1);
     await expect(app.getByRole('button', { name: words.folderEdit, exact: true })).toBeVisible();
   });
 
