@@ -197,6 +197,16 @@ export function identityProviderSecretName(environment: Named): string {
   return physicalName(environment, 'memorysmith-idp-client-secret');
 }
 
+/**
+ * The tenant of an issuer of Microsoft Entra ID, or null for any other
+ * provider: only Entra ID is asked for the photo of a person, through
+ * Microsoft Graph, on their first sign-in (#561).
+ */
+export function entraTenantOf(issuer: string): string | null {
+  const match = /^https:\/\/login\.microsoftonline\.com\/([^/]+)\/v2\.0\/?$/.exec(issuer.trim());
+  return match?.[1] ?? null;
+}
+
 /** The secret that holds the password of the organization's relay. */
 export function relaySecretName(environment: Named): string {
   return physicalName(environment, 'memorysmith-smtp-password');

@@ -31,7 +31,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
-import { identityProviderSecretName, relaySecretName } from '../installation/index.js';
+import {
+  entraTenantOf,
+  identityProviderSecretName,
+  relaySecretName,
+} from '../installation/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -621,6 +625,7 @@ export class IdentityStack extends Stack {
     const declared = props.environment.identityProvider;
     if (!declared) return null;
     const requireVerified = declared.emailClaim === 'email' && !declared.trustEmail;
+    const tenant = entraTenantOf(declared.issuer);
 
     const provider = new cognito.UserPoolIdentityProviderOidc(this, 'OrganizationProvider', {
       userPool: this.userPool,
@@ -671,11 +676,28 @@ export class IdentityStack extends Stack {
         EMAIL_CLAIM: declared.emailClaim,
         REQUIRE_VERIFIED: String(requireVerified),
         QUOTA: declared.quota ?? '1GB',
+        // Entra ID is asked for the person's photo with the app's own
+        // credential, the secret the provider already signs in with (#561).
+        ...(tenant
+          ? {
+              PICTURES_TENANT: tenant,
+              PICTURES_CLIENT_ID: declared.clientId,
+              PICTURES_SECRET_ID: identityProviderSecretName(props.environment),
+            }
+          : {}),
       },
     }).function;
     this.userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUp);
-    // `automatic` writes the subscription and its link; the others only read.
-    if (declared.firstSignIn === 'automatic') props.accessTable.grantReadWriteData(preSignUp);
+    // `automatic` writes the subscription and its link, and every mode writes
+    // the first face of a person who owns one (RN-ACC-046).
+    props.accessTable.grantReadWriteData(preSignUp);
+    if (tenant) {
+      Secret.fromSecretNameV2(
+        this,
+        'OrganizationProviderSecret',
+        identityProviderSecretName(props.environment),
+      ).grantRead(preSignUp);
+    }
 
     // A policy of its own, not of the function's role: the pool names the
     // function as its trigger, so a statement on the role naming the pool

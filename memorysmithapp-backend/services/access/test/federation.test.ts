@@ -5,10 +5,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Instant, UserId } from '@memorysmithapp/kernel';
+import { Instant, SubscriptionContext, UserId } from '@memorysmithapp/kernel';
 import {
   FederatedSignIn,
+  type DirectoryPicture,
   type FederatedAccounts,
+  type FederatedFaces,
   type FederationPolicy,
   type FirstSignIn,
   type PoolAccount,
@@ -17,9 +19,11 @@ import { linkedProvidersOf } from '../src/adapters/outbound/cognito/CognitoFeder
 import { identityOf } from '../src/adapters/inbound/pre-sign-up.js';
 import {
   InMemoryAccessDatabase,
+  InMemoryAvatarRepository,
   InMemoryOnboarding,
 } from '../src/adapters/outbound/memory/InMemoryAccess.js';
-import { StorageQuota, type Email } from '../src/domain/values.js';
+import { GraphDirectoryPictures } from '../src/adapters/outbound/graph/GraphDirectoryPictures.js';
+import { AvatarSource, Email, StorageQuota } from '../src/domain/values.js';
 import { RecordingEventPublisher } from './recording-publisher.js';
 
 class Pool implements FederatedAccounts {
@@ -57,17 +61,61 @@ class Pool implements FederatedAccounts {
   }
 }
 
-function setUp(firstSignIn: FirstSignIn, overrides: Partial<FederationPolicy> = {}) {
+/** A PNG as its first bytes say, which is all `supports` reads in these tests. */
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+
+function facesOf(
+  db: InMemoryAccessDatabase,
+  picture: DirectoryPicture | null | 'no directory',
+  asked: string[] = [],
+): FederatedFaces {
+  return {
+    avatarsOf: (owner, subscription) => {
+      const context = SubscriptionContext.fromClaims({
+        sub: owner.value,
+        subscription_id: subscription.value,
+        subscription_status: 'active',
+      });
+      if (!context.ok) throw new Error('A context of the test was refused');
+      return new InMemoryAvatarRepository(context.value, db);
+    },
+    directory:
+      picture === 'no directory'
+        ? null
+        : {
+            pictureOf: async (email) => {
+              asked.push(email.value);
+              return picture;
+            },
+          },
+    types: {
+      accepted: ['image/png', 'image/jpeg', 'image/webp'],
+      supports: (mime, bytes) => mime === 'image/png' && bytes[0] === 0x89,
+    },
+  };
+}
+
+function setUp(
+  firstSignIn: FirstSignIn,
+  overrides: Partial<FederationPolicy> = {},
+  picture?: DirectoryPicture | null | 'no directory',
+  asked: string[] = [],
+) {
   const pool = new Pool();
   const db = new InMemoryAccessDatabase();
   const events = new RecordingEventPublisher();
-  const signIn = new FederatedSignIn(pool, new InMemoryOnboarding(db, events), {
-    firstSignIn,
-    emailClaim: 'email',
-    requireVerified: false,
-    quota: StorageQuota.HALF_GIGABYTE,
-    ...overrides,
-  });
+  const signIn = new FederatedSignIn(
+    pool,
+    new InMemoryOnboarding(db, events),
+    {
+      firstSignIn,
+      emailClaim: 'email',
+      requireVerified: false,
+      quota: StorageQuota.HALF_GIGABYTE,
+      ...overrides,
+    },
+    picture === undefined ? null : facesOf(db, picture, asked),
+  );
   return { pool, db, events, signIn };
 }
 
@@ -233,5 +281,153 @@ describe('what the trigger reads from Cognito', () => {
     ).toEqual(['Acme']);
     expect(linkedProvidersOf(undefined)).toEqual([]);
     expect(linkedProvidersOf('not json')).toEqual([]);
+  });
+});
+
+describe('the face of a federated person, set once on the first sign-in (RN-ACC-046, #561)', () => {
+  it("keeps the picture of the organization's directory as the person's upload", async () => {
+    const asked: string[] = [];
+    const { db, signIn } = setUp('automatic', {}, { mime: 'image/png', bytes: PNG }, asked);
+
+    expect((await signIn.execute(first)).ok).toBe(true);
+
+    expect(asked).toEqual(['ana@acme.example']);
+    const [face] = [...db.avatars.values()];
+    expect(face?.source.name).toBe('upload');
+    expect(face?.mime).toBe('image/png');
+    expect(face?.picture).toEqual(PNG);
+  });
+
+  it('gives the initials, never Gravatar, when the directory answers nothing', async () => {
+    const { db, signIn } = setUp('automatic', {}, null);
+
+    expect((await signIn.execute(first)).ok).toBe(true);
+
+    const [face] = [...db.avatars.values()];
+    expect(face?.source.name).toBe('initials');
+    expect(face?.picture).toBeNull();
+  });
+
+  it('gives the initials when there is no directory to ask', async () => {
+    const { db, signIn } = setUp('automatic', {}, 'no directory');
+
+    await signIn.execute(first);
+
+    expect([...db.avatars.values()][0]?.source.name).toBe('initials');
+  });
+
+  it('refuses a picture too large, of a type not kept, or whose bytes say otherwise', async () => {
+    for (const picture of [
+      { mime: 'image/png', bytes: new Uint8Array(64 * 1024 + 1).fill(0x89) },
+      { mime: 'image/gif', bytes: PNG },
+      { mime: 'image/png', bytes: new Uint8Array([1, 2, 3]) },
+      { mime: 'image/png', bytes: new Uint8Array() },
+    ]) {
+      const { db, signIn } = setUp('automatic', {}, picture);
+      await signIn.execute(first);
+      expect([...db.avatars.values()][0]?.source.name).toBe('initials');
+    }
+  });
+
+  it('never replaces a face already kept in the subscription', async () => {
+    const { db, signIn } = setUp('automatic', {}, { mime: 'image/png', bytes: PNG });
+    expect((await signIn.execute(first)).ok).toBe(true);
+    const [key] = [...db.avatars.keys()];
+    db.avatars.set(key!, { source: AvatarSource.GRAVATAR, picture: null, mime: null });
+
+    // The pool of the test records links without marking the account, so the
+    // same identity comes through again and finds the face already kept.
+    expect((await signIn.execute(first)).ok).toBe(true);
+
+    expect(db.avatars.get(key!)?.source.name).toBe('gravatar');
+  });
+
+  it('sets no face for a person who owns no subscription', async () => {
+    const asked: string[] = [];
+    const { db, signIn } = setUp('request', {}, { mime: 'image/png', bytes: PNG }, asked);
+
+    expect((await signIn.execute(first)).ok).toBe(true);
+
+    expect(db.avatars.size).toBe(0);
+    expect(asked).toEqual([]);
+  });
+});
+
+describe('the photo Microsoft Graph keeps, asked with the app credential (#561)', () => {
+  type Call = { url: string; init: RequestInit | undefined };
+
+  function graph(answers: Array<(call: Call) => Response>) {
+    const calls: Call[] = [];
+    const fetchFn = (async (url: string | URL | Request, init?: RequestInit) => {
+      const call = { url: String(url), init };
+      calls.push(call);
+      const answer = answers.shift();
+      if (!answer) throw new Error(`Nothing answers ${call.url}`);
+      return answer(call);
+    }) as typeof fetch;
+    const pictures = new GraphDirectoryPictures(
+      { tenant: 'tenant-1', clientId: 'client-1', secret: async () => 's3cret' },
+      2000,
+      fetchFn,
+    );
+    return { calls, pictures };
+  }
+  const email = Email.create('ana@acme.example');
+  if (!email.ok) throw new Error('An address of the test was refused');
+  const token = () => Response.json({ access_token: 'graph-token' });
+
+  it('asks for a token by client credentials, then the photo by the address', async () => {
+    const { calls, pictures } = graph([
+      token,
+      () => new Response(PNG, { headers: { 'content-type': 'image/png' } }),
+    ]);
+
+    const found = await pictures.pictureOf(email.value);
+
+    expect(found?.mime).toBe('image/png');
+    expect(found?.bytes).toEqual(PNG);
+    expect(calls[0]?.url).toBe('https://login.microsoftonline.com/tenant-1/oauth2/v2.0/token');
+    const form = new URLSearchParams(String(calls[0]?.init?.body));
+    expect(form.get('grant_type')).toBe('client_credentials');
+    expect(form.get('client_id')).toBe('client-1');
+    expect(form.get('client_secret')).toBe('s3cret');
+    expect(form.get('scope')).toBe('https://graph.microsoft.com/.default');
+    expect(calls[1]?.url).toBe(
+      'https://graph.microsoft.com/v1.0/users/ana%40acme.example/photos/240x240/$value',
+    );
+    expect(new Headers(calls[1]?.init?.headers).get('authorization')).toBe('Bearer graph-token');
+  });
+
+  it('falls back to the photo as kept when the size is not one of its own', async () => {
+    const { calls, pictures } = graph([
+      token,
+      () => new Response(null, { status: 404 }),
+      () => new Response(PNG, { headers: { 'content-type': 'image/jpeg; charset=binary' } }),
+    ]);
+
+    expect((await pictures.pictureOf(email.value))?.mime).toBe('image/jpeg');
+    expect(calls[2]?.url).toBe(
+      'https://graph.microsoft.com/v1.0/users/ana%40acme.example/photo/$value',
+    );
+  });
+
+  it('answers null without retrying when Graph refuses, as it does without the permission', async () => {
+    const { calls, pictures } = graph([token, () => new Response(null, { status: 401 })]);
+
+    expect(await pictures.pictureOf(email.value)).toBeNull();
+    expect(calls).toHaveLength(2);
+  });
+
+  it('answers null when no token is given, or anything throws', async () => {
+    expect(
+      await graph([() => new Response('{}', { status: 401 })]).pictures.pictureOf(email.value),
+    ).toBeNull();
+    expect(
+      await graph([
+        () => {
+          throw new Error('network');
+        },
+      ]).pictures.pictureOf(email.value),
+    ).toBeNull();
   });
 });

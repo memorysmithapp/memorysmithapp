@@ -268,20 +268,18 @@ export function UserMenu() {
 
         <MenuDivider />
 
-        {/*
-          The profile holds where the welcome surface lives after it has opened
-          once (#167), which is the only place that says where the connector of
-          this environment answers.
-        */}
+        {/* An account held through the organization's provider has no
+            profile and no password here: its name and its picture are the
+            ones the organization gives (RN-ACC-041, RN-ACC-046). */}
         <div className="user-menu-items" role="none">
-          <MenuItem
-            onSelect={() => go('/profile')}
-            trailing={<ChevronRightIcon width={12} height={12} />}
-          >
-            {t('profile.menu')}
-          </MenuItem>
-          {/* An account held through the organization's provider has no
-              password here to change (#395). */}
+          {live?.federated ? null : (
+            <MenuItem
+              onSelect={() => go('/profile')}
+              trailing={<ChevronRightIcon width={12} height={12} />}
+            >
+              {t('profile.menu')}
+            </MenuItem>
+          )}
           {live?.federated ? null : (
             <MenuItem
               onSelect={() => {

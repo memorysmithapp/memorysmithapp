@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router-dom';
 import { Avatar, type AvatarSource } from '../../shared/components/Avatar';
 import { Segmented } from '../../shared/components/Segmented';
 import { useDocumentTitle } from '../../shared/components/document-title';
@@ -55,6 +56,9 @@ export function ProfilePage() {
   }, [session?.userId, session?.name, session?.avatar, session?.picture]);
 
   if (!session) return null;
+  // The organization gives a federated account its name and its picture
+  // (RN-ACC-046): there is nothing here for it to edit.
+  if (session.federated) return <Navigate to="/" replace />;
   const email = session.email;
 
   async function choosePicture(file: File) {
@@ -170,12 +174,9 @@ export function ProfilePage() {
             wide
           />
         </Button>
-        {/* The organization's provider holds the password of a federated account (#395). */}
-        {session?.federated ? null : (
-          <ButtonLink variant="quiet" to="/profile/password" state={{ from: '/profile' }}>
-            {t('password.heading')}
-          </ButtonLink>
-        )}
+        <ButtonLink variant="quiet" to="/profile/password" state={{ from: '/profile' }}>
+          {t('password.heading')}
+        </ButtonLink>
       </div>
     </article>
   );

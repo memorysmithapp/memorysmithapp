@@ -16,13 +16,20 @@
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { Instant } from '@memorysmithapp/kernel';
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { bytesSupport, PICTURE_MIME_TYPES } from '@memorysmithapp/contracts';
+import { Instant, SubscriptionContext } from '@memorysmithapp/kernel';
 import { observe } from '@memorysmithapp/observability';
-import { FederatedSignIn, type FirstSignIn } from '../../application/federation.js';
+import {
+  FederatedSignIn,
+  type FederatedFaces,
+  type FirstSignIn,
+} from '../../application/federation.js';
 import { StorageQuota } from '../../domain/values.js';
 import { CognitoFederatedAccounts } from '../outbound/cognito/CognitoFederatedAccounts.js';
-import { DynamoOnboarding } from '../outbound/dynamodb/DynamoAccess.js';
+import { DynamoAvatarRepository, DynamoOnboarding } from '../outbound/dynamodb/DynamoAccess.js';
 import { NULL_OUTBOX_SINK } from '../outbound/dynamodb/items.js';
+import { GraphDirectoryPictures } from '../outbound/graph/GraphDirectoryPictures.js';
 
 export interface PreSignUpEvent {
   triggerSource: string;
@@ -47,21 +54,65 @@ export function identityOf(
 const firstSignIn = (process.env['FIRST_SIGN_IN'] ?? 'request') as FirstSignIn;
 const quota = StorageQuota.create(process.env['QUOTA'] ?? '');
 
+/**
+ * The directory asked for a person's picture, when the provider is Microsoft
+ * Entra ID and the installation named its tenant (#561), or none.
+ */
+function directory(): GraphDirectoryPictures | null {
+  const tenant = process.env['PICTURES_TENANT'];
+  const secretId = process.env['PICTURES_SECRET_ID'];
+  if (!tenant || !secretId) return null;
+  let secret: Promise<string> | null = null;
+  return new GraphDirectoryPictures({
+    tenant,
+    clientId: process.env['PICTURES_CLIENT_ID'] ?? '',
+    secret: () =>
+      (secret ??= new SecretsManagerClient({})
+        .send(new GetSecretValueCommand({ SecretId: secretId }))
+        .then((found) => found.SecretString ?? '')
+        // A failed read is tried again by the next sign-in, not remembered.
+        .catch((error: unknown) => {
+          secret = null;
+          throw error;
+        })),
+  });
+}
+
+/**
+ * The avatars of the subscription the person owns: a context built from the
+ * subscription this very sign-in found or wrote, never from a request
+ * (INV-01, INV-02), for the one write of their first face.
+ */
+function faces(db: DynamoDBDocumentClient, table: string): FederatedFaces {
+  return {
+    avatarsOf: (owner, subscription) => {
+      const context = SubscriptionContext.fromClaims({
+        sub: owner.value,
+        subscription_id: subscription.value,
+        subscription_status: 'active',
+      });
+      if (!context.ok) throw new Error(context.error.message);
+      return new DynamoAvatarRepository(context.value, db, table);
+    },
+    directory: directory(),
+    types: { accepted: PICTURE_MIME_TYPES, supports: bytesSupport },
+  };
+}
+
 let signIn: FederatedSignIn | null = null;
 function federatedSignIn(userPoolId: string): FederatedSignIn {
+  const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+  const table = process.env['ACCESS_TABLE'] ?? '';
   signIn ??= new FederatedSignIn(
     new CognitoFederatedAccounts(userPoolId, new CognitoIdentityProviderClient({})),
-    new DynamoOnboarding(
-      DynamoDBDocumentClient.from(new DynamoDBClient({})),
-      process.env['ACCESS_TABLE'] ?? '',
-      NULL_OUTBOX_SINK,
-    ),
+    new DynamoOnboarding(db, table, NULL_OUTBOX_SINK),
     {
       firstSignIn,
       emailClaim: process.env['EMAIL_CLAIM'] ?? 'email',
       requireVerified: process.env['REQUIRE_VERIFIED'] === 'true',
       quota: quota.ok ? quota.value : StorageQuota.DEFAULT,
     },
+    faces(db, table),
   );
   return signIn;
 }

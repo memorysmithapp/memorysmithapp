@@ -31,7 +31,7 @@ import {
   trustOf,
   type EnvironmentConfig,
 } from '../config/environments.js';
-import { PENDING_HOSTS, senderIgnored } from '../installation/index.js';
+import { entraTenantOf, PENDING_HOSTS, senderIgnored } from '../installation/index.js';
 import { DataStack } from '../stacks/data.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
@@ -385,6 +385,39 @@ describe("the organization's identity provider (#395)", () => {
         ]),
       },
     });
+  });
+  it('asks Microsoft Entra ID for the photo of a first sign-in, and no other provider (#561)', () => {
+    const fn = (template: Template) =>
+      Object.values(template.findResources('AWS::Lambda::Function')).find((each) =>
+        JSON.stringify(each).includes('FIRST_SIGN_IN'),
+      ) as { Properties: { Environment: { Variables: Record<string, unknown> } } };
+
+    const other = fn(identityOf(PROVIDER).template).Properties.Environment.Variables;
+    expect(Object.keys(other).filter((key) => key.startsWith('PICTURES_'))).toEqual([]);
+
+    const entra = identityOf({
+      ...PROVIDER,
+      IDP_ISSUER: 'https://login.microsoftonline.com/tenant-1/v2.0',
+    });
+    expect(fn(entra.template).Properties.Environment.Variables).toMatchObject({
+      PICTURES_TENANT: 'tenant-1',
+      PICTURES_CLIENT_ID: PROVIDER.IDP_CLIENT_ID,
+      PICTURES_SECRET_ID: 'memorysmith-idp-client-secret-acme-staging',
+    });
+    entra.template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({ Action: Match.arrayWith(['secretsmanager:GetSecretValue']) }),
+        ]),
+      },
+    });
+  });
+
+  it('knows an issuer of Entra ID by its tenant', () => {
+    expect(entraTenantOf('https://login.microsoftonline.com/tenant-1/v2.0')).toBe('tenant-1');
+    expect(entraTenantOf('https://login.microsoftonline.com/tenant-1/v2.0/')).toBe('tenant-1');
+    expect(entraTenantOf('https://sts.windows.net/tenant-1/')).toBeNull();
+    expect(entraTenantOf('https://sso.acme.example/realms/acme')).toBeNull();
   });
 });
 
