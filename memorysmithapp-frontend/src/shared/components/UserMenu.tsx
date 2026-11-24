@@ -274,31 +274,33 @@ export function UserMenu() {
             profile and no password here: its name and its picture are the
             ones the organization gives (RN-ACC-041, RN-ACC-046). */}
         <div className="user-menu-items" role="none">
+          {/* The divider closes the two items, so an account without them
+              is left with the one under the language, not two in a row. */}
           {live?.federated ? null : (
-            <MenuItem
-              onSelect={() => go('/profile')}
-              trailing={<ChevronRightIcon width={12} height={12} />}
-            >
-              {t('profile.menu')}
-            </MenuItem>
+            <>
+              <MenuItem
+                onSelect={() => go('/profile')}
+                trailing={<ChevronRightIcon width={12} height={12} />}
+              >
+                {t('profile.menu')}
+              </MenuItem>
+              <MenuItem
+                onSelect={() => {
+                  // The change of password goes back where it was asked from.
+                  setOpen(false);
+                  navigate('/profile/password', {
+                    state: { from: `${location.pathname}${location.search}` },
+                  });
+                }}
+                trailing={<ChevronRightIcon width={12} height={12} />}
+              >
+                {t('password.menu')}
+              </MenuItem>
+              {/* The community and About are in the menu of the product, in
+                  the header, and only there (#418). */}
+              <MenuDivider />
+            </>
           )}
-          {live?.federated ? null : (
-            <MenuItem
-              onSelect={() => {
-                // The change of password goes back where it was asked from.
-                setOpen(false);
-                navigate('/profile/password', {
-                  state: { from: `${location.pathname}${location.search}` },
-                });
-              }}
-              trailing={<ChevronRightIcon width={12} height={12} />}
-            >
-              {t('password.menu')}
-            </MenuItem>
-          )}
-          {/* The community and About are in the menu of the product, in the
-              header, and only there (#418). */}
-          <MenuDivider />
           <MenuItem onSelect={handleSignOut} icon={<SignOutIcon width={14} height={14} />}>
             {t('auth.signOut')}
           </MenuItem>
