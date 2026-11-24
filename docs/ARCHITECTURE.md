@@ -302,8 +302,7 @@ Three paths deliver it, the organization's choice: a fork on GitHub, through the
 |---|---|---|
 | Names | `DOMAIN_NAME` and `HOSTED_ZONE_ID`, a public zone of the account, already delegated | Neither: CloudFront, `execute-api` and the prefix domain of the pool |
 | Certificates | Declared by *Network*; another region declares the ones of CloudFront and of the sign-in page in the stack *Edge*, in us-east-1 | None |
-| E-mail of the pool | SES, from `no-reply@<domain>`; with `MAIL=smtp`, the relay | Cognito's own sender and its daily limit; with `MAIL=smtp`, the relay |
-| E-mail of the pool | SES, from `no-reply@<domain>`; with `MAIL=smtp`, the relay | `SENDER_ADDRESS`, an address verified in SES; with `MAIL=smtp`, the address the relay accepts. The product sends no message of its own since #439 |
+| E-mail of the pool | SES, from `no-reply@<domain>` or `SENDER_ADDRESS`; with `MAIL=smtp`, the relay, from `SENDER_ADDRESS` | Cognito's own sender and its daily limit, `SENDER_ADDRESS` ignored and said to be; with `MAIL=smtp`, the relay, from `SENDER_ADDRESS`. The product sends no message of its own since #439 |
 | First delivery | One pass | Two ([ADR-025](#adr-025-an-installation-is-named-by-variables-and-answers-on-the-hosts-aws-gave-after-a-second-pass)) |
 | Icon of the connector in Claude | The favicon of its domain | The favicon of `amazonaws.com`, AWS's: Claude shows the icon of the domain the connector answers on, not the `icons` its handshake declares |
 

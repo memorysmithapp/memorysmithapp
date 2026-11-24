@@ -31,7 +31,7 @@ import {
   trustOf,
   type EnvironmentConfig,
 } from '../config/environments.js';
-import { PENDING_HOSTS } from '../installation/index.js';
+import { PENDING_HOSTS, senderIgnored } from '../installation/index.js';
 import { DataStack } from '../stacks/data.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
@@ -601,6 +601,31 @@ describe('what install-account decides', () => {
     expect(steps).toContain('IDP_ISSUER');
     expect(steps).toContain('SMTP_HOST');
     expect(steps).toContain('the secrets IDP_CLIENT_SECRET, SMTP_PASSWORD');
+  });
+
+  it('says SENDER_ADDRESS is ignored only where nothing reads it (#559)', () => {
+    const DEFAULT_ENDPOINTS = { ...VARIABLES, DOMAIN_NAME: '', HOSTED_ZONE_ID: '' };
+    const SENDER = { SENDER_ADDRESS: 'no-reply@acme.example' };
+    const ignored = installed({ ...DEFAULT_ENDPOINTS, ...SENDER });
+    expect(senderIgnored(ignored)).toBe(true);
+    expect(humanSteps(ignored, null).join(' ')).toContain('here it is ignored');
+    // With a domain it names the sender of SES; with the relay, the sender the relay accepts.
+    expect(senderIgnored(installed({ ...VARIABLES, ...SENDER }))).toBe(false);
+    expect(
+      senderIgnored(
+        installed({
+          ...DEFAULT_ENDPOINTS,
+          ...SENDER,
+          MAIL: 'smtp',
+          SMTP_HOST: 'smtp.acme.example',
+        }),
+      ),
+    ).toBe(false);
+    const unset = installed(DEFAULT_ENDPOINTS);
+    expect(senderIgnored(unset)).toBe(false);
+    const steps = humanSteps(unset, null).join(' ');
+    expect(steps).toContain("Cognito's own sender");
+    expect(steps).not.toContain('ignored');
   });
 
   it('tells a person the steps of their path', () => {

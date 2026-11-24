@@ -3,7 +3,11 @@
  * asks, and every verdict on what it found is here, where a test can ask too.
  */
 
-import type { DefaultHosts, EnvironmentConfig } from '../../installation/index.js';
+import {
+  senderIgnored,
+  type DefaultHosts,
+  type EnvironmentConfig,
+} from '../../installation/index.js';
 
 /**
  * What the product uses, by the names of the public list AWS keeps of each
@@ -232,7 +236,11 @@ export function humanSteps(environment: EnvironmentConfig, roleArn: string | nul
   }
   if (!environment.hostedZoneName && !environment.relay) {
     steps.push(
-      'Without a domain the pool sends through Cognito, which limits it to a few messages a day; the product sends from SENDER_ADDRESS, an address you verified in SES, and sends nothing without one.',
+      `Without a domain the pool sends its messages through Cognito's own sender, which limits it to a few a day${
+        senderIgnored(environment)
+          ? '; SENDER_ADDRESS names a sender only with a domain or with MAIL=smtp, and here it is ignored'
+          : ''
+      }.`,
     );
   }
   steps.push(

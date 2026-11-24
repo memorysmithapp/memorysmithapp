@@ -47,6 +47,7 @@ import {
   installationEnvironmentOf,
   relaySecretName,
   loadInstallationFile,
+  senderIgnored,
   type DefaultHosts,
 } from '../installation/index.js';
 import { ensureSecret } from './lib/delivery-secrets.js';
@@ -104,6 +105,11 @@ const destination = (): {
       { tryGetContext: (key) => context[key] },
       process.env,
     );
+    if (senderIgnored(named)) {
+      say(
+        "SENDER_ADDRESS is set and ignored: without a domain and without MAIL=smtp the pool sends through Cognito's own sender.",
+      );
+    }
     return {
       account: named.account,
       region: named.region,

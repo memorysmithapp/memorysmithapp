@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Fixed
+
+- **An installation without a domain is no longer told to verify a sender it never uses.** The example variables, the closing steps of `install-account` and the architecture said such an installation writes from `SENDER_ADDRESS`, an address verified in SES, and sends nothing without one; its user pool actually sends through Cognito's own sender, which takes no address, so whoever installed it went looking for an SES verification nobody reads. They now say so, `SENDER_ADDRESS` is described where it does apply (in place of `no-reply@` in a domain of its own, and as the sender of the relay), and `deliver` and `install-account` say it is ignored when it is set where nothing reads it (#559).
+
 ## [0.24.0] - 2026-11-23
 
 ### Changed
