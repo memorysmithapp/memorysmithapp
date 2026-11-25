@@ -121,7 +121,11 @@ export interface EnvironmentConfig {
    * the repository is public.
    */
   readonly alarmEmail?: string;
-  /** Who the product writes from without a domain of its own: an address verified in SES. */
+  /**
+   * The sender of the pool: in a domain of its own, an address of it in place
+   * of `no-reply@`; with the relay, the address it accepts. Ignored on the
+   * default endpoints without a relay, where Cognito sends (#559).
+   */
   readonly senderAddress?: string;
   /** The OIDC provider of the account an installation trusts, which no stack of it owns. */
   readonly oidcProviderArn?: string;
@@ -191,6 +195,16 @@ function hostsOf(node: ContextReader): DefaultHosts {
 /** The secret that holds the client secret of the organization's provider. */
 export function identityProviderSecretName(environment: Named): string {
   return physicalName(environment, 'memorysmith-idp-client-secret');
+}
+
+/**
+ * The tenant of an issuer of Microsoft Entra ID, or null for any other
+ * provider: only Entra ID is asked for the photo of a person, through
+ * Microsoft Graph, on their first sign-in (#561).
+ */
+export function entraTenantOf(issuer: string): string | null {
+  const match = /^https:\/\/login\.microsoftonline\.com\/([^/]+)\/v2\.0\/?$/.exec(issuer.trim());
+  return match?.[1] ?? null;
 }
 
 /** The secret that holds the password of the organization's relay. */
@@ -450,6 +464,19 @@ const pascal = (text: string): string =>
 /** The id of a stack, which says which installation and environment it belongs to. */
 export function stackId(environment: Named, name: string): string {
   return `Memorysmith${pascal(environment.installation ?? '')}${pascal(environment.name)}${name}`;
+}
+
+/**
+ * Whether `SENDER_ADDRESS` names a sender nothing reads (#559). It names the
+ * sender of the pool in a domain of its own, where SES sends, and of the relay;
+ * on the default endpoints of AWS with no relay the pool sends through
+ * Cognito's own sender, which takes no address, so the variable is ignored and
+ * is said to be.
+ */
+export function senderIgnored(
+  environment: Pick<EnvironmentConfig, 'senderAddress' | 'hostedZoneName' | 'relay'>,
+): boolean {
+  return Boolean(environment.senderAddress) && !environment.hostedZoneName && !environment.relay;
 }
 
 /**

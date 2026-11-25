@@ -88,7 +88,7 @@ export function PasswordPage() {
     );
   }
 
-  if (federated) return <Navigate to="/profile" replace />;
+  if (federated) return <Navigate to="/" replace />;
 
   return (
     <PasswordScreen heading={t('password.heading')}>

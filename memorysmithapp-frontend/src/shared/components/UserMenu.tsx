@@ -15,7 +15,7 @@ import {
 import { signOut as endHostedSession } from '../auth/oauth';
 import { loadedRuntimeConfig } from '../config/runtime-config';
 import { gravatarDisplayName } from '../auth/gravatar';
-import { clearHandover } from '../../features/auth/LoginPage';
+import { markSignedOut } from '../../features/auth/LoginPage';
 import { Avatar, type AvatarSource } from './Avatar';
 import { StorageBar } from './StorageBar';
 import { ChevronRightIcon, MonitorIcon, MoonIcon, SignOutIcon, SunIcon } from './icons';
@@ -112,10 +112,12 @@ export function UserMenu() {
    *
    * Lowering the handover guard is what makes signing out start a fresh
    * attempt: the sign-in screen hands the browser to the provider without
-   * asking, and it may only do that on a first arrival.
+   * asking, and it may only do that on a first arrival. The mark of the
+   * sign-out stops it instead where the installation signs in through its
+   * provider alone, whose session would sign the person straight back (#562).
    */
   function handleSignOut() {
-    clearHandover();
+    markSignedOut();
     endHostedSession(authConfig());
   }
 
@@ -268,37 +270,37 @@ export function UserMenu() {
 
         <MenuDivider />
 
-        {/*
-          The profile holds where the welcome surface lives after it has opened
-          once (#167), which is the only place that says where the connector of
-          this environment answers.
-        */}
+        {/* An account held through the organization's provider has no
+            profile and no password here: its name and its picture are the
+            ones the organization gives (RN-ACC-041, RN-ACC-046). */}
         <div className="user-menu-items" role="none">
-          <MenuItem
-            onSelect={() => go('/profile')}
-            trailing={<ChevronRightIcon width={12} height={12} />}
-          >
-            {t('profile.menu')}
-          </MenuItem>
-          {/* An account held through the organization's provider has no
-              password here to change (#395). */}
+          {/* The divider closes the two items, so an account without them
+              is left with the one under the language, not two in a row. */}
           {live?.federated ? null : (
-            <MenuItem
-              onSelect={() => {
-                // The change of password goes back where it was asked from.
-                setOpen(false);
-                navigate('/profile/password', {
-                  state: { from: `${location.pathname}${location.search}` },
-                });
-              }}
-              trailing={<ChevronRightIcon width={12} height={12} />}
-            >
-              {t('password.menu')}
-            </MenuItem>
+            <>
+              <MenuItem
+                onSelect={() => go('/profile')}
+                trailing={<ChevronRightIcon width={12} height={12} />}
+              >
+                {t('profile.menu')}
+              </MenuItem>
+              <MenuItem
+                onSelect={() => {
+                  // The change of password goes back where it was asked from.
+                  setOpen(false);
+                  navigate('/profile/password', {
+                    state: { from: `${location.pathname}${location.search}` },
+                  });
+                }}
+                trailing={<ChevronRightIcon width={12} height={12} />}
+              >
+                {t('password.menu')}
+              </MenuItem>
+              {/* The community and About are in the menu of the product, in
+                  the header, and only there (#418). */}
+              <MenuDivider />
+            </>
           )}
-          {/* The community and About are in the menu of the product, in the
-              header, and only there (#418). */}
-          <MenuDivider />
           <MenuItem onSelect={handleSignOut} icon={<SignOutIcon width={14} height={14} />}>
             {t('auth.signOut')}
           </MenuItem>

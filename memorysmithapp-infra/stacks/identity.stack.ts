@@ -20,6 +20,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import type { CfnFunction, IFunction } from 'aws-cdk-lib/aws-lambda';
+import type { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import type { Construct } from 'constructs';
@@ -31,7 +32,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { physicalName, type EnvironmentConfig } from '../config/environments.js';
-import { identityProviderSecretName, relaySecretName } from '../installation/index.js';
+import {
+  entraTenantOf,
+  identityProviderSecretName,
+  relaySecretName,
+} from '../installation/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -242,7 +247,7 @@ export class IdentityStack extends Stack {
     }
     this.mailFunction = relay?.sender ?? null;
 
-    const federation = this.federate(props);
+    const federation = this.federate(props, preTokenGeneration);
     this.directProvider =
       props.environment.identityProvider?.signIn === 'idp'
         ? props.environment.identityProvider.name
@@ -614,13 +619,17 @@ export class IdentityStack extends Stack {
    * first sign-in (#395, ADR-026). Nothing here exists unless the
    * installation declares a provider, so the project's own pool is untouched.
    */
-  private federate(props: IdentityStackProps): {
+  private federate(
+    props: IdentityStackProps,
+    preTokenGeneration: NodejsFunction,
+  ): {
     provider: cognito.UserPoolIdentityProviderOidc;
     admitted: cognito.UserPoolClientIdentityProvider[];
   } | null {
     const declared = props.environment.identityProvider;
     if (!declared) return null;
     const requireVerified = declared.emailClaim === 'email' && !declared.trustEmail;
+    const tenant = entraTenantOf(declared.issuer);
 
     const provider = new cognito.UserPoolIdentityProviderOidc(this, 'OrganizationProvider', {
       userPool: this.userPool,
@@ -676,6 +685,26 @@ export class IdentityStack extends Stack {
     this.userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUp);
     // `automatic` writes the subscription and its link; the others only read.
     if (declared.firstSignIn === 'automatic') props.accessTable.grantReadWriteData(preSignUp);
+
+    // The face of a federated person, taken again on every sign-in by the
+    // trigger that issues the token (RN-ACC-046, #561): Entra ID is asked for
+    // the photo with the app's own credential, the secret the provider
+    // already signs in with, and any other provider gives the initials.
+    preTokenGeneration.addEnvironment('FACES', 'on');
+    props.accessTable.grantReadWriteData(preTokenGeneration);
+    if (tenant) {
+      preTokenGeneration.addEnvironment('PICTURES_TENANT', tenant);
+      preTokenGeneration.addEnvironment('PICTURES_CLIENT_ID', declared.clientId);
+      preTokenGeneration.addEnvironment(
+        'PICTURES_SECRET_ID',
+        identityProviderSecretName(props.environment),
+      );
+      Secret.fromSecretNameV2(
+        this,
+        'OrganizationProviderSecret',
+        identityProviderSecretName(props.environment),
+      ).grantRead(preTokenGeneration);
+    }
 
     // A policy of its own, not of the function's role: the pool names the
     // function as its trigger, so a statement on the role naming the pool

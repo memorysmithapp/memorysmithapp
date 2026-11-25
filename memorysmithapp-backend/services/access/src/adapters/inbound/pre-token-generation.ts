@@ -19,13 +19,26 @@
  *  - The status travels inside the token and therefore AGES WITH IT: a
  *    suspension takes effect on the next refresh. The delay is declared, and
  *    it is the same nature as the five minutes of the authorizer cache.
+ *
+ * On an installation with the organization's identity provider it also takes
+ * the face of a federated person again on every sign-in, never on a refresh
+ * of the token (RN-ACC-046, #561), and nothing of that ever changes the
+ * claims or fails the token.
  */
 
 import { observe } from '@memorysmithapp/observability';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { DynamoDBDocumentClient, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { bytesSupport, PICTURE_MIME_TYPES } from '@memorysmithapp/contracts';
+import { SubscriptionContext } from '@memorysmithapp/kernel';
+import { RefreshFederatedFace } from '../../application/federated-face.js';
+import { Email } from '../../domain/values.js';
+import { DynamoAvatarRepository } from '../outbound/dynamodb/DynamoAccess.js';
+import { GraphDirectoryPictures } from '../outbound/graph/GraphDirectoryPictures.js';
 
 interface TriggerEvent {
+  triggerSource?: string;
   request: {
     userAttributes: Record<string, string>;
     groupConfiguration?: { groupsToOverride?: string[] };
@@ -92,11 +105,80 @@ async function claimsOf(event: TriggerEvent): Promise<TriggerEvent> {
   );
   const status = String(meta.Item?.['status'] ?? 'pending_approval');
 
+  if (process.env['FACES'] === 'on' && event.triggerSource !== 'TokenGeneration_RefreshTokens') {
+    await refreshFace(event.request.userAttributes, userId, subscriptionId, status);
+  }
+
   return withClaims(event, {
     ...identity,
     subscription_id: subscriptionId,
     subscription_status: status,
   });
+}
+
+/** Whether the account is held through the organization's provider: it names a linked identity. */
+export function isFederated(attributes: Record<string, string | undefined>): boolean {
+  try {
+    const identities: unknown = JSON.parse(attributes['identities'] ?? '[]');
+    return Array.isArray(identities) && identities.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+let secret: Promise<string> | null = null;
+
+/**
+ * Microsoft Graph, when the provider is Entra ID and the installation named
+ * its tenant, or none. The secret is the provider's own, read once per
+ * container and read again after a failure.
+ */
+function directory(): GraphDirectoryPictures | null {
+  const tenant = process.env['PICTURES_TENANT'];
+  const secretId = process.env['PICTURES_SECRET_ID'];
+  if (!tenant || !secretId) return null;
+  return new GraphDirectoryPictures({
+    tenant,
+    clientId: process.env['PICTURES_CLIENT_ID'] ?? '',
+    secret: () =>
+      (secret ??= new SecretsManagerClient({})
+        .send(new GetSecretValueCommand({ SecretId: secretId }))
+        .then((found) => found.SecretString ?? '')
+        .catch((error: unknown) => {
+          secret = null;
+          throw error;
+        })),
+  });
+}
+
+/**
+ * The face of a federated person in the subscription this session acts for,
+ * keyed by the subscription the links just named (INV-01, INV-02). A failure
+ * is swallowed: the face is never a reason to refuse a sign-in.
+ */
+async function refreshFace(
+  attributes: Record<string, string>,
+  userId: string,
+  subscriptionId: string,
+  status: string,
+): Promise<void> {
+  if (!isFederated(attributes)) return;
+  const email = Email.create(attributes['email'] ?? '');
+  const context = SubscriptionContext.fromClaims({
+    sub: userId,
+    subscription_id: subscriptionId,
+    subscription_status: status,
+  });
+  if (!email.ok || !context.ok) return;
+  try {
+    await new RefreshFederatedFace(
+      new DynamoAvatarRepository(context.value, db, tableName),
+      directory(),
+      { accepted: PICTURE_MIME_TYPES, supports: bytesSupport },
+    ).execute({ person: context.value.userId, email: email.value });
+  } catch {
+    // The token is issued as it would have been; the next sign-in tries again.
+  }
 }
 
 function withClaims(event: TriggerEvent, claims: Record<string, string>): TriggerEvent {

@@ -31,7 +31,7 @@ import {
   trustOf,
   type EnvironmentConfig,
 } from '../config/environments.js';
-import { PENDING_HOSTS } from '../installation/index.js';
+import { entraTenantOf, PENDING_HOSTS, senderIgnored } from '../installation/index.js';
 import { DataStack } from '../stacks/data.stack.js';
 import { FrontendHostingStack } from '../stacks/frontend-hosting.stack.js';
 import { IdentityStack } from '../stacks/identity.stack.js';
@@ -386,6 +386,48 @@ describe("the organization's identity provider (#395)", () => {
       },
     });
   });
+  it('takes the face of a federated person on every sign-in, from Entra ID alone (#561)', () => {
+    const tokenTrigger = (template: Template) =>
+      (
+        Object.values(template.findResources('AWS::Lambda::Function')).find((each) =>
+          JSON.stringify(each).includes('subscription_status into every token'),
+        ) as { Properties: { Environment: { Variables: Record<string, unknown> } } }
+      ).Properties.Environment.Variables;
+
+    const other = tokenTrigger(identityOf(PROVIDER).template);
+    expect(other['FACES']).toBe('on');
+    expect(Object.keys(other).filter((key) => key.startsWith('PICTURES_'))).toEqual([]);
+
+    const entra = identityOf({
+      ...PROVIDER,
+      IDP_ISSUER: 'https://login.microsoftonline.com/tenant-1/v2.0',
+    });
+    expect(tokenTrigger(entra.template)).toMatchObject({
+      FACES: 'on',
+      PICTURES_TENANT: 'tenant-1',
+      PICTURES_CLIENT_ID: PROVIDER.IDP_CLIENT_ID,
+      PICTURES_SECRET_ID: 'memorysmith-idp-client-secret-acme-staging',
+    });
+    entra.template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({ Action: Match.arrayWith(['secretsmanager:GetSecretValue']) }),
+        ]),
+      },
+    });
+  });
+
+  it('leaves the token trigger of an installation with no provider as it was', () => {
+    const variables = identityOf(VARIABLES).template.findResources('AWS::Lambda::Function');
+    expect(JSON.stringify(variables)).not.toContain('FACES');
+  });
+
+  it('knows an issuer of Entra ID by its tenant', () => {
+    expect(entraTenantOf('https://login.microsoftonline.com/tenant-1/v2.0')).toBe('tenant-1');
+    expect(entraTenantOf('https://login.microsoftonline.com/tenant-1/v2.0/')).toBe('tenant-1');
+    expect(entraTenantOf('https://sts.windows.net/tenant-1/')).toBeNull();
+    expect(entraTenantOf('https://sso.acme.example/realms/acme')).toBeNull();
+  });
 });
 
 describe("the organization's relay (#396)", () => {
@@ -601,6 +643,31 @@ describe('what install-account decides', () => {
     expect(steps).toContain('IDP_ISSUER');
     expect(steps).toContain('SMTP_HOST');
     expect(steps).toContain('the secrets IDP_CLIENT_SECRET, SMTP_PASSWORD');
+  });
+
+  it('says SENDER_ADDRESS is ignored only where nothing reads it (#559)', () => {
+    const DEFAULT_ENDPOINTS = { ...VARIABLES, DOMAIN_NAME: '', HOSTED_ZONE_ID: '' };
+    const SENDER = { SENDER_ADDRESS: 'no-reply@acme.example' };
+    const ignored = installed({ ...DEFAULT_ENDPOINTS, ...SENDER });
+    expect(senderIgnored(ignored)).toBe(true);
+    expect(humanSteps(ignored, null).join(' ')).toContain('here it is ignored');
+    // With a domain it names the sender of SES; with the relay, the sender the relay accepts.
+    expect(senderIgnored(installed({ ...VARIABLES, ...SENDER }))).toBe(false);
+    expect(
+      senderIgnored(
+        installed({
+          ...DEFAULT_ENDPOINTS,
+          ...SENDER,
+          MAIL: 'smtp',
+          SMTP_HOST: 'smtp.acme.example',
+        }),
+      ),
+    ).toBe(false);
+    const unset = installed(DEFAULT_ENDPOINTS);
+    expect(senderIgnored(unset)).toBe(false);
+    const steps = humanSteps(unset, null).join(' ');
+    expect(steps).toContain("Cognito's own sender");
+    expect(steps).not.toContain('ignored');
   });
 
   it('tells a person the steps of their path', () => {
