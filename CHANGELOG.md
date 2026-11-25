@@ -11,6 +11,8 @@ issues each entry cites.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-24
+
 ### Added
 
 - **A person of Microsoft Entra ID arrives with the photo of the directory.** On every sign-in through an organization's Entra ID, MemorySmith asks Microsoft Graph for the person's photo with the installation's own credential and shows it on every screen, so a photo changed or removed in Entra ID arrives with the next sign-in. Until the organization grants the app the permission `ProfilePhoto.Read.All`, and with any other provider, the person shows their initials, never Gravatar; a moment when Graph does not answer keeps the photo shown before, and never stops a sign-in (#561).
@@ -1252,7 +1254,8 @@ Search by meaning left the version, with the whole vector index: the explanation
 
 - The HMAC key signing the `state` of the CIMD proxy moved from a Lambda environment variable to Secrets Manager, read at runtime. As an environment variable the value sat in clear text.
 
-[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/memorysmithapp/memorysmithapp/compare/v0.21.0...v0.22.0
