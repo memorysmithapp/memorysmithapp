@@ -8,7 +8,7 @@ How an agent works in this repository. `.claude/CLAUDE.md` imports this file, so
 - **What it does:** hosts self-describing knowledge notebooks in Markdown, with structure, order and authoring Guidance declared as data, and serves them to AI tools through a remote MCP server, where the agent writes in a notebook obeying its Guidance and the Templates of its folders.
 - **Organisation:** [`memorysmithapp`](https://github.com/memorysmithapp). **Licence:** MIT, public repository.
 - **Version:** the `version` field of the root `package.json`, and nowhere else.
-- **Visual identity:** the brand book *Livro da marca v1* (Figma), carried into the tokens of `memorysmithapp-frontend/src/styles.css`. Never redraw the symbol, and never create a colour combination outside the four versions of the book.
+- **Visual identity:** the brand book *Livro da marca v1* (Figma), whose files and rules are in [`brand/`](brand/README.md), carried into the tokens of `memorysmithapp-frontend/src/styles.css`. Never redraw the symbol, and never create a colour combination outside the four versions of the book.
 
 ## 2. Reading map
 

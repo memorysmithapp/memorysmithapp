@@ -61,6 +61,8 @@ memorysmithapp/
 ├── .claude/CLAUDE.md              only imports AGENTS.md (INV-15)
 ├── README.md, CHANGELOG.md, LICENSE
 ├── docs/                          PRD.md, ARCHITECTURE.md, SDLC.md
+├── brand/                         the brand book: symbol, PNG, ICO and lockups, and the rules of
+│                                  their use (README.md)
 ├── scripts/                       quality.mjs: the checks of the documents and the version
 ├── .github/workflows/             CI, Production, Staging, Production maintenance
 ├── .dependency-cruiser.cjs        the dependency rules (INV-03, and the direction between projects)
