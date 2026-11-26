@@ -255,8 +255,7 @@ export function AboutPage() {
 function AboutBrand({ children }: { children?: ReactNode }) {
   return (
     <span className="about-brand">
-      <img className="about-symbol symbol-light" src="/symbol.svg" alt="" />
-      <img className="about-symbol symbol-dark" src="/symbol-dark.svg" alt="" />
+      <img className="about-symbol" src="/symbol.svg" alt="" />
       <span>{children}</span>
     </span>
   );

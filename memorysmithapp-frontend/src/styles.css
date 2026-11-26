@@ -3138,16 +3138,6 @@ body:has(.markdown dialog[open]) .app-main {
   cursor: help;
 }
 
-.symbol-dark {
-  display: none;
-}
-:root[data-theme='dark'] .symbol-light {
-  display: none;
-}
-:root[data-theme='dark'] .symbol-dark {
-  display: inline;
-}
-
 /* Login */
 .login-screen {
   /* The row it sits in is the window minus the banner, so it fills that and

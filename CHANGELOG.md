@@ -11,6 +11,10 @@ issues each entry cites.
 
 ## [Unreleased]
 
+### Changed
+
+- **The symbol in colour on both themes.** The header, the navigation drawer, the sign-in, the PDF tab and About show the brand book's symbol in colour on the dark theme too, instead of a lighter variant drawn only for it (#565).
+
 ## [0.25.0] - 2026-11-24
 
 ### Added

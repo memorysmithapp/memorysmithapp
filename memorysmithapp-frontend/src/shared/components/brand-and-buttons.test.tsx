@@ -26,10 +26,10 @@ describe('a link dressed as a button (#544)', () => {
 });
 
 describe('the brand of a screen outside the shell (#544)', () => {
-  it('is the symbol of each theme over the wordmark', () => {
+  it('is the symbol in colour over the wordmark, in every theme', () => {
     const markup = renderToStaticMarkup(<BrandHeading />);
     expect(markup).toContain('src="/symbol.svg"');
-    expect(markup).toContain('src="/symbol-dark.svg"');
+    expect(markup).not.toContain('symbol-dark');
     expect(markup).toMatch(/<h1 class="brand-word">MemorySmith<span class="brand-suffix">\.app/);
   });
 
